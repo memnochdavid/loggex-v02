@@ -1,8 +1,7 @@
 # Configuración manual de rutas (Fallback)
-api_hello:
-    path: /api/hello
-    controller: App\Controller\ApiController::index
+# PERO: Symfony 8 con atributos debería cargar las rutas automáticamente si está configurado.
+# Si este archivo existe y no importa las anotaciones/atributos, solo funcionarán estas rutas.
 
-app_test_page:
-    path: /test
-    controller: App\Controller\TestPageController::index
+controllers:
+    resource: ../src/Controller/
+    type: attribute
