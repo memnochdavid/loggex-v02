@@ -1,0 +1,17 @@
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker Volumes & Data
+caddy_data/
+caddy_config/
+db_data/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

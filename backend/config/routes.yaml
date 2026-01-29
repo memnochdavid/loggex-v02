@@ -1,0 +1,13 @@
+# Configuración manual de rutas (Fallback)
+# Si el escaneo automático de atributos falla, define tus rutas aquí.
+
+api_hello:
+    path: /api/hello
+    controller: App\Controller\ApiController::index
+
+# Intento de carga automática (puedes descomentar para probar en el futuro)
+# controllers:
+#     resource:
+#         path: ../src/Controller/
+#         namespace: App\Controller
+#     type: attribute

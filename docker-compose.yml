@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Proxy Inverso (HTTPS)
+  caddy:
+    image: caddy:2-alpine
+    container_name: loggex-caddy
+    restart: unless-stopped
+    ports:
+      - "8888:80"    # HTTP alternativo (antes 8080)
+      - "8443:443"   # HTTPS Frontend alternativo
+      - "9443:8443"  # HTTPS Backend alternativo
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  database:
+    image: postgres:15-alpine
+    container_name: loggex-db
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    security_opt:
+      - apparmor:unconfined
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: loggex-backend
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      - database
+    environment:
+      DATABASE_URL: "postgresql://app_user:app_password@database:5432/app_db?serverVersion=15&charset=utf8"
+      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+    security_opt:
+      - apparmor:unconfined
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: loggex-frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - HMR_HOST=localhost
+      - HMR_PORT=8443
+    depends_on:
+      - backend
+    security_opt:
+      - apparmor:unconfined
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

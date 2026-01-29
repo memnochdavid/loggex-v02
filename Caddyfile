@@ -1,0 +1,13 @@
+{
+    # Desactivar administración automática de certificados en producción,
+    # pero para localhost Caddy genera sus propios certificados CA locales.
+    local_certs
+}
+
+localhost {
+    reverse_proxy frontend:5173
+}
+
+localhost:8443 {
+    reverse_proxy backend:80
+}
