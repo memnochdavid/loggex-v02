@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import reactLogo from '../assets/react.svg';
 import styles from './Home.module.css';
+import Button from '../components/Button'; // Importamos el componente
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -32,12 +33,16 @@ const Home = () => {
       </div>
 
       <div className={styles.card}>
-        <button onClick={() => setCount((count) => count + 1)} className={styles.button}>
+        {/* Usamos nuestro componente Button */}
+        <Button onClick={() => setCount((count) => count + 1)}>
           Contador es {count}
-        </button>
-        <p>
-          Esta es la página <code>src/pages/Home.jsx</code>
-        </p>
+        </Button>
+        
+        <div style={{ marginTop: '1rem' }}>
+            <Button variant="secondary" onClick={() => alert('Hola')}>
+                Botón Secundario
+            </Button>
+        </div>
       </div>
     </div>
   );

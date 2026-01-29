@@ -101,7 +101,7 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Instalando dependencias de frontend..."
     cd frontend
     npm install
-    npm install react-router-dom # Instalar Router
+    npm install react-router-dom
 
     # Crear estructura de directorios profesional
     echo "Creando estructura de directorios Frontend..."
@@ -204,6 +204,68 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: var(--font-bold);
   color: var(--color-gray-900);
 }
+EOF
+
+    # --- Button Component ---
+    cat <<EOF > src/components/Button.module.css
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+.primary {
+  background-color: var(--color-primary-600);
+  color: white;
+}
+.primary:hover {
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.primary:active {
+  transform: translateY(0);
+}
+.secondary {
+  background-color: transparent;
+  border-color: var(--color-gray-300);
+  color: var(--text-main);
+}
+.secondary:hover {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-600);
+  background-color: var(--color-gray-50);
+}
+.danger {
+  background-color: var(--color-error);
+  color: white;
+}
+.danger:hover {
+  background-color: #dc2626;
+}
+EOF
+
+    cat <<EOF > src/components/Button.jsx
+import React from 'react';
+import styles from './Button.module.css';
+
+const Button = ({ variant = 'primary', children, className, ...props }) => {
+  const buttonClass = \`\${styles.button} \${styles[variant] || styles.primary} \${className || ''}\`.trim();
+  return (
+    <button className={buttonClass} {...props}>
+      {children}
+    </button>
+  );
+};
+export default Button;
 EOF
 
     # --- Header ---
@@ -341,39 +403,13 @@ h1 {
 .statusError {
   color: var(--color-error);
 }
-.button {
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  padding: var(--space-3) var(--space-6);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  background-color: var(--color-primary-600);
-  color: white;
-  cursor: pointer;
-  transition: var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-.button:hover {
-  background-color: var(--color-primary-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-.button:active {
-  transform: translateY(0);
-}
-code {
-  background-color: var(--color-gray-100);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary-700);
-  font-size: 0.9em;
-}
 EOF
 
     cat <<EOF > src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
 import reactLogo from '../assets/react.svg';
 import styles from './Home.module.css';
+import Button from '../components/Button';
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -403,9 +439,14 @@ const Home = () => {
         </p>
       </div>
       <div className={styles.card}>
-        <button onClick={() => setCount((count) => count + 1)} className={styles.button}>
+        <Button onClick={() => setCount((count) => count + 1)}>
           Contador es {count}
-        </button>
+        </Button>
+        <div style={{ marginTop: '1rem' }}>
+            <Button variant="secondary" onClick={() => alert('Hola')}>
+                Botón Secundario
+            </Button>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,56 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+
+  font-family: inherit;
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+  cursor: pointer;
+
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Variante Primaria (Por defecto) */
+.primary {
+  background-color: var(--color-primary-600);
+  color: white;
+}
+
+.primary:hover {
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.primary:active {
+  transform: translateY(0);
+}
+
+/* Variante Secundaria (Outline) */
+.secondary {
+  background-color: transparent;
+  border-color: var(--color-gray-300);
+  color: var(--text-main);
+}
+
+.secondary:hover {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-600);
+  background-color: var(--color-gray-50);
+}
+
+/* Variante Danger */
+.danger {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.danger:hover {
+  background-color: #dc2626; /* Un rojo más oscuro */
+}
