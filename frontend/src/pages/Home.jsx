@@ -34,7 +34,7 @@ const Home = () => {
 
       <div className={styles.card}>
         {/* Usamos nuestro componente Button */}
-        <Button onClick={() => setCount((count) => count + 1)}>
+        <Button onClick={() => setCount((count) => count + 1)} variant="primary">
           Contador es {count}
         </Button>
         
