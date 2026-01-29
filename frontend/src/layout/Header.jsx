@@ -24,7 +24,21 @@ const Header = () => {
       </div>
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         <Link to="/" className={styles.navLink}>Home</Link>
+        {user && (
+            <Link to="/centros" className={styles.navLink}>Centros</Link>
+        )}
         <Link to="/about" className={styles.navLink}>About</Link>
+        
+        {/* Enlace a la documentación de la API */}
+        <a 
+          href="https://localhost:9443/api" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={styles.navLink}
+          title="Documentación API Platform"
+        >
+          API Docs
+        </a>
         
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>

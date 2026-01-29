@@ -1,123 +1,106 @@
-# Loggex v02 - Skeleton Project (HTTPS)
+# Loggex v02 - SaaS Educativo (HTTPS)
 
-Este proyecto es un esqueleto base para aplicaciones web modernas utilizando **Symfony 8 (Backend)** y **React + Vite (Frontend)**, orquestado con **Docker** y servido vía **HTTPS** mediante Caddy.
+Este proyecto es una plataforma SaaS para la gestión de centros educativos, construida con **Symfony 8 + API Platform (Backend)** y **React + Vite (Frontend)**, orquestada con **Docker** y servida vía **HTTPS** mediante Caddy.
 
-## 🚀 Inicio Rápido (Nuevo Proyecto)
+## 🚀 Inicio Rápido (Clonar Proyecto)
 
-Si estás creando el proyecto desde cero:
-
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-## 🔄 Inicio Rápido (Clonar Proyecto Existente)
-
-Si acabas de clonar este repositorio desde Git en un equipo nuevo:
+Si acabas de clonar este repositorio en un equipo nuevo:
 
 1. Dale permisos al script de inicialización:
    ```bash
    chmod +x init.sh
    ```
 
-2. Ejecuta el script para instalar dependencias y levantar todo:
+2. Ejecuta el script para instalar dependencias, levantar contenedores e importar la base de datos:
    ```bash
    ./init.sh
    ```
 
 ---
 
-## 🌿 Flujo de Trabajo Recomendado (Git)
+## 🛠️ Acceso y Credenciales
 
-Para mantener el proyecto ordenado, **nunca trabajes directamente en la rama `main`**.
+### URLs
+- **Frontend (App)**: [https://localhost:8443](https://localhost:8443)
+- **Backend API (Swagger/Docs)**: [https://localhost:9443/api](https://localhost:9443/api)
+- **Backend Hello**: [https://localhost:9443/api/hello](https://localhost:9443/api/hello)
 
-1. **Asegúrate de estar actualizado**:
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
+### Base de Datos (MariaDB)
+- **Host**: `localhost`
+- **Puerto**: `3306`
+- **Usuario**: `app_user`
+- **Contraseña**: `app_password`
+- **Base de Datos**: `app_db`
+- **Root Password**: `root_password`
 
-2. **Crea una Rama (Branch)** para tu tarea:
-   *En PHPStorm: Click en la rama (esquina inferior derecha) -> New Branch.*
-   
-   O vía terminal:
-   ```bash
-   # Para nuevas funcionalidades
-   git checkout -b feature/nombre-funcionalidad
-   
-   # Para corrección de errores
-   git checkout -b fix/descripcion-error
-   ```
+### Usuarios de Prueba (Login)
+Puedes usar cualquiera de los usuarios existentes en la base de datos importada.
+- **Email Admin**: `admin@loggex.com`
+- **Email Profesor**: `alberto@eag.com`
+- **Email Alumno**: `vega.ferrer@alvarez.es`
 
-3. **Desarrolla tus cambios**:
-   Modifica el código, crea componentes, etc.
-
-4. **Guarda y Sube**:
-   ```bash
-   git add .
-   git commit -m "Descripción clara de lo que hice"
-   git push origin feature/nombre-funcionalidad
-   ```
+*(Nota: Las contraseñas están hasheadas en la BD. Si no conoces la contraseña original, puedes crear un nuevo usuario o actualizar el hash en la tabla `usuario`).*
 
 ---
 
-## 🛠️ Guía de Desarrollo
+## 🌿 Flujo de Trabajo (Git)
 
-### Acceso Seguro (HTTPS)
-- **Frontend**: [https://localhost:8443](https://localhost:8443)
-- **Backend API**: [https://localhost:9443/api/hello](https://localhost:9443/api/hello)
-- **Base de Datos**: Puerto `5432` (User: `app_user`, Pass: `app_password`, DB: `app_db`)
+1. **Actualiza main**: `git checkout main && git pull origin main`
+2. **Crea rama**: `git checkout -b feature/mi-tarea`
+3. **Desarrolla y Commit**: `git add . && git commit -m "..."`
+4. **Push**: `git push origin feature/mi-tarea`
 
-### Comandos Backend (Symfony)
-Ejecutar siempre dentro del contenedor:
+---
+
+## 📦 Arquitectura del Proyecto
+
+### Backend (`backend/`)
+- **API Platform**: Expone automáticamente una API REST completa basada en las entidades.
+- **Autenticación**: Login JSON (`/api/login`) y Sesiones (Cookies).
+- **Entidades (`src/Entity/`)**: Modelo de datos completo (Centro, Usuario, Grupo, etc.).
+- **Seguridad**: `config/packages/security.yaml` configura el firewall y control de acceso.
+
+### Frontend (`frontend/`)
+- **React + Vite**: SPA moderna.
+- **AuthContext**: Manejo de sesión global.
+- **CSS Modules**: Estilos encapsulados por componente.
+- **Estructura**:
+  - `src/pages/`: Vistas (Login, Home, etc.).
+  - `src/components/`: Componentes reutilizables.
+  - `src/context/`: Lógica global (Auth).
+
+### Infraestructura
+- **Docker**: Contenedores para PHP, Caddy, MariaDB y Node.
+- **Caddy**: Proxy inverso que maneja HTTPS automáticamente (certificados locales).
+- **MariaDB**: Base de datos relacional compatible con MySQL.
+
+---
+
+## 🔧 Comandos Útiles
+
+**Backend (Symfony)**
 ```bash
-docker compose exec backend php bin/console [comando]
+# Instalar paquete
+docker compose exec backend composer require [paquete]
+
+# Actualizar esquema de BD (si cambias entidades)
+docker compose exec backend php bin/console doctrine:schema:update --force
+
+# Limpiar caché
+docker compose exec backend php bin/console cache:clear
 ```
-- Crear Entidad: `make:entity`
-- Crear Controlador: `make:controller`
-- Rutas: Editar `backend/config/routes.yaml`
 
-### Comandos Frontend (React)
+**Frontend (React)**
 ```bash
+# Instalar paquete
 docker compose exec frontend npm install [paquete]
 ```
 
----
-
-## 📦 Estructura del Repositorio
-
-### Backend (`backend/`)
-- `src/Controller/`: Controladores de la API.
-- `src/Entity/`: Entidades de Doctrine (Base de Datos).
-- `config/routes.yaml`: Definición de rutas.
-
-### Frontend (`frontend/`)
-- `src/components/`: Componentes reutilizables pequeños (Botones, Inputs).
-- `src/layout/`: Componentes estructurales (Header, Footer).
-- `src/pages/`: Vistas completas (Home, Dashboard).
-- `src/App.jsx`: Componente raíz y Layout principal.
-
-**Estilos (CSS Modules):**
-Se recomienda usar CSS Modules para evitar conflictos de estilos.
-- Crea un archivo `NombreComponente.module.css` junto a tu componente.
-- Importalo: `import styles from './NombreComponente.module.css'`.
-- Úsalo: `className={styles.miClase}`.
-
-### Infraestructura
-- `docker-compose.yml`: Orquestación.
-- `Caddyfile`: Configuración del Proxy HTTPS.
-- `setup.sh`: Script para crear el proyecto desde cero (scaffolding).
-- `init.sh`: Script para instalar dependencias tras clonar (bootstrapping).
-
-## 🔧 Solución de Problemas
-
-**Compatibilidad con Fedora (SELinux)**
-La configuración de Docker (`docker-compose.yml`) incluye el flag `:z` en los volúmenes para ser compatible con sistemas que usan SELinux (como Fedora).
-
-**Puerto ocupado**
-Si el puerto 8888 o 8443 está ocupado, edita `docker-compose.yml`.
-
-**Permisos en Linux**
+**Docker**
 ```bash
-sudo chown -R $USER:$USER backend/ frontend/
+# Reiniciar todo reconstruyendo imágenes
+docker compose up -d --build
+
+# Ver logs
+docker compose logs -f [servicio]
 ```
