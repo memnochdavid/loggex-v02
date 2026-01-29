@@ -77,6 +77,9 @@ Se recomienda usar CSS Modules para evitar conflictos de estilos.
 
 ## 🔧 Solución de Problemas
 
+**Compatibilidad con Fedora (SELinux)**
+La configuración de Docker (`docker-compose.yml`) incluye el flag `:z` en los volúmenes para ser compatible con sistemas que usan SELinux (como Fedora).
+
 **Puerto ocupado**
 Si el puerto 8888 o 8443 está ocupado, edita `docker-compose.yml`.
 

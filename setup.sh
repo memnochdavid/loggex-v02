@@ -365,9 +365,9 @@ services:
       - "8443:443"
       - "9443:8443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:z
+      - caddy_data:/data:z
+      - caddy_config:/config:z
     depends_on:
       - frontend
       - backend
@@ -382,7 +382,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data:z
     security_opt:
       - apparmor:unconfined
 
@@ -392,7 +392,7 @@ services:
       dockerfile: Dockerfile
     container_name: loggex-backend
     volumes:
-      - ./backend:/var/www/html
+      - ./backend:/var/www/html:z
     depends_on:
       - database
     environment:
@@ -407,7 +407,7 @@ services:
       dockerfile: Dockerfile
     container_name: loggex-frontend
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app:z
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
