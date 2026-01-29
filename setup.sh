@@ -101,6 +101,219 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Instalando dependencias de frontend..."
     cd frontend
     npm install
+
+    # Crear estructura de directorios profesional
+    echo "Creando estructura de directorios Frontend..."
+    mkdir -p src/components src/layout src/pages
+
+    # --- Header ---
+    cat <<EOF > src/layout/Header.module.css
+.header {
+  padding: 1rem;
+  background-color: #20232a;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo {
+  height: 30px;
+}
+.title {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+.navLink {
+  color: #61dafb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+.navLink:hover {
+  color: #ffffff;
+}
+EOF
+
+    cat <<EOF > src/layout/Header.jsx
+import React from 'react';
+import viteLogo from '/vite.svg';
+import styles from './Header.module.css';
+
+const Header = () => {
+  return (
+    <header className={styles.header}>
+      <div className={styles.logoContainer}>
+        <img src={viteLogo} alt="Logo" className={styles.logo} />
+        <span className={styles.title}>Loggex v02</span>
+      </div>
+      <nav>
+        <a href="#" className={styles.navLink}>Home</a>
+      </nav>
+    </header>
+  );
+};
+export default Header;
+EOF
+
+    # --- Footer ---
+    cat <<EOF > src/layout/Footer.module.css
+.footer {
+  padding: 1rem;
+  background-color: #20232a;
+  color: white;
+  text-align: center;
+  margin-top: auto;
+}
+EOF
+
+    cat <<EOF > src/layout/Footer.jsx
+import React from 'react';
+import styles from './Footer.module.css';
+
+const Footer = () => {
+  return (
+    <footer className={styles.footer}>
+      <p>&copy; {new Date().getFullYear()} Loggex v02 Skeleton. Todos los derechos reservados.</p>
+    </footer>
+  );
+};
+export default Footer;
+EOF
+
+    # --- Home ---
+    cat <<EOF > src/pages/Home.module.css
+.container {
+  text-align: center;
+  padding: 2rem;
+}
+.logo {
+  height: 100px;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+.card {
+  border: 2px solid #646cff;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 500px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+.backendStatus {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+.statusSuccess {
+  color: green;
+}
+.statusError {
+  color: red;
+}
+.button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  color: white;
+}
+.button:hover {
+  border-color: #646cff;
+}
+EOF
+
+    cat <<EOF > src/pages/Home.jsx
+import React, { useState, useEffect } from 'react';
+import reactLogo from '../assets/react.svg';
+import styles from './Home.module.css';
+
+const Home = () => {
+  const [count, setCount] = useState(0);
+  const [backendMessage, setBackendMessage] = useState('Cargando...');
+
+  useEffect(() => {
+    fetch('https://localhost:9443/api/hello')
+      .then(response => response.json())
+      .then(data => setBackendMessage(data.message))
+      .catch(error => setBackendMessage('Error conectando al backend: ' + error));
+  }, []);
+
+  const isError = backendMessage.includes('Error');
+
+  return (
+    <div className={styles.container}>
+      <div>
+        <a href="https://react.dev" target="_blank" rel="noreferrer">
+          <img src={reactLogo} className={styles.logo} alt="React logo" />
+        </a>
+      </div>
+      <h1>Bienvenido a Loggex v02</h1>
+      <div className={styles.card}>
+        <h2>Estado del Backend:</h2>
+        <p className={\`\${styles.backendStatus} \${isError ? styles.statusError : styles.statusSuccess}\`}>
+          {backendMessage}
+        </p>
+      </div>
+      <div className={styles.card}>
+        <button onClick={() => setCount((count) => count + 1)} className={styles.button}>
+          Contador es {count}
+        </button>
+      </div>
+    </div>
+  );
+};
+export default Home;
+EOF
+
+    # --- App ---
+    cat <<EOF > src/App.css
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-main {
+  flex: 1;
+}
+EOF
+
+    cat <<EOF > src/App.jsx
+import React from 'react';
+import Header from './layout/Header';
+import Footer from './layout/Footer';
+import Home from './pages/Home';
+import './App.css';
+
+function App() {
+  return (
+    <div className="app-layout">
+      <Header />
+      <main className="app-main">
+        <Home />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+export default App;
+EOF
+
     cd ..
     echo "Frontend configurado correctamente."
 else

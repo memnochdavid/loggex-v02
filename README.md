@@ -25,12 +25,6 @@ Si acabas de clonar este repositorio desde Git:
    ./init.sh
    ```
 
-Este script se encargará de:
-- Levantar los contenedores Docker.
-- Instalar dependencias de PHP (`composer install`).
-- Instalar dependencias de JS (`npm install`).
-- Ejecutar migraciones de base de datos.
-
 ---
 
 ## 🛠️ Guía de Desarrollo
@@ -58,8 +52,24 @@ docker compose exec frontend npm install [paquete]
 
 ## 📦 Estructura del Repositorio
 
-- `backend/`: Código Symfony.
-- `frontend/`: Código React.
+### Backend (`backend/`)
+- `src/Controller/`: Controladores de la API.
+- `src/Entity/`: Entidades de Doctrine (Base de Datos).
+- `config/routes.yaml`: Definición de rutas.
+
+### Frontend (`frontend/`)
+- `src/components/`: Componentes reutilizables pequeños (Botones, Inputs).
+- `src/layout/`: Componentes estructurales (Header, Footer).
+- `src/pages/`: Vistas completas (Home, Dashboard).
+- `src/App.jsx`: Componente raíz y Layout principal.
+
+**Estilos (CSS Modules):**
+Se recomienda usar CSS Modules para evitar conflictos de estilos.
+- Crea un archivo `NombreComponente.module.css` junto a tu componente.
+- Importalo: `import styles from './NombreComponente.module.css'`.
+- Úsalo: `className={styles.miClase}`.
+
+### Infraestructura
 - `docker-compose.yml`: Orquestación.
 - `Caddyfile`: Configuración del Proxy HTTPS.
 - `setup.sh`: Script para crear el proyecto desde cero (scaffolding).

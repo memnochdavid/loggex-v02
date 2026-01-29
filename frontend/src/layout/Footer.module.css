@@ -1,0 +1,7 @@
+.footer {
+  padding: 1rem;
+  background-color: #20232a;
+  color: white;
+  text-align: center;
+  margin-top: auto; /* Empuja el footer hacia abajo */
+}
