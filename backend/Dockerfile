@@ -1,11 +1,12 @@
 FROM php:8.4-apache
 
 # Instalar dependencias del sistema y extensiones PHP
+# Cambiamos libpq-dev (Postgres) por default-mysql-client (opcional) y extensiones pdo_mysql
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
     git \
     unzip \
-    && docker-php-ext-install pdo pdo_pgsql
+    default-mysql-client \
+    && docker-php-ext-install pdo pdo_mysql
 
 # Habilitar mod_rewrite
 RUN a2enmod rewrite

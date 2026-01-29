@@ -22,7 +22,12 @@ docker compose exec frontend npm install
 echo "Ejecutando migraciones de base de datos..."
 # Esperar un poco a que la BD esté lista
 sleep 5
-docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+
+if [ -n "$(find backend/migrations -name '*.php')" ]; then
+    docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+else
+    echo "No se encontraron migraciones. Saltando este paso."
+fi
 
 echo ""
 echo "=== ¡Proyecto listo! ==="
