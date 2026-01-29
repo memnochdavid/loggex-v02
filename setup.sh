@@ -138,7 +138,7 @@ if [ -z "$(ls -A frontend)" ]; then
   --color-error:   #ef4444;
   --color-info:    #3b82f6;
 
-  --bg-body:       var(--color-gray-50);
+  --bg-body:       var(--color-gray-5);
   --bg-card:       #ffffff;
   --bg-dark:       var(--color-gray-800);
 
@@ -473,6 +473,62 @@ const About = () => {
 export default About;
 EOF
 
+    # --- NotFound Page ---
+    cat <<EOF > src/pages/NotFound.module.css
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: var(--space-4);
+}
+.errorCode {
+  font-size: 6rem;
+  font-weight: var(--font-bold);
+  color: var(--color-primary-500);
+  margin: 0;
+  line-height: 1;
+  text-shadow: 4px 4px 0px var(--color-primary-100);
+}
+.title {
+  font-size: var(--text-2xl);
+  color: var(--color-gray-800);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+.message {
+  font-size: var(--text-lg);
+  color: var(--color-gray-500);
+  margin-bottom: var(--space-8);
+  max-width: 500px;
+}
+EOF
+
+    cat <<EOF > src/pages/NotFound.jsx
+import React from 'react';
+import { Link } from 'react-router-dom';
+import styles from './NotFound.module.css';
+import Button from '../components/Button';
+
+const NotFound = () => {
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.errorCode}>404</h1>
+      <h2 className={styles.title}>Página no encontrada</h2>
+      <p className={styles.message}>
+        Lo sentimos, la página que estás buscando no existe o ha sido movida.
+      </p>
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <Button>Volver al Inicio</Button>
+      </Link>
+    </div>
+  );
+};
+export default NotFound;
+EOF
+
     # --- App ---
     cat <<EOF > src/App.css
 #root {
@@ -497,6 +553,7 @@ import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
+import NotFound from './pages/NotFound';
 import './App.css';
 
 function App() {
@@ -508,6 +565,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />

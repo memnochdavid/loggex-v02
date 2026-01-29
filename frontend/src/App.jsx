@@ -4,6 +4,7 @@ import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
+import NotFound from './pages/NotFound'; // Importamos la página de error
 import './App.css';
 
 function App() {
@@ -15,6 +16,9 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
+            
+            {/* Ruta Comodín (404) - Debe ir siempre al final */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />
