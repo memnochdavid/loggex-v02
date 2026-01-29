@@ -101,6 +101,7 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Instalando dependencias de frontend..."
     cd frontend
     npm install
+    npm install react-router-dom # Instalar Router
 
     # Crear estructura de directorios profesional
     echo "Creando estructura de directorios Frontend..."
@@ -246,6 +247,7 @@ EOF
 
     cat <<EOF > src/layout/Header.jsx
 import React from 'react';
+import { Link } from 'react-router-dom';
 import viteLogo from '/vite.svg';
 import styles from './Header.module.css';
 
@@ -256,8 +258,9 @@ const Header = () => {
         <img src={viteLogo} alt="Logo" className={styles.logo} />
         <span className={styles.title}>Loggex v02</span>
       </div>
-      <nav>
-        <a href="#" className={styles.navLink}>Home</a>
+      <nav style={{ display: 'flex', gap: '1rem' }}>
+        <Link to="/" className={styles.navLink}>Home</Link>
+        <Link to="/about" className={styles.navLink}>About</Link>
       </nav>
     </header>
   );
@@ -410,6 +413,25 @@ const Home = () => {
 export default Home;
 EOF
 
+    # --- About Page ---
+    cat <<EOF > src/pages/About.jsx
+import React from 'react';
+import styles from './Home.module.css';
+
+const About = () => {
+  return (
+    <div className={styles.container}>
+      <h1>Acerca de Loggex</h1>
+      <div className={styles.card}>
+        <p>Esta es una aplicación de demostración para mostrar cómo funciona el enrutamiento en React (SPA).</p>
+        <p>El Header y el Footer se mantienen fijos, ¡solo cambia este contenido!</p>
+      </div>
+    </div>
+  );
+};
+export default About;
+EOF
+
     # --- App ---
     cat <<EOF > src/App.css
 #root {
@@ -429,20 +451,27 @@ EOF
 
     cat <<EOF > src/App.jsx
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
+import About from './pages/About';
 import './App.css';
 
 function App() {
   return (
-    <div className="app-layout">
-      <Header />
-      <main className="app-main">
-        <Home />
-      </main>
-      <Footer />
-    </div>
+    <Router>
+      <div className="app-layout">
+        <Header />
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 export default App;
