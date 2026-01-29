@@ -13,7 +13,7 @@ chmod +x setup.sh
 
 ## 🔄 Inicio Rápido (Clonar Proyecto Existente)
 
-Si acabas de clonar este repositorio desde Git:
+Si acabas de clonar este repositorio desde Git en un equipo nuevo:
 
 1. Dale permisos al script de inicialización:
    ```bash
@@ -23,6 +23,40 @@ Si acabas de clonar este repositorio desde Git:
 2. Ejecuta el script para instalar dependencias y levantar todo:
    ```bash
    ./init.sh
+   ```
+
+---
+
+## 🌿 Flujo de Trabajo Recomendado (Git)
+
+Para mantener el proyecto ordenado, **nunca trabajes directamente en la rama `main`**.
+
+1. **Asegúrate de estar actualizado**:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. **Crea una Rama (Branch)** para tu tarea:
+   *En PHPStorm: Click en la rama (esquina inferior derecha) -> New Branch.*
+   
+   O vía terminal:
+   ```bash
+   # Para nuevas funcionalidades
+   git checkout -b feature/nombre-funcionalidad
+   
+   # Para corrección de errores
+   git checkout -b fix/descripcion-error
+   ```
+
+3. **Desarrolla tus cambios**:
+   Modifica el código, crea componentes, etc.
+
+4. **Guarda y Sube**:
+   ```bash
+   git add .
+   git commit -m "Descripción clara de lo que hice"
+   git push origin feature/nombre-funcionalidad
    ```
 
 ---
