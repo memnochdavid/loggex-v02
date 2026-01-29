@@ -1,52 +1,83 @@
 .container {
   text-align: center;
-  padding: 2rem;
+  padding: var(--space-12) var(--space-4);
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .logo {
-  height: 100px;
+  height: 120px;
+  margin-bottom: var(--space-6);
   transition: filter 300ms;
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em rgba(99, 102, 241, 0.5)); /* Indigo glow */
+}
+
+h1 {
+  font-size: var(--text-3xl);
+  margin-bottom: var(--space-8);
+  color: var(--color-gray-900);
 }
 
 .card {
-  border: 2px solid #646cff;
-  padding: 20px;
-  margin: 20px auto;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: var(--space-6);
+  margin: var(--space-6) auto;
   max-width: 500px;
-  border-radius: 8px;
-  background-color: #f9f9f9;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-300);
 }
 
 .backendStatus {
-  font-size: 1.2em;
-  font-weight: bold;
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-2);
 }
 
 .statusSuccess {
-  color: green;
+  color: var(--color-success);
 }
 
 .statusError {
-  color: red;
+  color: var(--color-error);
 }
 
 .button {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  background-color: var(--color-primary-600);
   color: white;
+  cursor: pointer;
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 
 .button:hover {
-  border-color: #646cff;
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+code {
+  background-color: var(--color-gray-100);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-700);
+  font-size: 0.9em;
 }

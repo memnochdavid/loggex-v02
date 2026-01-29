@@ -1,34 +1,40 @@
 .header {
-  padding: 1rem;
-  background-color: #20232a;
-  color: white;
+  padding: var(--space-4) var(--space-8);
+  background-color: var(--bg-dark);
+  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: var(--shadow-md);
 }
 
 .logoContainer {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .logo {
-  height: 30px;
+  height: 32px;
 }
 
 .title {
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  letter-spacing: -0.025em;
 }
 
 .navLink {
-  color: #61dafb;
+  color: var(--color-gray-300);
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s;
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  transition: var(--transition-base);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
 }
 
 .navLink:hover {
-  color: #ffffff;
+  color: var(--text-light);
+  background-color: var(--color-gray-700);
 }

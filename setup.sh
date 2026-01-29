@@ -106,36 +106,141 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Creando estructura de directorios Frontend..."
     mkdir -p src/components src/layout src/pages
 
+    # --- Variables Globales (index.css) ---
+    cat <<EOF > src/index.css
+:root {
+  /* Paleta de Colores (Indigo & Slate) */
+  --color-primary-50:  #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  --color-gray-50:  #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error:   #ef4444;
+  --color-info:    #3b82f6;
+
+  --bg-body:       var(--color-gray-50);
+  --bg-card:       #ffffff;
+  --bg-dark:       var(--color-gray-800);
+
+  --text-main:     var(--color-gray-800);
+  --text-muted:    var(--color-gray-500);
+  --text-light:    #ffffff;
+
+  /* Espaciado (Base 4px) */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Tipografía */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-bold:   700;
+
+  /* Bordes */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.375rem;
+  --radius-lg:  0.5rem;
+  --radius-xl:  0.75rem;
+  --radius-full: 9999px;
+
+  --border-width: 1px;
+  --border-color: var(--color-gray-200);
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  --transition-base: all 0.2s ease-in-out;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+}
+EOF
+
     # --- Header ---
     cat <<EOF > src/layout/Header.module.css
 .header {
-  padding: 1rem;
-  background-color: #20232a;
-  color: white;
+  padding: var(--space-4) var(--space-8);
+  background-color: var(--bg-dark);
+  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: var(--shadow-md);
 }
 .logoContainer {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
 }
 .logo {
-  height: 30px;
+  height: 32px;
 }
 .title {
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  letter-spacing: -0.025em;
 }
 .navLink {
-  color: #61dafb;
+  color: var(--color-gray-300);
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s;
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  transition: var(--transition-base);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
 }
 .navLink:hover {
-  color: #ffffff;
+  color: var(--text-light);
+  background-color: var(--color-gray-700);
 }
 EOF
 
@@ -163,11 +268,13 @@ EOF
     # --- Footer ---
     cat <<EOF > src/layout/Footer.module.css
 .footer {
-  padding: 1rem;
-  background-color: #20232a;
-  color: white;
+  padding: var(--space-6);
+  background-color: var(--bg-dark);
+  color: var(--color-gray-400);
   text-align: center;
   margin-top: auto;
+  font-size: var(--text-sm);
+  border-top: 1px solid var(--color-gray-700);
 }
 EOF
 
@@ -189,47 +296,74 @@ EOF
     cat <<EOF > src/pages/Home.module.css
 .container {
   text-align: center;
-  padding: 2rem;
+  padding: var(--space-12) var(--space-4);
+  max-width: 1200px;
+  margin: 0 auto;
 }
 .logo {
-  height: 100px;
+  height: 120px;
+  margin-bottom: var(--space-6);
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em rgba(99, 102, 241, 0.5));
+}
+h1 {
+  font-size: var(--text-3xl);
+  margin-bottom: var(--space-8);
+  color: var(--color-gray-900);
 }
 .card {
-  border: 2px solid #646cff;
-  padding: 20px;
-  margin: 20px auto;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: var(--space-6);
+  margin: var(--space-6) auto;
   max-width: 500px;
-  border-radius: 8px;
-  background-color: #f9f9f9;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-300);
 }
 .backendStatus {
-  font-size: 1.2em;
-  font-weight: bold;
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-2);
 }
 .statusSuccess {
-  color: green;
+  color: var(--color-success);
 }
 .statusError {
-  color: red;
+  color: var(--color-error);
 }
 .button {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  background-color: var(--color-primary-600);
   color: white;
+  cursor: pointer;
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 .button:hover {
-  border-color: #646cff;
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.button:active {
+  transform: translateY(0);
+}
+code {
+  background-color: var(--color-gray-100);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-700);
+  font-size: 0.9em;
 }
 EOF
 

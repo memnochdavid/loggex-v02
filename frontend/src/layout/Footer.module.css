@@ -1,7 +1,9 @@
 .footer {
-  padding: 1rem;
-  background-color: #20232a;
-  color: white;
+  padding: var(--space-6);
+  background-color: var(--bg-dark);
+  color: var(--color-gray-400);
   text-align: center;
-  margin-top: auto; /* Empuja el footer hacia abajo */
+  margin-top: auto;
+  font-size: var(--text-sm);
+  border-top: 1px solid var(--color-gray-700);
 }
