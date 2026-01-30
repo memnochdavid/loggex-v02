@@ -14,8 +14,9 @@ if [ -z "$(ls -A backend)" ]; then
     composer create-project symfony/skeleton backend
 
     cd backend
-    echo "Instalando dependencias (Webapp + CORS)..."
-    composer require webapp nelmio/cors-bundle
+    echo "Instalando dependencias (Webapp + CORS + JWT)..."
+    # Añadimos lexik/jwt-authentication-bundle aquí
+    composer require webapp nelmio/cors-bundle lexik/jwt-authentication-bundle
     cd ..
     echo "Backend configurado correctamente."
 else
@@ -82,7 +83,7 @@ cat <<EOF > backend/Dockerfile
 FROM php:8.4-apache
 RUN apt-get update && apt-get install -y \\
     libpq-dev git unzip \\
-    && docker-php-ext-install pdo pdo_pgsql
+    && docker-php-ext-install pdo pdo_mysql
 RUN a2enmod rewrite
 COPY apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 WORKDIR /var/www/html
@@ -628,23 +629,25 @@ services:
       - "9443:8443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:z
-      - caddy_data:/data:z
-      - caddy_config:/config:z
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - frontend
       - backend
 
   database:
-    image: postgres:15-alpine
+    image: mariadb:10.11
     container_name: loggex-db
     environment:
-      POSTGRES_DB: app_db
-      POSTGRES_USER: app_user
-      POSTGRES_PASSWORD: app_password
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+      MYSQL_ROOT_PASSWORD: root_password
     ports:
-      - "5432:5432"
+      - "3307:3306"
     volumes:
-      - db_data:/var/lib/postgresql/data:z
+      - db_data:/var/lib/mysql
+      - ./backup_tfg.sql:/docker-entrypoint-initdb.d/init.sql:z
     security_opt:
       - apparmor:unconfined
 
@@ -658,8 +661,8 @@ services:
     depends_on:
       - database
     environment:
-      DATABASE_URL: "postgresql://app_user:app_password@database:5432/app_db?serverVersion=15&charset=utf8"
-      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+      DATABASE_URL: "mysql://app_user:app_password@database:3306/app_db?serverVersion=10.11.15-MariaDB&charset=utf8mb4"
+      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?'
     security_opt:
       - apparmor:unconfined
 
