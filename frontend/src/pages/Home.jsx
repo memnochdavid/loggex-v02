@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import reactLogo from '../assets/react.svg';
+import logoApp from '../../public/logo_app.png';
 import styles from './Home.module.css';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
+import Layout from '../components/Layout';
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -25,10 +26,10 @@ const Home = () => {
   const isError = backendMessage && backendMessage.includes('Error');
 
   return (
-    <div className={styles.container}>
+    <Layout>
       <div>
         <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className={styles.logo} alt="React logo" />
+          <img src={logoApp} className={styles.logo} alt="React logo" />
         </a>
       </div>
       <h1>Bienvenido, {user?.nombre}</h1>
@@ -43,7 +44,7 @@ const Home = () => {
           Contador es {count}
         </Button>
       </div>
-    </div>
+    </Layout>
   );
 };
 

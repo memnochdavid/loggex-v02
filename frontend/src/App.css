@@ -1,15 +1,14 @@
-#root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden; /* Evita scroll en la ventana principal */
 }
 
 .app-main {
-  flex: 1;
+  flex: 1; /* Ocupa el espacio restante (100vh - Header - Footer) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* El scroll lo manejarán los hijos (Sidebar/Content) */
+  position: relative;
 }

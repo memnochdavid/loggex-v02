@@ -1,83 +1,84 @@
 .container {
-  text-align: center;
-  padding: var(--space-12) var(--space-4);
-  max-width: 1200px;
-  margin: 0 auto;
+    text-align: center;
+    padding: var(--space-12) var(--space-4);
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 92vh;
 }
 
 .logo {
-  height: 120px;
-  margin-bottom: var(--space-6);
-  transition: filter 300ms;
+    height: 120px;
+    /*margin-bottom: var(--space-6);*/
+    transition: filter 300ms;
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 2em rgba(99, 102, 241, 0.5)); /* Indigo glow */
+    filter: drop-shadow(0 0 2em rgba(99, 102, 241, 0.5)); /* Indigo glow */
 }
 
 h1 {
-  font-size: var(--text-3xl);
-  margin-bottom: var(--space-8);
-  color: var(--color-gray-900);
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-8);
+    color: var(--color-gray-900);
 }
 
 .card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  padding: var(--space-6);
-  margin: var(--space-6) auto;
-  max-width: 500px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition-base);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: var(--space-6);
+    margin: var(--space-6) auto;
+    max-width: 500px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-primary-300);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-300);
 }
 
 .backendStatus {
-  font-size: var(--text-lg);
-  font-weight: var(--font-medium);
-  margin-top: var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: var(--font-medium);
+    margin-top: var(--space-2);
 }
 
 .statusSuccess {
-  color: var(--color-success);
+    color: var(--color-success);
 }
 
 .statusError {
-  color: var(--color-error);
+    color: var(--color-error);
 }
 
 .button {
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  padding: var(--space-3) var(--space-6);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  background-color: var(--color-primary-600);
-  color: white;
-  cursor: pointer;
-  transition: var(--transition-base);
-  box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    background-color: var(--color-primary-600);
+    color: white;
+    cursor: pointer;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-sm);
 }
 
 .button:hover {
-  background-color: var(--color-primary-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+    background-color: var(--color-primary-700);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .button:active {
-  transform: translateY(0);
+    transform: translateY(0);
 }
 
 code {
-  background-color: var(--color-gray-100);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary-700);
-  font-size: 0.9em;
+    background-color: var(--color-gray-100);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    color: var(--color-primary-700);
+    font-size: 0.9em;
 }

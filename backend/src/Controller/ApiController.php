@@ -13,7 +13,7 @@ class ApiController extends AbstractController
     public function index(): JsonResponse
     {
         return $this->json([
-            'message' => '¡Hola desde Symfony Backend!',
+            'message' => 'Conexión establecida con éxito',
             'timestamp' => time(),
         ]);
     }

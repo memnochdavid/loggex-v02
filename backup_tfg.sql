@@ -45,37 +45,6 @@ CREATE TABLE `asistencia` (
 
 LOCK TABLES `asistencia` WRITE;
 /*!40000 ALTER TABLE `asistencia` DISABLE KEYS */;
-INSERT INTO `asistencia` VALUES
-(11,'2025-12-22','F',40,72,'15:00:00','tyihulhjgñ'),
-(12,'2025-12-22','P',40,73,'15:00:00',''),
-(13,'2025-12-22','P',40,74,'15:00:00',''),
-(14,'2025-12-22','P',40,75,'15:00:00',''),
-(15,'2025-12-22','P',40,76,'15:00:00',''),
-(16,'2025-12-22','F',24,57,'10:00:00',''),
-(17,'2025-12-22','P',24,58,'10:00:00',''),
-(18,'2025-12-22','P',24,59,'10:00:00',''),
-(19,'2025-12-22','P',24,60,'10:00:00',''),
-(20,'2025-12-22','P',24,61,'10:00:00',''),
-(21,'2025-12-22','R',31,62,'12:00:00','un retraso para un retrasado'),
-(22,'2025-12-22','P',31,63,'12:00:00',''),
-(23,'2025-12-22','P',31,64,'12:00:00',''),
-(24,'2025-12-22','P',31,65,'12:00:00',''),
-(25,'2025-12-22','P',31,66,'12:00:00',''),
-(26,'2025-12-18','P',28,57,'12:00:00',''),
-(27,'2025-12-18','F',28,58,'12:00:00',''),
-(28,'2025-12-18','P',28,59,'12:00:00',''),
-(29,'2025-12-18','P',28,60,'12:00:00',''),
-(30,'2025-12-18','F',28,61,'12:00:00',''),
-(31,'2025-12-19','F',28,57,'13:00:00',''),
-(32,'2025-12-19','P',28,58,'13:00:00',''),
-(33,'2025-12-19','P',28,59,'13:00:00',''),
-(34,'2025-12-19','F',28,60,'13:00:00',''),
-(35,'2025-12-19','P',28,61,'13:00:00',''),
-(36,'2025-12-16','P',37,67,'19:00:00',''),
-(37,'2025-12-16','F',37,68,'19:00:00',''),
-(38,'2025-12-16','P',37,69,'19:00:00',''),
-(39,'2025-12-16','P',37,70,'19:00:00',''),
-(40,'2025-12-16','F',37,71,'19:00:00','');
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -103,8 +72,6 @@ CREATE TABLE `calificacion` (
 
 LOCK TABLES `calificacion` WRITE;
 /*!40000 ALTER TABLE `calificacion` DISABLE KEYS */;
-INSERT INTO `calificacion` VALUES
-(7,8,'lo has hecho muy bien',7);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -251,8 +218,6 @@ CREATE TABLE `entrega` (
 
 LOCK TABLES `entrega` WRITE;
 /*!40000 ALTER TABLE `entrega` DISABLE KEYS */;
-INSERT INTO `entrega` VALUES
-(7,'2025-12-22 16:04:15','asgsdgbsdfb',10,57,'https://drive.google.com/drive/folders/1w7-lVfgAcYjL3phW6RIEjjWXnfluH09t?usp=sharing');
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -281,9 +246,6 @@ CREATE TABLE `festivo` (
 
 LOCK TABLES `festivo` WRITE;
 /*!40000 ALTER TABLE `festivo` DISABLE KEYS */;
-INSERT INTO `festivo` VALUES
-(4,'Navidad','2025-12-22',NULL,'2026-01-06'),
-(5,'Semana Santa','2026-03-28',NULL,'2026-04-05');
 /*!40000 ALTER TABLE `festivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -316,11 +278,6 @@ CREATE TABLE `grupo` (
 
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
-INSERT INTO `grupo` VALUES
-(5,'Desarrollo de Aplicaciones Web','2025/2026',3,3,1,'1º DAW'),
-(6,'Desarrollo de Aplicaciones Web','2024/2025',3,3,2,'2º DAW'),
-(7,'Desarrollo de Aplicaciones Multiplataforma','2025/2026',4,3,1,'1º DAM'),
-(8,'Desarrollo de Aplicaciones Multiplataforma','2024/2025',4,3,2,'2º DAM');
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -350,125 +307,6 @@ CREATE TABLE `horario` (
 
 LOCK TABLES `horario` WRITE;
 /*!40000 ALTER TABLE `horario` DISABLE KEYS */;
-INSERT INTO `horario` VALUES
-(98,1,'08:30:00','09:30:00','Aula 101',23),
-(99,1,'09:30:00','10:30:00','Aula 101',23),
-(100,1,'10:30:00','11:30:00','Aula 101',24),
-(101,1,'11:30:00','12:30:00','Aula 101',24),
-(102,1,'12:30:00','13:30:00','Aula 101',25),
-(103,1,'13:30:00','14:30:00','Aula 101',25),
-(104,2,'08:30:00','09:30:00','Aula 101',23),
-(105,2,'09:30:00','10:30:00','Aula 101',23),
-(106,2,'10:30:00','11:30:00','Aula 101',25),
-(107,2,'11:30:00','12:30:00','Aula 101',25),
-(108,2,'12:30:00','13:30:00','Aula 101',26),
-(109,2,'13:30:00','14:30:00','Aula 101',26),
-(110,3,'08:30:00','09:30:00','Aula 101',23),
-(111,3,'09:30:00','10:30:00','Aula 101',23),
-(112,3,'10:30:00','11:30:00','Aula 101',26),
-(113,3,'11:30:00','12:30:00','Aula 101',26),
-(114,3,'12:30:00','13:30:00','Aula 101',27),
-(115,3,'13:30:00','14:30:00','Aula 101',27),
-(116,4,'08:30:00','09:30:00','Aula 101',26),
-(117,4,'09:30:00','10:30:00','Aula 101',26),
-(118,4,'10:30:00','11:30:00','Aula 101',27),
-(119,4,'11:30:00','12:30:00','Aula 101',27),
-(120,4,'12:30:00','13:30:00','Aula 101',28),
-(121,4,'13:30:00','14:30:00','Aula 101',28),
-(122,5,'08:30:00','09:30:00','Aula 101',26),
-(123,5,'09:30:00','10:30:00','Aula 101',26),
-(124,5,'10:30:00','11:30:00','Aula 101',27),
-(125,5,'11:30:00','12:30:00','Aula 101',27),
-(126,5,'12:30:00','13:30:00','Aula 101',24),
-(127,5,'13:30:00','14:30:00','Aula 101',28),
-(128,1,'08:30:00','09:30:00','Aula 102',29),
-(129,1,'09:30:00','10:30:00','Aula 102',29),
-(130,1,'10:30:00','11:30:00','Aula 102',30),
-(131,1,'11:30:00','12:30:00','Aula 102',30),
-(132,1,'12:30:00','13:30:00','Aula 102',31),
-(133,1,'13:30:00','14:30:00','Aula 102',31),
-(134,2,'08:30:00','09:30:00','Aula 102',29),
-(135,2,'09:30:00','10:30:00','Aula 102',29),
-(136,2,'10:30:00','11:30:00','Aula 102',30),
-(137,2,'11:30:00','12:30:00','Aula 102',30),
-(138,2,'12:30:00','13:30:00','Aula 102',31),
-(139,2,'13:30:00','14:30:00','Aula 102',31),
-(140,3,'08:30:00','09:30:00','Aula 102',29),
-(141,3,'09:30:00','10:30:00','Aula 102',29),
-(142,3,'10:30:00','11:30:00','Aula 102',30),
-(143,3,'11:30:00','12:30:00','Aula 102',30),
-(144,3,'12:30:00','13:30:00','Aula 102',32),
-(145,3,'13:30:00','14:30:00','Aula 102',32),
-(146,4,'08:30:00','09:30:00','Aula 102',30),
-(147,4,'09:30:00','10:30:00','Aula 102',30),
-(148,4,'10:30:00','11:30:00','Aula 102',32),
-(149,4,'11:30:00','12:30:00','Aula 102',32),
-(150,4,'12:30:00','13:30:00','Aula 102',33),
-(151,4,'13:30:00','14:30:00','Aula 102',33),
-(152,5,'08:30:00','09:30:00','Aula 102',32),
-(153,5,'09:30:00','10:30:00','Aula 102',32),
-(154,5,'10:30:00','11:30:00','Aula 102',33),
-(155,5,'11:30:00','12:30:00','Aula 102',33),
-(156,5,'12:30:00','13:30:00','Aula 102',29),
-(157,1,'15:00:00','16:00:00','Aula 103',34),
-(158,1,'16:00:00','17:00:00','Aula 103',34),
-(159,1,'17:00:00','18:00:00','Aula 103',35),
-(160,1,'18:00:00','19:00:00','Aula 103',35),
-(161,1,'19:00:00','20:00:00','Aula 103',36),
-(162,1,'20:00:00','21:00:00','Aula 103',36),
-(163,2,'15:00:00','16:00:00','Aula 103',34),
-(164,2,'16:00:00','17:00:00','Aula 103',34),
-(165,2,'17:00:00','18:00:00','Aula 103',36),
-(166,2,'18:00:00','19:00:00','Aula 103',36),
-(167,2,'19:00:00','20:00:00','Aula 103',37),
-(168,2,'20:00:00','21:00:00','Aula 103',37),
-(169,3,'15:00:00','16:00:00','Aula 103',34),
-(170,3,'16:00:00','17:00:00','Aula 103',34),
-(171,3,'17:00:00','18:00:00','Aula 103',37),
-(172,3,'18:00:00','19:00:00','Aula 103',37),
-(173,3,'19:00:00','20:00:00','Aula 103',38),
-(174,3,'20:00:00','21:00:00','Aula 103',38),
-(175,4,'15:00:00','16:00:00','Aula 103',37),
-(176,4,'16:00:00','17:00:00','Aula 103',37),
-(177,4,'17:00:00','18:00:00','Aula 103',38),
-(178,4,'18:00:00','19:00:00','Aula 103',38),
-(179,4,'19:00:00','20:00:00','Aula 103',39),
-(180,4,'20:00:00','21:00:00','Aula 103',39),
-(181,5,'15:00:00','16:00:00','Aula 103',37),
-(182,5,'16:00:00','17:00:00','Aula 103',37),
-(183,5,'17:00:00','18:00:00','Aula 103',38),
-(184,5,'18:00:00','19:00:00','Aula 103',38),
-(185,5,'19:00:00','20:00:00','Aula 103',35),
-(186,5,'20:00:00','21:00:00','Aula 103',39),
-(187,1,'15:00:00','16:00:00','Aula 104',40),
-(188,1,'16:00:00','17:00:00','Aula 104',40),
-(189,1,'17:00:00','18:00:00','Aula 104',41),
-(190,1,'18:00:00','19:00:00','Aula 104',41),
-(191,1,'19:00:00','20:00:00','Aula 104',42),
-(192,1,'20:00:00','21:00:00','Aula 104',42),
-(193,2,'15:00:00','16:00:00','Aula 104',40),
-(194,2,'16:00:00','17:00:00','Aula 104',40),
-(195,2,'17:00:00','18:00:00','Aula 104',41),
-(196,2,'18:00:00','19:00:00','Aula 104',41),
-(197,2,'19:00:00','20:00:00','Aula 104',42),
-(198,2,'20:00:00','21:00:00','Aula 104',42),
-(199,3,'15:00:00','16:00:00','Aula 104',40),
-(200,3,'16:00:00','17:00:00','Aula 104',40),
-(201,3,'17:00:00','18:00:00','Aula 104',41),
-(202,3,'18:00:00','19:00:00','Aula 104',41),
-(203,3,'19:00:00','20:00:00','Aula 104',43),
-(204,3,'20:00:00','21:00:00','Aula 104',43),
-(205,4,'15:00:00','16:00:00','Aula 104',43),
-(206,4,'16:00:00','17:00:00','Aula 104',43),
-(207,4,'17:00:00','18:00:00','Aula 104',44),
-(208,4,'18:00:00','19:00:00','Aula 104',44),
-(209,4,'19:00:00','20:00:00','Aula 104',45),
-(210,4,'20:00:00','21:00:00','Aula 104',45),
-(211,5,'15:00:00','16:00:00','Aula 104',44),
-(212,5,'16:00:00','17:00:00','Aula 104',44),
-(213,5,'17:00:00','18:00:00','Aula 104',42),
-(214,5,'18:00:00','19:00:00','Aula 104',43),
-(215,5,'19:00:00','20:00:00','Aula 104',45);
 /*!40000 ALTER TABLE `horario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -500,30 +338,6 @@ CREATE TABLE `imparticion` (
 
 LOCK TABLES `imparticion` WRITE;
 /*!40000 ALTER TABLE `imparticion` DISABLE KEYS */;
-INSERT INTO `imparticion` VALUES
-(23,50,35,5),
-(24,51,36,5),
-(25,52,37,5),
-(26,53,38,5),
-(27,54,39,5),
-(28,55,40,5),
-(29,56,41,6),
-(30,50,42,6),
-(31,51,43,6),
-(32,52,44,6),
-(33,53,45,6),
-(34,52,23,7),
-(35,53,24,7),
-(36,54,25,7),
-(37,55,26,7),
-(38,56,27,7),
-(39,50,28,7),
-(40,51,29,8),
-(41,52,30,8),
-(42,53,31,8),
-(43,54,32,8),
-(44,56,33,8),
-(45,56,34,8);
 /*!40000 ALTER TABLE `imparticion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -552,9 +366,6 @@ CREATE TABLE `material` (
 
 LOCK TABLES `material` WRITE;
 /*!40000 ALTER TABLE `material` DISABLE KEYS */;
-INSERT INTO `material` VALUES
-(1,'Tema 1','20251228_entornos-desarrollo-tema-1.pdf','2025-12-28 10:43:11',24),
-(2,'Tema 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28);
 /*!40000 ALTER TABLE `material` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -583,27 +394,6 @@ CREATE TABLE `matricula` (
 
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
-INSERT INTO `matricula` VALUES
-(41,57,5),
-(42,58,5),
-(43,59,5),
-(44,60,5),
-(45,61,5),
-(46,62,6),
-(47,63,6),
-(48,64,6),
-(49,65,6),
-(50,66,6),
-(51,67,7),
-(52,68,7),
-(53,69,7),
-(54,70,7),
-(55,71,7),
-(56,72,8),
-(57,73,8),
-(58,74,8),
-(59,75,8),
-(60,76,8);
 /*!40000 ALTER TABLE `matricula` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -692,63 +482,6 @@ LOCK TABLES `noticia` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `personalizacion`
---
-
-DROP TABLE IF EXISTS `personalizacion`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `personalizacion` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `color_principal` varchar(7) DEFAULT NULL,
-  `color_menu_lateral` varchar(7) DEFAULT NULL,
-  `color_topbar` varchar(7) DEFAULT NULL,
-  `fuente` varchar(255) DEFAULT NULL,
-  `centro_id` int(11) DEFAULT NULL,
-  `color_fondo` varchar(7) DEFAULT NULL,
-  `color_texto` varchar(7) DEFAULT NULL,
-  `color_menu_activo` varchar(7) DEFAULT NULL,
-  `color_borde_activo` varchar(7) DEFAULT NULL,
-  `color_iconos_top` varchar(7) DEFAULT NULL,
-  `horario_cabecera_bg` varchar(7) DEFAULT NULL,
-  `horario_cabecera_texto` varchar(7) DEFAULT NULL,
-  `horario_tarjeta_bg` varchar(7) DEFAULT NULL,
-  `horario_tarjeta_borde` varchar(7) DEFAULT NULL,
-  `color_logo_area` varchar(7) DEFAULT NULL,
-  `color_texto_sidebar` varchar(7) DEFAULT NULL,
-  `color_texto_boton` varchar(7) DEFAULT NULL,
-  `color_badge_bg` varchar(7) DEFAULT NULL,
-  `color_badge_texto` varchar(7) DEFAULT NULL,
-  `color_menu_header` varchar(7) DEFAULT NULL,
-  `color_btn_secundario_bg` varchar(7) DEFAULT NULL,
-  `color_btn_secundario_text` varchar(7) DEFAULT NULL,
-  `color_btn_danger_bg` varchar(7) DEFAULT NULL,
-  `color_btn_danger_text` varchar(7) DEFAULT NULL,
-  `horario_festivo_bg` varchar(7) DEFAULT NULL,
-  `horario_festivo_texto` varchar(7) DEFAULT NULL,
-  `color_menu_hover` varchar(7) DEFAULT NULL,
-  `color_texto_hover` varchar(7) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
-  CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `personalizacion`
---
-
-LOCK TABLES `personalizacion` WRITE;
-/*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
-INSERT INTO `personalizacion` VALUES
-(1,'#0d6efd','#d1d1d1','#dedede','Inter',3,'#f2f2f2','#1f2937','#ff5959','#ebebeb','#64748b','#212529','#ffffff','#e0f2fe','#0ea5e9','#ff0000','#454545','#ffffff','#ff0000','#ff0000','#36383a','#ffc35c','#ffffff','#dc3838','#ffffff','#dc3545','#ffffff','#ff6b6b','#545454'),
-(2,'#0d6efd','#f2cd8c','#f2cd8c','Inter',4,'#f2f2f2','#1f2937','#473f3e','#ebebeb','#64748b','#212529','#ffffff','#e0f2fe','#0ea5e9','#c2c2c2','#5a5b5e','#ffffff','#e2e8f0','#1e293b','#36383a','#ffc35c','#ffffff','#dc3545','#ffffff','#dc3545','#ffffff','#334155','#ffffff'),
-(3,'#0d6efd','#3e3b6d','#88b2d5','Google Sans',NULL,'#f2f2f2','#1f2937','#88b2d5','#454545','#454545','#212529','#ffffff','#e0f2fe','#0ea5e9','#c2c2c2','#d1d1d1','#ffffff','#e2e8f0','#1e293b','#ffffff','#ffc35c','#ffffff','#dc3545','#ffffff','#dc3545','#ffffff','#a2c0d7','#454545'),
-(4,'#6610f2','#111111','#ffffff','Inter',NULL,'#f4f4f4','#1f2937','#6610f2','#ffffff','#6610f2','#212529','#ffffff','#e0e7ff','#6366f1','#000000','#a0a0a0','#ffffff','#e2e8f0','#1e293b','#6c757d','#6c757d','#ffffff','#dc3545','#ffffff','#dc3545','#ffffff','#334155','#ffffff');
-/*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `tarea`
 --
 
@@ -776,11 +509,6 @@ CREATE TABLE `tarea` (
 
 LOCK TABLES `tarea` WRITE;
 /*!40000 ALTER TABLE `tarea` DISABLE KEYS */;
-INSERT INTO `tarea` VALUES
-(9,'Examen T5','<div>Examen T5 Examen T5 Examen T5 Examen T5 Examen T5 Examen T5</div>','2025-12-23 12:30:00',1,24,'2025-12-23 10:30:00','examen'),
-(10,'Ejercicios T2','<div>Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2&nbsp;</div>','2025-12-24 16:01:00',1,24,'2025-12-22 16:01:00','tarea'),
-(11,'Ejercicios T3','<div>Ejercicios T3 Ejercicios T3 Ejercicios T3 Ejercicios T3 Ejercicios T3</div>','2025-12-24 16:02:00',1,24,'2025-12-22 16:02:00','tarea'),
-(12,'Ejercicios T1','<div>Ejercicios T1 Ejercicios T1 Ejercicios T1 Ejercicios T1</div>','2025-12-24 17:50:00',1,23,'2025-12-23 17:50:00','tarea');
 /*!40000 ALTER TABLE `tarea` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -815,7 +543,7 @@ CREATE TABLE `usuario` (
 LOCK TABLES `usuario` WRITE;
 /*!40000 ALTER TABLE `usuario` DISABLE KEYS */;
 INSERT INTO `usuario` VALUES
-(49,'admin@loggex.com','[\"ROLE_ADMIN\"]','$2y$13$2Jljtnj7wPTQAWD6AEW59O7SKhJ9l2IJuxEYZRqDCeacmVV6Aw55K','David','Duque Díaz','admin',NULL,'c7ea53844ba2bb780d716155eb9c34498d6bf505.jpg'),
+(49,'admin@loggex.com','[\"ROLE_SUPERADMIN\"]','$2y$13$2Jljtnj7wPTQAWD6AEW59O7SKhJ9l2IJuxEYZRqDCeacmVV6Aw55K','David','Duque Díaz','admin',NULL,'c7ea53844ba2bb780d716155eb9c34498d6bf505.jpg'),
 (50,'alberto@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$GU7YaDFM1IofnCHCqtGfde7C/ETEFO8jkSp73i7I0v4FRZTQTPtJq','Alberto','Núñez Papo','profesor',3,'35aedb388479dbcea7f406764fab3f8508ca7009.jpg'),
 (51,'joaquin@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$yCPpgazE03gBjonimhMknOslPIqA0dR6856dzvov7HQQYsttSBXJu','Joaquín','Suarez Mañueco','profesor',3,'d53a3bcbd4852069b8eabdc09cea7f6b76119e36.jpg'),
 (52,'jose@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$ZgGQ0vW/l/gcq21/KO/7RedTfu1/ZU4Tfpy1mdJGCWkt2dSj2fI.6','José','Pérez Cambriano','profesor',3,'120d7b849b6cf5897d2c2c8c31af7f5776f57e25.jpg'),
@@ -856,4 +584,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-12-28  9:56:04
+-- Dump completed on 2026-01-30 11:40:43

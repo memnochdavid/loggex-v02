@@ -1,9 +1,10 @@
 .footer {
-  padding: var(--space-6);
-  background-color: var(--bg-dark);
-  color: var(--color-gray-400);
-  text-align: center;
-  margin-top: auto;
-  font-size: var(--text-sm);
-  border-top: 1px solid var(--color-gray-700);
+    padding: var(--space-6);
+    background-color: var(--bg-dark);
+    color: var(--color-gray-400);
+    text-align: center;
+    margin-top: auto;
+    font-size: var(--text-sm);
+    border-top: 1px solid var(--color-gray-700);
+    height: 3vh;
 }

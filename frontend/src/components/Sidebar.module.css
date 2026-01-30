@@ -1,0 +1,59 @@
+.sidebar {
+    width: 250px;
+    height: 100%; /* Ocupa toda la altura disponible en el mainBody */
+    background-color: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-y: auto; /* Permite scroll solo en el menú si es muy largo */
+    flex-shrink: 0; /* Evita que el sidebar se encoja */
+    border-right: 1px solid #1a252f;
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #61dafb;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #34495e;
+}
+.roles {
+    display: flex;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #61dafb;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #34495e;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.navItem {
+    color: #ecf0f1;
+    text-decoration: none;
+    padding: 0.75rem;
+    border-radius: 4px;
+    transition: background 0.3s;
+    cursor: pointer;
+}
+
+.navItem:hover {
+    background-color: #34495e;
+}
+
+.footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #34495e;
+}

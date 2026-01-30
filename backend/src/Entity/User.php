@@ -83,7 +83,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        return (string) $this->email;
+        return (string)$this->email;
     }
 
     /**
@@ -97,6 +97,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return array_unique($roles);
     }
+
+//    #[Groups(['user:read'])]
+//    #[SerializedName('rolesSerialized')]
+//    public function getRolesSerialized(): array
+//    {
+//        $roles = $this->getRoles();
+//        $rolesTraducidos = [];
+//
+//        foreach ($roles as $role) {
+//            switch ($role) {
+//                case "ROLE_SUPERADMIN":
+//                    $rolesTraducidos[] = 'SuperAdmin';
+//                    break;
+//                case "ROLE_ADMIN":
+//                    $rolesTraducidos[] = 'Administrador';
+//                    break;
+//                case "ROLE_USER":
+//                    $rolesTraducidos[] = 'Usuario';
+//                    break;
+//                case "ROLE_PROFESOR":
+//                    $rolesTraducidos[] = 'Profesor';
+//                    break;
+//            }
+//        }
+//
+//        return array_unique($rolesTraducidos);
+//    }
+
 
     public function setRoles(array $roles): static
     {

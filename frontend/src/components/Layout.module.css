@@ -1,0 +1,20 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Se adapta a la altura del 'main' de App.jsx */
+    overflow: hidden; /* Evita el scroll global en el body */
+
+}
+
+.mainBody {
+    display: flex;
+    flex: 1; /* Ocupa todo el espacio disponible entre Header y Footer */
+    overflow: hidden; /* Contiene el scroll dentro de esta área */
+}
+
+.content {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f4f6f8;
+    overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
+}
