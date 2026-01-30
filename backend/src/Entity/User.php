@@ -7,7 +7,8 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'usuario')]
@@ -186,5 +187,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->centro = $centro;
 
         return $this;
+    }
+
+    #[Groups(['user:read'])]
+    #[SerializedName('centro_id')]
+    public function getCentroId(): ?int
+    {
+        return $this->centro ? $this->centro->getId() : null;
     }
 }

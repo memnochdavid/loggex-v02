@@ -311,7 +311,7 @@ EOF
     cat <<EOF > src/layout/Header.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import viteLogo from '/vite.svg';
+import viteLogo from '/logo_texto_horizontal.png';
 import styles from './Header.module.css';
 
 const Header = () => {

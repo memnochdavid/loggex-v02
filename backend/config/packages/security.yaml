@@ -2,6 +2,13 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # Define la jerarquía: El SUPERADMIN tiene todo lo que tiene el ADMIN, y más.
+    role_hierarchy:
+        ROLE_ALUMNO:      ROLE_USER
+        ROLE_PROFESOR:    ROLE_USER
+        ROLE_ADMIN:       [ROLE_PROFESOR, ROLE_ALUMNO]
+        ROLE_SUPERADMIN:  [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
+
     providers:
         app_user_provider:
             entity:
