@@ -40,9 +40,19 @@
 }
 
 .secondary:hover {
-  border-color: var(--color-primary-500);
-  /* Si el fondo secundario es blanco, el hover podría ser gris claro */
+  /* Eliminamos el cambio de color de borde al primario */
+  /* border-color: var(--color-primary-500); */
+
+  /* Mantenemos el borde gris o lo hacemos un poco más oscuro */
+  border-color: var(--color-gray-400);
+
   background-color: var(--color-gray-50);
+  transform: translateY(-1px); /* Añadimos el efecto de movimiento */
+  box-shadow: var(--shadow-md);
+}
+
+.secondary:active {
+  transform: translateY(0);
 }
 
 /* Variante Danger */

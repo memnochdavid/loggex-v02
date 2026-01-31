@@ -11,6 +11,7 @@ const Configuracion = () => {
     
     const defaultColors = {
         primaryColor: '#6366f1',
+        secondaryColor: '#64748b',
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -141,7 +142,6 @@ const Configuracion = () => {
                 )}
 
                 <div className={styles.layout}>
-                    {/* Columna Izquierda: Pestañas */}
                     <div className={styles.sidebar}>
                         {tabs.map(tab => (
                             <button
@@ -175,12 +175,12 @@ const Configuracion = () => {
                         </div>
                     </div>
 
-                    {/* Columna Derecha: Formulario y Vista Previa */}
                     <div className={styles.content}>
                         <div className={styles.formSection}>
                             {activeTab === 'general' && (
                                 <div className={styles.grid}>
                                     {renderColorInput('Color Principal', 'primaryColor')}
+                                    {renderColorInput('Color Secundario', 'secondaryColor')}
                                     {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
                                     {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
                                 </div>
@@ -213,7 +213,6 @@ const Configuracion = () => {
                             )}
                         </div>
 
-                        {/* Vista Previa Fija */}
                         <div className={styles.previewContainer}>
                             <h3 className={styles.previewTitle}>Vista Previa de Componentes</h3>
                             

@@ -42,7 +42,7 @@
     font-weight: var(--font-medium);
     margin-bottom: var(--space-2);
     text-align: center;
-    color: var(--color-primary-400);
+    color: var(--color-primary-400); /* Usa el color primario dinámico */
     word-break: break-all;
 }
 
@@ -50,7 +50,7 @@
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
     text-align: center;
-    color: var(--color-gray-400);
+    color: var(--color-primary-400); /* Cambiado de gray-400 a primary-400 para usar el color principal */
     padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--color-gray-700);
     width: 100%;

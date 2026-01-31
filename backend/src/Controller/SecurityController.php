@@ -57,6 +57,7 @@ class SecurityController extends AbstractController
                 $p = $user->getCentro()->getPersonalizacion();
                 $personalizacionData = [
                     'primaryColor' => $p->getPrimaryColor(),
+                    'secondaryColor' => $p->getSecondaryColor(),
                     'sidebarColor' => $p->getSidebarColor(),
                     'sidebarActiveColor' => $p->getSidebarActiveColor(),
                     'sidebarActiveTextColor' => $p->getSidebarActiveTextColor(),

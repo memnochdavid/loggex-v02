@@ -25,6 +25,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $primaryColor = '#6366f1'; // Indigo
 
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $secondaryColor = '#64748b'; // Slate-500 (Nuevo)
+
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -32,19 +36,19 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarActiveColor = '#334155'; // Slate-700 (Fondo activo)
+    private ?string $sidebarActiveColor = '#334155'; // Slate-700
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarActiveTextColor = '#ffffff'; // White (Texto activo)
+    private ?string $sidebarActiveTextColor = '#ffffff'; // White
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarHoverColor = '#334155'; // Slate-700 (Fondo hover)
+    private ?string $sidebarHoverColor = '#334155'; // Slate-700
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarHoverTextColor = '#ffffff'; // White (Texto hover)
+    private ?string $sidebarHoverTextColor = '#ffffff'; // White
 
     // --- Textos ---
     #[ORM\Column(length: 7)]
@@ -66,11 +70,11 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonSecondaryColor = '#ffffff'; // White (Fondo)
+    private ?string $buttonSecondaryColor = '#ffffff'; // White
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonSecondaryTextColor = '#334155'; // Slate-700 (Texto)
+    private ?string $buttonSecondaryTextColor = '#334155'; // Slate-700
 
     // --- Header/Footer ---
     #[ORM\Column(length: 7)]
@@ -90,9 +94,12 @@ class Personalizacion
         return $this->id;
     }
 
-    // Getters y Setters para nuevos campos
+    // Getters y Setters
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
+
+    public function getSecondaryColor(): ?string { return $this->secondaryColor; }
+    public function setSecondaryColor(string $color): static { $this->secondaryColor = $color; return $this; }
 
     public function getSidebarColor(): ?string { return $this->sidebarColor; }
     public function setSidebarColor(string $color): static { $this->sidebarColor = $color; return $this; }

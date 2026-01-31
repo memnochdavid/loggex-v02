@@ -30,6 +30,7 @@ export const applyTheme = (colors) => {
     // Valores por defecto
     const defaults = {
         primaryColor: '#6366f1',
+        secondaryColor: '#64748b',
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -62,14 +63,21 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
     }
 
-    // 2. Sidebar
+    // 2. Color Secundario (Nuevo)
+    if (theme.secondaryColor) {
+        // Podríamos generar paleta secundaria si fuera necesario
+        // Por ahora lo usamos para elementos secundarios específicos si se requiere
+        // Pero el texto secundario tiene su propia variable
+    }
+
+    // 3. Sidebar
     if (theme.sidebarColor) root.style.setProperty('--bg-sidebar', theme.sidebarColor);
     if (theme.sidebarActiveColor) root.style.setProperty('--bg-sidebar-active', theme.sidebarActiveColor);
     if (theme.sidebarActiveTextColor) root.style.setProperty('--text-sidebar-active', theme.sidebarActiveTextColor);
     if (theme.sidebarHoverColor) root.style.setProperty('--bg-sidebar-hover', theme.sidebarHoverColor);
     if (theme.sidebarHoverTextColor) root.style.setProperty('--text-sidebar-hover', theme.sidebarHoverTextColor);
 
-    // 3. Textos
+    // 4. Textos
     if (theme.textMainColor) {
         root.style.setProperty('--text-main', theme.textMainColor);
     }
@@ -77,7 +85,7 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--text-muted', theme.textSecondaryColor);
     }
 
-    // 4. Botones
+    // 5. Botones
     if (theme.buttonPrimaryColor) {
         root.style.setProperty('--btn-primary-bg', theme.buttonPrimaryColor);
         root.style.setProperty('--btn-primary-hover', mixColors(theme.buttonPrimaryColor, '#000000', 0.9));
@@ -92,7 +100,7 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--btn-secondary-text', theme.buttonSecondaryTextColor);
     }
 
-    // 5. Header y Footer
+    // 6. Header y Footer
     if (theme.headerFooterColor) {
         root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
     }

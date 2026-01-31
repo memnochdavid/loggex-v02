@@ -38,6 +38,7 @@ class PersonalizacionController extends AbstractController
 
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
+        if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
 
         // Sidebar
         if (isset($data['sidebarColor'])) $personalizacion->setSidebarColor($data['sidebarColor']);
@@ -65,7 +66,7 @@ class PersonalizacionController extends AbstractController
 
         return $this->json([
             'message' => 'Configuración guardada correctamente',
-            'personalizacion' => $data // Devolvemos lo que recibimos para actualizar el estado local rápido
+            'personalizacion' => $data
         ]);
     }
 }

@@ -43,7 +43,7 @@ const Sidebar = () => {
                 <div className={styles.header}>
                     {!isCollapsed && (
                         <div className={styles.userInfo}>
-                            {user && <small className={styles.email}>{user.email}</small>}
+                            {/*{user && <small className={styles.email}>{user.email}</small>}*/}
                             <div className={styles.roles}>
                                 {user?.roles
                                     .filter(role => role !== "ROLE_USER")
