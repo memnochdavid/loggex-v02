@@ -1,0 +1,120 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--space-4);
+}
+
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.header {
+    background-color: var(--color-primary-50);
+    padding: var(--space-8) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-bottom: 1px solid var(--color-primary-100);
+}
+
+.avatarContainer {
+    position: relative;
+    margin-bottom: var(--space-4);
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: var(--shadow-md);
+    background-color: var(--color-gray-200);
+}
+
+.avatarUpload {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: var(--color-primary-600);
+    color: white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid white;
+    transition: background-color 0.2s;
+}
+
+.avatarUpload:hover {
+    background-color: var(--color-primary-700);
+}
+
+.hiddenInput {
+    display: none;
+}
+
+.title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-gray-900);
+    margin-bottom: var(--space-1);
+}
+
+.subtitle {
+    color: var(--color-gray-500);
+    font-size: var(--text-sm);
+}
+
+.form {
+    padding: var(--space-8);
+}
+
+.formGroup {
+    margin-bottom: var(--space-6);
+}
+
+.label {
+    display: block;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-700);
+    margin-bottom: var(--space-2);
+}
+
+.input {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.input:disabled {
+    background-color: var(--color-gray-50);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-gray-100);
+}

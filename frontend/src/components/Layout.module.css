@@ -3,7 +3,7 @@
     flex-direction: column;
     height: 100%; /* Se adapta a la altura del 'main' de App.jsx */
     overflow: hidden; /* Evita el scroll global en el body */
-
+    background-color: var(--bg-body);
 }
 
 .mainBody {
@@ -14,7 +14,7 @@
 
 .content {
     flex: 1;
-    padding: 2rem;
-    background-color: #f4f6f8;
+    padding: var(--space-8);
+    background-color: var(--color-gray-50);
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
 }

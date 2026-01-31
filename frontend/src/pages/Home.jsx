@@ -27,12 +27,10 @@ const Home = () => {
 
   return (
     <Layout>
-      <div>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={logoApp} className={styles.logo} alt="React logo" />
-        </a>
+      <div className={styles.container}>
+          <img src={logoApp} className={styles.logo} alt="LM logo" />
+          <h1>Bienvenido, {user?.nombre}</h1>
       </div>
-      <h1>Bienvenido, {user?.nombre}</h1>
       <div className={styles.card}>
         <h2>Estado del Backend:</h2>
         <p className={`${styles.backendStatus} ${isError ? styles.statusError : styles.statusSuccess}`}>

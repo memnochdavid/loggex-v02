@@ -17,60 +17,50 @@
   font-weight: var(--font-bold);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-6);
-}
-
-.card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition-base);
+.loadingContainer {
   display: flex;
-  flex-direction: column;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-primary-300);
-}
-
-.cardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.cardTitle {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-primary-700);
-  margin-bottom: var(--space-1);
-}
-
-.cardSubtitle {
-  font-size: var(--text-sm);
+  justify-content: center;
+  padding: var(--space-12);
   color: var(--text-muted);
 }
 
-.cardBody {
-  flex: 1;
+.errorContainer {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--color-error);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  text-align: center;
   margin-bottom: var(--space-4);
 }
 
-.infoRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-gray-600);
-  margin-bottom: var(--space-2);
+/* Table Actions */
+.actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-500);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:hover {
+    background-color: var(--color-gray-100);
+    color: var(--color-primary-600);
+}
+
+.iconButton.danger:hover {
+    background-color: #fef2f2;
+    color: var(--color-error);
 }
 
 .badge {
@@ -94,18 +84,179 @@
   border: 1px solid var(--color-gray-200);
 }
 
-.loadingContainer {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-12);
-  color: var(--text-muted);
+/* Logo Styles */
+.colLogo {
+    width: 60px;
+    text-align: center;
 }
 
-.errorContainer {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  color: var(--color-error);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  text-align: center;
+.logoCell {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--color-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.logoImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.logoPlaceholder {
+    color: var(--color-gray-400);
+}
+
+.logoPreviewContainer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2);
+}
+
+.logoPreview {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    background-color: var(--color-gray-50);
+}
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideIn 0.2s ease-out;
+}
+
+.modalHeader {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-gray-900);
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-gray-500);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+.closeButton:hover {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.modalBody {
+    padding: var(--space-6);
+}
+
+.modalFooter {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    background-color: var(--color-gray-50);
+}
+
+.formGroup {
+    margin-bottom: var(--space-4);
+}
+
+.label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: var(--font-medium);
+    color: var(--color-gray-700);
+    font-size: var(--text-sm);
+}
+
+.input {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.fileInput {
+    font-size: var(--text-sm);
+    color: var(--color-gray-600);
+}
+
+.fileInput::file-selector-button {
+    margin-right: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-gray-300);
+    background-color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.fileInput::file-selector-button:hover {
+    background-color: var(--color-gray-50);
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    user-select: none;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

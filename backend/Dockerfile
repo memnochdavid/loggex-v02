@@ -16,5 +16,10 @@ COPY apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
 WORKDIR /var/www/html
 
+# Crear carpeta de uploads y asignar permisos
+RUN mkdir -p public/uploads/avatar && \
+    chown -R www-data:www-data public/uploads && \
+    chmod -R 755 public/uploads
+
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

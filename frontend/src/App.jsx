@@ -6,7 +6,8 @@ import Footer from './layout/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
 import Login from './pages/Login';
-import Centros from './pages/Centros'; // Importar nueva página
+import Centros from './pages/Centros';
+import Perfil from './pages/Perfil'; // Importar nueva página
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
@@ -34,6 +35,12 @@ function App() {
               <Route path="/centros" element={
                 <PrivateRoute>
                   <Centros />
+                </PrivateRoute>
+              } />
+
+              <Route path="/perfil" element={
+                <PrivateRoute>
+                  <Perfil />
                 </PrivateRoute>
               } />
               

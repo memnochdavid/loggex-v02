@@ -1,18 +1,13 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import viteLogo from '/logo_texto_horizontal.png';
 import styles from './Header.module.css';
 import Button from '../components/Button';
+import UserAvatar from '../components/UserAvatar';
 
 const Header = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const { user } = useAuth();
 
   return (
     <header className={styles.header}>
@@ -22,15 +17,10 @@ const Header = () => {
         </Link>
       </div>
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <Link to="/" className={styles.navLink}>Home</Link>
-        {user && (
-            <Link to="/centros" className={styles.navLink}>Centros</Link>
-        )}
+
         <Link to="/about" className={styles.navLink}>About</Link>
 
         {/* Enlace a la documentación de la API */}
-        {/* Ahora verificamos explícitamente el rol de SUPERADMIN */}
-
         {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (
           <a
             href="https://localhost:9443/api"
@@ -42,13 +32,11 @@ const Header = () => {
             API Docs
           </a>
         )}
-        
+
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>
-            <span style={{ fontSize: '0.875rem' }}>Hola, <strong>{user.nombre}</strong></span>
-            <Button variant="primary" onClick={handleLogout}>
-              Salir
-            </Button>
+            {/* Reemplazamos el saludo y botón de salir por el UserAvatar */}
+            <UserAvatar size={40} />
           </div>
         ) : (
           <Link to="/login" style={{ textDecoration: 'none' }}>

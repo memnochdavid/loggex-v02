@@ -1,0 +1,139 @@
+.container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatarButton {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.avatarButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px var(--color-primary-200);
+}
+
+.avatarButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-primary-300);
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-600);
+    font-weight: var(--font-bold);
+    text-transform: uppercase;
+}
+
+/* --- Dropdown Menu --- */
+.menu {
+    position: absolute;
+    top: calc(100% + 8px); /* Un poco separado del avatar */
+    right: 0;
+    width: 200px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+    transform-origin: top right;
+}
+
+.menuHeader {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-gray-100);
+    background-color: var(--color-gray-50);
+}
+
+.userName {
+    display: block;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-900);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.userEmail {
+    display: block;
+    color: var(--color-gray-500);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menuList {
+    list-style: none;
+    padding: var(--space-1);
+    margin: 0;
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    color: var(--color-gray-700);
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s;
+    text-decoration: none; /* Por si usamos <a> */
+    box-sizing: border-box;
+}
+
+.menuItem:hover {
+    background-color: var(--color-gray-100);
+    color: var(--color-primary-600);
+}
+
+.menuItem.danger {
+    color: var(--color-error);
+    border-top: 1px solid var(--color-gray-100);
+    margin-top: var(--space-1);
+}
+
+.menuItem.danger:hover {
+    background-color: #fef2f2;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

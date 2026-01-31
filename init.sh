@@ -7,6 +7,14 @@ set -e
 
 echo "=== Inicializando Loggex v02 ==="
 
+# 0. Preparar carpetas y permisos locales
+echo "📂 Preparando carpetas y permisos..."
+mkdir -p backend/public/uploads/avatar
+mkdir -p backend/public/uploads/logo-centro
+# Asignar permisos de escritura para que el contenedor pueda escribir (www-data)
+chmod -R 777 backend/public/uploads
+chmod -R 777 backend/public/uploads/logo-centro
+
 # 1. Levantar contenedores
 echo "🚀 Levantando contenedores Docker..."
 docker compose up -d --build
@@ -28,7 +36,7 @@ docker compose exec backend sh -c '
 
 # 4. Instalar dependencias Frontend
 echo "📦 Instalar dependencias de React (NPM)..."
-docker compose exec frontend npm install
+docker compose exec frontend npm install lucide-react
 
 # 5. Preparar Base de Datos
 echo "🗄️  Esperando a que la base de datos esté lista..."
@@ -41,7 +49,11 @@ docker compose exec backend sh -c '
 '
 
 echo "🔄 Ejecutando migraciones..."
-docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+if ls backend/migrations/*.php 1> /dev/null 2>&1; then
+    docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+else
+    echo "No se encontraron migraciones. Saltando este paso."
+fi
 
 echo ""
 echo "=== ¡Proyecto listo! ✅ ==="
