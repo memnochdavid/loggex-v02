@@ -7,7 +7,8 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
-import Perfil from './pages/Perfil'; // Importar nueva página
+import Perfil from './pages/Perfil';
+import Configuracion from './pages/Configuracion'; // Importar nueva página
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
@@ -41,6 +42,12 @@ function App() {
               <Route path="/perfil" element={
                 <PrivateRoute>
                   <Perfil />
+                </PrivateRoute>
+              } />
+
+              <Route path="/configuracion" element={
+                <PrivateRoute>
+                  <Configuracion />
                 </PrivateRoute>
               } />
               

@@ -9,11 +9,35 @@ import UserAvatar from '../components/UserAvatar';
 const Header = () => {
   const { user } = useAuth();
 
+  // Depuración: ver qué llega en user
+  // console.log("Header user:", user);
+
+  // Función para obtener la URL del logo del centro
+  const getCentroLogoUrl = () => {
+    if (user && user.centro && user.centro.logo) {
+        return `https://localhost:9443/uploads/logo-centro/${user.centro.logo}`;
+    }
+    return null;
+  };
+
+  const centroLogo = getCentroLogoUrl();
+
   return (
     <header className={styles.header}>
       <div className={styles.logoContainer}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src={viteLogo} alt="Logo" className={styles.logo} />
+            {/* Si hay logo de centro, lo mostramos. Si no, el logo por defecto */}
+            <img 
+                src={centroLogo || viteLogo} 
+                alt="Logo" 
+                className={styles.logo} 
+                onError={(e) => { 
+                    // Si falla la carga del logo del centro, volvemos al logo por defecto
+                    if (e.target.src !== viteLogo) {
+                        e.target.src = viteLogo;
+                    }
+                }}
+            />
         </Link>
       </div>
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

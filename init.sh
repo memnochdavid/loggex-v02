@@ -13,7 +13,6 @@ mkdir -p backend/public/uploads/avatar
 mkdir -p backend/public/uploads/logo-centro
 # Asignar permisos de escritura para que el contenedor pueda escribir (www-data)
 chmod -R 777 backend/public/uploads
-chmod -R 777 backend/public/uploads/logo-centro
 
 # 1. Levantar contenedores
 echo "🚀 Levantando contenedores Docker..."
@@ -49,6 +48,7 @@ docker compose exec backend sh -c '
 '
 
 echo "🔄 Ejecutando migraciones..."
+# Intentar ejecutar migraciones si existen
 if ls backend/migrations/*.php 1> /dev/null 2>&1; then
     docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
 else

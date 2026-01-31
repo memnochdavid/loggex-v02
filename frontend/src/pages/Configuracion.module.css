@@ -1,0 +1,198 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-4);
+    height: calc(100vh - 100px); /* Ajustar altura para evitar scroll global si es posible */
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    margin-bottom: var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--space-4);
+}
+
+.title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--text-main); /* Usar variable dinámica */
+    margin-bottom: var(--space-2);
+}
+
+.subtitle {
+    color: var(--text-muted); /* Usar variable dinámica */
+    font-size: var(--text-sm);
+}
+
+.layout {
+    display: flex;
+    gap: var(--space-8);
+    flex: 1;
+    overflow: hidden; /* Contener scroll */
+}
+
+/* Sidebar de Pestañas */
+.sidebar {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    border-right: 1px solid var(--border-color);
+    padding-right: var(--space-6);
+    overflow-y: auto;
+}
+
+.tabButton {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    color: var(--text-muted); /* Usar variable dinámica */
+    font-weight: var(--font-medium);
+    transition: all 0.2s;
+}
+
+.tabButton:hover {
+    background-color: var(--color-gray-100);
+    color: var(--text-main); /* Usar variable dinámica */
+}
+
+.activeTab {
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+}
+
+/* Contenido Principal */
+.content {
+    flex: 1;
+    display: flex;
+    gap: var(--space-8);
+    overflow-y: auto;
+    padding-right: var(--space-2);
+}
+
+.formSection {
+    flex: 1;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-6);
+}
+
+.colorItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.label {
+    font-weight: var(--font-medium);
+    color: var(--text-main); /* Usar variable dinámica */
+    font-size: var(--text-sm);
+}
+
+.colorInputContainer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.colorInput {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: none;
+}
+
+.colorTextInput {
+    flex: 1;
+    padding: var(--space-2);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-family: monospace;
+    text-transform: uppercase;
+    color: var(--text-main); /* Usar variable dinámica */
+}
+
+/* Vista Previa */
+.previewContainer {
+    width: 300px;
+    position: sticky;
+    top: 0;
+}
+
+.previewTitle {
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    color: var(--text-muted); /* Usar variable dinámica */
+    text-transform: uppercase;
+    margin-bottom: var(--space-4);
+}
+
+.previewBox {
+    padding: var(--space-6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-gray-50);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.previewRow {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.previewBtn {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    border: none;
+    cursor: default;
+}
+
+.previewSidebarMock {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.message {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6);
+    text-align: center;
+}
+
+.success {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.error {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.card {
+    /* Fallback para cuando no hay usuario */
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-8);
+}

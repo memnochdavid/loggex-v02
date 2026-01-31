@@ -42,6 +42,23 @@
   --text-muted:    var(--color-gray-500);
   --text-light:    #ffffff;
 
+  /* --- Variables de Personalización (Defaults) --- */
+  --bg-sidebar: var(--color-gray-800);
+  --bg-sidebar-active: #334155;
+  --text-sidebar-active: #ffffff;
+  --bg-sidebar-hover: #334155;
+  --text-sidebar-hover: #ffffff;
+
+  --btn-primary-bg: var(--color-primary-600);
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: var(--color-primary-700);
+
+  --btn-secondary-bg: transparent;
+  --btn-secondary-text: var(--text-main);
+
+  --bg-header-footer: var(--bg-dark);
+  --text-header-footer: var(--text-light);
+
   /* ------------------------- */
   /* 📐 ESPACIADO (Spacing)    */
   /* ------------------------- */

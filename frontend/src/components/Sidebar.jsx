@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users } from 'lucide-react';
@@ -17,6 +18,10 @@ const Sidebar = () => {
     };
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Helper para clases de NavLink
+    const getNavLinkClass = ({ isActive }) => 
+        isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
 
     return (
         <>
@@ -58,36 +63,36 @@ const Sidebar = () => {
                 </div>
 
                 <nav className={styles.nav}>
-                    <a href="/" className={styles.navItem} title="Inicio">
+                    <NavLink to="/" className={getNavLinkClass} title="Inicio" end>
                         <Home size={20} />
                         {!isCollapsed && <span>Inicio</span>}
-                    </a>
+                    </NavLink>
                     
                     {isSuperAdmin && (
                         <>
-                            <a href="/centros" className={styles.navItem} title="Centros">
+                            <NavLink to="/centros" className={getNavLinkClass} title="Centros">
                                 <Building size={20} />
                                 {!isCollapsed && <span>Centros</span>}
-                            </a>
-                            <a href="/usuarios" className={styles.navItem} title="Usuarios">
+                            </NavLink>
+                            <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
                                 <Users size={20} />
                                 {!isCollapsed && <span>Usuarios</span>}
-                            </a>
+                            </NavLink>
                         </>
                     )}
 
-                    <a href="/perfil" className={styles.navItem} title="Perfil">
+                    <NavLink to="/perfil" className={getNavLinkClass} title="Perfil">
                         <User size={20} />
                         {!isCollapsed && <span>Perfil</span>}
-                    </a>
-                    <a href="/configuracion" className={styles.navItem} title="Configuración">
+                    </NavLink>
+                    <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración">
                         <Settings size={20} />
                         {!isCollapsed && <span>Configuración</span>}
-                    </a>
+                    </NavLink>
                 </nav>
 
                 <div className={styles.footer}>
-                    <div className={styles.navItem} onClick={logout} title="Cerrar Sesión">
+                    <div className={styles.navItem} onClick={logout} title="Cerrar Sesión" style={{ cursor: 'pointer' }}>
                         <LogOut size={20} />
                         {!isCollapsed && <span>Cerrar Sesión</span>}
                     </div>

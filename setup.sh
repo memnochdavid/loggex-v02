@@ -81,12 +81,29 @@ EOF
 # Generar Dockerfile para Backend (PHP 8.4)
 cat <<EOF > backend/Dockerfile
 FROM php:8.4-apache
+
+# Instalar dependencias del sistema y extensiones PHP
 RUN apt-get update && apt-get install -y \\
-    libpq-dev git unzip \\
+    git \\
+    unzip \\
+    default-mysql-client \\
     && docker-php-ext-install pdo pdo_mysql
+
+# Habilitar mod_rewrite
 RUN a2enmod rewrite
+
+# Copiar configuración personalizada de Apache
 COPY apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+
 WORKDIR /var/www/html
+
+# Crear carpeta de uploads y asignar permisos
+RUN mkdir -p public/uploads/avatar && \\
+    mkdir -p public/uploads/logo-centro && \\
+    chown -R www-data:www-data public/uploads && \\
+    chmod -R 755 public/uploads
+
+# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 EOF
 
@@ -102,11 +119,11 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Instalando dependencias de frontend..."
     cd frontend
     npm install
-    npm install react-router-dom
+    npm install react-router-dom lucide-react
 
     # Crear estructura de directorios profesional
     echo "Creando estructura de directorios Frontend..."
-    mkdir -p src/components src/layout src/pages
+    mkdir -p src/components src/layout src/pages src/context src/utils
 
     # --- Variables Globales (index.css) ---
     cat <<EOF > src/index.css
@@ -139,7 +156,7 @@ if [ -z "$(ls -A frontend)" ]; then
   --color-error:   #ef4444;
   --color-info:    #3b82f6;
 
-  --bg-body:       var(--color-gray-5);
+  --bg-body:       var(--color-gray-50);
   --bg-card:       #ffffff;
   --bg-dark:       var(--color-gray-800);
 
@@ -616,8 +633,6 @@ echo ""
 echo "--- Generando docker-compose.yml ---"
 
 cat <<EOF > docker-compose.yml
-version: '3.8'
-
 services:
   caddy:
     image: caddy:2-alpine

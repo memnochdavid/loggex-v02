@@ -18,12 +18,12 @@
 
 /* Variante Primaria (Por defecto) */
 .primary {
-  background-color: var(--color-primary-600);
-  color: white;
+  background-color: var(--btn-primary-bg, var(--color-primary-600));
+  color: var(--btn-primary-text, white);
 }
 
 .primary:hover {
-  background-color: var(--color-primary-700);
+  background-color: var(--btn-primary-hover, var(--color-primary-700));
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -34,14 +34,14 @@
 
 /* Variante Secundaria (Outline) */
 .secondary {
-  background-color: transparent;
+  background-color: var(--btn-secondary-bg, transparent);
   border-color: var(--color-gray-300);
-  color: var(--text-main);
+  color: var(--btn-secondary-text, var(--text-main));
 }
 
 .secondary:hover {
   border-color: var(--color-primary-500);
-  color: var(--color-primary-600);
+  /* Si el fondo secundario es blanco, el hover podría ser gris claro */
   background-color: var(--color-gray-50);
 }
 

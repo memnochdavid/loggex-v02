@@ -40,7 +40,7 @@ class Centro
     private ?string $webConfig = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['centro:read', 'centro:write'])]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?string $logo = null;
 
     #[ORM\Column(length: 255)]
@@ -56,6 +56,10 @@ class Centro
 
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: CicloFormativo::class)]
     private Collection $ciclos;
+
+    #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?Personalizacion $personalizacion = null;
 
     public function __construct()
     {
@@ -142,6 +146,23 @@ class Centro
     public function setTelefono(?string $telefono): static
     {
         $this->telefono = $telefono;
+        return $this;
+    }
+
+    public function getPersonalizacion(): ?Personalizacion
+    {
+        return $this->personalizacion;
+    }
+
+    public function setPersonalizacion(Personalizacion $personalizacion): static
+    {
+        // set the owning side of the relation if necessary
+        if ($personalizacion->getCentro() !== $this) {
+            $personalizacion->setCentro($this);
+        }
+
+        $this->personalizacion = $personalizacion;
+
         return $this;
     }
 }

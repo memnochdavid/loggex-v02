@@ -1,23 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { applyTheme } from '../utils/theme';
 
 const AuthContext = createContext(null);
 
-// URL base del backend. En desarrollo local con Caddy es https://localhost:8443
-// Si usas el proxy de vite, podría ser relativo.
-// Vamos a asumir que el frontend sabe dónde está el backend.
-const API_URL = 'https://localhost:9443'; // Puerto expuesto en docker-compose para backend HTTPS directo
-// OJO: En docker-compose.yml, backend expone 9443:8443 (Caddy interno del backend?) No.
-// Revisemos docker-compose.
-// Caddy service: 8888:80, 8443:443, 9443:8443.
-// Caddyfile: localhost:8443 -> backend:80.
-// Entonces https://localhost:8443 es el backend.
-
-// Pero espera, el frontend se sirve en https://localhost (puerto 443 implícito) o http://localhost:8888.
-// Si accedemos a https://localhost (Caddy -> Frontend), el backend está en https://localhost:8443.
-
 const BACKEND_URL = 'https://localhost:9443'; 
-// Nota: En el init.sh dice "Backend: https://localhost:9443/api/hello"
-// Así que usaremos ese puerto.
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -27,13 +13,23 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Efecto para aplicar el tema cuando cambia el usuario
+  useEffect(() => {
+    if (user && user.centro && user.centro.personalizacion) {
+        applyTheme(user.centro.personalizacion);
+    } else {
+        // Resetear tema si no hay usuario o personalización (volver a defaults)
+        applyTheme({});
+    }
+  }, [user]);
+
   const checkAuth = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/me`, {
         headers: {
           'Accept': 'application/json',
         },
-        credentials: 'include', // Importante para enviar cookies cross-origin
+        credentials: 'include', 
       });
       if (response.ok) {
         const data = await response.json();
@@ -57,12 +53,10 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include', // Importante para recibir y guardar la cookie
+        credentials: 'include', 
       });
 
       if (response.ok) {
-        // Después del login exitoso, pedimos los datos del usuario
-        // (Aunque el endpoint login ya los devuelve en mi implementación, es buena práctica confirmar)
         const data = await response.json();
         if (data.user) {
             setUser(data.user);
@@ -92,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

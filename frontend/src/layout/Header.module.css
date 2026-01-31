@@ -1,7 +1,7 @@
 .header {
     padding: var(--space-4) var(--space-8);
-    background-color: var(--bg-dark);
-    color: var(--text-light);
+    background-color: var(--bg-header-footer, var(--bg-dark));
+    color: var(--text-header-footer, var(--text-light));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -26,7 +26,8 @@
 }
 
 .navLink {
-    color: var(--color-gray-300);
+    color: var(--text-header-footer, var(--color-gray-300));
+    opacity: 0.8;
     text-decoration: none;
     font-weight: var(--font-medium);
     font-size: var(--text-sm);
@@ -36,6 +37,6 @@
 }
 
 .navLink:hover {
-    color: var(--text-light);
-    background-color: var(--color-gray-700);
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
 }
