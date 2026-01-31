@@ -3,19 +3,38 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CalificacionRepository;
+use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: CalificacionRepository::class)]
 #[ORM\Table(name: 'calificacion')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['calificacion:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['calificacion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['calificacion:write']]
 )]
 class Calificacion
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -30,7 +49,7 @@ class Calificacion
     #[Groups(['calificacion:read', 'calificacion:write'])]
     private ?string $feedbackProfesor = null;
 
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(inversedBy: 'calificacion', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['calificacion:read', 'calificacion:write'])]
     private ?Entrega $entrega = null;

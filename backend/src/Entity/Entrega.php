@@ -3,19 +3,38 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
 use App\Repository\EntregaRepository;
+use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: EntregaRepository::class)]
 #[ORM\Table(name: 'entrega')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['entrega:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
 )]
 class Entrega
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -28,21 +47,25 @@ class Entrega
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['entrega:read', 'entrega:write'])]
-    private ?string $comentarioAlumno = null;
+    private ?string $enlace = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['entrega:read', 'entrega:write'])]
-    private ?string $enlace = null;
+    private ?string $comentarioAlumno = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'entregas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['entrega:read', 'entrega:write'])]
     private ?Tarea $tarea = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'entregas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['entrega:read', 'entrega:write'])]
     private ?User $alumno = null;
+
+    #[ORM\OneToOne(mappedBy: 'entrega', cascade: ['persist', 'remove'])]
+    #[Groups(['entrega:read'])]
+    private ?Calificacion $calificacion = null;
 
     public function getId(): ?int
     {
@@ -60,17 +83,6 @@ class Entrega
         return $this;
     }
 
-    public function getComentarioAlumno(): ?string
-    {
-        return $this->comentarioAlumno;
-    }
-
-    public function setComentarioAlumno(?string $comentarioAlumno): static
-    {
-        $this->comentarioAlumno = $comentarioAlumno;
-        return $this;
-    }
-
     public function getEnlace(): ?string
     {
         return $this->enlace;
@@ -79,6 +91,17 @@ class Entrega
     public function setEnlace(?string $enlace): static
     {
         $this->enlace = $enlace;
+        return $this;
+    }
+
+    public function getComentarioAlumno(): ?string
+    {
+        return $this->comentarioAlumno;
+    }
+
+    public function setComentarioAlumno(?string $comentarioAlumno): static
+    {
+        $this->comentarioAlumno = $comentarioAlumno;
         return $this;
     }
 
@@ -101,6 +124,23 @@ class Entrega
     public function setAlumno(?User $alumno): static
     {
         $this->alumno = $alumno;
+        return $this;
+    }
+
+    public function getCalificacion(): ?Calificacion
+    {
+        return $this->calificacion;
+    }
+
+    public function setCalificacion(Calificacion $calificacion): static
+    {
+        // set the owning side of the relation if necessary
+        if ($calificacion->getEntrega() !== $this) {
+            $calificacion->setEntrega($this);
+        }
+
+        $this->calificacion = $calificacion;
+
         return $this;
     }
 }

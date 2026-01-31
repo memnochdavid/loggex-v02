@@ -3,18 +3,39 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ModuloRepository;
+use App\State\SoftDeleteProcessor;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ModuloRepository::class)]
 #[ORM\Table(name: 'modulo')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['modulo:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['modulo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['modulo:write']]
 )]
 class Modulo
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -37,10 +58,18 @@ class Modulo
     #[Groups(['modulo:read', 'modulo:write'])]
     private ?int $horasSemanales = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'modulos')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['modulo:read', 'modulo:write'])]
     private ?CicloFormativo $ciclo = null;
+
+    #[ORM\OneToMany(mappedBy: 'modulo', targetEntity: Imparticion::class)]
+    private Collection $imparticiones;
+
+    public function __construct()
+    {
+        $this->imparticiones = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {

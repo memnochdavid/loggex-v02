@@ -3,19 +3,40 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
 use App\Repository\TareaRepository;
+use App\State\SoftDeleteProcessor;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: TareaRepository::class)]
 #[ORM\Table(name: 'tarea')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['tarea:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['tarea:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['tarea:write']]
 )]
 class Tarea
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -34,22 +55,30 @@ class Tarea
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?\DateTimeInterface $fechaLimite = null;
 
-    #[ORM\Column(type: 'boolean')]
-    #[Groups(['tarea:read', 'tarea:write'])]
-    private bool $visible = true;
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?\DateTimeInterface $fechaInicio = null;
+
+    #[ORM\Column(type: 'boolean')]
+    #[Groups(['tarea:read', 'tarea:write'])]
+    private bool $visible = true;
 
     #[ORM\Column(length: 20)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?string $tipo = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?Imparticion $imparticion = null;
+
+    #[ORM\OneToMany(mappedBy: 'tarea', targetEntity: Entrega::class)]
+    private Collection $entregas;
+
+    public function __construct()
+    {
+        $this->entregas = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -89,17 +118,6 @@ class Tarea
         return $this;
     }
 
-    public function isVisible(): bool
-    {
-        return $this->visible;
-    }
-
-    public function setVisible(bool $visible): static
-    {
-        $this->visible = $visible;
-        return $this;
-    }
-
     public function getFechaInicio(): ?\DateTimeInterface
     {
         return $this->fechaInicio;
@@ -108,6 +126,17 @@ class Tarea
     public function setFechaInicio(?\DateTimeInterface $fechaInicio): static
     {
         $this->fechaInicio = $fechaInicio;
+        return $this;
+    }
+
+    public function isVisible(): bool
+    {
+        return $this->visible;
+    }
+
+    public function setVisible(bool $visible): static
+    {
+        $this->visible = $visible;
         return $this;
     }
 

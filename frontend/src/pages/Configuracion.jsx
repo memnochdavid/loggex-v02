@@ -85,17 +85,9 @@ const Configuracion = () => {
         }
     };
 
-    if (!user || !user.centro) {
-        return (
-            <Layout>
-                <div className={styles.container}>
-                    <div className={styles.card}>
-                        <p>Esta configuración solo está disponible para usuarios asignados a un centro.</p>
-                    </div>
-                </div>
-            </Layout>
-        );
-    }
+    // Permitir acceso si tiene centro O si es SuperAdmin (que ahora tendrá un centro "ficticio" o null pero acceso permitido)
+    // Con la actualización del backend, el SuperAdmin recibirá un centro "Global" con la personalización global.
+    if (!user) return null;
 
     const renderColorInput = (label, name) => (
         <div className={styles.colorItem}>
@@ -132,7 +124,9 @@ const Configuracion = () => {
             <div className={styles.container}>
                 <div className={styles.header}>
                     <h1 className={styles.title}>Personalización</h1>
-                    <span className={styles.subtitle}>Ajusta la apariencia para {user.centro.nombre}</span>
+                    <span className={styles.subtitle}>
+                        {user.centro ? `Ajusta la apariencia para ${user.centro.nombre}` : 'Ajusta la apariencia global del sistema'}
+                    </span>
                 </div>
 
                 {message && (
@@ -229,7 +223,7 @@ const Configuracion = () => {
                                         style={{ 
                                             backgroundColor: colors.buttonSecondaryColor, 
                                             color: colors.buttonSecondaryTextColor,
-                                            border: `1px solid ${colors.textSecondaryColor}`
+                                            border: `1px solid ${colors.textSecondaryColor}` // Usar borde sutil
                                         }}
                                     >
                                         Botón Secundario

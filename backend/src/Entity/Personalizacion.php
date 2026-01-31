@@ -3,17 +3,36 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
+use App\State\SoftDeleteProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'personalizacion')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['personalizacion:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['personalizacion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['personalizacion:write']]
 )]
 class Personalizacion
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -27,7 +46,7 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $secondaryColor = '#64748b'; // Slate-500 (Nuevo)
+    private ?string $secondaryColor = '#64748b'; // Slate-500
 
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
@@ -86,7 +105,7 @@ class Personalizacion
     private ?string $headerFooterTextColor = '#ffffff'; // White
 
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
 
     public function getId(): ?int
@@ -145,7 +164,7 @@ class Personalizacion
         return $this->centro;
     }
 
-    public function setCentro(Centro $centro): static
+    public function setCentro(?Centro $centro): static
     {
         $this->centro = $centro;
         return $this;

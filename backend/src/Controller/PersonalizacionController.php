@@ -24,14 +24,25 @@ class PersonalizacionController extends AbstractController
         }
 
         $centro = $user->getCentro();
-        if (!$centro) {
-            return $this->json(['message' => 'El usuario no pertenece a ningún centro'], 400);
-        }
+        $personalizacion = null;
 
-        $personalizacion = $centro->getPersonalizacion();
-        if (!$personalizacion) {
-            $personalizacion = new Personalizacion();
-            $personalizacion->setCentro($centro);
+        if ($centro) {
+            // Usuario de centro: edita la personalización de su centro
+            $personalizacion = $centro->getPersonalizacion();
+            if (!$personalizacion) {
+                $personalizacion = new Personalizacion();
+                $personalizacion->setCentro($centro);
+            }
+        } else {
+            // Usuario sin centro (SuperAdmin): edita la personalización global
+            // Buscamos una personalización donde centro sea NULL
+            $repo = $entityManager->getRepository(Personalizacion::class);
+            $personalizacion = $repo->findOneBy(['centro' => null]);
+
+            if (!$personalizacion) {
+                $personalizacion = new Personalizacion();
+                // centro es null por defecto
+            }
         }
 
         $data = json_decode($request->getContent(), true);

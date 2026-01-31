@@ -3,7 +3,15 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Entity\Traits\SoftDeletableTrait;
+use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
+use App\State\SoftDeleteProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -12,12 +20,23 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'usuario')]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['user:read']],
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Put(),
+        new Delete(processor: SoftDeleteProcessor::class)
+    ],
+    normalizationContext: ['groups' => ['user:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['user:write']]
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    use TimestampableTrait;
+    use SoftDeletableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -97,34 +116,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return array_unique($roles);
     }
-
-//    #[Groups(['user:read'])]
-//    #[SerializedName('rolesSerialized')]
-//    public function getRolesSerialized(): array
-//    {
-//        $roles = $this->getRoles();
-//        $rolesTraducidos = [];
-//
-//        foreach ($roles as $role) {
-//            switch ($role) {
-//                case "ROLE_SUPERADMIN":
-//                    $rolesTraducidos[] = 'SuperAdmin';
-//                    break;
-//                case "ROLE_ADMIN":
-//                    $rolesTraducidos[] = 'Administrador';
-//                    break;
-//                case "ROLE_USER":
-//                    $rolesTraducidos[] = 'Usuario';
-//                    break;
-//                case "ROLE_PROFESOR":
-//                    $rolesTraducidos[] = 'Profesor';
-//                    break;
-//            }
-//        }
-//
-//        return array_unique($rolesTraducidos);
-//    }
-
 
     public function setRoles(array $roles): static
     {
