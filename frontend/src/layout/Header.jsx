@@ -9,9 +9,6 @@ import UserAvatar from '../components/UserAvatar';
 const Header = () => {
   const { user } = useAuth();
 
-  // Depuración: ver qué llega en user
-  // console.log("Header user:", user);
-
   // Función para obtener la URL del logo del centro
   const getCentroLogoUrl = () => {
     if (user && user.centro && user.centro.logo) {
@@ -21,18 +18,17 @@ const Header = () => {
   };
 
   const centroLogo = getCentroLogoUrl();
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
   return (
     <header className={styles.header}>
       <div className={styles.logoContainer}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Si hay logo de centro, lo mostramos. Si no, el logo por defecto */}
             <img 
                 src={centroLogo || viteLogo} 
                 alt="Logo" 
                 className={styles.logo} 
                 onError={(e) => { 
-                    // Si falla la carga del logo del centro, volvemos al logo por defecto
                     if (e.target.src !== viteLogo) {
                         e.target.src = viteLogo;
                     }
@@ -42,9 +38,12 @@ const Header = () => {
       </div>
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
 
+        {isAdmin && (
+            <Link to="/festivos" className={styles.navLink}>Festivos</Link>
+        )}
+
         <Link to="/about" className={styles.navLink}>About</Link>
 
-        {/* Enlace a la documentación de la API */}
         {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (
           <a
             href="https://localhost:9443/api"
@@ -59,7 +58,6 @@ const Header = () => {
 
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem' }}>
-            {/* Reemplazamos el saludo y botón de salir por el UserAvatar */}
             <UserAvatar size={40} />
           </div>
         ) : (

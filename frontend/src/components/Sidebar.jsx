@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase } from 'lucide-react';
+import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -105,6 +105,10 @@ const Sidebar = () => {
                             <NavLink to="/imparticiones" className={getNavLinkClass} title="Asignación Docencia">
                                 <Briefcase size={20} />
                                 {!isCollapsed && <span>Docencia</span>}
+                            </NavLink>
+                            <NavLink to="/festivos" className={getNavLinkClass} title="Festivos">
+                                <CalendarDays size={20} />
+                                {!isCollapsed && <span>Festivos</span>}
                             </NavLink>
                         </>
                     )}

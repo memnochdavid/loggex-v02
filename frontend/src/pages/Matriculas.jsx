@@ -25,7 +25,15 @@ const Matriculas = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Inicializar itemsPerPage desde la configuración del usuario
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+      if (user?.centro?.personalizacion?.itemsPerPageMatriculas) {
+          return user.centro.personalizacion.itemsPerPageMatriculas;
+      }
+      return 20;
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('alumno.nombre');
   const [sortColumn, setSortColumn] = useState('id');

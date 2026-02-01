@@ -151,6 +151,19 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $timetableHoursTextColor = '#64748b';
 
+    // NUEVOS CAMPOS (Renombrados para forzar actualización)
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableSelectedHeaderBg = '#e0e7ff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableSelectedHeaderText = '#4338ca';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableSelectedCellBg = '#eef2ff';
+
     // --- DataTable ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -250,36 +263,7 @@ class Personalizacion
         return $this->id;
     }
 
-    // ... (Getters y Setters de colores existentes) ...
-    // Para ahorrar espacio, asumo que los getters/setters de colores ya están o se generan.
-    // Solo añado los nuevos de paginación.
-
-    public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
-    public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }
-
-    public function getItemsPerPageCentros(): int { return $this->itemsPerPageCentros; }
-    public function setItemsPerPageCentros(int $items): static { $this->itemsPerPageCentros = $items; return $this; }
-
-    public function getItemsPerPageCiclos(): int { return $this->itemsPerPageCiclos; }
-    public function setItemsPerPageCiclos(int $items): static { $this->itemsPerPageCiclos = $items; return $this; }
-
-    public function getItemsPerPageGrupos(): int { return $this->itemsPerPageGrupos; }
-    public function setItemsPerPageGrupos(int $items): static { $this->itemsPerPageGrupos = $items; return $this; }
-
-    public function getItemsPerPageModulos(): int { return $this->itemsPerPageModulos; }
-    public function setItemsPerPageModulos(int $items): static { $this->itemsPerPageModulos = $items; return $this; }
-
-    public function getItemsPerPageMatriculas(): int { return $this->itemsPerPageMatriculas; }
-    public function setItemsPerPageMatriculas(int $items): static { $this->itemsPerPageMatriculas = $items; return $this; }
-
-    public function getItemsPerPageImparticiones(): int { return $this->itemsPerPageImparticiones; }
-    public function setItemsPerPageImparticiones(int $items): static { $this->itemsPerPageImparticiones = $items; return $this; }
-
-    public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
-    public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
-
-    // ... (Resto de getters/setters de colores) ...
-    // Voy a regenerar el archivo completo con todos los getters/setters para evitar errores.
+    // ... (Getters y Setters) ...
 
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
@@ -359,6 +343,16 @@ class Personalizacion
     public function getTimetableHoursTextColor(): ?string { return $this->timetableHoursTextColor; }
     public function setTimetableHoursTextColor(string $color): static { $this->timetableHoursTextColor = $color; return $this; }
 
+    // NUEVOS GETTERS/SETTERS
+    public function getTimetableSelectedHeaderBg(): ?string { return $this->timetableSelectedHeaderBg; }
+    public function setTimetableSelectedHeaderBg(string $color): static { $this->timetableSelectedHeaderBg = $color; return $this; }
+
+    public function getTimetableSelectedHeaderText(): ?string { return $this->timetableSelectedHeaderText; }
+    public function setTimetableSelectedHeaderText(string $color): static { $this->timetableSelectedHeaderText = $color; return $this; }
+
+    public function getTimetableSelectedCellBg(): ?string { return $this->timetableSelectedCellBg; }
+    public function setTimetableSelectedCellBg(string $color): static { $this->timetableSelectedCellBg = $color; return $this; }
+
     public function getDatatableHeaderBgColor(): ?string { return $this->datatableHeaderBgColor; }
     public function setDatatableHeaderBgColor(string $color): static { $this->datatableHeaderBgColor = $color; return $this; }
 
@@ -400,6 +394,30 @@ class Personalizacion
 
     public function getDatatablePaginationButtonActiveTextColor(): ?string { return $this->datatablePaginationButtonActiveTextColor; }
     public function setDatatablePaginationButtonActiveTextColor(string $color): static { $this->datatablePaginationButtonActiveTextColor = $color; return $this; }
+
+    public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
+    public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }
+
+    public function getItemsPerPageCentros(): int { return $this->itemsPerPageCentros; }
+    public function setItemsPerPageCentros(int $items): static { $this->itemsPerPageCentros = $items; return $this; }
+
+    public function getItemsPerPageCiclos(): int { return $this->itemsPerPageCiclos; }
+    public function setItemsPerPageCiclos(int $items): static { $this->itemsPerPageCiclos = $items; return $this; }
+
+    public function getItemsPerPageGrupos(): int { return $this->itemsPerPageGrupos; }
+    public function setItemsPerPageGrupos(int $items): static { $this->itemsPerPageGrupos = $items; return $this; }
+
+    public function getItemsPerPageModulos(): int { return $this->itemsPerPageModulos; }
+    public function setItemsPerPageModulos(int $items): static { $this->itemsPerPageModulos = $items; return $this; }
+
+    public function getItemsPerPageMatriculas(): int { return $this->itemsPerPageMatriculas; }
+    public function setItemsPerPageMatriculas(int $items): static { $this->itemsPerPageMatriculas = $items; return $this; }
+
+    public function getItemsPerPageImparticiones(): int { return $this->itemsPerPageImparticiones; }
+    public function setItemsPerPageImparticiones(int $items): static { $this->itemsPerPageImparticiones = $items; return $this; }
+
+    public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
+    public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
 
     public function getCentro(): ?Centro
     {

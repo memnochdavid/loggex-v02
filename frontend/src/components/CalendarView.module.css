@@ -76,12 +76,17 @@
     background-color: var(--color-gray-100);
 }
 
-/* Fin de semana (Sábado y Domingo son los últimos 2 en grid de 7 si empieza en Lunes) */
-/* Pero aquí no sabemos si es finde solo por CSS. Necesitamos clase en JS o nth-child */
-/* nth-child(7n) es Domingo, nth-child(7n-1) es Sábado */
+/* Fin de semana (Sábado y Domingo) */
 .day:nth-child(7n), .day:nth-child(7n-1) {
     background-color: var(--calendar-weekend-bg, var(--color-gray-50));
     color: var(--calendar-weekend-text, var(--color-gray-500));
+}
+
+/* Festivos (mismo estilo que fin de semana) */
+.festivo {
+    background-color: var(--calendar-weekend-bg, var(--color-gray-50)) !important;
+    color: var(--calendar-weekend-text, var(--color-gray-500)) !important;
+    font-weight: var(--font-medium);
 }
 
 .selected {

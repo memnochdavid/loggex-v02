@@ -12,8 +12,9 @@ import CiclosFormativos from './pages/CiclosFormativos';
 import Grupos from './pages/Grupos';
 import Modulos from './pages/Modulos';
 import Matriculas from './pages/Matriculas';
-import Imparticiones from './pages/Imparticiones'; // Importar
-import Horarios from './pages/Horarios'; // Importar
+import Imparticiones from './pages/Imparticiones';
+import Horarios from './pages/Horarios';
+import Festivos from './pages/Festivos'; // Importar
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
@@ -85,6 +86,12 @@ function App() {
               <Route path="/horarios" element={
                 <PrivateRoute>
                   <Horarios />
+                </PrivateRoute>
+              } />
+
+              <Route path="/festivos" element={
+                <PrivateRoute>
+                  <Festivos />
                 </PrivateRoute>
               } />
 

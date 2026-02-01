@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from './CalendarView.module.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const CalendarView = ({ selectedDate, onDateSelect }) => {
+const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -48,6 +48,27 @@ const CalendarView = ({ selectedDate, onDateSelect }) => {
         );
     };
 
+    const isFestivo = (day) => {
+        if (!festivos || festivos.length === 0) return false;
+        
+        // Crear fecha actual del bucle (mediodía para evitar problemas de zona horaria)
+        const currentDayDate = new Date(year, month, day, 12, 0, 0);
+        
+        return festivos.some(f => {
+            const inicio = new Date(f.fechaInicio);
+            // Ajustar horas para comparar solo fechas
+            inicio.setHours(12, 0, 0, 0);
+            
+            if (f.fechaFin) {
+                const fin = new Date(f.fechaFin);
+                fin.setHours(12, 0, 0, 0);
+                return currentDayDate >= inicio && currentDayDate <= fin;
+            }
+            
+            return currentDayDate.getTime() === inicio.getTime();
+        });
+    };
+
     const monthNames = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -67,12 +88,23 @@ const CalendarView = ({ selectedDate, onDateSelect }) => {
         for (let day = 1; day <= daysInMonth; day++) {
             const selected = isSelected(day);
             const today = isToday(day);
+            const festivo = isFestivo(day);
+            
+            // Si es festivo, añadimos una clase especial. 
+            // Podemos reutilizar estilos de fin de semana o crear uno nuevo.
+            // En el CSS module, añadiremos la clase .festivo
             
             days.push(
                 <button
                     key={day}
-                    className={`${styles.day} ${selected ? styles.selected : ''} ${today ? styles.today : ''}`}
+                    className={`
+                        ${styles.day} 
+                        ${selected ? styles.selected : ''} 
+                        ${today ? styles.today : ''}
+                        ${festivo ? styles.festivo : ''}
+                    `}
                     onClick={() => handleDayClick(day)}
+                    title={festivo ? 'Festivo' : ''}
                 >
                     {day}
                 </button>

@@ -124,6 +124,11 @@ class SecurityController extends AbstractController
             'timetableHeaderTextColor' => $p->getTimetableHeaderTextColor(),
             'timetableHoursBgColor' => $p->getTimetableHoursBgColor(),
             'timetableHoursTextColor' => $p->getTimetableHoursTextColor(),
+            // NUEVOS CAMPOS
+            'timetableSelectedHeaderBg' => $p->getTimetableSelectedHeaderBg(),
+            'timetableSelectedHeaderText' => $p->getTimetableSelectedHeaderText(),
+            'timetableSelectedCellBg' => $p->getTimetableSelectedCellBg(),
+
             'datatableHeaderBgColor' => $p->getDatatableHeaderBgColor(),
             'datatableHeaderTextColor' => $p->getDatatableHeaderTextColor(),
             'datatableHeaderHoverBgColor' => $p->getDatatableHeaderHoverBgColor(),

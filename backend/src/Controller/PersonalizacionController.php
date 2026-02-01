@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Personalizacion;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,8 @@ class PersonalizacionController extends AbstractController
     public function update(
         Request $request,
         #[CurrentUser] ?User $user,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        LoggerInterface $logger
     ): JsonResponse {
         if (!$user) {
             return $this->json(['message' => 'No autenticado'], 401);
@@ -42,6 +44,8 @@ class PersonalizacionController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
+
+        $logger->info('DATOS RECIBIDOS EN UPDATE:', $data);
 
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
@@ -84,6 +88,17 @@ class PersonalizacionController extends AbstractController
         if (isset($data['timetableHeaderTextColor'])) $personalizacion->setTimetableHeaderTextColor($data['timetableHeaderTextColor']);
         if (isset($data['timetableHoursBgColor'])) $personalizacion->setTimetableHoursBgColor($data['timetableHoursBgColor']);
         if (isset($data['timetableHoursTextColor'])) $personalizacion->setTimetableHoursTextColor($data['timetableHoursTextColor']);
+
+        // Nuevos campos de Horario (RENOMBRADOS)
+        if (isset($data['timetableSelectedHeaderBg'])) {
+            $personalizacion->setTimetableSelectedHeaderBg($data['timetableSelectedHeaderBg']);
+        }
+        if (isset($data['timetableSelectedHeaderText'])) {
+            $personalizacion->setTimetableSelectedHeaderText($data['timetableSelectedHeaderText']);
+        }
+        if (isset($data['timetableSelectedCellBg'])) {
+            $personalizacion->setTimetableSelectedCellBg($data['timetableSelectedCellBg']);
+        }
 
         // DataTable
         if (isset($data['datatableHeaderBgColor'])) $personalizacion->setDatatableHeaderBgColor($data['datatableHeaderBgColor']);

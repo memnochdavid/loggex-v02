@@ -490,6 +490,7 @@ const Horarios = () => {
                     <CalendarView 
                         selectedDate={selectedDate} 
                         onDateSelect={setSelectedDate}
+                        festivos={festivos} // Pasamos los festivos aquí
                     />
                 </div>
             </div>

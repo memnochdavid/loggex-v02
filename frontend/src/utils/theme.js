@@ -55,6 +55,9 @@ export const applyTheme = (colors) => {
         timetableHeaderTextColor: '#334155',
         timetableHoursBgColor: '#f8fafc',
         timetableHoursTextColor: '#64748b',
+        timetableSelectedHeaderBg: '#e0e7ff', // RENOMBRADO
+        timetableSelectedHeaderText: '#4338ca', // RENOMBRADO
+        timetableSelectedCellBg: '#eef2ff', // RENOMBRADO
         datatableHeaderBgColor: '#f8fafc',
         datatableHeaderTextColor: '#64748b',
         datatableHeaderHoverBgColor: '#f1f5f9',
@@ -131,10 +134,16 @@ export const applyTheme = (colors) => {
     if (theme.calendarSelectedTextColor) root.style.setProperty('--calendar-selected-text', theme.calendarSelectedTextColor);
     if (theme.calendarWeekendBgColor) root.style.setProperty('--calendar-weekend-bg', theme.calendarWeekendBgColor);
     if (theme.calendarWeekendTextColor) root.style.setProperty('--calendar-weekend-text', theme.calendarWeekendTextColor);
+    
     if (theme.timetableHeaderBgColor) root.style.setProperty('--timetable-header-bg', theme.timetableHeaderBgColor);
     if (theme.timetableHeaderTextColor) root.style.setProperty('--timetable-header-text', theme.timetableHeaderTextColor);
     if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', theme.timetableHoursBgColor);
     if (theme.timetableHoursTextColor) root.style.setProperty('--timetable-hours-text', theme.timetableHoursTextColor);
+    
+    // Nuevos campos de Horario (Día Activo) - RENOMBRADOS
+    if (theme.timetableSelectedHeaderBg) root.style.setProperty('--timetable-active-header-bg', theme.timetableSelectedHeaderBg);
+    if (theme.timetableSelectedHeaderText) root.style.setProperty('--timetable-active-header-text', theme.timetableSelectedHeaderText);
+    if (theme.timetableSelectedCellBg) root.style.setProperty('--timetable-active-cell-bg', theme.timetableSelectedCellBg);
 
     // 7. DataTable
     if (theme.datatableHeaderBgColor) root.style.setProperty('--datatable-header-bg', theme.datatableHeaderBgColor);

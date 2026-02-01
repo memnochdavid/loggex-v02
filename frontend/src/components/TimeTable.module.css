@@ -53,8 +53,8 @@
 }
 
 .highlightDay {
-    background-color: var(--color-primary-100);
-    color: var(--color-primary-700);
+    background-color: var(--timetable-active-header-bg, var(--color-primary-100));
+    color: var(--timetable-active-header-text, var(--color-primary-700));
 }
 
 .timeCell {
@@ -81,7 +81,7 @@
 }
 
 .highlightCell {
-    background-color: var(--color-primary-50);
+    background-color: var(--timetable-active-cell-bg, var(--color-primary-50));
 }
 
 .eventCard {
