@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -29,6 +32,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['matricula:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['matricula:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'alumno' => 'exact',
+    'alumno.nombre' => 'partial',
+    'grupo' => 'exact',
+    'grupo.nombre' => 'partial'
+])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'alumno.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Matricula
 {
     use TimestampableTrait;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers } from 'lucide-react';
+import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -88,9 +88,17 @@ const Sidebar = () => {
                                 <Layers size={20} />
                                 {!isCollapsed && <span>Ciclos</span>}
                             </NavLink>
+                            <NavLink to="/grupos" className={getNavLinkClass} title="Grupos">
+                                <UsersRound size={20} />
+                                {!isCollapsed && <span>Grupos</span>}
+                            </NavLink>
                             <NavLink to="/modulos" className={getNavLinkClass} title="Módulos">
                                 <BookOpen size={20} />
                                 {!isCollapsed && <span>Módulos</span>}
+                            </NavLink>
+                            <NavLink to="/matriculas" className={getNavLinkClass} title="Matrículas">
+                                <GraduationCap size={20} />
+                                {!isCollapsed && <span>Matrículas</span>}
                             </NavLink>
                         </>
                     )}

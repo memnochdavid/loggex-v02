@@ -8,8 +8,10 @@ import About from './pages/About';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
 import Usuarios from './pages/Usuarios';
-import CiclosFormativos from './pages/CiclosFormativos'; // Importar
-import Modulos from './pages/Modulos'; // Importar
+import CiclosFormativos from './pages/CiclosFormativos';
+import Grupos from './pages/Grupos'; // Importar
+import Modulos from './pages/Modulos';
+import Matriculas from './pages/Matriculas';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
@@ -54,9 +56,21 @@ function App() {
                 </PrivateRoute>
               } />
 
+              <Route path="/grupos" element={
+                <PrivateRoute>
+                  <Grupos />
+                </PrivateRoute>
+              } />
+
               <Route path="/modulos" element={
                 <PrivateRoute>
                   <Modulos />
+                </PrivateRoute>
+              } />
+
+              <Route path="/matriculas" element={
+                <PrivateRoute>
+                  <Matriculas />
                 </PrivateRoute>
               } />
 

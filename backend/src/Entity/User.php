@@ -15,6 +15,8 @@ use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
 use App\State\SoftDeleteProcessor;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -40,8 +42,9 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     'apellidos' => 'partial',
     'email' => 'partial',
     'telefono' => 'partial',
-    'nif' => 'partial', // Añadido filtro por NIF
-    'centro' => 'exact'
+    'nif' => 'partial',
+    'centro' => 'exact',
+    'rol_app' => 'exact'
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'apellidos', 'email', 'id'], arguments: ['orderParameterName' => 'order'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -52,11 +55,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'matricula:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read'])]
     private ?string $email = null;
 
     #[ORM\Column]
@@ -70,11 +73,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read'])]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read'])]
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
@@ -90,13 +93,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rol_app = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read'])]
     private ?string $foto = null;
 
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
     #[ORM\JoinColumn(nullable: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?Centro $centro = null;
+
+    #[ORM\OneToMany(mappedBy: 'alumno', targetEntity: Matricula::class)]
+    private Collection $matriculas;
+
+    public function __construct()
+    {
+        $this->matriculas = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -257,5 +268,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getCentroId(): ?int
     {
         return $this->centro ? $this->centro->getId() : null;
+    }
+
+    /**
+     * @return Collection<int, Matricula>
+     */
+    public function getMatriculas(): Collection
+    {
+        return $this->matriculas;
+    }
+
+    public function addMatricula(Matricula $matricula): static
+    {
+        if (!$this->matriculas->contains($matricula)) {
+            $this->matriculas->add($matricula);
+            $matricula->setAlumno($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMatricula(Matricula $matricula): static
+    {
+        if ($this->matriculas->removeElement($matricula)) {
+            // set the owning side to null (unless already changed)
+            if ($matricula->getAlumno() === $this) {
+                $matricula->setAlumno(null);
+            }
+        }
+
+        return $this;
     }
 }

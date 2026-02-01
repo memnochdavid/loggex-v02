@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -24,7 +24,10 @@ const Configuracion = () => {
         buttonSecondaryColor: '#ffffff',
         buttonSecondaryTextColor: '#334155',
         headerFooterColor: '#1e293b',
-        headerFooterTextColor: '#ffffff'
+        headerFooterTextColor: '#ffffff',
+        scrollbarThumbColor: '#cbd5e1',
+        scrollbarTrackColor: '#f1f5f9',
+        scrollbarHoverColor: '#94a3b8'
     };
 
     const [colors, setColors] = useState(defaultColors);
@@ -85,9 +88,17 @@ const Configuracion = () => {
         }
     };
 
-    // Permitir acceso si tiene centro O si es SuperAdmin (que ahora tendrá un centro "ficticio" o null pero acceso permitido)
-    // Con la actualización del backend, el SuperAdmin recibirá un centro "Global" con la personalización global.
-    if (!user) return null;
+    if (!user || !user.centro) {
+        return (
+            <Layout>
+                <div className={styles.container}>
+                    <div className={styles.card}>
+                        <p>Esta configuración solo está disponible para usuarios asignados a un centro.</p>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
     const renderColorInput = (label, name) => (
         <div className={styles.colorItem}>
@@ -117,6 +128,7 @@ const Configuracion = () => {
         { id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18} /> },
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
+        { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
     ];
 
     return (
@@ -205,6 +217,14 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Botón Secundario', 'buttonSecondaryTextColor')}
                                 </div>
                             )}
+
+                            {activeTab === 'scrollbar' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
+                                    {/*{renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}*/}
+                                    {renderColorInput('Color Hover', 'scrollbarHoverColor')}
+                                </div>
+                            )}
                         </div>
 
                         <div className={styles.previewContainer}>
@@ -223,7 +243,7 @@ const Configuracion = () => {
                                         style={{ 
                                             backgroundColor: colors.buttonSecondaryColor, 
                                             color: colors.buttonSecondaryTextColor,
-                                            border: `1px solid ${colors.textSecondaryColor}` // Usar borde sutil
+                                            border: `1px solid ${colors.textSecondaryColor}`
                                         }}
                                     >
                                         Botón Secundario
@@ -255,6 +275,20 @@ const Configuracion = () => {
                                         }}>
                                             Hover
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Preview Scrollbar */}
+                                <div style={{ 
+                                    height: '100px', 
+                                    overflowY: 'scroll', 
+                                    border: '1px solid #e2e8f0', 
+                                    padding: '10px',
+                                    backgroundColor: '#fff'
+                                }}>
+                                    <div style={{ height: '200px' }}>
+                                        <p style={{ color: colors.textMainColor }}>Contenido con scroll para probar la barra de desplazamiento personalizada.</p>
+                                        <p style={{ color: colors.textSecondaryColor }}>Desplázate hacia abajo...</p>
                                     </div>
                                 </div>
                             </div>

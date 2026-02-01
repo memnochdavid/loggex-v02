@@ -43,7 +43,10 @@ export const applyTheme = (colors) => {
         buttonSecondaryColor: '#ffffff',
         buttonSecondaryTextColor: '#334155',
         headerFooterColor: '#1e293b',
-        headerFooterTextColor: '#ffffff'
+        headerFooterTextColor: '#ffffff',
+        scrollbarThumbColor: '#cbd5e1',
+        scrollbarTrackColor: '#f1f5f9',
+        scrollbarHoverColor: '#94a3b8'
     };
 
     const theme = { ...defaults, ...colors };
@@ -63,21 +66,14 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
     }
 
-    // 2. Color Secundario (Nuevo)
-    if (theme.secondaryColor) {
-        // Podríamos generar paleta secundaria si fuera necesario
-        // Por ahora lo usamos para elementos secundarios específicos si se requiere
-        // Pero el texto secundario tiene su propia variable
-    }
-
-    // 3. Sidebar
+    // 2. Sidebar
     if (theme.sidebarColor) root.style.setProperty('--bg-sidebar', theme.sidebarColor);
     if (theme.sidebarActiveColor) root.style.setProperty('--bg-sidebar-active', theme.sidebarActiveColor);
     if (theme.sidebarActiveTextColor) root.style.setProperty('--text-sidebar-active', theme.sidebarActiveTextColor);
     if (theme.sidebarHoverColor) root.style.setProperty('--bg-sidebar-hover', theme.sidebarHoverColor);
     if (theme.sidebarHoverTextColor) root.style.setProperty('--text-sidebar-hover', theme.sidebarHoverTextColor);
 
-    // 4. Textos
+    // 3. Textos
     if (theme.textMainColor) {
         root.style.setProperty('--text-main', theme.textMainColor);
     }
@@ -85,7 +81,7 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--text-muted', theme.textSecondaryColor);
     }
 
-    // 5. Botones
+    // 4. Botones
     if (theme.buttonPrimaryColor) {
         root.style.setProperty('--btn-primary-bg', theme.buttonPrimaryColor);
         root.style.setProperty('--btn-primary-hover', mixColors(theme.buttonPrimaryColor, '#000000', 0.9));
@@ -100,11 +96,56 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--btn-secondary-text', theme.buttonSecondaryTextColor);
     }
 
-    // 6. Header y Footer
+    // 5. Header y Footer
     if (theme.headerFooterColor) {
         root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
     }
     if (theme.headerFooterTextColor) {
         root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
     }
+
+    // 6. Scrollbar (Inyección de estilos dinámicos)
+    let styleTag = document.getElementById('theme-scrollbar-styles');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'theme-scrollbar-styles';
+        document.head.appendChild(styleTag);
+    }
+
+    styleTag.innerHTML = `
+        /* Firefox Scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
+        }
+
+        /* Webkit Scrollbar (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        
+        ::-webkit-scrollbar-track,
+        *::-webkit-scrollbar-track {
+            background: ${theme.scrollbarTrackColor} !important;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb,
+        *::-webkit-scrollbar-thumb {
+            background-color: ${theme.scrollbarThumbColor} !important;
+            border-radius: 4px;
+            border: 3px solid ${theme.scrollbarTrackColor};
+        }
+        
+        ::-webkit-scrollbar-thumb:hover,
+        *::-webkit-scrollbar-thumb:hover {
+            background-color: ${theme.scrollbarHoverColor} !important;
+        }
+        
+        ::-webkit-scrollbar-corner,
+        *::-webkit-scrollbar-corner {
+            background-color: ${theme.scrollbarTrackColor};
+        }
+    `;
 };

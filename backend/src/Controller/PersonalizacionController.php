@@ -27,21 +27,17 @@ class PersonalizacionController extends AbstractController
         $personalizacion = null;
 
         if ($centro) {
-            // Usuario de centro: edita la personalización de su centro
             $personalizacion = $centro->getPersonalizacion();
             if (!$personalizacion) {
                 $personalizacion = new Personalizacion();
                 $personalizacion->setCentro($centro);
             }
         } else {
-            // Usuario sin centro (SuperAdmin): edita la personalización global
-            // Buscamos una personalización donde centro sea NULL
             $repo = $entityManager->getRepository(Personalizacion::class);
             $personalizacion = $repo->findOneBy(['centro' => null]);
 
             if (!$personalizacion) {
                 $personalizacion = new Personalizacion();
-                // centro es null por defecto
             }
         }
 
@@ -71,6 +67,11 @@ class PersonalizacionController extends AbstractController
         // Header/Footer
         if (isset($data['headerFooterColor'])) $personalizacion->setHeaderFooterColor($data['headerFooterColor']);
         if (isset($data['headerFooterTextColor'])) $personalizacion->setHeaderFooterTextColor($data['headerFooterTextColor']);
+
+        // Scrollbar
+        if (isset($data['scrollbarThumbColor'])) $personalizacion->setScrollbarThumbColor($data['scrollbarThumbColor']);
+        if (isset($data['scrollbarTrackColor'])) $personalizacion->setScrollbarTrackColor($data['scrollbarTrackColor']);
+        if (isset($data['scrollbarHoverColor'])) $personalizacion->setScrollbarHoverColor($data['scrollbarHoverColor']);
 
         $entityManager->persist($personalizacion);
         $entityManager->flush();

@@ -56,7 +56,6 @@ class SecurityController extends AbstractController
         $personalizacionData = null;
 
         if ($user->getCentro()) {
-            // Usuario de centro
             if ($user->getCentro()->getPersonalizacion()) {
                 $p = $user->getCentro()->getPersonalizacion();
                 $personalizacionData = $this->formatPersonalizacion($p);
@@ -69,22 +68,13 @@ class SecurityController extends AbstractController
                 'personalizacion' => $personalizacionData,
             ];
         } else {
-            // Usuario global (SuperAdmin) -> Cargar personalización global
             $repo = $entityManager->getRepository(Personalizacion::class);
             $p = $repo->findOneBy(['centro' => null]);
             if ($p) {
                 $personalizacionData = $this->formatPersonalizacion($p);
             }
 
-            // Simulamos una estructura de centro para que el frontend aplique el tema global
-            // O mejor, devolvemos 'personalizacion' a nivel de usuario si queremos
-            // Pero para mantener compatibilidad con AuthContext actual, lo metemos en un objeto 'centro' ficticio o
-            // modificamos AuthContext para buscar personalizacion en user.personalizacionGlobal
-
-            // Modificaremos AuthContext para ser más flexible, pero por ahora:
             if ($personalizacionData) {
-                // Hack temporal: inyectar personalización global como si fuera de un centro "Global"
-                // para que el frontend actual lo pille sin cambios.
                 $centroData = [
                     'id' => 'global',
                     'nombre' => 'Configuración Global',
@@ -123,6 +113,9 @@ class SecurityController extends AbstractController
             'buttonSecondaryTextColor' => $p->getButtonSecondaryTextColor(),
             'headerFooterColor' => $p->getHeaderFooterColor(),
             'headerFooterTextColor' => $p->getHeaderFooterTextColor(),
+            'scrollbarThumbColor' => $p->getScrollbarThumbColor(),
+            'scrollbarTrackColor' => $p->getScrollbarTrackColor(),
+            'scrollbarHoverColor' => $p->getScrollbarHoverColor(),
         ];
     }
 }

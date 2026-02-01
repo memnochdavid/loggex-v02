@@ -104,6 +104,19 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $headerFooterTextColor = '#ffffff'; // White
 
+    // --- Scrollbar ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $scrollbarThumbColor = '#cbd5e1'; // Slate-300
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $scrollbarTrackColor = '#f1f5f9'; // Slate-100
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $scrollbarHoverColor = '#94a3b8'; // Slate-400
+
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
@@ -158,6 +171,15 @@ class Personalizacion
 
     public function getHeaderFooterTextColor(): ?string { return $this->headerFooterTextColor; }
     public function setHeaderFooterTextColor(string $color): static { $this->headerFooterTextColor = $color; return $this; }
+
+    public function getScrollbarThumbColor(): ?string { return $this->scrollbarThumbColor; }
+    public function setScrollbarThumbColor(string $color): static { $this->scrollbarThumbColor = $color; return $this; }
+
+    public function getScrollbarTrackColor(): ?string { return $this->scrollbarTrackColor; }
+    public function setScrollbarTrackColor(string $color): static { $this->scrollbarTrackColor = $color; return $this; }
+
+    public function getScrollbarHoverColor(): ?string { return $this->scrollbarHoverColor; }
+    public function setScrollbarHoverColor(string $color): static { $this->scrollbarHoverColor = $color; return $this; }
 
     public function getCentro(): ?Centro
     {

@@ -44,11 +44,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read'])]
+    #[Groups(['centro:read', 'user:read', 'grupo:read'])] // Añadido grupo:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read'])] // Añadido grupo:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -81,6 +81,9 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: CicloFormativo::class)]
     private Collection $ciclos;
 
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Grupo::class)]
+    private Collection $grupos;
+
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
@@ -89,6 +92,7 @@ class Centro
     {
         $this->usuarios = new ArrayCollection();
         $this->ciclos = new ArrayCollection();
+        $this->grupos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -186,6 +190,35 @@ class Centro
         }
 
         $this->personalizacion = $personalizacion;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Grupo>
+     */
+    public function getGrupos(): Collection
+    {
+        return $this->grupos;
+    }
+
+    public function addGrupo(Grupo $grupo): static
+    {
+        if (!$this->grupos->contains($grupo)) {
+            $this->grupos->add($grupo);
+            $grupo->setCentro($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGrupo(Grupo $grupo): static
+    {
+        if ($this->grupos->removeElement($grupo)) {
+            if ($grupo->getCentro() === $this) {
+                $grupo->setCentro(null);
+            }
+        }
 
         return $this;
     }

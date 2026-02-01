@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -31,6 +34,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['grupo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['grupo:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'nombre' => 'partial',
+    'anioEscolar' => 'exact',
+    'ciclo' => 'exact',
+    'ciclo.nombre' => 'partial',
+    'centro' => 'exact'
+])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'curso', 'anioEscolar', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Grupo
 {
     use TimestampableTrait;
@@ -39,11 +50,11 @@ class Grupo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['grupo:read'])]
+    #[Groups(['grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20, nullable: true)]

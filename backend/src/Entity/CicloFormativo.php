@@ -48,15 +48,15 @@ class CicloFormativo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ciclo:read', 'modulo:read'])] // Añadido modulo:read
+    #[Groups(['ciclo:read', 'modulo:read', 'grupo:read'])] // Añadido grupo:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read'])] // Añadido modulo:read
+    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read', 'grupo:read'])] // Añadido grupo:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read'])] // Añadido modulo:read
+    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read'])]
     private ?string $nivel = null;
 
     #[ORM\ManyToOne(inversedBy: 'ciclos')]
@@ -67,9 +67,13 @@ class CicloFormativo
     #[ORM\OneToMany(mappedBy: 'ciclo', targetEntity: Modulo::class)]
     private Collection $modulos;
 
+    #[ORM\OneToMany(mappedBy: 'ciclo', targetEntity: Grupo::class)]
+    private Collection $grupos;
+
     public function __construct()
     {
         $this->modulos = new ArrayCollection();
+        $this->grupos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -131,9 +135,37 @@ class CicloFormativo
     public function removeModulo(Modulo $modulo): static
     {
         if ($this->modulos->removeElement($modulo)) {
-            // set the owning side to null (unless already changed)
             if ($modulo->getCiclo() === $this) {
                 $modulo->setCiclo(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Grupo>
+     */
+    public function getGrupos(): Collection
+    {
+        return $this->grupos;
+    }
+
+    public function addGrupo(Grupo $grupo): static
+    {
+        if (!$this->grupos->contains($grupo)) {
+            $this->grupos->add($grupo);
+            $grupo->setCiclo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGrupo(Grupo $grupo): static
+    {
+        if ($this->grupos->removeElement($grupo)) {
+            if ($grupo->getCiclo() === $this) {
+                $grupo->setCiclo(null);
             }
         }
 
