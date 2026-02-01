@@ -76,6 +76,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['scrollbarThumbColor'])) $personalizacion->setScrollbarThumbColor($data['scrollbarThumbColor']);
         if (isset($data['scrollbarTrackColor'])) $personalizacion->setScrollbarTrackColor($data['scrollbarTrackColor']);
         if (isset($data['scrollbarHoverColor'])) $personalizacion->setScrollbarHoverColor($data['scrollbarHoverColor']);
+        if (isset($data['scrollbarWidth'])) $personalizacion->setScrollbarWidth($data['scrollbarWidth']); // Nuevo
 
         // Calendario
         if (isset($data['calendarSelectedBgColor'])) $personalizacion->setCalendarSelectedBgColor($data['calendarSelectedBgColor']);

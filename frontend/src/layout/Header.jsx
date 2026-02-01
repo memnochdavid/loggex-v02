@@ -38,10 +38,6 @@ const Header = () => {
       </div>
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
 
-        {isAdmin && (
-            <Link to="/festivos" className={styles.navLink}>Festivos</Link>
-        )}
-
         <Link to="/about" className={styles.navLink}>About</Link>
 
         {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (

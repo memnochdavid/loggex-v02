@@ -2,13 +2,6 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # Define la jerarquía: El SUPERADMIN tiene todo lo que tiene el ADMIN, y más.
-    role_hierarchy:
-        ROLE_ALUMNO:      ROLE_USER
-        ROLE_PROFESOR:    ROLE_USER
-        ROLE_ADMIN:       [ROLE_PROFESOR, ROLE_ALUMNO]
-        ROLE_SUPERADMIN:  [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
-
     providers:
         app_user_provider:
             entity:
@@ -20,20 +13,28 @@ security:
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
 
+        # Firewall unificado para Login y API (Stateful / Sesión)
         main:
             lazy: true
             provider: app_user_provider
+
+            # Configuración de Login JSON
             json_login:
                 check_path: api_login
                 username_path: email
                 password_path: password
+
+            # Configuración de Logout
             logout:
                 path: api_logout
-                target: api_logout_success # Redirigir aquí tras logout (evita redirección a / que falla CORS)
+                target: api_logout_success
+
+            # Importante: No ponemos 'stateless: true' aquí.
+            # Al ser stateful, la sesión creada en el login se reutiliza en las peticiones subsiguientes.
 
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:

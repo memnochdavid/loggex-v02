@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Search, X } from 'lucide-react';
 import styles from './SearchBar.module.css';
 
 /**
@@ -18,6 +18,15 @@ const SearchBar = ({
     selectedField, 
     onFieldChange 
 }) => {
+  const inputRef = useRef(null);
+
+  const handleClear = () => {
+    onChange('');
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
   return (
     <div className={styles.container}>
       {fields.length > 0 && (
@@ -37,12 +46,22 @@ const SearchBar = ({
       <div className={styles.inputWrapper}>
         <Search className={styles.icon} size={18} />
         <input
+            ref={inputRef}
             type="text"
             className={styles.input}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
         />
+        {value && (
+          <button 
+            className={styles.clearButton} 
+            onClick={handleClear}
+            aria-label="Limpiar búsqueda"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

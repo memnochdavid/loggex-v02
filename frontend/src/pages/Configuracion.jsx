@@ -40,6 +40,7 @@ const Configuracion = () => {
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
+        scrollbarWidth: '12px', // Nuevo campo
         
         // Calendario
         calendarSelectedBgColor: '#6366f1',
@@ -52,9 +53,9 @@ const Configuracion = () => {
         timetableHeaderTextColor: '#334155',
         timetableHoursBgColor: '#f8fafc',
         timetableHoursTextColor: '#64748b',
-        timetableSelectedHeaderBg: '#e0e7ff', // RENOMBRADO
-        timetableSelectedHeaderText: '#4338ca', // RENOMBRADO
-        timetableSelectedCellBg: '#eef2ff', // RENOMBRADO
+        timetableSelectedHeaderBg: '#e0e7ff',
+        timetableSelectedHeaderText: '#4338ca',
+        timetableSelectedCellBg: '#eef2ff',
         
         // DataTable
         datatableHeaderBgColor: '#f8fafc',
@@ -195,6 +196,20 @@ const Configuracion = () => {
         </div>
     );
 
+    const renderTextInput = (label, name, placeholder = '') => (
+        <div className={styles.colorItem}>
+            <label className={styles.label}>{label}</label>
+            <input
+                type="text"
+                name={name}
+                value={settings[name] || ''}
+                onChange={handleChange}
+                className={styles.colorTextInput}
+                placeholder={placeholder}
+            />
+        </div>
+    );
+
     const renderPreview = () => {
         switch (activeTab) {
             case 'general':
@@ -315,12 +330,12 @@ const Configuracion = () => {
                                 aunque el estilo real se aplica globalmente. 
                                 Aquí mostramos una representación estática para referencia visual. */}
                             <div style={{ 
-                                position: 'absolute', right: '20px', top: '60px', width: '8px', height: '40px', 
+                                position: 'absolute', right: '20px', top: '60px', width: settings.scrollbarWidth || '12px', height: '40px', 
                                 backgroundColor: settings.scrollbarThumbColor, borderRadius: '4px', zIndex: 10 
                             }}></div>
-                            <div style={{ 
-                                position: 'absolute', right: '20px', top: '20px', width: '8px', height: '100px', 
-                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5 
+                            <div style={{
+                                position: 'absolute', right: '20px', top: '20px', width: settings.scrollbarWidth || '12px', height: '100px',
+                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5
                             }}></div>
                             
                             <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
@@ -588,6 +603,7 @@ const Configuracion = () => {
                                     {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
                                     {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
                                     {renderColorInput('Color Hover', 'scrollbarHoverColor')}
+                                    {/*{renderTextInput('Grosor (ej: 12px, thin)', 'scrollbarWidth', '12px')} /!* Nuevo Input *!/*/}
                                 </div>
                             )}
 

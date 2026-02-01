@@ -44,11 +44,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read'])]
+    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read'])] // Añadido festivo:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read'])]
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read'])] // Añadido festivo:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -85,7 +85,7 @@ class Centro
     private Collection $grupos;
 
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Festivo::class)]
-    private Collection $festivos; // Añadido
+    private Collection $festivos;
 
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
@@ -96,7 +96,7 @@ class Centro
         $this->usuarios = new ArrayCollection();
         $this->ciclos = new ArrayCollection();
         $this->grupos = new ArrayCollection();
-        $this->festivos = new ArrayCollection(); // Inicializado
+        $this->festivos = new ArrayCollection();
     }
 
     public function getId(): ?int

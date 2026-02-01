@@ -47,6 +47,7 @@ export const applyTheme = (colors) => {
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
+        scrollbarWidth: '12px', // Nuevo default
         calendarSelectedBgColor: '#6366f1',
         calendarSelectedTextColor: '#ffffff',
         calendarWeekendBgColor: '#f1f5f9',
@@ -55,9 +56,9 @@ export const applyTheme = (colors) => {
         timetableHeaderTextColor: '#334155',
         timetableHoursBgColor: '#f8fafc',
         timetableHoursTextColor: '#64748b',
-        timetableSelectedHeaderBg: '#e0e7ff', // RENOMBRADO
-        timetableSelectedHeaderText: '#4338ca', // RENOMBRADO
-        timetableSelectedCellBg: '#eef2ff', // RENOMBRADO
+        timetableSelectedHeaderBg: '#e0e7ff',
+        timetableSelectedHeaderText: '#4338ca',
+        timetableSelectedCellBg: '#eef2ff',
         datatableHeaderBgColor: '#f8fafc',
         datatableHeaderTextColor: '#64748b',
         datatableHeaderHoverBgColor: '#f1f5f9',
@@ -140,7 +141,6 @@ export const applyTheme = (colors) => {
     if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', theme.timetableHoursBgColor);
     if (theme.timetableHoursTextColor) root.style.setProperty('--timetable-hours-text', theme.timetableHoursTextColor);
     
-    // Nuevos campos de Horario (Día Activo) - RENOMBRADOS
     if (theme.timetableSelectedHeaderBg) root.style.setProperty('--timetable-active-header-bg', theme.timetableSelectedHeaderBg);
     if (theme.timetableSelectedHeaderText) root.style.setProperty('--timetable-active-header-text', theme.timetableSelectedHeaderText);
     if (theme.timetableSelectedCellBg) root.style.setProperty('--timetable-active-cell-bg', theme.timetableSelectedCellBg);
@@ -170,17 +170,20 @@ export const applyTheme = (colors) => {
         document.head.appendChild(styleTag);
     }
 
+    // Usar scrollbarWidth
+    const width = theme.scrollbarWidth || '12px';
+
     styleTag.innerHTML = `
         /* Firefox Scrollbar */
         * {
-            scrollbar-width: thin;
+            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
             scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
         }
 
         /* Webkit Scrollbar (Chrome, Safari, Edge) */
         ::-webkit-scrollbar {
-            width: 12px;
-            height: 12px;
+            width: ${width};
+            height: ${width};
         }
         
         ::-webkit-scrollbar-track,

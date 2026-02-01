@@ -236,12 +236,13 @@ const Modulos = () => {
       
       const method = currentModulo ? 'PUT' : 'POST';
 
+      const cicloValue = String(formData.ciclo);
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
         horasSemanales: parseInt(formData.horasSemanales),
         // Asegurar formato IRI para relación
-        ciclo: formData.ciclo.includes('/api/') ? formData.ciclo : `/api/ciclo_formativos/${formData.ciclo}`
+        ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`
       };
 
       const response = await fetch(url, {

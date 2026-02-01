@@ -117,6 +117,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $scrollbarHoverColor = '#94a3b8';
 
+    #[ORM\Column(length: 10)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $scrollbarWidth = '12px'; // Nuevo campo
+
     // --- Calendario ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -151,7 +155,7 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $timetableHoursTextColor = '#64748b';
 
-    // NUEVOS CAMPOS (Renombrados para forzar actualización)
+    // Nuevos campos de Horario (RENOMBRADOS)
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $timetableSelectedHeaderBg = '#e0e7ff';
@@ -318,6 +322,9 @@ class Personalizacion
 
     public function getScrollbarHoverColor(): ?string { return $this->scrollbarHoverColor; }
     public function setScrollbarHoverColor(string $color): static { $this->scrollbarHoverColor = $color; return $this; }
+
+    public function getScrollbarWidth(): ?string { return $this->scrollbarWidth; }
+    public function setScrollbarWidth(string $width): static { $this->scrollbarWidth = $width; return $this; }
 
     public function getCalendarSelectedBgColor(): ?string { return $this->calendarSelectedBgColor; }
     public function setCalendarSelectedBgColor(string $color): static { $this->calendarSelectedBgColor = $color; return $this; }

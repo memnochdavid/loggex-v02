@@ -310,7 +310,7 @@ CREATE TABLE `festivo` (
   PRIMARY KEY (`id`),
   KEY `IDX_9472C78A298137A7` (`centro_id`),
   CONSTRAINT `FK_9472C78A298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -320,8 +320,9 @@ CREATE TABLE `festivo` (
 LOCK TABLES `festivo` WRITE;
 /*!40000 ALTER TABLE `festivo` DISABLE KEYS */;
 INSERT INTO `festivo` VALUES
-(4,'Navidad','2025-12-22',3,'2026-01-06','2026-02-01 08:05:15',NULL,0,NULL),
-(5,'Semana Santa','2026-03-28',3,'2026-04-05','2026-02-01 08:05:15',NULL,0,NULL);
+(4,'Navidad','2025-12-22',NULL,'2026-01-06','2026-02-01 08:05:15',NULL,0,NULL),
+(5,'Semana Santa','2026-03-28',NULL,'2026-04-05','2026-02-01 08:05:15',NULL,0,NULL),
+(6,'Prueba','2026-02-02',NULL,'2026-02-02',NULL,'2026-02-01 22:18:38',0,NULL);
 /*!40000 ALTER TABLE `festivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -359,7 +360,7 @@ CREATE TABLE `grupo` (
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
-(5,'Desarrollo de Aplicaciones Web','2025/2026',3,3,1,'1º DAW','2026-02-01 08:05:15',NULL,0,NULL),
+(5,'Desarrollo de Aplicaciones Web','2025/2026',3,3,1,'1º DAW',NULL,'2026-02-01 22:20:08',0,NULL),
 (6,'Desarrollo de Aplicaciones Web','2024/2025',3,3,2,'2º DAW','2026-02-01 08:05:15',NULL,0,NULL),
 (7,'Desarrollo de Aplicaciones Multiplataforma','2025/2026',4,3,1,'1º DAM','2026-02-01 08:05:15',NULL,0,NULL),
 (8,'Desarrollo de Aplicaciones Multiplataforma','2024/2025',4,3,2,'2º DAM','2026-02-01 08:05:15',NULL,0,NULL);
@@ -551,7 +552,7 @@ CREATE TABLE `imparticion` (
 LOCK TABLES `imparticion` WRITE;
 /*!40000 ALTER TABLE `imparticion` DISABLE KEYS */;
 INSERT INTO `imparticion` VALUES
-(23,50,35,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(23,50,43,6,NULL,'2026-02-01 22:21:52',0,NULL),
 (24,51,36,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (25,52,37,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (26,53,38,5,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -642,7 +643,7 @@ CREATE TABLE `matricula` (
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
 INSERT INTO `matricula` VALUES
-(41,57,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(41,57,5,NULL,'2026-02-01 22:34:58',0,NULL),
 (42,58,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (43,59,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (44,60,5,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -725,7 +726,7 @@ CREATE TABLE `modulo` (
 LOCK TABLES `modulo` WRITE;
 /*!40000 ALTER TABLE `modulo` DISABLE KEYS */;
 INSERT INTO `modulo` VALUES
-(23,'Bases de datos','0001',4,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(23,'Bases de datos','0001',4,1,6,NULL,'2026-02-01 22:24:41',0,NULL),
 (24,'Entornos de desarrollo','0002',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
 (25,'Lenguajes de marcas','0003',4,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
 (26,'Programación','0004',4,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -848,6 +849,10 @@ CREATE TABLE `personalizacion` (
   `items_per_page_matriculas` int(11) NOT NULL,
   `items_per_page_imparticiones` int(11) NOT NULL,
   `items_per_page_horarios` int(11) NOT NULL,
+  `timetable_selected_header_bg` varchar(7) NOT NULL,
+  `timetable_selected_header_text` varchar(7) NOT NULL,
+  `timetable_selected_cell_bg` varchar(7) NOT NULL,
+  `scrollbar_width` varchar(10) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
@@ -861,7 +866,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#6366f1','#1e293b',3,'#334155','#64748b','#6366f1','#ffffff','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#334155','#64748b','2026-02-01 10:25:33','2026-02-01 12:27:33',0,NULL,'#cbd5e1','#f1f5f9','#94a3b8','#36d949','#ffffff','#ff0000','#ffffff','#557cd8','#ffffff','#d6d6d6','#353131','#4279cd','#ffffff','#4aba51','#ffffff','#4672b4','#ffffff','#6499e8','#ffffff','#0c9d3e','#ffffff','#44c571','ffffff','#769882','#ffffff',10,10,10,10,10,10,10,10);
+(1,'#6366f1','#1e293b',3,'#334155','#64748b','#6366f1','#ffffff','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#334155','#64748b','2026-02-01 10:25:33','2026-02-01 21:44:42',0,NULL,'#427ecd','#2c2e30','#80aeea','#36d949','#ffffff','#ff0000','#ffffff','#2b8ac5','#ffffff','#d6d6d6','#353131','#4279cd','#ffffff','#4aba51','#ffffff','#4672b4','#ffffff','#6499e8','#ffffff','#0c9d3e','#ffffff','#44c571','ffffff','#769882','#ffffff',10,10,10,10,10,10,10,10,'#51ade6','#ffffff','#a4dcfe','auto');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -943,12 +948,12 @@ LOCK TABLES `usuario` WRITE;
 /*!40000 ALTER TABLE `usuario` DISABLE KEYS */;
 INSERT INTO `usuario` VALUES
 (49,'admin@loggex.com','[\"ROLE_SUPERADMIN\"]','$2y$13$2Jljtnj7wPTQAWD6AEW59O7SKhJ9l2IJuxEYZRqDCeacmVV6Aw55K','David','Duque Díaz','admin',NULL,'/uploads/avatar/c7ea53844ba2bb780d716155eb9c34498d6bf505-697e01ce208fd.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 964 65 1347','60765993Q'),
-(50,'alberto@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$GU7YaDFM1IofnCHCqtGfde7C/ETEFO8jkSp73i7I0v4FRZTQTPtJq','Alberto','Núñez Papo','profesor',3,'/uploads/avatar/35aedb388479dbcea7f406764fab3f8508ca7009.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'911 456556','21588840M'),
+(50,'alberto@eag.com','[\"ROLE_PROFESOR\",\"ROLE_USER\"]','$2y$13$GU7YaDFM1IofnCHCqtGfde7C/ETEFO8jkSp73i7I0v4FRZTQTPtJq','Alberto','Núñez Papo','profesor',3,'/uploads/avatar/35aedb388479dbcea7f406764fab3f8508ca7009.jpg','2026-01-31 22:12:20','2026-02-01 22:07:50',0,NULL,'911 456556','21588840M'),
 (51,'joaquin@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$yCPpgazE03gBjonimhMknOslPIqA0dR6856dzvov7HQQYsttSBXJu','Joaquín','Suarez Mañueco','profesor',3,'/uploads/avatar/d53a3bcbd4852069b8eabdc09cea7f6b76119e36.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'952-18-0985','96281348J'),
 (52,'jose@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$ZgGQ0vW/l/gcq21/KO/7RedTfu1/ZU4Tfpy1mdJGCWkt2dSj2fI.6','José','Pérez Cambriano','profesor',3,'/uploads/avatar/120d7b849b6cf5897d2c2c8c31af7f5776f57e25.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 995-95-6724','74681705S'),
 (53,'walter@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$OOx6cBcguY8ltLR89NJRh.Qtqp72M1APAMHH4IU0Zua6wJlluiAVO','Walter','Donovan Yupanky','profesor',3,'/uploads/avatar/f4c9a4458b819ecbfe8829d5ab7a202e5e12e677.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'961 26 1798','03021239M'),
 (54,'clara@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$8VLephkdOwaGB7a7yAYA1.DtvJwu37wc15TMeAzGBHMlFp1PNPnAS','Clara','Gutiérrez Mira','profesor',3,'/uploads/avatar/e63758981329e99969202e3b7cee1e694f93a2d1.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 910-927672','70300626E'),
-(55,'sara@eag.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$cSLKFuyGmUrJv/OwIiykk.0slJzhSwm1vHHPeXuIU.9ZbcFGgu/xq','Sara','Alberti Marizza','admin',3,'/uploads/avatar/438efc2c1de4294ac2e3bf134777ef6069eb8934.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 976423896','37603007P'),
+(55,'sara@eag.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$cSLKFuyGmUrJv/OwIiykk.0slJzhSwm1vHHPeXuIU.9ZbcFGgu/xq','Sara','Alberti Marizza','admin',3,'/uploads/avatar/438efc2c1de4294ac2e3bf134777ef6069eb8934.jpg','2026-01-31 22:12:20','2026-02-01 22:10:18',0,NULL,'+34 976423896','37603007P'),
 (56,'maria@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$/8r.QIUMGYWWr8aXJXCfau4wmx7NCNCMqo250jQFPjGlT.BjabfGi','María','Cordero Acosta','profesor',3,'/uploads/avatar/afd1b2acb3a8c8c5c0ed24b089896c4b6ee3908b.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 965 62 9033','25151901K'),
 (57,'vega.ferrer@alvarez.es','[\"ROLE_ALUMNO\"]','$2y$13$God9dDDd0jN8pANHweaR0.AQfm3w4rz/p39nAYBDFpmHH0WPHiqzq','Daniel','Rosario Gálvez','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'922 63 5586','80834170A'),
 (58,'javier.coronado@yahoo.es','[\"ROLE_ALUMNO\"]','$2y$13$OEk6NniM8mcZiVcW3yJtSOiLGBzLIucbB5oAxnJIkj0/BAqc7J63G','Noa','Figueroa Negrón','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'993 878184','74304969L'),
@@ -983,4 +988,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-01 12:28:38
+-- Dump completed on 2026-02-01 22:38:21

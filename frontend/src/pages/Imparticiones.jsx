@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import {usePagination} from "../hooks/usePagination.js";
 
 const Imparticiones = () => {
   const { user } = useAuth();
@@ -25,7 +26,8 @@ const Imparticiones = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  // const [itemsPerPage, setItemsPerPage] = useState(20);
+const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('profesor.nombre');
   const [sortColumn, setSortColumn] = useState('id');
@@ -263,10 +265,14 @@ const Imparticiones = () => {
       
       const method = currentImparticion ? 'PUT' : 'POST';
 
+      const profesorValue = String(formData.profesor);
+      const moduloValue = String(formData.modulo);
+      const grupoValue = String(formData.grupo);
+
       const payload = {
-        profesor: formData.profesor.includes('/api/') ? formData.profesor : `/api/users/${formData.profesor}`,
-        modulo: formData.modulo.includes('/api/') ? formData.modulo : `/api/modulos/${formData.modulo}`,
-        grupo: formData.grupo.includes('/api/') ? formData.grupo : `/api/grupos/${formData.grupo}`
+        profesor: profesorValue.includes('/api/') ? profesorValue : `/api/users/${profesorValue}`,
+        modulo: moduloValue.includes('/api/') ? moduloValue : `/api/modulos/${moduloValue}`,
+        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
       };
 
       const response = await fetch(url, {

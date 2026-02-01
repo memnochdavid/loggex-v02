@@ -35,9 +35,20 @@ use Symfony\Component\Serializer\Attribute\Groups;
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'imparticion' => 'exact',
-    'aula' => 'partial'
+    'aula' => 'partial',
+    'diaSemana' => 'exact',
+    'imparticion.modulo.nombre' => 'partial',
+    'imparticion.profesor.nombre' => 'partial',
+    'imparticion.profesor.apellidos' => 'partial'
 ])]
-#[ApiFilter(OrderFilter::class, properties: ['diaSemana', 'horaInicio', 'id'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: [
+    'diaSemana',
+    'horaInicio',
+    'id',
+    'aula',
+    'imparticion.modulo.nombre',
+    'imparticion.profesor.nombre'
+], arguments: ['orderParameterName' => 'order'])]
 class Horario
 {
     use TimestampableTrait;

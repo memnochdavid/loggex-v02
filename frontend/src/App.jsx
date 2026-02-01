@@ -14,17 +14,25 @@ import Modulos from './pages/Modulos';
 import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
-import Festivos from './pages/Festivos'; // Importar
+import Festivos from './pages/Festivos';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
+import usePageTitle from './hooks/usePageTitle'; // Importar el hook
 import './App.css';
+
+// Componente auxiliar para usar el hook dentro del Router
+const PageTitleUpdater = () => {
+  usePageTitle('Loggex-Machina');
+  return null;
+};
 
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <PageTitleUpdater /> {/* Actualizador de título */}
         <div className="app-layout">
           <Header />
           <main className="app-main">

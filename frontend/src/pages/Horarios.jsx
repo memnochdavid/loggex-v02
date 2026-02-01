@@ -33,16 +33,42 @@ const Horarios = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Inicializar itemsPerPage desde la configuración del usuario
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+      if (user?.centro?.personalizacion?.itemsPerPageHorarios) {
+          return user.centro.personalizacion.itemsPerPageHorarios;
+      }
+      return 20;
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('aula');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Campos buscables
+  // Campos buscables ACTUALIZADOS
   const searchFields = [
-      { value: 'aula', label: 'Aula' }
+      { value: 'aula', label: 'Aula' },
+      { value: 'imparticion.modulo.nombre', label: 'Asignatura' },
+      { value: 'imparticion.profesor.nombre', label: 'Profesor' },
+      { value: 'diaSemana', label: 'Día' }
   ];
+
+  const diasSemana = {
+      1: 'Lunes',
+      2: 'Martes',
+      3: 'Miércoles',
+      4: 'Jueves',
+      5: 'Viernes',
+      6: 'Sábado',
+      7: 'Domingo'
+  };
+
+  const diasSemanaInverso = {
+      'lunes': 1, 'martes': 2, 'miércoles': 3, 'miercoles': 3, 
+      'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6, 'domingo': 7
+  };
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,16 +81,6 @@ const Horarios = () => {
     imparticion: ''
   });
   const [saving, setSaving] = useState(false);
-
-  const diasSemana = {
-      1: 'Lunes',
-      2: 'Martes',
-      3: 'Miércoles',
-      4: 'Jueves',
-      5: 'Viernes',
-      6: 'Sábado',
-      7: 'Domingo'
-  };
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -181,7 +197,15 @@ const Horarios = () => {
       let url = `https://localhost:9443/api/horarios?page=${page}&itemsPerPage=${itemsPerPage}`;
       
       if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+          let term = searchTerm;
+          // Lógica especial para búsqueda por día
+          if (searchField === 'diaSemana') {
+              const diaNum = diasSemanaInverso[searchTerm.toLowerCase()];
+              if (diaNum) {
+                  term = diaNum;
+              }
+          }
+          url += `&${searchField}=${encodeURIComponent(term)}`; 
       }
       
       if (sortColumn) {
@@ -363,12 +387,14 @@ const Horarios = () => {
     { 
         header: 'Asignatura', 
         accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-', 
-        sortable: false 
+        sortable: true,
+        sortKey: 'imparticion.modulo.nombre' // SortKey añadido
     },
     { 
         header: 'Profesor', 
         accessor: (row) => row.imparticion && row.imparticion.profesor ? `${row.imparticion.profesor.nombre} ${row.imparticion.profesor.apellidos}` : '-', 
-        sortable: false 
+        sortable: true,
+        sortKey: 'imparticion.profesor.nombre' // SortKey añadido
     },
     { 
         header: 'Acciones',
@@ -440,7 +466,7 @@ const Horarios = () => {
                         <SearchBar 
                             value={searchTerm} 
                             onChange={setSearchTerm} 
-                            placeholder="Buscar aula..." 
+                            placeholder="Buscar..."
                             fields={searchFields}
                             selectedField={searchField}
                             onFieldChange={setSearchField}

@@ -5,7 +5,7 @@ api_platform:
         jsonld: ['application/ld+json']
         json: ['application/json']
     defaults:
-        stateless: true
+        stateless: false # CAMBIO CLAVE: Permitir sesiones
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
         pagination_items_per_page: 20

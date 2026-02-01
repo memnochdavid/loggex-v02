@@ -242,9 +242,12 @@ const Matriculas = () => {
       
       const method = currentMatricula ? 'PUT' : 'POST';
 
+      const alumnoValue = String(formData.alumno);
+      const grupoValue = String(formData.grupo);
+
       const payload = {
-        alumno: formData.alumno.includes('/api/') ? formData.alumno : `/api/users/${formData.alumno}`,
-        grupo: formData.grupo.includes('/api/') ? formData.grupo : `/api/grupos/${formData.grupo}`
+        alumno: alumnoValue.includes('/api/') ? alumnoValue : `/api/users/${alumnoValue}`,
+        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
       };
 
       const response = await fetch(url, {
