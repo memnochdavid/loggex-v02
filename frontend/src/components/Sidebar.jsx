@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users } from 'lucide-react';
+import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -44,7 +44,7 @@ const Sidebar = () => {
                 <div className={styles.header}>
                     {!isCollapsed && (
                         <div className={styles.userInfo}>
-                            {user && <small className={styles.email}>{user.email}</small>}
+                            {/*{user && <small className={styles.email}>{user.email}</small>}*/}
                             <div className={styles.roles}>
                                 {user?.roles
                                     .filter(role => role !== "ROLE_USER")
@@ -69,6 +69,7 @@ const Sidebar = () => {
                         {!isCollapsed && <span>Inicio</span>}
                     </NavLink>
                     
+                    {/* Centros solo para SuperAdmin */}
                     {isSuperAdmin && (
                         <NavLink to="/centros" className={getNavLinkClass} title="Centros">
                             <Building size={20} />
@@ -76,11 +77,22 @@ const Sidebar = () => {
                         </NavLink>
                     )}
 
+                    {/* Gestión Académica para Admin y SuperAdmin */}
                     {(isSuperAdmin || isAdmin) && (
-                        <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
-                            <Users size={20} />
-                            {!isCollapsed && <span>Usuarios</span>}
-                        </NavLink>
+                        <>
+                            <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
+                                <Users size={20} />
+                                {!isCollapsed && <span>Usuarios</span>}
+                            </NavLink>
+                            <NavLink to="/ciclos" className={getNavLinkClass} title="Ciclos Formativos">
+                                <Layers size={20} />
+                                {!isCollapsed && <span>Ciclos</span>}
+                            </NavLink>
+                            <NavLink to="/modulos" className={getNavLinkClass} title="Módulos">
+                                <BookOpen size={20} />
+                                {!isCollapsed && <span>Módulos</span>}
+                            </NavLink>
+                        </>
                     )}
 
                     <NavLink to="/perfil" className={getNavLinkClass} title="Perfil">

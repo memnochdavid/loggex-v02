@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -31,6 +34,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['modulo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['modulo:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'nombre' => 'partial',
+    'codigoOficial' => 'partial',
+    'ciclo' => 'exact', // Para filtrar por ID de ciclo
+    'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
+    'ciclo.centro' => 'exact' // Para filtrar por centro (SuperAdmin)
+])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Modulo
 {
     use TimestampableTrait;

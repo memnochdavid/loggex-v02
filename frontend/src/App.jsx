@@ -7,7 +7,9 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
-import Usuarios from './pages/Usuarios'; // Importar nueva página
+import Usuarios from './pages/Usuarios';
+import CiclosFormativos from './pages/CiclosFormativos'; // Importar
+import Modulos from './pages/Modulos'; // Importar
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
@@ -43,6 +45,18 @@ function App() {
               <Route path="/usuarios" element={
                 <PrivateRoute>
                   <Usuarios />
+                </PrivateRoute>
+              } />
+
+              <Route path="/ciclos" element={
+                <PrivateRoute>
+                  <CiclosFormativos />
+                </PrivateRoute>
+              } />
+
+              <Route path="/modulos" element={
+                <PrivateRoute>
+                  <Modulos />
                 </PrivateRoute>
               } />
 
