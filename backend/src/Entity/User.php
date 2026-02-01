@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -32,6 +35,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     normalizationContext: ['groups' => ['user:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['user:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'nombre' => 'partial',
+    'apellidos' => 'partial',
+    'email' => 'partial',
+    'telefono' => 'partial',
+    'nif' => 'partial', // Añadido filtro por NIF
+    'centro' => 'exact'
+])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'apellidos', 'email', 'id'], arguments: ['orderParameterName' => 'order'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use TimestampableTrait;
@@ -64,6 +76,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $apellidos = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $telefono = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $nif = null;
 
     #[ORM\Column(length: 20)]
     #[Groups(['user:read', 'user:write'])]
@@ -168,6 +188,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApellidos(string $apellidos): static
     {
         $this->apellidos = $apellidos;
+
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    public function setTelefono(?string $telefono): static
+    {
+        $this->telefono = $telefono;
+
+        return $this;
+    }
+
+    public function getNif(): ?string
+    {
+        return $this->nif;
+    }
+
+    public function setNif(?string $nif): static
+    {
+        $this->nif = $nif;
 
         return $this;
     }

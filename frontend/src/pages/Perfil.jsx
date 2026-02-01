@@ -14,18 +14,17 @@ const Perfil = () => {
         cargo: ''
     });
     const [avatarPreview, setAvatarPreview] = useState(null);
-    const [avatarFile, setAvatarFile] = useState(null); // Nuevo estado para el archivo real
+    const [avatarFile, setAvatarFile] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
-    // Función auxiliar para construir la URL completa de la imagen
+    const canEdit = user?.roles?.some(role => ['ROLE_ADMIN', 'ROLE_SUPERADMIN'].includes(role));
+
     const getImageUrl = (path) => {
         if (!path) return null;
         if (path.startsWith('http')) return path;
-        if (path.startsWith('data:')) return path; // Para previsualizaciones base64 antiguas si las hubiera
-        // Asumiendo que el backend sirve las imágenes estáticas en el mismo host/puerto que la API
-        // Ojo: BACKEND_URL en AuthContext es https://localhost:9443
+        if (path.startsWith('data:')) return path;
         return `https://localhost:9443${path}`;
     };
 
@@ -54,10 +53,10 @@ const Perfil = () => {
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setAvatarFile(file); // Guardamos el archivo para enviarlo
+            setAvatarFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setAvatarPreview(reader.result); // Previsualización local
+                setAvatarPreview(reader.result);
             };
             reader.readAsDataURL(file);
         }
@@ -69,7 +68,6 @@ const Perfil = () => {
         setMessage(null);
         
         try {
-            // Usamos FormData para enviar archivos
             const data = new FormData();
             data.append('nombre', formData.nombre);
             if (avatarFile) {
@@ -78,7 +76,6 @@ const Perfil = () => {
 
             const response = await fetch('https://localhost:9443/api/user/update', {
                 method: 'POST',
-                // No establecemos Content-Type manualmente con FormData, el navegador lo hace (multipart/form-data)
                 body: data,
                 credentials: 'include'
             });
@@ -87,7 +84,7 @@ const Perfil = () => {
                 const responseData = await response.json();
                 setMessage({ type: 'success', text: responseData.message });
                 setIsEditing(false);
-                setAvatarFile(null); // Limpiar el archivo seleccionado
+                setAvatarFile(null);
                 window.location.reload(); 
             } else {
                 const errorData = await response.json();
@@ -177,36 +174,37 @@ const Perfil = () => {
                             />
                         </div>
 
-                        <div className={styles.actions}>
-                            {isEditing ? (
-                                <>
-                                    <Button 
-                                        type="button" 
-                                        variant="secondary" 
-                                        onClick={() => {
-                                            setIsEditing(false);
-                                            setMessage(null);
-                                            setAvatarFile(null);
-                                            // Restaurar valores originales
-                                            if (user) {
-                                                setFormData(prev => ({ ...prev, nombre: user.nombre }));
-                                                setAvatarPreview(user.foto ? getImageUrl(user.foto) : null);
-                                            }
-                                        }}
-                                    >
-                                        Cancelar
+                        {canEdit && (
+                            <div className={styles.actions}>
+                                {isEditing ? (
+                                    <>
+                                        <Button 
+                                            type="button" 
+                                            variant="secondary" 
+                                            onClick={() => {
+                                                setIsEditing(false);
+                                                setMessage(null);
+                                                setAvatarFile(null);
+                                                if (user) {
+                                                    setFormData(prev => ({ ...prev, nombre: user.nombre }));
+                                                    setAvatarPreview(user.foto ? getImageUrl(user.foto) : null);
+                                                }
+                                            }}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button type="submit" disabled={loading}>
+                                            <Save size={18} style={{ marginRight: '8px' }} />
+                                            {loading ? 'Guardando...' : 'Guardar Cambios'}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button type="button" onClick={() => setIsEditing(true)}>
+                                        Editar Perfil
                                     </Button>
-                                    <Button type="submit" disabled={loading}>
-                                        <Save size={18} style={{ marginRight: '8px' }} />
-                                        {loading ? 'Guardando...' : 'Guardar Cambios'}
-                                    </Button>
-                                </>
-                            ) : (
-                                <Button type="button" onClick={() => setIsEditing(true)}>
-                                    Editar Perfil
-                                </Button>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>

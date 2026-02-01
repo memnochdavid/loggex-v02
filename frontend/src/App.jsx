@@ -7,8 +7,9 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
+import Usuarios from './pages/Usuarios'; // Importar nueva página
 import Perfil from './pages/Perfil';
-import Configuracion from './pages/Configuracion'; // Importar nueva página
+import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
@@ -36,6 +37,12 @@ function App() {
               <Route path="/centros" element={
                 <PrivateRoute>
                   <Centros />
+                </PrivateRoute>
+              } />
+
+              <Route path="/usuarios" element={
+                <PrivateRoute>
+                  <Usuarios />
                 </PrivateRoute>
               } />
 

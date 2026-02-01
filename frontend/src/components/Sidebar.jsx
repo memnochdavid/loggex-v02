@@ -18,6 +18,7 @@ const Sidebar = () => {
     };
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN');
 
     // Helper para clases de NavLink
     const getNavLinkClass = ({ isActive }) => 
@@ -43,7 +44,7 @@ const Sidebar = () => {
                 <div className={styles.header}>
                     {!isCollapsed && (
                         <div className={styles.userInfo}>
-                            {/*{user && <small className={styles.email}>{user.email}</small>}*/}
+                            {user && <small className={styles.email}>{user.email}</small>}
                             <div className={styles.roles}>
                                 {user?.roles
                                     .filter(role => role !== "ROLE_USER")
@@ -69,16 +70,17 @@ const Sidebar = () => {
                     </NavLink>
                     
                     {isSuperAdmin && (
-                        <>
-                            <NavLink to="/centros" className={getNavLinkClass} title="Centros">
-                                <Building size={20} />
-                                {!isCollapsed && <span>Centros</span>}
-                            </NavLink>
-                            <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
-                                <Users size={20} />
-                                {!isCollapsed && <span>Usuarios</span>}
-                            </NavLink>
-                        </>
+                        <NavLink to="/centros" className={getNavLinkClass} title="Centros">
+                            <Building size={20} />
+                            {!isCollapsed && <span>Centros</span>}
+                        </NavLink>
+                    )}
+
+                    {(isSuperAdmin || isAdmin) && (
+                        <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
+                            <Users size={20} />
+                            {!isCollapsed && <span>Usuarios</span>}
+                        </NavLink>
                     )}
 
                     <NavLink to="/perfil" className={getNavLinkClass} title="Perfil">

@@ -27,10 +27,20 @@ class UserController extends AbstractController
         try {
             // Obtener datos del formulario (multipart/form-data)
             $nombre = $request->request->get('nombre');
+            $telefono = $request->request->get('telefono');
+            $nif = $request->request->get('nif');
             $avatarFile = $request->files->get('avatar');
 
             if ($nombre) {
                 $user->setNombre($nombre);
+            }
+
+            if ($telefono !== null) {
+                $user->setTelefono($telefono);
+            }
+
+            if ($nif !== null) {
+                $user->setNif($nif);
             }
 
             if ($avatarFile) {
@@ -38,11 +48,7 @@ class UserController extends AbstractController
 
                 // Crear directorio si no existe
                 if (!file_exists($destination)) {
-                    // Intentar crear con permisos amplios
                     if (!@mkdir($destination, 0777, true) && !is_dir($destination)) {
-                        // Si falla, probablemente es porque el volumen montado ./backend:/var/www/html:z
-                        // hace que los permisos sean del usuario del host (david), y www-data no puede escribir.
-                        // Como fallback, intentaremos escribir en /tmp y moverlo, o simplemente fallar con un mensaje claro.
                         throw new \RuntimeException(sprintf('No se pudo crear el directorio "%s". Verifique permisos.', $destination));
                     }
                 }
