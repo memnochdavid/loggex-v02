@@ -31,7 +31,7 @@ CREATE TABLE `asistencia` (
   `alumno_id` int(11) NOT NULL,
   `hora` time NOT NULL,
   `comentario` longtext DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE `calificacion` (
   `nota` double NOT NULL,
   `feedback_profesor` longtext DEFAULT NULL,
   `entrega_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE `centro` (
   `logo` varchar(255) DEFAULT NULL,
   `direccion` varchar(255) NOT NULL,
   `telefono` varchar(25) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -131,14 +131,14 @@ CREATE TABLE `ciclo_formativo` (
   `nombre` varchar(255) NOT NULL,
   `nivel` varchar(50) NOT NULL,
   `centro_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_F907D8A9298137A7` (`centro_id`),
   CONSTRAINT `FK_F907D8A9298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -149,7 +149,8 @@ LOCK TABLES `ciclo_formativo` WRITE;
 /*!40000 ALTER TABLE `ciclo_formativo` DISABLE KEYS */;
 INSERT INTO `ciclo_formativo` VALUES
 (3,'Desarrollo de Aplicaciones Web','Superior',3,'2026-01-31 22:12:20',NULL,0,NULL),
-(4,'Desarrollo de Aplicaciones Multiplataforma','Superior',3,'2026-01-31 22:12:20',NULL,0,NULL);
+(4,'Desarrollo de Aplicaciones Multiplataforma','Superior',3,'2026-01-31 22:12:20',NULL,0,NULL),
+(5,'Desarrollo de Aplicaciones Multiplataforma','Superior',4,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
 /*!40000 ALTER TABLE `ciclo_formativo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -209,7 +210,9 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260131171928','2026-01-31 17:19:30',20),
 ('DoctrineMigrations\\Version20260131215848','2026-01-31 21:58:49',36),
 ('DoctrineMigrations\\Version20260131221220','2026-01-31 22:12:20',178),
-('DoctrineMigrations\\Version20260131233534','2026-01-31 23:35:34',27);
+('DoctrineMigrations\\Version20260131233534','2026-01-31 23:35:34',27),
+('DoctrineMigrations\\Version20260201003333','2026-02-01 00:33:33',24),
+('DoctrineMigrations\\Version20260201012720','2026-02-01 01:27:20',301);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -227,7 +230,7 @@ CREATE TABLE `entrega` (
   `tarea_id` int(11) NOT NULL,
   `alumno_id` int(11) NOT NULL,
   `enlace` longtext DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -261,7 +264,7 @@ CREATE TABLE `festivo` (
   `fecha_inicio` date NOT NULL,
   `centro_id` int(11) DEFAULT NULL,
   `fecha_fin` date DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -295,7 +298,7 @@ CREATE TABLE `grupo` (
   `centro_id` int(11) NOT NULL,
   `curso` int(11) NOT NULL,
   `abreviatura` varchar(20) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -304,7 +307,7 @@ CREATE TABLE `grupo` (
   KEY `IDX_8C0E9BD3298137A7` (`centro_id`),
   CONSTRAINT `FK_8C0E9BD3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_8C0E9BD3D8F6DC8` FOREIGN KEY (`ciclo_id`) REFERENCES `ciclo_formativo` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -313,6 +316,11 @@ CREATE TABLE `grupo` (
 
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
+INSERT INTO `grupo` VALUES
+(9,'1º DAW','2026-2027',3,3,1,'',NULL,'2026-02-01 01:27:51',0,NULL),
+(10,'2º DAW','2026-2027',3,3,2,'',NULL,'2026-02-01 01:28:02',0,NULL),
+(11,'1º DAM','2026-2027',5,4,1,NULL,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(12,'2º DAM','2026-2027',5,4,2,NULL,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -330,7 +338,7 @@ CREATE TABLE `horario` (
   `hora_fin` time NOT NULL,
   `aula` varchar(255) NOT NULL,
   `imparticion_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -361,7 +369,7 @@ CREATE TABLE `imparticion` (
   `profesor_id` int(11) NOT NULL,
   `modulo_id` int(11) NOT NULL,
   `grupo_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -397,7 +405,7 @@ CREATE TABLE `material` (
   `archivo` varchar(255) NOT NULL,
   `fecha_subida` datetime NOT NULL,
   `imparticion_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -427,7 +435,7 @@ CREATE TABLE `matricula` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `alumno_id` int(11) NOT NULL,
   `grupo_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -436,7 +444,7 @@ CREATE TABLE `matricula` (
   KEY `IDX_15DF18859C833003` (`grupo_id`),
   CONSTRAINT `FK_15DF18859C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_15DF1885FC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -445,6 +453,27 @@ CREATE TABLE `matricula` (
 
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
+INSERT INTO `matricula` VALUES
+(61,57,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(62,58,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(63,59,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(64,60,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(65,61,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(66,62,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(67,63,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(68,64,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(69,65,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(70,66,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(71,67,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(72,68,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(73,69,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(74,70,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(75,71,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(76,72,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(77,73,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(78,74,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(79,75,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
+(80,76,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
 /*!40000 ALTER TABLE `matricula` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -491,7 +520,7 @@ CREATE TABLE `modulo` (
   `ciclo_id` int(11) NOT NULL,
   `curso` int(11) NOT NULL,
   `horas_semanales` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -548,7 +577,7 @@ CREATE TABLE `noticia` (
   `fecha_publicacion` datetime NOT NULL,
   `centro_id` int(11) NOT NULL,
   `autor_id` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -594,10 +623,13 @@ CREATE TABLE `personalizacion` (
   `button_primary_text_color` varchar(7) NOT NULL,
   `button_secondary_text_color` varchar(7) NOT NULL,
   `secondary_color` varchar(7) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
+  `scrollbar_thumb_color` varchar(7) NOT NULL,
+  `scrollbar_track_color` varchar(7) NOT NULL,
+  `scrollbar_hover_color` varchar(7) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
@@ -629,7 +661,7 @@ CREATE TABLE `tarea` (
   `imparticion_id` int(11) NOT NULL,
   `fecha_inicio` datetime DEFAULT NULL,
   `tipo` varchar(20) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -665,7 +697,7 @@ CREATE TABLE `usuario` (
   `rol_app` varchar(20) NOT NULL,
   `centro_id` int(11) DEFAULT NULL,
   `foto` varchar(255) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
@@ -726,4 +758,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-31 23:43:06
+-- Dump completed on 2026-02-01  1:30:14

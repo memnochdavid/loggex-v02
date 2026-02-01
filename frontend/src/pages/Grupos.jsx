@@ -239,11 +239,15 @@ const Grupos = () => {
       
       const method = currentGrupo ? 'PUT' : 'POST';
 
+      // Asegurar que ciclo y centro sean strings antes de usar includes
+      const cicloValue = String(formData.ciclo);
+      const centroValue = formData.centro ? String(formData.centro) : null;
+
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
-        ciclo: formData.ciclo.includes('/api/') ? formData.ciclo : `/api/ciclo_formativos/${formData.ciclo}`,
-        centro: formData.centro ? (formData.centro.toString().includes('/api/') ? formData.centro : `/api/centros/${formData.centro}`) : null
+        ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`,
+        centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null
       };
 
       // Si no es superadmin, asignar centro automáticamente si es nuevo

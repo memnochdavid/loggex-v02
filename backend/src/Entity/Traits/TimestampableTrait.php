@@ -7,7 +7,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 
 trait TimestampableTrait
 {
-    #[ORM\Column(type: 'datetime', options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(type: 'datetime', nullable: true, options: ['default' => 'CURRENT_TIMESTAMP'])]
     #[Groups(['timestamp:read'])]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -37,7 +37,7 @@ trait TimestampableTrait
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    public function setCreatedAt(?\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
