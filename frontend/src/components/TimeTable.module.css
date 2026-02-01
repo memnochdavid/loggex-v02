@@ -1,0 +1,252 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.tableContainer {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    overflow-x: auto;
+}
+
+.tableTitle {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    margin-bottom: var(--space-4);
+    padding-left: var(--space-2);
+}
+
+.grid {
+    display: grid;
+    /* gap: 1px; Eliminamos gap */
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+}
+
+.headerCell {
+    background-color: var(--timetable-header-bg, var(--color-gray-100));
+    color: var(--timetable-header-text, var(--text-main));
+    padding: var(--space-2);
+    text-align: center;
+    font-weight: var(--font-bold);
+    font-size: var(--text-sm);
+    transition: background-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dateLabel {
+    font-size: 0.7rem;
+    color: var(--timetable-header-text, var(--text-muted));
+    opacity: 0.8;
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+.highlightDay {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-700);
+}
+
+.timeCell {
+    background-color: var(--timetable-hours-bg, var(--color-gray-50));
+    color: var(--timetable-hours-text, var(--text-muted));
+    padding: var(--space-2);
+    text-align: center;
+    font-size: var(--text-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-medium);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cell {
+    background-color: white;
+    min-height: 60px;
+    padding: var(--space-1);
+    transition: background-color 0.2s;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.highlightCell {
+    background-color: var(--color-primary-50);
+}
+
+.eventCard {
+    background-color: var(--color-primary-50);
+    border-left: 3px solid var(--color-primary-500);
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    height: 100%;
+    box-sizing: border-box;
+    font-size: var(--text-xs);
+    overflow: hidden;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.eventCard:hover {
+    background-color: var(--color-primary-100);
+}
+
+.eventModulo {
+    font-weight: var(--font-bold);
+    color: var(--color-primary-900);
+    margin-bottom: 2px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.eventGroupSmall {
+    color: var(--color-primary-700);
+    font-size: 0.7rem;
+}
+
+/* Festivos */
+.festivoCell {
+    background-color: var(--color-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    /* border: 1px dashed var(--color-gray-300); Quitamos borde dashed para consistencia */
+}
+
+.festivoContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-gray-500);
+    font-weight: var(--font-bold);
+    text-align: center;
+    transform: rotate(-45deg);
+}
+
+.empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-8);
+}
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 400px;
+    animation: slideIn 0.2s ease-out;
+}
+
+.modalHeader {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalTitle {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-gray-500);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+.closeButton:hover {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.modalBody {
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.detailRow {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.icon {
+    color: var(--color-primary-500);
+    margin-top: 2px;
+}
+
+.label {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-weight: var(--font-medium);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.value {
+    font-size: var(--text-base);
+    color: var(--text-main);
+    font-weight: var(--font-medium);
+}
+
+.subValue {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

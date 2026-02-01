@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -30,6 +33,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['horario:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['horario:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'imparticion' => 'exact',
+    'aula' => 'partial'
+])]
+#[ApiFilter(OrderFilter::class, properties: ['diaSemana', 'horaInicio', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Horario
 {
     use TimestampableTrait;

@@ -7,6 +7,7 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\CicloFormativo;
+use App\Entity\Festivo;
 use App\Entity\Modulo;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
@@ -31,7 +32,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
     private function addWhere(QueryBuilder $queryBuilder, string $resourceClass): void
     {
         // Entidades que se filtran por centro
-        $supportedClasses = [User::class, CicloFormativo::class, Modulo::class];
+        $supportedClasses = [User::class, CicloFormativo::class, Modulo::class, Festivo::class];
 
         if (!in_array($resourceClass, $supportedClasses)) {
             return;
@@ -54,9 +55,16 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                              ->andWhere('c.centro = :current_centro')
                              ->setParameter('current_centro', $user->getCentro());
             } else {
-                // User y CicloFormativo tienen relación directa con Centro
-                $queryBuilder->andWhere(sprintf('%s.centro = :current_centro', $rootAlias));
-                $queryBuilder->setParameter('current_centro', $user->getCentro());
+                // User, CicloFormativo y Festivo tienen relación directa con Centro
+                // Nota: Festivo puede tener centro NULL (festivos nacionales globales?), pero asumimos por centro.
+                // Si queremos permitir ver festivos globales (centro=null) + festivos del centro:
+                if ($resourceClass === Festivo::class) {
+                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
+                    $queryBuilder->setParameter('current_centro', $user->getCentro());
+                } else {
+                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro', $rootAlias));
+                    $queryBuilder->setParameter('current_centro', $user->getCentro());
+                }
             }
         } else {
             // Si no tiene centro y no es superadmin, no ve nada (salvo a sí mismo si es User)
@@ -64,7 +72,6 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                 $queryBuilder->andWhere(sprintf('%s.id = :current_user', $rootAlias));
                 $queryBuilder->setParameter('current_user', $user->getId());
             } else {
-                // Para otras entidades, si no tiene centro, no ve nada
                 $queryBuilder->andWhere('1 = 0');
             }
         }

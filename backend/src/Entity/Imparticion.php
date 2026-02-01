@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -31,6 +34,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['imparticion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['imparticion:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'profesor' => 'exact',
+    'profesor.nombre' => 'partial',
+    'modulo' => 'exact',
+    'modulo.nombre' => 'partial',
+    'grupo' => 'exact',
+    'grupo.nombre' => 'partial'
+])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'modulo.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Imparticion
 {
     use TimestampableTrait;
@@ -39,22 +51,22 @@ class Imparticion
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['imparticion:read'])]
+    #[Groups(['imparticion:read', 'horario:read'])] // Añadido horario:read
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
     private ?User $profesor = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
     private ?Modulo $modulo = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
     private ?Grupo $grupo = null;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]

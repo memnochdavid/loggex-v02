@@ -73,6 +73,18 @@ class PersonalizacionController extends AbstractController
         if (isset($data['scrollbarTrackColor'])) $personalizacion->setScrollbarTrackColor($data['scrollbarTrackColor']);
         if (isset($data['scrollbarHoverColor'])) $personalizacion->setScrollbarHoverColor($data['scrollbarHoverColor']);
 
+        // Calendario
+        if (isset($data['calendarSelectedBgColor'])) $personalizacion->setCalendarSelectedBgColor($data['calendarSelectedBgColor']);
+        if (isset($data['calendarSelectedTextColor'])) $personalizacion->setCalendarSelectedTextColor($data['calendarSelectedTextColor']);
+        if (isset($data['calendarWeekendBgColor'])) $personalizacion->setCalendarWeekendBgColor($data['calendarWeekendBgColor']);
+        if (isset($data['calendarWeekendTextColor'])) $personalizacion->setCalendarWeekendTextColor($data['calendarWeekendTextColor']);
+
+        // Horario
+        if (isset($data['timetableHeaderBgColor'])) $personalizacion->setTimetableHeaderBgColor($data['timetableHeaderBgColor']);
+        if (isset($data['timetableHeaderTextColor'])) $personalizacion->setTimetableHeaderTextColor($data['timetableHeaderTextColor']);
+        if (isset($data['timetableHoursBgColor'])) $personalizacion->setTimetableHoursBgColor($data['timetableHoursBgColor']);
+        if (isset($data['timetableHoursTextColor'])) $personalizacion->setTimetableHoursTextColor($data['timetableHoursTextColor']);
+
         $entityManager->persist($personalizacion);
         $entityManager->flush();
 

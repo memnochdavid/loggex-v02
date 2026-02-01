@@ -44,11 +44,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read'])] // Añadido grupo:read
+    #[Groups(['centro:read', 'user:read', 'grupo:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read'])] // Añadido grupo:read
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read'])]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -84,6 +84,9 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Grupo::class)]
     private Collection $grupos;
 
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Festivo::class)]
+    private Collection $festivos; // Añadido
+
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
@@ -93,6 +96,7 @@ class Centro
         $this->usuarios = new ArrayCollection();
         $this->ciclos = new ArrayCollection();
         $this->grupos = new ArrayCollection();
+        $this->festivos = new ArrayCollection(); // Inicializado
     }
 
     public function getId(): ?int
@@ -217,6 +221,35 @@ class Centro
         if ($this->grupos->removeElement($grupo)) {
             if ($grupo->getCentro() === $this) {
                 $grupo->setCentro(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Festivo>
+     */
+    public function getFestivos(): Collection
+    {
+        return $this->festivos;
+    }
+
+    public function addFestivo(Festivo $festivo): static
+    {
+        if (!$this->festivos->contains($festivo)) {
+            $this->festivos->add($festivo);
+            $festivo->setCentro($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFestivo(Festivo $festivo): static
+    {
+        if ($this->festivos->removeElement($festivo)) {
+            if ($festivo->getCentro() === $this) {
+                $festivo->setCentro(null);
             }
         }
 

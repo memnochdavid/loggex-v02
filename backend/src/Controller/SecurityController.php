@@ -116,6 +116,14 @@ class SecurityController extends AbstractController
             'scrollbarThumbColor' => $p->getScrollbarThumbColor(),
             'scrollbarTrackColor' => $p->getScrollbarTrackColor(),
             'scrollbarHoverColor' => $p->getScrollbarHoverColor(),
+            'calendarSelectedBgColor' => $p->getCalendarSelectedBgColor(),
+            'calendarSelectedTextColor' => $p->getCalendarSelectedTextColor(),
+            'calendarWeekendBgColor' => $p->getCalendarWeekendBgColor(),
+            'calendarWeekendTextColor' => $p->getCalendarWeekendTextColor(),
+            'timetableHeaderBgColor' => $p->getTimetableHeaderBgColor(),
+            'timetableHeaderTextColor' => $p->getTimetableHeaderTextColor(),
+            'timetableHoursBgColor' => $p->getTimetableHoursBgColor(),
+            'timetableHoursTextColor' => $p->getTimetableHoursTextColor(),
         ];
     }
 }

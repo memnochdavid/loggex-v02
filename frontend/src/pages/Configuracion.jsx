@@ -4,10 +4,11 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     
     const defaultColors = {
         primaryColor: '#6366f1',
@@ -27,7 +28,15 @@ const Configuracion = () => {
         headerFooterTextColor: '#ffffff',
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
-        scrollbarHoverColor: '#94a3b8'
+        scrollbarHoverColor: '#94a3b8',
+        calendarSelectedBgColor: '#6366f1',
+        calendarSelectedTextColor: '#ffffff',
+        calendarWeekendBgColor: '#f1f5f9',
+        calendarWeekendTextColor: '#64748b',
+        timetableHeaderBgColor: '#f1f5f9',
+        timetableHeaderTextColor: '#334155',
+        timetableHoursBgColor: '#f8fafc',
+        timetableHoursTextColor: '#64748b'
     };
 
     const [colors, setColors] = useState(defaultColors);
@@ -36,10 +45,14 @@ const Configuracion = () => {
     const [message, setMessage] = useState(null);
 
     useEffect(() => {
-        if (user && user.centro && user.centro.personalizacion) {
-            setColors({ ...defaultColors, ...user.centro.personalizacion });
+        if (user) {
+            if (user.centro && user.centro.personalizacion) {
+                setColors({ ...defaultColors, ...user.centro.personalizacion });
+            } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
+                setColors({ ...defaultColors, ...user.centro.personalizacion });
+            }
         }
-    }, [user]);
+    }, [user, isSuperAdmin]);
 
     useEffect(() => {
         applyTheme(colors);
@@ -88,12 +101,12 @@ const Configuracion = () => {
         }
     };
 
-    if (!user || !user.centro) {
+    if (!user || (!user.centro && !isSuperAdmin)) {
         return (
             <Layout>
                 <div className={styles.container}>
                     <div className={styles.card}>
-                        <p>Esta configuración solo está disponible para usuarios asignados a un centro.</p>
+                        <p>Esta configuración solo está disponible para usuarios asignados a un centro o administradores globales.</p>
                     </div>
                 </div>
             </Layout>
@@ -129,6 +142,8 @@ const Configuracion = () => {
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
+        { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
+        { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
     ];
 
     return (
@@ -137,7 +152,9 @@ const Configuracion = () => {
                 <div className={styles.header}>
                     <h1 className={styles.title}>Personalización</h1>
                     <span className={styles.subtitle}>
-                        {user.centro ? `Ajusta la apariencia para ${user.centro.nombre}` : 'Ajusta la apariencia global del sistema'}
+                        {user.centro && user.centro.id !== 'global' 
+                            ? `Ajusta la apariencia para ${user.centro.nombre}` 
+                            : 'Ajusta la apariencia global del sistema'}
                     </span>
                 </div>
 
@@ -221,8 +238,26 @@ const Configuracion = () => {
                             {activeTab === 'scrollbar' && (
                                 <div className={styles.grid}>
                                     {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
-                                    {/*{renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}*/}
+                                    {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
                                     {renderColorInput('Color Hover', 'scrollbarHoverColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'calendar' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Día Seleccionado', 'calendarSelectedBgColor')}
+                                    {renderColorInput('Texto Día Seleccionado', 'calendarSelectedTextColor')}
+                                    {renderColorInput('Fondo Fin de Semana', 'calendarWeekendBgColor')}
+                                    {renderColorInput('Texto Fin de Semana', 'calendarWeekendTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'timetable' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Cabecera', 'timetableHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera', 'timetableHeaderTextColor')}
+                                    {renderColorInput('Fondo Horas', 'timetableHoursBgColor')}
+                                    {renderColorInput('Texto Horas', 'timetableHoursTextColor')}
                                 </div>
                             )}
                         </div>
@@ -289,6 +324,54 @@ const Configuracion = () => {
                                     <div style={{ height: '200px' }}>
                                         <p style={{ color: colors.textMainColor }}>Contenido con scroll para probar la barra de desplazamiento personalizada.</p>
                                         <p style={{ color: colors.textSecondaryColor }}>Desplázate hacia abajo...</p>
+                                    </div>
+                                </div>
+
+                                {/* Preview Calendar Day */}
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ 
+                                        width: '30px', height: '30px', borderRadius: '50%', 
+                                        backgroundColor: colors.calendarSelectedBgColor, 
+                                        color: colors.calendarSelectedTextColor,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '12px', fontWeight: 'bold'
+                                    }}>
+                                        23
+                                    </div>
+                                    <div style={{ 
+                                        width: '30px', height: '30px', borderRadius: '50%', 
+                                        backgroundColor: colors.calendarWeekendBgColor, 
+                                        color: colors.calendarWeekendTextColor,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '12px'
+                                    }}>
+                                        S
+                                    </div>
+                                </div>
+
+                                {/* Preview Timetable Header */}
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <div style={{ 
+                                        backgroundColor: colors.timetableHeaderBgColor, 
+                                        color: colors.timetableHeaderTextColor,
+                                        padding: '5px 10px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center'
+                                    }}>
+                                        Lunes
+                                    </div>
+                                    <div style={{ 
+                                        backgroundColor: colors.timetableHoursBgColor, 
+                                        color: colors.timetableHoursTextColor,
+                                        padding: '5px 10px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center'
+                                    }}>
+                                        8:30
                                     </div>
                                 </div>
                             </div>

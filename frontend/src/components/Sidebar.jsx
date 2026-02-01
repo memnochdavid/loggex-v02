@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound } from 'lucide-react';
+import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -19,6 +19,8 @@ const Sidebar = () => {
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+    const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
+    const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
 
     // Helper para clases de NavLink
     const getNavLinkClass = ({ isActive }) => 
@@ -100,17 +102,31 @@ const Sidebar = () => {
                                 <GraduationCap size={20} />
                                 {!isCollapsed && <span>Matrículas</span>}
                             </NavLink>
+                            <NavLink to="/imparticiones" className={getNavLinkClass} title="Asignación Docencia">
+                                <Briefcase size={20} />
+                                {!isCollapsed && <span>Docencia</span>}
+                            </NavLink>
                         </>
                     )}
+
+                    {/* Horarios para todos */}
+                    <NavLink to="/horarios" className={getNavLinkClass} title="Horarios">
+                        <Calendar size={20} />
+                        {!isCollapsed && <span>Horarios</span>}
+                    </NavLink>
 
                     <NavLink to="/perfil" className={getNavLinkClass} title="Perfil">
                         <User size={20} />
                         {!isCollapsed && <span>Perfil</span>}
                     </NavLink>
-                    <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración">
-                        <Settings size={20} />
-                        {!isCollapsed && <span>Configuración</span>}
-                    </NavLink>
+                    
+                    {/* Configuración solo para Admins */}
+                    {(isSuperAdmin || isAdmin) && (
+                        <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración">
+                            <Settings size={20} />
+                            {!isCollapsed && <span>Configuración</span>}
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className={styles.footer}>

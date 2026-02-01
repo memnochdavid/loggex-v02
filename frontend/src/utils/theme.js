@@ -46,7 +46,15 @@ export const applyTheme = (colors) => {
         headerFooterTextColor: '#ffffff',
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
-        scrollbarHoverColor: '#94a3b8'
+        scrollbarHoverColor: '#94a3b8',
+        calendarSelectedBgColor: '#6366f1',
+        calendarSelectedTextColor: '#ffffff',
+        calendarWeekendBgColor: '#f1f5f9',
+        calendarWeekendTextColor: '#64748b',
+        timetableHeaderBgColor: '#f1f5f9',
+        timetableHeaderTextColor: '#334155',
+        timetableHoursBgColor: '#f8fafc',
+        timetableHoursTextColor: '#64748b'
     };
 
     const theme = { ...defaults, ...colors };
@@ -104,7 +112,17 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
     }
 
-    // 6. Scrollbar (Inyección de estilos dinámicos)
+    // 6. Calendario y Horario
+    if (theme.calendarSelectedBgColor) root.style.setProperty('--calendar-selected-bg', theme.calendarSelectedBgColor);
+    if (theme.calendarSelectedTextColor) root.style.setProperty('--calendar-selected-text', theme.calendarSelectedTextColor);
+    if (theme.calendarWeekendBgColor) root.style.setProperty('--calendar-weekend-bg', theme.calendarWeekendBgColor);
+    if (theme.calendarWeekendTextColor) root.style.setProperty('--calendar-weekend-text', theme.calendarWeekendTextColor);
+    if (theme.timetableHeaderBgColor) root.style.setProperty('--timetable-header-bg', theme.timetableHeaderBgColor);
+    if (theme.timetableHeaderTextColor) root.style.setProperty('--timetable-header-text', theme.timetableHeaderTextColor);
+    if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', theme.timetableHoursBgColor);
+    if (theme.timetableHoursTextColor) root.style.setProperty('--timetable-hours-text', theme.timetableHoursTextColor);
+
+    // 7. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');

@@ -117,6 +117,40 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $scrollbarHoverColor = '#94a3b8'; // Slate-400
 
+    // --- Calendario ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $calendarSelectedBgColor = '#6366f1'; // Indigo-500
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $calendarSelectedTextColor = '#ffffff'; // White
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $calendarWeekendBgColor = '#f1f5f9'; // Slate-100
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $calendarWeekendTextColor = '#64748b'; // Slate-500
+
+    // --- Horario (TimeTable) ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableHeaderBgColor = '#f1f5f9'; // Slate-100
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableHeaderTextColor = '#334155'; // Slate-700
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableHoursBgColor = '#f8fafc'; // Slate-50 (Nuevo)
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $timetableHoursTextColor = '#64748b'; // Slate-500 (Nuevo)
+
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
@@ -180,6 +214,30 @@ class Personalizacion
 
     public function getScrollbarHoverColor(): ?string { return $this->scrollbarHoverColor; }
     public function setScrollbarHoverColor(string $color): static { $this->scrollbarHoverColor = $color; return $this; }
+
+    public function getCalendarSelectedBgColor(): ?string { return $this->calendarSelectedBgColor; }
+    public function setCalendarSelectedBgColor(string $color): static { $this->calendarSelectedBgColor = $color; return $this; }
+
+    public function getCalendarSelectedTextColor(): ?string { return $this->calendarSelectedTextColor; }
+    public function setCalendarSelectedTextColor(string $color): static { $this->calendarSelectedTextColor = $color; return $this; }
+
+    public function getCalendarWeekendBgColor(): ?string { return $this->calendarWeekendBgColor; }
+    public function setCalendarWeekendBgColor(string $color): static { $this->calendarWeekendBgColor = $color; return $this; }
+
+    public function getCalendarWeekendTextColor(): ?string { return $this->calendarWeekendTextColor; }
+    public function setCalendarWeekendTextColor(string $color): static { $this->calendarWeekendTextColor = $color; return $this; }
+
+    public function getTimetableHeaderBgColor(): ?string { return $this->timetableHeaderBgColor; }
+    public function setTimetableHeaderBgColor(string $color): static { $this->timetableHeaderBgColor = $color; return $this; }
+
+    public function getTimetableHeaderTextColor(): ?string { return $this->timetableHeaderTextColor; }
+    public function setTimetableHeaderTextColor(string $color): static { $this->timetableHeaderTextColor = $color; return $this; }
+
+    public function getTimetableHoursBgColor(): ?string { return $this->timetableHoursBgColor; }
+    public function setTimetableHoursBgColor(string $color): static { $this->timetableHoursBgColor = $color; return $this; }
+
+    public function getTimetableHoursTextColor(): ?string { return $this->timetableHoursTextColor; }
+    public function setTimetableHoursTextColor(string $color): static { $this->timetableHoursTextColor = $color; return $this; }
 
     public function getCentro(): ?Centro
     {
