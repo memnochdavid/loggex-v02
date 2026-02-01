@@ -85,6 +85,33 @@ class PersonalizacionController extends AbstractController
         if (isset($data['timetableHoursBgColor'])) $personalizacion->setTimetableHoursBgColor($data['timetableHoursBgColor']);
         if (isset($data['timetableHoursTextColor'])) $personalizacion->setTimetableHoursTextColor($data['timetableHoursTextColor']);
 
+        // DataTable
+        if (isset($data['datatableHeaderBgColor'])) $personalizacion->setDatatableHeaderBgColor($data['datatableHeaderBgColor']);
+        if (isset($data['datatableHeaderTextColor'])) $personalizacion->setDatatableHeaderTextColor($data['datatableHeaderTextColor']);
+        if (isset($data['datatableHeaderHoverBgColor'])) $personalizacion->setDatatableHeaderHoverBgColor($data['datatableHeaderHoverBgColor']);
+        if (isset($data['datatableHeaderHoverTextColor'])) $personalizacion->setDatatableHeaderHoverTextColor($data['datatableHeaderHoverTextColor']);
+        if (isset($data['datatableHeaderActiveBgColor'])) $personalizacion->setDatatableHeaderActiveBgColor($data['datatableHeaderActiveBgColor']);
+        if (isset($data['datatableHeaderActiveTextColor'])) $personalizacion->setDatatableHeaderActiveTextColor($data['datatableHeaderActiveTextColor']);
+
+        if (isset($data['datatablePaginationBgColor'])) $personalizacion->setDatatablePaginationBgColor($data['datatablePaginationBgColor']);
+        if (isset($data['datatablePaginationTextColor'])) $personalizacion->setDatatablePaginationTextColor($data['datatablePaginationTextColor']);
+        if (isset($data['datatablePaginationButtonBgColor'])) $personalizacion->setDatatablePaginationButtonBgColor($data['datatablePaginationButtonBgColor']);
+        if (isset($data['datatablePaginationButtonTextColor'])) $personalizacion->setDatatablePaginationButtonTextColor($data['datatablePaginationButtonTextColor']);
+        if (isset($data['datatablePaginationButtonHoverBgColor'])) $personalizacion->setDatatablePaginationButtonHoverBgColor($data['datatablePaginationButtonHoverBgColor']);
+        if (isset($data['datatablePaginationButtonHoverTextColor'])) $personalizacion->setDatatablePaginationButtonHoverTextColor($data['datatablePaginationButtonHoverTextColor']);
+        if (isset($data['datatablePaginationButtonActiveBgColor'])) $personalizacion->setDatatablePaginationButtonActiveBgColor($data['datatablePaginationButtonActiveBgColor']);
+        if (isset($data['datatablePaginationButtonActiveTextColor'])) $personalizacion->setDatatablePaginationButtonActiveTextColor($data['datatablePaginationButtonActiveTextColor']);
+
+        // Paginación (Items Per Page)
+        if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);
+        if (isset($data['itemsPerPageCentros'])) $personalizacion->setItemsPerPageCentros((int)$data['itemsPerPageCentros']);
+        if (isset($data['itemsPerPageCiclos'])) $personalizacion->setItemsPerPageCiclos((int)$data['itemsPerPageCiclos']);
+        if (isset($data['itemsPerPageGrupos'])) $personalizacion->setItemsPerPageGrupos((int)$data['itemsPerPageGrupos']);
+        if (isset($data['itemsPerPageModulos'])) $personalizacion->setItemsPerPageModulos((int)$data['itemsPerPageModulos']);
+        if (isset($data['itemsPerPageMatriculas'])) $personalizacion->setItemsPerPageMatriculas((int)$data['itemsPerPageMatriculas']);
+        if (isset($data['itemsPerPageImparticiones'])) $personalizacion->setItemsPerPageImparticiones((int)$data['itemsPerPageImparticiones']);
+        if (isset($data['itemsPerPageHorarios'])) $personalizacion->setItemsPerPageHorarios((int)$data['itemsPerPageHorarios']);
+
         $entityManager->persist($personalizacion);
         $entityManager->flush();
 

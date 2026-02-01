@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { usePagination } from '../hooks/usePagination'; // Importar hook
 import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
 
 const Usuarios = () => {
@@ -22,12 +23,16 @@ const Usuarios = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('usuarios'); 
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
 
+  // ... (Resto del código igual) ...
   // Campos buscables
   const searchFields = [
       { value: 'nombre', label: 'Nombre' },

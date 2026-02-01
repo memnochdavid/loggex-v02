@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import { usePagination } from '../hooks/usePagination'; // Importar hook
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 
 const Grupos = () => {
@@ -24,7 +25,10 @@ const Grupos = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('grupos');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');

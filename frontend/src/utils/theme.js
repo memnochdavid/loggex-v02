@@ -54,7 +54,21 @@ export const applyTheme = (colors) => {
         timetableHeaderBgColor: '#f1f5f9',
         timetableHeaderTextColor: '#334155',
         timetableHoursBgColor: '#f8fafc',
-        timetableHoursTextColor: '#64748b'
+        timetableHoursTextColor: '#64748b',
+        datatableHeaderBgColor: '#f8fafc',
+        datatableHeaderTextColor: '#64748b',
+        datatableHeaderHoverBgColor: '#f1f5f9',
+        datatableHeaderHoverTextColor: '#334155',
+        datatableHeaderActiveBgColor: '#e2e8f0',
+        datatableHeaderActiveTextColor: '#1e293b',
+        datatablePaginationBgColor: '#f8fafc',
+        datatablePaginationTextColor: '#64748b',
+        datatablePaginationButtonBgColor: '#ffffff',
+        datatablePaginationButtonTextColor: '#64748b',
+        datatablePaginationButtonHoverBgColor: '#f1f5f9',
+        datatablePaginationButtonHoverTextColor: '#334155',
+        datatablePaginationButtonActiveBgColor: '#e2e8f0',
+        datatablePaginationButtonActiveTextColor: '#1e293b'
     };
 
     const theme = { ...defaults, ...colors };
@@ -122,7 +136,24 @@ export const applyTheme = (colors) => {
     if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', theme.timetableHoursBgColor);
     if (theme.timetableHoursTextColor) root.style.setProperty('--timetable-hours-text', theme.timetableHoursTextColor);
 
-    // 7. Scrollbar (Inyección de estilos dinámicos)
+    // 7. DataTable
+    if (theme.datatableHeaderBgColor) root.style.setProperty('--datatable-header-bg', theme.datatableHeaderBgColor);
+    if (theme.datatableHeaderTextColor) root.style.setProperty('--datatable-header-text', theme.datatableHeaderTextColor);
+    if (theme.datatableHeaderHoverBgColor) root.style.setProperty('--datatable-header-hover-bg', theme.datatableHeaderHoverBgColor);
+    if (theme.datatableHeaderHoverTextColor) root.style.setProperty('--datatable-header-hover-text', theme.datatableHeaderHoverTextColor);
+    if (theme.datatableHeaderActiveBgColor) root.style.setProperty('--datatable-header-active-bg', theme.datatableHeaderActiveBgColor);
+    if (theme.datatableHeaderActiveTextColor) root.style.setProperty('--datatable-header-active-text', theme.datatableHeaderActiveTextColor);
+    
+    if (theme.datatablePaginationBgColor) root.style.setProperty('--datatable-pagination-bg', theme.datatablePaginationBgColor);
+    if (theme.datatablePaginationTextColor) root.style.setProperty('--datatable-pagination-text', theme.datatablePaginationTextColor);
+    if (theme.datatablePaginationButtonBgColor) root.style.setProperty('--datatable-pagination-btn-bg', theme.datatablePaginationButtonBgColor);
+    if (theme.datatablePaginationButtonTextColor) root.style.setProperty('--datatable-pagination-btn-text', theme.datatablePaginationButtonTextColor);
+    if (theme.datatablePaginationButtonHoverBgColor) root.style.setProperty('--datatable-pagination-btn-hover-bg', theme.datatablePaginationButtonHoverBgColor);
+    if (theme.datatablePaginationButtonHoverTextColor) root.style.setProperty('--datatable-pagination-btn-hover-text', theme.datatablePaginationButtonHoverTextColor);
+    if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', theme.datatablePaginationButtonActiveBgColor);
+    if (theme.datatablePaginationButtonActiveTextColor) root.style.setProperty('--datatable-pagination-btn-active-text', theme.datatablePaginationButtonActiveTextColor);
+
+    // 8. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');

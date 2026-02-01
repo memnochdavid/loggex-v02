@@ -21,14 +21,14 @@
 }
 
 .thead {
-    background-color: var(--color-gray-50);
+    background-color: var(--datatable-header-bg, var(--color-gray-50));
     border-bottom: 1px solid var(--border-color);
 }
 
 .th {
     padding: var(--space-3) var(--space-4);
     font-weight: var(--font-medium);
-    color: var(--color-gray-600);
+    color: var(--datatable-header-text, var(--color-gray-600));
     text-transform: uppercase;
     font-size: var(--text-xs);
     letter-spacing: 0.05em;
@@ -38,13 +38,16 @@
 
 .th.sortable {
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .th.sortable:hover {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-900);
+    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+    color: var(--datatable-header-hover-text, var(--color-gray-900));
 }
+
+/* Estilo para cabecera activa (ordenada) - Necesitamos añadir clase en JS si queremos diferenciar */
+/* Por ahora usamos el hover o si tiene sortIcon */
 
 .thContent {
     display: flex;
@@ -82,7 +85,8 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-3) var(--space-4);
-    background-color: var(--color-gray-50);
+    background-color: var(--datatable-pagination-bg, var(--color-gray-50));
+    color: var(--datatable-pagination-text, var(--color-gray-600));
     flex-wrap: wrap;
     gap: var(--space-4);
 }
@@ -110,7 +114,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--text-sm);
-    color: var(--color-gray-600);
+    color: inherit;
 }
 
 .select {
@@ -130,7 +134,7 @@
 
 .pageInfo {
     font-size: var(--text-sm);
-    color: var(--color-gray-600);
+    color: inherit;
 }
 
 .pageButtons {
@@ -142,11 +146,11 @@
 .pageButton {
     padding: var(--space-1) var(--space-2);
     border: 1px solid var(--color-gray-300);
-    background-color: white;
+    background-color: var(--datatable-pagination-btn-bg, white);
+    color: var(--datatable-pagination-btn-text, var(--color-gray-700));
     border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--text-sm);
-    color: var(--color-gray-700);
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -155,19 +159,21 @@
 }
 
 .pageButton:hover:not(:disabled) {
-    background-color: var(--color-gray-100);
+    background-color: var(--datatable-pagination-btn-hover-bg, var(--color-gray-100));
+    color: var(--datatable-pagination-btn-hover-text, var(--color-gray-900));
     border-color: var(--color-gray-400);
 }
 
 .pageButton:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: var(--color-gray-50);
+    background-color: var(--datatable-pagination-btn-active-bg, var(--color-gray-50)); /* Usamos active como disabled/base */
+    color: var(--datatable-pagination-btn-active-text, var(--color-gray-500));
 }
 
 .pageNumber {
     font-size: var(--text-sm);
-    color: var(--color-gray-600);
+    color: inherit;
     margin: 0 var(--space-2);
     white-space: nowrap;
 }

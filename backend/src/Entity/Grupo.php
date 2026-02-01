@@ -50,19 +50,19 @@ class Grupo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['grupo:read'])]
+    #[Groups(['grupo:read', 'matricula:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])] // Añadido imparticion:read, horario:read
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])] // Añadido imparticion:read
     private ?string $abreviatura = null;
 
     #[ORM\Column]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])] // Añadido imparticion:read
     private ?int $curso = null;
 
     #[ORM\Column(length: 20)]

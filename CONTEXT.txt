@@ -1,0 +1,59 @@
+# Contexto del Proyecto Loggex v02 (Traspaso)
+
+## Estado Actual (2026-02-01)
+El proyecto es una plataforma de gestión académica (Symfony + React) funcional con las siguientes características implementadas:
+
+### Backend (Symfony 7 + API Platform 3)
+- **Autenticación**: JWT (LexikJWT) con roles (SUPERADMIN, ADMIN, PROFESOR, ALUMNO).
+- **Entidades**: User, Centro, CicloFormativo, Modulo, Grupo, Matricula, Imparticion, Horario, Festivo, Personalizacion.
+- **Seguridad**: `CurrentUserExtension` filtra automáticamente los datos por centro para usuarios no-SuperAdmin.
+- **Personalización**: Sistema dinámico que guarda colores y preferencias de UI en BD por centro.
+- **Datos**: Base de datos MariaDB poblada. Backup completo en `backup_tfg_full.sql`.
+
+### Frontend (React 18 + Vite)
+- **UI**: CSS Modules, Lucide Icons. Sistema de temas (`theme.js`) que inyecta variables CSS desde la configuración.
+- **Vistas CRUD**:
+  - `Centros`: Gestión de centros (SuperAdmin).
+  - `Usuarios`: Gestión de usuarios con roles y avatares.
+  - `Ciclos`: Ciclos formativos.
+  - `Grupos`: Grupos de alumnos (ej: 1º DAW).
+  - `Módulos`: Asignaturas.
+  - `Matrículas`: Asignación Alumno-Grupo.
+  - `Imparticiones`: Asignación Profesor-Módulo-Grupo.
+  - `Horarios`: Vista dual (Lista para gestión, Calendario visual para consulta).
+  - `Configuración`: Panel para personalizar colores, paginación y estilos (SuperAdmin/Admin).
+- **Componentes Clave**:
+  - `DataTable`: Tabla reutilizable con paginación, ordenación y acciones.
+  - `TimeTable`: Horario visual semanal con soporte para festivos y turnos.
+  - `CalendarView`: Calendario mensual interactivo.
+  - `Sidebar`: Navegación adaptativa.
+
+### Tareas Recientes Realizadas
+- Implementación de `TimeTable` con fusión de celdas para clases consecutivas.
+- Integración de `Festivos` en el horario visual.
+- Personalización avanzada (colores de tabla, calendario, scrollbar, paginación por vista).
+- Corrección de errores en formularios de edición (dropdowns vacíos, tipos de datos).
+
+### Tareas Pendientes / Mejoras Futuras
+- **Validación cruzada**: En `Imparticiones`, asegurar que el módulo seleccionado pertenezca al mismo ciclo/curso que el grupo.
+- **Gestión de Asistencia y Calificaciones**: Aún no implementadas en el frontend.
+- **Dashboard**: La página de inicio (`Home.jsx`) es básica.
+- **Subida de archivos**: Mejorar la gestión de logos y avatares (actualmente funcional pero básica).
+
+## Instrucciones de Arranque
+1.  **Clonar repositorio**.
+2.  **Restaurar BD**: Si tienes `backup_tfg_full.sql`, impórtalo en el contenedor de base de datos.
+    ```bash
+    docker compose up -d database
+    cat backup_tfg_full.sql | docker compose exec -T database mariadb -u app_user -papp_password app_db
+    ```
+3.  **Inicializar**: Ejecuta `./init.sh`. Este script levanta contenedores, instala dependencias, genera claves JWT y limpia caché.
+4.  **Acceso**:
+    - Frontend: https://localhost:8443
+    - Backend: https://localhost:9443/api
+    - SuperAdmin: `admin@loggex.com` / `secret` (o verificar en BD).
+
+## Notas Técnicas Importantes
+- **API Platform**: Configurado para `stateless: true`. Ojo con usar sesiones.
+- **Fechas**: El backend usa `TimestampableTrait`. Asegurar que `created_at` no sea null en datos legacy.
+- **Scrollbars**: Se personalizan mediante inyección de estilos en `<head>` (`utils/theme.js`).

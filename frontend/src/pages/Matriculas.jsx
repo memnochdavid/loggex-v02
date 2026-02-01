@@ -137,18 +137,6 @@ const Matriculas = () => {
       
       if (selectedGrupo) {
           url += `&grupo=${selectedGrupo}`;
-      } else if (isSuperAdmin && selectedCentro) {
-          // Filtrar por centro (requiere filtro anidado en backend, o filtrar por grupos del centro)
-          // Como Matricula tiene grupo, y grupo tiene centro, podríamos filtrar por grupo.centro
-          // Pero Matricula no tiene centro directo.
-          // Si el backend no soporta grupo.centro, esto fallará.
-          // Asumiremos que CurrentUserExtension ya filtra por centro si es admin.
-          // Si es SuperAdmin y selecciona centro, necesitamos filtrar.
-          // La forma más fácil es filtrar por los grupos de ese centro (que ya cargamos).
-          // Pero son muchos IDs.
-          // Mejor no filtrar por centro en la query de matrículas si no se selecciona grupo, 
-          // a menos que implementemos un filtro custom.
-          // Por ahora, dejémoslo así.
       }
       
       if (sortColumn) {
@@ -195,27 +183,21 @@ const Matriculas = () => {
     if (matricula) {
       setCurrentMatricula(matricula);
       
-      let alumnoId = '';
-      if (matricula.alumno) {
-          if (typeof matricula.alumno === 'object') {
-              alumnoId = matricula.alumno.id || (matricula.alumno['@id'] ? matricula.alumno['@id'].split('/').pop() : '');
-          } else if (typeof matricula.alumno === 'string') {
-              alumnoId = matricula.alumno.split('/').pop();
+      // Función robusta para obtener ID
+      const getId = (obj) => {
+          if (!obj) return '';
+          if (typeof obj === 'object') {
+              return obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : '');
           }
-      }
-
-      let grupoId = '';
-      if (matricula.grupo) {
-          if (typeof matricula.grupo === 'object') {
-              grupoId = matricula.grupo.id || (matricula.grupo['@id'] ? matricula.grupo['@id'].split('/').pop() : '');
-          } else if (typeof matricula.grupo === 'string') {
-              grupoId = matricula.grupo.split('/').pop();
+          if (typeof obj === 'string') {
+              return obj.split('/').pop();
           }
-      }
+          return obj;
+      };
 
       setFormData({
-        alumno: alumnoId,
-        grupo: grupoId
+        alumno: getId(matricula.alumno),
+        grupo: getId(matricula.grupo)
       });
     } else {
       setCurrentMatricula(null);
@@ -319,7 +301,7 @@ const Matriculas = () => {
     },
     { 
         header: 'Grupo', 
-        accessor: (row) => row.grupo ? row.grupo.nombre : '-', 
+        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
     },
@@ -379,7 +361,9 @@ const Matriculas = () => {
                 >
                     <option value="">Todos los grupos</option>
                     {grupos.map(g => (
-                        <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>{g.nombre}</option>
+                        <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
+                            {g.curso}º {g.nombre}
+                        </option>
                     ))}
                 </select>
                 
@@ -464,7 +448,9 @@ const Matriculas = () => {
                         >
                             <option value="">Seleccionar grupo...</option>
                             {grupos.map(g => (
-                                <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>{g.nombre}</option>
+                                <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
+                                    {g.curso}º {g.nombre}
+                                </option>
                             ))}
                         </select>
                     </div>

@@ -49,6 +49,37 @@ CREATE TABLE `asistencia` (
 
 LOCK TABLES `asistencia` WRITE;
 /*!40000 ALTER TABLE `asistencia` DISABLE KEYS */;
+INSERT INTO `asistencia` VALUES
+(11,'2025-12-22','F',40,72,'15:00:00','tyihulhjgñ','2026-02-01 08:05:15',NULL,0,NULL),
+(12,'2025-12-22','P',40,73,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(13,'2025-12-22','P',40,74,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(14,'2025-12-22','P',40,75,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(15,'2025-12-22','P',40,76,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(16,'2025-12-22','F',24,57,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(17,'2025-12-22','P',24,58,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(18,'2025-12-22','P',24,59,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(19,'2025-12-22','P',24,60,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(20,'2025-12-22','P',24,61,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(21,'2025-12-22','R',31,62,'12:00:00','un retraso para un retrasado','2026-02-01 08:05:15',NULL,0,NULL),
+(22,'2025-12-22','P',31,63,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(23,'2025-12-22','P',31,64,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(24,'2025-12-22','P',31,65,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(25,'2025-12-22','P',31,66,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(26,'2025-12-18','P',28,57,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(27,'2025-12-18','F',28,58,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(28,'2025-12-18','P',28,59,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(29,'2025-12-18','P',28,60,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(30,'2025-12-18','F',28,61,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(31,'2025-12-19','F',28,57,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(32,'2025-12-19','P',28,58,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(33,'2025-12-19','P',28,59,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(34,'2025-12-19','F',28,60,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(35,'2025-12-19','P',28,61,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(36,'2025-12-16','P',37,67,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(37,'2025-12-16','F',37,68,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(38,'2025-12-16','P',37,69,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(39,'2025-12-16','P',37,70,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
+(40,'2025-12-16','F',37,71,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -80,6 +111,8 @@ CREATE TABLE `calificacion` (
 
 LOCK TABLES `calificacion` WRITE;
 /*!40000 ALTER TABLE `calificacion` DISABLE KEYS */;
+INSERT INTO `calificacion` VALUES
+(7,8,'lo has hecho muy bien',7,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -138,7 +171,7 @@ CREATE TABLE `ciclo_formativo` (
   PRIMARY KEY (`id`),
   KEY `IDX_F907D8A9298137A7` (`centro_id`),
   CONSTRAINT `FK_F907D8A9298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -148,9 +181,8 @@ CREATE TABLE `ciclo_formativo` (
 LOCK TABLES `ciclo_formativo` WRITE;
 /*!40000 ALTER TABLE `ciclo_formativo` DISABLE KEYS */;
 INSERT INTO `ciclo_formativo` VALUES
-(3,'Desarrollo de Aplicaciones Web','Superior',3,'2026-01-31 22:12:20',NULL,0,NULL),
-(4,'Desarrollo de Aplicaciones Multiplataforma','Superior',3,'2026-01-31 22:12:20',NULL,0,NULL),
-(5,'Desarrollo de Aplicaciones Multiplataforma','Superior',4,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
+(3,'Desarrollo de Aplicaciones Web','Superior',3,'2026-02-01 08:05:15',NULL,0,NULL),
+(4,'Desarrollo de Aplicaciones Multiplataforma','Superior',3,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `ciclo_formativo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -212,7 +244,12 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260131221220','2026-01-31 22:12:20',178),
 ('DoctrineMigrations\\Version20260131233534','2026-01-31 23:35:34',27),
 ('DoctrineMigrations\\Version20260201003333','2026-02-01 00:33:33',24),
-('DoctrineMigrations\\Version20260201012720','2026-02-01 01:27:20',301);
+('DoctrineMigrations\\Version20260201012720','2026-02-01 01:27:20',301),
+('DoctrineMigrations\\Version20260201102353','2026-02-01 10:23:54',24),
+('DoctrineMigrations\\Version20260201105311','2026-02-01 10:53:12',23),
+('DoctrineMigrations\\Version20260201114243','2026-02-01 11:42:44',21),
+('DoctrineMigrations\\Version20260201114738','2026-02-01 11:47:39',33),
+('DoctrineMigrations\\Version20260201120350','2026-02-01 12:03:51',49);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -248,6 +285,8 @@ CREATE TABLE `entrega` (
 
 LOCK TABLES `entrega` WRITE;
 /*!40000 ALTER TABLE `entrega` DISABLE KEYS */;
+INSERT INTO `entrega` VALUES
+(7,'2025-12-22 16:04:15','asgsdgbsdfb',10,57,'https://drive.google.com/drive/folders/1w7-lVfgAcYjL3phW6RIEjjWXnfluH09t?usp=sharing','2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -280,6 +319,9 @@ CREATE TABLE `festivo` (
 
 LOCK TABLES `festivo` WRITE;
 /*!40000 ALTER TABLE `festivo` DISABLE KEYS */;
+INSERT INTO `festivo` VALUES
+(4,'Navidad','2025-12-22',3,'2026-01-06','2026-02-01 08:05:15',NULL,0,NULL),
+(5,'Semana Santa','2026-03-28',3,'2026-04-05','2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `festivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -307,7 +349,7 @@ CREATE TABLE `grupo` (
   KEY `IDX_8C0E9BD3298137A7` (`centro_id`),
   CONSTRAINT `FK_8C0E9BD3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_8C0E9BD3D8F6DC8` FOREIGN KEY (`ciclo_id`) REFERENCES `ciclo_formativo` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -317,10 +359,10 @@ CREATE TABLE `grupo` (
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
-(9,'1º DAW','2026-2027',3,3,1,'',NULL,'2026-02-01 01:27:51',0,NULL),
-(10,'2º DAW','2026-2027',3,3,2,'',NULL,'2026-02-01 01:28:02',0,NULL),
-(11,'1º DAM','2026-2027',5,4,1,NULL,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(12,'2º DAM','2026-2027',5,4,2,NULL,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
+(5,'Desarrollo de Aplicaciones Web','2025/2026',3,3,1,'1º DAW','2026-02-01 08:05:15',NULL,0,NULL),
+(6,'Desarrollo de Aplicaciones Web','2024/2025',3,3,2,'2º DAW','2026-02-01 08:05:15',NULL,0,NULL),
+(7,'Desarrollo de Aplicaciones Multiplataforma','2025/2026',4,3,1,'1º DAM','2026-02-01 08:05:15',NULL,0,NULL),
+(8,'Desarrollo de Aplicaciones Multiplataforma','2024/2025',4,3,2,'2º DAM','2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -354,6 +396,125 @@ CREATE TABLE `horario` (
 
 LOCK TABLES `horario` WRITE;
 /*!40000 ALTER TABLE `horario` DISABLE KEYS */;
+INSERT INTO `horario` VALUES
+(98,1,'08:30:00','09:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(99,1,'09:30:00','10:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(100,1,'10:30:00','11:30:00','Aula 101',24,'2026-02-01 08:05:15',NULL,0,NULL),
+(101,1,'11:30:00','12:30:00','Aula 101',24,'2026-02-01 08:05:15',NULL,0,NULL),
+(102,1,'12:30:00','13:30:00','Aula 101',25,'2026-02-01 08:05:15',NULL,0,NULL),
+(103,1,'13:30:00','14:30:00','Aula 101',25,'2026-02-01 08:05:15',NULL,0,NULL),
+(104,2,'08:30:00','09:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(105,2,'09:30:00','10:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(106,2,'10:30:00','11:30:00','Aula 101',25,'2026-02-01 08:05:15',NULL,0,NULL),
+(107,2,'11:30:00','12:30:00','Aula 101',25,'2026-02-01 08:05:15',NULL,0,NULL),
+(108,2,'12:30:00','13:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(109,2,'13:30:00','14:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(110,3,'08:30:00','09:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(111,3,'09:30:00','10:30:00','Aula 101',23,'2026-02-01 08:05:15',NULL,0,NULL),
+(112,3,'10:30:00','11:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(113,3,'11:30:00','12:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(114,3,'12:30:00','13:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(115,3,'13:30:00','14:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(116,4,'08:30:00','09:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(117,4,'09:30:00','10:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(118,4,'10:30:00','11:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(119,4,'11:30:00','12:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(120,4,'12:30:00','13:30:00','Aula 101',28,'2026-02-01 08:05:15',NULL,0,NULL),
+(121,4,'13:30:00','14:30:00','Aula 101',28,'2026-02-01 08:05:15',NULL,0,NULL),
+(122,5,'08:30:00','09:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(123,5,'09:30:00','10:30:00','Aula 101',26,'2026-02-01 08:05:15',NULL,0,NULL),
+(124,5,'10:30:00','11:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(125,5,'11:30:00','12:30:00','Aula 101',27,'2026-02-01 08:05:15',NULL,0,NULL),
+(126,5,'12:30:00','13:30:00','Aula 101',24,'2026-02-01 08:05:15',NULL,0,NULL),
+(127,5,'13:30:00','14:30:00','Aula 101',28,'2026-02-01 08:05:15',NULL,0,NULL),
+(128,1,'08:30:00','09:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(129,1,'09:30:00','10:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(130,1,'10:30:00','11:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(131,1,'11:30:00','12:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(132,1,'12:30:00','13:30:00','Aula 102',31,'2026-02-01 08:05:15',NULL,0,NULL),
+(133,1,'13:30:00','14:30:00','Aula 102',31,'2026-02-01 08:05:15',NULL,0,NULL),
+(134,2,'08:30:00','09:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(135,2,'09:30:00','10:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(136,2,'10:30:00','11:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(137,2,'11:30:00','12:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(138,2,'12:30:00','13:30:00','Aula 102',31,'2026-02-01 08:05:15',NULL,0,NULL),
+(139,2,'13:30:00','14:30:00','Aula 102',31,'2026-02-01 08:05:15',NULL,0,NULL),
+(140,3,'08:30:00','09:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(141,3,'09:30:00','10:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(142,3,'10:30:00','11:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(143,3,'11:30:00','12:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(144,3,'12:30:00','13:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(145,3,'13:30:00','14:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(146,4,'08:30:00','09:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(147,4,'09:30:00','10:30:00','Aula 102',30,'2026-02-01 08:05:15',NULL,0,NULL),
+(148,4,'10:30:00','11:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(149,4,'11:30:00','12:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(150,4,'12:30:00','13:30:00','Aula 102',33,'2026-02-01 08:05:15',NULL,0,NULL),
+(151,4,'13:30:00','14:30:00','Aula 102',33,'2026-02-01 08:05:15',NULL,0,NULL),
+(152,5,'08:30:00','09:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(153,5,'09:30:00','10:30:00','Aula 102',32,'2026-02-01 08:05:15',NULL,0,NULL),
+(154,5,'10:30:00','11:30:00','Aula 102',33,'2026-02-01 08:05:15',NULL,0,NULL),
+(155,5,'11:30:00','12:30:00','Aula 102',33,'2026-02-01 08:05:15',NULL,0,NULL),
+(156,5,'12:30:00','13:30:00','Aula 102',29,'2026-02-01 08:05:15',NULL,0,NULL),
+(157,1,'15:00:00','16:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(158,1,'16:00:00','17:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(159,1,'17:00:00','18:00:00','Aula 103',35,'2026-02-01 08:05:15',NULL,0,NULL),
+(160,1,'18:00:00','19:00:00','Aula 103',35,'2026-02-01 08:05:15',NULL,0,NULL),
+(161,1,'19:00:00','20:00:00','Aula 103',36,'2026-02-01 08:05:15',NULL,0,NULL),
+(162,1,'20:00:00','21:00:00','Aula 103',36,'2026-02-01 08:05:15',NULL,0,NULL),
+(163,2,'15:00:00','16:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(164,2,'16:00:00','17:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(165,2,'17:00:00','18:00:00','Aula 103',36,'2026-02-01 08:05:15',NULL,0,NULL),
+(166,2,'18:00:00','19:00:00','Aula 103',36,'2026-02-01 08:05:15',NULL,0,NULL),
+(167,2,'19:00:00','20:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(168,2,'20:00:00','21:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(169,3,'15:00:00','16:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(170,3,'16:00:00','17:00:00','Aula 103',34,'2026-02-01 08:05:15',NULL,0,NULL),
+(171,3,'17:00:00','18:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(172,3,'18:00:00','19:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(173,3,'19:00:00','20:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(174,3,'20:00:00','21:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(175,4,'15:00:00','16:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(176,4,'16:00:00','17:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(177,4,'17:00:00','18:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(178,4,'18:00:00','19:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(179,4,'19:00:00','20:00:00','Aula 103',39,'2026-02-01 08:05:15',NULL,0,NULL),
+(180,4,'20:00:00','21:00:00','Aula 103',39,'2026-02-01 08:05:15',NULL,0,NULL),
+(181,5,'15:00:00','16:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(182,5,'16:00:00','17:00:00','Aula 103',37,'2026-02-01 08:05:15',NULL,0,NULL),
+(183,5,'17:00:00','18:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(184,5,'18:00:00','19:00:00','Aula 103',38,'2026-02-01 08:05:15',NULL,0,NULL),
+(185,5,'19:00:00','20:00:00','Aula 103',35,'2026-02-01 08:05:15',NULL,0,NULL),
+(186,5,'20:00:00','21:00:00','Aula 103',39,'2026-02-01 08:05:15',NULL,0,NULL),
+(187,1,'15:00:00','16:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(188,1,'16:00:00','17:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(189,1,'17:00:00','18:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(190,1,'18:00:00','19:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(191,1,'19:00:00','20:00:00','Aula 104',42,'2026-02-01 08:05:15',NULL,0,NULL),
+(192,1,'20:00:00','21:00:00','Aula 104',42,'2026-02-01 08:05:15',NULL,0,NULL),
+(193,2,'15:00:00','16:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(194,2,'16:00:00','17:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(195,2,'17:00:00','18:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(196,2,'18:00:00','19:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(197,2,'19:00:00','20:00:00','Aula 104',42,'2026-02-01 08:05:15',NULL,0,NULL),
+(198,2,'20:00:00','21:00:00','Aula 104',42,'2026-02-01 08:05:15',NULL,0,NULL),
+(199,3,'15:00:00','16:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(200,3,'16:00:00','17:00:00','Aula 104',40,'2026-02-01 08:05:15',NULL,0,NULL),
+(201,3,'17:00:00','18:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(202,3,'18:00:00','19:00:00','Aula 104',41,'2026-02-01 08:05:15',NULL,0,NULL),
+(203,3,'19:00:00','20:00:00','Aula 104',43,'2026-02-01 08:05:15',NULL,0,NULL),
+(204,3,'20:00:00','21:00:00','Aula 104',43,'2026-02-01 08:05:15',NULL,0,NULL),
+(205,4,'15:00:00','16:00:00','Aula 104',43,'2026-02-01 08:05:15',NULL,0,NULL),
+(206,4,'16:00:00','17:00:00','Aula 104',43,'2026-02-01 08:05:15',NULL,0,NULL),
+(207,4,'17:00:00','18:00:00','Aula 104',44,'2026-02-01 08:05:15',NULL,0,NULL),
+(208,4,'18:00:00','19:00:00','Aula 104',44,'2026-02-01 08:05:15',NULL,0,NULL),
+(209,4,'19:00:00','20:00:00','Aula 104',45,'2026-02-01 08:05:15',NULL,0,NULL),
+(210,4,'20:00:00','21:00:00','Aula 104',45,'2026-02-01 08:05:15',NULL,0,NULL),
+(211,5,'15:00:00','16:00:00','Aula 104',44,'2026-02-01 08:05:15',NULL,0,NULL),
+(212,5,'16:00:00','17:00:00','Aula 104',44,'2026-02-01 08:05:15',NULL,0,NULL),
+(213,5,'17:00:00','18:00:00','Aula 104',42,'2026-02-01 08:05:15',NULL,0,NULL),
+(214,5,'18:00:00','19:00:00','Aula 104',43,'2026-02-01 08:05:15',NULL,0,NULL),
+(215,5,'19:00:00','20:00:00','Aula 104',45,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `horario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -389,6 +550,30 @@ CREATE TABLE `imparticion` (
 
 LOCK TABLES `imparticion` WRITE;
 /*!40000 ALTER TABLE `imparticion` DISABLE KEYS */;
+INSERT INTO `imparticion` VALUES
+(23,50,35,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(24,51,36,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(25,52,37,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(26,53,38,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(27,54,39,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(28,55,40,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(29,56,41,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(30,50,42,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(31,51,43,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(32,52,44,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(33,53,45,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(34,52,23,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(35,53,24,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(36,54,25,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(37,55,26,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(38,56,27,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(39,50,28,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(40,51,29,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(41,52,30,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(42,53,31,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(43,54,32,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(44,56,33,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(45,56,34,8,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `imparticion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -421,6 +606,9 @@ CREATE TABLE `material` (
 
 LOCK TABLES `material` WRITE;
 /*!40000 ALTER TABLE `material` DISABLE KEYS */;
+INSERT INTO `material` VALUES
+(1,'Tema 1','20251228_entornos-desarrollo-tema-1.pdf','2025-12-28 10:43:11',24,'2026-02-01 08:05:15',NULL,0,NULL),
+(2,'Tema 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `material` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -444,7 +632,7 @@ CREATE TABLE `matricula` (
   KEY `IDX_15DF18859C833003` (`grupo_id`),
   CONSTRAINT `FK_15DF18859C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_15DF1885FC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -454,26 +642,26 @@ CREATE TABLE `matricula` (
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
 INSERT INTO `matricula` VALUES
-(61,57,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(62,58,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(63,59,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(64,60,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(65,61,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(66,62,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(67,63,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(68,64,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(69,65,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(70,66,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(71,67,10,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(72,68,9,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(73,69,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(74,70,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(75,71,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(76,72,12,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(77,73,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(78,74,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(79,75,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL),
-(80,76,11,'2026-02-01 01:07:59','2026-02-01 01:07:59',0,NULL);
+(41,57,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(42,58,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(43,59,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(44,60,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(45,61,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(46,62,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(47,63,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(48,64,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(49,65,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(50,66,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(51,67,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(52,68,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(53,69,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(54,70,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(55,71,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(56,72,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(57,73,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(58,74,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(59,75,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(60,76,8,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `matricula` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -537,29 +725,29 @@ CREATE TABLE `modulo` (
 LOCK TABLES `modulo` WRITE;
 /*!40000 ALTER TABLE `modulo` DISABLE KEYS */;
 INSERT INTO `modulo` VALUES
-(23,'Bases de datos','0001',4,1,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(24,'Entornos de desarrollo','0002',4,1,3,'2026-01-31 22:12:20',NULL,0,NULL),
-(25,'Lenguajes de marcas','0003',4,1,4,'2026-01-31 22:12:20',NULL,0,NULL),
-(26,'Programación','0004',4,1,8,'2026-01-31 22:12:20',NULL,0,NULL),
-(27,'Sistemas informáticos','0005',4,1,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(28,'FOL','0006',4,1,3,'2026-01-31 22:12:20',NULL,0,NULL),
-(29,'Acceso a datos','0007',4,2,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(30,'Desarrollo de interfaces','0008',4,2,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(31,'Programación multimedia','0009',4,2,5,'2026-01-31 22:12:20',NULL,0,NULL),
-(32,'Servicios y procesos','0010',4,2,5,'2026-01-31 22:12:20',NULL,0,NULL),
-(33,'Sistemas de gestión','0011',4,2,5,'2026-01-31 22:12:20',NULL,0,NULL),
-(34,'EIE','0012',4,2,3,'2026-01-31 22:12:20',NULL,0,NULL),
-(35,'Bases de datos','0001',3,1,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(36,'Entornos de desarrollo','0002',3,1,3,'2026-01-31 22:12:20',NULL,0,NULL),
-(37,'Lenguajes de marcas','0003',3,1,4,'2026-01-31 22:12:20',NULL,0,NULL),
-(38,'Programación','0004',3,1,8,'2026-01-31 22:12:20',NULL,0,NULL),
-(39,'Sistemas informáticos','0005',3,1,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(40,'FOL','0006',3,1,3,'2026-01-31 22:12:20',NULL,0,NULL),
-(41,'Desarrollo Cliente','0013',3,2,7,'2026-01-31 22:12:20',NULL,0,NULL),
-(42,'Desarrollo Servidor','0014',3,2,8,'2026-01-31 22:12:20',NULL,0,NULL),
-(43,'Despliegue Apps','0015',3,2,4,'2026-01-31 22:12:20',NULL,0,NULL),
-(44,'Diseño de Interfaces','0016',3,2,6,'2026-01-31 22:12:20',NULL,0,NULL),
-(45,'EIE','0017',3,2,5,'2026-01-31 22:12:20',NULL,0,NULL);
+(23,'Bases de datos','0001',4,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(24,'Entornos de desarrollo','0002',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
+(25,'Lenguajes de marcas','0003',4,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
+(26,'Programación','0004',4,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(27,'Sistemas informáticos','0005',4,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(28,'FOL','0006',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
+(29,'Acceso a datos','0007',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(30,'Desarrollo de interfaces','0008',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(31,'Programación multimedia','0009',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(32,'Servicios y procesos','0010',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(33,'Sistemas de gestión','0011',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
+(34,'EIE','0012',4,2,3,'2026-02-01 08:05:15',NULL,0,NULL),
+(35,'Bases de datos','0001',3,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(36,'Entornos de desarrollo','0002',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
+(37,'Lenguajes de marcas','0003',3,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
+(38,'Programación','0004',3,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(39,'Sistemas informáticos','0005',3,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(40,'FOL','0006',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
+(41,'Desarrollo Cliente','0013',3,2,7,'2026-02-01 08:05:15',NULL,0,NULL),
+(42,'Desarrollo Servidor','0014',3,2,8,'2026-02-01 08:05:15',NULL,0,NULL),
+(43,'Despliegue Apps','0015',3,2,4,'2026-02-01 08:05:15',NULL,0,NULL),
+(44,'Diseño de Interfaces','0016',3,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
+(45,'EIE','0017',3,2,5,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `modulo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -630,10 +818,40 @@ CREATE TABLE `personalizacion` (
   `scrollbar_thumb_color` varchar(7) NOT NULL,
   `scrollbar_track_color` varchar(7) NOT NULL,
   `scrollbar_hover_color` varchar(7) NOT NULL,
+  `calendar_selected_bg_color` varchar(7) NOT NULL,
+  `calendar_selected_text_color` varchar(7) NOT NULL,
+  `calendar_weekend_bg_color` varchar(7) NOT NULL,
+  `calendar_weekend_text_color` varchar(7) NOT NULL,
+  `timetable_header_bg_color` varchar(7) NOT NULL,
+  `timetable_header_text_color` varchar(7) NOT NULL,
+  `timetable_hours_bg_color` varchar(7) NOT NULL,
+  `timetable_hours_text_color` varchar(7) NOT NULL,
+  `datatable_header_bg_color` varchar(7) NOT NULL,
+  `datatable_header_text_color` varchar(7) NOT NULL,
+  `datatable_pagination_bg_color` varchar(7) NOT NULL,
+  `datatable_pagination_text_color` varchar(7) NOT NULL,
+  `datatable_header_hover_bg_color` varchar(7) NOT NULL,
+  `datatable_header_hover_text_color` varchar(7) NOT NULL,
+  `datatable_header_active_bg_color` varchar(7) NOT NULL,
+  `datatable_header_active_text_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_bg_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_text_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_hover_bg_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_hover_text_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_active_bg_color` varchar(7) NOT NULL,
+  `datatable_pagination_button_active_text_color` varchar(7) NOT NULL,
+  `items_per_page_usuarios` int(11) NOT NULL,
+  `items_per_page_centros` int(11) NOT NULL,
+  `items_per_page_ciclos` int(11) NOT NULL,
+  `items_per_page_grupos` int(11) NOT NULL,
+  `items_per_page_modulos` int(11) NOT NULL,
+  `items_per_page_matriculas` int(11) NOT NULL,
+  `items_per_page_imparticiones` int(11) NOT NULL,
+  `items_per_page_horarios` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -642,6 +860,8 @@ CREATE TABLE `personalizacion` (
 
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
+INSERT INTO `personalizacion` VALUES
+(1,'#6366f1','#1e293b',3,'#334155','#64748b','#6366f1','#ffffff','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#334155','#64748b','2026-02-01 10:25:33','2026-02-01 12:27:33',0,NULL,'#cbd5e1','#f1f5f9','#94a3b8','#36d949','#ffffff','#ff0000','#ffffff','#557cd8','#ffffff','#d6d6d6','#353131','#4279cd','#ffffff','#4aba51','#ffffff','#4672b4','#ffffff','#6499e8','#ffffff','#0c9d3e','#ffffff','#44c571','ffffff','#769882','#ffffff',10,10,10,10,10,10,10,10);
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -677,6 +897,11 @@ CREATE TABLE `tarea` (
 
 LOCK TABLES `tarea` WRITE;
 /*!40000 ALTER TABLE `tarea` DISABLE KEYS */;
+INSERT INTO `tarea` VALUES
+(9,'Examen T5','<div>Examen T5 Examen T5 Examen T5 Examen T5 Examen T5 Examen T5</div>','2025-12-23 12:30:00',1,24,'2025-12-23 10:30:00','examen','2026-02-01 08:05:15',NULL,0,NULL),
+(10,'Ejercicios T2','<div>Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2 Ejercicios T2&nbsp;</div>','2025-12-24 16:01:00',1,24,'2025-12-22 16:01:00','tarea','2026-02-01 08:05:15',NULL,0,NULL),
+(11,'Ejercicios T3','<div>Ejercicios T3 Ejercicios T3 Ejercicios T3 Ejercicios T3 Ejercicios T3</div>','2025-12-24 16:02:00',1,24,'2025-12-22 16:02:00','tarea','2026-02-01 08:05:15',NULL,0,NULL),
+(12,'Ejercicios T1','<div>Ejercicios T1 Ejercicios T1 Ejercicios T1 Ejercicios T1</div>','2025-12-24 17:50:00',1,23,'2025-12-23 17:50:00','tarea','2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `tarea` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -758,4 +983,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-01  1:30:14
+-- Dump completed on 2026-02-01 12:28:38

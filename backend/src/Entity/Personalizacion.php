@@ -42,114 +42,204 @@ class Personalizacion
     // --- General ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $primaryColor = '#6366f1'; // Indigo
+    private ?string $primaryColor = '#6366f1';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $secondaryColor = '#64748b'; // Slate-500
+    private ?string $secondaryColor = '#64748b';
 
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarColor = '#1e293b'; // Slate-800
+    private ?string $sidebarColor = '#1e293b';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarActiveColor = '#334155'; // Slate-700
+    private ?string $sidebarActiveColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarActiveTextColor = '#ffffff'; // White
+    private ?string $sidebarActiveTextColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarHoverColor = '#334155'; // Slate-700
+    private ?string $sidebarHoverColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $sidebarHoverTextColor = '#ffffff'; // White
+    private ?string $sidebarHoverTextColor = '#ffffff';
 
     // --- Textos ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $textMainColor = '#334155'; // Slate-700
+    private ?string $textMainColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $textSecondaryColor = '#64748b'; // Slate-500
+    private ?string $textSecondaryColor = '#64748b';
 
     // --- Botones ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonPrimaryColor = '#6366f1'; // Indigo
+    private ?string $buttonPrimaryColor = '#6366f1';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonPrimaryTextColor = '#ffffff'; // White
+    private ?string $buttonPrimaryTextColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonSecondaryColor = '#ffffff'; // White
+    private ?string $buttonSecondaryColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $buttonSecondaryTextColor = '#334155'; // Slate-700
+    private ?string $buttonSecondaryTextColor = '#334155';
 
     // --- Header/Footer ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $headerFooterColor = '#1e293b'; // Slate-800
+    private ?string $headerFooterColor = '#1e293b';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $headerFooterTextColor = '#ffffff'; // White
+    private ?string $headerFooterTextColor = '#ffffff';
 
     // --- Scrollbar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $scrollbarThumbColor = '#cbd5e1'; // Slate-300
+    private ?string $scrollbarThumbColor = '#cbd5e1';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $scrollbarTrackColor = '#f1f5f9'; // Slate-100
+    private ?string $scrollbarTrackColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $scrollbarHoverColor = '#94a3b8'; // Slate-400
+    private ?string $scrollbarHoverColor = '#94a3b8';
 
     // --- Calendario ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $calendarSelectedBgColor = '#6366f1'; // Indigo-500
+    private ?string $calendarSelectedBgColor = '#6366f1';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $calendarSelectedTextColor = '#ffffff'; // White
+    private ?string $calendarSelectedTextColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $calendarWeekendBgColor = '#f1f5f9'; // Slate-100
+    private ?string $calendarWeekendBgColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $calendarWeekendTextColor = '#64748b'; // Slate-500
+    private ?string $calendarWeekendTextColor = '#64748b';
 
     // --- Horario (TimeTable) ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $timetableHeaderBgColor = '#f1f5f9'; // Slate-100
+    private ?string $timetableHeaderBgColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $timetableHeaderTextColor = '#334155'; // Slate-700
+    private ?string $timetableHeaderTextColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $timetableHoursBgColor = '#f8fafc'; // Slate-50 (Nuevo)
+    private ?string $timetableHoursBgColor = '#f8fafc';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $timetableHoursTextColor = '#64748b'; // Slate-500 (Nuevo)
+    private ?string $timetableHoursTextColor = '#64748b';
+
+    // --- DataTable ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderBgColor = '#f8fafc';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderTextColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderHoverBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderHoverTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderActiveBgColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatableHeaderActiveTextColor = '#1e293b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationBgColor = '#f8fafc';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationTextColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonTextColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonHoverBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonHoverTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonActiveBgColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $datatablePaginationButtonActiveTextColor = '#1e293b';
+
+    // --- Paginación (Items Per Page) ---
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageUsuarios = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageCentros = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageCiclos = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageGrupos = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageModulos = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageMatriculas = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageImparticiones = 20;
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $itemsPerPageHorarios = 20;
 
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
@@ -160,7 +250,37 @@ class Personalizacion
         return $this->id;
     }
 
-    // Getters y Setters
+    // ... (Getters y Setters de colores existentes) ...
+    // Para ahorrar espacio, asumo que los getters/setters de colores ya están o se generan.
+    // Solo añado los nuevos de paginación.
+
+    public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
+    public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }
+
+    public function getItemsPerPageCentros(): int { return $this->itemsPerPageCentros; }
+    public function setItemsPerPageCentros(int $items): static { $this->itemsPerPageCentros = $items; return $this; }
+
+    public function getItemsPerPageCiclos(): int { return $this->itemsPerPageCiclos; }
+    public function setItemsPerPageCiclos(int $items): static { $this->itemsPerPageCiclos = $items; return $this; }
+
+    public function getItemsPerPageGrupos(): int { return $this->itemsPerPageGrupos; }
+    public function setItemsPerPageGrupos(int $items): static { $this->itemsPerPageGrupos = $items; return $this; }
+
+    public function getItemsPerPageModulos(): int { return $this->itemsPerPageModulos; }
+    public function setItemsPerPageModulos(int $items): static { $this->itemsPerPageModulos = $items; return $this; }
+
+    public function getItemsPerPageMatriculas(): int { return $this->itemsPerPageMatriculas; }
+    public function setItemsPerPageMatriculas(int $items): static { $this->itemsPerPageMatriculas = $items; return $this; }
+
+    public function getItemsPerPageImparticiones(): int { return $this->itemsPerPageImparticiones; }
+    public function setItemsPerPageImparticiones(int $items): static { $this->itemsPerPageImparticiones = $items; return $this; }
+
+    public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
+    public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
+
+    // ... (Resto de getters/setters de colores) ...
+    // Voy a regenerar el archivo completo con todos los getters/setters para evitar errores.
+
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
 
@@ -238,6 +358,48 @@ class Personalizacion
 
     public function getTimetableHoursTextColor(): ?string { return $this->timetableHoursTextColor; }
     public function setTimetableHoursTextColor(string $color): static { $this->timetableHoursTextColor = $color; return $this; }
+
+    public function getDatatableHeaderBgColor(): ?string { return $this->datatableHeaderBgColor; }
+    public function setDatatableHeaderBgColor(string $color): static { $this->datatableHeaderBgColor = $color; return $this; }
+
+    public function getDatatableHeaderTextColor(): ?string { return $this->datatableHeaderTextColor; }
+    public function setDatatableHeaderTextColor(string $color): static { $this->datatableHeaderTextColor = $color; return $this; }
+
+    public function getDatatableHeaderHoverBgColor(): ?string { return $this->datatableHeaderHoverBgColor; }
+    public function setDatatableHeaderHoverBgColor(string $color): static { $this->datatableHeaderHoverBgColor = $color; return $this; }
+
+    public function getDatatableHeaderHoverTextColor(): ?string { return $this->datatableHeaderHoverTextColor; }
+    public function setDatatableHeaderHoverTextColor(string $color): static { $this->datatableHeaderHoverTextColor = $color; return $this; }
+
+    public function getDatatableHeaderActiveBgColor(): ?string { return $this->datatableHeaderActiveBgColor; }
+    public function setDatatableHeaderActiveBgColor(string $color): static { $this->datatableHeaderActiveBgColor = $color; return $this; }
+
+    public function getDatatableHeaderActiveTextColor(): ?string { return $this->datatableHeaderActiveTextColor; }
+    public function setDatatableHeaderActiveTextColor(string $color): static { $this->datatableHeaderActiveTextColor = $color; return $this; }
+
+    public function getDatatablePaginationBgColor(): ?string { return $this->datatablePaginationBgColor; }
+    public function setDatatablePaginationBgColor(string $color): static { $this->datatablePaginationBgColor = $color; return $this; }
+
+    public function getDatatablePaginationTextColor(): ?string { return $this->datatablePaginationTextColor; }
+    public function setDatatablePaginationTextColor(string $color): static { $this->datatablePaginationTextColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonBgColor(): ?string { return $this->datatablePaginationButtonBgColor; }
+    public function setDatatablePaginationButtonBgColor(string $color): static { $this->datatablePaginationButtonBgColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonTextColor(): ?string { return $this->datatablePaginationButtonTextColor; }
+    public function setDatatablePaginationButtonTextColor(string $color): static { $this->datatablePaginationButtonTextColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonHoverBgColor(): ?string { return $this->datatablePaginationButtonHoverBgColor; }
+    public function setDatatablePaginationButtonHoverBgColor(string $color): static { $this->datatablePaginationButtonHoverBgColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonHoverTextColor(): ?string { return $this->datatablePaginationButtonHoverTextColor; }
+    public function setDatatablePaginationButtonHoverTextColor(string $color): static { $this->datatablePaginationButtonHoverTextColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonActiveBgColor(): ?string { return $this->datatablePaginationButtonActiveBgColor; }
+    public function setDatatablePaginationButtonActiveBgColor(string $color): static { $this->datatablePaginationButtonActiveBgColor = $color; return $this; }
+
+    public function getDatatablePaginationButtonActiveTextColor(): ?string { return $this->datatablePaginationButtonActiveTextColor; }
+    public function setDatatablePaginationButtonActiveTextColor(string $color): static { $this->datatablePaginationButtonActiveTextColor = $color; return $this; }
 
     public function getCentro(): ?Centro
     {

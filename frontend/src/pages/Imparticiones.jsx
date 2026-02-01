@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import styles from './Usuarios.module.css'; // Reutilizamos estilos
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
@@ -13,8 +13,8 @@ const Imparticiones = () => {
 
   const [imparticiones, setImparticiones] = useState([]);
   const [profesores, setProfesores] = useState([]);
-  const [modulos, setModulos] = useState([]);
-  const [grupos, setGrupos] = useState([]);
+  const [allModulos, setAllModulos] = useState([]); // Todos los módulos cargados
+  const [allGrupos, setAllGrupos] = useState([]);   // Todos los grupos cargados
   const [centros, setCentros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,6 +48,30 @@ const Imparticiones = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Listas filtradas para el modal
+  const filteredModulos = useMemo(() => {
+      if (!formData.grupo) return []; // Si no hay grupo, no mostrar módulos (forzar orden)
+      
+      const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
+      if (!selectedGrupo) return [];
+
+      // Filtrar módulos que coincidan en Ciclo y Curso con el grupo seleccionado
+      return allModulos.filter(m => {
+          // Comparar curso
+          if (m.curso !== selectedGrupo.curso) return false;
+          
+          // Comparar ciclo (puede venir como objeto o IRI)
+          const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
+          const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
+          
+          // Normalizar IDs para comparar
+          const modCicloIdStr = String(modCicloId).split('/').pop();
+          const grupCicloIdStr = String(grupCicloId).split('/').pop();
+
+          return modCicloIdStr === grupCicloIdStr;
+      });
+  }, [allModulos, allGrupos, formData.grupo]);
+
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
@@ -66,16 +90,12 @@ const Imparticiones = () => {
 
   // Cargar datos auxiliares (filtrados por centro)
   useEffect(() => {
-    let urlProfesores = 'https://localhost:9443/api/users?pagination=false&rol_app=profesor';
-    let urlModulos = 'https://localhost:9443/api/modulos?pagination=false';
-    let urlGrupos = 'https://localhost:9443/api/grupos?pagination=false';
+    let urlProfesores = 'https://localhost:9443/api/users?itemsPerPage=100&rol_app=profesor';
+    let urlModulos = 'https://localhost:9443/api/modulos?itemsPerPage=100';
+    let urlGrupos = 'https://localhost:9443/api/grupos?itemsPerPage=100';
     
     if (isSuperAdmin && selectedCentro) {
         urlProfesores += `&centro=${selectedCentro}`;
-        // Modulos y Grupos se filtran por centro indirectamente o necesitamos filtro custom
-        // Asumimos que CurrentUserExtension filtra si es admin, pero si es superadmin necesitamos filtrar
-        // Modulo tiene ciclo.centro, Grupo tiene centro.
-        // Si el backend soporta filtrado anidado:
         urlModulos += `&ciclo.centro=${selectedCentro}`;
         urlGrupos += `&centro=${selectedCentro}`;
     }
@@ -92,9 +112,9 @@ const Imparticiones = () => {
             const dataMod = await resMod.json();
             const dataGrup = await resGrup.json();
 
-            setProfesores(dataProf['hydra:member'] || []);
-            setModulos(dataMod['hydra:member'] || []);
-            setGrupos(dataGrup['hydra:member'] || []);
+            setProfesores(dataProf['hydra:member'] || dataProf.member || []);
+            setAllModulos(dataMod['hydra:member'] || dataMod.member || []);
+            setAllGrupos(dataGrup['hydra:member'] || dataGrup.member || []);
         } catch (err) {
             console.error("Error cargando datos auxiliares:", err);
         }
@@ -138,15 +158,6 @@ const Imparticiones = () => {
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
-      }
-      
-      // Si es superadmin y selecciona centro, filtrar imparticiones por centro
-      // Imparticion -> Grupo -> Centro
-      if (isSuperAdmin && selectedCentro) {
-          // Necesitamos filtro anidado grupo.centro en Imparticion
-          // Si no existe, no filtrará bien.
-          // Asumiremos que no filtramos la lista principal por centro si no hay filtro directo,
-          // pero los datos auxiliares sí se filtran.
       }
       
       if (sortColumn) {
@@ -193,7 +204,16 @@ const Imparticiones = () => {
     if (imparticion) {
       setCurrentImparticion(imparticion);
       
-      const getId = (obj) => obj ? (obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : '')) : '';
+      const getId = (obj) => {
+          if (!obj) return '';
+          if (typeof obj === 'object') {
+              return String(obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : ''));
+          }
+          if (typeof obj === 'string') {
+              return String(obj.split('/').pop());
+          }
+          return String(obj);
+      };
 
       setFormData({
         profesor: getId(imparticion.profesor),
@@ -218,10 +238,17 @@ const Imparticiones = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        
+        // Si cambiamos grupo, reseteamos módulo porque la lista de módulos disponibles cambiará
+        if (name === 'grupo') {
+            newData.modulo = ''; 
+        }
+
+        return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -310,7 +337,7 @@ const Imparticiones = () => {
     },
     { 
         header: 'Grupo', 
-        accessor: (row) => row.grupo ? row.grupo.nombre : '-', 
+        accessor: (row) => row.grupo ? (row.grupo.abreviatura || row.grupo.nombre) : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
     },
@@ -412,7 +439,7 @@ const Imparticiones = () => {
                 <form onSubmit={handleSubmit}>
                 <div className={styles.modalBody}>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Profesor</label>
+                        <label className={styles.label}>Profesor ({profesores.length})</label>
                         <select
                             name="profesor"
                             value={formData.profesor}
@@ -422,7 +449,7 @@ const Imparticiones = () => {
                         >
                             <option value="">Seleccionar profesor...</option>
                             {profesores.map(p => (
-                                <option key={p.id || p['@id']} value={p.id || p['@id'].split('/').pop()}>
+                                <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
                                     {p.nombre} {p.apellidos}
                                 </option>
                             ))}
@@ -430,25 +457,7 @@ const Imparticiones = () => {
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Módulo</label>
-                        <select
-                            name="modulo"
-                            value={formData.modulo}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                        >
-                            <option value="">Seleccionar módulo...</option>
-                            {modulos.map(m => (
-                                <option key={m.id || m['@id']} value={m.id || m['@id'].split('/').pop()}>
-                                    {m.nombre} ({m.codigoOficial})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Grupo</label>
+                        <label className={styles.label}>Grupo ({allGrupos.length})</label>
                         <select
                             name="grupo"
                             value={formData.grupo}
@@ -457,9 +466,30 @@ const Imparticiones = () => {
                             required
                         >
                             <option value="">Seleccionar grupo...</option>
-                            {grupos.map(g => (
-                                <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                                    {g.nombre}
+                            {allGrupos.map(g => (
+                                <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
+                                    {g.abreviatura || g.nombre}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Módulo ({filteredModulos.length})</label>
+                        <select
+                            name="modulo"
+                            value={formData.modulo}
+                            onChange={handleInputChange}
+                            className={styles.select}
+                            required
+                            disabled={!formData.grupo} // Deshabilitar si no hay grupo
+                        >
+                            <option value="">
+                                {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
+                            </option>
+                            {filteredModulos.map(m => (
+                                <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
+                                    {m.nombre} ({m.codigoOficial}) - {m.curso}º
                                 </option>
                             ))}
                         </select>

@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import { usePagination } from '../hooks/usePagination'; // Importar hook
 import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
 
 const Centros = () => {
@@ -14,9 +15,12 @@ const Centros = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('centros');
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchField, setSearchField] = useState('nombre'); // Campo por defecto
+  const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
 
@@ -24,8 +28,7 @@ const Centros = () => {
   const searchFields = [
       { value: 'nombre', label: 'Nombre' },
       { value: 'cif', label: 'CIF' },
-      { value: 'direccion', label: 'Dirección' },
-      { value: 'telefono', label: 'Teléfono' }
+      { value: 'direccion', label: 'Dirección' }
   ];
 
   // Estado para el modal
@@ -49,7 +52,7 @@ const Centros = () => {
         setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm, searchField]); // Añadido searchField
+  }, [searchTerm, searchField]);
 
   // Fetch al cambiar página, orden o items por página
   useEffect(() => {
@@ -58,7 +61,7 @@ const Centros = () => {
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
       setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
+      setCurrentPage(1); // Resetear a página 1 al cambiar tamaño
   };
 
   const getCentroId = (centro) => {
@@ -78,10 +81,10 @@ const Centros = () => {
   const fetchCentros = async (page) => {
     setLoading(true);
     try {
+      // Construir URL con parámetros
       let url = `https://localhost:9443/api/centros?page=${page}&itemsPerPage=${itemsPerPage}`;
       
       if (searchTerm) {
-          // Usar el campo seleccionado para filtrar
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
       }
       

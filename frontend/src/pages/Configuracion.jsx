@@ -4,42 +4,83 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     
-    const defaultColors = {
+    const defaultSettings = {
+        // Colores Generales
         primaryColor: '#6366f1',
         secondaryColor: '#64748b',
+        
+        // Sidebar
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
         sidebarHoverColor: '#334155',
         sidebarHoverTextColor: '#ffffff',
+        
+        // Textos
         textMainColor: '#334155',
         textSecondaryColor: '#64748b',
+        
+        // Botones
         buttonPrimaryColor: '#6366f1',
         buttonPrimaryTextColor: '#ffffff',
         buttonSecondaryColor: '#ffffff',
         buttonSecondaryTextColor: '#334155',
+        
+        // Header/Footer
         headerFooterColor: '#1e293b',
         headerFooterTextColor: '#ffffff',
+        
+        // Scrollbar
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
+        
+        // Calendario
         calendarSelectedBgColor: '#6366f1',
         calendarSelectedTextColor: '#ffffff',
         calendarWeekendBgColor: '#f1f5f9',
         calendarWeekendTextColor: '#64748b',
+        
+        // Horario
         timetableHeaderBgColor: '#f1f5f9',
         timetableHeaderTextColor: '#334155',
         timetableHoursBgColor: '#f8fafc',
-        timetableHoursTextColor: '#64748b'
+        timetableHoursTextColor: '#64748b',
+        
+        // DataTable
+        datatableHeaderBgColor: '#f8fafc',
+        datatableHeaderTextColor: '#64748b',
+        datatableHeaderHoverBgColor: '#f1f5f9',
+        datatableHeaderHoverTextColor: '#334155',
+        datatableHeaderActiveBgColor: '#e2e8f0',
+        datatableHeaderActiveTextColor: '#1e293b',
+        datatablePaginationBgColor: '#f8fafc',
+        datatablePaginationTextColor: '#64748b',
+        datatablePaginationButtonBgColor: '#ffffff',
+        datatablePaginationButtonTextColor: '#64748b',
+        datatablePaginationButtonHoverBgColor: '#f1f5f9',
+        datatablePaginationButtonHoverTextColor: '#334155',
+        datatablePaginationButtonActiveBgColor: '#e2e8f0',
+        datatablePaginationButtonActiveTextColor: '#1e293b',
+
+        // Paginación (Items Per Page)
+        itemsPerPageUsuarios: 20,
+        itemsPerPageCentros: 20,
+        itemsPerPageCiclos: 20,
+        itemsPerPageGrupos: 20,
+        itemsPerPageModulos: 20,
+        itemsPerPageMatriculas: 20,
+        itemsPerPageImparticiones: 20,
+        itemsPerPageHorarios: 20
     };
 
-    const [colors, setColors] = useState(defaultColors);
+    const [settings, setSettings] = useState(defaultSettings);
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -47,28 +88,28 @@ const Configuracion = () => {
     useEffect(() => {
         if (user) {
             if (user.centro && user.centro.personalizacion) {
-                setColors({ ...defaultColors, ...user.centro.personalizacion });
+                setSettings({ ...defaultSettings, ...user.centro.personalizacion });
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
-                setColors({ ...defaultColors, ...user.centro.personalizacion });
+                setSettings({ ...defaultSettings, ...user.centro.personalizacion });
             }
         }
     }, [user, isSuperAdmin]);
 
     useEffect(() => {
-        applyTheme(colors);
-    }, [colors]);
+        applyTheme(settings);
+    }, [settings]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setColors(prev => ({
+        const { name, value, type } = e.target;
+        setSettings(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'number' ? parseInt(value) : value
         }));
     };
 
     const handleReset = () => {
-        setColors(defaultColors);
-        applyTheme(defaultColors);
+        setSettings(defaultSettings);
+        applyTheme(defaultSettings);
     };
 
     const handleSubmit = async (e) => {
@@ -82,7 +123,7 @@ const Configuracion = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(colors),
+                body: JSON.stringify(settings),
                 credentials: 'include'
             });
 
@@ -120,19 +161,34 @@ const Configuracion = () => {
                 <input
                     type="color"
                     name={name}
-                    value={colors[name] || '#000000'}
+                    value={settings[name] || '#000000'}
                     onChange={handleChange}
                     className={styles.colorInput}
                 />
                 <input
                     type="text"
                     name={name}
-                    value={colors[name] || ''}
+                    value={settings[name] || ''}
                     onChange={handleChange}
                     className={styles.colorTextInput}
                     maxLength={7}
                 />
             </div>
+        </div>
+    );
+
+    const renderNumberInput = (label, name) => (
+        <div className={styles.colorItem}>
+            <label className={styles.label}>{label}</label>
+            <input
+                type="number"
+                name={name}
+                value={settings[name] || 20}
+                onChange={handleChange}
+                className={styles.colorTextInput} // Reutilizamos estilo de input texto
+                min="1"
+                max="100"
+            />
         </div>
     );
 
@@ -144,6 +200,8 @@ const Configuracion = () => {
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
+        { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
+        { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
     ];
 
     return (
@@ -260,118 +318,97 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Horas', 'timetableHoursTextColor')}
                                 </div>
                             )}
+
+                            {activeTab === 'datatable' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Cabecera', 'datatableHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera', 'datatableHeaderTextColor')}
+                                    {renderColorInput('Fondo Cabecera Hover', 'datatableHeaderHoverBgColor')}
+                                    {renderColorInput('Texto Cabecera Hover', 'datatableHeaderHoverTextColor')}
+                                    {renderColorInput('Fondo Cabecera Activa', 'datatableHeaderActiveBgColor')}
+                                    {renderColorInput('Texto Cabecera Activa', 'datatableHeaderActiveTextColor')}
+                                    
+                                    {renderColorInput('Fondo Paginación', 'datatablePaginationBgColor')}
+                                    {renderColorInput('Texto Paginación', 'datatablePaginationTextColor')}
+                                    {renderColorInput('Fondo Botón Paginación', 'datatablePaginationButtonBgColor')}
+                                    {renderColorInput('Texto Botón Paginación', 'datatablePaginationButtonTextColor')}
+                                    {renderColorInput('Fondo Botón Hover', 'datatablePaginationButtonHoverBgColor')}
+                                    {renderColorInput('Texto Botón Hover', 'datatablePaginationButtonHoverTextColor')}
+                                    {renderColorInput('Fondo Botón Activo/Disabled', 'datatablePaginationButtonActiveBgColor')}
+                                    {renderColorInput('Texto Botón Activo/Disabled', 'datatablePaginationButtonActiveTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'pagination' && (
+                                <div className={styles.grid}>
+                                    {renderNumberInput('Usuarios por página', 'itemsPerPageUsuarios')}
+                                    {renderNumberInput('Centros por página', 'itemsPerPageCentros')}
+                                    {renderNumberInput('Ciclos por página', 'itemsPerPageCiclos')}
+                                    {renderNumberInput('Grupos por página', 'itemsPerPageGrupos')}
+                                    {renderNumberInput('Módulos por página', 'itemsPerPageModulos')}
+                                    {renderNumberInput('Matrículas por página', 'itemsPerPageMatriculas')}
+                                    {renderNumberInput('Imparticiones por página', 'itemsPerPageImparticiones')}
+                                    {renderNumberInput('Horarios por página', 'itemsPerPageHorarios')}
+                                </div>
+                            )}
                         </div>
 
                         <div className={styles.previewContainer}>
                             <h3 className={styles.previewTitle}>Vista Previa de Componentes</h3>
                             
                             <div className={styles.previewBox}>
-                                <div className={styles.previewRow}>
-                                    <button 
-                                        className={styles.previewBtn}
-                                        style={{ backgroundColor: colors.buttonPrimaryColor, color: colors.buttonPrimaryTextColor }}
-                                    >
-                                        Botón Primario
-                                    </button>
-                                    <button 
-                                        className={styles.previewBtn}
-                                        style={{ 
-                                            backgroundColor: colors.buttonSecondaryColor, 
-                                            color: colors.buttonSecondaryTextColor,
-                                            border: `1px solid ${colors.textSecondaryColor}`
-                                        }}
-                                    >
-                                        Botón Secundario
-                                    </button>
-                                </div>
-
-                                <div className={styles.previewRow}>
-                                    <div style={{ color: colors.textMainColor, fontWeight: 'bold' }}>Texto Principal</div>
-                                    <div style={{ color: colors.textSecondaryColor }}>Texto Secundario</div>
-                                </div>
-
-                                <div className={styles.previewSidebarMock}>
-                                    <div style={{ backgroundColor: colors.sidebarColor, padding: '10px', borderRadius: '4px', color: '#fff' }}>
-                                        <div style={{ marginBottom: '5px', opacity: 0.7 }}>Menú</div>
-                                        <div style={{ 
-                                            backgroundColor: colors.sidebarActiveColor, 
-                                            color: colors.sidebarActiveTextColor,
-                                            padding: '5px', 
-                                            borderRadius: '4px',
-                                            marginBottom: '5px'
-                                        }}>
-                                            Activo
-                                        </div>
-                                        <div style={{ 
-                                            backgroundColor: colors.sidebarHoverColor, 
-                                            color: colors.sidebarHoverTextColor,
-                                            padding: '5px', 
-                                            borderRadius: '4px'
-                                        }}>
-                                            Hover
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Preview Scrollbar */}
+                                {/* ... (otros previews) ... */}
+                                
+                                {/* Preview DataTable Header */}
                                 <div style={{ 
-                                    height: '100px', 
-                                    overflowY: 'scroll', 
-                                    border: '1px solid #e2e8f0', 
+                                    backgroundColor: settings.datatableHeaderBgColor, 
+                                    color: settings.datatableHeaderTextColor,
                                     padding: '10px',
-                                    backgroundColor: '#fff'
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left',
+                                    borderBottom: '1px solid #e2e8f0',
+                                    marginBottom: '10px',
+                                    display: 'flex',
+                                    gap: '10px'
                                 }}>
-                                    <div style={{ height: '200px' }}>
-                                        <p style={{ color: colors.textMainColor }}>Contenido con scroll para probar la barra de desplazamiento personalizada.</p>
-                                        <p style={{ color: colors.textSecondaryColor }}>Desplázate hacia abajo...</p>
-                                    </div>
+                                    <span>NOMBRE</span>
+                                    <span style={{ 
+                                        backgroundColor: settings.datatableHeaderHoverBgColor, 
+                                        color: settings.datatableHeaderHoverTextColor,
+                                        padding: '2px 5px',
+                                        borderRadius: '2px'
+                                    }}>APELLIDOS (Hover)</span>
                                 </div>
 
-                                {/* Preview Calendar Day */}
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <div style={{ 
-                                        width: '30px', height: '30px', borderRadius: '50%', 
-                                        backgroundColor: colors.calendarSelectedBgColor, 
-                                        color: colors.calendarSelectedTextColor,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '12px', fontWeight: 'bold'
-                                    }}>
-                                        23
-                                    </div>
-                                    <div style={{ 
-                                        width: '30px', height: '30px', borderRadius: '50%', 
-                                        backgroundColor: colors.calendarWeekendBgColor, 
-                                        color: colors.calendarWeekendTextColor,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '12px'
-                                    }}>
-                                        S
-                                    </div>
-                                </div>
-
-                                {/* Preview Timetable Header */}
-                                <div style={{ display: 'flex', gap: '5px' }}>
-                                    <div style={{ 
-                                        backgroundColor: colors.timetableHeaderBgColor, 
-                                        color: colors.timetableHeaderTextColor,
-                                        padding: '5px 10px',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        fontWeight: 'bold',
-                                        textAlign: 'center'
-                                    }}>
-                                        Lunes
-                                    </div>
-                                    <div style={{ 
-                                        backgroundColor: colors.timetableHoursBgColor, 
-                                        color: colors.timetableHoursTextColor,
-                                        padding: '5px 10px',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        fontWeight: 'bold',
-                                        textAlign: 'center'
-                                    }}>
-                                        8:30
+                                {/* Preview Pagination */}
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationBgColor, 
+                                    color: settings.datatablePaginationTextColor,
+                                    padding: '10px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
+                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                        <div style={{ 
+                                            backgroundColor: settings.datatablePaginationButtonBgColor, 
+                                            color: settings.datatablePaginationButtonTextColor,
+                                            padding: '5px 10px',
+                                            borderRadius: '4px',
+                                            border: '1px solid #ccc'
+                                        }}>1</div>
+                                        <div style={{ 
+                                            backgroundColor: settings.datatablePaginationButtonHoverBgColor, 
+                                            color: settings.datatablePaginationButtonHoverTextColor,
+                                            padding: '5px 10px',
+                                            borderRadius: '4px',
+                                            border: '1px solid #ccc'
+                                        }}>2</div>
                                     </div>
                                 </div>
                             </div>
