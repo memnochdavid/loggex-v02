@@ -9,6 +9,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class SecurityController extends AbstractController
 {
@@ -39,14 +40,24 @@ class SecurityController extends AbstractController
     }
 
     #[Route('/api/me', name: 'api_me', methods: ['GET'])]
-    public function me(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
+    public function me(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager, LoggerInterface $logger): JsonResponse
     {
         if (null === $user) {
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
+        $userData = $this->formatUser($user, $entityManager);
+
+        // Log para depuración de temas guardados
+        if (isset($userData['centro']['personalizacion']['savedThemes'])) {
+            $themes = $userData['centro']['personalizacion']['savedThemes'];
+            $logger->info('API/ME - Temas guardados encontrados:', ['count' => count($themes), 'data' => $themes]);
+        } else {
+            $logger->info('API/ME - No se encontraron temas guardados o estructura inesperada.');
+        }
+
         return $this->json([
-            'user' => $this->formatUser($user, $entityManager)
+            'user' => $userData
         ]);
     }
 
@@ -154,7 +165,7 @@ class SecurityController extends AbstractController
             'accordionHeaderTextColor' => $p->getAccordionHeaderTextColor(),
             'accordionContentBgColor' => $p->getAccordionContentBgColor(),
             'accordionContentTextColor' => $p->getAccordionContentTextColor(),
-            'savedThemes' => $p->getSavedThemes(), // AÑADIDO
+            'savedThemes' => $p->getSavedThemes() ?? [], // Asegurar array vacío si es null
         ];
     }
 }

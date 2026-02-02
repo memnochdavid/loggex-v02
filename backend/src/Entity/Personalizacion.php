@@ -275,7 +275,7 @@ class Personalizacion
     private int $itemsPerPageHorarios = 20;
 
     // --- Temas Guardados ---
-    #[ORM\Column(type: 'json', nullable: true)]
+    #[ORM\Column(name: 'temas_guardados', type: 'json', nullable: true)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?array $savedThemes = [];
 

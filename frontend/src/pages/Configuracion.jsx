@@ -129,7 +129,10 @@ const Configuracion = () => {
     };
 
     const handleReset = () => {
-        setSettings(defaultSettings);
+        setSettings(prev => ({
+            ...defaultSettings,
+            savedThemes: prev.savedThemes // Mantener los temas guardados
+        }));
         applyTheme(defaultSettings);
     };
 
@@ -167,6 +170,8 @@ const Configuracion = () => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
+
+        console.log('Enviando configuración:', settings);
 
         try {
             const response = await fetch('https://localhost:9443/api/configuracion/update', {

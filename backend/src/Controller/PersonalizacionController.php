@@ -47,10 +47,9 @@ class PersonalizacionController extends AbstractController
         $data = json_decode($content, true);
 
         $logger->info('DATOS RECIBIDOS EN UPDATE (RAW): ' . $content);
-        $logger->info('DATOS RECIBIDOS EN UPDATE (DECODED):', $data);
 
         if (isset($data['savedThemes'])) {
-            $logger->info('SAVED THEMES RECIBIDO:', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
+            $logger->info('SAVED THEMES RECIBIDO (Payload):', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
         } else {
             $logger->info('SAVED THEMES NO PRESENTE EN DATA');
         }
@@ -147,12 +146,33 @@ class PersonalizacionController extends AbstractController
             $personalizacion->setSavedThemes($data['savedThemes']);
         }
 
-        $entityManager->persist($personalizacion);
-        $entityManager->flush();
+        try {
+            $entityManager->persist($personalizacion);
+            $entityManager->flush();
+
+            // --- VERIFICACIÓN DE PERSISTENCIA ---
+            // Forzamos la limpieza del EntityManager para asegurar que leemos de la BD
+            $id = $personalizacion->getId();
+            $entityManager->clear();
+
+            $savedEntity = $entityManager->getRepository(Personalizacion::class)->find($id);
+
+            if ($savedEntity) {
+                $logger->info('VERIFICACIÓN BD - savedThemes:', ['data' => $savedEntity->getSavedThemes()]);
+                // Devolvemos la entidad RECARGADA para que el frontend vea lo que realmente hay en BD
+                $personalizacion = $savedEntity;
+            } else {
+                $logger->error('ERROR CRÍTICO: No se pudo recuperar la entidad después de guardar. ID: ' . $id);
+            }
+
+        } catch (\Exception $e) {
+            $logger->error('ERROR AL GUARDAR PERSONALIZACION: ' . $e->getMessage());
+            return $this->json(['message' => 'Error al guardar: ' . $e->getMessage()], 500);
+        }
 
         return $this->json([
             'message' => 'Configuración guardada correctamente',
-            'personalizacion' => $data
-        ]);
+            'personalizacion' => $personalizacion
+        ], 200, [], ['groups' => ['personalizacion:read']]);
     }
 }
