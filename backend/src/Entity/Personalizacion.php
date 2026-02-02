@@ -274,6 +274,11 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private int $itemsPerPageHorarios = 20;
 
+    // --- Temas Guardados ---
+    #[ORM\Column(type: 'json', nullable: true)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?array $savedThemes = [];
+
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
@@ -417,7 +422,6 @@ class Personalizacion
     public function getDatatablePaginationButtonActiveTextColor(): ?string { return $this->datatablePaginationButtonActiveTextColor; }
     public function setDatatablePaginationButtonActiveTextColor(string $color): static { $this->datatablePaginationButtonActiveTextColor = $color; return $this; }
 
-    // --- Accordion Getters/Setters ---
     public function getAccordionHeaderBgColor(): ?string { return $this->accordionHeaderBgColor; }
     public function setAccordionHeaderBgColor(string $color): static { $this->accordionHeaderBgColor = $color; return $this; }
 
@@ -453,6 +457,9 @@ class Personalizacion
 
     public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
     public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
+
+    public function getSavedThemes(): ?array { return $this->savedThemes; }
+    public function setSavedThemes(?array $themes): static { $this->savedThemes = $themes; return $this; }
 
     public function getCentro(): ?Centro
     {

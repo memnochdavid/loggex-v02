@@ -11,18 +11,18 @@ const MaterialesAlumno = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const getCurrentSchoolYear = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-11
-    // Si estamos en Septiembre (8) o después, el curso es YYYY/YYYY+1
-    // Si estamos antes de Septiembre, el curso es YYYY-1/YYYY
-    if (month >= 8) {
-        return `${year}/${year + 1}`;
-    } else {
-        return `${year - 1}/${year}`;
-    }
-  };
+  // const getCurrentSchoolYear = () => {
+  //   const now = new Date();
+  //   const year = now.getFullYear();
+  //   const month = now.getMonth(); // 0-11
+  //   // Si estamos en Septiembre (8) o después, el curso es YYYY/YYYY+1
+  //   // Si estamos antes de Septiembre, el curso es YYYY-1/YYYY
+  //   if (month >= 8) {
+  //       return `${year}/${year + 1}`;
+  //   } else {
+  //       return `${year - 1}/${year}`;
+  //   }
+  // };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +46,7 @@ const MaterialesAlumno = () => {
         }
 
         // Filtrar por año escolar actual
-        const currentYear = getCurrentSchoolYear();
+        // const currentYear = getCurrentSchoolYear();
         // Nota: Asumimos que el grupo viene embebido. Si no, habría que hacer fetch.
         // Pero según la entidad Grupo, anioEscolar está en matricula:read
         const matriculasActivas = matriculas.filter(m => {
@@ -150,7 +150,7 @@ const MaterialesAlumno = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <h1 className={styles.pageTitle}>Mis Apuntes ({getCurrentSchoolYear()})</h1>
+        <h1 className={styles.pageTitle}>Mis Apuntes</h1>
         {loading ? (
           <p>Cargando...</p>
         ) : error ? (

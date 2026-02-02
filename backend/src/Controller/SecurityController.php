@@ -154,6 +154,7 @@ class SecurityController extends AbstractController
             'accordionHeaderTextColor' => $p->getAccordionHeaderTextColor(),
             'accordionContentBgColor' => $p->getAccordionContentBgColor(),
             'accordionContentTextColor' => $p->getAccordionContentTextColor(),
+            'savedThemes' => $p->getSavedThemes(), // AÑADIDO
         ];
     }
 }

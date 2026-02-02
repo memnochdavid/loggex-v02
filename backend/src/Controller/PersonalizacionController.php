@@ -43,9 +43,17 @@ class PersonalizacionController extends AbstractController
             }
         }
 
-        $data = json_decode($request->getContent(), true);
+        $content = $request->getContent();
+        $data = json_decode($content, true);
 
-        $logger->info('DATOS RECIBIDOS EN UPDATE:', $data);
+        $logger->info('DATOS RECIBIDOS EN UPDATE (RAW): ' . $content);
+        $logger->info('DATOS RECIBIDOS EN UPDATE (DECODED):', $data);
+
+        if (isset($data['savedThemes'])) {
+            $logger->info('SAVED THEMES RECIBIDO:', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
+        } else {
+            $logger->info('SAVED THEMES NO PRESENTE EN DATA');
+        }
 
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
@@ -133,6 +141,11 @@ class PersonalizacionController extends AbstractController
         if (isset($data['itemsPerPageMatriculas'])) $personalizacion->setItemsPerPageMatriculas((int)$data['itemsPerPageMatriculas']);
         if (isset($data['itemsPerPageImparticiones'])) $personalizacion->setItemsPerPageImparticiones((int)$data['itemsPerPageImparticiones']);
         if (isset($data['itemsPerPageHorarios'])) $personalizacion->setItemsPerPageHorarios((int)$data['itemsPerPageHorarios']);
+
+        // Temas Guardados
+        if (isset($data['savedThemes'])) {
+            $personalizacion->setSavedThemes($data['savedThemes']);
+        }
 
         $entityManager->persist($personalizacion);
         $entityManager->flush();

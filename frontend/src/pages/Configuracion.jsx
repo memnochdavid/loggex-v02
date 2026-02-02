@@ -87,10 +87,15 @@ const Configuracion = () => {
         itemsPerPageModulos: 20,
         itemsPerPageMatriculas: 20,
         itemsPerPageImparticiones: 20,
-        itemsPerPageHorarios: 20
+        itemsPerPageHorarios: 20,
+
+        // Temas Guardados (Inicializado vacío)
+        savedThemes: []
     };
 
     const [settings, setSettings] = useState(defaultSettings);
+    const [themes, setThemes] = useState([]);
+    const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -99,8 +104,14 @@ const Configuracion = () => {
         if (user) {
             if (user.centro && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                if (user.centro.personalizacion.savedThemes) {
+                    setThemes(user.centro.personalizacion.savedThemes);
+                }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                if (user.centro.personalizacion.savedThemes) {
+                    setThemes(user.centro.personalizacion.savedThemes);
+                }
             }
         }
     }, [user, isSuperAdmin]);
@@ -120,6 +131,36 @@ const Configuracion = () => {
     const handleReset = () => {
         setSettings(defaultSettings);
         applyTheme(defaultSettings);
+    };
+
+    const handleSaveTheme = () => {
+        if (!newThemeName.trim()) return;
+        
+        const { savedThemes, ...themeSettings } = settings;
+        
+        const newTheme = {
+            name: newThemeName,
+            settings: themeSettings
+        };
+        
+        const updatedThemes = [...themes, newTheme];
+        setThemes(updatedThemes);
+        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
+        setNewThemeName('');
+    };
+
+    const handleLoadTheme = (theme) => {
+        setSettings(prev => ({
+            ...prev,
+            ...theme.settings,
+            savedThemes: themes
+        }));
+    };
+
+    const handleDeleteTheme = (index) => {
+        const updatedThemes = themes.filter((_, i) => i !== index);
+        setThemes(updatedThemes);
+        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
     };
 
     const handleSubmit = async (e) => {
@@ -536,6 +577,7 @@ const Configuracion = () => {
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
         { id: 'accordion', label: 'Acordeón', icon: <Layers size={18} /> },
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
+        { id: 'themes', label: 'Temas', icon: <Palette size={18} /> },
     ];
 
     return (
@@ -695,6 +737,44 @@ const Configuracion = () => {
                                     {renderNumberInput('Matrículas por página', 'itemsPerPageMatriculas')}
                                     {renderNumberInput('Imparticiones por página', 'itemsPerPageImparticiones')}
                                     {renderNumberInput('Horarios por página', 'itemsPerPageHorarios')}
+                                </div>
+                            )}
+
+                            {activeTab === 'themes' && (
+                                <div className={styles.themesContainer}>
+                                    <div className={styles.addTheme}>
+                                        <input 
+                                            type="text" 
+                                            value={newThemeName}
+                                            onChange={(e) => setNewThemeName(e.target.value)}
+                                            placeholder="Nombre del nuevo tema"
+                                            className={styles.colorTextInput}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
+                                            Guardar Tema Actual
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className={styles.themesList}>
+                                        {themes.length === 0 ? (
+                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No hay temas guardados.</p>
+                                        ) : (
+                                            themes.map((theme, index) => (
+                                                <div key={index} className={styles.themeItem}>
+                                                    <span className={styles.themeName}>{theme.name}</span>
+                                                    <div className={styles.themeActions}>
+                                                        <Button variant="secondary" onClick={() => handleLoadTheme(theme)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
+                                                            Cargar
+                                                        </Button>
+                                                        <Button variant="secondary" onClick={() => handleDeleteTheme(index)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', backgroundColor: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }}>
+                                                            Eliminar
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
