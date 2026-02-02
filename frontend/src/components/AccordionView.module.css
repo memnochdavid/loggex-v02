@@ -1,0 +1,70 @@
+.accordionContainer {
+    width: 100%;
+    max-width: 800px;
+    margin: 2rem auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevation-low);
+}
+
+.accordionItem {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.accordionItem:last-child {
+    border-bottom: none;
+}
+
+.accordionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--accordion-header-bg, var(--color-background-secondary));
+    color: var(--accordion-header-text, var(--color-text-main));
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: background-color 0.2s ease;
+}
+
+.accordionHeader:hover {
+    filter: brightness(0.95);
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.addButton {
+    background-color: var(--color-button-primary);
+    color: var(--color-button-primary-text);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.addButton:hover {
+    background-color: var(--color-button-primary-hover);
+}
+
+.chevron {
+    transition: transform 0.3s ease;
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+}
+
+.accordionContent {
+    padding: 1rem 1.5rem;
+    background-color: var(--accordion-content-bg, var(--color-background-light));
+    color: var(--accordion-content-text, var(--color-text-secondary));
+    border-top: 1px solid var(--color-border);
+}

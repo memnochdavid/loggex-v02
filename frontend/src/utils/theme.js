@@ -47,7 +47,7 @@ export const applyTheme = (colors) => {
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
-        scrollbarWidth: '12px', // Nuevo default
+        scrollbarWidth: '12px',
         calendarSelectedBgColor: '#6366f1',
         calendarSelectedTextColor: '#ffffff',
         calendarWeekendBgColor: '#f1f5f9',
@@ -72,7 +72,11 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverBgColor: '#f1f5f9',
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
-        datatablePaginationButtonActiveTextColor: '#1e293b'
+        datatablePaginationButtonActiveTextColor: '#1e293b',
+        accordionHeaderBgColor: '#f1f5f9',
+        accordionHeaderTextColor: '#334155',
+        accordionContentBgColor: '#ffffff',
+        accordionContentTextColor: '#64748b'
     };
 
     const theme = { ...defaults, ...colors };
@@ -162,7 +166,13 @@ export const applyTheme = (colors) => {
     if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', theme.datatablePaginationButtonActiveBgColor);
     if (theme.datatablePaginationButtonActiveTextColor) root.style.setProperty('--datatable-pagination-btn-active-text', theme.datatablePaginationButtonActiveTextColor);
 
-    // 8. Scrollbar (Inyección de estilos dinámicos)
+    // 8. Accordion
+    if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
+    if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
+    if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
+    if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
+
+    // 9. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');
@@ -170,7 +180,6 @@ export const applyTheme = (colors) => {
         document.head.appendChild(styleTag);
     }
 
-    // Usar scrollbarWidth
     const width = theme.scrollbarWidth || '12px';
 
     styleTag.innerHTML = `

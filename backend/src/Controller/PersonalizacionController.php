@@ -76,7 +76,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['scrollbarThumbColor'])) $personalizacion->setScrollbarThumbColor($data['scrollbarThumbColor']);
         if (isset($data['scrollbarTrackColor'])) $personalizacion->setScrollbarTrackColor($data['scrollbarTrackColor']);
         if (isset($data['scrollbarHoverColor'])) $personalizacion->setScrollbarHoverColor($data['scrollbarHoverColor']);
-        if (isset($data['scrollbarWidth'])) $personalizacion->setScrollbarWidth($data['scrollbarWidth']); // Nuevo
+        if (isset($data['scrollbarWidth'])) $personalizacion->setScrollbarWidth($data['scrollbarWidth']);
 
         // Calendario
         if (isset($data['calendarSelectedBgColor'])) $personalizacion->setCalendarSelectedBgColor($data['calendarSelectedBgColor']);
@@ -117,6 +117,12 @@ class PersonalizacionController extends AbstractController
         if (isset($data['datatablePaginationButtonHoverTextColor'])) $personalizacion->setDatatablePaginationButtonHoverTextColor($data['datatablePaginationButtonHoverTextColor']);
         if (isset($data['datatablePaginationButtonActiveBgColor'])) $personalizacion->setDatatablePaginationButtonActiveBgColor($data['datatablePaginationButtonActiveBgColor']);
         if (isset($data['datatablePaginationButtonActiveTextColor'])) $personalizacion->setDatatablePaginationButtonActiveTextColor($data['datatablePaginationButtonActiveTextColor']);
+
+        // Accordion
+        if (isset($data['accordionHeaderBgColor'])) $personalizacion->setAccordionHeaderBgColor($data['accordionHeaderBgColor']);
+        if (isset($data['accordionHeaderTextColor'])) $personalizacion->setAccordionHeaderTextColor($data['accordionHeaderTextColor']);
+        if (isset($data['accordionContentBgColor'])) $personalizacion->setAccordionContentBgColor($data['accordionContentBgColor']);
+        if (isset($data['accordionContentTextColor'])) $personalizacion->setAccordionContentTextColor($data['accordionContentTextColor']);
 
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);

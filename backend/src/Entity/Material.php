@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -30,6 +32,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['material:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['material:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: ['imparticion' => 'exact'])]
 class Material
 {
     use TimestampableTrait;

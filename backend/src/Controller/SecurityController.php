@@ -116,7 +116,7 @@ class SecurityController extends AbstractController
             'scrollbarThumbColor' => $p->getScrollbarThumbColor(),
             'scrollbarTrackColor' => $p->getScrollbarTrackColor(),
             'scrollbarHoverColor' => $p->getScrollbarHoverColor(),
-            'scrollbarWidth' => $p->getScrollbarWidth(), // AÑADIDO
+            'scrollbarWidth' => $p->getScrollbarWidth(),
             'calendarSelectedBgColor' => $p->getCalendarSelectedBgColor(),
             'calendarSelectedTextColor' => $p->getCalendarSelectedTextColor(),
             'calendarWeekendBgColor' => $p->getCalendarWeekendBgColor(),
@@ -150,6 +150,10 @@ class SecurityController extends AbstractController
             'itemsPerPageMatriculas' => $p->getItemsPerPageMatriculas(),
             'itemsPerPageImparticiones' => $p->getItemsPerPageImparticiones(),
             'itemsPerPageHorarios' => $p->getItemsPerPageHorarios(),
+            'accordionHeaderBgColor' => $p->getAccordionHeaderBgColor(),
+            'accordionHeaderTextColor' => $p->getAccordionHeaderTextColor(),
+            'accordionContentBgColor' => $p->getAccordionContentBgColor(),
+            'accordionContentTextColor' => $p->getAccordionContentTextColor(),
         ];
     }
 }

@@ -17,6 +17,8 @@ import Horarios from './pages/Horarios';
 import Festivos from './pages/Festivos';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
+import MaterialesAlumno from './pages/MaterialesAlumno';
+import MaterialesProfesor from './pages/MaterialesProfesor';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import usePageTitle from './hooks/usePageTitle'; // Importar el hook
@@ -100,6 +102,18 @@ function App() {
               <Route path="/festivos" element={
                 <PrivateRoute>
                   <Festivos />
+                </PrivateRoute>
+              } />
+
+              <Route path="/apuntes" element={
+                <PrivateRoute>
+                  <MaterialesAlumno />
+                </PrivateRoute>
+              } />
+
+              <Route path="/mis-temarios" element={
+                <PrivateRoute>
+                  <MaterialesProfesor />
                 </PrivateRoute>
               } />
 

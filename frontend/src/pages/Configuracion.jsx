@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Home, User } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -40,7 +40,7 @@ const Configuracion = () => {
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
-        scrollbarWidth: '12px', // Nuevo campo
+        scrollbarWidth: '12px',
         
         // Calendario
         calendarSelectedBgColor: '#6366f1',
@@ -72,6 +72,12 @@ const Configuracion = () => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
+
+        // Accordion
+        accordionHeaderBgColor: '#f1f5f9',
+        accordionHeaderTextColor: '#334155',
+        accordionContentBgColor: '#ffffff',
+        accordionContentTextColor: '#64748b',
 
         // Paginación (Items Per Page)
         itemsPerPageUsuarios: 20,
@@ -249,7 +255,7 @@ const Configuracion = () => {
                                 color: '#94a3b8', // Texto normal por defecto (simulado)
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <Home size={16} /> Inicio
+                                <LayoutIcon size={16} /> Inicio
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -259,7 +265,7 @@ const Configuracion = () => {
                                 color: settings.sidebarActiveTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <User size={16} /> Perfil (Activo)
+                                <LayoutIcon size={16} /> Perfil (Activo)
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -268,7 +274,7 @@ const Configuracion = () => {
                                 color: settings.sidebarHoverTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <List size={16} /> Menú (Hover)
+                                <LayoutIcon size={16} /> Menú (Hover)
                             </div>
                         </div>
                     </div>
@@ -326,9 +332,6 @@ const Configuracion = () => {
                             borderRadius: '6px',
                             padding: '10px'
                         }}>
-                            {/* Simulamos visualmente el scrollbar con CSS inline para el contenedor, 
-                                aunque el estilo real se aplica globalmente. 
-                                Aquí mostramos una representación estática para referencia visual. */}
                             <div style={{ 
                                 position: 'absolute', right: '20px', top: '60px', width: settings.scrollbarWidth || '12px', height: '40px', 
                                 backgroundColor: settings.scrollbarThumbColor, borderRadius: '4px', zIndex: 10 
@@ -395,8 +398,8 @@ const Configuracion = () => {
                             }}>Lunes</div>
                             <div style={{ 
                                 padding: '5px', 
-                                backgroundColor: settings.timetableSelectedHeaderBg, // RENOMBRADO
-                                color: settings.timetableSelectedHeaderText, // RENOMBRADO
+                                backgroundColor: settings.timetableSelectedHeaderBg,
+                                color: settings.timetableSelectedHeaderText,
                                 textAlign: 'center',
                                 borderBottom: '1px solid #e2e8f0',
                                 fontWeight: 'bold'
@@ -411,7 +414,7 @@ const Configuracion = () => {
                                 textAlign: 'center'
                             }}>08:00</div>
                             <div style={{ padding: '10px', borderRight: '1px solid #e2e8f0', backgroundColor: '#fff' }}>Clase A</div>
-                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div> {/* RENOMBRADO */}
+                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div>
                         </div>
                     </div>
                 );
@@ -446,6 +449,31 @@ const Configuracion = () => {
                                 padding: '2px 5px',
                                 borderRadius: '2px'
                             }}>EDAD (Activo)</span>
+                        </div>
+                    </div>
+                );
+
+            case 'accordion':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Acordeón</h4>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={{ 
+                                padding: '10px 15px', 
+                                backgroundColor: settings.accordionHeaderBgColor, 
+                                color: settings.accordionHeaderTextColor,
+                                fontWeight: '600'
+                            }}>
+                                Cabecera del Acordeón
+                            </div>
+                            <div style={{ 
+                                padding: '15px', 
+                                backgroundColor: settings.accordionContentBgColor, 
+                                color: settings.accordionContentTextColor,
+                                fontSize: '14px'
+                            }}>
+                                Contenido del acordeón.
+                            </div>
                         </div>
                     </div>
                 );
@@ -506,6 +534,7 @@ const Configuracion = () => {
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
+        { id: 'accordion', label: 'Acordeón', icon: <Layers size={18} /> },
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
     ];
 
@@ -603,7 +632,6 @@ const Configuracion = () => {
                                     {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
                                     {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
                                     {renderColorInput('Color Hover', 'scrollbarHoverColor')}
-                                    {/*{renderTextInput('Grosor (ej: 12px, thin)', 'scrollbarWidth', '12px')} /!* Nuevo Input *!/*/}
                                 </div>
                             )}
 
@@ -645,6 +673,15 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Botón Hover', 'datatablePaginationButtonHoverTextColor')}
                                     {renderColorInput('Fondo Botón Activo/Disabled', 'datatablePaginationButtonActiveBgColor')}
                                     {renderColorInput('Texto Botón Activo/Disabled', 'datatablePaginationButtonActiveTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'accordion' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Cabecera', 'accordionHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
+                                    {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
+                                    {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
                                 </div>
                             )}
 

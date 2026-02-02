@@ -119,7 +119,7 @@ class Personalizacion
 
     #[ORM\Column(length: 10)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $scrollbarWidth = '12px'; // Nuevo campo
+    private ?string $scrollbarWidth = '12px';
 
     // --- Calendario ---
     #[ORM\Column(length: 7)]
@@ -155,7 +155,6 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $timetableHoursTextColor = '#64748b';
 
-    // Nuevos campos de Horario (RENOMBRADOS)
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $timetableSelectedHeaderBg = '#e0e7ff';
@@ -224,6 +223,23 @@ class Personalizacion
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $datatablePaginationButtonActiveTextColor = '#1e293b';
+
+    // --- Accordion ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionHeaderBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionHeaderTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionContentBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionContentTextColor = '#64748b';
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -350,7 +366,6 @@ class Personalizacion
     public function getTimetableHoursTextColor(): ?string { return $this->timetableHoursTextColor; }
     public function setTimetableHoursTextColor(string $color): static { $this->timetableHoursTextColor = $color; return $this; }
 
-    // NUEVOS GETTERS/SETTERS
     public function getTimetableSelectedHeaderBg(): ?string { return $this->timetableSelectedHeaderBg; }
     public function setTimetableSelectedHeaderBg(string $color): static { $this->timetableSelectedHeaderBg = $color; return $this; }
 
@@ -401,6 +416,19 @@ class Personalizacion
 
     public function getDatatablePaginationButtonActiveTextColor(): ?string { return $this->datatablePaginationButtonActiveTextColor; }
     public function setDatatablePaginationButtonActiveTextColor(string $color): static { $this->datatablePaginationButtonActiveTextColor = $color; return $this; }
+
+    // --- Accordion Getters/Setters ---
+    public function getAccordionHeaderBgColor(): ?string { return $this->accordionHeaderBgColor; }
+    public function setAccordionHeaderBgColor(string $color): static { $this->accordionHeaderBgColor = $color; return $this; }
+
+    public function getAccordionHeaderTextColor(): ?string { return $this->accordionHeaderTextColor; }
+    public function setAccordionHeaderTextColor(string $color): static { $this->accordionHeaderTextColor = $color; return $this; }
+
+    public function getAccordionContentBgColor(): ?string { return $this->accordionContentBgColor; }
+    public function setAccordionContentBgColor(string $color): static { $this->accordionContentBgColor = $color; return $this; }
+
+    public function getAccordionContentTextColor(): ?string { return $this->accordionContentTextColor; }
+    public function setAccordionContentTextColor(string $color): static { $this->accordionContentTextColor = $color; return $this; }
 
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }
