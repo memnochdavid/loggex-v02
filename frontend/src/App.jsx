@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { UIProvider } from './context/UIContext'; // Importar UIProvider
+import { UIProvider } from './context/UIContext';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
@@ -16,6 +16,7 @@ import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
 import Festivos from './pages/Festivos';
+import Tareas from './pages/Tareas'; // Importar
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import MaterialesAlumno from './pages/MaterialesAlumno';
@@ -33,7 +34,7 @@ const PageTitleUpdater = () => {
 function App() {
   return (
     <AuthProvider>
-      <UIProvider> {/* Envolver con UIProvider */}
+      <UIProvider>
         <Router>
           <PageTitleUpdater />
           <div className="app-layout">
@@ -103,6 +104,12 @@ function App() {
                 <Route path="/festivos" element={
                   <PrivateRoute>
                     <Festivos />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/tareas" element={
+                  <PrivateRoute>
+                    <Tareas />
                   </PrivateRoute>
                 } />
 

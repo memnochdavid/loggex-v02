@@ -43,10 +43,35 @@
   color: inherit; /* Asegurar que hereda el color del padre */
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
 .headerIcon {
   color: inherit; /* Heredar color del texto del header */
   opacity: 0.7;
   margin-left: var(--space-2);
+}
+
+.addButton {
+    background-color: var(--btn-primary-bg, var(--color-primary-600));
+    color: var(--btn-primary-text, white);
+    border: none;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s;
+}
+
+.addButton:hover {
+    background-color: var(--btn-primary-hover, var(--color-primary-700));
 }
 
 .accordionContentWrapper {

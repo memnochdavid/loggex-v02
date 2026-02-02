@@ -750,6 +750,24 @@ const Configuracion = () => {
                             {activeTab === 'themes' && (
                                 <div>
 
+                                    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '8px' }}>
+                                        <h4 style={{ marginTop: 0 }}>Guardar configuración actual como tema</h4>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre del tema..."
+                                                value={newThemeName}
+                                                onChange={(e) => setNewThemeName(e.target.value)}
+                                                className={styles.colorTextInput}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <Button onClick={handleSaveTheme}>
+                                                <Plus size={18} style={{ marginRight: '8px' }} />
+                                                Crear
+                                            </Button>
+                                        </div>
+                                    </div>
+
                                     <h3 style={{ marginTop: '1rem' }}>Temas Guardados</h3>
                                     {settings.savedThemes && settings.savedThemes.length > 0 ? (
                                         <div className={styles.grid}>
@@ -789,23 +807,7 @@ const Configuracion = () => {
 
 
 
-                                    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '8px' }}>
-                                        <h4 style={{ marginTop: 0 }}>Guardar configuración actual como tema</h4>
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Nombre del tema..." 
-                                                value={newThemeName}
-                                                onChange={(e) => setNewThemeName(e.target.value)}
-                                                className={styles.colorTextInput}
-                                                style={{ flex: 1 }}
-                                            />
-                                            <Button onClick={handleSaveTheme}>
-                                                <Plus size={18} style={{ marginRight: '8px' }} />
-                                                Crear
-                                            </Button>
-                                        </div>
-                                    </div>
+
                                 </div>
                             )}
 

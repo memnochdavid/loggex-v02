@@ -40,31 +40,31 @@ class Tarea
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['tarea:read'])]
+    #[Groups(['tarea:read', 'imparticion:read'])] // Añadido imparticion:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private ?string $titulo = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private ?\DateTimeInterface $fechaLimite = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private ?\DateTimeInterface $fechaInicio = null;
 
     #[ORM\Column(type: 'boolean')]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private bool $visible = true;
 
     #[ORM\Column(length: 20)]
-    #[Groups(['tarea:read', 'tarea:write'])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])] // Añadido imparticion:read
     private ?string $tipo = null;
 
     #[ORM\ManyToOne(inversedBy: 'tareas')]

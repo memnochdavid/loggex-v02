@@ -51,28 +51,29 @@ class Imparticion
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['imparticion:read', 'horario:read'])] // Añadido horario:read
+    #[Groups(['imparticion:read', 'horario:read'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
     private ?User $profesor = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
     private ?Modulo $modulo = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])] // Añadido horario:read
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
     private ?Grupo $grupo = null;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]
     private Collection $horarios;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Tarea::class)]
+    #[Groups(['imparticion:read'])] // Añadido para ver tareas anidadas
     private Collection $tareas;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Material::class)]
@@ -124,6 +125,36 @@ class Imparticion
     public function setGrupo(?Grupo $grupo): static
     {
         $this->grupo = $grupo;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Tarea>
+     */
+    public function getTareas(): Collection
+    {
+        return $this->tareas;
+    }
+
+    public function addTarea(Tarea $tarea): static
+    {
+        if (!$this->tareas->contains($tarea)) {
+            $this->tareas->add($tarea);
+            $tarea->setImparticion($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTarea(Tarea $tarea): static
+    {
+        if ($this->tareas->removeElement($tarea)) {
+            // set the owning side to null (unless already changed)
+            if ($tarea->getImparticion() === $this) {
+                $tarea->setImparticion(null);
+            }
+        }
+
         return $this;
     }
 }
