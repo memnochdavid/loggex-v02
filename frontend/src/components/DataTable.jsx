@@ -1,6 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
+
+/**
+ * Componente interno para la vista móvil de una fila (tarjeta)
+ */
+const MobileCard = ({ row, columns }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Usamos la primera columna como título, y el resto como contenido
+    const titleColumn = columns[0];
+    const contentColumns = columns.slice(1);
+
+    const getCellValue = (col, row) => {
+        if (typeof col.accessor === 'function') {
+            return col.accessor(row);
+        }
+        return row[col.accessor];
+    };
+
+    return (
+        <div className={styles.mobileCard}>
+            <div 
+                className={`${styles.mobileCardHeader} ${isOpen ? styles.expanded : ''}`} 
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <span>
+                    {getCellValue(titleColumn, row)}
+                </span>
+                <ChevronDown 
+                    size={20} 
+                    className={`${styles.chevron} ${isOpen ? styles.open : ''}`}
+                />
+            </div>
+            
+            {isOpen && (
+                <div className={styles.mobileCardContent}>
+                    {contentColumns.map((col, index) => (
+                        <div key={index} className={styles.mobileRow}>
+                            <span className={styles.mobileLabel}>{col.header}</span>
+                            <span className={styles.mobileValue}>
+                                {getCellValue(col, row)}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 /**
  * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string }
@@ -125,83 +173,112 @@ const DataTable = ({
     if (!loading && (!data || data.length === 0)) {
         return (
             <div className={styles.container}>
-                <table className={styles.table}>
-                    <thead className={styles.thead}>
-                        <tr>
-                            {columns.map((col, index) => (
-                                <th key={index} className={`${styles.th} ${col.className || ''}`}>
-                                    {col.header}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className={styles.tbody}>
-                        <tr>
-                            <td colSpan={columns.length} className={styles.emptyState}>
-                                No hay datos disponibles.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div className={styles.desktopView}>
+                    <table className={styles.table}>
+                        <thead className={styles.thead}>
+                            <tr>
+                                {columns.map((col, index) => (
+                                    <th key={index} className={`${styles.th} ${col.className || ''}`}>
+                                        {col.header}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className={styles.tbody}>
+                            <tr>
+                                <td colSpan={columns.length} className={styles.emptyState}>
+                                    No hay datos disponibles.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div className={styles.mobileView}>
+                    <div className={styles.emptyState}>No hay datos disponibles.</div>
+                </div>
             </div>
         );
     }
 
     return (
         <div className={styles.container}>
-            {renderPagination('top')}
-            
-            <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                    <thead className={styles.thead}>
-                        <tr>
-                            {columns.map((col, index) => {
-                                const isSorted = sortColumn === (col.sortKey || col.accessor);
-                                
-                                return (
-                                    <th 
-                                        key={index} 
-                                        className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''}`}
-                                        onClick={() => col.sortable && handleSort(col)}
-                                    >
-                                        <div className={styles.thContent}>
-                                            {col.header}
-                                            {isSorted && (
-                                                <span className={styles.sortIcon}>
-                                                    {sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </th>
-                                );
-                            })}
-                        </tr>
-                    </thead>
-                    <tbody className={styles.tbody}>
-                        {loading ? (
+            {/* Vista Escritorio */}
+            <div className={styles.desktopView}>
+                {renderPagination('top')}
+                
+                <div className={styles.tableWrapper}>
+                    <table className={styles.table}>
+                        <thead className={styles.thead}>
                             <tr>
-                                <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '2rem' }}>
-                                    Cargando datos...
-                                </td>
+                                {columns.map((col, index) => {
+                                    const isSorted = sortColumn === (col.sortKey || col.accessor);
+                                    
+                                    return (
+                                        <th 
+                                            key={index} 
+                                            className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''}`}
+                                            onClick={() => col.sortable && handleSort(col)}
+                                        >
+                                            <div className={styles.thContent}>
+                                                {col.header}
+                                                {isSorted && (
+                                                    <span className={styles.sortIcon}>
+                                                        {sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </th>
+                                    );
+                                })}
                             </tr>
-                        ) : (
-                            data.map((row, rowIndex) => (
-                                <tr key={row.id || row['@id'] || rowIndex}>
-                                    {columns.map((col, colIndex) => (
-                                        <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
-                                            {typeof col.accessor === 'function' 
-                                                ? col.accessor(row) 
-                                                : row[col.accessor]}
-                                        </td>
-                                    ))}
+                        </thead>
+                        <tbody className={styles.tbody}>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '2rem' }}>
+                                        Cargando datos...
+                                    </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                data.map((row, rowIndex) => (
+                                    <tr key={row.id || row['@id'] || rowIndex}>
+                                        {columns.map((col, colIndex) => (
+                                            <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
+                                                {typeof col.accessor === 'function' 
+                                                    ? col.accessor(row) 
+                                                    : row[col.accessor]}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {renderPagination('bottom')}
             </div>
 
-            {renderPagination('bottom')}
+            {/* Vista Móvil */}
+            <div className={styles.mobileView}>
+                <div className={styles.mobileContainer}>
+                    {loading ? (
+                        <div className={styles.emptyState}>Cargando datos...</div>
+                    ) : (
+                        data.map((row, index) => (
+                            <MobileCard 
+                                key={row.id || row['@id'] || index} 
+                                row={row} 
+                                columns={columns} 
+                            />
+                        ))
+                    )}
+                    
+                    <div className={styles.mobilePaginationContainer}>
+                        {renderPagination('bottom')}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

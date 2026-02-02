@@ -27,7 +27,13 @@ const AccordionItem = ({ item, children, onAdd, canAdd }) => {
           />
         </div>
       </div>
-      {isOpen && <div className={styles.accordionContent}>{children}</div>}
+      <div className={`${styles.accordionContentWrapper} ${isOpen ? styles.open : ''}`}>
+        <div className={styles.accordionContent}>
+            <div className={styles.accordionInner}>
+                {children}
+            </div>
+        </div>
+      </div>
     </div>
   );
 };

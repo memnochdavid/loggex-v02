@@ -62,9 +62,23 @@
     transform: rotate(180deg);
 }
 
-.accordionContent {
-    padding: 1rem 1.5rem;
+.accordionContentWrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out;
     background-color: var(--accordion-content-bg, var(--color-background-light));
     color: var(--accordion-content-text, var(--color-text-secondary));
+}
+
+.accordionContentWrapper.open {
+    grid-template-rows: 1fr;
     border-top: 1px solid var(--color-border);
+}
+
+.accordionContent {
+    overflow: hidden;
+}
+
+.accordionInner {
+    padding: 1rem 1.5rem;
 }

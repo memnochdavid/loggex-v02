@@ -46,9 +46,6 @@
     color: var(--datatable-header-hover-text, var(--color-gray-900));
 }
 
-/* Estilo para cabecera activa (ordenada) - Necesitamos añadir clase en JS si queremos diferenciar */
-/* Por ahora usamos el hover o si tiene sortIcon */
-
 .thContent {
     display: flex;
     align-items: center;
@@ -167,7 +164,7 @@
 .pageButton:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: var(--datatable-pagination-btn-active-bg, var(--color-gray-50)); /* Usamos active como disabled/base */
+    background-color: var(--datatable-pagination-btn-active-bg, var(--color-gray-50));
     color: var(--datatable-pagination-btn-active-text, var(--color-gray-500));
 }
 
@@ -182,4 +179,139 @@
     padding: var(--space-8);
     text-align: center;
     color: var(--color-gray-500);
+}
+
+/* --- Mobile View Styles --- */
+
+.mobileContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    /*width: 100%;*/
+    padding: 1rem;
+}
+
+.mobileCard {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+}
+
+.mobileCard:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.mobileCardHeader {
+    padding: 1rem;
+    background-color: var(--datatable-header-bg, var(--color-gray-50));
+    color: var(--datatable-header-text, var(--color-gray-900));
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background-color 0.2s;
+}
+
+.mobileCardHeader:hover {
+    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+}
+
+.mobileCardHeader.expanded {
+    border-bottom-color: var(--border-color);
+}
+
+.mobileCardContent {
+    padding: 1rem;
+    background-color: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mobileRow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-gray-100);
+}
+
+.mobileRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.mobileLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.mobileValue {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.chevron {
+    transition: transform 0.2s ease;
+    color: var(--text-muted);
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+    color: var(--color-primary-500);
+}
+
+.mobilePaginationContainer {
+    margin-top: 0.5rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+}
+
+/* Responsive Visibility */
+.desktopView {
+    display: block;
+}
+
+.mobileView {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .desktopView {
+        display: none;
+    }
+
+    .mobileView {
+        display: block;
+    }
+
+    .pagination {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .paginationControls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 }
