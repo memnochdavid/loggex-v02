@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { UIProvider } from './context/UIContext'; // Importar UIProvider
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
@@ -21,10 +22,9 @@ import MaterialesAlumno from './pages/MaterialesAlumno';
 import MaterialesProfesor from './pages/MaterialesProfesor';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
-import usePageTitle from './hooks/usePageTitle'; // Importar el hook
+import usePageTitle from './hooks/usePageTitle';
 import './App.css';
 
-// Componente auxiliar para usar el hook dentro del Router
 const PageTitleUpdater = () => {
   usePageTitle('Loggex-Machina');
   return null;
@@ -33,108 +33,110 @@ const PageTitleUpdater = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <PageTitleUpdater /> {/* Actualizador de título */}
-        <div className="app-layout">
-          <Header />
-          <main className="app-main">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              
-              {/* Rutas Públicas */}
-              <Route path="/about" element={<About />} />
-              
-              {/* Rutas Protegidas */}
-              <Route path="/" element={
-                <PrivateRoute>
-                  <Home />
-                </PrivateRoute>
-              } />
-              
-              <Route path="/centros" element={
-                <PrivateRoute>
-                  <Centros />
-                </PrivateRoute>
-              } />
+      <UIProvider> {/* Envolver con UIProvider */}
+        <Router>
+          <PageTitleUpdater />
+          <div className="app-layout">
+            <Header />
+            <main className="app-main">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                
+                {/* Rutas Públicas */}
+                <Route path="/about" element={<About />} />
+                
+                {/* Rutas Protegidas */}
+                <Route path="/" element={
+                  <PrivateRoute>
+                    <Home />
+                  </PrivateRoute>
+                } />
+                
+                <Route path="/centros" element={
+                  <PrivateRoute>
+                    <Centros />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/usuarios" element={
-                <PrivateRoute>
-                  <Usuarios />
-                </PrivateRoute>
-              } />
+                <Route path="/usuarios" element={
+                  <PrivateRoute>
+                    <Usuarios />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/ciclos" element={
-                <PrivateRoute>
-                  <CiclosFormativos />
-                </PrivateRoute>
-              } />
+                <Route path="/ciclos" element={
+                  <PrivateRoute>
+                    <CiclosFormativos />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/grupos" element={
-                <PrivateRoute>
-                  <Grupos />
-                </PrivateRoute>
-              } />
+                <Route path="/grupos" element={
+                  <PrivateRoute>
+                    <Grupos />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/modulos" element={
-                <PrivateRoute>
-                  <Modulos />
-                </PrivateRoute>
-              } />
+                <Route path="/modulos" element={
+                  <PrivateRoute>
+                    <Modulos />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/matriculas" element={
-                <PrivateRoute>
-                  <Matriculas />
-                </PrivateRoute>
-              } />
+                <Route path="/matriculas" element={
+                  <PrivateRoute>
+                    <Matriculas />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/imparticiones" element={
-                <PrivateRoute>
-                  <Imparticiones />
-                </PrivateRoute>
-              } />
+                <Route path="/imparticiones" element={
+                  <PrivateRoute>
+                    <Imparticiones />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/horarios" element={
-                <PrivateRoute>
-                  <Horarios />
-                </PrivateRoute>
-              } />
+                <Route path="/horarios" element={
+                  <PrivateRoute>
+                    <Horarios />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/festivos" element={
-                <PrivateRoute>
-                  <Festivos />
-                </PrivateRoute>
-              } />
+                <Route path="/festivos" element={
+                  <PrivateRoute>
+                    <Festivos />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/apuntes" element={
-                <PrivateRoute>
-                  <MaterialesAlumno />
-                </PrivateRoute>
-              } />
+                <Route path="/apuntes" element={
+                  <PrivateRoute>
+                    <MaterialesAlumno />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/mis-temarios" element={
-                <PrivateRoute>
-                  <MaterialesProfesor />
-                </PrivateRoute>
-              } />
+                <Route path="/mis-temarios" element={
+                  <PrivateRoute>
+                    <MaterialesProfesor />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/perfil" element={
-                <PrivateRoute>
-                  <Perfil />
-                </PrivateRoute>
-              } />
+                <Route path="/perfil" element={
+                  <PrivateRoute>
+                    <Perfil />
+                  </PrivateRoute>
+                } />
 
-              <Route path="/configuracion" element={
-                <PrivateRoute>
-                  <Configuracion />
-                </PrivateRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+                <Route path="/configuracion" element={
+                  <PrivateRoute>
+                    <Configuracion />
+                  </PrivateRoute>
+                } />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </UIProvider>
     </AuthProvider>
   );
 }

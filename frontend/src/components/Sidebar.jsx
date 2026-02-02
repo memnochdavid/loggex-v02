@@ -2,19 +2,16 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { Home, User, Settings, LogOut, Menu, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText } from 'lucide-react';
+import { useUI } from '../context/UIContext'; // Importar contexto UI
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
+    const { isSidebarOpen, closeSidebar } = useUI(); // Usar contexto
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);
-    };
-
-    const toggleMobileMenu = () => {
-        setIsMobileOpen(!isMobileOpen);
     };
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -28,25 +25,15 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Botón hamburguesa para móvil */}
-            <button 
-                className={styles.mobileToggle} 
-                onClick={toggleMobileMenu}
-                aria-label="Toggle menu"
-            >
-                <Menu size={24} />
-            </button>
-
             {/* Overlay para cerrar el menú en móvil al hacer click fuera */}
-            {isMobileOpen && (
-                <div className={styles.overlay} onClick={() => setIsMobileOpen(false)} />
+            {isSidebarOpen && (
+                <div className={styles.overlay} onClick={closeSidebar} />
             )}
 
-            <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isMobileOpen ? styles.mobileOpen : ''}`}>
+            <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
                 <div className={styles.header}>
                     {!isCollapsed && (
                         <div className={styles.userInfo}>
-                            {/*{user && <small className={styles.email}>{user.email}</small>}*/}
                             <div className={styles.roles}>
                                 {user?.roles
                                     .filter(role => role !== "ROLE_USER")
@@ -66,14 +53,14 @@ const Sidebar = () => {
                 </div>
 
                 <nav className={styles.nav}>
-                    <NavLink to="/" className={getNavLinkClass} title="Inicio" end>
+                    <NavLink to="/" className={getNavLinkClass} title="Inicio" end onClick={closeSidebar}>
                         <Home size={20} />
                         {!isCollapsed && <span>Inicio</span>}
                     </NavLink>
                     
                     {/* Centros solo para SuperAdmin */}
                     {isSuperAdmin && (
-                        <NavLink to="/centros" className={getNavLinkClass} title="Centros">
+                        <NavLink to="/centros" className={getNavLinkClass} title="Centros" onClick={closeSidebar}>
                             <Building size={20} />
                             {!isCollapsed && <span>Centros</span>}
                         </NavLink>
@@ -82,31 +69,31 @@ const Sidebar = () => {
                     {/* Gestión Académica para Admin y SuperAdmin */}
                     {(isSuperAdmin || isAdmin) && (
                         <>
-                            <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios">
+                            <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios" onClick={closeSidebar}>
                                 <Users size={20} />
                                 {!isCollapsed && <span>Usuarios</span>}
                             </NavLink>
-                            <NavLink to="/ciclos" className={getNavLinkClass} title="Ciclos Formativos">
+                            <NavLink to="/ciclos" className={getNavLinkClass} title="Ciclos Formativos" onClick={closeSidebar}>
                                 <Layers size={20} />
                                 {!isCollapsed && <span>Ciclos</span>}
                             </NavLink>
-                            <NavLink to="/grupos" className={getNavLinkClass} title="Grupos">
+                            <NavLink to="/grupos" className={getNavLinkClass} title="Grupos" onClick={closeSidebar}>
                                 <UsersRound size={20} />
                                 {!isCollapsed && <span>Grupos</span>}
                             </NavLink>
-                            <NavLink to="/modulos" className={getNavLinkClass} title="Módulos">
+                            <NavLink to="/modulos" className={getNavLinkClass} title="Módulos" onClick={closeSidebar}>
                                 <BookOpen size={20} />
                                 {!isCollapsed && <span>Módulos</span>}
                             </NavLink>
-                            <NavLink to="/matriculas" className={getNavLinkClass} title="Matrículas">
+                            <NavLink to="/matriculas" className={getNavLinkClass} title="Matrículas" onClick={closeSidebar}>
                                 <GraduationCap size={20} />
                                 {!isCollapsed && <span>Matrículas</span>}
                             </NavLink>
-                            <NavLink to="/imparticiones" className={getNavLinkClass} title="Asignación Docencia">
+                            <NavLink to="/imparticiones" className={getNavLinkClass} title="Asignación Docencia" onClick={closeSidebar}>
                                 <Briefcase size={20} />
                                 {!isCollapsed && <span>Docencia</span>}
                             </NavLink>
-                            <NavLink to="/festivos" className={getNavLinkClass} title="Festivos">
+                            <NavLink to="/festivos" className={getNavLinkClass} title="Festivos" onClick={closeSidebar}>
                                 <CalendarDays size={20} />
                                 {!isCollapsed && <span>Festivos</span>}
                             </NavLink>
@@ -114,35 +101,35 @@ const Sidebar = () => {
                     )}
 
                     {/* Horarios para todos */}
-                    <NavLink to="/horarios" className={getNavLinkClass} title="Horarios">
+                    <NavLink to="/horarios" className={getNavLinkClass} title="Horarios" onClick={closeSidebar}>
                         <Calendar size={20} />
                         {!isCollapsed && <span>Horarios</span>}
                     </NavLink>
 
-                    {/* Materiales para Alumnos */}
+                    {/* Materiales Alumno */}
                     {isAlumno && (
-                        <NavLink to="/apuntes" className={getNavLinkClass} title="Apuntes">
+                        <NavLink to="/apuntes" className={getNavLinkClass} title="Mis Apuntes" onClick={closeSidebar}>
                             <FileText size={20} />
-                            {!isCollapsed && <span>Apuntes</span>}
+                            {!isCollapsed && <span>Mis Apuntes</span>}
                         </NavLink>
                     )}
 
-                    {/* Materiales para Profesores */}
-                    {isProfesor && (
-                        <NavLink to="/mis-temarios" className={getNavLinkClass} title="Mis Temarios">
-                            <FileText size={20} />
+                    {/* Materiales Profesor */}
+                    {(isProfesor || isSuperAdmin || isAdmin) && (
+                        <NavLink to="/mis-temarios" className={getNavLinkClass} title="Mis Temarios" onClick={closeSidebar}>
+                            <Book size={20} />
                             {!isCollapsed && <span>Mis Temarios</span>}
                         </NavLink>
                     )}
 
-                    <NavLink to="/perfil" className={getNavLinkClass} title="Perfil">
+                    <NavLink to="/perfil" className={getNavLinkClass} title="Perfil" onClick={closeSidebar}>
                         <User size={20} />
                         {!isCollapsed && <span>Perfil</span>}
                     </NavLink>
                     
                     {/* Configuración solo para Admins */}
                     {(isSuperAdmin || isAdmin) && (
-                        <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración">
+                        <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración" onClick={closeSidebar}>
                             <Settings size={20} />
                             {!isCollapsed && <span>Configuración</span>}
                         </NavLink>
@@ -150,7 +137,7 @@ const Sidebar = () => {
                 </nav>
 
                 <div className={styles.footer}>
-                    <div className={styles.navItem} onClick={logout} title="Cerrar Sesión" style={{ cursor: 'pointer' }}>
+                    <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title="Cerrar Sesión" style={{ cursor: 'pointer' }}>
                         <LogOut size={20} />
                         {!isCollapsed && <span>Cerrar Sesión</span>}
                     </div>

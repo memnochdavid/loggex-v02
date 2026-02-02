@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Put;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\State\SoftDeleteProcessor;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -38,6 +39,11 @@ class Personalizacion
     #[ORM\Column]
     #[Groups(['personalizacion:read', 'centro:read', 'user:read'])]
     private ?int $id = null;
+
+    // --- Temas Guardados (JSON) ---
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?array $savedThemes = [];
 
     // --- General ---
     #[ORM\Column(length: 7)]
@@ -227,19 +233,19 @@ class Personalizacion
     // --- Accordion (Mobile) ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderBgColor = '#f8fafc'; // Nuevo
+    private ?string $accordionHeaderBgColor = '#f8fafc';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderTextColor = '#64748b'; // Nuevo
+    private ?string $accordionHeaderTextColor = '#64748b';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveBgColor = '#e2e8f0'; // Nuevo
+    private ?string $accordionHeaderActiveBgColor = '#e2e8f0';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveTextColor = '#1e293b'; // Nuevo
+    private ?string $accordionHeaderActiveTextColor = '#1e293b';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -291,7 +297,19 @@ class Personalizacion
         return $this->id;
     }
 
-    // ... (Getters y Setters) ...
+    public function getSavedThemes(): ?array
+    {
+        return $this->savedThemes;
+    }
+
+    public function setSavedThemes(?array $savedThemes): static
+    {
+        $this->savedThemes = $savedThemes;
+        return $this;
+    }
+
+    // ... (Resto de Getters y Setters) ...
+    // Incluyo los que ya estaban para asegurar que el archivo esté completo
 
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
@@ -425,7 +443,6 @@ class Personalizacion
     public function getDatatablePaginationButtonActiveTextColor(): ?string { return $this->datatablePaginationButtonActiveTextColor; }
     public function setDatatablePaginationButtonActiveTextColor(string $color): static { $this->datatablePaginationButtonActiveTextColor = $color; return $this; }
 
-    // NUEVOS GETTERS/SETTERS
     public function getAccordionHeaderBgColor(): ?string { return $this->accordionHeaderBgColor; }
     public function setAccordionHeaderBgColor(string $color): static { $this->accordionHeaderBgColor = $color; return $this; }
 

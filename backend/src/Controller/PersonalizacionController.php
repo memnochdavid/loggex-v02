@@ -47,6 +47,11 @@ class PersonalizacionController extends AbstractController
 
         $logger->info('DATOS RECIBIDOS EN UPDATE:', $data);
 
+        // Temas Guardados
+        if (isset($data['savedThemes'])) {
+            $personalizacion->setSavedThemes($data['savedThemes']);
+        }
+
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
         if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
@@ -90,16 +95,9 @@ class PersonalizacionController extends AbstractController
         if (isset($data['timetableHoursBgColor'])) $personalizacion->setTimetableHoursBgColor($data['timetableHoursBgColor']);
         if (isset($data['timetableHoursTextColor'])) $personalizacion->setTimetableHoursTextColor($data['timetableHoursTextColor']);
 
-        // Nuevos campos de Horario (RENOMBRADOS)
-        if (isset($data['timetableSelectedHeaderBg'])) {
-            $personalizacion->setTimetableSelectedHeaderBg($data['timetableSelectedHeaderBg']);
-        }
-        if (isset($data['timetableSelectedHeaderText'])) {
-            $personalizacion->setTimetableSelectedHeaderText($data['timetableSelectedHeaderText']);
-        }
-        if (isset($data['timetableSelectedCellBg'])) {
-            $personalizacion->setTimetableSelectedCellBg($data['timetableSelectedCellBg']);
-        }
+        if (isset($data['timetableSelectedHeaderBg'])) $personalizacion->setTimetableSelectedHeaderBg($data['timetableSelectedHeaderBg']);
+        if (isset($data['timetableSelectedHeaderText'])) $personalizacion->setTimetableSelectedHeaderText($data['timetableSelectedHeaderText']);
+        if (isset($data['timetableSelectedCellBg'])) $personalizacion->setTimetableSelectedCellBg($data['timetableSelectedCellBg']);
 
         // DataTable
         if (isset($data['datatableHeaderBgColor'])) $personalizacion->setDatatableHeaderBgColor($data['datatableHeaderBgColor']);
@@ -118,7 +116,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['datatablePaginationButtonActiveBgColor'])) $personalizacion->setDatatablePaginationButtonActiveBgColor($data['datatablePaginationButtonActiveBgColor']);
         if (isset($data['datatablePaginationButtonActiveTextColor'])) $personalizacion->setDatatablePaginationButtonActiveTextColor($data['datatablePaginationButtonActiveTextColor']);
 
-        // Accordion (Mobile) - NUEVOS CAMPOS
+        // Accordion (Mobile)
         if (isset($data['accordionHeaderBgColor'])) $personalizacion->setAccordionHeaderBgColor($data['accordionHeaderBgColor']);
         if (isset($data['accordionHeaderTextColor'])) $personalizacion->setAccordionHeaderTextColor($data['accordionHeaderTextColor']);
         if (isset($data['accordionHeaderActiveBgColor'])) $personalizacion->setAccordionHeaderActiveBgColor($data['accordionHeaderActiveBgColor']);

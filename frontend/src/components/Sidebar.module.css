@@ -156,7 +156,8 @@
     z-index: 40;
 }
 
-@media (max-width: 768px) {
+/* Breakpoint cambiado a 1220px */
+@media (max-width: 1220px) {
     .sidebar {
         position: fixed;
         left: -100%;

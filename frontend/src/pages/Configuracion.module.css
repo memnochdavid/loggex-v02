@@ -1,121 +1,99 @@
 .container {
+    padding: var(--space-8) var(--space-4);
     max-width: 1400px;
     margin: 0 auto;
 }
 
 .header {
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-8);
 }
 
 .title {
-    font-size: 2rem;
-    color: var(--text-main);
-    margin-bottom: 0.5rem;
+    font-size: var(--text-2xl);
+    color: var(--color-gray-900);
+    margin-bottom: var(--space-2);
 }
 
 .subtitle {
     color: var(--text-muted);
-    font-size: 1rem;
-}
-
-.message {
-    padding: 1rem;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-    font-weight: 500;
-}
-
-.success {
-    background-color: #dcfce7;
-    color: #166534;
-    border: 1px solid #bbf7d0;
-}
-
-.error {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+    font-size: var(--text-sm);
 }
 
 .layout {
     display: flex;
-    gap: 2rem;
+    gap: var(--space-8);
     align-items: flex-start;
 }
 
 .sidebar {
     width: 250px;
     flex-shrink: 0;
-    background-color: var(--bg-card);
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .tabButton {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0.75rem 1rem;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
     border: none;
-    background: none;
-    color: var(--text-muted);
+    background: transparent;
+    color: var(--color-gray-600);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s;
-    font-size: 0.95rem;
     text-align: left;
+    font-weight: var(--font-medium);
+    transition: all 0.2s;
 }
 
 .tabButton:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-main);
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-900);
 }
 
 .activeTab {
     background-color: var(--color-primary-50);
-    color: var(--color-primary-600);
-    font-weight: 500;
+    color: var(--color-primary-700);
 }
 
 .content {
     flex: 1;
-    background-color: var(--bg-card);
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    gap: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    /*gap: var(--space-8);*/
 }
 
 .formSection {
-    flex: 1;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
 }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--space-6);
 }
 
 .colorItem {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-main);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-gray-700);
 }
 
 .colorInputContainer {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .colorInput {
@@ -123,108 +101,105 @@
     height: 40px;
     padding: 0;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
+    background: none;
 }
 
 .colorTextInput {
     flex: 1;
-    padding: 0.5rem;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-family: monospace;
-    color: var(--text-main);
+    font-size: var(--text-sm);
 }
 
 .previewContainer {
-    width: 300px;
-    flex-shrink: 0;
-    border-left: 1px solid var(--border-color);
-    padding-left: 2rem;
+    position: sticky;
+    top: var(--space-8);
 }
 
 .previewTitle {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    color: var(--text-main);
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-4);
+    color: var(--color-gray-800);
 }
 
 .previewBox {
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 1rem;
-}
-
-.card {
     background-color: var(--bg-card);
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
-    text-align: center;
-    color: var(--text-muted);
-}
-
-/* Themes Styles */
-.themesContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.addTheme {
-    display: flex;
-    gap: 1rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.themesList {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.themeItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: var(--bg-hover);
-    border-radius: 6px;
     border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-sm);
+}
+
+.message {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6);
+    font-weight: var(--font-medium);
+}
+
+.success {
+    background-color: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.error {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* Theme Cards */
+.themeCard {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.themeCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-300);
+}
+
+.themePreview {
+    height: 100px;
+    display: flex;
 }
 
 .themeName {
-    font-weight: 500;
-    color: var(--text-main);
-}
-
-.themeActions {
-    display: flex;
-    gap: 0.5rem;
+    padding: var(--space-3);
+    font-weight: var(--font-medium);
+    text-align: center;
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-color);
 }
 
 @media (max-width: 1024px) {
-    .content {
-        flex-direction: column;
-    }
-
-    .previewContainer {
-        width: 100%;
-        border-left: none;
-        padding-left: 0;
-        border-top: 1px solid var(--border-color);
-        padding-top: 2rem;
-    }
-}
-
-@media (max-width: 768px) {
     .layout {
         flex-direction: column;
     }
 
     .sidebar {
         width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: var(--space-2);
+    }
+
+    .content {
+        grid-template-columns: 1fr;
+    }
+
+    .previewContainer {
+        position: static;
+        margin-top: var(--space-8);
     }
 }

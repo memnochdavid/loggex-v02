@@ -101,6 +101,7 @@ class SecurityController extends AbstractController
         $v = fn($val, $default) => $val !== null ? $val : $default;
 
         return [
+            'savedThemes' => $p->getSavedThemes() ?? [], // AÑADIDO
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
@@ -145,15 +146,12 @@ class SecurityController extends AbstractController
             'datatablePaginationButtonHoverTextColor' => $v($p->getDatatablePaginationButtonHoverTextColor(), '#334155'),
             'datatablePaginationButtonActiveBgColor' => $v($p->getDatatablePaginationButtonActiveBgColor(), '#e2e8f0'),
             'datatablePaginationButtonActiveTextColor' => $v($p->getDatatablePaginationButtonActiveTextColor(), '#1e293b'),
-
-            // NUEVOS CAMPOS DE ACORDEÓN
             'accordionHeaderBgColor' => $v($p->getAccordionHeaderBgColor(), '#f8fafc'),
             'accordionHeaderTextColor' => $v($p->getAccordionHeaderTextColor(), '#64748b'),
             'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#e2e8f0'),
             'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#1e293b'),
             'accordionContentBgColor' => $v($p->getAccordionContentBgColor(), '#ffffff'),
             'accordionContentTextColor' => $v($p->getAccordionContentTextColor(), '#334155'),
-
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),
             'itemsPerPageCentros' => $p->getItemsPerPageCentros(),
             'itemsPerPageCiclos' => $p->getItemsPerPageCiclos(),

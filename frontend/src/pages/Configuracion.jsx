@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Home, User, Smartphone } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Home, User, Smartphone, Layers, Plus, Trash2 } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -74,10 +74,10 @@ const Configuracion = () => {
         datatablePaginationButtonActiveTextColor: '#1e293b',
 
         // Accordion (Mobile)
-        accordionHeaderBgColor: '#f8fafc', // Nuevo
-        accordionHeaderTextColor: '#64748b', // Nuevo
-        accordionHeaderActiveBgColor: '#e2e8f0', // Nuevo
-        accordionHeaderActiveTextColor: '#1e293b', // Nuevo
+        accordionHeaderBgColor: '#f8fafc',
+        accordionHeaderTextColor: '#64748b',
+        accordionHeaderActiveBgColor: '#e2e8f0',
+        accordionHeaderActiveTextColor: '#1e293b',
         accordionContentBgColor: '#ffffff',
         accordionContentTextColor: '#334155',
 
@@ -89,13 +89,64 @@ const Configuracion = () => {
         itemsPerPageModulos: 20,
         itemsPerPageMatriculas: 20,
         itemsPerPageImparticiones: 20,
-        itemsPerPageHorarios: 20
+        itemsPerPageHorarios: 20,
+
+        // Temas Guardados
+        savedThemes: []
+    };
+
+    // Temas Predefinidos (Hardcodeados para referencia rápida)
+    const predefinedThemes = {
+        default: { ...defaultSettings, name: 'Loggex Default' },
+        dark: {
+            ...defaultSettings,
+            name: 'Modo Oscuro (Beta)',
+            primaryColor: '#818cf8',
+            secondaryColor: '#94a3b8',
+            sidebarColor: '#0f172a',
+            sidebarActiveColor: '#1e293b',
+            textMainColor: '#e2e8f0',
+            textSecondaryColor: '#94a3b8',
+            headerFooterColor: '#0f172a',
+            headerFooterTextColor: '#f8fafc',
+            accordionContentBgColor: '#1e293b',
+            accordionContentTextColor: '#e2e8f0',
+            // ... más ajustes oscuros
+        },
+        blue: {
+            ...defaultSettings,
+            name: 'Azul Corporativo',
+            primaryColor: '#2563eb',
+            sidebarColor: '#1e3a8a',
+            headerFooterColor: '#1e3a8a',
+            buttonPrimaryColor: '#2563eb',
+            calendarSelectedBgColor: '#2563eb',
+        },
+        green: {
+            ...defaultSettings,
+            name: 'Verde Naturaleza',
+            primaryColor: '#059669',
+            sidebarColor: '#064e3b',
+            headerFooterColor: '#064e3b',
+            buttonPrimaryColor: '#059669',
+            calendarSelectedBgColor: '#059669',
+        },
+        purple: {
+            ...defaultSettings,
+            name: 'Púrpura Creativo',
+            primaryColor: '#7c3aed',
+            sidebarColor: '#4c1d95',
+            headerFooterColor: '#4c1d95',
+            buttonPrimaryColor: '#7c3aed',
+            calendarSelectedBgColor: '#7c3aed',
+        }
     };
 
     const [settings, setSettings] = useState(defaultSettings);
-    const [activeTab, setActiveTab] = useState('general');
+    const [activeTab, setActiveTab] = useState('themes');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [newThemeName, setNewThemeName] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -119,9 +170,66 @@ const Configuracion = () => {
         }));
     };
 
+    const handleApplyTheme = (theme) => {
+        if (window.confirm(`¿Aplicar el tema "${theme.name}"? Se sobrescribirán los colores actuales.`)) {
+            // Mantenemos la configuración de paginación y temas guardados
+            const newSettings = {
+                ...theme,
+                itemsPerPageUsuarios: settings.itemsPerPageUsuarios,
+                itemsPerPageCentros: settings.itemsPerPageCentros,
+                itemsPerPageCiclos: settings.itemsPerPageCiclos,
+                itemsPerPageGrupos: settings.itemsPerPageGrupos,
+                itemsPerPageModulos: settings.itemsPerPageModulos,
+                itemsPerPageMatriculas: settings.itemsPerPageMatriculas,
+                itemsPerPageImparticiones: settings.itemsPerPageImparticiones,
+                itemsPerPageHorarios: settings.itemsPerPageHorarios,
+                savedThemes: settings.savedThemes || []
+            };
+            setSettings(newSettings);
+            setMessage({ type: 'success', text: `Tema "${theme.name}" aplicado. Recuerda guardar para persistir los cambios.` });
+        }
+    };
+
+    const handleSaveTheme = () => {
+        if (!newThemeName.trim()) {
+            alert('Por favor, introduce un nombre para el tema.');
+            return;
+        }
+
+        const newTheme = {
+            ...settings,
+            name: newThemeName,
+            savedThemes: undefined // No guardar recursivamente la lista de temas dentro de un tema
+        };
+
+        const updatedThemes = [...(settings.savedThemes || []), newTheme];
+        
+        setSettings(prev => ({
+            ...prev,
+            savedThemes: updatedThemes
+        }));
+        
+        setNewThemeName('');
+        setMessage({ type: 'success', text: `Tema "${newThemeName}" añadido a la lista. Guarda la configuración para persistirlo.` });
+    };
+
+    const handleDeleteTheme = (index, e) => {
+        e.stopPropagation();
+        if (window.confirm('¿Eliminar este tema guardado?')) {
+            const updatedThemes = [...(settings.savedThemes || [])];
+            updatedThemes.splice(index, 1);
+            setSettings(prev => ({
+                ...prev,
+                savedThemes: updatedThemes
+            }));
+        }
+    };
+
     const handleReset = () => {
-        setSettings(defaultSettings);
-        applyTheme(defaultSettings);
+        if (window.confirm('¿Restablecer a los valores por defecto?')) {
+            setSettings({ ...defaultSettings, savedThemes: settings.savedThemes });
+            applyTheme(defaultSettings);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -220,6 +328,29 @@ const Configuracion = () => {
 
     const renderPreview = () => {
         switch (activeTab) {
+            case 'themes':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa del Tema Actual</h4>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor, padding: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: 'bold' }}>Logo</span>
+                                <span>Usuario</span>
+                            </div>
+                            <div style={{ display: 'flex', height: '150px' }}>
+                                <div style={{ width: '60px', backgroundColor: settings.sidebarColor, padding: '10px' }}>
+                                    <div style={{ width: '20px', height: '20px', backgroundColor: settings.sidebarActiveColor, borderRadius: '4px', marginBottom: '10px' }}></div>
+                                    <div style={{ width: '20px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
+                                </div>
+                                <div style={{ flex: 1, padding: '20px', backgroundColor: '#f8fafc' }}>
+                                    <h3 style={{ color: settings.primaryColor, marginTop: 0 }}>Título</h3>
+                                    <button style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Botón</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            // ... (resto de casos igual que antes)
             case 'general':
                 return (
                     <div className={styles.previewBox}>
@@ -549,6 +680,7 @@ const Configuracion = () => {
     };
 
     const tabs = [
+        { id: 'themes', label: 'Temas', icon: <Layers size={18} /> },
         { id: 'general', label: 'General', icon: <Palette size={18} /> },
         { id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18} /> },
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
@@ -557,7 +689,7 @@ const Configuracion = () => {
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
-        { id: 'accordion', label: 'Acordeón (Móvil)', icon: <Smartphone size={18} /> }, // Nueva pestaña
+        { id: 'accordion', label: 'Acordeón (Móvil)', icon: <Smartphone size={18} /> },
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
     ];
 
@@ -615,6 +747,65 @@ const Configuracion = () => {
 
                     <div className={styles.content}>
                         <div className={styles.formSection}>
+                            {activeTab === 'themes' && (
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem' }}>Temas Predefinidos</h3>
+                                    <div className={styles.grid}>
+                                        {Object.entries(predefinedThemes).map(([key, theme]) => (
+                                            <div key={key} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
+                                                <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
+                                                    <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
+                                                </div>
+                                                <div className={styles.themeName}>{theme.name}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Temas Guardados</h3>
+                                    {settings.savedThemes && settings.savedThemes.length > 0 ? (
+                                        <div className={styles.grid}>
+                                            {settings.savedThemes.map((theme, index) => (
+                                                <div key={index} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
+                                                    <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
+                                                        <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
+                                                    </div>
+                                                    <div className={styles.themeName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span>{theme.name}</span>
+                                                        <button 
+                                                            onClick={(e) => handleDeleteTheme(index, e)}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                                                            title="Eliminar tema"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p style={{ color: 'var(--text-muted)' }}>No tienes temas guardados. Puedes guardar nuevos según tus preferencias actuales.</p>
+                                    )}
+
+                                    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '8px' }}>
+                                        <h4 style={{ marginTop: 0 }}>Guardar configuración actual como tema</h4>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Nombre del tema..." 
+                                                value={newThemeName}
+                                                onChange={(e) => setNewThemeName(e.target.value)}
+                                                className={styles.colorTextInput}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <Button onClick={handleSaveTheme}>
+                                                <Plus size={18} style={{ marginRight: '8px' }} />
+                                                Crear
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {activeTab === 'general' && (
                                 <div className={styles.grid}>
                                     {renderColorInput('Color Principal', 'primaryColor')}
