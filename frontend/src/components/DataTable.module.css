@@ -195,7 +195,7 @@
     align-items: center;
     gap: 1rem;
     font-weight: 600;
-    color: inherit; /* Heredar color del padre (que usa la variable) */
+    color: inherit;
     width: 100%;
 }
 
@@ -254,31 +254,23 @@
 }
 
 /* Responsive Visibility */
+/* Ya no necesitamos media queries para ocultar/mostrar, lo hace JS */
 .desktopView {
     display: block;
 }
 
 .mobileView {
-    display: none;
+    display: block;
 }
 
-@media (max-width: 768px) {
-    .desktopView {
-        display: none;
-    }
+/* Ajustes de paginación para móvil (siempre aplicables cuando se renderiza mobileView) */
+.mobileView .pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
 
-    .mobileView {
-        display: block;
-    }
-
-    .pagination {
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .paginationControls {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
+.mobileView .paginationControls {
+    flex-direction: column;
+    gap: 0.5rem;
 }

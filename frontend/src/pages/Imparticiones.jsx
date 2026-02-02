@@ -427,6 +427,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            mobileBreakpoint={'600px'}
         />
 
         {/* Modal */}

@@ -330,6 +330,7 @@ const CiclosFormativos = () => {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            mobileBreakpoint={'600px'}
         />
 
         {/* Modal */}

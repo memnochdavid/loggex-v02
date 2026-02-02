@@ -378,6 +378,7 @@ const Festivos = () => {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            mobileBreakpoint={'650px'}
         />
 
         {/* Modal */}

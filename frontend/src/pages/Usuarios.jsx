@@ -457,6 +457,7 @@ const Usuarios = () => {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            mobileBreakpoint={'980px'}
         />
 
         {/* Modal */}

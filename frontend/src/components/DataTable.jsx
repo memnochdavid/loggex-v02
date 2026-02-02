@@ -2,6 +2,7 @@ import React from 'react';
 import styles from './DataTable.module.css';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 import AccordionView from './AccordionView';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 /**
  * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string }
@@ -16,6 +17,7 @@ import AccordionView from './AccordionView';
  * @param {string} sortDirection - 'asc' o 'desc'
  * @param {function} onSort - Callback cuando se ordena (columnKey)
  * @param {Array} pageSizeOptions - Opciones para el selector de tamaño de página
+ * @param {string} mobileBreakpoint - Breakpoint para cambiar a vista móvil (ej: '768px', '1024px')
  */
 const DataTable = ({ 
     columns, 
@@ -29,8 +31,11 @@ const DataTable = ({
     sortColumn,
     sortDirection,
     onSort,
-    pageSizeOptions = [10, 20, 30, 50, 100]
+    pageSizeOptions = [10, 20, 30, 50, 100],
+    mobileBreakpoint = '768px' // Valor por defecto
 }) => {
+    const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
+
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -137,138 +142,144 @@ const DataTable = ({
     if (!loading && (!data || data.length === 0)) {
         return (
             <div className={styles.container}>
-                <div className={styles.desktopView}>
-                    <table className={styles.table}>
-                        <thead className={styles.thead}>
-                            <tr>
-                                {columns.map((col, index) => (
-                                    <th key={index} className={`${styles.th} ${col.className || ''}`}>
-                                        {col.header}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className={styles.tbody}>
-                            <tr>
-                                <td colSpan={columns.length} className={styles.emptyState}>
-                                    No hay datos disponibles.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div className={styles.mobileView}>
-                    <div className={styles.emptyState}>No hay datos disponibles.</div>
-                </div>
+                {!isMobile ? (
+                    <div className={styles.desktopView}>
+                        <table className={styles.table}>
+                            <thead className={styles.thead}>
+                                <tr>
+                                    {columns.map((col, index) => (
+                                        <th key={index} className={`${styles.th} ${col.className || ''}`}>
+                                            {col.header}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className={styles.tbody}>
+                                <tr>
+                                    <td colSpan={columns.length} className={styles.emptyState}>
+                                        No hay datos disponibles.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className={styles.mobileView}>
+                        <div className={styles.emptyState}>No hay datos disponibles.</div>
+                    </div>
+                )}
             </div>
         );
     }
 
     return (
         <div className={styles.container}>
-            {/* Vista Escritorio */}
-            <div className={styles.desktopView}>
-                {renderPagination('top')}
-                
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead className={styles.thead}>
-                            <tr>
-                                {columns.map((col, index) => {
-                                    const isSorted = sortColumn === (col.sortKey || col.accessor);
-                                    
-                                    return (
-                                        <th 
-                                            key={index} 
-                                            className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''}`}
-                                            onClick={() => col.sortable && handleSort(col)}
-                                        >
-                                            <div className={styles.thContent}>
-                                                {col.header}
-                                                {isSorted && (
-                                                    <span className={styles.sortIcon}>
-                                                        {sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </th>
-                                    );
-                                })}
-                            </tr>
-                        </thead>
-                        <tbody className={styles.tbody}>
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '2rem' }}>
-                                        Cargando datos...
-                                    </td>
-                                </tr>
-                            ) : (
-                                data.map((row, rowIndex) => (
-                                    <tr key={row.id || row['@id'] || rowIndex}>
-                                        {columns.map((col, colIndex) => (
-                                            <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
-                                                {getCellValue(col, row)}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {renderPagination('bottom')}
-            </div>
-
-            {/* Vista Móvil con AccordionView */}
-            <div className={styles.mobileView}>
-                <div className={styles.mobileContainer}>
-                    <div className={styles.mobilePaginationContainer}>
-                        {renderPagination('top')}
-                    </div>
-
-                    {loading ? (
-                        <div className={styles.emptyState}>Cargando datos...</div>
-                    ) : (
-                        <AccordionView 
-                            data={data}
-                            renderHeader={(row) => {
-                                // Renderizar las primeras 3 columnas en la cabecera (Avatar, Nombre, Apellidos)
-                                const col0 = columns[0];
-                                const col1 = columns[1];
-                                const col2 = columns[2];
-                                return (
-                                    <div className={styles.mobileHeaderContent}>
-                                        {col0 && <div className={styles.mobileHeaderAvatar}>{getCellValue(col0, row)}</div>}
-                                        <div className={styles.mobileHeaderText}>
-                                            {col1 && <span>{getCellValue(col1, row)}</span>}
-                                            {col2 && <span style={{ marginLeft: '4px' }}>{getCellValue(col2, row)}</span>}
-                                        </div>
-                                    </div>
-                                );
-                            }}
-                            renderItem={(row) => (
-                                <div className={styles.mobileCardContent}>
-                                    {/* Mostrar TODAS las columnas excepto la primera (Avatar/ID) en el cuerpo */}
-                                    {columns.slice(1).map((col, index) => (
-                                        <div key={index} className={styles.mobileRow}>
-                                            <span className={styles.mobileLabel}>{col.header}</span>
-                                            <span className={styles.mobileValue}>
-                                                {getCellValue(col, row)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        />
-                    )}
+            {/* Renderizado Condicional basado en JS (useMediaQuery) */}
+            {!isMobile ? (
+                /* Vista Escritorio */
+                <div className={styles.desktopView}>
+                    {renderPagination('top')}
                     
-                    <div className={styles.mobilePaginationContainer}>
-                        {renderPagination('bottom')}
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead className={styles.thead}>
+                                <tr>
+                                    {columns.map((col, index) => {
+                                        const isSorted = sortColumn === (col.sortKey || col.accessor);
+                                        
+                                        return (
+                                            <th 
+                                                key={index} 
+                                                className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''}`}
+                                                onClick={() => col.sortable && handleSort(col)}
+                                            >
+                                                <div className={styles.thContent}>
+                                                    {col.header}
+                                                    {isSorted && (
+                                                        <span className={styles.sortIcon}>
+                                                            {sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </th>
+                                        );
+                                    })}
+                                </tr>
+                            </thead>
+                            <tbody className={styles.tbody}>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '2rem' }}>
+                                            Cargando datos...
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    data.map((row, rowIndex) => (
+                                        <tr key={row.id || row['@id'] || rowIndex}>
+                                            {columns.map((col, colIndex) => (
+                                                <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
+                                                    {getCellValue(col, row)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {renderPagination('bottom')}
+                </div>
+            ) : (
+                /* Vista Móvil con AccordionView */
+                <div className={styles.mobileView}>
+                    <div className={styles.mobileContainer}>
+                        <div className={styles.mobilePaginationContainer}>
+                            {renderPagination('top')}
+                        </div>
+
+                        {loading ? (
+                            <div className={styles.emptyState}>Cargando datos...</div>
+                        ) : (
+                            <AccordionView 
+                                data={data}
+                                renderHeader={(row) => {
+                                    // Renderizar las primeras 3 columnas en la cabecera (Avatar, Nombre, Apellidos)
+                                    const col0 = columns[0];
+                                    const col1 = columns[1];
+                                    const col2 = columns[2];
+                                    return (
+                                        <div className={styles.mobileHeaderContent}>
+                                            {col0 && <div className={styles.mobileHeaderAvatar}>{getCellValue(col0, row)}</div>}
+                                            <div className={styles.mobileHeaderText}>
+                                                {col1 && <span>{getCellValue(col1, row)}</span>}
+                                                {col2 && <span style={{ marginLeft: '4px' }}>{getCellValue(col2, row)}</span>}
+                                            </div>
+                                        </div>
+                                    );
+                                }}
+                                renderItem={(row) => (
+                                    <div className={styles.mobileCardContent}>
+                                        {/* Mostrar TODAS las columnas excepto la primera (Avatar/ID) en el cuerpo */}
+                                        {columns.slice(1).map((col, index) => (
+                                            <div key={index} className={styles.mobileRow}>
+                                                <span className={styles.mobileLabel}>{col.header}</span>
+                                                <span className={styles.mobileValue}>
+                                                    {getCellValue(col, row)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            />
+                        )}
+                        
+                        <div className={styles.mobilePaginationContainer}>
+                            {renderPagination('bottom')}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

@@ -6,7 +6,7 @@ import viteLogo from '/logo_texto_horizontal.png';
 import styles from './Header.module.css';
 import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
-import { Menu } from 'lucide-react';
+// import { Menu } from 'lucide-react';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {

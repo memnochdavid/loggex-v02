@@ -416,6 +416,7 @@ const Grupos = () => {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            mobileBreakpoint={'650px'}
         />
 
         {/* Modal */}
