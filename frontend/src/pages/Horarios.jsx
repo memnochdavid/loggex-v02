@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import styles from './Usuarios.module.css'; // Reutilizamos estilos
+import styles from './Horarios.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
@@ -503,7 +503,7 @@ const Horarios = () => {
                 onSort={handleSort}
             />
         ) : (
-            <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className={styles.calendarViewModeContainer}>
                 <div style={{ flex: 1, minWidth: '300px' }}>
                     <TimeTable 
                         events={mySchedule} 
@@ -516,7 +516,7 @@ const Horarios = () => {
                     <CalendarView 
                         selectedDate={selectedDate} 
                         onDateSelect={setSelectedDate}
-                        festivos={festivos} // Pasamos los festivos aquí
+                        festivos={festivos}
                     />
                 </div>
             </div>

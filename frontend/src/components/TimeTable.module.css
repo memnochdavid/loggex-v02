@@ -22,7 +22,9 @@
 
 /* Vista de Escritorio (Tabla) */
 .desktopView {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
 }
 
 .mobileView {
