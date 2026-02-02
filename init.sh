@@ -7,7 +7,8 @@ set -e
 
 echo "🚀 Iniciando despliegue de Loggex v02..."
 
-# 1. Levantar contenedores (forzando recreación para asegurar config nueva)
+# 1. Levantar contenedores
+# Usamos --remove-orphans para limpiar contenedores viejos
 echo "🐳 Levantando contenedores Docker..."
 docker compose up -d --build --remove-orphans
 
@@ -15,8 +16,8 @@ docker compose up -d --build --remove-orphans
 echo "📦 Instalando dependencias de Symfony (Composer)..."
 docker compose exec backend composer install --no-interaction --optimize-autoloader
 
-# Asegurar API Platform
-docker compose exec backend composer require api --no-interaction
+# Asegurar paquetes críticos (API Platform, JWT, etc. si se añaden)
+# docker compose exec backend composer require api --no-interaction # Ya debería estar en composer.json
 
 # 3. Instalar dependencias Frontend
 echo "📦 Instalando dependencias de React (NPM)..."
@@ -24,22 +25,30 @@ docker compose exec frontend npm install
 
 # 4. Sincronizar Base de Datos
 echo "🔄 Sincronizando esquema de base de datos..."
-# Esperar a que MariaDB esté lista
-sleep 10
-# Forzar actualización del esquema para que coincida con las Entidades PHP
+echo "   (Esperando 5s a que MariaDB esté lista...)"
+sleep 5
+
+# Actualizar esquema (crea tablas/columnas nuevas sin borrar datos)
 docker compose exec backend php bin/console doctrine:schema:update --force --no-interaction
 
-# 5. Limpiar Caché (CRÍTICO para evitar errores 500/401 por metadatos viejos)
-echo "🧹 Limpiando caché de Symfony..."
-docker compose exec backend php bin/console cache:clear
-# Borrar caché física por si acaso
+# 5. Limpieza y Optimización (CRÍTICO)
+echo "🧹 Limpiando y regenerando caché..."
+# Borrado físico para asegurar que no quedan restos corruptos
 docker compose exec backend rm -rf var/cache/dev var/cache/prod
+# Regeneración oficial
+docker compose exec backend php bin/console cache:clear
 
-# 6. Permisos (Opcional, para evitar problemas de escritura en logs/sesiones)
-echo "🔒 Ajustando permisos..."
+# 6. Permisos
+echo "🔒 Ajustando permisos internos..."
 docker compose exec backend chown -R www-data:www-data var/
 
+# 7. Reinicio final del backend (Para asegurar que OPcache/PHP-FPM toman los cambios de código/config)
+echo "🔄 Reiniciando servicio backend..."
+docker compose restart backend
+
 echo ""
-echo "✅ ¡Proyecto desplegado y actualizado!"
+echo "✅ ¡Proyecto desplegado y actualizado correctamente!"
 echo "Frontend: https://localhost:8443"
 echo "Backend API: https://localhost:9443/api"
+echo ""
+echo "💡 Si tienes problemas de datos, puedes restaurar el backup inicial con: ./restore_db.sh"

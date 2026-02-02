@@ -249,7 +249,12 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260201105311','2026-02-01 10:53:12',23),
 ('DoctrineMigrations\\Version20260201114243','2026-02-01 11:42:44',21),
 ('DoctrineMigrations\\Version20260201114738','2026-02-01 11:47:39',33),
-('DoctrineMigrations\\Version20260201120350','2026-02-01 12:03:51',49);
+('DoctrineMigrations\\Version20260201120350','2026-02-01 12:03:51',49),
+('DoctrineMigrations\\Version20260201195447','2026-02-02 13:51:42',1458),
+('DoctrineMigrations\\Version20260202100000','2026-02-02 13:51:44',1044),
+('DoctrineMigrations\\Version20260202110000','2026-02-02 13:51:45',68),
+('DoctrineMigrations\\Version20260202114720','2026-02-02 13:51:45',1110),
+('DoctrineMigrations\\Version20260202122225','2026-02-02 13:51:46',994);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -322,7 +327,7 @@ LOCK TABLES `festivo` WRITE;
 INSERT INTO `festivo` VALUES
 (4,'Navidad','2025-12-22',NULL,'2026-01-06','2026-02-01 08:05:15',NULL,0,NULL),
 (5,'Semana Santa','2026-03-28',NULL,'2026-04-05','2026-02-01 08:05:15',NULL,0,NULL),
-(6,'Prueba','2026-02-02',NULL,'2026-02-02',NULL,'2026-02-01 22:18:38',0,NULL);
+(6,'Prueba cACA','2026-02-02',NULL,'2026-02-02',NULL,'2026-02-02 14:02:27',0,NULL);
 /*!40000 ALTER TABLE `festivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -853,6 +858,13 @@ CREATE TABLE `personalizacion` (
   `timetable_selected_header_text` varchar(7) NOT NULL,
   `timetable_selected_cell_bg` varchar(7) NOT NULL,
   `scrollbar_width` varchar(10) NOT NULL,
+  `accordion_header_bg_color` varchar(7) NOT NULL,
+  `accordion_header_text_color` varchar(7) NOT NULL,
+  `accordion_content_bg_color` varchar(7) NOT NULL,
+  `accordion_content_text_color` varchar(7) NOT NULL,
+  `accordion_header_active_bg_color` varchar(7) NOT NULL,
+  `accordion_header_active_text_color` varchar(7) NOT NULL,
+  `saved_themes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`saved_themes`)),
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
@@ -866,7 +878,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#6366f1','#1e293b',3,'#334155','#64748b','#6366f1','#ffffff','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#334155','#64748b','2026-02-01 10:25:33','2026-02-01 21:44:42',0,NULL,'#427ecd','#2c2e30','#80aeea','#36d949','#ffffff','#ff0000','#ffffff','#2b8ac5','#ffffff','#d6d6d6','#353131','#4279cd','#ffffff','#4aba51','#ffffff','#4672b4','#ffffff','#6499e8','#ffffff','#0c9d3e','#ffffff','#44c571','ffffff','#769882','#ffffff',10,10,10,10,10,10,10,10,'#51ade6','#ffffff','#a4dcfe','auto');
+(1,'#ff0000','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-02 17:12:44',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#94bdff','#ffffff','[{\"primaryColor\":\"#2563eb\",\"secondaryColor\":\"#64748b\",\"sidebarColor\":\"#1e3a8a\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"buttonPrimaryColor\":\"#2563eb\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#ffffff\",\"buttonSecondaryTextColor\":\"#334155\",\"headerFooterColor\":\"#1e3a8a\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#cbd5e1\",\"scrollbarTrackColor\":\"#f1f5f9\",\"scrollbarHoverColor\":\"#94a3b8\",\"scrollbarWidth\":\"12px\",\"calendarSelectedBgColor\":\"#2563eb\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#f1f5f9\",\"calendarWeekendTextColor\":\"#64748b\",\"timetableHeaderBgColor\":\"#f1f5f9\",\"timetableHeaderTextColor\":\"#334155\",\"timetableHoursBgColor\":\"#f8fafc\",\"timetableHoursTextColor\":\"#64748b\",\"timetableSelectedHeaderBg\":\"#e0e7ff\",\"timetableSelectedHeaderText\":\"#4338ca\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#f8fafc\",\"datatableHeaderTextColor\":\"#64748b\",\"datatableHeaderHoverBgColor\":\"#f1f5f9\",\"datatableHeaderHoverTextColor\":\"#334155\",\"datatableHeaderActiveBgColor\":\"#e2e8f0\",\"datatableHeaderActiveTextColor\":\"#1e293b\",\"datatablePaginationBgColor\":\"#f8fafc\",\"datatablePaginationTextColor\":\"#64748b\",\"datatablePaginationButtonBgColor\":\"#ffffff\",\"datatablePaginationButtonTextColor\":\"#64748b\",\"datatablePaginationButtonHoverBgColor\":\"#f1f5f9\",\"datatablePaginationButtonHoverTextColor\":\"#334155\",\"datatablePaginationButtonActiveBgColor\":\"#e2e8f0\",\"datatablePaginationButtonActiveTextColor\":\"#1e293b\",\"accordionHeaderBgColor\":\"#f8fafc\",\"accordionHeaderTextColor\":\"#64748b\",\"accordionHeaderActiveBgColor\":\"#e2e8f0\",\"accordionHeaderActiveTextColor\":\"#1e293b\",\"accordionContentBgColor\":\"#ffffff\",\"accordionContentTextColor\":\"#334155\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10,\"name\":\"aaa\"},{\"primaryColor\":\"#ff0000\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionHeaderActiveBgColor\":\"#94bdff\",\"accordionHeaderActiveTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10,\"name\":\"EAG01\"}]');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -988,4 +1000,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-01 22:38:21
+-- Dump completed on 2026-02-02 17:34:50

@@ -749,19 +749,8 @@ const Configuracion = () => {
                         <div className={styles.formSection}>
                             {activeTab === 'themes' && (
                                 <div>
-                                    <h3 style={{ marginBottom: '1rem' }}>Temas Predefinidos</h3>
-                                    <div className={styles.grid}>
-                                        {Object.entries(predefinedThemes).map(([key, theme]) => (
-                                            <div key={key} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
-                                                <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
-                                                    <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
-                                                </div>
-                                                <div className={styles.themeName}>{theme.name}</div>
-                                            </div>
-                                        ))}
-                                    </div>
 
-                                    <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Temas Guardados</h3>
+                                    <h3 style={{ marginTop: '1rem' }}>Temas Guardados</h3>
                                     {settings.savedThemes && settings.savedThemes.length > 0 ? (
                                         <div className={styles.grid}>
                                             {settings.savedThemes.map((theme, index) => (
@@ -771,7 +760,7 @@ const Configuracion = () => {
                                                     </div>
                                                     <div className={styles.themeName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <span>{theme.name}</span>
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => handleDeleteTheme(index, e)}
                                                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
                                                             title="Eliminar tema"
@@ -785,6 +774,20 @@ const Configuracion = () => {
                                     ) : (
                                         <p style={{ color: 'var(--text-muted)' }}>No tienes temas guardados. Puedes guardar nuevos según tus preferencias actuales.</p>
                                     )}
+
+                                    <h3 style={{ marginTop: '2rem' }}>Temas Predefinidos</h3>
+                                    <div className={styles.grid}>
+                                        {Object.entries(predefinedThemes).map(([key, theme]) => (
+                                            <div key={key} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
+                                                <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
+                                                    <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
+                                                </div>
+                                                <div className={styles.themeName}>{theme.name}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+
 
                                     <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '8px' }}>
                                         <h4 style={{ marginTop: 0 }}>Guardar configuración actual como tema</h4>
