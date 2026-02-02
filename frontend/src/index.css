@@ -118,6 +118,7 @@
 }
 
 /* Reset básico */
+
 body {
   margin: 0;
   font-family: var(--font-sans), sans-serif;

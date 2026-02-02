@@ -73,10 +73,12 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
-        accordionHeaderBgColor: '#f1f5f9',
-        accordionHeaderTextColor: '#334155',
+        accordionHeaderBgColor: '#f8fafc', // Nuevo
+        accordionHeaderTextColor: '#64748b', // Nuevo
+        accordionHeaderActiveBgColor: '#e2e8f0', // Nuevo
+        accordionHeaderActiveTextColor: '#1e293b', // Nuevo
         accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#64748b'
+        accordionContentTextColor: '#334155'
     };
 
     const theme = { ...defaults, ...colors };
@@ -166,9 +168,11 @@ export const applyTheme = (colors) => {
     if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', theme.datatablePaginationButtonActiveBgColor);
     if (theme.datatablePaginationButtonActiveTextColor) root.style.setProperty('--datatable-pagination-btn-active-text', theme.datatablePaginationButtonActiveTextColor);
 
-    // 8. Accordion
+    // 8. Accordion (Mobile)
     if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
     if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
+    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor);
+    if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor);
     if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
@@ -185,7 +189,7 @@ export const applyTheme = (colors) => {
     styleTag.innerHTML = `
         /* Firefox Scrollbar */
         * {
-            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
+            scrollbar-width: ${width === 'thin' ? 'thin' : 'auto'};
             scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
         }
 

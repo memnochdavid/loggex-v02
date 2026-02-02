@@ -1,84 +1,73 @@
 .accordionContainer {
-    width: 100%;
-    max-width: 800px;
-    margin: 2rem auto;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    box-shadow: var(--shadow-elevation-low);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .accordionItem {
-    border-bottom: 1px solid var(--color-border);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
 }
 
-.accordionItem:last-child {
-    border-bottom: none;
+.activeItem {
+  /* Borde activo */
+  border-color: var(--accordion-header-active-bg, var(--datatable-header-active-bg, var(--color-primary-300)));
+  box-shadow: var(--shadow-sm);
 }
 
 .accordionHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    background-color: var(--accordion-header-bg, var(--color-background-secondary));
-    color: var(--accordion-header-text, var(--color-text-main));
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1.1rem;
-    transition: background-color 0.2s ease;
+  padding: var(--space-4);
+  /* Fondo y Texto Cabecera Normal */
+  background-color: var(--accordion-header-bg, var(--datatable-header-bg, var(--bg-card)));
+  color: var(--accordion-header-text, var(--datatable-header-text, var(--text-main)));
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.accordionHeader:hover {
-    filter: brightness(0.95);
+.activeHeader {
+  /* Fondo y Texto Cabecera Activa */
+  background-color: var(--accordion-header-active-bg, var(--datatable-header-active-bg, var(--color-gray-50)));
+  color: var(--accordion-header-active-text, var(--datatable-header-active-text, var(--text-main)));
 }
 
-.headerActions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.headerContent {
+  flex: 1;
+  color: inherit; /* Asegurar que hereda el color del padre */
 }
 
-.addButton {
-    background-color: var(--color-button-primary);
-    color: var(--color-button-primary-text);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius-small);
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s ease;
-}
-
-.addButton:hover {
-    background-color: var(--color-button-primary-hover);
-}
-
-.chevron {
-    transition: transform 0.3s ease;
-}
-
-.chevron.open {
-    transform: rotate(180deg);
+.headerIcon {
+  color: inherit; /* Heredar color del texto del header */
+  opacity: 0.7;
+  margin-left: var(--space-2);
 }
 
 .accordionContentWrapper {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease-out;
-    background-color: var(--accordion-content-bg, var(--color-background-light));
-    color: var(--accordion-content-text, var(--color-text-secondary));
-}
-
-.accordionContentWrapper.open {
-    grid-template-rows: 1fr;
-    border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border-color);
+  animation: slideDown 0.2s ease-out;
 }
 
 .accordionContent {
-    overflow: hidden;
+  padding: var(--space-4);
+  /* Fondo y Texto del Contenido (Personalizables) */
+  background-color: var(--accordion-content-bg, var(--bg-card));
+  color: var(--accordion-content-text, var(--text-main));
 }
 
-.accordionInner {
-    padding: 1rem 1.5rem;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

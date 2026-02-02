@@ -43,16 +43,9 @@ class PersonalizacionController extends AbstractController
             }
         }
 
-        $content = $request->getContent();
-        $data = json_decode($content, true);
+        $data = json_decode($request->getContent(), true);
 
-        $logger->info('DATOS RECIBIDOS EN UPDATE (RAW): ' . $content);
-
-        if (isset($data['savedThemes'])) {
-            $logger->info('SAVED THEMES RECIBIDO (Payload):', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
-        } else {
-            $logger->info('SAVED THEMES NO PRESENTE EN DATA');
-        }
+        $logger->info('DATOS RECIBIDOS EN UPDATE:', $data);
 
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
@@ -125,9 +118,11 @@ class PersonalizacionController extends AbstractController
         if (isset($data['datatablePaginationButtonActiveBgColor'])) $personalizacion->setDatatablePaginationButtonActiveBgColor($data['datatablePaginationButtonActiveBgColor']);
         if (isset($data['datatablePaginationButtonActiveTextColor'])) $personalizacion->setDatatablePaginationButtonActiveTextColor($data['datatablePaginationButtonActiveTextColor']);
 
-        // Accordion
+        // Accordion (Mobile) - NUEVOS CAMPOS
         if (isset($data['accordionHeaderBgColor'])) $personalizacion->setAccordionHeaderBgColor($data['accordionHeaderBgColor']);
         if (isset($data['accordionHeaderTextColor'])) $personalizacion->setAccordionHeaderTextColor($data['accordionHeaderTextColor']);
+        if (isset($data['accordionHeaderActiveBgColor'])) $personalizacion->setAccordionHeaderActiveBgColor($data['accordionHeaderActiveBgColor']);
+        if (isset($data['accordionHeaderActiveTextColor'])) $personalizacion->setAccordionHeaderActiveTextColor($data['accordionHeaderActiveTextColor']);
         if (isset($data['accordionContentBgColor'])) $personalizacion->setAccordionContentBgColor($data['accordionContentBgColor']);
         if (isset($data['accordionContentTextColor'])) $personalizacion->setAccordionContentTextColor($data['accordionContentTextColor']);
 
@@ -141,38 +136,12 @@ class PersonalizacionController extends AbstractController
         if (isset($data['itemsPerPageImparticiones'])) $personalizacion->setItemsPerPageImparticiones((int)$data['itemsPerPageImparticiones']);
         if (isset($data['itemsPerPageHorarios'])) $personalizacion->setItemsPerPageHorarios((int)$data['itemsPerPageHorarios']);
 
-        // Temas Guardados
-        if (isset($data['savedThemes'])) {
-            $personalizacion->setSavedThemes($data['savedThemes']);
-        }
-
-        try {
-            $entityManager->persist($personalizacion);
-            $entityManager->flush();
-
-            // --- VERIFICACIÓN DE PERSISTENCIA ---
-            // Forzamos la limpieza del EntityManager para asegurar que leemos de la BD
-            $id = $personalizacion->getId();
-            $entityManager->clear();
-
-            $savedEntity = $entityManager->getRepository(Personalizacion::class)->find($id);
-
-            if ($savedEntity) {
-                $logger->info('VERIFICACIÓN BD - savedThemes:', ['data' => $savedEntity->getSavedThemes()]);
-                // Devolvemos la entidad RECARGADA para que el frontend vea lo que realmente hay en BD
-                $personalizacion = $savedEntity;
-            } else {
-                $logger->error('ERROR CRÍTICO: No se pudo recuperar la entidad después de guardar. ID: ' . $id);
-            }
-
-        } catch (\Exception $e) {
-            $logger->error('ERROR AL GUARDAR PERSONALIZACION: ' . $e->getMessage());
-            return $this->json(['message' => 'Error al guardar: ' . $e->getMessage()], 500);
-        }
+        $entityManager->persist($personalizacion);
+        $entityManager->flush();
 
         return $this->json([
             'message' => 'Configuración guardada correctamente',
-            'personalizacion' => $personalizacion
-        ], 200, [], ['groups' => ['personalizacion:read']]);
+            'personalizacion' => $data
+        ]);
     }
 }

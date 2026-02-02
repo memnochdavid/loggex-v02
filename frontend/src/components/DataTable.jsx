@@ -1,54 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
-
-/**
- * Componente interno para la vista móvil de una fila (tarjeta)
- */
-const MobileCard = ({ row, columns }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    // Usamos la primera columna como título, y el resto como contenido
-    const titleColumn = columns[0];
-    const contentColumns = columns.slice(1);
-
-    const getCellValue = (col, row) => {
-        if (typeof col.accessor === 'function') {
-            return col.accessor(row);
-        }
-        return row[col.accessor];
-    };
-
-    return (
-        <div className={styles.mobileCard}>
-            <div 
-                className={`${styles.mobileCardHeader} ${isOpen ? styles.expanded : ''}`} 
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span>
-                    {getCellValue(titleColumn, row)}
-                </span>
-                <ChevronDown 
-                    size={20} 
-                    className={`${styles.chevron} ${isOpen ? styles.open : ''}`}
-                />
-            </div>
-            
-            {isOpen && (
-                <div className={styles.mobileCardContent}>
-                    {contentColumns.map((col, index) => (
-                        <div key={index} className={styles.mobileRow}>
-                            <span className={styles.mobileLabel}>{col.header}</span>
-                            <span className={styles.mobileValue}>
-                                {getCellValue(col, row)}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
+import AccordionView from './AccordionView';
 
 /**
  * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string }
@@ -97,6 +50,17 @@ const DataTable = ({
         if (onItemsPerPageChange) {
             onItemsPerPageChange(Number(e.target.value));
         }
+    };
+
+    const getCellValue = (col, row) => {
+        if (typeof col.accessor === 'function') {
+            return col.accessor(row);
+        }
+        // Soporte para accessors anidados como 'centro.nombre'
+        if (typeof col.accessor === 'string' && col.accessor.includes('.')) {
+            return col.accessor.split('.').reduce((obj, key) => obj && obj[key], row);
+        }
+        return row[col.accessor];
     };
 
     const renderPagination = (position) => {
@@ -244,9 +208,7 @@ const DataTable = ({
                                     <tr key={row.id || row['@id'] || rowIndex}>
                                         {columns.map((col, colIndex) => (
                                             <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
-                                                {typeof col.accessor === 'function' 
-                                                    ? col.accessor(row) 
-                                                    : row[col.accessor]}
+                                                {getCellValue(col, row)}
                                             </td>
                                         ))}
                                     </tr>
@@ -259,19 +221,47 @@ const DataTable = ({
                 {renderPagination('bottom')}
             </div>
 
-            {/* Vista Móvil */}
+            {/* Vista Móvil con AccordionView */}
             <div className={styles.mobileView}>
                 <div className={styles.mobileContainer}>
+                    <div className={styles.mobilePaginationContainer}>
+                        {renderPagination('top')}
+                    </div>
+
                     {loading ? (
                         <div className={styles.emptyState}>Cargando datos...</div>
                     ) : (
-                        data.map((row, index) => (
-                            <MobileCard 
-                                key={row.id || row['@id'] || index} 
-                                row={row} 
-                                columns={columns} 
-                            />
-                        ))
+                        <AccordionView 
+                            data={data}
+                            renderHeader={(row) => {
+                                // Renderizar las primeras 3 columnas en la cabecera (Avatar, Nombre, Apellidos)
+                                const col0 = columns[0];
+                                const col1 = columns[1];
+                                const col2 = columns[2];
+                                return (
+                                    <div className={styles.mobileHeaderContent}>
+                                        {col0 && <div className={styles.mobileHeaderAvatar}>{getCellValue(col0, row)}</div>}
+                                        <div className={styles.mobileHeaderText}>
+                                            {col1 && <span>{getCellValue(col1, row)}</span>}
+                                            {col2 && <span style={{ marginLeft: '4px' }}>{getCellValue(col2, row)}</span>}
+                                        </div>
+                                    </div>
+                                );
+                            }}
+                            renderItem={(row) => (
+                                <div className={styles.mobileCardContent}>
+                                    {/* Mostrar TODAS las columnas excepto la primera (Avatar/ID) en el cuerpo */}
+                                    {columns.slice(1).map((col, index) => (
+                                        <div key={index} className={styles.mobileRow}>
+                                            <span className={styles.mobileLabel}>{col.header}</span>
+                                            <span className={styles.mobileValue}>
+                                                {getCellValue(col, row)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        />
                     )}
                     
                     <div className={styles.mobilePaginationContainer}>

@@ -187,57 +187,34 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    /*width: 100%;*/
     padding: 1rem;
 }
 
-.mobileCard {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease;
-}
-
-.mobileCard:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.mobileCardHeader {
-    padding: 1rem;
-    background-color: var(--datatable-header-bg, var(--color-gray-50));
-    color: var(--datatable-header-text, var(--color-gray-900));
-    font-weight: 600;
+.mobileHeaderContent {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    user-select: none;
-    border-bottom: 1px solid transparent;
-    transition: background-color 0.2s;
+    gap: 1rem;
+    font-weight: 600;
+    color: inherit; /* Heredar color del padre (que usa la variable) */
+    width: 100%;
 }
 
-.mobileCardHeader:hover {
-    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+.mobileHeaderAvatar {
+    flex-shrink: 0;
 }
 
-.mobileCardHeader.expanded {
-    border-bottom-color: var(--border-color);
+.mobileHeaderText {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mobileCardContent {
-    padding: 1rem;
-    background-color: var(--bg-card);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    animation: slideDown 0.2s ease-out;
-}
-
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .mobileRow {
@@ -266,16 +243,6 @@
     color: var(--text-main);
     word-break: break-word;
     line-height: 1.5;
-}
-
-.chevron {
-    transition: transform 0.2s ease;
-    color: var(--text-muted);
-}
-
-.chevron.open {
-    transform: rotate(180deg);
-    color: var(--color-primary-500);
 }
 
 .mobilePaginationContainer {

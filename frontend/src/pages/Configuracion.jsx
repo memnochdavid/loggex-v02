@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Home, User, Smartphone } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -73,11 +73,13 @@ const Configuracion = () => {
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
 
-        // Accordion
-        accordionHeaderBgColor: '#f1f5f9',
-        accordionHeaderTextColor: '#334155',
+        // Accordion (Mobile)
+        accordionHeaderBgColor: '#f8fafc', // Nuevo
+        accordionHeaderTextColor: '#64748b', // Nuevo
+        accordionHeaderActiveBgColor: '#e2e8f0', // Nuevo
+        accordionHeaderActiveTextColor: '#1e293b', // Nuevo
         accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#64748b',
+        accordionContentTextColor: '#334155',
 
         // Paginación (Items Per Page)
         itemsPerPageUsuarios: 20,
@@ -87,15 +89,10 @@ const Configuracion = () => {
         itemsPerPageModulos: 20,
         itemsPerPageMatriculas: 20,
         itemsPerPageImparticiones: 20,
-        itemsPerPageHorarios: 20,
-
-        // Temas Guardados (Inicializado vacío)
-        savedThemes: []
+        itemsPerPageHorarios: 20
     };
 
     const [settings, setSettings] = useState(defaultSettings);
-    const [themes, setThemes] = useState([]);
-    const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -104,14 +101,8 @@ const Configuracion = () => {
         if (user) {
             if (user.centro && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
-                if (user.centro.personalizacion.savedThemes) {
-                    setThemes(user.centro.personalizacion.savedThemes);
-                }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
-                if (user.centro.personalizacion.savedThemes) {
-                    setThemes(user.centro.personalizacion.savedThemes);
-                }
             }
         }
     }, [user, isSuperAdmin]);
@@ -129,49 +120,14 @@ const Configuracion = () => {
     };
 
     const handleReset = () => {
-        setSettings(prev => ({
-            ...defaultSettings,
-            savedThemes: prev.savedThemes // Mantener los temas guardados
-        }));
+        setSettings(defaultSettings);
         applyTheme(defaultSettings);
-    };
-
-    const handleSaveTheme = () => {
-        if (!newThemeName.trim()) return;
-        
-        const { savedThemes, ...themeSettings } = settings;
-        
-        const newTheme = {
-            name: newThemeName,
-            settings: themeSettings
-        };
-        
-        const updatedThemes = [...themes, newTheme];
-        setThemes(updatedThemes);
-        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
-        setNewThemeName('');
-    };
-
-    const handleLoadTheme = (theme) => {
-        setSettings(prev => ({
-            ...prev,
-            ...theme.settings,
-            savedThemes: themes
-        }));
-    };
-
-    const handleDeleteTheme = (index) => {
-        const updatedThemes = themes.filter((_, i) => i !== index);
-        setThemes(updatedThemes);
-        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
-
-        console.log('Enviando configuración:', settings);
 
         try {
             const response = await fetch('https://localhost:9443/api/configuracion/update', {
@@ -301,7 +257,7 @@ const Configuracion = () => {
                                 color: '#94a3b8', // Texto normal por defecto (simulado)
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <LayoutIcon size={16} /> Inicio
+                                <Home size={16} /> Inicio
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -311,7 +267,7 @@ const Configuracion = () => {
                                 color: settings.sidebarActiveTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <LayoutIcon size={16} /> Perfil (Activo)
+                                <User size={16} /> Perfil (Activo)
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -320,7 +276,7 @@ const Configuracion = () => {
                                 color: settings.sidebarHoverTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <LayoutIcon size={16} /> Menú (Hover)
+                                <List size={16} /> Menú (Hover)
                             </div>
                         </div>
                     </div>
@@ -378,13 +334,16 @@ const Configuracion = () => {
                             borderRadius: '6px',
                             padding: '10px'
                         }}>
+                            {/* Simulamos visualmente el scrollbar con CSS inline para el contenedor, 
+                                aunque el estilo real se aplica globalmente. 
+                                Aquí mostramos una representación estática para referencia visual. */}
                             <div style={{ 
                                 position: 'absolute', right: '20px', top: '60px', width: settings.scrollbarWidth || '12px', height: '40px', 
                                 backgroundColor: settings.scrollbarThumbColor, borderRadius: '4px', zIndex: 10 
                             }}></div>
-                            <div style={{
-                                position: 'absolute', right: '20px', top: '20px', width: settings.scrollbarWidth || '12px', height: '100px',
-                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5
+                            <div style={{ 
+                                position: 'absolute', right: '20px', top: '20px', width: settings.scrollbarWidth || '12px', height: '100px', 
+                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5 
                             }}></div>
                             
                             <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
@@ -444,8 +403,8 @@ const Configuracion = () => {
                             }}>Lunes</div>
                             <div style={{ 
                                 padding: '5px', 
-                                backgroundColor: settings.timetableSelectedHeaderBg,
-                                color: settings.timetableSelectedHeaderText,
+                                backgroundColor: settings.timetableSelectedHeaderBg, // RENOMBRADO
+                                color: settings.timetableSelectedHeaderText, // RENOMBRADO
                                 textAlign: 'center',
                                 borderBottom: '1px solid #e2e8f0',
                                 fontWeight: 'bold'
@@ -460,7 +419,7 @@ const Configuracion = () => {
                                 textAlign: 'center'
                             }}>08:00</div>
                             <div style={{ padding: '10px', borderRight: '1px solid #e2e8f0', backgroundColor: '#fff' }}>Clase A</div>
-                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div>
+                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div> {/* RENOMBRADO */}
                         </div>
                     </div>
                 );
@@ -496,67 +455,47 @@ const Configuracion = () => {
                                 borderRadius: '2px'
                             }}>EDAD (Activo)</span>
                         </div>
-                        
-                        {/* Paginación en Tabla */}
-                        <div style={{ 
-                            backgroundColor: settings.datatablePaginationBgColor, 
-                            color: settings.datatablePaginationTextColor,
-                            padding: '10px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginTop: '10px'
-                        }}>
-                            <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <div style={{ 
-                                    backgroundColor: settings.datatablePaginationButtonBgColor, 
-                                    color: settings.datatablePaginationButtonTextColor,
-                                    padding: '5px 10px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ccc'
-                                }}>1</div>
-                                <div style={{ 
-                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor, 
-                                    color: settings.datatablePaginationButtonHoverTextColor,
-                                    padding: '5px 10px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ccc'
-                                }}>2</div>
-                                <div style={{ 
-                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor, 
-                                    color: settings.datatablePaginationButtonActiveTextColor,
-                                    padding: '5px 10px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ccc'
-                                }}>3</div>
-                            </div>
-                        </div>
                     </div>
                 );
 
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Acordeón</h4>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Acordeón (Móvil)</h4>
+                        <div style={{ width: '250px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            {/* Header */}
                             <div style={{ 
-                                padding: '10px 15px', 
                                 backgroundColor: settings.accordionHeaderBgColor, 
                                 color: settings.accordionHeaderTextColor,
-                                fontWeight: '600'
+                                padding: '10px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderBottom: '1px solid #e2e8f0'
                             }}>
-                                Cabecera del Acordeón
+                                <span>Elemento 1</span>
+                                <span>▼</span>
                             </div>
+                            {/* Header Activo */}
                             <div style={{ 
-                                padding: '15px', 
+                                backgroundColor: settings.accordionHeaderActiveBgColor, 
+                                color: settings.accordionHeaderActiveTextColor,
+                                padding: '10px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderBottom: '1px solid #e2e8f0'
+                            }}>
+                                <span>Elemento 2 (Activo)</span>
+                                <span>▲</span>
+                            </div>
+                            {/* Content */}
+                            <div style={{ 
                                 backgroundColor: settings.accordionContentBgColor, 
                                 color: settings.accordionContentTextColor,
-                                fontSize: '14px'
+                                padding: '10px'
                             }}>
-                                Contenido del acordeón.
+                                <p style={{ margin: 0 }}>Detalles del elemento...</p>
                             </div>
                         </div>
                     </div>
@@ -604,62 +543,6 @@ const Configuracion = () => {
                     </div>
                 );
 
-            case 'themes':
-                return (
-                    <div className={styles.previewBox}>
-                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Resumen de Vistas Previas</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            
-                            {/* Resumen General */}
-                            <div>
-                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>General</h5>
-                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor, padding: '5px 10px', fontSize: '10px' }}>Header</div>
-                                    <div style={{ padding: '10px', backgroundColor: '#f8fafc' }}>
-                                        <h3 style={{ color: settings.primaryColor, margin: 0, fontSize: '14px' }}>Título</h3>
-                                        <p style={{ color: settings.secondaryColor, fontSize: '10px', margin: 0 }}>Subtítulo</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Resumen Sidebar */}
-                            <div>
-                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Sidebar</h5>
-                                <div style={{ backgroundColor: settings.sidebarColor, borderRadius: '6px', padding: '5px' }}>
-                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarActiveColor, color: settings.sidebarActiveTextColor, fontSize: '10px' }}>Activo</div>
-                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarHoverColor, color: settings.sidebarHoverTextColor, fontSize: '10px', marginTop: '2px' }}>Hover</div>
-                                </div>
-                            </div>
-
-                            {/* Resumen Botones */}
-                            <div>
-                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Botones</h5>
-                                <div style={{ display: 'flex', gap: '5px' }}>
-                                    <button style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Primario</button>
-                                    <button style={{ backgroundColor: settings.buttonSecondaryColor, color: settings.buttonSecondaryTextColor, border: '1px solid #ccc', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Secundario</button>
-                                </div>
-                            </div>
-
-                            {/* Resumen Tabla y Paginación */}
-                            <div>
-                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Tabla y Paginación</h5>
-                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor, padding: '5px', fontSize: '10px', fontWeight: 'bold' }}>CABECERA</div>
-                                    <div style={{ padding: '5px', fontSize: '10px' }}>Fila de datos...</div>
-                                    <div style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor, padding: '5px', fontSize: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span>{settings.itemsPerPageUsuarios} items</span>
-                                        <div style={{ display: 'flex', gap: '2px' }}>
-                                            <div style={{ backgroundColor: settings.datatablePaginationButtonActiveBgColor, color: settings.datatablePaginationButtonActiveTextColor, padding: '2px 5px', borderRadius: '2px' }}>1</div>
-                                            <div style={{ backgroundColor: settings.datatablePaginationButtonBgColor, color: settings.datatablePaginationButtonTextColor, padding: '2px 5px', borderRadius: '2px' }}>2</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                );
-
             default:
                 return null;
         }
@@ -674,9 +557,8 @@ const Configuracion = () => {
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
-        { id: 'accordion', label: 'Acordeón', icon: <Layers size={18} /> },
+        { id: 'accordion', label: 'Acordeón (Móvil)', icon: <Smartphone size={18} /> }, // Nueva pestaña
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
-        { id: 'themes', label: 'Temas', icon: <Palette size={18} /> },
     ];
 
     return (
@@ -773,6 +655,7 @@ const Configuracion = () => {
                                     {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
                                     {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
                                     {renderColorInput('Color Hover', 'scrollbarHoverColor')}
+                                    {renderTextInput('Grosor (ej: 12px, thin)', 'scrollbarWidth', '12px')}
                                 </div>
                             )}
 
@@ -821,6 +704,8 @@ const Configuracion = () => {
                                 <div className={styles.grid}>
                                     {renderColorInput('Fondo Cabecera', 'accordionHeaderBgColor')}
                                     {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
+                                    {renderColorInput('Fondo Cabecera Activa', 'accordionHeaderActiveBgColor')}
+                                    {renderColorInput('Texto Cabecera Activa', 'accordionHeaderActiveTextColor')}
                                     {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
                                     {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
                                 </div>
@@ -836,44 +721,6 @@ const Configuracion = () => {
                                     {renderNumberInput('Matrículas por página', 'itemsPerPageMatriculas')}
                                     {renderNumberInput('Imparticiones por página', 'itemsPerPageImparticiones')}
                                     {renderNumberInput('Horarios por página', 'itemsPerPageHorarios')}
-                                </div>
-                            )}
-
-                            {activeTab === 'themes' && (
-                                <div className={styles.themesContainer}>
-                                    <div className={styles.addTheme}>
-                                        <input 
-                                            type="text" 
-                                            value={newThemeName}
-                                            onChange={(e) => setNewThemeName(e.target.value)}
-                                            placeholder="Nombre del nuevo tema"
-                                            className={styles.colorTextInput}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
-                                            Crear Tema
-                                        </Button>
-                                    </div>
-                                    
-                                    <div className={styles.themesList}>
-                                        {themes.length === 0 ? (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No hay temas guardados.</p>
-                                        ) : (
-                                            themes.map((theme, index) => (
-                                                <div key={index} className={styles.themeItem}>
-                                                    <span className={styles.themeName}>{theme.name}</span>
-                                                    <div className={styles.themeActions}>
-                                                        <Button variant="secondary" onClick={() => handleLoadTheme(theme)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
-                                                            Cargar
-                                                        </Button>
-                                                        <Button variant="secondary" onClick={() => handleDeleteTheme(index)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', backgroundColor: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }}>
-                                                            Eliminar
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
                                 </div>
                             )}
                         </div>

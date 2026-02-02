@@ -1,10 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import styles from './TimeTable.module.css';
 import { X, Clock, MapPin, Users, User, CalendarOff } from 'lucide-react';
+import AccordionView from './AccordionView';
 
 const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     const [selectedEvent, setSelectedEvent] = useState(null);
+    
+    // Estado para acordeón móvil (día expandido)
+    const [expandedDayId, setExpandedDayId] = useState(() => {
+        if (!selectedDate) return 1;
+        const day = selectedDate.getDay();
+        return day === 0 || day > 5 ? 1 : day;
+    });
 
     // Obtener el índice del día seleccionado (1=Lunes, 5=Viernes)
     const selectedDayIndex = useMemo(() => {
@@ -150,7 +158,6 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         return (
             <div className={styles.tableContainer}>
                 <h3 className={styles.tableTitle}>{label}</h3>
-                {/* Usar minmax para evitar colapso de columnas */}
                 <div className={styles.grid} style={{ gridTemplateColumns: `80px repeat(5, minmax(100px, 1fr))` }}>
                     {/* Header Días */}
                     <div className={styles.headerCell}>Hora</div>
@@ -225,11 +232,93 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         );
     };
 
+    // Preparar datos para AccordionView
+    const daysData = days.map((dayName, index) => {
+        const dayIndex = index + 1;
+        const date = weekDates[index];
+        const festivo = getFestivoForDay(date);
+        
+        // Filtrar eventos para este día y ordenarlos por hora
+        const dayEvents = events
+            .filter(e => e.diaSemana === dayIndex)
+            .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+
+        return {
+            id: dayIndex,
+            name: dayName,
+            date: date,
+            festivo: festivo,
+            events: dayEvents
+        };
+    });
+
+    // Renderizado para móvil (Acordeón)
+    const renderMobileView = () => {
+        return (
+            <div className={styles.mobileView}>
+                <AccordionView 
+                    data={daysData}
+                    expandedId={expandedDayId}
+                    onToggle={(id) => setExpandedDayId(expandedDayId === id ? null : id)}
+                    renderHeader={(item, isExpanded) => {
+                        const isActive = selectedDayIndex === item.id;
+                        return (
+                            <div className={`${styles.dayHeaderContent} ${isActive ? styles.dayHeaderActive : ''}`}>
+                                <span className={styles.dayName}>{item.name}</span>
+                                <span className={styles.dateLabel} style={{ marginLeft: '8px' }}>
+                                    {item.date ? item.date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : ''}
+                                </span>
+                            </div>
+                        );
+                    }}
+                    renderItem={(item) => (
+                        <div className={styles.dayContent}>
+                            {item.festivo ? (
+                                <div className={styles.mobileFestivo}>
+                                    <CalendarOff size={24} style={{ marginBottom: '8px' }} />
+                                    <div>{item.festivo.nombre}</div>
+                                </div>
+                            ) : item.events.length > 0 ? (
+                                item.events.map((event, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={styles.mobileEvent}
+                                        onClick={() => setSelectedEvent(event)}
+                                    >
+                                        <div className={styles.mobileEventTime}>
+                                            {event.horaInicio} - {event.horaFin}
+                                        </div>
+                                        <div className={styles.mobileEventTitle}>
+                                            {event.modulo}
+                                        </div>
+                                        <div className={styles.mobileEventSubtitle}>
+                                            {event.grupo} • {event.aula}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className={styles.empty} style={{ padding: '1rem' }}>
+                                    No hay clases
+                                </div>
+                            )}
+                        </div>
+                    )}
+                />
+            </div>
+        );
+    };
+
     return (
         <div className={styles.container}>
-            {hasMorning && renderGrid(morningSlots, morningGrid, 'Turno de Mañana')}
-            {hasAfternoon && renderGrid(afternoonSlots, afternoonGrid, 'Turno de Tarde')}
-            {!hasMorning && !hasAfternoon && <p className={styles.empty}>No hay clases programadas.</p>}
+            {/* Vista Escritorio */}
+            <div className={styles.desktopView}>
+                {hasMorning && renderGrid(morningSlots, morningGrid, 'Turno de Mañana')}
+                {hasAfternoon && renderGrid(afternoonSlots, afternoonGrid, 'Turno de Tarde')}
+                {!hasMorning && !hasAfternoon && <p className={styles.empty}>No hay clases programadas.</p>}
+            </div>
+
+            {/* Vista Móvil */}
+            {renderMobileView()}
 
             {/* Modal de Detalle */}
             {selectedEvent && (
