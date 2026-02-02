@@ -46,6 +46,12 @@ const usePageTitle = (baseTitle = 'Loggex-Machina') => {
       case path === '/festivos':
         title = 'Festivos';
         break;
+      case path === '/apuntes':
+        title = 'Mis Apuntes';
+        break;
+      case path === '/mis-temarios':
+        title = 'Mis Temarios';
+        break;
       case path === '/perfil':
         title = 'Mi Perfil';
         break;
