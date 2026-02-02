@@ -496,6 +496,44 @@ const Configuracion = () => {
                                 borderRadius: '2px'
                             }}>EDAD (Activo)</span>
                         </div>
+                        
+                        {/* Paginación en Tabla */}
+                        <div style={{ 
+                            backgroundColor: settings.datatablePaginationBgColor, 
+                            color: settings.datatablePaginationTextColor,
+                            padding: '10px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '10px'
+                        }}>
+                            <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonBgColor, 
+                                    color: settings.datatablePaginationButtonTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>1</div>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor, 
+                                    color: settings.datatablePaginationButtonHoverTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>2</div>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor, 
+                                    color: settings.datatablePaginationButtonActiveTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>3</div>
+                            </div>
+                        </div>
                     </div>
                 );
 
@@ -562,6 +600,62 @@ const Configuracion = () => {
                                     border: '1px solid #ccc'
                                 }}>3</div>
                             </div>
+                        </div>
+                    </div>
+                );
+
+            case 'themes':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Resumen de Vistas Previas</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            
+                            {/* Resumen General */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>General</h5>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                    <div style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor, padding: '5px 10px', fontSize: '10px' }}>Header</div>
+                                    <div style={{ padding: '10px', backgroundColor: '#f8fafc' }}>
+                                        <h3 style={{ color: settings.primaryColor, margin: 0, fontSize: '14px' }}>Título</h3>
+                                        <p style={{ color: settings.secondaryColor, fontSize: '10px', margin: 0 }}>Subtítulo</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Resumen Sidebar */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Sidebar</h5>
+                                <div style={{ backgroundColor: settings.sidebarColor, borderRadius: '6px', padding: '5px' }}>
+                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarActiveColor, color: settings.sidebarActiveTextColor, fontSize: '10px' }}>Activo</div>
+                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarHoverColor, color: settings.sidebarHoverTextColor, fontSize: '10px', marginTop: '2px' }}>Hover</div>
+                                </div>
+                            </div>
+
+                            {/* Resumen Botones */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Botones</h5>
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <button style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Primario</button>
+                                    <button style={{ backgroundColor: settings.buttonSecondaryColor, color: settings.buttonSecondaryTextColor, border: '1px solid #ccc', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Secundario</button>
+                                </div>
+                            </div>
+
+                            {/* Resumen Tabla y Paginación */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Tabla y Paginación</h5>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                    <div style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor, padding: '5px', fontSize: '10px', fontWeight: 'bold' }}>CABECERA</div>
+                                    <div style={{ padding: '5px', fontSize: '10px' }}>Fila de datos...</div>
+                                    <div style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor, padding: '5px', fontSize: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>{settings.itemsPerPageUsuarios} items</span>
+                                        <div style={{ display: 'flex', gap: '2px' }}>
+                                            <div style={{ backgroundColor: settings.datatablePaginationButtonActiveBgColor, color: settings.datatablePaginationButtonActiveTextColor, padding: '2px 5px', borderRadius: '2px' }}>1</div>
+                                            <div style={{ backgroundColor: settings.datatablePaginationButtonBgColor, color: settings.datatablePaginationButtonTextColor, padding: '2px 5px', borderRadius: '2px' }}>2</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 );
@@ -757,7 +851,7 @@ const Configuracion = () => {
                                             style={{ flex: 1 }}
                                         />
                                         <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
-                                            Guardar Tema Actual
+                                            Crear Tema
                                         </Button>
                                     </div>
                                     
