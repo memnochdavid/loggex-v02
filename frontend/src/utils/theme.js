@@ -38,6 +38,7 @@ export const applyTheme = (colors) => {
         sidebarHoverTextColor: '#ffffff',
         textMainColor: '#334155',
         textSecondaryColor: '#64748b',
+        specialTextColor: '#ffffff', // NUEVO
         buttonPrimaryColor: '#6366f1',
         buttonPrimaryTextColor: '#ffffff',
         buttonSecondaryColor: '#ffffff',
@@ -73,10 +74,8 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
-        accordionHeaderBgColor: '#f8fafc', // Nuevo
-        accordionHeaderTextColor: '#64748b', // Nuevo
-        accordionHeaderActiveBgColor: '#e2e8f0', // Nuevo
-        accordionHeaderActiveTextColor: '#1e293b', // Nuevo
+        accordionHeaderBgColor: '#f8fafc',
+        accordionHeaderTextColor: '#64748b',
         accordionContentBgColor: '#ffffff',
         accordionContentTextColor: '#334155'
     };
@@ -111,6 +110,9 @@ export const applyTheme = (colors) => {
     }
     if (theme.textSecondaryColor) {
         root.style.setProperty('--text-muted', theme.textSecondaryColor);
+    }
+    if (theme.specialTextColor) { // NUEVO
+        root.style.setProperty('--text-special', theme.specialTextColor);
     }
 
     // 4. Botones
@@ -168,11 +170,9 @@ export const applyTheme = (colors) => {
     if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', theme.datatablePaginationButtonActiveBgColor);
     if (theme.datatablePaginationButtonActiveTextColor) root.style.setProperty('--datatable-pagination-btn-active-text', theme.datatablePaginationButtonActiveTextColor);
 
-    // 8. Accordion (Mobile)
+    // 8. Accordion
     if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
     if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
-    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor);
-    if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor);
     if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
@@ -189,7 +189,7 @@ export const applyTheme = (colors) => {
     styleTag.innerHTML = `
         /* Firefox Scrollbar */
         * {
-            scrollbar-width: ${width === 'thin' ? 'thin' : 'auto'};
+            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
             scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
         }
 

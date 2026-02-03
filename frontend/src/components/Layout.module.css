@@ -14,7 +14,7 @@
 
 .content {
     flex: 1;
-    padding: var(--space-8);
+    padding: var(--space-4);
     background-color: var(--color-gray-50);
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
 }

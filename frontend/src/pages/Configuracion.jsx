@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Home, User, Smartphone, Layers, Plus, Trash2 } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers } from 'lucide-react';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -25,6 +25,7 @@ const Configuracion = () => {
         // Textos
         textMainColor: '#334155',
         textSecondaryColor: '#64748b',
+        specialTextColor: '#ffffff', // NUEVO
         
         // Botones
         buttonPrimaryColor: '#6366f1',
@@ -73,13 +74,11 @@ const Configuracion = () => {
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
 
-        // Accordion (Mobile)
-        accordionHeaderBgColor: '#f8fafc',
-        accordionHeaderTextColor: '#64748b',
-        accordionHeaderActiveBgColor: '#e2e8f0',
-        accordionHeaderActiveTextColor: '#1e293b',
+        // Accordion
+        accordionHeaderBgColor: '#f1f5f9',
+        accordionHeaderTextColor: '#334155',
         accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#334155',
+        accordionContentTextColor: '#64748b',
 
         // Paginación (Items Per Page)
         itemsPerPageUsuarios: 20,
@@ -91,69 +90,29 @@ const Configuracion = () => {
         itemsPerPageImparticiones: 20,
         itemsPerPageHorarios: 20,
 
-        // Temas Guardados
+        // Temas Guardados (Inicializado vacío)
         savedThemes: []
     };
 
-    // Temas Predefinidos (Hardcodeados para referencia rápida)
-    const predefinedThemes = {
-        default: { ...defaultSettings, name: 'Loggex Default' },
-        dark: {
-            ...defaultSettings,
-            name: 'Modo Oscuro (Beta)',
-            primaryColor: '#818cf8',
-            secondaryColor: '#94a3b8',
-            sidebarColor: '#0f172a',
-            sidebarActiveColor: '#1e293b',
-            textMainColor: '#e2e8f0',
-            textSecondaryColor: '#94a3b8',
-            headerFooterColor: '#0f172a',
-            headerFooterTextColor: '#f8fafc',
-            accordionContentBgColor: '#1e293b',
-            accordionContentTextColor: '#e2e8f0',
-            // ... más ajustes oscuros
-        },
-        blue: {
-            ...defaultSettings,
-            name: 'Azul Corporativo',
-            primaryColor: '#2563eb',
-            sidebarColor: '#1e3a8a',
-            headerFooterColor: '#1e3a8a',
-            buttonPrimaryColor: '#2563eb',
-            calendarSelectedBgColor: '#2563eb',
-        },
-        green: {
-            ...defaultSettings,
-            name: 'Verde Naturaleza',
-            primaryColor: '#059669',
-            sidebarColor: '#064e3b',
-            headerFooterColor: '#064e3b',
-            buttonPrimaryColor: '#059669',
-            calendarSelectedBgColor: '#059669',
-        },
-        purple: {
-            ...defaultSettings,
-            name: 'Púrpura Creativo',
-            primaryColor: '#7c3aed',
-            sidebarColor: '#4c1d95',
-            headerFooterColor: '#4c1d95',
-            buttonPrimaryColor: '#7c3aed',
-            calendarSelectedBgColor: '#7c3aed',
-        }
-    };
-
     const [settings, setSettings] = useState(defaultSettings);
-    const [activeTab, setActiveTab] = useState('themes');
+    const [themes, setThemes] = useState([]);
+    const [newThemeName, setNewThemeName] = useState('');
+    const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
-    const [newThemeName, setNewThemeName] = useState('');
 
     useEffect(() => {
         if (user) {
             if (user.centro && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                if (user.centro.personalizacion.savedThemes) {
+                    setThemes(user.centro.personalizacion.savedThemes);
+                }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                if (user.centro.personalizacion.savedThemes) {
+                    setThemes(user.centro.personalizacion.savedThemes);
+                }
             }
         }
     }, [user, isSuperAdmin]);
@@ -170,66 +129,42 @@ const Configuracion = () => {
         }));
     };
 
-    const handleApplyTheme = (theme) => {
-        if (window.confirm(`¿Aplicar el tema "${theme.name}"? Se sobrescribirán los colores actuales.`)) {
-            // Mantenemos la configuración de paginación y temas guardados
-            const newSettings = {
-                ...theme,
-                itemsPerPageUsuarios: settings.itemsPerPageUsuarios,
-                itemsPerPageCentros: settings.itemsPerPageCentros,
-                itemsPerPageCiclos: settings.itemsPerPageCiclos,
-                itemsPerPageGrupos: settings.itemsPerPageGrupos,
-                itemsPerPageModulos: settings.itemsPerPageModulos,
-                itemsPerPageMatriculas: settings.itemsPerPageMatriculas,
-                itemsPerPageImparticiones: settings.itemsPerPageImparticiones,
-                itemsPerPageHorarios: settings.itemsPerPageHorarios,
-                savedThemes: settings.savedThemes || []
-            };
-            setSettings(newSettings);
-            setMessage({ type: 'success', text: `Tema "${theme.name}" aplicado. Recuerda guardar para persistir los cambios.` });
-        }
+    const handleReset = () => {
+        setSettings(prev => ({
+            ...defaultSettings,
+            savedThemes: prev.savedThemes // Mantener los temas guardados
+        }));
+        applyTheme(defaultSettings);
     };
 
     const handleSaveTheme = () => {
-        if (!newThemeName.trim()) {
-            alert('Por favor, introduce un nombre para el tema.');
-            return;
-        }
-
-        const newTheme = {
-            ...settings,
-            name: newThemeName,
-            savedThemes: undefined // No guardar recursivamente la lista de temas dentro de un tema
-        };
-
-        const updatedThemes = [...(settings.savedThemes || []), newTheme];
+        if (!newThemeName.trim()) return;
         
+        const { savedThemes, ...themeSettings } = settings;
+        
+        const newTheme = {
+            name: newThemeName,
+            settings: themeSettings
+        };
+        
+        const updatedThemes = [...themes, newTheme];
+        setThemes(updatedThemes);
+        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
+        setNewThemeName('');
+    };
+
+    const handleLoadTheme = (theme) => {
         setSettings(prev => ({
             ...prev,
-            savedThemes: updatedThemes
+            ...theme.settings,
+            savedThemes: themes
         }));
-        
-        setNewThemeName('');
-        setMessage({ type: 'success', text: `Tema "${newThemeName}" añadido a la lista. Guarda la configuración para persistirlo.` });
     };
 
-    const handleDeleteTheme = (index, e) => {
-        e.stopPropagation();
-        if (window.confirm('¿Eliminar este tema guardado?')) {
-            const updatedThemes = [...(settings.savedThemes || [])];
-            updatedThemes.splice(index, 1);
-            setSettings(prev => ({
-                ...prev,
-                savedThemes: updatedThemes
-            }));
-        }
-    };
-
-    const handleReset = () => {
-        if (window.confirm('¿Restablecer a los valores por defecto?')) {
-            setSettings({ ...defaultSettings, savedThemes: settings.savedThemes });
-            applyTheme(defaultSettings);
-        }
+    const handleDeleteTheme = (index) => {
+        const updatedThemes = themes.filter((_, i) => i !== index);
+        setThemes(updatedThemes);
+        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
     };
 
     const handleSubmit = async (e) => {
@@ -328,29 +263,6 @@ const Configuracion = () => {
 
     const renderPreview = () => {
         switch (activeTab) {
-            case 'themes':
-                return (
-                    <div className={styles.previewBox}>
-                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa del Tema Actual</h4>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                            <div style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor, padding: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: 'bold' }}>Logo</span>
-                                <span>Usuario</span>
-                            </div>
-                            <div style={{ display: 'flex', height: '150px' }}>
-                                <div style={{ width: '60px', backgroundColor: settings.sidebarColor, padding: '10px' }}>
-                                    <div style={{ width: '20px', height: '20px', backgroundColor: settings.sidebarActiveColor, borderRadius: '4px', marginBottom: '10px' }}></div>
-                                    <div style={{ width: '20px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
-                                </div>
-                                <div style={{ flex: 1, padding: '20px', backgroundColor: '#f8fafc' }}>
-                                    <h3 style={{ color: settings.primaryColor, marginTop: 0 }}>Título</h3>
-                                    <button style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, border: 'none', padding: '5px 10px', borderRadius: '4px' }}>Botón</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            // ... (resto de casos igual que antes)
             case 'general':
                 return (
                     <div className={styles.previewBox}>
@@ -388,7 +300,7 @@ const Configuracion = () => {
                                 color: '#94a3b8', // Texto normal por defecto (simulado)
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <Home size={16} /> Inicio
+                                <LayoutIcon size={16} /> Inicio
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -398,7 +310,7 @@ const Configuracion = () => {
                                 color: settings.sidebarActiveTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <User size={16} /> Perfil (Activo)
+                                <LayoutIcon size={16} /> Perfil (Activo)
                             </div>
                             <div style={{ 
                                 padding: '10px', 
@@ -407,7 +319,7 @@ const Configuracion = () => {
                                 color: settings.sidebarHoverTextColor,
                                 display: 'flex', alignItems: 'center', gap: '10px'
                             }}>
-                                <List size={16} /> Menú (Hover)
+                                <LayoutIcon size={16} /> Menú (Hover)
                             </div>
                         </div>
                     </div>
@@ -425,6 +337,9 @@ const Configuracion = () => {
                             </p>
                             <p style={{ color: settings.textSecondaryColor, fontSize: '0.9em' }}>
                                 Este es un texto secundario o "muted", usado para metadatos, fechas o descripciones menos importantes.
+                            </p>
+                            <p style={{ color: settings.specialTextColor, fontSize: '1.1em', fontWeight: 'bold', background: '#334155', padding: '5px', borderRadius: '4px' }}>
+                                Este es el texto especial, para cabeceras de perfil, etc.
                             </p>
                         </div>
                     </div>
@@ -465,16 +380,13 @@ const Configuracion = () => {
                             borderRadius: '6px',
                             padding: '10px'
                         }}>
-                            {/* Simulamos visualmente el scrollbar con CSS inline para el contenedor, 
-                                aunque el estilo real se aplica globalmente. 
-                                Aquí mostramos una representación estática para referencia visual. */}
                             <div style={{ 
                                 position: 'absolute', right: '20px', top: '60px', width: settings.scrollbarWidth || '12px', height: '40px', 
                                 backgroundColor: settings.scrollbarThumbColor, borderRadius: '4px', zIndex: 10 
                             }}></div>
-                            <div style={{ 
-                                position: 'absolute', right: '20px', top: '20px', width: settings.scrollbarWidth || '12px', height: '100px', 
-                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5 
+                            <div style={{
+                                position: 'absolute', right: '20px', top: '20px', width: settings.scrollbarWidth || '12px', height: '100px',
+                                backgroundColor: settings.scrollbarTrackColor, borderRadius: '4px', zIndex: 5
                             }}></div>
                             
                             <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
@@ -534,8 +446,8 @@ const Configuracion = () => {
                             }}>Lunes</div>
                             <div style={{ 
                                 padding: '5px', 
-                                backgroundColor: settings.timetableSelectedHeaderBg, // RENOMBRADO
-                                color: settings.timetableSelectedHeaderText, // RENOMBRADO
+                                backgroundColor: settings.timetableSelectedHeaderBg,
+                                color: settings.timetableSelectedHeaderText,
                                 textAlign: 'center',
                                 borderBottom: '1px solid #e2e8f0',
                                 fontWeight: 'bold'
@@ -550,7 +462,7 @@ const Configuracion = () => {
                                 textAlign: 'center'
                             }}>08:00</div>
                             <div style={{ padding: '10px', borderRight: '1px solid #e2e8f0', backgroundColor: '#fff' }}>Clase A</div>
-                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div> {/* RENOMBRADO */}
+                            <div style={{ padding: '10px', backgroundColor: settings.timetableSelectedCellBg }}>Clase B</div>
                         </div>
                     </div>
                 );
@@ -586,47 +498,67 @@ const Configuracion = () => {
                                 borderRadius: '2px'
                             }}>EDAD (Activo)</span>
                         </div>
+                        
+                        {/* Paginación en Tabla */}
+                        <div style={{ 
+                            backgroundColor: settings.datatablePaginationBgColor, 
+                            color: settings.datatablePaginationTextColor,
+                            padding: '10px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '10px'
+                        }}>
+                            <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonBgColor, 
+                                    color: settings.datatablePaginationButtonTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>1</div>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor, 
+                                    color: settings.datatablePaginationButtonHoverTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>2</div>
+                                <div style={{ 
+                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor, 
+                                    color: settings.datatablePaginationButtonActiveTextColor,
+                                    padding: '5px 10px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ccc'
+                                }}>3</div>
+                            </div>
+                        </div>
                     </div>
                 );
 
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Acordeón (Móvil)</h4>
-                        <div style={{ width: '250px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                            {/* Header */}
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Acordeón</h4>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
                             <div style={{ 
+                                padding: '10px 15px', 
                                 backgroundColor: settings.accordionHeaderBgColor, 
                                 color: settings.accordionHeaderTextColor,
-                                padding: '10px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                borderBottom: '1px solid #e2e8f0'
+                                fontWeight: '600'
                             }}>
-                                <span>Elemento 1</span>
-                                <span>▼</span>
+                                Cabecera del Acordeón
                             </div>
-                            {/* Header Activo */}
                             <div style={{ 
-                                backgroundColor: settings.accordionHeaderActiveBgColor, 
-                                color: settings.accordionHeaderActiveTextColor,
-                                padding: '10px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                borderBottom: '1px solid #e2e8f0'
-                            }}>
-                                <span>Elemento 2 (Activo)</span>
-                                <span>▲</span>
-                            </div>
-                            {/* Content */}
-                            <div style={{ 
+                                padding: '15px', 
                                 backgroundColor: settings.accordionContentBgColor, 
                                 color: settings.accordionContentTextColor,
-                                padding: '10px'
+                                fontSize: '14px'
                             }}>
-                                <p style={{ margin: 0 }}>Detalles del elemento...</p>
+                                Contenido del acordeón.
                             </div>
                         </div>
                     </div>
@@ -674,13 +606,68 @@ const Configuracion = () => {
                     </div>
                 );
 
+            case 'themes':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Resumen de Vistas Previas</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            
+                            {/* Resumen General */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>General</h5>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                    <div style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor, padding: '5px 10px', fontSize: '10px' }}>Header</div>
+                                    <div style={{ padding: '10px', backgroundColor: '#f8fafc' }}>
+                                        <h3 style={{ color: settings.primaryColor, margin: 0, fontSize: '14px' }}>Título</h3>
+                                        <p style={{ color: settings.secondaryColor, fontSize: '10px', margin: 0 }}>Subtítulo</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Resumen Sidebar */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Sidebar</h5>
+                                <div style={{ backgroundColor: settings.sidebarColor, borderRadius: '6px', padding: '5px' }}>
+                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarActiveColor, color: settings.sidebarActiveTextColor, fontSize: '10px' }}>Activo</div>
+                                    <div style={{ padding: '5px', borderRadius: '4px', backgroundColor: settings.sidebarHoverColor, color: settings.sidebarHoverTextColor, fontSize: '10px', marginTop: '2px' }}>Hover</div>
+                                </div>
+                            </div>
+
+                            {/* Resumen Botones */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Botones</h5>
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <button style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Primario</button>
+                                    <button style={{ backgroundColor: settings.buttonSecondaryColor, color: settings.buttonSecondaryTextColor, border: '1px solid #ccc', padding: '4px 8px', borderRadius: '4px', fontSize: '10px' }}>Secundario</button>
+                                </div>
+                            </div>
+
+                            {/* Resumen Tabla y Paginación */}
+                            <div>
+                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Tabla y Paginación</h5>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                    <div style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor, padding: '5px', fontSize: '10px', fontWeight: 'bold' }}>CABECERA</div>
+                                    <div style={{ padding: '5px', fontSize: '10px' }}>Fila de datos...</div>
+                                    <div style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor, padding: '5px', fontSize: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>{settings.itemsPerPageUsuarios} items</span>
+                                        <div style={{ display: 'flex', gap: '2px' }}>
+                                            <div style={{ backgroundColor: settings.datatablePaginationButtonActiveBgColor, color: settings.datatablePaginationButtonActiveTextColor, padding: '2px 5px', borderRadius: '2px' }}>1</div>
+                                            <div style={{ backgroundColor: settings.datatablePaginationButtonBgColor, color: settings.datatablePaginationButtonTextColor, padding: '2px 5px', borderRadius: '2px' }}>2</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                );
+
             default:
                 return null;
         }
     };
 
     const tabs = [
-        { id: 'themes', label: 'Temas', icon: <Layers size={18} /> },
         { id: 'general', label: 'General', icon: <Palette size={18} /> },
         { id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18} /> },
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
@@ -689,8 +676,9 @@ const Configuracion = () => {
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
-        { id: 'accordion', label: 'Acordeón (Móvil)', icon: <Smartphone size={18} /> },
+        { id: 'accordion', label: 'Acordeón', icon: <Layers size={18} /> },
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
+        { id: 'themes', label: 'Temas', icon: <Palette size={18} /> },
     ];
 
     return (
@@ -747,70 +735,6 @@ const Configuracion = () => {
 
                     <div className={styles.content}>
                         <div className={styles.formSection}>
-                            {activeTab === 'themes' && (
-                                <div>
-
-                                    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--bg-body)', borderRadius: '8px' }}>
-                                        <h4 style={{ marginTop: 0 }}>Guardar configuración actual como tema</h4>
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <input
-                                                type="text"
-                                                placeholder="Nombre del tema..."
-                                                value={newThemeName}
-                                                onChange={(e) => setNewThemeName(e.target.value)}
-                                                className={styles.colorTextInput}
-                                                style={{ flex: 1 }}
-                                            />
-                                            <Button onClick={handleSaveTheme}>
-                                                <Plus size={18} style={{ marginRight: '8px' }} />
-                                                Crear
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    <h3 style={{ marginTop: '1rem' }}>Temas Guardados</h3>
-                                    {settings.savedThemes && settings.savedThemes.length > 0 ? (
-                                        <div className={styles.grid}>
-                                            {settings.savedThemes.map((theme, index) => (
-                                                <div key={index} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
-                                                    <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
-                                                        <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
-                                                    </div>
-                                                    <div className={styles.themeName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span>{theme.name}</span>
-                                                        <button
-                                                            onClick={(e) => handleDeleteTheme(index, e)}
-                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                                                            title="Eliminar tema"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p style={{ color: 'var(--text-muted)' }}>No tienes temas guardados. Puedes guardar nuevos según tus preferencias actuales.</p>
-                                    )}
-
-                                    <h3 style={{ marginTop: '2rem' }}>Temas Predefinidos</h3>
-                                    <div className={styles.grid}>
-                                        {Object.entries(predefinedThemes).map(([key, theme]) => (
-                                            <div key={key} className={styles.themeCard} onClick={() => handleApplyTheme(theme)}>
-                                                <div className={styles.themePreview} style={{ backgroundColor: theme.primaryColor }}>
-                                                    <div style={{ backgroundColor: theme.sidebarColor, width: '30%', height: '100%' }}></div>
-                                                </div>
-                                                <div className={styles.themeName}>{theme.name}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-
-
-
-                                </div>
-                            )}
-
                             {activeTab === 'general' && (
                                 <div className={styles.grid}>
                                     {renderColorInput('Color Principal', 'primaryColor')}
@@ -834,6 +758,7 @@ const Configuracion = () => {
                                 <div className={styles.grid}>
                                     {renderColorInput('Texto Principal', 'textMainColor')}
                                     {renderColorInput('Texto Secundario', 'textSecondaryColor')}
+                                    {renderColorInput('Texto Especial (Cabeceras)', 'specialTextColor')}
                                 </div>
                             )}
 
@@ -851,7 +776,6 @@ const Configuracion = () => {
                                     {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
                                     {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
                                     {renderColorInput('Color Hover', 'scrollbarHoverColor')}
-                                    {renderTextInput('Grosor (ej: 12px, thin)', 'scrollbarWidth', '12px')}
                                 </div>
                             )}
 
@@ -900,8 +824,6 @@ const Configuracion = () => {
                                 <div className={styles.grid}>
                                     {renderColorInput('Fondo Cabecera', 'accordionHeaderBgColor')}
                                     {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
-                                    {renderColorInput('Fondo Cabecera Activa', 'accordionHeaderActiveBgColor')}
-                                    {renderColorInput('Texto Cabecera Activa', 'accordionHeaderActiveTextColor')}
                                     {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
                                     {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
                                 </div>
@@ -917,6 +839,44 @@ const Configuracion = () => {
                                     {renderNumberInput('Matrículas por página', 'itemsPerPageMatriculas')}
                                     {renderNumberInput('Imparticiones por página', 'itemsPerPageImparticiones')}
                                     {renderNumberInput('Horarios por página', 'itemsPerPageHorarios')}
+                                </div>
+                            )}
+
+                            {activeTab === 'themes' && (
+                                <div className={styles.themesContainer}>
+                                    <div className={styles.addTheme}>
+                                        <input 
+                                            type="text" 
+                                            value={newThemeName}
+                                            onChange={(e) => setNewThemeName(e.target.value)}
+                                            placeholder="Nombre del nuevo tema"
+                                            className={styles.colorTextInput}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
+                                            Crear Tema
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className={styles.themesList}>
+                                        {themes.length === 0 ? (
+                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No hay temas guardados.</p>
+                                        ) : (
+                                            themes.map((theme, index) => (
+                                                <div key={index} className={styles.themeItem}>
+                                                    <span className={styles.themeName}>{theme.name}</span>
+                                                    <div className={styles.themeActions}>
+                                                        <Button variant="secondary" onClick={() => handleLoadTheme(theme)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
+                                                            Cargar
+                                                        </Button>
+                                                        <Button variant="secondary" onClick={() => handleDeleteTheme(index)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', backgroundColor: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }}>
+                                                            Eliminar
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

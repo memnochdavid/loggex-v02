@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
-import { Camera, Save, User } from 'lucide-react';
+import { User, Mail, Phone, CreditCard, Building, Shield, Camera } from 'lucide-react';
 
 const Perfil = () => {
-    const { user } = useAuth();
-    const [formData, setFormData] = useState({
-        nombre: '',
-        email: '',
-        telefono: '',
-        cargo: ''
-    });
+    const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
-    const [avatarFile, setAvatarFile] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState(null);
-
-    const canEdit = user?.roles?.some(role => ['ROLE_ADMIN', 'ROLE_SUPERADMIN'].includes(role));
+    const [uploading, setUploading] = useState(false);
 
     const getImageUrl = (path) => {
         if (!path) return null;
@@ -29,50 +17,28 @@ const Perfil = () => {
     };
 
     useEffect(() => {
-        if (user) {
-            setFormData({
-                nombre: user.nombre || '',
-                email: user.email || '',
-                telefono: user.telefono || '', 
-                cargo: user.roles ? user.roles.map(r => r.replace('ROLE_', '')).join(', ') : ''
-            });
-            if (user.foto) {
-                setAvatarPreview(getImageUrl(user.foto));
-            }
+        if (user && user.foto) {
+            setAvatarPreview(getImageUrl(user.foto));
         }
     }, [user]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleAvatarChange = (e) => {
+    const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setAvatarFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarPreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+        if (!file) return;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setMessage(null);
-        
+        // Preview inmediato
+        const reader = new FileReader();
+        reader.onloadend = () => setAvatarPreview(reader.result);
+        reader.readAsDataURL(file);
+
+        // Subida
+        setUploading(true);
         try {
             const data = new FormData();
-            data.append('nombre', formData.nombre);
-            if (avatarFile) {
-                data.append('avatar', avatarFile);
-            }
+            // Enviamos solo el avatar, asumiendo que el endpoint soporta actualización parcial o ignoramos nombre
+            // Si el endpoint requiere nombre obligatorio, lo enviamos
+            data.append('nombre', user.nombre); 
+            data.append('avatar', file);
 
             const response = await fetch('https://localhost:9443/api/user/update', {
                 method: 'POST',
@@ -81,21 +47,24 @@ const Perfil = () => {
             });
 
             if (response.ok) {
-                const responseData = await response.json();
-                setMessage({ type: 'success', text: responseData.message });
-                setIsEditing(false);
-                setAvatarFile(null);
-                window.location.reload(); 
+                await checkAuth(); // Recargar usuario
             } else {
-                const errorData = await response.json();
-                setMessage({ type: 'error', text: errorData.message || 'Error al actualizar perfil' });
+                alert("Error al actualizar avatar");
             }
         } catch (error) {
-            setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
+            console.error(error);
+            alert("Error de conexión");
         } finally {
-            setLoading(false);
+            setUploading(false);
         }
     };
+
+    if (!user) return null;
+
+    const fullName = `${user.nombre} ${user.apellidos || ''}`.trim();
+    const roles = user.roles 
+        ? user.roles.filter(r => r !== 'ROLE_USER').map(r => r.replace('ROLE_', '')).join(', ') 
+        : 'Usuario';
 
     return (
         <Layout>
@@ -111,101 +80,77 @@ const Perfil = () => {
                                 </div>
                             )}
                             
-                            {isEditing && (
-                                <label className={styles.avatarUpload}>
-                                    <Camera size={16} />
-                                    <input 
-                                        type="file" 
-                                        accept="image/*" 
-                                        className={styles.hiddenInput}
-                                        onChange={handleAvatarChange}
-                                    />
-                                </label>
-                            )}
+                            {/* Opción de cambiar avatar siempre visible para el propio usuario */}
+                            <label className={styles.avatarUpload} title="Cambiar foto">
+                                <Camera size={16} />
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className={styles.hiddenInput}
+                                    onChange={handleAvatarChange}
+                                    disabled={uploading}
+                                />
+                            </label>
                         </div>
-                        <h1 className={styles.title}>{formData.nombre || 'Usuario'}</h1>
-                        <span className={styles.subtitle}>{formData.email}</span>
+                        <div className={styles.headerInfo}>
+                            <h1 className={styles.name}>{fullName}</h1>
+                            <span className={styles.roleBadge}>{roles}</span>
+                        </div>
                     </div>
 
-                    <form className={styles.form} onSubmit={handleSubmit}>
-                        {message && (
-                            <div style={{ 
-                                padding: '1rem', 
-                                marginBottom: '1rem', 
-                                borderRadius: '0.375rem',
-                                backgroundColor: message.type === 'error' ? '#fee2e2' : '#dcfce7',
-                                color: message.type === 'error' ? '#ef4444' : '#16a34a',
-                                textAlign: 'center'
-                            }}>
-                                {message.text}
+                    <div className={styles.content}>
+                        <div className={styles.section}>
+                            <h3 className={styles.sectionTitle}>
+                                <User size={20} /> Información Personal
+                            </h3>
+                            <div className={styles.grid}>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Nombre</span>
+                                    <span className={styles.value}>{user.nombre}</span>
+                                </div>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Apellidos</span>
+                                    <span className={styles.value}>{user.apellidos || <span className={styles.emptyValue}>No definido</span>}</span>
+                                </div>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>NIF / DNI</span>
+                                    <span className={styles.value}>{user.nif || <span className={styles.emptyValue}>No definido</span>}</span>
+                                </div>
                             </div>
-                        )}
-
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Nombre Completo</label>
-                            <input
-                                type="text"
-                                name="nombre"
-                                value={formData.nombre}
-                                onChange={handleChange}
-                                disabled={!isEditing}
-                                className={styles.input}
-                            />
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Correo Electrónico</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                disabled={true} 
-                                className={styles.input}
-                            />
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Rol / Cargo</label>
-                            <input
-                                type="text"
-                                value={formData.cargo}
-                                disabled={true}
-                                className={styles.input}
-                            />
-                        </div>
-
-                        {canEdit && (
-                            <div className={styles.actions}>
-                                {isEditing ? (
-                                    <>
-                                        <Button 
-                                            type="button" 
-                                            variant="secondary" 
-                                            onClick={() => {
-                                                setIsEditing(false);
-                                                setMessage(null);
-                                                setAvatarFile(null);
-                                                if (user) {
-                                                    setFormData(prev => ({ ...prev, nombre: user.nombre }));
-                                                    setAvatarPreview(user.foto ? getImageUrl(user.foto) : null);
-                                                }
-                                            }}
-                                        >
-                                            Cancelar
-                                        </Button>
-                                        <Button type="submit" disabled={loading}>
-                                            <Save size={18} style={{ marginRight: '8px' }} />
-                                            {loading ? 'Guardando...' : 'Guardar Cambios'}
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <Button type="button" onClick={() => setIsEditing(true)}>
-                                        Editar Perfil
-                                    </Button>
-                                )}
+                        <div className={styles.section}>
+                            <h3 className={styles.sectionTitle}>
+                                <Mail size={20} /> Contacto
+                            </h3>
+                            <div className={styles.grid}>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Email</span>
+                                    <span className={styles.value}>{user.email}</span>
+                                </div>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Teléfono</span>
+                                    <span className={styles.value}>{user.telefono || <span className={styles.emptyValue}>No definido</span>}</span>
+                                </div>
                             </div>
-                        )}
-                    </form>
+                        </div>
+
+                        <div className={styles.section}>
+                            <h3 className={styles.sectionTitle}>
+                                <Building size={20} /> Información Académica
+                            </h3>
+                            <div className={styles.grid}>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Centro</span>
+                                    <span className={styles.value}>{user.centro ? user.centro.nombre : <span className={styles.emptyValue}>Sin centro asignado</span>}</span>
+                                </div>
+                                <div className={styles.field}>
+                                    <span className={styles.label}>Rol en la App</span>
+                                    <span className={styles.value}>{user.rol_app || roles}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </Layout>

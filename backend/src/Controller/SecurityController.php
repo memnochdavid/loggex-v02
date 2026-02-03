@@ -9,6 +9,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class SecurityController extends AbstractController
 {
@@ -39,14 +40,24 @@ class SecurityController extends AbstractController
     }
 
     #[Route('/api/me', name: 'api_me', methods: ['GET'])]
-    public function me(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
+    public function me(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager, LoggerInterface $logger): JsonResponse
     {
         if (null === $user) {
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
+        $userData = $this->formatUser($user, $entityManager);
+
+        // Log para depuración de temas guardados
+        if (isset($userData['centro']['personalizacion']['savedThemes'])) {
+            $themes = $userData['centro']['personalizacion']['savedThemes'];
+            $logger->info('API/ME - Temas guardados encontrados:', ['count' => count($themes), 'data' => $themes]);
+        } else {
+            $logger->info('API/ME - No se encontraron temas guardados o estructura inesperada.');
+        }
+
         return $this->json([
-            'user' => $this->formatUser($user, $entityManager)
+            'user' => $userData
         ]);
     }
 
@@ -89,6 +100,9 @@ class SecurityController extends AbstractController
             'email' => $user->getEmail(),
             'nombre' => $user->getNombre(),
             'apellidos' => $user->getApellidos(),
+            'telefono' => $user->getTelefono(),
+            'nif' => $user->getNif(),
+            'rol_app' => $user->getRolApp(),
             'roles' => $user->getRoles(),
             'foto' => $user->getFoto(),
             'centro' => $centroData,
@@ -101,7 +115,7 @@ class SecurityController extends AbstractController
         $v = fn($val, $default) => $val !== null ? $val : $default;
 
         return [
-            'savedThemes' => $p->getSavedThemes() ?? [], // AÑADIDO
+            'savedThemes' => $p->getSavedThemes() ?? [],
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
@@ -111,6 +125,7 @@ class SecurityController extends AbstractController
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
             'textMainColor' => $v($p->getTextMainColor(), '#334155'),
             'textSecondaryColor' => $v($p->getTextSecondaryColor(), '#64748b'),
+            'specialTextColor' => $v($p->getSpecialTextColor(), '#ffffff'), // NUEVO
             'buttonPrimaryColor' => $v($p->getButtonPrimaryColor(), '#6366f1'),
             'buttonPrimaryTextColor' => $v($p->getButtonPrimaryTextColor(), '#ffffff'),
             'buttonSecondaryColor' => $v($p->getButtonSecondaryColor(), '#ffffff'),
@@ -148,8 +163,6 @@ class SecurityController extends AbstractController
             'datatablePaginationButtonActiveTextColor' => $v($p->getDatatablePaginationButtonActiveTextColor(), '#1e293b'),
             'accordionHeaderBgColor' => $v($p->getAccordionHeaderBgColor(), '#f8fafc'),
             'accordionHeaderTextColor' => $v($p->getAccordionHeaderTextColor(), '#64748b'),
-            'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#e2e8f0'),
-            'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#1e293b'),
             'accordionContentBgColor' => $v($p->getAccordionContentBgColor(), '#ffffff'),
             'accordionContentTextColor' => $v($p->getAccordionContentTextColor(), '#334155'),
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),

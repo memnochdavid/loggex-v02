@@ -11,7 +11,6 @@ use ApiPlatform\Metadata\Put;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\State\SoftDeleteProcessor;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -39,11 +38,6 @@ class Personalizacion
     #[ORM\Column]
     #[Groups(['personalizacion:read', 'centro:read', 'user:read'])]
     private ?int $id = null;
-
-    // --- Temas Guardados (JSON) ---
-    #[ORM\Column(type: Types::JSON, nullable: true)]
-    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?array $savedThemes = [];
 
     // --- General ---
     #[ORM\Column(length: 7)]
@@ -83,6 +77,10 @@ class Personalizacion
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $textSecondaryColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $specialTextColor = '#ffffff'; // NUEVO
 
     // --- Botones ---
     #[ORM\Column(length: 7)]
@@ -230,22 +228,14 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $datatablePaginationButtonActiveTextColor = '#1e293b';
 
-    // --- Accordion (Mobile) ---
+    // --- Accordion ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderBgColor = '#f8fafc';
+    private ?string $accordionHeaderBgColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderTextColor = '#64748b';
-
-    #[ORM\Column(length: 7)]
-    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveBgColor = '#e2e8f0';
-
-    #[ORM\Column(length: 7)]
-    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveTextColor = '#1e293b';
+    private ?string $accordionHeaderTextColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -253,7 +243,7 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionContentTextColor = '#334155';
+    private ?string $accordionContentTextColor = '#64748b';
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -288,6 +278,11 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private int $itemsPerPageHorarios = 20;
 
+    // --- Temas Guardados ---
+    #[ORM\Column(name: 'temas_guardados', type: 'json', nullable: true)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?array $savedThemes = [];
+
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
@@ -297,19 +292,7 @@ class Personalizacion
         return $this->id;
     }
 
-    public function getSavedThemes(): ?array
-    {
-        return $this->savedThemes;
-    }
-
-    public function setSavedThemes(?array $savedThemes): static
-    {
-        $this->savedThemes = $savedThemes;
-        return $this;
-    }
-
-    // ... (Resto de Getters y Setters) ...
-    // Incluyo los que ya estaban para asegurar que el archivo esté completo
+    // ... (Getters y Setters) ...
 
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
@@ -337,6 +320,9 @@ class Personalizacion
 
     public function getTextSecondaryColor(): ?string { return $this->textSecondaryColor; }
     public function setTextSecondaryColor(string $color): static { $this->textSecondaryColor = $color; return $this; }
+
+    public function getSpecialTextColor(): ?string { return $this->specialTextColor; }
+    public function setSpecialTextColor(string $color): static { $this->specialTextColor = $color; return $this; }
 
     public function getButtonPrimaryColor(): ?string { return $this->buttonPrimaryColor; }
     public function setButtonPrimaryColor(string $color): static { $this->buttonPrimaryColor = $color; return $this; }
@@ -449,12 +435,6 @@ class Personalizacion
     public function getAccordionHeaderTextColor(): ?string { return $this->accordionHeaderTextColor; }
     public function setAccordionHeaderTextColor(string $color): static { $this->accordionHeaderTextColor = $color; return $this; }
 
-    public function getAccordionHeaderActiveBgColor(): ?string { return $this->accordionHeaderActiveBgColor; }
-    public function setAccordionHeaderActiveBgColor(string $color): static { $this->accordionHeaderActiveBgColor = $color; return $this; }
-
-    public function getAccordionHeaderActiveTextColor(): ?string { return $this->accordionHeaderActiveTextColor; }
-    public function setAccordionHeaderActiveTextColor(string $color): static { $this->accordionHeaderActiveTextColor = $color; return $this; }
-
     public function getAccordionContentBgColor(): ?string { return $this->accordionContentBgColor; }
     public function setAccordionContentBgColor(string $color): static { $this->accordionContentBgColor = $color; return $this; }
 
@@ -484,6 +464,9 @@ class Personalizacion
 
     public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
     public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
+
+    public function getSavedThemes(): ?array { return $this->savedThemes; }
+    public function setSavedThemes(?array $themes): static { $this->savedThemes = $themes; return $this; }
 
     public function getCentro(): ?Centro
     {
