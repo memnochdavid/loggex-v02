@@ -51,7 +51,8 @@ const MaterialesAlumno = () => {
         // Pero según la entidad Grupo, anioEscolar está en matricula:read
         const matriculasActivas = matriculas.filter(m => {
             if (m.grupo && m.grupo.anioEscolar) {
-                return m.grupo.anioEscolar === currentYear;
+                // return m.grupo.anioEscolar === currentYear;
+                return true; // Temporalmente devolvemos todas
             }
             return true; // Si no podemos determinar el año, lo incluimos por si acaso (o false para ser estrictos)
         });

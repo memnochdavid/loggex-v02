@@ -132,6 +132,19 @@ class PersonalizacionController extends AbstractController
         if (isset($data['accordionContentBgColor'])) $personalizacion->setAccordionContentBgColor($data['accordionContentBgColor']);
         if (isset($data['accordionContentTextColor'])) $personalizacion->setAccordionContentTextColor($data['accordionContentTextColor']);
 
+        // Modal
+        if (isset($data['modalHeaderBgColor'])) $personalizacion->setModalHeaderBgColor($data['modalHeaderBgColor']);
+        if (isset($data['modalHeaderTextColor'])) $personalizacion->setModalHeaderTextColor($data['modalHeaderTextColor']);
+        if (isset($data['modalBodyBgColor'])) $personalizacion->setModalBodyBgColor($data['modalBodyBgColor']);
+        if (isset($data['modalBodyTextColor'])) $personalizacion->setModalBodyTextColor($data['modalBodyTextColor']);
+        if (isset($data['modalFooterBgColor'])) $personalizacion->setModalFooterBgColor($data['modalFooterBgColor']);
+
+        // Modal Close Button
+        if (isset($data['modalCloseButtonBgColor'])) $personalizacion->setModalCloseButtonBgColor($data['modalCloseButtonBgColor']);
+        if (isset($data['modalCloseButtonTextColor'])) $personalizacion->setModalCloseButtonTextColor($data['modalCloseButtonTextColor']);
+        if (isset($data['modalCloseButtonHoverBgColor'])) $personalizacion->setModalCloseButtonHoverBgColor($data['modalCloseButtonHoverBgColor']);
+        if (isset($data['modalCloseButtonHoverTextColor'])) $personalizacion->setModalCloseButtonHoverTextColor($data['modalCloseButtonHoverTextColor']);
+
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);
         if (isset($data['itemsPerPageCentros'])) $personalizacion->setItemsPerPageCentros((int)$data['itemsPerPageCentros']);

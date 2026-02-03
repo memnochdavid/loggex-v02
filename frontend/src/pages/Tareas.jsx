@@ -3,8 +3,9 @@ import styles from './Tareas.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X, FileText, Calendar, CheckCircle, AlertCircle, Download, Paperclip } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
 
 const Tareas = () => {
   const { user } = useAuth();
@@ -313,92 +314,82 @@ const Tareas = () => {
         )}
 
         {/* Modal Crear/Editar */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-                <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                    <div className={styles.modalHeader}>
-                        <h3 className={styles.modalTitle}>{currentTarea ? 'Editar Tarea' : 'Nueva Tarea'}</h3>
-                        <button className={styles.closeButton} onClick={handleCloseModal}><X size={20}/></button>
-                    </div>
-                    <form onSubmit={handleSubmit}>
-                        <div className={styles.modalBody}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Título</label>
-                                <input 
-                                    className={styles.input} 
-                                    name="titulo" 
-                                    value={formData.titulo} 
-                                    onChange={handleInputChange} 
-                                    required 
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Descripción</label>
-                                <textarea 
-                                    className={styles.textarea} 
-                                    name="descripcion" 
-                                    value={formData.descripcion} 
-                                    onChange={handleInputChange} 
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Archivo Adjunto (Opcional)</label>
-                                <input 
-                                    type="file" 
-                                    className={styles.input} 
-                                    name="archivo" 
-                                    onChange={handleInputChange} 
-                                />
-                                {currentTarea && currentTarea.archivo && (
-                                    <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
-                                        Archivo actual: {currentTarea.archivo}
-                                    </small>
-                                )}
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Fecha Límite</label>
-                                <input 
-                                    type="datetime-local" 
-                                    className={styles.input} 
-                                    name="fechaLimite" 
-                                    value={formData.fechaLimite} 
-                                    onChange={handleInputChange} 
-                                    required 
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Tipo</label>
-                                <select 
-                                    className={styles.select} 
-                                    name="tipo" 
-                                    value={formData.tipo} 
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="tarea">Tarea</option>
-                                    <option value="examen">Examen</option>
-                                    <option value="practica">Práctica</option>
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                                    <input 
-                                        type="checkbox" 
-                                        name="visible" 
-                                        checked={formData.visible} 
-                                        onChange={handleInputChange} 
-                                    />
-                                    Visible para alumnos
-                                </label>
-                            </div>
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <Button type="button" variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
-                            <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                        </div>
-                    </form>
-                </div>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentTarea ? 'Editar Tarea' : 'Nueva Tarea'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Título</label>
+                <input 
+                    className={styles.input} 
+                    name="titulo" 
+                    value={formData.titulo} 
+                    onChange={handleInputChange} 
+                    required 
+                />
             </div>
-        )}
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Descripción</label>
+                <textarea 
+                    className={styles.textarea} 
+                    name="descripcion" 
+                    value={formData.descripcion} 
+                    onChange={handleInputChange} 
+                />
+            </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Archivo Adjunto (Opcional)</label>
+                <input 
+                    type="file" 
+                    className={styles.input} 
+                    name="archivo" 
+                    onChange={handleInputChange} 
+                />
+                {currentTarea && currentTarea.archivo && (
+                    <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
+                        Archivo actual: {currentTarea.archivo}
+                    </small>
+                )}
+            </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Fecha Límite</label>
+                <input 
+                    type="datetime-local" 
+                    className={styles.input} 
+                    name="fechaLimite" 
+                    value={formData.fechaLimite} 
+                    onChange={handleInputChange} 
+                    required 
+                />
+            </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Tipo</label>
+                <select 
+                    className={styles.select} 
+                    name="tipo" 
+                    value={formData.tipo} 
+                    onChange={handleInputChange}
+                >
+                    <option value="tarea">Tarea</option>
+                    <option value="examen">Examen</option>
+                    <option value="practica">Práctica</option>
+                </select>
+            </div>
+            <div className={styles.formGroup}>
+                <label style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <input 
+                        type="checkbox" 
+                        name="visible" 
+                        checked={formData.visible} 
+                        onChange={handleInputChange} 
+                    />
+                    Visible para alumnos
+                </label>
+            </div>
+        </ModalView>
       </div>
     </Layout>
   );

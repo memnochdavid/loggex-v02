@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon } from 'lucide-react';
 
 // Importar temas predefinidos
 import defaultTheme from './themes-pred/default.json';
@@ -16,7 +16,11 @@ import verdeTheme from './themes-pred/verde.json';
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     
+    // Solo admins de centro pueden cambiar el logo (no superadmin global)
+    const canChangeLogo = isAdmin && !isSuperAdmin && user?.centro;
+
     const defaultSettings = defaultTheme.settings;
 
     const predefinedThemes = [
@@ -33,6 +37,10 @@ const Configuracion = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    
+    // Estado para el logo
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -40,6 +48,10 @@ const Configuracion = () => {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
                 if (user.centro.personalizacion.savedThemes) {
                     setSavedThemes(user.centro.personalizacion.savedThemes);
+                }
+                // Cargar logo actual si existe
+                if (user.centro.logo) {
+                    setLogoPreview(`https://localhost:9443/uploads/logo-centro/${user.centro.logo}`);
                 }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
@@ -60,6 +72,18 @@ const Configuracion = () => {
             ...prev,
             [name]: type === 'number' ? parseInt(value) : value
         }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLogoFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleReset = () => {
@@ -106,7 +130,8 @@ const Configuracion = () => {
         setMessage(null);
 
         try {
-            const response = await fetch('https://localhost:9443/api/configuracion/update', {
+            // 1. Guardar Configuración de Personalización
+            const responseConfig = await fetch('https://localhost:9443/api/configuracion/update', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -115,16 +140,56 @@ const Configuracion = () => {
                 credentials: 'include'
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                setMessage({ type: 'success', text: data.message });
-                await checkAuth();
-            } else {
-                const errorData = await response.json();
-                setMessage({ type: 'error', text: errorData.message || 'Error al guardar configuración' });
+            if (!responseConfig.ok) {
+                const errorData = await responseConfig.json();
+                throw new Error(errorData.message || 'Error al guardar configuración');
             }
+
+            // 2. Guardar Logo (si se ha seleccionado uno y es admin de centro)
+            if (canChangeLogo && logoFile) {
+                const formData = new FormData();
+                // Necesitamos enviar los datos obligatorios del centro para el update, aunque no cambien
+                // Pero el endpoint espera multipart/form-data.
+                // Como el endpoint de update requiere nombre, cif, direccion, etc., 
+                // lo ideal sería tener un endpoint solo para el logo o enviar todo.
+                // Para simplificar y no romper, enviaremos los datos actuales del centro.
+                
+                formData.append('nombre', user.centro.nombre);
+                // CIF y Dirección no los tenemos en user.centro por defecto en el login, 
+                // así que esto podría fallar si el backend valida estrictamente.
+                // Vamos a asumir que el backend permite actualización parcial o que el usuario tiene esos datos.
+                // Si user.centro no tiene cif/direccion, esto fallará.
+                // Solución: Hacer un fetch del centro primero para obtener todos los datos.
+                
+                const centroRes = await fetch(`https://localhost:9443/api/centros/${user.centro.id}`, {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include'
+                });
+                const centroData = await centroRes.json();
+                
+                formData.append('nombre', centroData.nombre);
+                formData.append('cif', centroData.cif);
+                formData.append('direccion', centroData.direccion);
+                if (centroData.telefono) formData.append('telefono', centroData.telefono);
+                formData.append('activo', centroData.activo ? 'true' : 'false');
+                formData.append('logo', logoFile);
+
+                const responseLogo = await fetch(`https://localhost:9443/api/centro/${user.centro.id}/update`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (!responseLogo.ok) {
+                    throw new Error('Error al subir el logo');
+                }
+            }
+
+            setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
+            await checkAuth(); // Recargar usuario para ver cambios (logo, etc)
+
         } catch (error) {
-            setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
+            setMessage({ type: 'error', text: error.message || 'Error de conexión' });
         } finally {
             setLoading(false);
         }
@@ -142,6 +207,7 @@ const Configuracion = () => {
         );
     }
 
+    // ... (renderColorInput, renderNumberInput, renderThemeCard, renderPreview igual que antes) ...
     const renderColorInput = (label, name) => (
         <div className={styles.colorItem}>
             <label className={styles.label}>{label}</label>
@@ -244,7 +310,7 @@ const Configuracion = () => {
                         </div>
                     </div>
                 );
-
+            // ... (Resto de casos igual que antes) ...
             case 'sidebar':
                 return (
                     <div className={styles.previewBox}>
@@ -521,6 +587,59 @@ const Configuracion = () => {
                     </div>
                 );
 
+            case 'modal':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Modal</h4>
+                        <div style={{ 
+                            border: '1px solid #e2e8f0', 
+                            borderRadius: '8px', 
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                            width: '300px',
+                            margin: '0 auto'
+                        }}>
+                            <div style={{ 
+                                padding: '10px 15px', 
+                                backgroundColor: settings.modalHeaderBgColor, 
+                                color: settings.modalHeaderTextColor,
+                                fontWeight: 'bold',
+                                borderBottom: '1px solid #e2e8f0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <span>Título del Modal</span>
+                                <div style={{
+                                    width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px',
+                                    backgroundColor: settings.modalCloseButtonBgColor,
+                                    color: settings.modalCloseButtonTextColor,
+                                    border: '1px solid #e2e8f0'
+                                }}>✕</div>
+                            </div>
+                            <div style={{ 
+                                padding: '15px', 
+                                backgroundColor: settings.modalBodyBgColor, 
+                                color: settings.modalBodyTextColor,
+                                fontSize: '14px'
+                            }}>
+                                <p style={{ margin: 0 }}>Este es el contenido del cuerpo del modal. Aquí irían los formularios o información.</p>
+                            </div>
+                            <div style={{ 
+                                padding: '10px 15px', 
+                                backgroundColor: settings.modalFooterBgColor, 
+                                borderTop: '1px solid #e2e8f0',
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                gap: '10px'
+                            }}>
+                                <button style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #ccc', background: 'white', fontSize: '12px' }}>Cancelar</button>
+                                <button style={{ padding: '5px 10px', borderRadius: '4px', border: 'none', background: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor, fontSize: '12px' }}>Guardar</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+
             case 'pagination':
                 return (
                     <div className={styles.previewBox}>
@@ -618,6 +737,7 @@ const Configuracion = () => {
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
         { id: 'datatable', label: 'Tablas', icon: <Table size={18} /> },
         { id: 'accordion', label: 'Acordeón', icon: <Layers size={18} /> },
+        { id: 'modal', label: 'Modales', icon: <Maximize size={18} /> },
         { id: 'pagination', label: 'Paginación', icon: <List size={18} /> },
         { id: 'themes', label: 'Temas', icon: <Palette size={18} /> },
     ];
@@ -682,6 +802,32 @@ const Configuracion = () => {
                                     {renderColorInput('Color Secundario', 'secondaryColor')}
                                     {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
                                     {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
+                                    
+                                    {/* Campo de Logo (Solo para admins de centro) */}
+                                    {canChangeLogo && (
+                                        <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
+                                            <label className={styles.label}>Logo del Centro</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                {logoPreview ? (
+                                                    <img 
+                                                        src={logoPreview} 
+                                                        alt="Logo" 
+                                                        style={{ width: '64px', height: '64px', objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '4px', backgroundColor: 'white' }} 
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: '64px', height: '64px', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+                                                        <ImageIcon size={24} color="#cbd5e1" />
+                                                    </div>
+                                                )}
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
+                                                    style={{ fontSize: '0.9rem' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -767,6 +913,21 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
                                     {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
                                     {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'modal' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Cabecera', 'modalHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera', 'modalHeaderTextColor')}
+                                    {renderColorInput('Fondo Cuerpo', 'modalBodyBgColor')}
+                                    {renderColorInput('Texto Cuerpo', 'modalBodyTextColor')}
+                                    {renderColorInput('Fondo Pie', 'modalFooterBgColor')}
+                                    
+                                    {renderColorInput('Fondo Botón Cerrar', 'modalCloseButtonBgColor')}
+                                    {renderColorInput('Texto Botón Cerrar', 'modalCloseButtonTextColor')}
+                                    {renderColorInput('Fondo Botón Cerrar Hover', 'modalCloseButtonHoverBgColor')}
+                                    {renderColorInput('Texto Botón Cerrar Hover', 'modalCloseButtonHoverTextColor')}
                                 </div>
                             )}
 

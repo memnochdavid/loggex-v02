@@ -80,7 +80,7 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $specialTextColor = '#ffffff'; // NUEVO
+    private ?string $specialTextColor = '#ffffff';
 
     // --- Botones ---
     #[ORM\Column(length: 7)]
@@ -244,6 +244,44 @@ class Personalizacion
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $accordionContentTextColor = '#64748b';
+
+    // --- Modal ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalHeaderBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalHeaderTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalBodyBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalBodyTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalFooterBgColor = '#f8fafc';
+
+    // --- Modal Close Button ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalCloseButtonBgColor = '#ffffff'; // Fondo del botón cerrar
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalCloseButtonTextColor = '#64748b'; // Color del icono/texto cerrar
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalCloseButtonHoverBgColor = '#f1f5f9'; // Fondo hover
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalCloseButtonHoverTextColor = '#334155'; // Color hover
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -440,6 +478,33 @@ class Personalizacion
 
     public function getAccordionContentTextColor(): ?string { return $this->accordionContentTextColor; }
     public function setAccordionContentTextColor(string $color): static { $this->accordionContentTextColor = $color; return $this; }
+
+    public function getModalHeaderBgColor(): ?string { return $this->modalHeaderBgColor; }
+    public function setModalHeaderBgColor(string $color): static { $this->modalHeaderBgColor = $color; return $this; }
+
+    public function getModalHeaderTextColor(): ?string { return $this->modalHeaderTextColor; }
+    public function setModalHeaderTextColor(string $color): static { $this->modalHeaderTextColor = $color; return $this; }
+
+    public function getModalBodyBgColor(): ?string { return $this->modalBodyBgColor; }
+    public function setModalBodyBgColor(string $color): static { $this->modalBodyBgColor = $color; return $this; }
+
+    public function getModalBodyTextColor(): ?string { return $this->modalBodyTextColor; }
+    public function setModalBodyTextColor(string $color): static { $this->modalBodyTextColor = $color; return $this; }
+
+    public function getModalFooterBgColor(): ?string { return $this->modalFooterBgColor; }
+    public function setModalFooterBgColor(string $color): static { $this->modalFooterBgColor = $color; return $this; }
+
+    public function getModalCloseButtonBgColor(): ?string { return $this->modalCloseButtonBgColor; }
+    public function setModalCloseButtonBgColor(string $color): static { $this->modalCloseButtonBgColor = $color; return $this; }
+
+    public function getModalCloseButtonTextColor(): ?string { return $this->modalCloseButtonTextColor; }
+    public function setModalCloseButtonTextColor(string $color): static { $this->modalCloseButtonTextColor = $color; return $this; }
+
+    public function getModalCloseButtonHoverBgColor(): ?string { return $this->modalCloseButtonHoverBgColor; }
+    public function setModalCloseButtonHoverBgColor(string $color): static { $this->modalCloseButtonHoverBgColor = $color; return $this; }
+
+    public function getModalCloseButtonHoverTextColor(): ?string { return $this->modalCloseButtonHoverTextColor; }
+    public function setModalCloseButtonHoverTextColor(string $color): static { $this->modalCloseButtonHoverTextColor = $color; return $this; }
 
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }

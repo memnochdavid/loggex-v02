@@ -1,72 +1,83 @@
 .header {
-  padding: var(--space-4) var(--space-8);
-  background-color: var(--bg-header-footer);
-  color: var(--text-header-footer);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow-md);
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  height: 75px; /* Altura fija para consistencia */
-  box-sizing: border-box;
+    padding: var(--space-4) var(--space-8);
+    background-color: var(--bg-header-footer);
+    color: var(--text-header-footer);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: 75px; /* Altura fija para consistencia */
+    box-sizing: border-box;
 }
 
 .logoContainer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
+    /*background-color: var(--logo-container-bg-color);*/
+    /*border-radius: var(--radius-md);*/
+    /*padding: 0 var(--space-2);*/
 }
 
 .logo {
-  height: 64px;
-  object-fit: contain;
+    height: 64px;
+    object-fit: contain;
 }
 
 .logoLink {
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .mobileLogoButton {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: inherit;
 }
 
 .menuIcon {
-  display: none; /* Oculto por defecto, visible en móvil */
+    display: none; /* Oculto por defecto, visible en móvil */
 }
 
 .title {
-  font-weight: var(--font-bold);
-  font-size: var(--text-lg);
-  letter-spacing: -0.025em;
+    font-weight: var(--font-bold);
+    font-size: var(--text-lg);
+    letter-spacing: -0.025em;
+}
+
+.nombrecentro {
+    font-weight: var(--font-bold);
+    font-size: var(--text-3xl);
+    letter-spacing: -0.025em;
+    color: var(--text-special)
 }
 
 .navLink {
-  color: var(--text-header-footer);
-  opacity: 0.8;
-  text-decoration: none;
-  font-weight: var(--font-medium);
-  font-size: var(--text-sm);
-  transition: var(--transition-base);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+    color: var(--text-header-footer);
+    opacity: 0.8;
+    text-decoration: none;
+    font-weight: var(--font-medium);
+    font-size: var(--text-sm);
+    transition: var(--transition-base);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
 }
 
 .navLink:hover {
-  opacity: 1;
-  background-color: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .desktopNav {
@@ -88,5 +99,8 @@
     /* Ocultar navegación de escritorio en móvil si se desea */
     .desktopNav {
         display: none;
+    }
+    .nombrecentro{
+        font-size: var(--text-base);
     }
 }

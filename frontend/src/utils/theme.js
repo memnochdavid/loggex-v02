@@ -77,7 +77,16 @@ export const applyTheme = (colors) => {
         accordionHeaderBgColor: '#f8fafc',
         accordionHeaderTextColor: '#64748b',
         accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#334155'
+        accordionContentTextColor: '#334155',
+        modalHeaderBgColor: '#ffffff',
+        modalHeaderTextColor: '#334155',
+        modalBodyBgColor: '#ffffff',
+        modalBodyTextColor: '#334155',
+        modalFooterBgColor: '#f8fafc',
+        modalCloseButtonBgColor: '#ffffff',
+        modalCloseButtonTextColor: '#64748b',
+        modalCloseButtonHoverBgColor: '#f1f5f9',
+        modalCloseButtonHoverTextColor: '#334155'
     };
 
     const theme = { ...defaults, ...colors };
@@ -176,7 +185,20 @@ export const applyTheme = (colors) => {
     if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
-    // 9. Scrollbar (Inyección de estilos dinámicos)
+    // 9. Modal
+    if (theme.modalHeaderBgColor) root.style.setProperty('--modal-header-bg', theme.modalHeaderBgColor);
+    if (theme.modalHeaderTextColor) root.style.setProperty('--modal-header-text', theme.modalHeaderTextColor);
+    if (theme.modalBodyBgColor) root.style.setProperty('--modal-body-bg', theme.modalBodyBgColor);
+    if (theme.modalBodyTextColor) root.style.setProperty('--modal-body-text', theme.modalBodyTextColor);
+    if (theme.modalFooterBgColor) root.style.setProperty('--modal-footer-bg', theme.modalFooterBgColor);
+
+    // 10. Modal Close Button
+    if (theme.modalCloseButtonBgColor) root.style.setProperty('--modal-close-btn-bg', theme.modalCloseButtonBgColor);
+    if (theme.modalCloseButtonTextColor) root.style.setProperty('--modal-close-btn-text', theme.modalCloseButtonTextColor);
+    if (theme.modalCloseButtonHoverBgColor) root.style.setProperty('--modal-close-btn-hover-bg', theme.modalCloseButtonHoverBgColor);
+    if (theme.modalCloseButtonHoverTextColor) root.style.setProperty('--modal-close-btn-hover-text', theme.modalCloseButtonHoverTextColor);
+
+    // 11. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');

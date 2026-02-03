@@ -1,0 +1,101 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideIn 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--modal-header-bg, var(--bg-card));
+    color: var(--modal-header-text, var(--text-main));
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: inherit;
+    margin: 0;
+}
+
+.closeButton {
+    background: var(--modal-close-btn-bg, transparent);
+    border: none;
+    cursor: pointer;
+    color: var(--modal-close-btn-text, var(--color-gray-500));
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.closeButton:hover {
+    background-color: var(--modal-close-btn-hover-bg, var(--color-gray-100));
+    color: var(--modal-close-btn-hover-text, var(--color-gray-700));
+}
+
+.modalBody {
+    padding: var(--space-6);
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--modal-body-bg, var(--bg-card));
+    color: var(--modal-body-text, var(--text-main));
+}
+
+.modalFooter {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    background-color: var(--modal-footer-bg, var(--color-gray-50));
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+}

@@ -1,142 +1,142 @@
 :root {
-  /* ------------------------- */
-  /* 🎨 PALETA DE COLORES      */
-  /* ------------------------- */
+    /* ------------------------- */
+    /* 🎨 PALETA DE COLORES      */
+    /* ------------------------- */
 
-  /* Primary (Brand) - Indigo/Blue */
-  --color-primary-50:  #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1; /* Color principal */
-  --color-primary-600: #4f46e5; /* Hover */
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
+    /* Primary (Brand) - Indigo/Blue */
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1; /* Color principal */
+    --color-primary-600: #4f46e5; /* Hover */
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
 
-  /* Neutral (Grays) - Slate */
-  --color-gray-50:  #f8fafc;
-  --color-gray-100: #f1f5f9; /* Fondos muy claros */
-  --color-gray-200: #e2e8f0; /* Bordes */
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: #94a3b8; /* Textos deshabilitados */
-  --color-gray-500: #64748b; /* Textos secundarios */
-  --color-gray-600: #475569;
-  --color-gray-700: #334155; /* Textos principales */
-  --color-gray-800: #1e293b; /* Fondos oscuros (Header/Footer) */
-  --color-gray-900: #0f172a;
+    /* Neutral (Grays) - Slate */
+    --color-gray-50: #f8fafc;
+    --color-gray-100: #f1f5f9; /* Fondos muy claros */
+    --color-gray-200: #e2e8f0; /* Bordes */
+    --color-gray-300: #cbd5e1;
+    --color-gray-400: #94a3b8; /* Textos deshabilitados */
+    --color-gray-500: #64748b; /* Textos secundarios */
+    --color-gray-600: #475569;
+    --color-gray-700: #334155; /* Textos principales */
+    --color-gray-800: #1e293b; /* Fondos oscuros (Header/Footer) */
+    --color-gray-900: #0f172a;
 
-  /* Semantic (Status) */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error:   #ef4444;
-  --color-info:    #3b82f6;
+    /* Semantic (Status) */
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-info: #3b82f6;
 
-  /* Backgrounds & Text Aliases */
-  --bg-body:       var(--color-gray-50);
-  --bg-card:       #ffffff;
-  --bg-dark:       var(--color-gray-800);
+    /* Backgrounds & Text Aliases */
+    --bg-body: var(--color-gray-50);
+    --bg-card: #ffffff;
+    --bg-dark: var(--color-gray-800);
 
-  --text-main:     var(--color-gray-800);
-  --text-muted:    var(--color-gray-500);
-  --text-light:    #ffffff;
+    --text-main: var(--color-gray-800);
+    --text-muted: var(--color-gray-500);
+    --text-light: #ffffff;
 
-  /* --- Variables de Personalización (Defaults) --- */
-  --bg-sidebar: var(--color-gray-800);
-  --bg-sidebar-active: #334155;
-  --text-sidebar-active: #ffffff;
-  --bg-sidebar-hover: #334155;
-  --text-sidebar-hover: #ffffff;
+    /* --- Variables de Personalización (Defaults) --- */
+    --bg-sidebar: var(--color-gray-800);
+    --bg-sidebar-active: #334155;
+    --text-sidebar-active: #ffffff;
+    --bg-sidebar-hover: #334155;
+    --text-sidebar-hover: #ffffff;
 
-  --btn-primary-bg: var(--color-primary-600);
-  --btn-primary-text: #ffffff;
-  --btn-primary-hover: var(--color-primary-700);
+    --btn-primary-bg: var(--color-primary-600);
+    --btn-primary-text: #ffffff;
+    --btn-primary-hover: var(--color-primary-700);
 
-  --btn-secondary-bg: transparent;
-  --btn-secondary-text: var(--text-main);
+    --btn-secondary-bg: transparent;
+    --btn-secondary-text: var(--text-main);
 
-  --bg-header-footer: var(--bg-dark);
-  --text-header-footer: var(--text-light);
+    --bg-header-footer: var(--bg-dark);
+    --text-header-footer: var(--text-light);
 
+    --logo-container-bg-color: rgb(255, 255, 255);
 
+    /* ------------------------- */
+    /* 📐 ESPACIADO (Spacing)    */
+    /* ------------------------- */
+    /* Base 4px (0.25rem) */
+    --space-1: 0.25rem; /* 4px */
+    --space-2: 0.5rem; /* 8px */
+    --space-3: 0.75rem; /* 12px */
+    --space-4: 1rem; /* 16px */
+    --space-5: 1.25rem; /* 20px */
+    --space-6: 1.5rem; /* 24px */
+    --space-8: 2rem; /* 32px */
+    --space-10: 2.5rem; /* 40px */
+    --space-12: 3rem; /* 48px */
+    --space-16: 4rem; /* 64px */
 
-  /* ------------------------- */
-  /* 📐 ESPACIADO (Spacing)    */
-  /* ------------------------- */
-  /* Base 4px (0.25rem) */
-  --space-1:  0.25rem; /* 4px */
-  --space-2:  0.5rem;  /* 8px */
-  --space-3:  0.75rem; /* 12px */
-  --space-4:  1rem;    /* 16px */
-  --space-5:  1.25rem; /* 20px */
-  --space-6:  1.5rem;  /* 24px */
-  --space-8:  2rem;    /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
-  --space-16: 4rem;    /* 64px */
+    /* ------------------------- */
+    /* 🔤 TIPOGRAFÍA             */
+    /* ------------------------- */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* ------------------------- */
-  /* 🔤 TIPOGRAFÍA             */
-  /* ------------------------- */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Tamaños */
+    --text-xs: 0.75rem; /* 12px */
+    --text-sm: 0.875rem; /* 14px */
+    --text-base: 1rem; /* 16px */
+    --text-lg: 1.125rem; /* 18px */
+    --text-xl: 1.25rem; /* 20px */
+    --text-2xl: 1.5rem; /* 24px */
+    --text-3xl: 1.875rem; /* 30px */
 
-  /* Tamaños */
-  --text-xs:   0.75rem;  /* 12px */
-  --text-sm:   0.875rem; /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg:   1.125rem; /* 18px */
-  --text-xl:   1.25rem;  /* 20px */
-  --text-2xl:  1.5rem;   /* 24px */
-  --text-3xl:  1.875rem; /* 30px */
+    /* Pesos */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-bold: 700;
 
-  /* Pesos */
-  --font-normal: 400;
-  --font-medium: 500;
-  --font-bold:   700;
+    /* ------------------------- */
+    /* 📦 BORDES & RADIUS        */
+    /* ------------------------- */
+    --radius-sm: 0.25rem; /* 4px */
+    --radius-md: 0.375rem; /* 6px */
+    --radius-lg: 0.5rem; /* 8px */
+    --radius-xl: 0.75rem; /* 12px */
+    --radius-full: 9999px;
 
-  /* ------------------------- */
-  /* 📦 BORDES & RADIUS        */
-  /* ------------------------- */
-  --radius-sm:  0.25rem; /* 4px */
-  --radius-md:  0.375rem; /* 6px */
-  --radius-lg:  0.5rem;   /* 8px */
-  --radius-xl:  0.75rem;  /* 12px */
-  --radius-full: 9999px;
+    --border-width: 1px;
+    --border-color: var(--color-gray-200);
 
-  --border-width: 1px;
-  --border-color: var(--color-gray-200);
+    /* ------------------------- */
+    /* ✨ EFECTOS (Shadows)      */
+    /* ------------------------- */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-  /* ------------------------- */
-  /* ✨ EFECTOS (Shadows)      */
-  /* ------------------------- */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-
-  --transition-base: all 0.2s ease-in-out;
+    --transition-base: all 0.2s ease-in-out;
 }
 
 /* Reset básico */
 
 body {
-  margin: 0;
-  font-family: var(--font-sans), sans-serif;
-  background-color: var(--bg-body);
-  color: var(--text-main);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+    margin: 0;
+    font-family: var(--font-sans), sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 
-  /* Restricción de ancho mínimo */
-  /*min-width: 500px;*/
+    /* Restricción de ancho mínimo */
+    /*min-width: 500px;*/
 }
 
 h1, h2, h3, h4, h5, h6 {
-  margin: 0;
-  font-weight: var(--font-bold);
-  color: var(--color-gray-900);
+    margin: 0;
+    font-weight: var(--font-bold);
+    color: var(--color-gray-900);
 }
 
 button {
-  font-family: inherit;
+    font-family: inherit;
 }

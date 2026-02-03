@@ -3,7 +3,7 @@
     "settings": {
         "primaryColor": "#ef4444",
         "secondaryColor": "#71717a",
-        "sidebarColor": "#262626",
+        "sidebarColor": "#b91c1c",
         "sidebarActiveColor": "#404040",
         "sidebarActiveTextColor": "#ffffff",
         "sidebarHoverColor": "#404040",
@@ -15,7 +15,7 @@
         "buttonPrimaryTextColor": "#ffffff",
         "buttonSecondaryColor": "#ffffff",
         "buttonSecondaryTextColor": "#171717",
-        "headerFooterColor": "#262626",
+        "headerFooterColor": "#b91c1c",
         "headerFooterTextColor": "#ffffff",
         "scrollbarThumbColor": "#d4d4d8",
         "scrollbarTrackColor": "#f5f5f5",
@@ -24,6 +24,11 @@
         "calendarSelectedTextColor": "#ffffff",
         "timetableSelectedHeaderBg": "#fee2e2",
         "timetableSelectedHeaderText": "#b91c1c",
-        "timetableSelectedCellBg": "#fef2f2"
+        "timetableSelectedCellBg": "#fef2f2",
+        "modalHeaderBgColor": "#b91c1c",
+        "modalHeaderTextColor": "#ffffff",
+        "modalBodyBgColor": "#ffffff",
+        "modalBodyTextColor": "#171717",
+        "modalFooterBgColor": "#f5f5f5"
     }
 }

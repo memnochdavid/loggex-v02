@@ -4,9 +4,10 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { usePagination } from '../hooks/usePagination'; // Importar hook
-import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { usePagination } from '../hooks/usePagination';
+import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
 
 const Usuarios = () => {
   const { user } = useAuth();
@@ -32,7 +33,6 @@ const Usuarios = () => {
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // ... (Resto del código igual) ...
   // Campos buscables
   const searchFields = [
       { value: 'nombre', label: 'Nombre' },
@@ -460,188 +460,166 @@ const Usuarios = () => {
             mobileBreakpoint={'980px'}
         />
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentUser ? 'Editar Usuario' : 'Nuevo Usuario'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    
-                    {/* Avatar */}
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Avatar</label>
-                        <div className={styles.avatarPreviewContainer}>
-                            {avatarPreview ? (
-                                <img 
-                                    src={avatarPreview} 
-                                    alt="Previsualización" 
-                                    className={styles.avatarPreview} 
-                                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }}
-                                />
-                            ) : (
-                                <div className={styles.avatarPreview} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f3f4f6' }}>
-                                    <ImageIcon size={24} color="#cbd5e1" />
-                                </div>
-                            )}
-                            <input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className={styles.fileInput}
-                            />
-                        </div>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nombre</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentUser ? 'Editar Usuario' : 'Nuevo Usuario'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            {/* Avatar */}
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Avatar</label>
+                <div className={styles.avatarPreviewContainer}>
+                    {avatarPreview ? (
+                        <img 
+                            src={avatarPreview} 
+                            alt="Previsualización" 
+                            className={styles.avatarPreview} 
+                            style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }}
                         />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Apellidos</label>
-                        <input
-                            type="text"
-                            name="apellidos"
-                            value={formData.apellidos}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Teléfono</label>
-                        <input
-                            type="tel"
-                            name="telefono"
-                            value={formData.telefono}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>NIF</label>
-                        <input
-                            type="text"
-                            name="nif"
-                            value={formData.nif}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Contraseña {currentUser && '(Dejar en blanco para no cambiar)'}</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required={!currentUser}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Roles</label>
-                        <div className={styles.rolesContainer}>
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.roles.includes('ROLE_ALUMNO')}
-                                    onChange={() => handleRoleChange('ROLE_ALUMNO')}
-                                />
-                                Alumno
-                            </label>
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.roles.includes('ROLE_PROFESOR')}
-                                    onChange={() => handleRoleChange('ROLE_PROFESOR')}
-                                />
-                                Profesor
-                            </label>
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.roles.includes('ROLE_ADMIN')}
-                                    onChange={() => handleRoleChange('ROLE_ADMIN')}
-                                />
-                                Administrador
-                            </label>
-                            {isSuperAdmin && (
-                                <label className={styles.checkboxLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.roles.includes('ROLE_SUPERADMIN')}
-                                        onChange={() => handleRoleChange('ROLE_SUPERADMIN')}
-                                    />
-                                    SuperAdmin
-                                </label>
-                            )}
-                        </div>
-                    </div>
-
-                    {isSuperAdmin && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Centro</label>
-                            <select
-                                name="centro"
-                                value={formData.centro}
-                                onChange={handleInputChange}
-                                className={styles.select}
-                                required={!formData.roles.includes('ROLE_SUPERADMIN')}
-                            >
-                                <option value="">Seleccionar centro...</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
+                    ) : (
+                        <div className={styles.avatarPreview} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f3f4f6' }}>
+                            <ImageIcon size={24} color="#cbd5e1" />
                         </div>
                     )}
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className={styles.fileInput}
+                    />
                 </div>
+            </div>
 
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nombre</label>
+                <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Apellidos</label>
+                <input
+                    type="text"
+                    name="apellidos"
+                    value={formData.apellidos}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Email</label>
+                <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Teléfono</label>
+                <input
+                    type="tel"
+                    name="telefono"
+                    value={formData.telefono}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>NIF</label>
+                <input
+                    type="text"
+                    name="nif"
+                    value={formData.nif}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Contraseña {currentUser && '(Dejar en blanco para no cambiar)'}</label>
+                <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required={!currentUser}
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Roles</label>
+                <div className={styles.rolesContainer}>
+                    <label className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={formData.roles.includes('ROLE_ALUMNO')}
+                            onChange={() => handleRoleChange('ROLE_ALUMNO')}
+                        />
+                        Alumno
+                    </label>
+                    <label className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={formData.roles.includes('ROLE_PROFESOR')}
+                            onChange={() => handleRoleChange('ROLE_PROFESOR')}
+                        />
+                        Profesor
+                    </label>
+                    <label className={styles.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={formData.roles.includes('ROLE_ADMIN')}
+                            onChange={() => handleRoleChange('ROLE_ADMIN')}
+                        />
+                        Administrador
+                    </label>
+                    {isSuperAdmin && (
+                        <label className={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={formData.roles.includes('ROLE_SUPERADMIN')}
+                                onChange={() => handleRoleChange('ROLE_SUPERADMIN')}
+                            />
+                            SuperAdmin
+                        </label>
+                    )}
                 </div>
-                </form>
             </div>
-            </div>
-        )}
+
+            {isSuperAdmin && (
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>Centro</label>
+                    <select
+                        name="centro"
+                        value={formData.centro}
+                        onChange={handleInputChange}
+                        className={styles.select}
+                        required={!formData.roles.includes('ROLE_SUPERADMIN')}
+                    >
+                        <option value="">Seleccionar centro...</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </ModalView>
         </div>
     </Layout>
   );

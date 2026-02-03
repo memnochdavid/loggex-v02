@@ -6,8 +6,9 @@ import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import CalendarView from '../components/CalendarView';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X, Calendar as CalendarIcon, List } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List } from 'lucide-react';
 
 const Horarios = () => {
   const { user } = useAuth();
@@ -522,107 +523,86 @@ const Horarios = () => {
             </div>
         )}
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentHorario ? 'Editar Horario' : 'Nuevo Horario'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Día de la Semana</label>
-                        <select
-                            name="diaSemana"
-                            value={formData.diaSemana}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                        >
-                            <option value="1">Lunes</option>
-                            <option value="2">Martes</option>
-                            <option value="3">Miércoles</option>
-                            <option value="4">Jueves</option>
-                            <option value="5">Viernes</option>
-                            <option value="6">Sábado</option>
-                            <option value="7">Domingo</option>
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Hora Inicio</label>
-                        <input
-                            type="time"
-                            name="horaInicio"
-                            value={formData.horaInicio}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Hora Fin</label>
-                        <input
-                            type="time"
-                            name="horaFin"
-                            value={formData.horaFin}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Aula</label>
-                        <input
-                            type="text"
-                            name="aula"
-                            value={formData.aula}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder="Ej: Aula 101"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Asignatura (Impartición)</label>
-                        <select
-                            name="imparticion"
-                            value={formData.imparticion}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                        >
-                            <option value="">Seleccionar asignatura...</option>
-                            {imparticiones.map(i => (
-                                <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
-                                    {i.modulo?.nombre} - {i.grupo?.nombre} ({i.profesor?.nombre})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-                </form>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentHorario ? 'Editar Horario' : 'Nuevo Horario'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Día de la Semana</label>
+                <select
+                    name="diaSemana"
+                    value={formData.diaSemana}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="1">Lunes</option>
+                    <option value="2">Martes</option>
+                    <option value="3">Miércoles</option>
+                    <option value="4">Jueves</option>
+                    <option value="5">Viernes</option>
+                    <option value="6">Sábado</option>
+                    <option value="7">Domingo</option>
+                </select>
             </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Hora Inicio</label>
+                <input
+                    type="time"
+                    name="horaInicio"
+                    value={formData.horaInicio}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
             </div>
-        )}
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Hora Fin</label>
+                <input
+                    type="time"
+                    name="horaFin"
+                    value={formData.horaFin}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Aula</label>
+                <input
+                    type="text"
+                    name="aula"
+                    value={formData.aula}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                    placeholder="Ej: Aula 101"
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Asignatura (Impartición)</label>
+                <select
+                    name="imparticion"
+                    value={formData.imparticion}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                >
+                    <option value="">Seleccionar asignatura...</option>
+                    {imparticiones.map(i => (
+                        <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
+                            {i.modulo?.nombre} - {i.grupo?.nombre} ({i.profesor?.nombre})
+                        </option>
+                    ))}
+                </select>
+            </div>
+        </ModalView>
         </div>
     </Layout>
   );

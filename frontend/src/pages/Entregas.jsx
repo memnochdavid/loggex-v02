@@ -4,8 +4,9 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { FileText, Calendar, Upload, Eye, X, Download, CheckCircle, Clock, Award, MessageSquare } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare } from 'lucide-react';
 
 const Entregas = () => {
   const { user } = useAuth();
@@ -400,114 +401,93 @@ const Entregas = () => {
         )}
 
         {/* Modal Alumno: Subir Entrega */}
-        {isUploadModalOpen && (
-            <div className={styles.modalOverlay} onClick={() => setIsUploadModalOpen(false)}>
-                <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                    <div className={styles.modalHeader}>
-                        <h3 className={styles.modalTitle}>Entregar Tarea: {currentTarea?.titulo}</h3>
-                        <button className={styles.closeButton} onClick={() => setIsUploadModalOpen(false)}><X size={20}/></button>
-                    </div>
-                    <form onSubmit={handleUploadSubmit}>
-                        <div className={styles.modalBody}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Archivo</label>
-                                <input 
-                                    type="file" 
-                                    className={styles.fileInput}
-                                    onChange={e => setUploadFormData({...uploadFormData, archivo: e.target.files[0]})}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Enlace (Opcional)</label>
-                                <input 
-                                    type="url" 
-                                    className={styles.input}
-                                    value={uploadFormData.enlace}
-                                    onChange={e => setUploadFormData({...uploadFormData, enlace: e.target.value})}
-                                    placeholder="https://..."
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Comentario</label>
-                                <textarea 
-                                    className={styles.textarea}
-                                    value={uploadFormData.comentario}
-                                    onChange={e => setUploadFormData({...uploadFormData, comentario: e.target.value})}
-                                />
-                            </div>
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <Button type="button" variant="secondary" onClick={() => setIsUploadModalOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={uploading}>{uploading ? 'Subiendo...' : 'Entregar'}</Button>
-                        </div>
-                    </form>
-                </div>
+        <ModalView
+            isOpen={isUploadModalOpen}
+            onClose={() => setIsUploadModalOpen(false)}
+            title={`Entregar Tarea: ${currentTarea?.titulo}`}
+            onSubmit={handleUploadSubmit}
+            isSubmitting={uploading}
+            submitText="Entregar"
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Archivo</label>
+                <input 
+                    type="file" 
+                    className={styles.fileInput}
+                    onChange={e => setUploadFormData({...uploadFormData, archivo: e.target.files[0]})}
+                />
             </div>
-        )}
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Enlace (Opcional)</label>
+                <input 
+                    type="url" 
+                    className={styles.input}
+                    value={uploadFormData.enlace}
+                    onChange={e => setUploadFormData({...uploadFormData, enlace: e.target.value})}
+                    placeholder="https://..."
+                />
+            </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Comentario</label>
+                <textarea 
+                    className={styles.textarea}
+                    value={uploadFormData.comentario}
+                    onChange={e => setUploadFormData({...uploadFormData, comentario: e.target.value})}
+                />
+            </div>
+        </ModalView>
 
         {/* Modal Profesor: Ver Entregas */}
-        {isViewModalOpen && (
-            <div className={styles.modalOverlay} onClick={() => setIsViewModalOpen(false)}>
-                <div className={styles.modal} onClick={e => e.stopPropagation()} style={{maxWidth: '900px'}}>
-                    <div className={styles.modalHeader}>
-                        <h3 className={styles.modalTitle}>Entregas: {currentTarea?.titulo}</h3>
-                        <button className={styles.closeButton} onClick={() => setIsViewModalOpen(false)}><X size={20}/></button>
-                    </div>
-                    <div className={styles.modalBody}>
-                        <DataTable 
-                            columns={entregasColumns}
-                            data={entregasTarea}
-                            loading={loadingEntregas}
-                            totalItems={entregasTarea.length}
-                            itemsPerPage={100}
-                            currentPage={1}
-                            onPageChange={() => {}}
-                            pageSizeOptions={[100]}
-                        />
-                    </div>
-                </div>
-            </div>
-        )}
+        <ModalView
+            isOpen={isViewModalOpen}
+            onClose={() => setIsViewModalOpen(false)}
+            title={`Entregas: ${currentTarea?.titulo}`}
+            size="large"
+            footer={<Button type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cerrar</Button>}
+        >
+            <DataTable 
+                columns={entregasColumns}
+                data={entregasTarea}
+                loading={loadingEntregas}
+                totalItems={entregasTarea.length}
+                itemsPerPage={100}
+                currentPage={1}
+                onPageChange={() => {}}
+                pageSizeOptions={[100]}
+            />
+        </ModalView>
 
         {/* Modal Calificar */}
-        {isGradeModalOpen && (
-            <div className={styles.modalOverlay} onClick={() => setIsGradeModalOpen(false)}>
-                <div className={styles.modal} onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
-                    <div className={styles.modalHeader}>
-                        <h3 className={styles.modalTitle}>Calificar Entrega</h3>
-                        <button className={styles.closeButton} onClick={() => setIsGradeModalOpen(false)}><X size={20}/></button>
-                    </div>
-                    <form onSubmit={handleSaveGrade}>
-                        <div className={styles.modalBody}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Nota (0-10)</label>
-                                <input 
-                                    type="number" 
-                                    className={styles.input}
-                                    value={gradeFormData.nota}
-                                    onChange={e => setGradeFormData({...gradeFormData, nota: e.target.value})}
-                                    min="0" max="10" step="0.1"
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Feedback</label>
-                                <textarea 
-                                    className={styles.textarea}
-                                    value={gradeFormData.feedback}
-                                    onChange={e => setGradeFormData({...gradeFormData, feedback: e.target.value})}
-                                    placeholder="Comentarios para el alumno..."
-                                />
-                            </div>
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <Button type="button" variant="secondary" onClick={() => setIsGradeModalOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={savingGrade}>{savingGrade ? 'Guardando...' : 'Guardar Calificación'}</Button>
-                        </div>
-                    </form>
-                </div>
+        <ModalView
+            isOpen={isGradeModalOpen}
+            onClose={() => setIsGradeModalOpen(false)}
+            title="Calificar Entrega"
+            onSubmit={handleSaveGrade}
+            isSubmitting={savingGrade}
+            submitText="Guardar Calificación"
+            size="small"
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nota (0-10)</label>
+                <input 
+                    type="number" 
+                    className={styles.input}
+                    value={gradeFormData.nota}
+                    onChange={e => setGradeFormData({...gradeFormData, nota: e.target.value})}
+                    min="0" max="10" step="0.1"
+                    required
+                />
             </div>
-        )}
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Feedback</label>
+                <textarea 
+                    className={styles.textarea}
+                    value={gradeFormData.feedback}
+                    onChange={e => setGradeFormData({...gradeFormData, feedback: e.target.value})}
+                    placeholder="Comentarios para el alumno..."
+                />
+            </div>
+        </ModalView>
       </div>
     </Layout>
   );

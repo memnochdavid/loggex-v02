@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { FileText, Download, Trash2, X } from 'lucide-react';
+import { FileText, Download, Trash2 } from 'lucide-react';
 import styles from './Materiales.module.css';
 import modalStyles from './Usuarios.module.css'; // Importamos estilos del modal
 
@@ -201,50 +202,37 @@ const MaterialesProfesor = () => {
           />
         )}
 
-        {isModalOpen && (
-            <div className={modalStyles.modalOverlay} onClick={handleCloseModal}>
-                <div className={modalStyles.modal} onClick={e => e.stopPropagation()}>
-                    <div className={modalStyles.modalHeader}>
-                        <h3 className={modalStyles.modalTitle}>Subir Nuevo Temario</h3>
-                        <button className={modalStyles.closeButton} onClick={handleCloseModal}>
-                            <X size={20} />
-                        </button>
-                    </div>
-                    <form onSubmit={handleSubmit}>
-                        <div className={modalStyles.modalBody}>
-                            <div className={modalStyles.formGroup}>
-                                <label className={modalStyles.label}>Título</label>
-                                <input 
-                                    type="text" 
-                                    name="titulo" 
-                                    value={formData.titulo} 
-                                    onChange={handleInputChange} 
-                                    className={modalStyles.input} 
-                                    required 
-                                    placeholder="Ej: Tema 1 - Introducción"
-                                />
-                            </div>
-                            <div className={modalStyles.formGroup}>
-                                <label className={modalStyles.label}>Archivo (PDF, DOCX...)</label>
-                                <input 
-                                    type="file" 
-                                    name="archivo" 
-                                    onChange={handleInputChange} 
-                                    className={modalStyles.fileInput} 
-                                    required 
-                                />
-                            </div>
-                        </div>
-                        <div className={modalStyles.modalFooter}>
-                            <Button type="button" variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
-                            <Button type="submit" disabled={uploading}>
-                                {uploading ? 'Subiendo...' : 'Subir'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title="Subir Nuevo Temario"
+            onSubmit={handleSubmit}
+            isSubmitting={uploading}
+            submitText="Subir"
+        >
+            <div className={modalStyles.formGroup}>
+                <label className={modalStyles.label}>Título</label>
+                <input 
+                    type="text" 
+                    name="titulo" 
+                    value={formData.titulo} 
+                    onChange={handleInputChange} 
+                    className={modalStyles.input} 
+                    required 
+                    placeholder="Ej: Tema 1 - Introducción"
+                />
             </div>
-        )}
+            <div className={modalStyles.formGroup}>
+                <label className={modalStyles.label}>Archivo (PDF, DOCX...)</label>
+                <input 
+                    type="file" 
+                    name="archivo" 
+                    onChange={handleInputChange} 
+                    className={modalStyles.fileInput} 
+                    required 
+                />
+            </div>
+        </ModalView>
       </div>
     </Layout>
   );

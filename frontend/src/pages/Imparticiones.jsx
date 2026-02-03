@@ -4,8 +4,9 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import {usePagination} from "../hooks/usePagination.js";
 
 const Imparticiones = () => {
@@ -430,91 +431,70 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
             mobileBreakpoint={'600px'}
         />
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentImparticion ? 'Editar Asignación' : 'Nueva Asignación'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Profesor ({profesores.length})</label>
-                        <select
-                            name="profesor"
-                            value={formData.profesor}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                        >
-                            <option value="">Seleccionar profesor...</option>
-                            {profesores.map(p => (
-                                <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
-                                    {p.nombre} {p.apellidos}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Grupo ({allGrupos.length})</label>
-                        <select
-                            name="grupo"
-                            value={formData.grupo}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                        >
-                            <option value="">Seleccionar grupo...</option>
-                            {allGrupos.map(g => (
-                                <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
-                                    {g.abreviatura || g.nombre}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Módulo ({filteredModulos.length})</label>
-                        <select
-                            name="modulo"
-                            value={formData.modulo}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                            disabled={!formData.grupo} // Deshabilitar si no hay grupo
-                        >
-                            <option value="">
-                                {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
-                            </option>
-                            {filteredModulos.map(m => (
-                                <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
-                                    {m.nombre} ({m.codigoOficial}) - {m.curso}º
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-                </form>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentImparticion ? 'Editar Asignación' : 'Nueva Asignación'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Profesor ({profesores.length})</label>
+                <select
+                    name="profesor"
+                    value={formData.profesor}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                >
+                    <option value="">Seleccionar profesor...</option>
+                    {profesores.map(p => (
+                        <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
+                            {p.nombre} {p.apellidos}
+                        </option>
+                    ))}
+                </select>
             </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Grupo ({allGrupos.length})</label>
+                <select
+                    name="grupo"
+                    value={formData.grupo}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                >
+                    <option value="">Seleccionar grupo...</option>
+                    {allGrupos.map(g => (
+                        <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
+                            {g.abreviatura || g.nombre}
+                        </option>
+                    ))}
+                </select>
             </div>
-        )}
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Módulo ({filteredModulos.length})</label>
+                <select
+                    name="modulo"
+                    value={formData.modulo}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                    disabled={!formData.grupo} // Deshabilitar si no hay grupo
+                >
+                    <option value="">
+                        {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
+                    </option>
+                    {filteredModulos.map(m => (
+                        <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
+                            {m.nombre} ({m.codigoOficial}) - {m.curso}º
+                        </option>
+                    ))}
+                </select>
+            </div>
+        </ModalView>
         </div>
     </Layout>
   );

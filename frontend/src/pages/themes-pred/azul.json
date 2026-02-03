@@ -24,6 +24,11 @@
         "calendarSelectedTextColor": "#ffffff",
         "timetableSelectedHeaderBg": "#dbeafe",
         "timetableSelectedHeaderText": "#1e40af",
-        "timetableSelectedCellBg": "#eff6ff"
+        "timetableSelectedCellBg": "#eff6ff",
+        "modalHeaderBgColor": "#1e3a8a",
+        "modalHeaderTextColor": "#ffffff",
+        "modalBodyBgColor": "#ffffff",
+        "modalBodyTextColor": "#0f172a",
+        "modalFooterBgColor": "#eff6ff"
     }
 }

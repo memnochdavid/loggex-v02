@@ -4,9 +4,10 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { usePagination } from '../hooks/usePagination'; // Importar hook
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { usePagination } from '../hooks/usePagination';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 
 const CiclosFormativos = () => {
   const { user } = useAuth();
@@ -345,80 +346,59 @@ const CiclosFormativos = () => {
             mobileBreakpoint={'600px'}
         />
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentCiclo ? 'Editar Ciclo' : 'Nuevo Ciclo'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nombre del Ciclo</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder="Ej: Desarrollo de Aplicaciones Web"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nivel</label>
-                        <select
-                            name="nivel"
-                            value={formData.nivel}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                        >
-                            <option value="Básico">Básico</option>
-                            <option value="Medio">Medio</option>
-                            <option value="Superior">Superior</option>
-                            <option value="Curso de Especialización">Curso de Especialización</option>
-                        </select>
-                    </div>
-
-                    {isSuperAdmin && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Centro</label>
-                            <select
-                                name="centro"
-                                value={formData.centro}
-                                onChange={handleInputChange}
-                                className={styles.select}
-                                required
-                            >
-                                <option value="">Seleccionar centro...</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                </div>
-
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-                </form>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentCiclo ? 'Editar Ciclo' : 'Nuevo Ciclo'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nombre del Ciclo</label>
+                <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                    placeholder="Ej: Desarrollo de Aplicaciones Web"
+                />
             </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nivel</label>
+                <select
+                    name="nivel"
+                    value={formData.nivel}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="Básico">Básico</option>
+                    <option value="Medio">Medio</option>
+                    <option value="Superior">Superior</option>
+                    <option value="Curso de Especialización">Curso de Especialización</option>
+                </select>
             </div>
-        )}
+
+            {isSuperAdmin && (
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>Centro</label>
+                    <select
+                        name="centro"
+                        value={formData.centro}
+                        onChange={handleInputChange}
+                        className={styles.select}
+                        required
+                    >
+                        <option value="">Seleccionar centro...</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </ModalView>
         </div>
     </Layout>
   );

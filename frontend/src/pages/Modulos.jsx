@@ -4,8 +4,10 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { usePagination } from '../hooks/usePagination';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 
 const Modulos = () => {
   const { user } = useAuth();
@@ -25,13 +27,8 @@ const Modulos = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
-  // Inicializar itemsPerPage desde la configuración del usuario
-  const [itemsPerPage, setItemsPerPage] = useState(() => {
-      if (user?.centro?.personalizacion?.itemsPerPageModulos) {
-          return user.centro.personalizacion.itemsPerPageModulos;
-      }
-      return 20;
-  });
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('modulos');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('nombre');
@@ -406,101 +403,80 @@ const Modulos = () => {
             mobileBreakpoint={'600px'}
         />
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentModulo ? 'Editar Módulo' : 'Nuevo Módulo'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nombre del Módulo</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder="Ej: Bases de Datos"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Código Oficial</label>
-                        <input
-                            type="text"
-                            name="codigoOficial"
-                            value={formData.codigoOficial}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder="Ej: 0484"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Ciclo Formativo</label>
-                        <select
-                            name="ciclo"
-                            value={formData.ciclo}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                            required
-                        >
-                            <option value="">Seleccionar ciclo...</option>
-                            {ciclos.map(c => (
-                                <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Curso</label>
-                        <select
-                            name="curso"
-                            value={formData.curso}
-                            onChange={handleInputChange}
-                            className={styles.select}
-                        >
-                            <option value="1">1º</option>
-                            <option value="2">2º</option>
-                        </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Horas Semanales</label>
-                        <input
-                            type="number"
-                            name="horasSemanales"
-                            value={formData.horasSemanales}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            min="1"
-                            max="30"
-                        />
-                    </div>
-                </div>
-
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-                </form>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentModulo ? 'Editar Módulo' : 'Nuevo Módulo'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nombre del Módulo</label>
+                <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                    placeholder="Ej: Bases de Datos"
+                />
             </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Código Oficial</label>
+                <input
+                    type="text"
+                    name="codigoOficial"
+                    value={formData.codigoOficial}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="Ej: 0484"
+                />
             </div>
-        )}
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Ciclo Formativo</label>
+                <select
+                    name="ciclo"
+                    value={formData.ciclo}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                >
+                    <option value="">Seleccionar ciclo...</option>
+                    {ciclos.map(c => (
+                        <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Curso</label>
+                <select
+                    name="curso"
+                    value={formData.curso}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="1">1º</option>
+                    <option value="2">2º</option>
+                </select>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Horas Semanales</label>
+                <input
+                    type="number"
+                    name="horasSemanales"
+                    value={formData.horasSemanales}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    min="1"
+                    max="30"
+                />
+            </div>
+        </ModalView>
         </div>
     </Layout>
   );

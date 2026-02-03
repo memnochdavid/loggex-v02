@@ -49,6 +49,11 @@
         "accordionHeaderBgColor": "#f1f5f9",
         "accordionHeaderTextColor": "#334155",
         "accordionContentBgColor": "#ffffff",
-        "accordionContentTextColor": "#64748b"
+        "accordionContentTextColor": "#64748b",
+        "modalHeaderBgColor": "#ffffff",
+        "modalHeaderTextColor": "#334155",
+        "modalBodyBgColor": "#ffffff",
+        "modalBodyTextColor": "#334155",
+        "modalFooterBgColor": "#f8fafc"
     }
 }
