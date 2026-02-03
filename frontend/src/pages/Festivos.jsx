@@ -4,8 +4,10 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
+import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X, Lock } from 'lucide-react';
+import { usePagination } from '../hooks/usePagination'; // Importar hook
+import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
 
 const Festivos = () => {
   const { user } = useAuth();
@@ -24,7 +26,10 @@ const Festivos = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('festivos');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('fechaInicio');
@@ -381,88 +386,67 @@ const Festivos = () => {
             mobileBreakpoint={'650px'}
         />
 
-        {/* Modal */}
-        {isModalOpen && (
-            <div className={styles.modalOverlay} onClick={handleCloseModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                    {currentFestivo ? 'Editar Festivo' : 'Nuevo Festivo'}
-                </h3>
-                <button className={styles.closeButton} onClick={handleCloseModal}>
-                    <X size={20} />
-                </button>
-                </div>
-                
-                <form onSubmit={handleSubmit}>
-                <div className={styles.modalBody}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Nombre</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder="Ej: Navidad"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Fecha Inicio</label>
-                        <input
-                            type="date"
-                            name="fechaInicio"
-                            value={formData.fechaInicio}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Fecha Fin (Opcional)</label>
-                        <input
-                            type="date"
-                            name="fechaFin"
-                            value={formData.fechaFin}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                        />
-                    </div>
-
-                    {isSuperAdmin && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Centro (Opcional - Global si vacío)</label>
-                            <select
-                                name="centro"
-                                value={formData.centro}
-                                onChange={handleInputChange}
-                                className={styles.select}
-                                style={{ width: '100%' }}
-                            >
-                                <option value="">Global (Todos los centros)</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                </div>
-
-                <div className={styles.modalFooter}>
-                    <Button type="button" variant="secondary" onClick={handleCloseModal}>
-                    Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saving}>
-                    {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-                </form>
+        <ModalView
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={currentFestivo ? 'Editar Festivo' : 'Nuevo Festivo'}
+            onSubmit={handleSubmit}
+            isSubmitting={saving}
+        >
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Nombre</label>
+                <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                    placeholder="Ej: Navidad"
+                />
             </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Fecha Inicio</label>
+                <input
+                    type="date"
+                    name="fechaInicio"
+                    value={formData.fechaInicio}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
+                />
             </div>
-        )}
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Fecha Fin (Opcional)</label>
+                <input
+                    type="date"
+                    name="fechaFin"
+                    value={formData.fechaFin}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                />
+            </div>
+
+            {isSuperAdmin && (
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>Centro (Opcional - Global si vacío)</label>
+                    <select
+                        name="centro"
+                        value={formData.centro}
+                        onChange={handleInputChange}
+                        className={styles.select}
+                        style={{ width: '100%' }}
+                    >
+                        <option value="">Global (Todos los centros)</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </ModalView>
         </div>
     </Layout>
   );

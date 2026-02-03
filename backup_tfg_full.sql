@@ -18,7 +18,6 @@
 
 --
 -- Table structure for table `asistencia`
--- Table structure for table `asistencia`
 --
 
 DROP TABLE IF EXISTS `asistencia`;
@@ -1012,4 +1011,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-03 15:16:17
+-- Dump completed on 2026-02-03 15:18:27
