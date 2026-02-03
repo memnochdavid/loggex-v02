@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X, FileText, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, FileText, Calendar, CheckCircle, AlertCircle, Download, Paperclip } from 'lucide-react';
 
 const Tareas = () => {
   const { user } = useAuth();
@@ -25,7 +25,8 @@ const Tareas = () => {
     descripcion: '',
     fechaLimite: '',
     tipo: 'tarea', // tarea, examen, practica
-    visible: true
+    visible: true,
+    archivo: null
   });
   const [saving, setSaving] = useState(false);
 
@@ -37,45 +38,32 @@ const Tareas = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    console.log("Iniciando carga de tareas para:", user.email, "ID:", user.id);
     try {
-        // DEBUG: Petición sin filtros para ver si llega algo
-        console.log("DEBUG: Fetching ALL imparticiones...");
-        const debugResponse = await fetch('https://localhost:9443/api/imparticions?page=1', {
-            headers: { 'Accept': 'application/ld+json' },
-            credentials: 'include'
-        });
-        const debugData = await debugResponse.json();
-        console.log("DEBUG: Todas las imparticiones:", debugData['hydra:member']);
-
-
         let endpoint = '';
         
         if (isProfesor) {
-            // Volvemos a intentar con el filtro, pero asegurándonos de que el ID es un número
-            endpoint = `https://localhost:9443/api/imparticions?profesor=${Number(user.id)}`;
+            endpoint = `https://localhost:9443/api/imparticions?profesor=${user.id}&pagination=false`;
         } else if (isAlumno) {
-            const resMatriculas = await fetch(`https://localhost:9443/api/matriculas?alumno=${user.id}`, {
+            const resMatriculas = await fetch(`https://localhost:9443/api/matriculas?alumno=${user.id}&pagination=false`, {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
             });
             const dataMatriculas = await resMatriculas.json();
-            const matriculas = dataMatriculas['hydra:member'] || [];
+            const matriculas = dataMatriculas['hydra:member'] || dataMatriculas.member || [];
             const grupoIds = matriculas.map(m => typeof m.grupo === 'string' ? m.grupo.split('/').pop() : m.grupo.id);
             
             if (grupoIds.length > 0) {
                 const gruposQuery = grupoIds.map(id => `grupo[]=${id}`).join('&');
-                endpoint = `https://localhost:9443/api/imparticions?${gruposQuery}`;
+                endpoint = `https://localhost:9443/api/imparticions?${gruposQuery}&pagination=false`;
             } else {
                 setAsignaturas([]);
                 setLoading(false);
                 return;
             }
         } else if (isAdmin) {
-             endpoint = `https://localhost:9443/api/imparticions`;
+             endpoint = `https://localhost:9443/api/imparticions?pagination=false`;
         }
 
         if (endpoint) {
-            console.log("Fetching endpoint:", endpoint);
             const response = await fetch(endpoint, {
                 headers: { 'Accept': 'application/ld+json' },
                 credentials: 'include'
@@ -86,13 +74,26 @@ const Tareas = () => {
             }
 
             const data = await response.json();
-            const items = data['hydra:member'] || [];
-            console.log("Imparticiones recibidas (filtradas):", items);
+            const items = data['hydra:member'] || data.member || [];
             
-            const asignaturasConTareas = items.map(imp => ({
-                ...imp,
-                tareas: imp.tareas || []
-            }));
+            // Transformar datos para AccordionView (necesita 'title')
+            const asignaturasConTareas = items.map(imp => {
+                const nombreModulo = imp.modulo?.nombre || 'Módulo desconocido';
+                const nombreGrupo = imp.grupo?.nombre || 'Grupo desconocido';
+                const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
+                
+                let title = `${nombreModulo} - ${nombreGrupo}`;
+                if (isAlumno && nombreProfesor) {
+                    title += ` (${nombreProfesor})`;
+                }
+
+                return {
+                    ...imp,
+                    id: imp.id || imp['@id'].split('/').pop(),
+                    title: title, // Propiedad requerida por AccordionView
+                    tareas: imp.tareas || []
+                };
+            });
             
             setAsignaturas(asignaturasConTareas);
         }
@@ -114,7 +115,8 @@ const Tareas = () => {
         descripcion: tarea.descripcion || '',
         fechaLimite: tarea.fechaLimite ? tarea.fechaLimite.slice(0, 16) : '', // Formato datetime-local
         tipo: tarea.tipo || 'tarea',
-        visible: tarea.visible
+        visible: tarea.visible,
+        archivo: null // No precargamos archivo en edición, solo si se quiere cambiar
       });
     } else {
       setCurrentTarea(null);
@@ -123,7 +125,8 @@ const Tareas = () => {
         descripcion: '',
         fechaLimite: '',
         tipo: 'tarea',
-        visible: true
+        visible: true,
+        archivo: null
       });
     }
     setIsModalOpen(true);
@@ -136,11 +139,15 @@ const Tareas = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const { name, value, type, checked, files } = e.target;
+    if (type === 'file') {
+        setFormData(prev => ({ ...prev, archivo: files[0] }));
+    } else {
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -148,29 +155,35 @@ const Tareas = () => {
     setSaving(true);
 
     try {
-      const url = currentTarea 
-        ? `https://localhost:9443/api/tareas/${currentTarea.id}`
-        : 'https://localhost:9443/api/tareas';
+      // Usamos FormData para enviar archivo
+      const data = new FormData();
+      data.append('titulo', formData.titulo);
+      data.append('descripcion', formData.descripcion);
+      data.append('fechaLimite', formData.fechaLimite);
+      data.append('tipo', formData.tipo);
+      data.append('visible', formData.visible);
+      data.append('imparticionId', selectedImparticionId);
       
-      const method = currentTarea ? 'PUT' : 'POST';
+      if (currentTarea) {
+          data.append('id', currentTarea.id);
+      }
 
-      const payload = {
-        ...formData,
-        imparticion: `/api/imparticions/${selectedImparticionId}`
-      };
+      if (formData.archivo) {
+          data.append('file', formData.archivo);
+      }
 
+      // Usamos el nuevo endpoint de subida que maneja creación y edición con archivo
+      const url = 'https://localhost:9443/api/tareas/upload';
+      
       const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/ld+json',
-          'Accept': 'application/ld+json',
-        },
-        body: JSON.stringify(payload),
+        method: 'POST',
+        body: data,
         credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Error al guardar la tarea');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al guardar la tarea');
       }
 
       await fetchData(); // Recargar datos
@@ -199,18 +212,6 @@ const Tareas = () => {
     }
   };
 
-  // Renderizado de cabecera de asignatura (Impartición)
-  const renderHeader = (imparticion, isExpanded) => (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-            {imparticion.modulo?.nombre || 'Módulo desconocido'}
-        </span>
-        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            {imparticion.grupo?.nombre} {isAlumno && imparticion.profesor ? `• ${imparticion.profesor.nombre} ${imparticion.profesor.apellidos}` : ''}
-        </span>
-    </div>
-  );
-
   // Renderizado de contenido (Lista de tareas)
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
@@ -234,8 +235,26 @@ const Tareas = () => {
                               <div className={styles.taskTitle}>
                                   <FileText size={18} className={styles.icon} />
                                   {tarea.titulo}
-                                  {!tarea.visible && <span style={{fontSize:'0.7rem', color:'red', border:'1px solid red', padding:'0 4px', borderRadius:'4px'}}>Oculta</span>}
+                                  {!tarea.visible && <span style={{fontSize:'0.7rem', color:'red', border:'1px solid red', padding:'0 4px', borderRadius:'4px', marginLeft: '8px'}}>Oculta</span>}
                               </div>
+                              {tarea.descripcion && (
+                                  <div className={styles.taskDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
+                              )}
+                              
+                              {tarea.archivo && (
+                                  <div className={styles.taskFile}>
+                                      <a 
+                                          href={`https://localhost:9443/uploads/tareas/${tarea.archivo}`} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className={styles.fileLink}
+                                      >
+                                          <Paperclip size={16} />
+                                          Descargar adjunto
+                                      </a>
+                                  </div>
+                              )}
+
                               <div className={styles.taskMeta}>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       <Calendar size={14} /> 
@@ -288,8 +307,8 @@ const Tareas = () => {
         ) : (
             <AccordionView 
                 data={asignaturas}
-                renderHeader={renderHeader}
                 renderItem={renderContent}
+                canAdd={false}
             />
         )}
 
@@ -321,6 +340,20 @@ const Tareas = () => {
                                     value={formData.descripcion} 
                                     onChange={handleInputChange} 
                                 />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Archivo Adjunto (Opcional)</label>
+                                <input 
+                                    type="file" 
+                                    className={styles.input} 
+                                    name="archivo" 
+                                    onChange={handleInputChange} 
+                                />
+                                {currentTarea && currentTarea.archivo && (
+                                    <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
+                                        Archivo actual: {currentTarea.archivo}
+                                    </small>
+                                )}
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Fecha Límite</label>

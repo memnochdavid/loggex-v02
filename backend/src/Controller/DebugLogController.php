@@ -20,22 +20,22 @@ class DebugLogController extends AbstractController
             return $this->json(['error' => 'Log file not found: ' . $logFile]);
         }
 
-        // Leer las últimas 100 líneas
+        // Leer las últimas 200 líneas
         $lines = file($logFile);
-        $lastLines = array_slice($lines, -100);
+        $lastLines = array_slice($lines, -200);
 
-        // Filtrar solo nuestros logs personalizados
-        $filteredLogs = array_filter($lastLines, function($line) {
-            return str_contains($line, 'SAVED THEMES') ||
-                   str_contains($line, 'VERIFICACIÓN BD') ||
-                   str_contains($line, 'API/ME') ||
-                   str_contains($line, 'DATOS RECIBIDOS');
+        // Filtrar errores críticos y excepciones
+        $errorLogs = array_filter($lastLines, function($line) {
+            return str_contains($line, 'CRITICAL') ||
+                   str_contains($line, 'ERROR') ||
+                   str_contains($line, 'Exception') ||
+                   str_contains($line, '500 Internal Server Error');
         });
 
         return $this->json([
             'file' => $logFile,
-            'logs' => array_values($filteredLogs),
-            'all_logs_tail' => $lastLines // Por si acaso
+            'errors' => array_values($errorLogs),
+            'tail' => array_slice($lines, -50) // Últimas 50 líneas sin filtrar
         ]);
     }
 }

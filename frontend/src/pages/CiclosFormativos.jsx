@@ -148,23 +148,10 @@ const CiclosFormativos = () => {
   const handleOpenModal = (ciclo = null) => {
     if (ciclo) {
       setCurrentCiclo(ciclo);
-      
-      // Lógica robusta para obtener el ID del centro
-      let centroId = '';
-      if (ciclo.centro) {
-          if (typeof ciclo.centro === 'object') {
-              // Si es objeto, intentamos id o @id
-              centroId = ciclo.centro.id || (ciclo.centro['@id'] ? ciclo.centro['@id'].split('/').pop() : '');
-          } else if (typeof ciclo.centro === 'string') {
-              // Si es string (IRI), extraemos el ID
-              centroId = ciclo.centro.split('/').pop();
-          }
-      }
-
       setFormData({
         nombre: ciclo.nombre,
         nivel: ciclo.nivel,
-        centro: centroId
+        centro: ciclo.centro ? (ciclo.centro.id || ciclo.centro.split('/').pop()) : ''
       });
     } else {
       setCurrentCiclo(null);

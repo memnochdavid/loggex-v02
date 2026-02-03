@@ -16,7 +16,8 @@ import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
 import Festivos from './pages/Festivos';
-import Tareas from './pages/Tareas'; // Importar
+import Tareas from './pages/Tareas';
+import Entregas from './pages/Entregas'; // Importar Entregas
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import MaterialesAlumno from './pages/MaterialesAlumno';
@@ -110,6 +111,12 @@ function App() {
                 <Route path="/tareas" element={
                   <PrivateRoute>
                     <Tareas />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/entregas" element={
+                  <PrivateRoute>
+                    <Entregas />
                   </PrivateRoute>
                 } />
 

@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext'; // Importar contexto UI
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList } from 'lucide-react';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -106,11 +106,19 @@ const Sidebar = () => {
                         {!isCollapsed && <span>Horarios</span>}
                     </NavLink>
 
-                    {/* Tareas para todos (menos admin puro si no quiere verlas, pero útil para debug) */}
+                    {/* Tareas para todos */}
                     <NavLink to="/tareas" className={getNavLinkClass} title="Tareas" onClick={closeSidebar}>
                         <ClipboardList size={20} />
                         {!isCollapsed && <span>Tareas</span>}
                     </NavLink>
+
+                    {/* Entregas para todos (Alumnos y Profesores) */}
+                    {(isAlumno || isProfesor || isAdmin || isSuperAdmin) && (
+                        <NavLink to="/entregas" className={getNavLinkClass} title="Entregas" onClick={closeSidebar}>
+                            <UploadCloud size={20} />
+                            {!isCollapsed && <span>Entregas</span>}
+                        </NavLink>
+                    )}
 
                     {/* Materiales Alumno */}
                     {isAlumno && (

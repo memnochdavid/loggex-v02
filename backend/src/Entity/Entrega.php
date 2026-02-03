@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -30,6 +33,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: ['alumno' => 'exact', 'tarea' => 'exact'])]
+#[ApiFilter(OrderFilter::class, properties: ['fechaEntrega', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Entrega
 {
     use TimestampableTrait;
@@ -38,19 +43,23 @@ class Entrega
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['entrega:read'])]
+    #[Groups(['entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['entrega:read', 'entrega:write'])]
+    #[Groups(['entrega:read', 'entrega:write', 'tarea:read'])] // Añadido tarea:read
     private ?\DateTimeInterface $fechaEntrega = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['entrega:read', 'entrega:write'])]
+    #[Groups(['entrega:read', 'entrega:write', 'tarea:read'])] // Añadido tarea:read
     private ?string $enlace = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['entrega:read', 'entrega:write', 'tarea:read'])] // Añadido tarea:read
+    private ?string $archivo = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['entrega:read', 'entrega:write'])]
+    #[Groups(['entrega:read', 'entrega:write', 'tarea:read'])] // Añadido tarea:read
     private ?string $comentarioAlumno = null;
 
     #[ORM\ManyToOne(inversedBy: 'entregas')]
@@ -60,11 +69,11 @@ class Entrega
 
     #[ORM\ManyToOne(inversedBy: 'entregas')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['entrega:read', 'entrega:write'])]
+    #[Groups(['entrega:read', 'entrega:write', 'tarea:read'])] // Añadido tarea:read
     private ?User $alumno = null;
 
     #[ORM\OneToOne(mappedBy: 'entrega', cascade: ['persist', 'remove'])]
-    #[Groups(['entrega:read'])]
+    #[Groups(['entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?Calificacion $calificacion = null;
 
     public function getId(): ?int
@@ -91,6 +100,17 @@ class Entrega
     public function setEnlace(?string $enlace): static
     {
         $this->enlace = $enlace;
+        return $this;
+    }
+
+    public function getArchivo(): ?string
+    {
+        return $this->archivo;
+    }
+
+    public function setArchivo(?string $archivo): static
+    {
+        $this->archivo = $archivo;
         return $this;
     }
 

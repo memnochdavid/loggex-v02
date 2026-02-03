@@ -55,11 +55,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $email = null;
 
     #[ORM\Column]
@@ -73,11 +73,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read'])] // Añadido horario:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read'])] // Añadido horario:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
@@ -93,7 +93,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rol_app = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $foto = null;
 
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
@@ -107,10 +107,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'profesor', targetEntity: Imparticion::class)]
     private Collection $imparticiones;
 
+    #[ORM\OneToMany(mappedBy: 'alumno', targetEntity: Entrega::class)]
+    private Collection $entregas;
+
     public function __construct()
     {
         $this->matriculas = new ArrayCollection();
         $this->imparticiones = new ArrayCollection();
+        $this->entregas = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -328,6 +332,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($imparticion->getProfesor() === $this) {
                 $imparticion->setProfesor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Entrega>
+     */
+    public function getEntregas(): Collection
+    {
+        return $this->entregas;
+    }
+
+    public function addEntrega(Entrega $entrega): static
+    {
+        if (!$this->entregas->contains($entrega)) {
+            $this->entregas->add($entrega);
+            $entrega->setAlumno($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEntrega(Entrega $entrega): static
+    {
+        if ($this->entregas->removeElement($entrega)) {
+            // set the owning side to null (unless already changed)
+            if ($entrega->getAlumno() === $this) {
+                $entrega->setAlumno(null);
             }
         }
 
