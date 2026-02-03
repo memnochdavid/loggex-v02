@@ -1,0 +1,29 @@
+{
+    "name": "Azul",
+    "settings": {
+        "primaryColor": "#3b82f6",
+        "secondaryColor": "#64748b",
+        "sidebarColor": "#1e3a8a",
+        "sidebarActiveColor": "#1e40af",
+        "sidebarActiveTextColor": "#ffffff",
+        "sidebarHoverColor": "#1e40af",
+        "sidebarHoverTextColor": "#ffffff",
+        "textMainColor": "#0f172a",
+        "textSecondaryColor": "#334155",
+        "specialTextColor": "#ffffff",
+        "buttonPrimaryColor": "#3b82f6",
+        "buttonPrimaryTextColor": "#ffffff",
+        "buttonSecondaryColor": "#ffffff",
+        "buttonSecondaryTextColor": "#0f172a",
+        "headerFooterColor": "#1e3a8a",
+        "headerFooterTextColor": "#ffffff",
+        "scrollbarThumbColor": "#bfdbfe",
+        "scrollbarTrackColor": "#eff6ff",
+        "scrollbarHoverColor": "#93c5fd",
+        "calendarSelectedBgColor": "#3b82f6",
+        "calendarSelectedTextColor": "#ffffff",
+        "timetableSelectedHeaderBg": "#dbeafe",
+        "timetableSelectedHeaderText": "#1e40af",
+        "timetableSelectedCellBg": "#eff6ff"
+    }
+}

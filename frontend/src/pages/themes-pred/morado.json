@@ -1,0 +1,29 @@
+{
+    "name": "Morado",
+    "settings": {
+        "primaryColor": "#8b5cf6",
+        "secondaryColor": "#6b7280",
+        "sidebarColor": "#2e1065",
+        "sidebarActiveColor": "#4c1d95",
+        "sidebarActiveTextColor": "#ffffff",
+        "sidebarHoverColor": "#4c1d95",
+        "sidebarHoverTextColor": "#ffffff",
+        "textMainColor": "#1f2937",
+        "textSecondaryColor": "#4b5563",
+        "specialTextColor": "#ffffff",
+        "buttonPrimaryColor": "#8b5cf6",
+        "buttonPrimaryTextColor": "#ffffff",
+        "buttonSecondaryColor": "#ffffff",
+        "buttonSecondaryTextColor": "#1f2937",
+        "headerFooterColor": "#2e1065",
+        "headerFooterTextColor": "#ffffff",
+        "scrollbarThumbColor": "#c4b5fd",
+        "scrollbarTrackColor": "#f3f4f6",
+        "scrollbarHoverColor": "#a78bfa",
+        "calendarSelectedBgColor": "#8b5cf6",
+        "calendarSelectedTextColor": "#ffffff",
+        "timetableSelectedHeaderBg": "#ede9fe",
+        "timetableSelectedHeaderText": "#5b21b6",
+        "timetableSelectedCellBg": "#f5f3ff"
+    }
+}

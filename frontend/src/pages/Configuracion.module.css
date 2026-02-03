@@ -62,7 +62,7 @@
     flex: 1;
     display: grid;
     grid-template-columns: 1fr 350px;
-    /*gap: var(--space-8);*/
+    gap: var(--space-8);
 }
 
 .formSection {
@@ -154,13 +154,42 @@
     border: 1px solid #fecaca;
 }
 
-/* Theme Cards */
+/* Themes Section */
+.themesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.addTheme {
+    display: flex;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.sectionTitle {
+    font-size: var(--text-md);
+    font-weight: var(--font-bold);
+    color: var(--color-gray-800);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.themesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-4);
+}
+
 .themeCard {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    cursor: pointer;
+    background-color: white;
     transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .themeCard:hover {
@@ -171,15 +200,85 @@
 
 .themePreview {
     height: 100px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.themeHeader {
+    height: 20px;
+    width: 100%;
+}
+
+.themeBody {
+    flex: 1;
     display: flex;
 }
 
-.themeName {
+.themeSidebar {
+    width: 30%;
+    height: 100%;
+}
+
+.themeContent {
+    flex: 1;
+    background-color: #f8fafc;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.themeButton {
+    width: 60%;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.themeInfo {
     padding: var(--space-3);
-    font-weight: var(--font-medium);
-    text-align: center;
-    background-color: var(--bg-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-top: 1px solid var(--border-color);
+    background-color: white;
+}
+
+.themeName {
+    font-weight: var(--font-medium);
+    font-size: var(--text-sm);
+    color: var(--color-gray-800);
+}
+
+.themeActions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.iconButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: white;
+    color: var(--color-gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.iconButton:hover {
+    background-color: var(--color-gray-50);
+    color: var(--color-primary-600);
+    border-color: var(--color-primary-200);
+}
+
+.deleteButton:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border-color: #fecaca;
 }
 
 @media (max-width: 1024px) {

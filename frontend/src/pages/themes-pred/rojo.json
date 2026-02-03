@@ -1,0 +1,29 @@
+{
+    "name": "Rojo",
+    "settings": {
+        "primaryColor": "#ef4444",
+        "secondaryColor": "#71717a",
+        "sidebarColor": "#262626",
+        "sidebarActiveColor": "#404040",
+        "sidebarActiveTextColor": "#ffffff",
+        "sidebarHoverColor": "#404040",
+        "sidebarHoverTextColor": "#ffffff",
+        "textMainColor": "#171717",
+        "textSecondaryColor": "#525252",
+        "specialTextColor": "#ffffff",
+        "buttonPrimaryColor": "#ef4444",
+        "buttonPrimaryTextColor": "#ffffff",
+        "buttonSecondaryColor": "#ffffff",
+        "buttonSecondaryTextColor": "#171717",
+        "headerFooterColor": "#262626",
+        "headerFooterTextColor": "#ffffff",
+        "scrollbarThumbColor": "#d4d4d8",
+        "scrollbarTrackColor": "#f5f5f5",
+        "scrollbarHoverColor": "#a1a1aa",
+        "calendarSelectedBgColor": "#ef4444",
+        "calendarSelectedTextColor": "#ffffff",
+        "timetableSelectedHeaderBg": "#fee2e2",
+        "timetableSelectedHeaderText": "#b91c1c",
+        "timetableSelectedCellBg": "#fef2f2"
+    }
+}

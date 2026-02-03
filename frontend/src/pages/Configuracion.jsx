@@ -4,98 +4,31 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check } from 'lucide-react';
+
+// Importar temas predefinidos
+import defaultTheme from './themes-pred/default.json';
+import rojoTheme from './themes-pred/rojo.json';
+import moradoTheme from './themes-pred/morado.json';
+import azulTheme from './themes-pred/azul.json';
+import verdeTheme from './themes-pred/verde.json';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     
-    const defaultSettings = {
-        // Colores Generales
-        primaryColor: '#6366f1',
-        secondaryColor: '#64748b',
-        
-        // Sidebar
-        sidebarColor: '#1e293b',
-        sidebarActiveColor: '#334155',
-        sidebarActiveTextColor: '#ffffff',
-        sidebarHoverColor: '#334155',
-        sidebarHoverTextColor: '#ffffff',
-        
-        // Textos
-        textMainColor: '#334155',
-        textSecondaryColor: '#64748b',
-        specialTextColor: '#ffffff', // NUEVO
-        
-        // Botones
-        buttonPrimaryColor: '#6366f1',
-        buttonPrimaryTextColor: '#ffffff',
-        buttonSecondaryColor: '#ffffff',
-        buttonSecondaryTextColor: '#334155',
-        
-        // Header/Footer
-        headerFooterColor: '#1e293b',
-        headerFooterTextColor: '#ffffff',
-        
-        // Scrollbar
-        scrollbarThumbColor: '#cbd5e1',
-        scrollbarTrackColor: '#f1f5f9',
-        scrollbarHoverColor: '#94a3b8',
-        scrollbarWidth: '12px',
-        
-        // Calendario
-        calendarSelectedBgColor: '#6366f1',
-        calendarSelectedTextColor: '#ffffff',
-        calendarWeekendBgColor: '#f1f5f9',
-        calendarWeekendTextColor: '#64748b',
-        
-        // Horario
-        timetableHeaderBgColor: '#f1f5f9',
-        timetableHeaderTextColor: '#334155',
-        timetableHoursBgColor: '#f8fafc',
-        timetableHoursTextColor: '#64748b',
-        timetableSelectedHeaderBg: '#e0e7ff',
-        timetableSelectedHeaderText: '#4338ca',
-        timetableSelectedCellBg: '#eef2ff',
-        
-        // DataTable
-        datatableHeaderBgColor: '#f8fafc',
-        datatableHeaderTextColor: '#64748b',
-        datatableHeaderHoverBgColor: '#f1f5f9',
-        datatableHeaderHoverTextColor: '#334155',
-        datatableHeaderActiveBgColor: '#e2e8f0',
-        datatableHeaderActiveTextColor: '#1e293b',
-        datatablePaginationBgColor: '#f8fafc',
-        datatablePaginationTextColor: '#64748b',
-        datatablePaginationButtonBgColor: '#ffffff',
-        datatablePaginationButtonTextColor: '#64748b',
-        datatablePaginationButtonHoverBgColor: '#f1f5f9',
-        datatablePaginationButtonHoverTextColor: '#334155',
-        datatablePaginationButtonActiveBgColor: '#e2e8f0',
-        datatablePaginationButtonActiveTextColor: '#1e293b',
+    const defaultSettings = defaultTheme.settings;
 
-        // Accordion
-        accordionHeaderBgColor: '#f1f5f9',
-        accordionHeaderTextColor: '#334155',
-        accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#64748b',
-
-        // Paginación (Items Per Page)
-        itemsPerPageUsuarios: 20,
-        itemsPerPageCentros: 20,
-        itemsPerPageCiclos: 20,
-        itemsPerPageGrupos: 20,
-        itemsPerPageModulos: 20,
-        itemsPerPageMatriculas: 20,
-        itemsPerPageImparticiones: 20,
-        itemsPerPageHorarios: 20,
-
-        // Temas Guardados (Inicializado vacío)
-        savedThemes: []
-    };
+    const predefinedThemes = [
+        defaultTheme,
+        rojoTheme,
+        moradoTheme,
+        azulTheme,
+        verdeTheme
+    ];
 
     const [settings, setSettings] = useState(defaultSettings);
-    const [themes, setThemes] = useState([]);
+    const [savedThemes, setSavedThemes] = useState([]);
     const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
@@ -106,12 +39,12 @@ const Configuracion = () => {
             if (user.centro && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
                 if (user.centro.personalizacion.savedThemes) {
-                    setThemes(user.centro.personalizacion.savedThemes);
+                    setSavedThemes(user.centro.personalizacion.savedThemes);
                 }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
                 if (user.centro.personalizacion.savedThemes) {
-                    setThemes(user.centro.personalizacion.savedThemes);
+                    setSavedThemes(user.centro.personalizacion.savedThemes);
                 }
             }
         }
@@ -140,30 +73,30 @@ const Configuracion = () => {
     const handleSaveTheme = () => {
         if (!newThemeName.trim()) return;
         
-        const { savedThemes, ...themeSettings } = settings;
+        const { savedThemes: currentSavedThemes, ...themeSettings } = settings;
         
         const newTheme = {
             name: newThemeName,
             settings: themeSettings
         };
         
-        const updatedThemes = [...themes, newTheme];
-        setThemes(updatedThemes);
+        const updatedThemes = [...savedThemes, newTheme];
+        setSavedThemes(updatedThemes);
         setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
         setNewThemeName('');
     };
 
-    const handleLoadTheme = (theme) => {
+    const handleLoadTheme = (themeSettings) => {
         setSettings(prev => ({
             ...prev,
-            ...theme.settings,
-            savedThemes: themes
+            ...themeSettings,
+            savedThemes: savedThemes // Mantener la lista de temas guardados
         }));
     };
 
     const handleDeleteTheme = (index) => {
-        const updatedThemes = themes.filter((_, i) => i !== index);
-        setThemes(updatedThemes);
+        const updatedThemes = savedThemes.filter((_, i) => i !== index);
+        setSavedThemes(updatedThemes);
         setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
     };
 
@@ -178,7 +111,7 @@ const Configuracion = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(settings),
+                body: JSON.stringify({ ...settings, savedThemes }),
                 credentials: 'include'
             });
 
@@ -247,19 +180,43 @@ const Configuracion = () => {
         </div>
     );
 
-    const renderTextInput = (label, name, placeholder = '') => (
-        <div className={styles.colorItem}>
-            <label className={styles.label}>{label}</label>
-            <input
-                type="text"
-                name={name}
-                value={settings[name] || ''}
-                onChange={handleChange}
-                className={styles.colorTextInput}
-                placeholder={placeholder}
-            />
-        </div>
-    );
+    const renderThemeCard = (theme, index, isPredefined = false) => {
+        const themeSettings = theme.settings;
+        return (
+            <div key={index} className={styles.themeCard}>
+                <div className={styles.themePreview} style={{ backgroundColor: themeSettings.sidebarColor }}>
+                    <div className={styles.themeHeader} style={{ backgroundColor: themeSettings.headerFooterColor }}></div>
+                    <div className={styles.themeBody}>
+                        <div className={styles.themeSidebar} style={{ backgroundColor: themeSettings.sidebarColor }}></div>
+                        <div className={styles.themeContent}>
+                            <div className={styles.themeButton} style={{ backgroundColor: themeSettings.primaryColor }}></div>
+                        </div>
+                    </div>
+                </div>
+                <div className={styles.themeInfo}>
+                    <span className={styles.themeName}>{theme.name}</span>
+                    <div className={styles.themeActions}>
+                        <button 
+                            className={styles.iconButton} 
+                            onClick={() => handleLoadTheme(themeSettings)}
+                            title="Aplicar Tema"
+                        >
+                            <Check size={16} />
+                        </button>
+                        {!isPredefined && (
+                            <button 
+                                className={`${styles.iconButton} ${styles.deleteButton}`} 
+                                onClick={() => handleDeleteTheme(index)}
+                                title="Eliminar Tema"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     const renderPreview = () => {
         switch (activeTab) {
@@ -642,22 +599,6 @@ const Configuracion = () => {
                                 </div>
                             </div>
 
-                            {/* Resumen Tabla y Paginación */}
-                            <div>
-                                <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>Tabla y Paginación</h5>
-                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor, padding: '5px', fontSize: '10px', fontWeight: 'bold' }}>CABECERA</div>
-                                    <div style={{ padding: '5px', fontSize: '10px' }}>Fila de datos...</div>
-                                    <div style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor, padding: '5px', fontSize: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span>{settings.itemsPerPageUsuarios} items</span>
-                                        <div style={{ display: 'flex', gap: '2px' }}>
-                                            <div style={{ backgroundColor: settings.datatablePaginationButtonActiveBgColor, color: settings.datatablePaginationButtonActiveTextColor, padding: '2px 5px', borderRadius: '2px' }}>1</div>
-                                            <div style={{ backgroundColor: settings.datatablePaginationButtonBgColor, color: settings.datatablePaginationButtonTextColor, padding: '2px 5px', borderRadius: '2px' }}>2</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 );
@@ -854,29 +795,23 @@ const Configuracion = () => {
                                             style={{ flex: 1 }}
                                         />
                                         <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
-                                            Crear Tema
+                                            Guardar Actual
                                         </Button>
                                     </div>
                                     
-                                    <div className={styles.themesList}>
-                                        {themes.length === 0 ? (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No hay temas guardados.</p>
-                                        ) : (
-                                            themes.map((theme, index) => (
-                                                <div key={index} className={styles.themeItem}>
-                                                    <span className={styles.themeName}>{theme.name}</span>
-                                                    <div className={styles.themeActions}>
-                                                        <Button variant="secondary" onClick={() => handleLoadTheme(theme)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>
-                                                            Cargar
-                                                        </Button>
-                                                        <Button variant="secondary" onClick={() => handleDeleteTheme(index)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', backgroundColor: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }}>
-                                                            Eliminar
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
+                                    <h4 className={styles.sectionTitle}>Temas Predefinidos</h4>
+                                    <div className={styles.themesGrid}>
+                                        {predefinedThemes.map((theme, index) => renderThemeCard(theme, index, true))}
                                     </div>
+
+                                    {savedThemes.length > 0 && (
+                                        <>
+                                            <h4 className={styles.sectionTitle} style={{ marginTop: '20px' }}>Mis Temas Guardados</h4>
+                                            <div className={styles.themesGrid}>
+                                                {savedThemes.map((theme, index) => renderThemeCard(theme, index, false))}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

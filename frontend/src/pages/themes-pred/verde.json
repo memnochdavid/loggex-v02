@@ -1,0 +1,29 @@
+{
+    "name": "Verde",
+    "settings": {
+        "primaryColor": "#10b981",
+        "secondaryColor": "#52525b",
+        "sidebarColor": "#064e3b",
+        "sidebarActiveColor": "#065f46",
+        "sidebarActiveTextColor": "#ffffff",
+        "sidebarHoverColor": "#065f46",
+        "sidebarHoverTextColor": "#ffffff",
+        "textMainColor": "#18181b",
+        "textSecondaryColor": "#3f3f46",
+        "specialTextColor": "#ffffff",
+        "buttonPrimaryColor": "#10b981",
+        "buttonPrimaryTextColor": "#ffffff",
+        "buttonSecondaryColor": "#ffffff",
+        "buttonSecondaryTextColor": "#18181b",
+        "headerFooterColor": "#064e3b",
+        "headerFooterTextColor": "#ffffff",
+        "scrollbarThumbColor": "#a7f3d0",
+        "scrollbarTrackColor": "#ecfdf5",
+        "scrollbarHoverColor": "#6ee7b7",
+        "calendarSelectedBgColor": "#10b981",
+        "calendarSelectedTextColor": "#ffffff",
+        "timetableSelectedHeaderBg": "#d1fae5",
+        "timetableSelectedHeaderText": "#065f46",
+        "timetableSelectedCellBg": "#ecfdf5"
+    }
+}
