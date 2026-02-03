@@ -61,7 +61,8 @@
     font-weight: var(--font-bold);
     font-size: var(--text-3xl);
     letter-spacing: -0.025em;
-    color: var(--text-special)
+    color: var(--text-special);
+    user-select: none;
 }
 
 .navLink {

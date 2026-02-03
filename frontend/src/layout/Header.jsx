@@ -6,6 +6,7 @@ import viteLogo from '/logo_texto_horizontal.png';
 import styles from './Header.module.css';
 import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
+import NameTitle from '../components/NameTitle'; // Importar NameTitle
 // import { Menu } from 'lucide-react';
 
 // Hook simple para media query
@@ -70,9 +71,9 @@ const Header = () => {
                         {LogoImage}
                     </Link>
                 )}
-                <div className={styles.nombrecentro}>
-                    <span>{getCentroName()}</span>
-                </div>
+                
+                {/* Usar NameTitle en lugar de span directo */}
+                <NameTitle name={getCentroName()} className={styles.nombrecentro} />
             </div>
 
             <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>

@@ -4,7 +4,8 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading } from 'lucide-react';
+import NameTitle from '../components/NameTitle'; // Importar NameTitle para la preview
 
 // Importar temas predefinidos
 import defaultTheme from './themes-pred/default.json';
@@ -42,6 +43,14 @@ const Configuracion = () => {
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
 
+    // Estado para configuración de título
+    const [titleConfig, setTitleConfig] = useState({
+        words: [],
+        spacing: '0.5rem',
+        casing: 'original',
+        alignment: 'center' // 'flex-start', 'center', 'flex-end'
+    });
+
     useEffect(() => {
         if (user) {
             if (user.centro && user.centro.personalizacion) {
@@ -52,6 +61,22 @@ const Configuracion = () => {
                 // Cargar logo actual si existe
                 if (user.centro.logo) {
                     setLogoPreview(`https://localhost:9443/uploads/logo-centro/${user.centro.logo}`);
+                }
+                // Cargar configuración de título
+                if (user.centro.personalizacion.nameTitleConfig) {
+                    setTitleConfig(user.centro.personalizacion.nameTitleConfig);
+                } else if (user.centro.nombre) {
+                    // Inicializar con el nombre del centro si no hay config
+                    const words = user.centro.nombre.split(' ').map(word => ({
+                        text: word,
+                        color: '#000000' // Color por defecto
+                    }));
+                    setTitleConfig({
+                        words: words,
+                        spacing: '0.5rem',
+                        casing: 'original',
+                        alignment: 'center'
+                    });
                 }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 setSettings({ ...defaultSettings, ...user.centro.personalizacion });
@@ -84,6 +109,25 @@ const Configuracion = () => {
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    // Manejadores para configuración de título
+    const handleTitleWordColorChange = (index, color) => {
+        const newWords = [...titleConfig.words];
+        newWords[index].color = color;
+        setTitleConfig({ ...titleConfig, words: newWords });
+    };
+
+    const handleTitleSpacingChange = (e) => {
+        setTitleConfig({ ...titleConfig, spacing: e.target.value });
+    };
+
+    const handleTitleCasingChange = (e) => {
+        setTitleConfig({ ...titleConfig, casing: e.target.value });
+    };
+
+    const handleTitleAlignmentChange = (e) => {
+        setTitleConfig({ ...titleConfig, alignment: e.target.value });
     };
 
     const handleReset = () => {
@@ -130,13 +174,17 @@ const Configuracion = () => {
         setMessage(null);
 
         try {
-            // 1. Guardar Configuración de Personalización
+            // 1. Guardar Configuración de Personalización (incluyendo título)
             const responseConfig = await fetch('https://localhost:9443/api/configuracion/update', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ ...settings, savedThemes }),
+                body: JSON.stringify({ 
+                    ...settings, 
+                    savedThemes,
+                    nameTitleConfig: titleConfig // Añadir configuración de título
+                }),
                 credentials: 'include'
             });
 
@@ -148,18 +196,6 @@ const Configuracion = () => {
             // 2. Guardar Logo (si se ha seleccionado uno y es admin de centro)
             if (canChangeLogo && logoFile) {
                 const formData = new FormData();
-                // Necesitamos enviar los datos obligatorios del centro para el update, aunque no cambien
-                // Pero el endpoint espera multipart/form-data.
-                // Como el endpoint de update requiere nombre, cif, direccion, etc., 
-                // lo ideal sería tener un endpoint solo para el logo o enviar todo.
-                // Para simplificar y no romper, enviaremos los datos actuales del centro.
-                
-                formData.append('nombre', user.centro.nombre);
-                // CIF y Dirección no los tenemos en user.centro por defecto en el login, 
-                // así que esto podría fallar si el backend valida estrictamente.
-                // Vamos a asumir que el backend permite actualización parcial o que el usuario tiene esos datos.
-                // Si user.centro no tiene cif/direccion, esto fallará.
-                // Solución: Hacer un fetch del centro primero para obtener todos los datos.
                 
                 const centroRes = await fetch(`https://localhost:9443/api/centros/${user.centro.id}`, {
                     headers: { 'Accept': 'application/ld+json' },
@@ -640,6 +676,37 @@ const Configuracion = () => {
                     </div>
                 );
 
+            case 'title':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 style={{ fontSize: '12px', marginBottom: '10px', color: '#64748b' }}>Vista Previa Título</h4>
+                        <div style={{ 
+                            padding: '20px', 
+                            backgroundColor: settings.headerFooterColor, 
+                            borderRadius: '8px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}>
+                            {/* Usamos un componente simulado para la preview */}
+                            <div style={{ display: 'flex', gap: titleConfig.spacing, fontSize: '1.5rem', fontWeight: 'bold', alignItems: titleConfig.alignment }}>
+                                {titleConfig.words.map((word, index) => {
+                                    let text = word.text;
+                                    if (titleConfig.casing === 'uppercase') text = text.toUpperCase();
+                                    if (titleConfig.casing === 'lowercase') text = text.toLowerCase();
+                                    if (titleConfig.casing === 'capitalize') text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+                                    
+                                    return (
+                                        <span key={index} style={{ color: word.color }}>
+                                            {text}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+
             case 'pagination':
                 return (
                     <div className={styles.previewBox}>
@@ -729,6 +796,7 @@ const Configuracion = () => {
 
     const tabs = [
         { id: 'general', label: 'General', icon: <Palette size={18} /> },
+        { id: 'title', label: 'Título', icon: <Heading size={18} /> }, // Nueva pestaña
         { id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18} /> },
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
@@ -828,6 +896,71 @@ const Configuracion = () => {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {activeTab === 'title' && (
+                                <div className={styles.grid}>
+                                    <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
+                                        <label className={styles.label}>Espaciado entre palabras</label>
+                                        <input 
+                                            type="text" 
+                                            value={titleConfig.spacing} 
+                                            onChange={handleTitleSpacingChange}
+                                            className={styles.colorTextInput}
+                                            placeholder="Ej: 0.5rem, 10px"
+                                        />
+                                    </div>
+                                    
+                                    <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
+                                        <label className={styles.label}>Capitalización</label>
+                                        <select 
+                                            value={titleConfig.casing} 
+                                            onChange={handleTitleCasingChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="original">Original</option>
+                                            <option value="uppercase">MAYÚSCULAS</option>
+                                            <option value="lowercase">minúsculas</option>
+                                            <option value="capitalize">Capitalizado</option>
+                                        </select>
+                                    </div>
+
+                                    <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
+                                        <label className={styles.label}>Alineación Vertical</label>
+                                        <select 
+                                            value={titleConfig.alignment} 
+                                            onChange={handleTitleAlignmentChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="flex-start">Arriba</option>
+                                            <option value="center">Centro</option>
+                                            <option value="flex-end">Abajo</option>
+                                        </select>
+                                    </div>
+
+                                    <div style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+                                        <label className={styles.label} style={{ marginBottom: '0.5rem', display: 'block' }}>Colores por palabra</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {titleConfig.words.map((word, index) => (
+                                                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <span style={{ minWidth: '100px', fontWeight: 'bold' }}>{word.text}</span>
+                                                    <input 
+                                                        type="color" 
+                                                        value={word.color} 
+                                                        onChange={(e) => handleTitleWordColorChange(index, e.target.value)}
+                                                        className={styles.colorInput}
+                                                    />
+                                                    <input 
+                                                        type="text" 
+                                                        value={word.color} 
+                                                        onChange={(e) => handleTitleWordColorChange(index, e.target.value)}
+                                                        className={styles.colorTextInput}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

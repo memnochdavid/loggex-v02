@@ -269,19 +269,19 @@ class Personalizacion
     // --- Modal Close Button ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $modalCloseButtonBgColor = '#ffffff'; // Fondo del botón cerrar
+    private ?string $modalCloseButtonBgColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $modalCloseButtonTextColor = '#64748b'; // Color del icono/texto cerrar
+    private ?string $modalCloseButtonTextColor = '#64748b';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $modalCloseButtonHoverBgColor = '#f1f5f9'; // Fondo hover
+    private ?string $modalCloseButtonHoverBgColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $modalCloseButtonHoverTextColor = '#334155'; // Color hover
+    private ?string $modalCloseButtonHoverTextColor = '#334155';
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -315,6 +315,11 @@ class Personalizacion
     #[ORM\Column]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private int $itemsPerPageHorarios = 20;
+
+    // --- Configuración Título Centro ---
+    #[ORM\Column(name: 'name_title_config', type: 'json', nullable: true)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?array $nameTitleConfig = null;
 
     // --- Temas Guardados ---
     #[ORM\Column(name: 'temas_guardados', type: 'json', nullable: true)]
@@ -529,6 +534,9 @@ class Personalizacion
 
     public function getItemsPerPageHorarios(): int { return $this->itemsPerPageHorarios; }
     public function setItemsPerPageHorarios(int $items): static { $this->itemsPerPageHorarios = $items; return $this; }
+
+    public function getNameTitleConfig(): ?array { return $this->nameTitleConfig; }
+    public function setNameTitleConfig(?array $config): static { $this->nameTitleConfig = $config; return $this; }
 
     public function getSavedThemes(): ?array { return $this->savedThemes; }
     public function setSavedThemes(?array $themes): static { $this->savedThemes = $themes; return $this; }

@@ -21,6 +21,7 @@ docker compose exec backend composer install --no-interaction --optimize-autoloa
 
 # 3. Instalar dependencias Frontend
 echo "📦 Instalando dependencias de React (NPM)..."
+# Esto instalará react-draggable y cualquier otra dependencia nueva en package.json
 docker compose exec frontend npm install
 
 # 4. Sincronizar Base de Datos

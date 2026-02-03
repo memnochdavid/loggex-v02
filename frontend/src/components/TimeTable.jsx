@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import styles from './TimeTable.module.css';
-import { X, Clock, MapPin, Users, User, CalendarOff } from 'lucide-react';
+import { Clock, MapPin, Users, User, CalendarOff } from 'lucide-react';
 import AccordionView from './AccordionView';
+import ModalView from './ModalView'; // Importar ModalView
 
 const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
@@ -321,53 +322,51 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
             {renderMobileView()}
 
             {/* Modal de Detalle */}
-            {selectedEvent && (
-                <div className={styles.modalOverlay} onClick={() => setSelectedEvent(null)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>{selectedEvent.modulo}</h3>
-                            <button className={styles.closeButton} onClick={() => setSelectedEvent(null)}>
-                                <X size={20} />
-                            </button>
+            <ModalView
+                isOpen={!!selectedEvent}
+                onClose={() => setSelectedEvent(null)}
+                title={selectedEvent ? selectedEvent.modulo : ''}
+                size="small"
+                cancelText="Cerrar"
+            >
+                {selectedEvent && (
+                    <div className={styles.modalBody}>
+                        <div className={styles.detailRow}>
+                            <Clock size={18} className={styles.icon} />
+                            <div>
+                                <span className={styles.label}>Horario:</span>
+                                <span className={styles.value}>
+                                    {days[selectedEvent.diaSemana - 1]}, {selectedEvent.horaInicio} - {selectedEvent.horaFin}
+                                </span>
+                            </div>
                         </div>
-                        <div className={styles.modalBody}>
-                            <div className={styles.detailRow}>
-                                <Clock size={18} className={styles.icon} />
-                                <div>
-                                    <span className={styles.label}>Horario:</span>
-                                    <span className={styles.value}>
-                                        {days[selectedEvent.diaSemana - 1]}, {selectedEvent.horaInicio} - {selectedEvent.horaFin}
-                                    </span>
-                                </div>
+                        <div className={styles.detailRow}>
+                            <Users size={18} className={styles.icon} />
+                            <div>
+                                <span className={styles.label}>Grupo:</span>
+                                <span className={styles.value}>{selectedEvent.grupo}</span>
+                                {selectedEvent.grupoAbreviatura && (
+                                    <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
+                                )}
                             </div>
-                            <div className={styles.detailRow}>
-                                <Users size={18} className={styles.icon} />
-                                <div>
-                                    <span className={styles.label}>Grupo:</span>
-                                    <span className={styles.value}>{selectedEvent.grupo}</span>
-                                    {selectedEvent.grupoAbreviatura && (
-                                        <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
-                                    )}
-                                </div>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <MapPin size={18} className={styles.icon} />
+                            <div>
+                                <span className={styles.label}>Aula:</span>
+                                <span className={styles.value}>{selectedEvent.aula}</span>
                             </div>
-                            <div className={styles.detailRow}>
-                                <MapPin size={18} className={styles.icon} />
-                                <div>
-                                    <span className={styles.label}>Aula:</span>
-                                    <span className={styles.value}>{selectedEvent.aula}</span>
-                                </div>
-                            </div>
-                            <div className={styles.detailRow}>
-                                <User size={18} className={styles.icon} />
-                                <div>
-                                    <span className={styles.label}>Profesor:</span>
-                                    <span className={styles.value}>{selectedEvent.profesor}</span>
-                                </div>
+                        </div>
+                        <div className={styles.detailRow}>
+                            <User size={18} className={styles.icon} />
+                            <div>
+                                <span className={styles.label}>Profesor:</span>
+                                <span className={styles.value}>{selectedEvent.profesor}</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </ModalView>
         </div>
     );
 };

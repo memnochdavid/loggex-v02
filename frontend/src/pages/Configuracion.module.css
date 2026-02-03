@@ -291,6 +291,8 @@
         flex-direction: row;
         overflow-x: auto;
         padding-bottom: var(--space-2);
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .content {

@@ -182,6 +182,7 @@ class SecurityController extends AbstractController
             'itemsPerPageMatriculas' => $p->getItemsPerPageMatriculas(),
             'itemsPerPageImparticiones' => $p->getItemsPerPageImparticiones(),
             'itemsPerPageHorarios' => $p->getItemsPerPageHorarios(),
+            'nameTitleConfig' => $p->getNameTitleConfig(), // Añadido
         ];
     }
 }

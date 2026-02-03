@@ -155,6 +155,11 @@ class PersonalizacionController extends AbstractController
         if (isset($data['itemsPerPageImparticiones'])) $personalizacion->setItemsPerPageImparticiones((int)$data['itemsPerPageImparticiones']);
         if (isset($data['itemsPerPageHorarios'])) $personalizacion->setItemsPerPageHorarios((int)$data['itemsPerPageHorarios']);
 
+        // Configuración Título Centro
+        if (isset($data['nameTitleConfig'])) {
+            $personalizacion->setNameTitleConfig($data['nameTitleConfig']);
+        }
+
         // Temas Guardados
         if (isset($data['savedThemes'])) {
             $personalizacion->setSavedThemes($data['savedThemes']);

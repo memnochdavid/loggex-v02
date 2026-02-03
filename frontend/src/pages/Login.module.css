@@ -2,60 +2,133 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
+  min-height: 100vh;
   padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
 }
 
-.card {
-  background-color: var(--bg-card);
-  padding: var(--space-8);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+/* Grid Animado */
+.container::before {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridMove 4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+  transform: perspective(500px) rotateX(20deg);
+  opacity: 0.6;
+}
+
+.container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 400px;
-  border: 1px solid var(--border-color);
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 20%, #020617 90%);
+  z-index: 1;
+  pointer-events: none;
+  animation: pulseVignette 6s ease-in-out infinite alternate;
 }
 
-.title {
-  text-align: center;
-  margin-bottom: var(--space-6);
-  color: var(--color-primary-600);
+/* Clase para el overlay del ModalView en Login (transparente) */
+.loginOverlay {
+    background-color: transparent !important;
+    pointer-events: none; /* Permitir clicks en el fondo si fuera necesario, pero el modal debe capturarlos */
+}
+/* Reactivar pointer-events para el contenido del modal */
+.loginOverlay > * {
+    pointer-events: auto;
+}
+
+/* Clase para el contenido del ModalView (Glassmorphism) */
+.loginCard {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
 }
 
 .formGroup {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .label {
   display: block;
   margin-bottom: var(--space-2);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-bold);
   color: var(--color-gray-700);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-gray-300);
+  padding: var(--space-3);
+  border: 2px solid transparent;
   border-radius: var(--radius-md);
   font-size: var(--text-base);
-  transition: border-color 0.2s;
-  box-sizing: border-box; /* Importante para que el padding no aumente el ancho */
+  transition: all 0.2s;
+  box-sizing: border-box;
+  background-color: rgba(241, 245, 249, 0.8);
+  color: var(--color-gray-900);
+  font-weight: 500;
 }
 
 .input:focus {
   outline: none;
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 
 .error {
-  color: var(--color-error);
+  color: #b91c1c;
   font-size: var(--text-sm);
   margin-bottom: var(--space-4);
   text-align: center;
-  background-color: #fef2f2;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
+  background-color: rgba(254, 242, 242, 0.9);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: 500;
+}
+
+@keyframes gridMove {
+  0% {
+    transform: perspective(500px) rotateX(20deg) translateY(0) translateX(0);
+  }
+  100% {
+    transform: perspective(500px) rotateX(20deg) translateY(60px) translateX(60px);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulseVignette {
+  0% { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0.7; transform: scale(1.05); }
 }

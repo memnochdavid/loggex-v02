@@ -43,13 +43,13 @@ const Sidebar = () => {
                         </div>
                     )}
                     
-                    <button 
-                        className={styles.collapseBtn} 
-                        onClick={toggleSidebar}
-                        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    >
-                        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                    </button>
+                    {/*<button */}
+                    {/*    className={styles.collapseBtn} */}
+                    {/*    onClick={toggleSidebar}*/}
+                    {/*    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}*/}
+                    {/*>*/}
+                    {/*    {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}*/}
+                    {/*</button>*/}
                 </div>
 
                 <nav className={styles.nav}>
