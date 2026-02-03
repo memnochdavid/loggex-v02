@@ -5,7 +5,7 @@ import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Calendar, Upload, Eye, X, Download, CheckCircle, Clock } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, X, Download, CheckCircle, Clock, Award, MessageSquare } from 'lucide-react';
 
 const Entregas = () => {
   const { user } = useAuth();
@@ -33,6 +33,15 @@ const Entregas = () => {
   const [entregasTarea, setEntregasTarea] = useState([]);
   const [loadingEntregas, setLoadingEntregas] = useState(false);
 
+  // Estado Modal Calificar
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [currentEntrega, setCurrentEntrega] = useState(null);
+  const [gradeFormData, setGradeFormData] = useState({
+    nota: '',
+    feedback: ''
+  });
+  const [savingGrade, setSavingGrade] = useState(false);
+
   useEffect(() => {
     if (user) {
         fetchData();
@@ -42,7 +51,7 @@ const Entregas = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-        // 1. Cargar Asignaturas y Tareas (Igual que en Tareas.jsx)
+        // 1. Cargar Asignaturas y Tareas
         let endpoint = '';
         if (isProfesor) {
             endpoint = `https://localhost:9443/api/imparticions?profesor=${user.id}&pagination=false`;
@@ -91,7 +100,7 @@ const Entregas = () => {
             setAsignaturas(asignaturasConTareas);
         }
 
-        // 2. Si es alumno, cargar sus entregas para saber el estado
+        // 2. Si es alumno, cargar sus entregas
         if (isAlumno) {
             const resEntregas = await fetch(`https://localhost:9443/api/entregas?alumno=${user.id}&pagination=false`, {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
@@ -99,8 +108,6 @@ const Entregas = () => {
             const dataEntregas = await resEntregas.json();
             const entregas = dataEntregas['hydra:member'] || dataEntregas.member || [];
             
-            console.log("Entregas recuperadas:", entregas);
-
             const entregasMap = {};
             entregas.forEach(e => {
                 let tareaId;
@@ -164,7 +171,6 @@ const Entregas = () => {
         }
 
         await fetchData();
-        
         setIsUploadModalOpen(false);
     } catch (err) {
         alert(err.message);
@@ -182,13 +188,10 @@ const Entregas = () => {
       
       try {
           const tareaId = tarea.id || tarea['@id'].split('/').pop();
-          const tareaIri = `/api/tareas/${tareaId}`;
-          
-          console.log("Cargando entregas para tarea IRI:", tareaIri);
+          console.log("Cargando tarea completa para ver entregas. ID:", tareaId);
 
-          // Usamos el endpoint de entregas filtrando por tarea (IRI)
-          // Esto usa el grupo 'entrega:read' que sabemos que funciona bien
-          const response = await fetch(`https://localhost:9443/api/entregas?tarea=${encodeURIComponent(tareaIri)}`, {
+          // REVERTIDO: Pedir la tarea completa, que incluye 'entregas' gracias al grupo tarea:read
+          const response = await fetch(`https://localhost:9443/api/tareas/${tareaId}`, {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
           });
@@ -198,14 +201,61 @@ const Entregas = () => {
           }
 
           const data = await response.json();
-          const items = data['hydra:member'] || data.member || [];
-          console.log("Entregas recibidas:", items);
+          const items = data.entregas || []; // Las entregas vienen dentro de la tarea
+          console.log("Entregas recibidas (desde tarea):", items);
           setEntregasTarea(items);
       } catch (err) {
           console.error(err);
           alert("Error cargando entregas");
       } finally {
           setLoadingEntregas(false);
+      }
+  };
+
+  const handleOpenGradeModal = (entrega) => {
+      setCurrentEntrega(entrega);
+      setGradeFormData({
+          nota: entrega.calificacion ? entrega.calificacion.nota : '',
+          feedback: entrega.calificacion ? entrega.calificacion.feedbackProfesor : ''
+      });
+      setIsGradeModalOpen(true);
+  };
+
+  const handleSaveGrade = async (e) => {
+      e.preventDefault();
+      setSavingGrade(true);
+
+      try {
+          const method = currentEntrega.calificacion ? 'PUT' : 'POST';
+          const url = currentEntrega.calificacion 
+            ? `https://localhost:9443/api/calificacions/${currentEntrega.calificacion.id}`
+            : 'https://localhost:9443/api/calificacions';
+
+          const payload = {
+              nota: parseFloat(gradeFormData.nota),
+              feedbackProfesor: gradeFormData.feedback,
+              entrega: `/api/entregas/${currentEntrega.id}`
+          };
+
+          const response = await fetch(url, {
+              method: method,
+              headers: {
+                  'Content-Type': 'application/ld+json',
+                  'Accept': 'application/ld+json'
+              },
+              body: JSON.stringify(payload),
+              credentials: 'include'
+          });
+
+          if (!response.ok) throw new Error('Error al guardar calificación');
+
+          await handleViewEntregas(currentTarea);
+          setIsGradeModalOpen(false);
+
+      } catch (err) {
+          alert(err.message);
+      } finally {
+          setSavingGrade(false);
       }
   };
 
@@ -239,6 +289,21 @@ const Entregas = () => {
                                       </span>
                                   )}
                               </div>
+                              
+                              {/* Mostrar Nota y Feedback para el Alumno */}
+                              {isAlumno && entrega && entrega.calificacion && (
+                                  <div style={{marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd'}}>
+                                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: '#0369a1'}}>
+                                          <Award size={16} /> Nota: {entrega.calificacion.nota}
+                                      </div>
+                                      {entrega.calificacion.feedbackProfesor && (
+                                          <div style={{marginTop: '4px', fontSize: '0.9rem', color: '#0c4a6e', display: 'flex', gap: '8px'}}>
+                                              <MessageSquare size={16} style={{flexShrink: 0, marginTop: '2px'}} />
+                                              <span>{entrega.calificacion.feedbackProfesor}</span>
+                                          </div>
+                                      )}
+                                  </div>
+                              )}
                           </div>
                           
                           <div className={styles.taskActions}>
@@ -293,6 +358,27 @@ const Entregas = () => {
       {
           header: 'Comentario',
           accessor: 'comentarioAlumno'
+      },
+      {
+          header: 'Calificación',
+          accessor: (row) => (
+              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                  {row.calificacion ? (
+                      <span className={styles.badge} style={{backgroundColor: '#dbeafe', color: '#1e40af'}}>
+                          {row.calificacion.nota}
+                      </span>
+                  ) : (
+                      <span style={{color: 'var(--text-muted)', fontSize: '0.8rem'}}>Pendiente</span>
+                  )}
+                  <button 
+                      className={styles.iconButton} 
+                      onClick={() => handleOpenGradeModal(row)}
+                      title="Calificar"
+                  >
+                      <Award size={18} />
+                  </button>
+              </div>
+          )
       }
   ];
 
@@ -379,6 +465,46 @@ const Entregas = () => {
                             pageSizeOptions={[100]}
                         />
                     </div>
+                </div>
+            </div>
+        )}
+
+        {/* Modal Calificar */}
+        {isGradeModalOpen && (
+            <div className={styles.modalOverlay} onClick={() => setIsGradeModalOpen(false)}>
+                <div className={styles.modal} onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
+                    <div className={styles.modalHeader}>
+                        <h3 className={styles.modalTitle}>Calificar Entrega</h3>
+                        <button className={styles.closeButton} onClick={() => setIsGradeModalOpen(false)}><X size={20}/></button>
+                    </div>
+                    <form onSubmit={handleSaveGrade}>
+                        <div className={styles.modalBody}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Nota (0-10)</label>
+                                <input 
+                                    type="number" 
+                                    className={styles.input}
+                                    value={gradeFormData.nota}
+                                    onChange={e => setGradeFormData({...gradeFormData, nota: e.target.value})}
+                                    min="0" max="10" step="0.1"
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Feedback</label>
+                                <textarea 
+                                    className={styles.textarea}
+                                    value={gradeFormData.feedback}
+                                    onChange={e => setGradeFormData({...gradeFormData, feedback: e.target.value})}
+                                    placeholder="Comentarios para el alumno..."
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <Button type="button" variant="secondary" onClick={() => setIsGradeModalOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={savingGrade}>{savingGrade ? 'Guardando...' : 'Guardar Calificación'}</Button>
+                        </div>
+                    </form>
                 </div>
             </div>
         )}

@@ -281,7 +281,7 @@ CREATE TABLE `entrega` (
   KEY `IDX_E56D596BFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_E56D596B6D5BDFE1` FOREIGN KEY (`tarea_id`) REFERENCES `tarea` (`id`),
   CONSTRAINT `FK_E56D596BFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -291,7 +291,7 @@ CREATE TABLE `entrega` (
 LOCK TABLES `entrega` WRITE;
 /*!40000 ALTER TABLE `entrega` DISABLE KEYS */;
 INSERT INTO `entrega` VALUES
-(9,'2026-02-03 09:10:43','sdfgdfsh',14,57,'https://docs.google.com/document/d/1FU_PyrSOJ9AB9FjiYxzVSJPW7ALQ7-BIPEizFjRdJfM/edit?usp=sharing','2026-02-03 09:06:42','2026-02-03 09:10:43',0,NULL,NULL);
+(11,'2026-02-03 09:52:35','asfasf',14,57,'https://docs.google.com/document/d/1FU_PyrSOJ9AB9FjiYxzVSJPW7ALQ7-BIPEizFjRdJfM/edit?usp=sharing','2026-02-03 09:52:35','2026-02-03 09:52:35',0,NULL,NULL);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1002,4 +1002,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-03  9:11:14
+-- Dump completed on 2026-02-03 10:15:01

@@ -38,15 +38,15 @@ class Calificacion
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['calificacion:read'])]
+    #[Groups(['calificacion:read', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(['calificacion:read', 'calificacion:write'])]
+    #[Groups(['calificacion:read', 'calificacion:write', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?float $nota = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['calificacion:read', 'calificacion:write'])]
+    #[Groups(['calificacion:read', 'calificacion:write', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $feedbackProfesor = null;
 
     #[ORM\OneToOne(inversedBy: 'calificacion', cascade: ['persist', 'remove'])]
