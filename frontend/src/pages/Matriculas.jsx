@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 
@@ -344,56 +345,52 @@ const Matriculas = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <div className={styles.header}>
-            <h1 className={styles.pageTitle}>Matrículas</h1>
-            
-            <div className={styles.controls}>
-                {isSuperAdmin && (
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => {
-                            setSelectedCentro(e.target.value);
-                            setSelectedGrupo('');
-                        }}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-                )}
-
+        <CrudHeader title="Matrículas">
+            {isSuperAdmin && (
                 <select 
                     className={styles.select} 
-                    value={selectedGrupo} 
-                    onChange={(e) => setSelectedGrupo(e.target.value)}
+                    value={selectedCentro} 
+                    onChange={(e) => {
+                        setSelectedCentro(e.target.value);
+                        setSelectedGrupo('');
+                    }}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los grupos</option>
-                    {grupos.map(g => (
-                        <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                            {g.curso}º {g.nombre}
-                        </option>
+                    <option value="">Todos los centros</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
                 </select>
-                
-                <SearchBar 
-                    value={searchTerm} 
-                    onChange={setSearchTerm} 
-                    placeholder="Buscar matrícula..." 
-                    fields={searchFields}
-                    selectedField={searchField}
-                    onFieldChange={setSearchField}
-                />
-                
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nueva Matrícula
-                </Button>
-            </div>
-        </div>
+            )}
+
+            <select 
+                className={styles.select} 
+                value={selectedGrupo} 
+                onChange={(e) => setSelectedGrupo(e.target.value)}
+                style={{ width: '200px' }}
+            >
+                <option value="">Todos los grupos</option>
+                {grupos.map(g => (
+                    <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
+                        {g.curso}º {g.nombre}
+                    </option>
+                ))}
+            </select>
+            
+            <SearchBar 
+                value={searchTerm} 
+                onChange={setSearchTerm} 
+                placeholder="Buscar matrícula..." 
+                fields={searchFields}
+                selectedField={searchField}
+                onFieldChange={setSearchField}
+            />
+            
+            <Button onClick={() => handleOpenModal()}>
+                <Plus size={18} style={{ marginRight: '8px' }} />
+                Nueva Matrícula
+            </Button>
+        </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>

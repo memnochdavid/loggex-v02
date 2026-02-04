@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
-import { User, Mail, Phone, CreditCard, Building, Shield, Camera } from 'lucide-react';
+import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
 
 const Perfil = () => {
     const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
+    
+    // Estados para información académica
+    const [matriculas, setMatriculas] = useState([]);
+    const [imparticiones, setImparticiones] = useState([]);
 
     const getImageUrl = (path) => {
         if (!path) return null;
@@ -17,10 +21,48 @@ const Perfil = () => {
     };
 
     useEffect(() => {
-        if (user && user.foto) {
-            setAvatarPreview(getImageUrl(user.foto));
+        if (user) {
+            setAvatarPreview(user.foto ? getImageUrl(user.foto) : null);
+
+            // Cargar datos académicos según el rol
+            if (user.roles?.includes('ROLE_ALUMNO')) {
+                fetchMatriculas();
+            }
+            if (user.roles?.includes('ROLE_PROFESOR')) {
+                fetchImparticiones();
+            }
         }
     }, [user]);
+
+    const fetchMatriculas = async () => {
+        try {
+            const response = await fetch(`https://localhost:9443/api/v1/alumno/matriculas`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setMatriculas(data);
+            }
+        } catch (error) {
+            console.error("Error cargando matrículas:", error);
+        }
+    };
+
+    const fetchImparticiones = async () => {
+        try {
+            const response = await fetch(`https://localhost:9443/api/v1/profesor/imparticiones`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setImparticiones(data);
+            }
+        } catch (error) {
+            console.error("Error cargando imparticiones:", error);
+        }
+    };
 
     const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
@@ -35,8 +77,6 @@ const Perfil = () => {
         setUploading(true);
         try {
             const data = new FormData();
-            // Enviamos solo el avatar, asumiendo que el endpoint soporta actualización parcial o ignoramos nombre
-            // Si el endpoint requiere nombre obligatorio, lo enviamos
             data.append('nombre', user.nombre); 
             data.append('avatar', file);
 
@@ -66,6 +106,9 @@ const Perfil = () => {
         ? user.roles.filter(r => r !== 'ROLE_USER').map(r => r.replace('ROLE_', '')).join(', ') 
         : 'Usuario';
 
+    const isAlumnoOnly = user.roles.includes('ROLE_ALUMNO') && !user.roles.includes('ROLE_PROFESOR') && !user.roles.includes('ROLE_ADMIN') && !user.roles.includes('ROLE_SUPERADMIN');
+    const canEditAvatar = !isAlumnoOnly;
+
     return (
         <Layout>
             <div className={styles.container}>
@@ -80,17 +123,18 @@ const Perfil = () => {
                                 </div>
                             )}
                             
-                            {/* Opción de cambiar avatar siempre visible para el propio usuario */}
-                            <label className={styles.avatarUpload} title="Cambiar foto">
-                                <Camera size={16} />
-                                <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    className={styles.hiddenInput}
-                                    onChange={handleAvatarChange}
-                                    disabled={uploading}
-                                />
-                            </label>
+                            {canEditAvatar && (
+                                <label className={styles.avatarUpload} title="Cambiar foto">
+                                    <Camera size={16} />
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        className={styles.hiddenInput}
+                                        onChange={handleAvatarChange}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                            )}
                         </div>
                         <div className={styles.headerInfo}>
                             <h1 className={styles.name}>{fullName}</h1>
@@ -149,6 +193,56 @@ const Perfil = () => {
                                     <span className={styles.value}>{user.rol_app || roles}</span>
                                 </div>
                             </div>
+
+                            {/* Matrículas para Alumnos */}
+                            {matriculas.length > 0 && (
+                                <div className={styles.section} style={{ marginTop: '2rem' }}>
+                                    <h3 className={styles.sectionTitle}>
+                                        <GraduationCap size={20} /> Matrículas Activas
+                                    </h3>
+                                    {matriculas.map(matricula => (
+                                        <div key={matricula.id} className={styles.grid} style={{ marginTop: '1rem' }}>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Ciclo Formativo</span>
+                                                <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || 'Ciclo desconocido'}</span>
+                                            </div>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.value}>{matricula.grupo?.curso}º</span>
+                                            </div>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Año Escolar</span>
+                                                <span className={styles.value}>{matricula.grupo?.anioEscolar}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Imparticiones para Profesores */}
+                            {imparticiones.length > 0 && (
+                                <div className={styles.section} style={{ marginTop: '2rem' }}>
+                                    <h3 className={styles.sectionTitle}>
+                                        <BookOpen size={20} /> Asignaturas Impartidas
+                                    </h3>
+                                    {imparticiones.map(imp => (
+                                        <div key={imp.id} className={styles.grid} style={{ marginTop: '1rem' }}>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Módulo</span>
+                                                <span className={styles.value}>{imp.modulo?.nombre || 'Módulo desconocido'}</span>
+                                            </div>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Grupo</span>
+                                                <span className={styles.value}>{imp.grupo?.nombre}</span>
+                                            </div>
+                                            <div className={styles.field}>
+                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.value}>{imp.grupo?.curso}º</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

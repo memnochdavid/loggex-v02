@@ -40,7 +40,7 @@ CREATE TABLE `asistencia` (
   KEY `IDX_D8264A8DFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_D8264A8D5396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`),
   CONSTRAINT `FK_D8264A8DFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -50,36 +50,12 @@ CREATE TABLE `asistencia` (
 LOCK TABLES `asistencia` WRITE;
 /*!40000 ALTER TABLE `asistencia` DISABLE KEYS */;
 INSERT INTO `asistencia` VALUES
-(11,'2025-12-22','F',40,72,'15:00:00','tyihulhjgñ','2026-02-01 08:05:15',NULL,0,NULL),
-(12,'2025-12-22','P',40,73,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(13,'2025-12-22','P',40,74,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(14,'2025-12-22','P',40,75,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(15,'2025-12-22','P',40,76,'15:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(16,'2025-12-22','F',24,57,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(17,'2025-12-22','P',24,58,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(18,'2025-12-22','P',24,59,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(19,'2025-12-22','P',24,60,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(20,'2025-12-22','P',24,61,'10:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(21,'2025-12-22','R',31,62,'12:00:00','un retraso para un retrasado','2026-02-01 08:05:15',NULL,0,NULL),
-(22,'2025-12-22','P',31,63,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(23,'2025-12-22','P',31,64,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(24,'2025-12-22','P',31,65,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(25,'2025-12-22','P',31,66,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(26,'2025-12-18','P',28,57,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(27,'2025-12-18','F',28,58,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(28,'2025-12-18','P',28,59,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(29,'2025-12-18','P',28,60,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(30,'2025-12-18','F',28,61,'12:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(31,'2025-12-19','F',28,57,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(32,'2025-12-19','P',28,58,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(33,'2025-12-19','P',28,59,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(34,'2025-12-19','F',28,60,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(35,'2025-12-19','P',28,61,'13:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(36,'2025-12-16','P',37,67,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(37,'2025-12-16','F',37,68,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(38,'2025-12-16','P',37,69,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(39,'2025-12-16','P',37,70,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL),
-(40,'2025-12-16','F',37,71,'19:00:00','','2026-02-01 08:05:15',NULL,0,NULL);
+(45,'2026-01-15','F',28,57,'12:30:00','caca caca','2026-02-04 11:01:39','2026-02-04 11:01:39',0,NULL),
+(46,'2026-01-16','P',28,61,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
+(47,'2026-01-16','P',28,58,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
+(48,'2026-01-16','P',28,59,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
+(49,'2026-01-16','P',28,60,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
+(50,'2026-01-16','J',28,57,'13:30:00','tonto, has justificado','2026-02-04 11:04:22','2026-02-04 11:06:25',0,NULL);
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -889,7 +865,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-03 22:11:49',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','[{\"name\":\"EAG - GUAY\",\"settings\":{\"primaryColor\":\"#5c94f0\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"specialTextColor\":\"#ffffff\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"modalHeaderBgColor\":\"#5c94f0\",\"modalHeaderTextColor\":\"#ffffff\",\"modalBodyBgColor\":\"#e6e6e6\",\"modalBodyTextColor\":\"#000000\",\"modalFooterBgColor\":\"#c7c7c7\",\"modalCloseButtonBgColor\":\"#ff0000\",\"modalCloseButtonTextColor\":\"#ffffff\",\"modalCloseButtonHoverBgColor\":\"#b30000\",\"modalCloseButtonHoverTextColor\":\"#ffffff\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10}}]','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-start\"}'),
+(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-04 15:06:55',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','[{\"name\":\"EAG - GUAY\",\"settings\":{\"primaryColor\":\"#5c94f0\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"specialTextColor\":\"#ffffff\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"modalHeaderBgColor\":\"#5c94f0\",\"modalHeaderTextColor\":\"#ffffff\",\"modalBodyBgColor\":\"#e6e6e6\",\"modalBodyTextColor\":\"#000000\",\"modalFooterBgColor\":\"#c7c7c7\",\"modalCloseButtonBgColor\":\"#ff0000\",\"modalCloseButtonTextColor\":\"#ffffff\",\"modalCloseButtonHoverBgColor\":\"#b30000\",\"modalCloseButtonHoverTextColor\":\"#ffffff\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10}}]','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-start\"}'),
 (2,'#3b82f6','#1e3a8a',4,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-03 14:40:48','2026-02-03 14:40:48',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','[]','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155',NULL);
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -982,7 +958,7 @@ INSERT INTO `usuario` VALUES
 (54,'clara@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$8VLephkdOwaGB7a7yAYA1.DtvJwu37wc15TMeAzGBHMlFp1PNPnAS','Clara','Gutiérrez Mira','profesor',3,'/uploads/avatar/e63758981329e99969202e3b7cee1e694f93a2d1.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 910-927672','70300626E'),
 (55,'sara@eag.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$cSLKFuyGmUrJv/OwIiykk.0slJzhSwm1vHHPeXuIU.9ZbcFGgu/xq','Sara','Alberti Marizza','admin',3,'/uploads/avatar/438efc2c1de4294ac2e3bf134777ef6069eb8934.jpg','2026-01-31 22:12:20','2026-02-01 22:10:18',0,NULL,'+34 976423896','37603007P'),
 (56,'maria@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$/8r.QIUMGYWWr8aXJXCfau4wmx7NCNCMqo250jQFPjGlT.BjabfGi','María','Cordero Acosta','profesor',3,'/uploads/avatar/afd1b2acb3a8c8c5c0ed24b089896c4b6ee3908b.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 965 62 9033','25151901K'),
-(57,'vega.ferrer@alvarez.es','[\"ROLE_ALUMNO\"]','$2y$13$God9dDDd0jN8pANHweaR0.AQfm3w4rz/p39nAYBDFpmHH0WPHiqzq','Daniel','Rosario Gálvez','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'922 63 5586','80834170A'),
+(57,'vega.ferrer@alvarez.es','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$God9dDDd0jN8pANHweaR0.AQfm3w4rz/p39nAYBDFpmHH0WPHiqzq','Daniel','Rosario Gálvez','alumno',3,'/uploads/avatar/dani-698371955bacf.jpg','2026-01-31 22:12:20','2026-02-04 16:19:33',0,NULL,'922 63 5586','80834170A'),
 (58,'javier.coronado@yahoo.es','[\"ROLE_ALUMNO\"]','$2y$13$OEk6NniM8mcZiVcW3yJtSOiLGBzLIucbB5oAxnJIkj0/BAqc7J63G','Noa','Figueroa Negrón','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'993 878184','74304969L'),
 (59,'tello.adam@torres.es','[\"ROLE_ALUMNO\"]','$2y$13$1ThREXZhftidvwXR3NBVDePCo.lHG1tfdsOsnnzqL7dMDWM7ui68q','Celia','Maldonado Treviño','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'983537145','05132434F'),
 (60,'uaguirre@estrada.com.es','[\"ROLE_ALUMNO\"]','$2y$13$BLtX/l3Sy55bSNIM5VfDXesj8te7lk6Iy71xdfFKTNkVR9tAnYPY.','Saúl','Ortega Regalado','alumno',3,'/uploads/avatar/avatar-placeholder.png','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 978-123247','99823086G'),
@@ -1015,4 +991,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-04 10:05:54
+-- Dump completed on 2026-02-04 17:00:56

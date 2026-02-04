@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Trash2 } from 'lucide-react';
 import styles from './Materiales.module.css';
@@ -188,7 +189,8 @@ const MaterialesProfesor = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <h1 className={styles.pageTitle}>Mis Temarios</h1>
+        <CrudHeader title="Mis Temarios" />
+
         {loading ? (
           <p>Cargando...</p>
         ) : error ? (

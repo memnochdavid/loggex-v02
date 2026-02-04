@@ -5,8 +5,9 @@ import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import {usePagination} from "../hooks/usePagination.js";
 
 const Imparticiones = () => {
@@ -375,39 +376,35 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
   return (
     <Layout>
         <div className={styles.container}>
-        <div className={styles.header}>
-            <h1 className={styles.pageTitle}>Asignación de Docencia</h1>
+        <CrudHeader title="Asignación de Docencia">
+            {isSuperAdmin && (
+                <select 
+                    className={styles.select} 
+                    value={selectedCentro} 
+                    onChange={(e) => setSelectedCentro(e.target.value)}
+                    style={{ width: '200px' }}
+                >
+                    <option value="">Todos los centros</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
+            )}
             
-            <div className={styles.controls}>
-                {isSuperAdmin && (
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-                )}
-                
-                <SearchBar 
-                    value={searchTerm} 
-                    onChange={setSearchTerm} 
-                    placeholder="Buscar..." 
-                    fields={searchFields}
-                    selectedField={searchField}
-                    onFieldChange={setSearchField}
-                />
-                
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nueva Asignación
-                </Button>
-            </div>
-        </div>
+            <SearchBar 
+                value={searchTerm} 
+                onChange={setSearchTerm} 
+                placeholder="Buscar..." 
+                fields={searchFields}
+                selectedField={searchField}
+                onFieldChange={setSearchField}
+            />
+            
+            <Button onClick={() => handleOpenModal()}>
+                <Plus size={18} style={{ marginRight: '8px' }} />
+                Nueva Asignación
+            </Button>
+        </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>

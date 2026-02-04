@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
 import styles from './Materiales.module.css'; // Reutilizamos estilos de lista
@@ -98,7 +99,8 @@ const MisFaltas = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <h1 className={styles.pageTitle}>Mis Faltas de Asistencia</h1>
+                <CrudHeader title="Mis Faltas de Asistencia" />
+                
                 {loading ? (
                     <p>Cargando...</p>
                 ) : error ? (

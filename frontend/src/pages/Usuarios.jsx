@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styles from './Usuarios.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 
 const Usuarios = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
+  const avatarInputRef = useRef(null); // Referencia para el input de avatar
 
   const [usuarios, setUsuarios] = useState([]);
   const [centros, setCentros] = useState([]);
@@ -404,39 +406,35 @@ const Usuarios = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <div className={styles.header}>
-            <h1 className={styles.pageTitle}>Gestión de Usuarios</h1>
+        <CrudHeader title="Gestión de Usuarios">
+            {isSuperAdmin && (
+                <select 
+                    className={styles.select} 
+                    value={selectedCentro} 
+                    onChange={(e) => setSelectedCentro(e.target.value)}
+                    style={{ width: '200px' }}
+                >
+                    <option value="">Todos los centros</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
+            )}
             
-            <div className={styles.controls}>
-                {isSuperAdmin && (
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-                )}
-                
-                <SearchBar 
-                    value={searchTerm} 
-                    onChange={setSearchTerm} 
-                    placeholder="Buscar..." 
-                    fields={searchFields}
-                    selectedField={searchField}
-                    onFieldChange={setSearchField}
-                />
-                
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nuevo Usuario
-                </Button>
-            </div>
-        </div>
+            <SearchBar 
+                value={searchTerm} 
+                onChange={setSearchTerm} 
+                placeholder="Buscar..." 
+                fields={searchFields}
+                selectedField={searchField}
+                onFieldChange={setSearchField}
+            />
+            
+            <Button onClick={() => handleOpenModal()}>
+                <Plus size={18} style={{ marginRight: '8px' }} />
+                Nuevo Usuario
+            </Button>
+        </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
@@ -487,8 +485,19 @@ const Usuarios = () => {
                         type="file" 
                         accept="image/*"
                         onChange={handleFileChange}
+                        ref={avatarInputRef}
                         className={styles.fileInput}
+                        style={{ display: 'none' }}
                     />
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => avatarInputRef.current.click()}
+                        style={{ marginLeft: '1rem' }}
+                    >
+                        <Upload size={16} style={{ marginRight: '8px' }} />
+                        Cambiar
+                    </Button>
                 </div>
             </div>
 

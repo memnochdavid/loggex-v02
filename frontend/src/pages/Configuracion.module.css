@@ -168,7 +168,7 @@
 }
 
 .sectionTitle {
-    font-size: var(--text-md);
+    font-size: var(--text-lg);
     font-weight: var(--font-bold);
     color: var(--color-gray-800);
     margin-bottom: var(--space-4);
@@ -279,6 +279,322 @@
     background-color: #fef2f2;
     color: #ef4444;
     border-color: #fecaca;
+}
+
+/* Estilos para la configuración de palabras del título */
+.titleWordsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.titleWordRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap; /* Permitir que los elementos se envuelvan */
+}
+
+.titleWordText {
+    min-width: 100px;
+    font-weight: bold;
+}
+
+.titleWordInput {
+    flex: 1;
+    min-width: 120px; /* Ancho mínimo para el input de texto */
+}
+
+/* Estilos para el input de archivo personalizado */
+.fileInputWrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fileInputHidden {
+    display: none;
+}
+
+.fileInputLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--color-gray-700);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.fileInputLabel:hover {
+    background-color: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+}
+
+.fileName {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* Estilos para las vistas previas (reemplazando estilos en línea) */
+.previewGeneral {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.previewHeader {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.previewBody {
+    padding: 20px;
+    background-color: #f8fafc;
+}
+
+.previewCard {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.previewFooter {
+    padding: 10px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.previewSidebar {
+    width: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.previewSidebarItem {
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.previewTextContainer {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.previewButtonsContainer {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.previewButton {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.previewButtonSecondary {
+    border: 1px solid #cbd5e1;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.previewScrollbarContainer {
+    height: 100px;
+    width: 200px;
+    overflow-y: scroll;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+    position: relative;
+}
+
+.previewScrollbarThumb {
+    position: absolute;
+    right: 20px;
+    top: 60px;
+    width: 12px;
+    height: 40px;
+    border-radius: 4px;
+    z-index: 10;
+}
+
+.previewScrollbarTrack {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 12px;
+    height: 100px;
+    border-radius: 4px;
+    z-index: 5;
+}
+
+.previewCalendarContainer {
+    width: 250px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: white;
+}
+
+.previewCalendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.previewCalendarDay {
+    padding: 5px;
+}
+
+.previewCalendarWeekend {
+    border-radius: 50%;
+    padding: 5px;
+}
+
+.previewCalendarSelected {
+    border-radius: 50%;
+    padding: 5px;
+    font-weight: bold;
+}
+
+.previewTimetableContainer {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.previewTimetableHeader {
+    padding: 5px;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    text-align: center;
+    font-weight: bold;
+}
+
+.previewTimetableCell {
+    padding: 10px;
+    border-right: 1px solid #e2e8f0;
+}
+
+.previewDatatableHeader {
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.previewDatatablePagination {
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.previewPaginationButton {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.previewAccordionContainer {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.previewAccordionHeader {
+    padding: 10px 15px;
+    font-weight: 600;
+}
+
+.previewAccordionContent {
+    padding: 15px;
+    font-size: 14px;
+}
+
+.previewModalContainer {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    margin: 0 auto;
+}
+
+.previewModalHeader {
+    padding: 10px 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.previewModalClose {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.previewModalBody {
+    padding: 15px;
+    font-size: 14px;
+}
+
+.previewModalFooter {
+    padding: 10px 15px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.previewTitleContainer {
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 @media (max-width: 1024px) {

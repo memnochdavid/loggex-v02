@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import CalendarView from '../components/CalendarView';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List } from 'lucide-react';
 
@@ -424,63 +425,59 @@ const Horarios = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <div className={styles.header}>
-            <h1 className={styles.pageTitle}>Horarios</h1>
-            
-            <div className={styles.controls}>
-                {/* Selector de vista (Lista / Calendario) */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
+        <CrudHeader title="Horarios">
+            {/* Selector de vista (Lista / Calendario) */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
+                <Button 
+                    variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
+                    onClick={() => setViewMode('calendar')}
+                    title="Vista Calendario"
+                >
+                    <CalendarIcon size={18} />
+                </Button>
+                {canEdit && (
                     <Button 
-                        variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                        onClick={() => setViewMode('calendar')}
-                        title="Vista Calendario"
+                        variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                        onClick={() => setViewMode('list')}
+                        title="Vista Lista (Gestión)"
                     >
-                        <CalendarIcon size={18} />
+                        <List size={18} />
                     </Button>
-                    {canEdit && (
-                        <Button 
-                            variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                            onClick={() => setViewMode('list')}
-                            title="Vista Lista (Gestión)"
-                        >
-                            <List size={18} />
-                        </Button>
-                    )}
-                </div>
-
-                {viewMode === 'list' && isSuperAdmin && (
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-                )}
-                
-                {viewMode === 'list' && (
-                    <>
-                        <SearchBar 
-                            value={searchTerm} 
-                            onChange={setSearchTerm} 
-                            placeholder="Buscar..."
-                            fields={searchFields}
-                            selectedField={searchField}
-                            onFieldChange={setSearchField}
-                        />
-                        
-                        <Button onClick={() => handleOpenModal()}>
-                            <Plus size={18} style={{ marginRight: '8px' }} />
-                            Nuevo Horario
-                        </Button>
-                    </>
                 )}
             </div>
-        </div>
+
+            {viewMode === 'list' && isSuperAdmin && (
+                <select 
+                    className={styles.select} 
+                    value={selectedCentro} 
+                    onChange={(e) => setSelectedCentro(e.target.value)}
+                    style={{ width: '200px' }}
+                >
+                    <option value="">Todos los centros</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
+            )}
+            
+            {viewMode === 'list' && (
+                <>
+                    <SearchBar 
+                        value={searchTerm} 
+                        onChange={setSearchTerm} 
+                        placeholder="Buscar..."
+                        fields={searchFields}
+                        selectedField={searchField}
+                        onFieldChange={setSearchField}
+                    />
+                    
+                    <Button onClick={() => handleOpenModal()}>
+                        <Plus size={18} style={{ marginRight: '8px' }} />
+                        Nuevo Horario
+                    </Button>
+                </>
+            )}
+        </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>

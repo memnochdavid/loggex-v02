@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import ModalView from '../components/ModalView'; // Importar ModalView
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
 
@@ -293,9 +294,7 @@ const Tareas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.pageTitle}>Tareas y Actividades</h1>
-        </div>
+        <CrudHeader title="Tareas y Actividades" />
 
         {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando asignaturas...</div>

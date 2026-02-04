@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
 import styles from './Materiales.module.css';
@@ -10,19 +11,6 @@ const MaterialesAlumno = () => {
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // const getCurrentSchoolYear = () => {
-  //   const now = new Date();
-  //   const year = now.getFullYear();
-  //   const month = now.getMonth(); // 0-11
-  //   // Si estamos en Septiembre (8) o después, el curso es YYYY/YYYY+1
-  //   // Si estamos antes de Septiembre, el curso es YYYY-1/YYYY
-  //   if (month >= 8) {
-  //       return `${year}/${year + 1}`;
-  //   } else {
-  //       return `${year - 1}/${year}`;
-  //   }
-  // };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,23 +33,8 @@ const MaterialesAlumno = () => {
           return;
         }
 
-        // Filtrar por año escolar actual
-        // const currentYear = getCurrentSchoolYear();
-        // Nota: Asumimos que el grupo viene embebido. Si no, habría que hacer fetch.
-        // Pero según la entidad Grupo, anioEscolar está en matricula:read
-        const matriculasActivas = matriculas.filter(m => {
-            if (m.grupo && m.grupo.anioEscolar) {
-                // return m.grupo.anioEscolar === currentYear;
-                return true; // Temporalmente devolvemos todas
-            }
-            return true; // Si no podemos determinar el año, lo incluimos por si acaso (o false para ser estrictos)
-        });
-
-        // Si no hay matrículas activas, mostramos mensaje o nada
-        if (matriculasActivas.length === 0 && matriculas.length > 0) {
-             // Opcional: Mostrar las de otros años si no hay activas, o mostrar mensaje.
-             // Por ahora mostramos solo activas.
-        }
+        // Filtrar por año escolar actual (opcional, por ahora todas)
+        const matriculasActivas = matriculas;
 
         // 2. Obtener grupos de las matrículas activas
         const grupoIds = matriculasActivas.map(m => {
@@ -98,7 +71,7 @@ const MaterialesAlumno = () => {
 
             asignaturasData.push({
                 id: impId,
-                title: `${imp.modulo.nombre} (${imp.grupo.nombre})`, // Añadido nombre del grupo
+                title: `${imp.modulo.nombre} (${imp.grupo.nombre})`,
                 profesor: `${imp.profesor.nombre} ${imp.profesor.apellidos}`,
                 materiales: materiales
             });
@@ -151,7 +124,8 @@ const MaterialesAlumno = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <h1 className={styles.pageTitle}>Mis Apuntes</h1>
+        <CrudHeader title="Mis Apuntes" />
+
         {loading ? (
           <p>Cargando...</p>
         ) : error ? (

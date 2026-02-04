@@ -35,7 +35,7 @@
 /* Variante Secundaria (Outline) */
 .secondary {
   background-color: var(--btn-secondary-bg, transparent);
-  border-color: var(--color-gray-300);
+  /*border-color: var(--color-gray-300);*/
   color: var(--btn-secondary-text, var(--text-main));
 }
 
@@ -44,9 +44,9 @@
   /* border-color: var(--color-primary-500); */
 
   /* Mantenemos el borde gris o lo hacemos un poco más oscuro */
-  border-color: var(--color-gray-400);
+  /*border-color: var(--color-gray-400);*/
 
-  background-color: var(--color-gray-50);
+  background-color: var(--btn-secondary-bg, var(--color-primary-700));
   transform: translateY(-1px); /* Añadimos el efecto de movimiento */
   box-shadow: var(--shadow-md);
 }

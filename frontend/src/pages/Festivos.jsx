@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styles from './Festivos.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
-import { usePagination } from '../hooks/usePagination'; // Importar hook
+import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
 
 const Festivos = () => {
@@ -26,7 +27,7 @@ const Festivos = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-
+  
   // Usar hook de paginación
   const [itemsPerPage, setItemsPerPage] = usePagination('festivos');
 
@@ -34,6 +35,15 @@ const Festivos = () => {
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('fechaInicio');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Estado para forzar recarga (ej: tras borrar/guardar)
+  const [forceReload, setForceReload] = useState(0);
+
+  // Referencia para evitar peticiones duplicadas con los mismos parámetros
+  const lastParamsRef = useRef(null);
+  
+  // Referencia para controlar el primer renderizado del buscador
+  const isFirstSearchRender = useRef(true);
 
   // Campos buscables
   const searchFields = [
@@ -51,7 +61,7 @@ const Festivos = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Cargar centros (solo SuperAdmin para filtrar o asignar)
+  // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
         fetch('https://localhost:9443/api/centros?pagination=false', {
@@ -69,17 +79,28 @@ const Festivos = () => {
 
   // Debounce para búsqueda
   useEffect(() => {
+    if (isFirstSearchRender.current) {
+        isFirstSearchRender.current = false;
+        return;
+    }
+
     const timer = setTimeout(() => {
-        fetchFestivos(1);
         setCurrentPage(1);
+        // Forzamos recarga incrementando este contador
+        setForceReload(prev => prev + 1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm, selectedCentro, searchField]);
 
-  // Fetch al cambiar página u orden
+  // Efecto Principal de Carga
   useEffect(() => {
-    fetchFestivos(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
+    if (!itemsPerPage) return;
+    
+    const controller = new AbortController();
+    fetchFestivos(currentPage, controller.signal);
+
+    return () => controller.abort();
+  }, [currentPage, sortColumn, sortDirection, itemsPerPage, forceReload]);
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
       setItemsPerPage(newItemsPerPage);
@@ -95,7 +116,25 @@ const Festivos = () => {
     return null;
   };
 
-  const fetchFestivos = async (page) => {
+  const fetchFestivos = async (page, signal) => {
+    // Construir parámetros actuales
+    const currentParams = {
+        page,
+        itemsPerPage,
+        sortColumn,
+        sortDirection,
+        searchTerm,
+        selectedCentro,
+        searchField,
+        forceReload // Incluimos forceReload para que si cambia, los params sean distintos
+    };
+
+    // Verificar si son idénticos a la última petición exitosa
+    // Esto evita la doble carga inicial
+    if (lastParamsRef.current && JSON.stringify(lastParamsRef.current) === JSON.stringify(currentParams)) {
+        return;
+    }
+
     setLoading(true);
     try {
       let url = `https://localhost:9443/api/festivos?page=${page}&itemsPerPage=${itemsPerPage}`;
@@ -116,7 +155,8 @@ const Festivos = () => {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal
       });
 
       if (!response.ok) {
@@ -130,12 +170,19 @@ const Festivos = () => {
       setFestivos(items);
       setTotalItems(total);
       setError(null);
+      
+      // Actualizar referencia de últimos parámetros solo si tuvo éxito
+      lastParamsRef.current = currentParams;
 
     } catch (err) {
-      console.error("Error fetching festivos:", err);
-      setError(err.message);
+      if (err.name !== 'AbortError') {
+          console.error("Error fetching festivos:", err);
+          setError(err.message);
+      }
     } finally {
-      setLoading(false);
+        if (!signal?.aborted) {
+            setLoading(false);
+        }
     }
   };
 
@@ -201,14 +248,12 @@ const Festivos = () => {
       const payload = {
         nombre: formData.nombre,
         fechaInicio: formData.fechaInicio,
-        fechaFin: formData.fechaFin || null, // Enviar null si está vacío
+        fechaFin: formData.fechaFin || null,
       };
 
-      // Solo enviar centro si es SuperAdmin o si estamos creando uno nuevo y es necesario
       if (isSuperAdmin && formData.centro) {
           payload.centro = `/api/centros/${formData.centro}`;
       } else if (!isSuperAdmin && !currentFestivo && user?.centro) {
-          // Asignar automáticamente al centro del usuario si crea uno nuevo
            const centroId = user.centro.id || (typeof user.centro === 'string' ? user.centro.split('/').pop() : null);
            if (centroId) {
                payload.centro = `/api/centros/${centroId}`;
@@ -231,7 +276,8 @@ const Festivos = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchFestivos(currentPage);
+      // Forzar recarga
+      setForceReload(prev => prev + 1);
       handleCloseModal();
 
     } catch (err) {
@@ -260,7 +306,7 @@ const Festivos = () => {
         throw new Error('No se pudo eliminar el festivo');
       }
 
-      fetchFestivos(currentPage);
+      setForceReload(prev => prev + 1);
 
     } catch (err) {
       console.error("Error deleting festivo:", err);
@@ -291,7 +337,6 @@ const Festivos = () => {
         header: 'Acciones',
         accessor: (row) => {
             const isGlobal = !row.centro;
-            // Un admin puede editar si es SuperAdmin O si el festivo NO es global
             const canEditRow = isSuperAdmin || (!isGlobal && isAdmin);
 
             return (
@@ -314,7 +359,6 @@ const Festivos = () => {
                             </button>
                         </>
                     ) : (
-                        // Mostrar candado si no tiene permisos (es Admin y el festivo es Global)
                         <span title="Festivo Global (Solo lectura)" style={{ color: 'var(--text-muted)', padding: '4px' }}>
                             <Lock size={16} />
                         </span>
@@ -329,40 +373,36 @@ const Festivos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <div className={styles.header}>
-            <h1 className={styles.pageTitle}>Festivos</h1>
+        <CrudHeader title="Festivos">
+            {isSuperAdmin && (
+                <select 
+                    className={styles.select} 
+                    value={selectedCentro} 
+                    onChange={(e) => setSelectedCentro(e.target.value)}
+                >
+                    <option value="">Todos los centros</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
+            )}
             
-            <div className={styles.controls}>
-                {isSuperAdmin && (
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-                )}
-                
-                <SearchBar 
-                    value={searchTerm} 
-                    onChange={setSearchTerm} 
-                    placeholder="Buscar festivo..." 
-                    fields={searchFields}
-                    selectedField={searchField}
-                    onFieldChange={setSearchField}
-                />
-                
-                {canCreate && (
-                    <Button onClick={() => handleOpenModal()}>
-                        <Plus size={18} style={{ marginRight: '8px' }} />
-                        Nuevo Festivo
-                    </Button>
-                )}
-            </div>
-        </div>
+            <SearchBar 
+                value={searchTerm} 
+                onChange={setSearchTerm} 
+                placeholder="Buscar festivo..." 
+                fields={searchFields}
+                selectedField={searchField}
+                onFieldChange={setSearchField}
+            />
+            
+            {canCreate && (
+                <Button onClick={() => handleOpenModal()}>
+                    <Plus size={18} style={{ marginRight: '8px' }} />
+                    Nuevo Festivo
+                </Button>
+            )}
+        </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
