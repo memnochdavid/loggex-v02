@@ -16,7 +16,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
-    
+
     // Estado para acordeón móvil (día expandido)
     const [expandedDayId, setExpandedDayId] = useState(() => {
         if (!selectedDate) return 1;
@@ -38,7 +38,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al lunes
         const monday = new Date(d.setDate(diff));
-        
+
         const dates = [];
         for (let i = 0; i < 5; i++) {
             const date = new Date(monday);
@@ -101,13 +101,13 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         days.forEach((day, dIndex) => {
             const date = weekDates[dIndex];
             const festivo = getFestivoForDay(date);
-            
+
             if (festivo) {
-                grid[0][dIndex] = { 
-                    isFestivo: true, 
-                    nombre: festivo.nombre, 
-                    rowSpan: slots.length, 
-                    skip: false 
+                grid[0][dIndex] = {
+                    isFestivo: true,
+                    nombre: festivo.nombre,
+                    rowSpan: slots.length,
+                    skip: false
                 };
                 for (let h = 1; h < slots.length; h++) {
                     grid[h][dIndex] = { isFestivo: true, skip: true };
@@ -120,8 +120,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
             days.forEach((day, dIndex) => {
                 if (grid[hIndex][dIndex]) return;
 
-                const event = events.find(e => 
-                    e.diaSemana === (dIndex + 1) && 
+                const event = events.find(e =>
+                    e.diaSemana === (dIndex + 1) &&
                     e.horaInicio === slot.start
                 );
                 if (event) {
@@ -136,7 +136,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
 
             for (let h = 0; h < slots.length - 1; h++) {
                 const current = grid[h][d];
-                
+
                 if (current && !current.skip && !current.isFestivo) {
                     let k = h + 1;
                     while (k < slots.length) {
@@ -165,6 +165,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const afternoonGrid = useMemo(() => processEvents(afternoonSlots), [events, afternoonSlots, weekDates, festivos]);
 
     const handleEventClick = (event) => {
+        console.log("Evento seleccionado:", event); // DEBUG
         setSelectedEvent(event);
         setIsTakingAttendance(false); // Resetear modo asistencia
     };
@@ -177,7 +178,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     // Verificar si se puede pasar lista (fecha actual o pasada)
     const canPassAttendance = (event) => {
         if (!event || !canTakeAttendance) return false;
-        
+
         const eventDate = weekDates[event.diaSemana - 1];
         if (!eventDate) return false;
 
@@ -191,6 +192,21 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         return now >= eventDateTime;
     };
 
+    const getImparticionId = (event) => {
+        if (!event) return null;
+        // Si viene del endpoint my-schedule, tiene imparticionId directo
+        if (event.imparticionId) return event.imparticionId;
+
+        // Si viene de otro lado (ej. lista de horarios admin), puede tener objeto imparticion
+        const imparticion = event.imparticion;
+        if (!imparticion) return null;
+
+        if (typeof imparticion === 'string') return imparticion.split('/').pop();
+        if (imparticion.id) return imparticion.id;
+        if (imparticion['@id']) return imparticion['@id'].split('/').pop();
+        return null;
+    };
+
     const renderGrid = (slots, gridData, label) => {
         return (
             <div className={styles.tableContainer}>
@@ -199,8 +215,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                     {/* Header Días */}
                     <div className={styles.headerCell}>Hora</div>
                     {days.map((day, index) => (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.headerCell} ${selectedDayIndex === (index + 1) ? styles.highlightDay : ''}`}
                         >
                             {day}
@@ -226,8 +242,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
 
                                 if (cellData && cellData.isFestivo) {
                                     return (
-                                        <div 
-                                            key={`${day}-${hIndex}`} 
+                                        <div
+                                            key={`${day}-${hIndex}`}
                                             className={`${styles.cell} ${styles.festivoCell}`}
                                             style={{ gridRow: `span ${cellData.rowSpan}` }}
                                         >
@@ -240,21 +256,21 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                 }
 
                                 return (
-                                    <div 
-                                        key={`${day}-${hIndex}`} 
+                                    <div
+                                        key={`${day}-${hIndex}`}
                                         className={`${styles.cell} ${isHighlighted ? styles.highlightCell : ''}`}
                                         style={{ gridRow: cellData && cellData.rowSpan > 1 ? `span ${cellData.rowSpan}` : 'auto' }}
                                     >
                                         {cellData && (
-                                            <div 
+                                            <div
                                                 className={styles.eventCard}
                                                 onClick={() => handleEventClick(cellData.event)}
                                                 title="Ver detalles"
                                             >
                                                 <div className={styles.eventModulo}>{cellData.event.modulo}</div>
                                                 <div className={styles.eventGroupSmall}>
-                                                    {cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== '' 
-                                                        ? cellData.event.grupoAbreviatura 
+                                                    {cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== ''
+                                                        ? cellData.event.grupoAbreviatura
                                                         : cellData.event.grupo}
                                                 </div>
                                             </div>
@@ -274,7 +290,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         const dayIndex = index + 1;
         const date = weekDates[index];
         const festivo = getFestivoForDay(date);
-        
+
         // Filtrar eventos para este día y ordenarlos por hora
         const dayEvents = events
             .filter(e => e.diaSemana === dayIndex)
@@ -293,7 +309,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const renderMobileView = () => {
         return (
             <div className={styles.mobileView}>
-                <AccordionView 
+                <AccordionView
                     data={daysData}
                     expandedId={expandedDayId}
                     onToggle={(id) => setExpandedDayId(expandedDayId === id ? null : id)}
@@ -317,8 +333,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                 </div>
                             ) : item.events.length > 0 ? (
                                 item.events.map((event, i) => (
-                                    <div 
-                                        key={i} 
+                                    <div
+                                        key={i}
                                         className={styles.mobileEvent}
                                         onClick={() => handleEventClick(event)}
                                     >
@@ -368,8 +384,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
             >
                 {selectedEvent && (
                     isTakingAttendance ? (
-                        <AsistenciaModal 
-                            imparticionId={selectedEvent.imparticion ? (selectedEvent.imparticion.id || selectedEvent.imparticion.split('/').pop()) : null}
+                        <AsistenciaModal
+                            imparticionId={getImparticionId(selectedEvent)}
                             fecha={formatDateISO(weekDates[selectedEvent.diaSemana - 1])}
                             hora={selectedEvent.horaInicio}
                             onClose={handleCloseModal}

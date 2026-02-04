@@ -60,10 +60,11 @@ class GetMyScheduleController extends AbstractController
                 'aula' => $h->getAula(),
                 'modulo' => $h->getImparticion()->getModulo()->getNombre(),
                 'grupo' => $grupo->getNombre(),
-                'grupoAbreviatura' => $grupo->getAbreviatura(), // Añadido
+                'grupoAbreviatura' => $grupo->getAbreviatura(),
                 'profesor' => $h->getImparticion()->getProfesor() ?
                     $h->getImparticion()->getProfesor()->getNombre() . ' ' . $h->getImparticion()->getProfesor()->getApellidos() :
-                    'Sin asignar'
+                    'Sin asignar',
+                'imparticionId' => $h->getImparticion()->getId() // Añadido
             ];
         }
 

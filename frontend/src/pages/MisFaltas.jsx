@@ -20,9 +20,8 @@ const MisFaltas = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Usamos el endpoint personalizado que devuelve el resumen completo
-            // Asegúrate de que el backend ha sido reiniciado y la caché limpia
-            const response = await fetch('https://localhost:9443/api/asistencia/alumno/summary', {
+            // Usar ruta personalizada
+            const response = await fetch('https://localhost:9443/api/v1/asistencia/alumno/summary', {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -31,7 +30,6 @@ const MisFaltas = () => {
                 const data = await response.json();
                 setAsignaturasConFaltas(data);
             } else {
-                // Si falla (ej. 404), mostramos error
                 console.error("Error fetching summary:", response.status);
                 setError("No se pudieron cargar las faltas. Inténtalo más tarde.");
             }

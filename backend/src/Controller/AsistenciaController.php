@@ -15,7 +15,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class AsistenciaController extends AbstractController
 {
-    #[Route('/api/asistencia/sheet', name: 'api_asistencia_sheet', methods: ['GET'])]
+    #[Route('/api/v1/asistencia/sheet', name: 'api_asistencia_sheet', methods: ['GET'])]
     public function getSheet(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $imparticionId = $request->query->get('imparticion');
@@ -67,7 +67,7 @@ class AsistenciaController extends AbstractController
         return $this->json($alumnosData);
     }
 
-    #[Route('/api/asistencia/batch', name: 'api_asistencia_batch', methods: ['POST'])]
+    #[Route('/api/v1/asistencia/batch', name: 'api_asistencia_batch', methods: ['POST'])]
     public function saveBatch(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -113,7 +113,7 @@ class AsistenciaController extends AbstractController
         return $this->json(['message' => 'Asistencias guardadas correctamente']);
     }
 
-    #[Route('/api/asistencia/alumno/summary', name: 'api_asistencia_alumno_summary', methods: ['GET'])]
+    #[Route('/api/v1/asistencia/alumno/summary', name: 'api_asistencia_alumno_summary', methods: ['GET'])]
     public function getAlumnoSummary(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
     {
         if (!$user) {

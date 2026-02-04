@@ -16,7 +16,8 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/asistencia/sheet?imparticion=${imparticionId}&fecha=${fecha}&hora=${hora}`, {
+            // Usar ruta personalizada
+            const response = await fetch(`https://localhost:9443/api/v1/asistencia/sheet?imparticion=${imparticionId}&fecha=${fecha}&hora=${hora}`, {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -63,7 +64,8 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                 }))
             };
 
-            const response = await fetch('/api/asistencia/batch', {
+            // Usar ruta personalizada
+            const response = await fetch('https://localhost:9443/api/v1/asistencia/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -117,6 +119,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                                 <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                                         <button 
+                                            type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'P')}
                                             title="Presente"
                                             style={{ 
@@ -128,6 +131,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                                             <Check size={16} />
                                         </button>
                                         <button 
+                                            type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'F')}
                                             title="Falta"
                                             style={{ 
@@ -139,6 +143,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                                             <X size={16} />
                                         </button>
                                         <button 
+                                            type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'R')}
                                             title="Retraso"
                                             style={{ 
@@ -150,6 +155,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                                             <Clock size={16} />
                                         </button>
                                         <button 
+                                            type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'J')}
                                             title="Justificada"
                                             style={{ 
