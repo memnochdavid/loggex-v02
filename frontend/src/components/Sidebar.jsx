@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext'; // Importar contexto UI
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud } from 'lucide-react';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
@@ -122,10 +122,16 @@ const Sidebar = () => {
 
                     {/* Materiales Alumno */}
                     {isAlumno && (
-                        <NavLink to="/apuntes" className={getNavLinkClass} title="Mis Apuntes" onClick={closeSidebar}>
-                            <FileText size={20} />
-                            {!isCollapsed && <span>Mis Apuntes</span>}
-                        </NavLink>
+                        <>
+                            <NavLink to="/apuntes" className={getNavLinkClass} title="Mis Apuntes" onClick={closeSidebar}>
+                                <FileText size={20} />
+                                {!isCollapsed && <span>Mis Apuntes</span>}
+                            </NavLink>
+                            <NavLink to="/faltas" className={getNavLinkClass} title="Mis Faltas" onClick={closeSidebar}>
+                                <AlertCircle size={20} />
+                                {!isCollapsed && <span>Mis Faltas</span>}
+                            </NavLink>
+                        </>
                     )}
 
                     {/* Materiales Profesor */}

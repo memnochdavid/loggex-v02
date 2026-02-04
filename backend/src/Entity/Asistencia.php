@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -30,6 +32,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['asistencia:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['asistencia:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'alumno' => 'exact',
+    'imparticion' => 'exact'
+])]
 class Asistencia
 {
     use TimestampableTrait;

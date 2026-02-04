@@ -23,11 +23,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete(processor: SoftDeleteProcessor::class)
+        new Get(uriTemplate: '/matriculas/{id}'),
+        new GetCollection(uriTemplate: '/matriculas'),
+        new Post(uriTemplate: '/matriculas'),
+        new Put(uriTemplate: '/matriculas/{id}'),
+        new Delete(uriTemplate: '/matriculas/{id}', processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['matricula:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['matricula:write']]

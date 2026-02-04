@@ -1,12 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import styles from './TimeTable.module.css';
-import { Clock, MapPin, Users, User, CalendarOff } from 'lucide-react';
+import { Clock, MapPin, Users, User, CalendarOff, CheckSquare } from 'lucide-react';
 import AccordionView from './AccordionView';
-import ModalView from './ModalView'; // Importar ModalView
+import ModalView from './ModalView';
+import AsistenciaModal from './AsistenciaModal'; // Importar el nuevo componente
+import Button from './Button';
+import { useAuth } from '../context/AuthContext';
 
 const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
+    const { user } = useAuth();
+    const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+    const canTakeAttendance = isProfesor || isAdmin;
+
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [isTakingAttendance, setIsTakingAttendance] = useState(false);
     
     // Estado para acordeón móvil (día expandido)
     const [expandedDayId, setExpandedDayId] = useState(() => {
@@ -155,6 +164,33 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const morningGrid = useMemo(() => processEvents(morningSlots), [events, morningSlots, weekDates, festivos]);
     const afternoonGrid = useMemo(() => processEvents(afternoonSlots), [events, afternoonSlots, weekDates, festivos]);
 
+    const handleEventClick = (event) => {
+        setSelectedEvent(event);
+        setIsTakingAttendance(false); // Resetear modo asistencia
+    };
+
+    const handleCloseModal = () => {
+        setSelectedEvent(null);
+        setIsTakingAttendance(false);
+    };
+
+    // Verificar si se puede pasar lista (fecha actual o pasada)
+    const canPassAttendance = (event) => {
+        if (!event || !canTakeAttendance) return false;
+        
+        const eventDate = weekDates[event.diaSemana - 1];
+        if (!eventDate) return false;
+
+        const now = new Date();
+        const eventDateTime = new Date(eventDate);
+        const [hours, minutes] = event.horaInicio.split(':');
+        eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+        // Permitir si la fecha es hoy o anterior
+        // Y si es hoy, que la hora de inicio ya haya pasado (o estemos en ella)
+        return now >= eventDateTime;
+    };
+
     const renderGrid = (slots, gridData, label) => {
         return (
             <div className={styles.tableContainer}>
@@ -212,7 +248,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                         {cellData && (
                                             <div 
                                                 className={styles.eventCard}
-                                                onClick={() => setSelectedEvent(cellData.event)}
+                                                onClick={() => handleEventClick(cellData.event)}
                                                 title="Ver detalles"
                                             >
                                                 <div className={styles.eventModulo}>{cellData.event.modulo}</div>
@@ -284,7 +320,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                     <div 
                                         key={i} 
                                         className={styles.mobileEvent}
-                                        onClick={() => setSelectedEvent(event)}
+                                        onClick={() => handleEventClick(event)}
                                     >
                                         <div className={styles.mobileEventTime}>
                                             {event.horaInicio} - {event.horaFin}
@@ -321,50 +357,70 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
             {/* Vista Móvil */}
             {renderMobileView()}
 
-            {/* Modal de Detalle */}
+            {/* Modal de Detalle / Asistencia */}
             <ModalView
                 isOpen={!!selectedEvent}
-                onClose={() => setSelectedEvent(null)}
-                title={selectedEvent ? selectedEvent.modulo : ''}
-                size="small"
-                cancelText="Cerrar"
+                onClose={handleCloseModal}
+                title={selectedEvent ? (isTakingAttendance ? `Pasar Lista: ${selectedEvent.modulo}` : selectedEvent.modulo) : ''}
+                size={isTakingAttendance ? "large" : "small"}
+                cancelText={isTakingAttendance ? "Volver" : "Cerrar"}
+                footer={isTakingAttendance ? null : undefined} // AsistenciaModal tiene su propio footer
             >
                 {selectedEvent && (
-                    <div className={styles.modalBody}>
-                        <div className={styles.detailRow}>
-                            <Clock size={18} className={styles.icon} />
-                            <div>
-                                <span className={styles.label}>Horario:</span>
-                                <span className={styles.value}>
-                                    {days[selectedEvent.diaSemana - 1]}, {selectedEvent.horaInicio} - {selectedEvent.horaFin}
-                                </span>
+                    isTakingAttendance ? (
+                        <AsistenciaModal 
+                            imparticionId={selectedEvent.imparticion ? (selectedEvent.imparticion.id || selectedEvent.imparticion.split('/').pop()) : null}
+                            fecha={formatDateISO(weekDates[selectedEvent.diaSemana - 1])}
+                            hora={selectedEvent.horaInicio}
+                            onClose={handleCloseModal}
+                        />
+                    ) : (
+                        <div className={styles.modalBody}>
+                            <div className={styles.detailRow}>
+                                <Clock size={18} className={styles.icon} />
+                                <div>
+                                    <span className={styles.label}>Horario:</span>
+                                    <span className={styles.value}>
+                                        {days[selectedEvent.diaSemana - 1]}, {selectedEvent.horaInicio} - {selectedEvent.horaFin}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <Users size={18} className={styles.icon} />
-                            <div>
-                                <span className={styles.label}>Grupo:</span>
-                                <span className={styles.value}>{selectedEvent.grupo}</span>
-                                {selectedEvent.grupoAbreviatura && (
-                                    <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
-                                )}
+                            <div className={styles.detailRow}>
+                                <Users size={18} className={styles.icon} />
+                                <div>
+                                    <span className={styles.label}>Grupo:</span>
+                                    <span className={styles.value}>{selectedEvent.grupo}</span>
+                                    {selectedEvent.grupoAbreviatura && (
+                                        <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <MapPin size={18} className={styles.icon} />
-                            <div>
-                                <span className={styles.label}>Aula:</span>
-                                <span className={styles.value}>{selectedEvent.aula}</span>
+                            <div className={styles.detailRow}>
+                                <MapPin size={18} className={styles.icon} />
+                                <div>
+                                    <span className={styles.label}>Aula:</span>
+                                    <span className={styles.value}>{selectedEvent.aula}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.detailRow}>
-                            <User size={18} className={styles.icon} />
-                            <div>
-                                <span className={styles.label}>Profesor:</span>
-                                <span className={styles.value}>{selectedEvent.profesor}</span>
+                            <div className={styles.detailRow}>
+                                <User size={18} className={styles.icon} />
+                                <div>
+                                    <span className={styles.label}>Profesor:</span>
+                                    <span className={styles.value}>{selectedEvent.profesor}</span>
+                                </div>
                             </div>
+
+                            {/* Botón Pasar Lista */}
+                            {canPassAttendance(selectedEvent) && (
+                                <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                                    <Button onClick={() => setIsTakingAttendance(true)} style={{ width: '100%' }}>
+                                        <CheckSquare size={18} style={{ marginRight: '8px' }} />
+                                        Pasar Lista
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )
                 )}
             </ModalView>
         </div>
