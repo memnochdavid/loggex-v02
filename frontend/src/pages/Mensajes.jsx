@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import styles from './Mensajes.module.css';
 import { Send, User, ArrowLeft } from 'lucide-react'; // Importar ArrowLeft
 import Button from '../components/Button';
-import { getApiUrl, getAssetUrl } from '../config/api';
+import { getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT } from '../config/api';
 
 const Mensajes = () => {
     const { user } = useAuth();
@@ -21,20 +21,26 @@ const Mensajes = () => {
     const [searchTerm, setSearchTerm] = useState('');
     
     const messagesEndRef = useRef(null);
+    // Ref para controlar si ya procesamos la navegación inicial
+    const navigationProcessed = useRef(false);
 
     useEffect(() => {
         if (user) {
             fetchMensajes();
-            const interval = setInterval(fetchMensajes, 10000);
+            const interval = setInterval(fetchMensajes, POLLING_INTERVAL_CHAT);
             return () => clearInterval(interval);
         }
     }, [user]);
 
+    // Efecto para manejar la navegación desde otras páginas (ej: Claustro)
     useEffect(() => {
-        if (location.state?.chatWith && !loading) {
+        if (location.state?.chatWith && !loading && !navigationProcessed.current) {
             const targetUser = location.state.chatWith;
             const existingChat = conversaciones.find(c => c.usuario.id === targetUser.id);
             
+            // Marcar como procesado para evitar bucles
+            navigationProcessed.current = true;
+
             if (existingChat) {
                 handleSelectUser(existingChat.usuario);
             } else {
@@ -48,6 +54,8 @@ const Mensajes = () => {
                 setConversaciones(prev => [newChat, ...prev]);
                 handleSelectUser(targetUser);
             }
+            
+            // Limpiar el estado de navegación para que no vuelva a dispararse
             window.history.replaceState({}, document.title);
         }
     }, [location.state, loading, conversaciones]);
