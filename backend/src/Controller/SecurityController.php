@@ -125,7 +125,7 @@ class SecurityController extends AbstractController
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
             'textMainColor' => $v($p->getTextMainColor(), '#334155'),
             'textSecondaryColor' => $v($p->getTextSecondaryColor(), '#64748b'),
-            'specialTextColor' => $v($p->getSpecialTextColor(), '#ffffff'), // NUEVO
+            'specialTextColor' => $v($p->getSpecialTextColor(), '#ffffff'),
             'buttonPrimaryColor' => $v($p->getButtonPrimaryColor(), '#6366f1'),
             'buttonPrimaryTextColor' => $v($p->getButtonPrimaryTextColor(), '#ffffff'),
             'buttonSecondaryColor' => $v($p->getButtonSecondaryColor(), '#ffffff'),
@@ -174,6 +174,30 @@ class SecurityController extends AbstractController
             'modalCloseButtonTextColor' => $v($p->getModalCloseButtonTextColor(), '#64748b'),
             'modalCloseButtonHoverBgColor' => $v($p->getModalCloseButtonHoverBgColor(), '#f1f5f9'),
             'modalCloseButtonHoverTextColor' => $v($p->getModalCloseButtonHoverTextColor(), '#334155'),
+
+            // UserCard (NUEVO)
+            'userCardBgColor' => $v($p->getUserCardBgColor(), '#1e293b'),
+            'userCardTextColor' => $v($p->getUserCardTextColor(), '#ffffff'),
+            'userCardTextSecondaryColor' => $v($p->getUserCardTextSecondaryColor(), '#cbd5e1'),
+
+            // Chat (NUEVO)
+            'chatSidebarBgColor' => $v($p->getChatSidebarBgColor(), '#ffffff'),
+            'chatItemHoverBgColor' => $v($p->getChatItemHoverBgColor(), '#f1f5f9'),
+            'chatItemActiveBgColor' => $v($p->getChatItemActiveBgColor(), '#e0e7ff'),
+            'chatItemActiveBorderColor' => $v($p->getChatItemActiveBorderColor(), '#6366f1'),
+            'chatItemTextMainColor' => $v($p->getChatItemTextMainColor(), '#334155'),
+            'chatItemTextSecondaryColor' => $v($p->getChatItemTextSecondaryColor(), '#64748b'),
+            'chatBadgeBgColor' => $v($p->getChatBadgeBgColor(), '#6366f1'),
+            'chatBadgeTextColor' => $v($p->getChatBadgeTextColor(), '#ffffff'),
+            'chatHeaderBgColor' => $v($p->getChatHeaderBgColor(), '#1e293b'),
+            'chatHeaderTextColor' => $v($p->getChatHeaderTextColor(), '#ffffff'),
+            'chatContainerBgColor' => $v($p->getChatContainerBgColor(), '#f8fafc'),
+            'chatInputAreaBgColor' => $v($p->getChatInputAreaBgColor(), '#ffffff'), // NUEVO
+            'chatBubbleSentBgColor' => $v($p->getChatBubbleSentBgColor(), '#6366f1'),
+            'chatBubbleSentTextColor' => $v($p->getChatBubbleSentTextColor(), '#ffffff'),
+            'chatBubbleReceivedBgColor' => $v($p->getChatBubbleReceivedBgColor(), '#ffffff'),
+            'chatBubbleReceivedTextColor' => $v($p->getChatBubbleReceivedTextColor(), '#334155'),
+
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),
             'itemsPerPageCentros' => $p->getItemsPerPageCentros(),
             'itemsPerPageCiclos' => $p->getItemsPerPageCiclos(),
@@ -182,7 +206,7 @@ class SecurityController extends AbstractController
             'itemsPerPageMatriculas' => $p->getItemsPerPageMatriculas(),
             'itemsPerPageImparticiones' => $p->getItemsPerPageImparticiones(),
             'itemsPerPageHorarios' => $p->getItemsPerPageHorarios(),
-            'nameTitleConfig' => $p->getNameTitleConfig(), // Añadido
+            'nameTitleConfig' => $p->getNameTitleConfig(),
         ];
     }
 }

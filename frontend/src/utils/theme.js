@@ -38,7 +38,7 @@ export const applyTheme = (colors) => {
         sidebarHoverTextColor: '#ffffff',
         textMainColor: '#334155',
         textSecondaryColor: '#64748b',
-        specialTextColor: '#ffffff', // NUEVO
+        specialTextColor: '#ffffff',
         buttonPrimaryColor: '#6366f1',
         buttonPrimaryTextColor: '#ffffff',
         buttonSecondaryColor: '#ffffff',
@@ -86,7 +86,29 @@ export const applyTheme = (colors) => {
         modalCloseButtonBgColor: '#ffffff',
         modalCloseButtonTextColor: '#64748b',
         modalCloseButtonHoverBgColor: '#f1f5f9',
-        modalCloseButtonHoverTextColor: '#334155'
+        modalCloseButtonHoverTextColor: '#334155',
+        
+        userCardBgColor: '#1e293b',
+        userCardTextColor: '#ffffff',
+        userCardTextSecondaryColor: '#cbd5e1',
+        
+        chatSidebarBgColor: '#ffffff',
+        chatItemHoverBgColor: '#f1f5f9',
+        chatItemActiveBgColor: '#e0e7ff',
+        chatItemActiveBorderColor: '#6366f1',
+        chatItemTextMainColor: '#334155',
+        chatItemTextSecondaryColor: '#64748b',
+        chatBadgeBgColor: '#6366f1',
+        chatBadgeTextColor: '#ffffff',
+        
+        chatHeaderBgColor: '#1e293b',
+        chatHeaderTextColor: '#ffffff',
+        chatContainerBgColor: '#f8fafc',
+        chatInputAreaBgColor: '#ffffff', // NUEVO
+        chatBubbleSentBgColor: '#6366f1',
+        chatBubbleSentTextColor: '#ffffff',
+        chatBubbleReceivedBgColor: '#ffffff',
+        chatBubbleReceivedTextColor: '#334155'
     };
 
     const theme = { ...defaults, ...colors };
@@ -114,38 +136,22 @@ export const applyTheme = (colors) => {
     if (theme.sidebarHoverTextColor) root.style.setProperty('--text-sidebar-hover', theme.sidebarHoverTextColor);
 
     // 3. Textos
-    if (theme.textMainColor) {
-        root.style.setProperty('--text-main', theme.textMainColor);
-    }
-    if (theme.textSecondaryColor) {
-        root.style.setProperty('--text-muted', theme.textSecondaryColor);
-    }
-    if (theme.specialTextColor) { // NUEVO
-        root.style.setProperty('--text-special', theme.specialTextColor);
-    }
+    if (theme.textMainColor) root.style.setProperty('--text-main', theme.textMainColor);
+    if (theme.textSecondaryColor) root.style.setProperty('--text-muted', theme.textSecondaryColor);
+    if (theme.specialTextColor) root.style.setProperty('--text-special', theme.specialTextColor);
 
     // 4. Botones
     if (theme.buttonPrimaryColor) {
         root.style.setProperty('--btn-primary-bg', theme.buttonPrimaryColor);
         root.style.setProperty('--btn-primary-hover', mixColors(theme.buttonPrimaryColor, '#000000', 0.9));
     }
-    if (theme.buttonPrimaryTextColor) {
-        root.style.setProperty('--btn-primary-text', theme.buttonPrimaryTextColor);
-    }
-    if (theme.buttonSecondaryColor) {
-        root.style.setProperty('--btn-secondary-bg', theme.buttonSecondaryColor);
-    }
-    if (theme.buttonSecondaryTextColor) {
-        root.style.setProperty('--btn-secondary-text', theme.buttonSecondaryTextColor);
-    }
+    if (theme.buttonPrimaryTextColor) root.style.setProperty('--btn-primary-text', theme.buttonPrimaryTextColor);
+    if (theme.buttonSecondaryColor) root.style.setProperty('--btn-secondary-bg', theme.buttonSecondaryColor);
+    if (theme.buttonSecondaryTextColor) root.style.setProperty('--btn-secondary-text', theme.buttonSecondaryTextColor);
 
     // 5. Header y Footer
-    if (theme.headerFooterColor) {
-        root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
-    }
-    if (theme.headerFooterTextColor) {
-        root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
-    }
+    if (theme.headerFooterColor) root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
+    if (theme.headerFooterTextColor) root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
 
     // 6. Calendario y Horario
     if (theme.calendarSelectedBgColor) root.style.setProperty('--calendar-selected-bg', theme.calendarSelectedBgColor);
@@ -197,6 +203,30 @@ export const applyTheme = (colors) => {
     if (theme.modalCloseButtonTextColor) root.style.setProperty('--modal-close-btn-text', theme.modalCloseButtonTextColor);
     if (theme.modalCloseButtonHoverBgColor) root.style.setProperty('--modal-close-btn-hover-bg', theme.modalCloseButtonHoverBgColor);
     if (theme.modalCloseButtonHoverTextColor) root.style.setProperty('--modal-close-btn-hover-text', theme.modalCloseButtonHoverTextColor);
+
+    // 12. UserCard
+    if (theme.userCardBgColor) root.style.setProperty('--usercard-bg', theme.userCardBgColor);
+    if (theme.userCardTextColor) root.style.setProperty('--usercard-text', theme.userCardTextColor);
+    if (theme.userCardTextSecondaryColor) root.style.setProperty('--usercard-text-secondary', theme.userCardTextSecondaryColor);
+
+    // 13. Chat
+    if (theme.chatSidebarBgColor) root.style.setProperty('--chat-sidebar-bg', theme.chatSidebarBgColor);
+    if (theme.chatItemHoverBgColor) root.style.setProperty('--chat-item-hover-bg', theme.chatItemHoverBgColor);
+    if (theme.chatItemActiveBgColor) root.style.setProperty('--chat-item-active-bg', theme.chatItemActiveBgColor);
+    if (theme.chatItemActiveBorderColor) root.style.setProperty('--chat-item-active-border', theme.chatItemActiveBorderColor);
+    if (theme.chatItemTextMainColor) root.style.setProperty('--chat-item-text-main', theme.chatItemTextMainColor);
+    if (theme.chatItemTextSecondaryColor) root.style.setProperty('--chat-item-text-secondary', theme.chatItemTextSecondaryColor);
+    if (theme.chatBadgeBgColor) root.style.setProperty('--chat-badge-bg', theme.chatBadgeBgColor);
+    if (theme.chatBadgeTextColor) root.style.setProperty('--chat-badge-text', theme.chatBadgeTextColor);
+    
+    if (theme.chatHeaderBgColor) root.style.setProperty('--chat-header-bg', theme.chatHeaderBgColor);
+    if (theme.chatHeaderTextColor) root.style.setProperty('--chat-header-text', theme.chatHeaderTextColor);
+    if (theme.chatContainerBgColor) root.style.setProperty('--chat-container-bg', theme.chatContainerBgColor);
+    if (theme.chatInputAreaBgColor) root.style.setProperty('--chat-input-area-bg', theme.chatInputAreaBgColor); // NUEVO
+    if (theme.chatBubbleSentBgColor) root.style.setProperty('--chat-bubble-sent-bg', theme.chatBubbleSentBgColor);
+    if (theme.chatBubbleSentTextColor) root.style.setProperty('--chat-bubble-sent-text', theme.chatBubbleSentTextColor);
+    if (theme.chatBubbleReceivedBgColor) root.style.setProperty('--chat-bubble-received-bg', theme.chatBubbleReceivedBgColor);
+    if (theme.chatBubbleReceivedTextColor) root.style.setProperty('--chat-bubble-received-text', theme.chatBubbleReceivedTextColor);
 
     // 11. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');

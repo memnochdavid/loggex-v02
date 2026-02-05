@@ -4,8 +4,8 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload } from 'lucide-react';
-import NameTitle from '../components/NameTitle'; // Importar NameTitle para la preview
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User } from 'lucide-react';
+import NameTitle from '../components/NameTitle';
 
 // Importar temas predefinidos
 import defaultTheme from './themes-pred/default.json';
@@ -19,7 +19,6 @@ const Configuracion = () => {
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     
-    // Solo admins de centro pueden cambiar el logo (no superadmin global)
     const canChangeLogo = isAdmin && !isSuperAdmin && user?.centro;
 
     const defaultSettings = defaultTheme.settings;
@@ -39,38 +38,45 @@ const Configuracion = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     
-    // Estado para el logo
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
-    const fileInputRef = useRef(null); // Referencia para el input de archivo
+    const fileInputRef = useRef(null);
 
-    // Estado para configuración de título
     const [titleConfig, setTitleConfig] = useState({
         words: [],
         spacing: '0.5rem',
         casing: 'original',
-        alignment: 'center' // 'flex-start', 'center', 'flex-end'
+        alignment: 'center'
     });
 
     useEffect(() => {
         if (user) {
+            let initialSettings = { ...defaultSettings };
+
+            // Función auxiliar para mezclar settings evitando nulos
+            const mergeSettings = (source) => {
+                Object.keys(source).forEach(key => {
+                    if (source[key] !== null && source[key] !== undefined) {
+                        initialSettings[key] = source[key];
+                    }
+                });
+            };
+
             if (user.centro && user.centro.personalizacion) {
-                setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                mergeSettings(user.centro.personalizacion);
+                
                 if (user.centro.personalizacion.savedThemes) {
                     setSavedThemes(user.centro.personalizacion.savedThemes);
                 }
-                // Cargar logo actual si existe
                 if (user.centro.logo) {
                     setLogoPreview(`https://localhost:9443/uploads/logo-centro/${user.centro.logo}`);
                 }
-                // Cargar configuración de título
                 if (user.centro.personalizacion.nameTitleConfig) {
                     setTitleConfig(user.centro.personalizacion.nameTitleConfig);
                 } else if (user.centro.nombre) {
-                    // Inicializar con el nombre del centro si no hay config
                     const words = user.centro.nombre.split(' ').map(word => ({
                         text: word,
-                        color: '#000000' // Color por defecto
+                        color: '#000000'
                     }));
                     setTitleConfig({
                         words: words,
@@ -80,11 +86,15 @@ const Configuracion = () => {
                     });
                 }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
-                setSettings({ ...defaultSettings, ...user.centro.personalizacion });
+                mergeSettings(user.centro.personalizacion);
+                
                 if (user.centro.personalizacion.savedThemes) {
                     setSavedThemes(user.centro.personalizacion.savedThemes);
                 }
             }
+            
+            console.log("Settings inicializados:", initialSettings); // DEBUG
+            setSettings(initialSettings);
         }
     }, [user, isSuperAdmin]);
 
@@ -112,7 +122,6 @@ const Configuracion = () => {
         }
     };
 
-    // Manejadores para configuración de título
     const handleTitleWordColorChange = (index, color) => {
         const newWords = [...titleConfig.words];
         newWords[index].color = color;
@@ -134,7 +143,7 @@ const Configuracion = () => {
     const handleReset = () => {
         setSettings(prev => ({
             ...defaultSettings,
-            savedThemes: prev.savedThemes // Mantener los temas guardados
+            savedThemes: prev.savedThemes
         }));
         applyTheme(defaultSettings);
     };
@@ -142,7 +151,17 @@ const Configuracion = () => {
     const handleSaveTheme = () => {
         if (!newThemeName.trim()) return;
         
-        const { savedThemes: currentSavedThemes, ...themeSettings } = settings;
+        console.log("Guardando tema, settings actuales:", settings); // DEBUG
+
+        // Asegurar que tenemos todos los valores, rellenando con defaults si faltan o son nulos
+        const completeSettings = { ...defaultSettings };
+        Object.keys(settings).forEach(key => {
+            if (settings[key] !== null && settings[key] !== undefined && key !== 'savedThemes') {
+                completeSettings[key] = settings[key];
+            }
+        });
+
+        const { savedThemes: ignored, ...themeSettings } = completeSettings;
         
         const newTheme = {
             name: newThemeName,
@@ -156,10 +175,18 @@ const Configuracion = () => {
     };
 
     const handleLoadTheme = (themeSettings) => {
+        // Filtrar valores nulos o indefinidos para evitar sobrescribir con nada
+        const validThemeSettings = {};
+        Object.keys(themeSettings).forEach(key => {
+            if (themeSettings[key] !== null && themeSettings[key] !== undefined) {
+                validThemeSettings[key] = themeSettings[key];
+            }
+        });
+
         setSettings(prev => ({
             ...prev,
-            ...themeSettings,
-            savedThemes: savedThemes // Mantener la lista de temas guardados
+            ...validThemeSettings,
+            savedThemes: savedThemes
         }));
     };
 
@@ -175,7 +202,6 @@ const Configuracion = () => {
         setMessage(null);
 
         try {
-            // 1. Guardar Configuración de Personalización (incluyendo título)
             const responseConfig = await fetch('https://localhost:9443/api/configuracion/update', {
                 method: 'POST',
                 headers: {
@@ -184,7 +210,7 @@ const Configuracion = () => {
                 body: JSON.stringify({ 
                     ...settings, 
                     savedThemes,
-                    nameTitleConfig: titleConfig // Añadir configuración de título
+                    nameTitleConfig: titleConfig
                 }),
                 credentials: 'include'
             });
@@ -194,7 +220,6 @@ const Configuracion = () => {
                 throw new Error(errorData.message || 'Error al guardar configuración');
             }
 
-            // 2. Guardar Logo (si se ha seleccionado uno y es admin de centro)
             if (canChangeLogo && logoFile) {
                 const formData = new FormData();
                 
@@ -223,7 +248,7 @@ const Configuracion = () => {
             }
 
             setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
-            await checkAuth(); // Recargar usuario para ver cambios (logo, etc)
+            await checkAuth();
 
         } catch (error) {
             setMessage({ type: 'error', text: error.message || 'Error de conexión' });
@@ -244,7 +269,6 @@ const Configuracion = () => {
         );
     }
 
-    // ... (renderColorInput, renderNumberInput, renderThemeCard, renderPreview igual que antes) ...
     const renderColorInput = (label, name) => (
         <div className={styles.colorItem}>
             <label className={styles.label}>{label}</label>
@@ -328,26 +352,22 @@ const Configuracion = () => {
                     <div className={styles.previewBox}>
                         <h4 className={styles.previewTitle}>Vista Previa General</h4>
                         <div className={styles.previewGeneral}>
-                            {/* Header Simulado */}
                             <div className={styles.previewHeader} style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor }}>
                                 <span style={{ fontWeight: 'bold' }}>Logo</span>
                                 <span>Usuario</span>
                             </div>
-                            {/* Body Simulado */}
                             <div className={styles.previewBody}>
                                 <div className={styles.previewCard}>
                                     <h3 style={{ color: settings.primaryColor, marginTop: 0 }}>Título Principal</h3>
                                     <p style={{ color: settings.secondaryColor }}>Subtítulo o texto secundario de ejemplo.</p>
                                 </div>
                             </div>
-                            {/* Footer Simulado */}
                             <div className={styles.previewFooter} style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor }}>
                                 Footer
                             </div>
                         </div>
                     </div>
                 );
-            // ... (Resto de casos igual que antes) ...
             case 'sidebar':
                 return (
                     <div className={styles.previewBox}>
@@ -365,7 +385,72 @@ const Configuracion = () => {
                         </div>
                     </div>
                 );
-
+            case 'chat':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 className={styles.previewTitle}>Vista Previa Mensajería</h4>
+                        <div style={{ display: 'flex', height: '200px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            {/* Sidebar Chat */}
+                            <div style={{ width: '120px', backgroundColor: settings.chatSidebarBgColor, borderRight: '1px solid #e2e8f0' }}>
+                                <div style={{ padding: '10px', backgroundColor: settings.chatItemActiveBgColor, borderLeft: `3px solid ${settings.chatItemActiveBorderColor}`, color: settings.chatItemTextMainColor }}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Usuario Activo</div>
+                                    <div style={{ fontSize: '10px', color: settings.chatItemTextSecondaryColor }}>Último mensaje...</div>
+                                </div>
+                                <div style={{ padding: '10px', color: settings.chatItemTextMainColor }}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Otro Usuario</div>
+                                    <div style={{ fontSize: '10px', color: settings.chatItemTextSecondaryColor }}>Hola...</div>
+                                </div>
+                            </div>
+                            {/* Chat Area */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: settings.chatContainerBgColor }}>
+                                <div style={{ padding: '10px', backgroundColor: settings.chatHeaderBgColor, color: settings.chatHeaderTextColor, fontSize: '12px', fontWeight: 'bold' }}>
+                                    Usuario Activo
+                                </div>
+                                <div style={{ flex: 1, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ alignSelf: 'flex-start', backgroundColor: settings.chatBubbleReceivedBgColor, color: settings.chatBubbleReceivedTextColor, padding: '8px', borderRadius: '8px', fontSize: '12px', border: '1px solid #e2e8f0' }}>
+                                        Hola, ¿qué tal?
+                                    </div>
+                                    <div style={{ alignSelf: 'flex-end', backgroundColor: settings.chatBubbleSentBgColor, color: settings.chatBubbleSentTextColor, padding: '8px', borderRadius: '8px', fontSize: '12px' }}>
+                                        ¡Todo bien!
+                                    </div>
+                                </div>
+                                <div style={{ padding: '5px', backgroundColor: settings.chatInputAreaBgColor }}>
+                                    <input type="text" placeholder="Escribe..." style={{ width: '100%', border: '1px solid #ccc', borderRadius: '4px', fontSize: '12px' }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'usercard':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 className={styles.previewTitle}>Vista Previa Tarjeta Usuario</h4>
+                        <div style={{ 
+                            width: '200px', 
+                            backgroundColor: settings.userCardBgColor, 
+                            color: settings.userCardTextColor,
+                            borderRadius: '8px', 
+                            padding: '20px', 
+                            textAlign: 'center',
+                            margin: '0 auto'
+                        }}>
+                            <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 auto 10px auto' }}></div>
+                            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Nombre Usuario</div>
+                            <div style={{ fontSize: '12px', color: settings.userCardTextSecondaryColor, marginBottom: '15px' }}>email@ejemplo.com</div>
+                            <button style={{ 
+                                width: '100%', 
+                                padding: '8px', 
+                                borderRadius: '4px', 
+                                border: 'none', 
+                                backgroundColor: settings.buttonPrimaryColor, 
+                                color: settings.buttonPrimaryTextColor,
+                                fontSize: '12px'
+                            }}>
+                                Enviar Mensaje
+                            </button>
+                        </div>
+                    </div>
+                );
             case 'text':
                 return (
                     <div className={styles.previewBox}>
@@ -602,10 +687,12 @@ const Configuracion = () => {
 
     const tabs = [
         { id: 'general', label: 'General', icon: <Palette size={18} /> },
-        { id: 'title', label: 'Título', icon: <Heading size={18} /> }, // Nueva pestaña
+        { id: 'title', label: 'Título', icon: <Heading size={18} /> },
         { id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18} /> },
         { id: 'text', label: 'Textos', icon: <Type size={18} /> },
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
+        { id: 'chat', label: 'Mensajería', icon: <MessageSquare size={18} /> },
+        { id: 'usercard', label: 'Tarjetas', icon: <User size={18} /> },
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
@@ -677,37 +764,21 @@ const Configuracion = () => {
                                     {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
                                     {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
                                     
-                                    {/* Campo de Logo (Solo para admins de centro) */}
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
                                             <label className={styles.label}>Logo del Centro</label>
                                             <div className={styles.fileInputWrapper}>
                                                 {logoPreview ? (
-                                                    <img 
-                                                        src={logoPreview} 
-                                                        alt="Logo" 
-                                                        style={{ width: '64px', height: '64px', objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '4px', backgroundColor: 'white' }} 
-                                                    />
+                                                    <img src={logoPreview} alt="Logo" style={{ width: '64px', height: '64px', objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '4px', backgroundColor: 'white' }} />
                                                 ) : (
                                                     <div style={{ width: '64px', height: '64px', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
                                                         <ImageIcon size={24} color="#cbd5e1" />
                                                     </div>
                                                 )}
                                                 
-                                                {/* Input de archivo personalizado usando Button y ref */}
                                                 <div>
-                                                    <input 
-                                                        type="file" 
-                                                        accept="image/*"
-                                                        onChange={handleFileChange}
-                                                        ref={fileInputRef}
-                                                        style={{ display: 'none' }}
-                                                    />
-                                                    <Button 
-                                                        type="button" 
-                                                        onClick={() => fileInputRef.current.click()}
-                                                        variant="secondary"
-                                                    >
+                                                    <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} style={{ display: 'none' }} />
+                                                    <Button type="button" onClick={() => fileInputRef.current.click()} variant="secondary">
                                                         <Upload size={16} style={{ marginRight: '8px' }} />
                                                         Seleccionar archivo
                                                     </Button>
@@ -723,60 +794,33 @@ const Configuracion = () => {
                                 <div className={styles.grid}>
                                     <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
                                         <label className={styles.label}>Espaciado entre palabras</label>
-                                        <input 
-                                            type="text" 
-                                            value={titleConfig.spacing} 
-                                            onChange={handleTitleSpacingChange}
-                                            className={styles.colorTextInput}
-                                            placeholder="Ej: 0.5rem, 10px"
-                                        />
+                                        <input type="text" value={titleConfig.spacing} onChange={handleTitleSpacingChange} className={styles.colorTextInput} placeholder="Ej: 0.5rem, 10px" />
                                     </div>
-                                    
                                     <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
                                         <label className={styles.label}>Capitalización</label>
-                                        <select 
-                                            value={titleConfig.casing} 
-                                            onChange={handleTitleCasingChange}
-                                            className={styles.colorTextInput}
-                                        >
+                                        <select value={titleConfig.casing} onChange={handleTitleCasingChange} className={styles.colorTextInput}>
                                             <option value="original">Original</option>
                                             <option value="uppercase">MAYÚSCULAS</option>
                                             <option value="lowercase">minúsculas</option>
                                             <option value="capitalize">Capitalizado</option>
                                         </select>
                                     </div>
-
                                     <div className={styles.colorItem} style={{ gridColumn: '1 / -1' }}>
                                         <label className={styles.label}>Alineación Vertical</label>
-                                        <select 
-                                            value={titleConfig.alignment} 
-                                            onChange={handleTitleAlignmentChange}
-                                            className={styles.colorTextInput}
-                                        >
+                                        <select value={titleConfig.alignment} onChange={handleTitleAlignmentChange} className={styles.colorTextInput}>
                                             <option value="flex-start">Arriba</option>
                                             <option value="center">Centro</option>
                                             <option value="flex-end">Abajo</option>
                                         </select>
                                     </div>
-
                                     <div className={styles.titleWordsContainer} style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
                                         <label className={styles.label} style={{ marginBottom: '0.5rem', display: 'block' }}>Colores por palabra</label>
                                         <div className={styles.titleWordsContainer}>
                                             {titleConfig.words.map((word, index) => (
                                                 <div key={index} className={styles.titleWordRow}>
                                                     <span className={styles.titleWordText}>{word.text}</span>
-                                                    <input 
-                                                        type="color" 
-                                                        value={word.color} 
-                                                        onChange={(e) => handleTitleWordColorChange(index, e.target.value)}
-                                                        className={styles.colorInput}
-                                                    />
-                                                    <input 
-                                                        type="text" 
-                                                        value={word.color} 
-                                                        onChange={(e) => handleTitleWordColorChange(index, e.target.value)}
-                                                        className={`${styles.colorTextInput} ${styles.titleWordInput}`}
-                                                    />
+                                                    <input type="color" value={word.color} onChange={(e) => handleTitleWordColorChange(index, e.target.value)} className={styles.colorInput} />
+                                                    <input type="text" value={word.color} onChange={(e) => handleTitleWordColorChange(index, e.target.value)} className={`${styles.colorTextInput} ${styles.titleWordInput}`} />
                                                 </div>
                                             ))}
                                         </div>
@@ -808,6 +852,36 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Botón Primario', 'buttonPrimaryTextColor')}
                                     {renderColorInput('Fondo Botón Secundario', 'buttonSecondaryColor')}
                                     {renderColorInput('Texto Botón Secundario', 'buttonSecondaryTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'chat' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Sidebar Chat', 'chatSidebarBgColor')}
+                                    {renderColorInput('Fondo Item Hover', 'chatItemHoverBgColor')}
+                                    {renderColorInput('Fondo Item Activo', 'chatItemActiveBgColor')}
+                                    {renderColorInput('Borde Item Activo', 'chatItemActiveBorderColor')}
+                                    {renderColorInput('Texto Principal Item', 'chatItemTextMainColor')}
+                                    {renderColorInput('Texto Secundario Item', 'chatItemTextSecondaryColor')}
+                                    {renderColorInput('Fondo Badge No Leídos', 'chatBadgeBgColor')}
+                                    {renderColorInput('Texto Badge No Leídos', 'chatBadgeTextColor')}
+                                    
+                                    {renderColorInput('Fondo Cabecera Chat', 'chatHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera Chat', 'chatHeaderTextColor')}
+                                    {renderColorInput('Fondo Contenedor Chat', 'chatContainerBgColor')}
+                                    {renderColorInput('Fondo Área de Input', 'chatInputAreaBgColor')}
+                                    {renderColorInput('Fondo Burbuja Enviada', 'chatBubbleSentBgColor')}
+                                    {renderColorInput('Texto Burbuja Enviada', 'chatBubbleSentTextColor')}
+                                    {renderColorInput('Fondo Burbuja Recibida', 'chatBubbleReceivedBgColor')}
+                                    {renderColorInput('Texto Burbuja Recibida', 'chatBubbleReceivedTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'usercard' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Tarjeta', 'userCardBgColor')}
+                                    {renderColorInput('Texto Principal', 'userCardTextColor')}
+                                    {renderColorInput('Texto Secundario', 'userCardTextSecondaryColor')}
                                 </div>
                             )}
 

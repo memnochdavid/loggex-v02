@@ -230,7 +230,15 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260202100000','2026-02-02 13:51:44',1044),
 ('DoctrineMigrations\\Version20260202110000','2026-02-02 13:51:45',68),
 ('DoctrineMigrations\\Version20260202114720','2026-02-02 13:51:45',1110),
-('DoctrineMigrations\\Version20260202122225','2026-02-02 13:51:46',994);
+('DoctrineMigrations\\Version20260202122225','2026-02-02 13:51:46',994),
+('DoctrineMigrations\\Version20260202135142',NULL,NULL),
+('DoctrineMigrations\\Version20260202151917',NULL,NULL),
+('DoctrineMigrations\\Version20260203081414',NULL,NULL),
+('DoctrineMigrations\\Version20260203081800',NULL,NULL),
+('DoctrineMigrations\\Version20260203081929',NULL,NULL),
+('DoctrineMigrations\\Version20260203085719',NULL,NULL),
+('DoctrineMigrations\\Version20260203131603',NULL,NULL),
+('DoctrineMigrations\\Version20260205050601','2026-02-05 05:10:54',86);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -650,6 +658,47 @@ INSERT INTO `matricula` VALUES
 UNLOCK TABLES;
 
 --
+-- Table structure for table `mensaje`
+--
+
+DROP TABLE IF EXISTS `mensaje`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mensaje` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `contenido` longtext NOT NULL,
+  `fecha_envio` datetime NOT NULL,
+  `leido` tinyint(4) NOT NULL,
+  `remitente_id` int(11) NOT NULL,
+  `destinatario_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_9B631D011C3E945F` (`remitente_id`),
+  KEY `IDX_9B631D01B564FBC1` (`destinatario_id`),
+  CONSTRAINT `FK_9B631D011C3E945F` FOREIGN KEY (`remitente_id`) REFERENCES `usuario` (`id`),
+  CONSTRAINT `FK_9B631D01B564FBC1` FOREIGN KEY (`destinatario_id`) REFERENCES `usuario` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `mensaje`
+--
+
+LOCK TABLES `mensaje` WRITE;
+/*!40000 ALTER TABLE `mensaje` DISABLE KEYS */;
+INSERT INTO `mensaje` VALUES
+(1,'lss6MWr9sOenq+7PSHbUNWlIV2xRMGJJMkdVVVliOTc4YWZINkE9PQ==','2026-02-05 06:45:50',0,55,50),
+(5,'V7KmHYgs+RIAWIHFrtnQYTF6VW9tSkdidWtqVXBEUEJqNEc5Unc9PQ==','2026-02-05 07:02:43',0,50,55),
+(6,'JqNdtZn7kUXcCDfOW8fe6EtndHg3WjZ4Z0VXK2VJOGhvVFIyL1E9PQ==','2026-02-05 07:17:41',0,56,55),
+(7,'yhtak6u6ROCrcZGHxOwV/VNiSURRUW1SV2NXWWw5bThFTEpaZlE9PQ==','2026-02-05 07:18:43',0,55,56),
+(8,'gPBWf4nUqPmQMz4gKUvnPFRabGtidUk3YUdtKzcycVpzRU9jOGc9PQ==','2026-02-05 07:20:32',0,57,55),
+(9,'D/OB7gMaIKRSwODABvX4qjlRUmQ5Q0p6SndwM2JzdFQ4ZkpBWlE9PQ==','2026-02-05 07:32:22',0,55,57),
+(10,'YgLAAVN7KaJvzZpL/2CJ/EZ2Y3VNemhSem1XS0Jxc2Uvanllb3c9PQ==','2026-02-05 08:05:22',0,55,50),
+(11,'hOd2T3udEHfkV0AP3DL4RCsxTmg3UjBzbGZTbElZdTdRS09XL3R5SHlDWUlpam92bTFVRGNaTWtJYjg9','2026-02-05 08:25:10',0,55,56),
+(12,'CpxX/QIxfy3t/YetWSphxFVnZDVEZTNpQXRUQVRQZE1ET3RvZFE9PQ==','2026-02-05 08:54:25',0,55,56);
+/*!40000 ALTER TABLE `mensaje` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `messenger_messages`
 --
 
@@ -736,41 +785,6 @@ INSERT INTO `modulo` VALUES
 UNLOCK TABLES;
 
 --
--- Table structure for table `noticia`
---
-
-DROP TABLE IF EXISTS `noticia`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `noticia` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `titulo` varchar(255) NOT NULL,
-  `contenido` longtext NOT NULL,
-  `fecha_publicacion` datetime NOT NULL,
-  `centro_id` int(11) NOT NULL,
-  `autor_id` int(11) NOT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
-  `updated_at` datetime DEFAULT NULL,
-  `deleted` tinyint(4) NOT NULL DEFAULT 0,
-  `deleted_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `IDX_31205F96298137A7` (`centro_id`),
-  KEY `IDX_31205F9614D45BBE` (`autor_id`),
-  CONSTRAINT `FK_31205F9614D45BBE` FOREIGN KEY (`autor_id`) REFERENCES `usuario` (`id`),
-  CONSTRAINT `FK_31205F96298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `noticia`
---
-
-LOCK TABLES `noticia` WRITE;
-/*!40000 ALTER TABLE `noticia` DISABLE KEYS */;
-/*!40000 ALTER TABLE `noticia` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `personalizacion`
 --
 
@@ -852,10 +866,29 @@ CREATE TABLE `personalizacion` (
   `modal_close_button_hover_bg_color` varchar(7) NOT NULL,
   `modal_close_button_hover_text_color` varchar(7) NOT NULL,
   `name_title_config` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`name_title_config`)),
+  `user_card_bg_color` varchar(7) NOT NULL,
+  `user_card_text_color` varchar(7) NOT NULL,
+  `user_card_text_secondary_color` varchar(7) NOT NULL,
+  `chat_sidebar_bg_color` varchar(7) NOT NULL,
+  `chat_item_hover_bg_color` varchar(7) NOT NULL,
+  `chat_item_active_bg_color` varchar(7) NOT NULL,
+  `chat_item_active_border_color` varchar(7) NOT NULL,
+  `chat_item_text_main_color` varchar(7) NOT NULL,
+  `chat_item_text_secondary_color` varchar(7) NOT NULL,
+  `chat_badge_bg_color` varchar(7) NOT NULL,
+  `chat_badge_text_color` varchar(7) NOT NULL,
+  `chat_header_bg_color` varchar(7) NOT NULL,
+  `chat_header_text_color` varchar(7) NOT NULL,
+  `chat_container_bg_color` varchar(7) NOT NULL,
+  `chat_bubble_sent_bg_color` varchar(7) NOT NULL,
+  `chat_bubble_sent_text_color` varchar(7) NOT NULL,
+  `chat_bubble_received_bg_color` varchar(7) NOT NULL,
+  `chat_bubble_received_text_color` varchar(7) NOT NULL,
+  `chat_input_area_bg_color` varchar(7) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -865,8 +898,9 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-04 15:06:55',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','[{\"name\":\"EAG - GUAY\",\"settings\":{\"primaryColor\":\"#5c94f0\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"specialTextColor\":\"#ffffff\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"modalHeaderBgColor\":\"#5c94f0\",\"modalHeaderTextColor\":\"#ffffff\",\"modalBodyBgColor\":\"#e6e6e6\",\"modalBodyTextColor\":\"#000000\",\"modalFooterBgColor\":\"#c7c7c7\",\"modalCloseButtonBgColor\":\"#ff0000\",\"modalCloseButtonTextColor\":\"#ffffff\",\"modalCloseButtonHoverBgColor\":\"#b30000\",\"modalCloseButtonHoverTextColor\":\"#ffffff\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10}}]','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-start\"}'),
-(2,'#3b82f6','#1e3a8a',4,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-03 14:40:48','2026-02-03 14:40:48',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','[]','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155',NULL);
+(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-05 09:13:33',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','[{\"name\":\"EAG - GUAY\",\"settings\":{\"primaryColor\":\"#5c94f0\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"specialTextColor\":\"#ffffff\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"modalHeaderBgColor\":\"#5c94f0\",\"modalHeaderTextColor\":\"#ffffff\",\"modalBodyBgColor\":\"#e6e6e6\",\"modalBodyTextColor\":\"#000000\",\"modalFooterBgColor\":\"#c7c7c7\",\"modalCloseButtonBgColor\":\"#ff0000\",\"modalCloseButtonTextColor\":\"#ffffff\",\"modalCloseButtonHoverBgColor\":\"#b30000\",\"modalCloseButtonHoverTextColor\":\"#ffffff\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10}},{\"name\":\"eee\",\"settings\":{\"primaryColor\":\"#5c94f0\",\"secondaryColor\":\"#608fd2\",\"sidebarColor\":\"#1e293b\",\"sidebarActiveColor\":\"#334155\",\"sidebarActiveTextColor\":\"#ffffff\",\"sidebarHoverColor\":\"#334155\",\"sidebarHoverTextColor\":\"#ffffff\",\"textMainColor\":\"#334155\",\"textSecondaryColor\":\"#64748b\",\"specialTextColor\":\"#ffffff\",\"buttonPrimaryColor\":\"#62b767\",\"buttonPrimaryTextColor\":\"#ffffff\",\"buttonSecondaryColor\":\"#5c94f0\",\"buttonSecondaryTextColor\":\"#ffffff\",\"headerFooterColor\":\"#1e293b\",\"headerFooterTextColor\":\"#ffffff\",\"scrollbarThumbColor\":\"#5c94f0\",\"scrollbarTrackColor\":\"#f0f0f0\",\"scrollbarHoverColor\":\"#8ab7ff\",\"scrollbarWidth\":\"auto\",\"calendarSelectedBgColor\":\"#62b767\",\"calendarSelectedTextColor\":\"#ffffff\",\"calendarWeekendBgColor\":\"#ff0000\",\"calendarWeekendTextColor\":\"#ffffff\",\"timetableHeaderBgColor\":\"#5c94f0\",\"timetableHeaderTextColor\":\"#ffffff\",\"timetableHoursBgColor\":\"#e6e6e6\",\"timetableHoursTextColor\":\"#000000\",\"timetableSelectedHeaderBg\":\"#5c94f0\",\"timetableSelectedHeaderText\":\"#ffffff\",\"timetableSelectedCellBg\":\"#eef2ff\",\"datatableHeaderBgColor\":\"#62b767\",\"datatableHeaderTextColor\":\"#ffffff\",\"datatableHeaderHoverBgColor\":\"#7dcf82\",\"datatableHeaderHoverTextColor\":\"#ffffff\",\"datatableHeaderActiveBgColor\":\"#81df88\",\"datatableHeaderActiveTextColor\":\"#ffffff\",\"datatablePaginationBgColor\":\"#5c94f0\",\"datatablePaginationTextColor\":\"#ffffff\",\"datatablePaginationButtonBgColor\":\"#94bdff\",\"datatablePaginationButtonTextColor\":\"#ffffff\",\"datatablePaginationButtonHoverBgColor\":\"#3884ff\",\"datatablePaginationButtonHoverTextColor\":\"#ffffff\",\"datatablePaginationButtonActiveBgColor\":\"#96aaca\",\"datatablePaginationButtonActiveTextColor\":\"#ffffff\",\"accordionHeaderBgColor\":\"#5c94f0\",\"accordionHeaderTextColor\":\"#ffffff\",\"accordionContentBgColor\":\"#f0f0f0\",\"accordionContentTextColor\":\"#46505d\",\"modalHeaderBgColor\":\"#5c94f0\",\"modalHeaderTextColor\":\"#ffffff\",\"modalBodyBgColor\":\"#e6e6e6\",\"modalBodyTextColor\":\"#000000\",\"modalFooterBgColor\":\"#c7c7c7\",\"userCardBgColor\":\"#eef2ff\",\"userCardTextColor\":\"#000000\",\"userCardTextSecondaryColor\":\"#383838\",\"chatSidebarBgColor\":\"#ffffff\",\"chatItemHoverBgColor\":\"#ecfdf5\",\"chatItemActiveBgColor\":\"#d1fae5\",\"chatItemActiveBorderColor\":\"#10b981\",\"chatItemTextMainColor\":\"#18181b\",\"chatItemTextSecondaryColor\":\"#52525b\",\"chatBadgeBgColor\":\"#10b981\",\"chatBadgeTextColor\":\"#ffffff\",\"chatHeaderBgColor\":\"#064e3b\",\"chatHeaderTextColor\":\"#ffffff\",\"chatContainerBgColor\":\"#ecfdf5\",\"chatInputAreaBgColor\":\"#ffffff\",\"chatBubbleSentBgColor\":\"#10b981\",\"chatBubbleSentTextColor\":\"#ffffff\",\"chatBubbleReceivedBgColor\":\"#ffffff\",\"chatBubbleReceivedTextColor\":\"#18181b\",\"modalCloseButtonBgColor\":\"#ff0000\",\"modalCloseButtonTextColor\":\"#ffffff\",\"modalCloseButtonHoverBgColor\":\"#b30000\",\"modalCloseButtonHoverTextColor\":\"#ffffff\",\"itemsPerPageUsuarios\":10,\"itemsPerPageCentros\":10,\"itemsPerPageCiclos\":10,\"itemsPerPageGrupos\":10,\"itemsPerPageModulos\":10,\"itemsPerPageMatriculas\":10,\"itemsPerPageImparticiones\":10,\"itemsPerPageHorarios\":10,\"nameTitleConfig\":{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-start\"}}}]','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-start\"}','#b91c1c','#ffffff','#fee2e2','#ffffff','#fef2f2','#fee2e2','#ef4444','#171717','#71717a','#ef4444','#ffffff','#b91c1c','#ffffff','#fef2f2','#ef4444','#ffffff','#ffffff','#171717','#ffffff'),
+(2,'#3b82f6','#1e3a8a',4,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-03 14:40:48','2026-02-03 14:40:48',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','[]','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155',NULL,'','','','','','','','','','','','','','','','','','',''),
+(3,'#3b82f6','#1e3a8a',NULL,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-04 17:19:09','2026-02-04 17:19:09',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','[]','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','','','','','','','','','','','','','','','','','','','');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -991,4 +1025,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-04 17:00:56
+-- Dump completed on 2026-02-05  9:24:51

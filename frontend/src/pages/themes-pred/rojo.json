@@ -29,6 +29,25 @@
         "modalHeaderTextColor": "#ffffff",
         "modalBodyBgColor": "#ffffff",
         "modalBodyTextColor": "#171717",
-        "modalFooterBgColor": "#f5f5f5"
+        "modalFooterBgColor": "#f5f5f5",
+        "userCardBgColor": "#b91c1c",
+        "userCardTextColor": "#ffffff",
+        "userCardTextSecondaryColor": "#fee2e2",
+        "chatSidebarBgColor": "#ffffff",
+        "chatItemHoverBgColor": "#fef2f2",
+        "chatItemActiveBgColor": "#fee2e2",
+        "chatItemActiveBorderColor": "#ef4444",
+        "chatItemTextMainColor": "#171717",
+        "chatItemTextSecondaryColor": "#71717a",
+        "chatBadgeBgColor": "#ef4444",
+        "chatBadgeTextColor": "#ffffff",
+        "chatHeaderBgColor": "#b91c1c",
+        "chatHeaderTextColor": "#ffffff",
+        "chatContainerBgColor": "#fef2f2",
+        "chatInputAreaBgColor": "#ffffff",
+        "chatBubbleSentBgColor": "#ef4444",
+        "chatBubbleSentTextColor": "#ffffff",
+        "chatBubbleReceivedBgColor": "#ffffff",
+        "chatBubbleReceivedTextColor": "#171717"
     }
 }

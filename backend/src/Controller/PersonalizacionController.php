@@ -68,7 +68,7 @@ class PersonalizacionController extends AbstractController
         // Textos
         if (isset($data['textMainColor'])) $personalizacion->setTextMainColor($data['textMainColor']);
         if (isset($data['textSecondaryColor'])) $personalizacion->setTextSecondaryColor($data['textSecondaryColor']);
-        if (isset($data['specialTextColor'])) $personalizacion->setSpecialTextColor($data['specialTextColor']); // NUEVO
+        if (isset($data['specialTextColor'])) $personalizacion->setSpecialTextColor($data['specialTextColor']);
 
         // Botones
         if (isset($data['buttonPrimaryColor'])) $personalizacion->setButtonPrimaryColor($data['buttonPrimaryColor']);
@@ -97,17 +97,9 @@ class PersonalizacionController extends AbstractController
         if (isset($data['timetableHeaderTextColor'])) $personalizacion->setTimetableHeaderTextColor($data['timetableHeaderTextColor']);
         if (isset($data['timetableHoursBgColor'])) $personalizacion->setTimetableHoursBgColor($data['timetableHoursBgColor']);
         if (isset($data['timetableHoursTextColor'])) $personalizacion->setTimetableHoursTextColor($data['timetableHoursTextColor']);
-
-        // Nuevos campos de Horario (RENOMBRADOS)
-        if (isset($data['timetableSelectedHeaderBg'])) {
-            $personalizacion->setTimetableSelectedHeaderBg($data['timetableSelectedHeaderBg']);
-        }
-        if (isset($data['timetableSelectedHeaderText'])) {
-            $personalizacion->setTimetableSelectedHeaderText($data['timetableSelectedHeaderText']);
-        }
-        if (isset($data['timetableSelectedCellBg'])) {
-            $personalizacion->setTimetableSelectedCellBg($data['timetableSelectedCellBg']);
-        }
+        if (isset($data['timetableSelectedHeaderBg'])) $personalizacion->setTimetableSelectedHeaderBg($data['timetableSelectedHeaderBg']);
+        if (isset($data['timetableSelectedHeaderText'])) $personalizacion->setTimetableSelectedHeaderText($data['timetableSelectedHeaderText']);
+        if (isset($data['timetableSelectedCellBg'])) $personalizacion->setTimetableSelectedCellBg($data['timetableSelectedCellBg']);
 
         // DataTable
         if (isset($data['datatableHeaderBgColor'])) $personalizacion->setDatatableHeaderBgColor($data['datatableHeaderBgColor']);
@@ -145,6 +137,30 @@ class PersonalizacionController extends AbstractController
         if (isset($data['modalCloseButtonHoverBgColor'])) $personalizacion->setModalCloseButtonHoverBgColor($data['modalCloseButtonHoverBgColor']);
         if (isset($data['modalCloseButtonHoverTextColor'])) $personalizacion->setModalCloseButtonHoverTextColor($data['modalCloseButtonHoverTextColor']);
 
+        // UserCard
+        if (isset($data['userCardBgColor'])) $personalizacion->setUserCardBgColor($data['userCardBgColor']);
+        if (isset($data['userCardTextColor'])) $personalizacion->setUserCardTextColor($data['userCardTextColor']);
+        if (isset($data['userCardTextSecondaryColor'])) $personalizacion->setUserCardTextSecondaryColor($data['userCardTextSecondaryColor']);
+
+        // Chat
+        if (isset($data['chatSidebarBgColor'])) $personalizacion->setChatSidebarBgColor($data['chatSidebarBgColor']);
+        if (isset($data['chatItemHoverBgColor'])) $personalizacion->setChatItemHoverBgColor($data['chatItemHoverBgColor']);
+        if (isset($data['chatItemActiveBgColor'])) $personalizacion->setChatItemActiveBgColor($data['chatItemActiveBgColor']);
+        if (isset($data['chatItemActiveBorderColor'])) $personalizacion->setChatItemActiveBorderColor($data['chatItemActiveBorderColor']);
+        if (isset($data['chatItemTextMainColor'])) $personalizacion->setChatItemTextMainColor($data['chatItemTextMainColor']);
+        if (isset($data['chatItemTextSecondaryColor'])) $personalizacion->setChatItemTextSecondaryColor($data['chatItemTextSecondaryColor']);
+        if (isset($data['chatBadgeBgColor'])) $personalizacion->setChatBadgeBgColor($data['chatBadgeBgColor']);
+        if (isset($data['chatBadgeTextColor'])) $personalizacion->setChatBadgeTextColor($data['chatBadgeTextColor']);
+
+        if (isset($data['chatHeaderBgColor'])) $personalizacion->setChatHeaderBgColor($data['chatHeaderBgColor']);
+        if (isset($data['chatHeaderTextColor'])) $personalizacion->setChatHeaderTextColor($data['chatHeaderTextColor']);
+        if (isset($data['chatContainerBgColor'])) $personalizacion->setChatContainerBgColor($data['chatContainerBgColor']);
+        if (isset($data['chatInputAreaBgColor'])) $personalizacion->setChatInputAreaBgColor($data['chatInputAreaBgColor']); // NUEVO
+        if (isset($data['chatBubbleSentBgColor'])) $personalizacion->setChatBubbleSentBgColor($data['chatBubbleSentBgColor']);
+        if (isset($data['chatBubbleSentTextColor'])) $personalizacion->setChatBubbleSentTextColor($data['chatBubbleSentTextColor']);
+        if (isset($data['chatBubbleReceivedBgColor'])) $personalizacion->setChatBubbleReceivedBgColor($data['chatBubbleReceivedBgColor']);
+        if (isset($data['chatBubbleReceivedTextColor'])) $personalizacion->setChatBubbleReceivedTextColor($data['chatBubbleReceivedTextColor']);
+
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);
         if (isset($data['itemsPerPageCentros'])) $personalizacion->setItemsPerPageCentros((int)$data['itemsPerPageCentros']);
@@ -170,15 +186,12 @@ class PersonalizacionController extends AbstractController
             $entityManager->flush();
 
             // --- VERIFICACIÓN DE PERSISTENCIA ---
-            // Forzamos la limpieza del EntityManager para asegurar que leemos de la BD
             $id = $personalizacion->getId();
             $entityManager->clear();
 
             $savedEntity = $entityManager->getRepository(Personalizacion::class)->find($id);
 
             if ($savedEntity) {
-                $logger->info('VERIFICACIÓN BD - savedThemes:', ['data' => $savedEntity->getSavedThemes()]);
-                // Devolvemos la entidad RECARGADA para que el frontend vea lo que realmente hay en BD
                 $personalizacion = $savedEntity;
             } else {
                 $logger->error('ERROR CRÍTICO: No se pudo recuperar la entidad después de guardar. ID: ' . $id);

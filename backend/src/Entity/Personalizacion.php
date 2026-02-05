@@ -283,6 +283,84 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $modalCloseButtonHoverTextColor = '#334155';
 
+    // --- UserCard (NUEVO) ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $userCardBgColor = '#1e293b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $userCardTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $userCardTextSecondaryColor = '#cbd5e1';
+
+    // --- Chat (NUEVO) ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatSidebarBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatItemHoverBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatItemActiveBgColor = '#e0e7ff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatItemActiveBorderColor = '#6366f1';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatItemTextMainColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatItemTextSecondaryColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBadgeBgColor = '#6366f1';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBadgeTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatHeaderBgColor = '#1e293b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatHeaderTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatContainerBgColor = '#f8fafc';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatInputAreaBgColor = '#ffffff'; // NUEVO
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBubbleSentBgColor = '#6366f1';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBubbleSentTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBubbleReceivedBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $chatBubbleReceivedTextColor = '#334155';
+
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -510,6 +588,65 @@ class Personalizacion
 
     public function getModalCloseButtonHoverTextColor(): ?string { return $this->modalCloseButtonHoverTextColor; }
     public function setModalCloseButtonHoverTextColor(string $color): static { $this->modalCloseButtonHoverTextColor = $color; return $this; }
+
+    // --- UserCard ---
+    public function getUserCardBgColor(): ?string { return $this->userCardBgColor; }
+    public function setUserCardBgColor(string $color): static { $this->userCardBgColor = $color; return $this; }
+
+    public function getUserCardTextColor(): ?string { return $this->userCardTextColor; }
+    public function setUserCardTextColor(string $color): static { $this->userCardTextColor = $color; return $this; }
+
+    public function getUserCardTextSecondaryColor(): ?string { return $this->userCardTextSecondaryColor; }
+    public function setUserCardTextSecondaryColor(string $color): static { $this->userCardTextSecondaryColor = $color; return $this; }
+
+    // --- Chat ---
+    public function getChatSidebarBgColor(): ?string { return $this->chatSidebarBgColor; }
+    public function setChatSidebarBgColor(string $color): static { $this->chatSidebarBgColor = $color; return $this; }
+
+    public function getChatItemHoverBgColor(): ?string { return $this->chatItemHoverBgColor; }
+    public function setChatItemHoverBgColor(string $color): static { $this->chatItemHoverBgColor = $color; return $this; }
+
+    public function getChatItemActiveBgColor(): ?string { return $this->chatItemActiveBgColor; }
+    public function setChatItemActiveBgColor(string $color): static { $this->chatItemActiveBgColor = $color; return $this; }
+
+    public function getChatItemActiveBorderColor(): ?string { return $this->chatItemActiveBorderColor; }
+    public function setChatItemActiveBorderColor(string $color): static { $this->chatItemActiveBorderColor = $color; return $this; }
+
+    public function getChatItemTextMainColor(): ?string { return $this->chatItemTextMainColor; }
+    public function setChatItemTextMainColor(string $color): static { $this->chatItemTextMainColor = $color; return $this; }
+
+    public function getChatItemTextSecondaryColor(): ?string { return $this->chatItemTextSecondaryColor; }
+    public function setChatItemTextSecondaryColor(string $color): static { $this->chatItemTextSecondaryColor = $color; return $this; }
+
+    public function getChatBadgeBgColor(): ?string { return $this->chatBadgeBgColor; }
+    public function setChatBadgeBgColor(string $color): static { $this->chatBadgeBgColor = $color; return $this; }
+
+    public function getChatBadgeTextColor(): ?string { return $this->chatBadgeTextColor; }
+    public function setChatBadgeTextColor(string $color): static { $this->chatBadgeTextColor = $color; return $this; }
+
+    public function getChatHeaderBgColor(): ?string { return $this->chatHeaderBgColor; }
+    public function setChatHeaderBgColor(string $color): static { $this->chatHeaderBgColor = $color; return $this; }
+
+    public function getChatHeaderTextColor(): ?string { return $this->chatHeaderTextColor; }
+    public function setChatHeaderTextColor(string $color): static { $this->chatHeaderTextColor = $color; return $this; }
+
+    public function getChatContainerBgColor(): ?string { return $this->chatContainerBgColor; }
+    public function setChatContainerBgColor(string $color): static { $this->chatContainerBgColor = $color; return $this; }
+
+    public function getChatInputAreaBgColor(): ?string { return $this->chatInputAreaBgColor; }
+    public function setChatInputAreaBgColor(string $color): static { $this->chatInputAreaBgColor = $color; return $this; }
+
+    public function getChatBubbleSentBgColor(): ?string { return $this->chatBubbleSentBgColor; }
+    public function setChatBubbleSentBgColor(string $color): static { $this->chatBubbleSentBgColor = $color; return $this; }
+
+    public function getChatBubbleSentTextColor(): ?string { return $this->chatBubbleSentTextColor; }
+    public function setChatBubbleSentTextColor(string $color): static { $this->chatBubbleSentTextColor = $color; return $this; }
+
+    public function getChatBubbleReceivedBgColor(): ?string { return $this->chatBubbleReceivedBgColor; }
+    public function setChatBubbleReceivedBgColor(string $color): static { $this->chatBubbleReceivedBgColor = $color; return $this; }
+
+    public function getChatBubbleReceivedTextColor(): ?string { return $this->chatBubbleReceivedTextColor; }
+    public function setChatBubbleReceivedTextColor(string $color): static { $this->chatBubbleReceivedTextColor = $color; return $this; }
 
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }

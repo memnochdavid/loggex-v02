@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './UserCard.module.css';
 import { User, Mail, Phone, Users, MessageSquare } from 'lucide-react';
+import Button from './Button'; // Importar componente Button
 
 const UserCard = ({ user, onMessage }) => {
     const getAvatarUrl = (path) => {
@@ -16,7 +17,7 @@ const UserCard = ({ user, onMessage }) => {
                     <img src={getAvatarUrl(user.foto)} alt={user.nombre} className={styles.avatar} />
                 ) : (
                     <div className={styles.placeholderAvatar}>
-                        <User size={40} color="#cbd5e1" />
+                        <User size={40} />
                     </div>
                 )}
             </div>
@@ -44,13 +45,14 @@ const UserCard = ({ user, onMessage }) => {
             </div>
 
             <div className={styles.actions}>
-                <button 
-                    className={styles.messageButton}
+                <Button 
+                    variant="primary"
                     onClick={() => onMessage(user)}
+                    style={{ width: '100%', justifyContent: 'center' }}
                 >
-                    <MessageSquare size={16} />
+                    <MessageSquare size={16} style={{ marginRight: '8px' }} />
                     Enviar Mensaje
-                </button>
+                </Button>
             </div>
         </div>
     );
