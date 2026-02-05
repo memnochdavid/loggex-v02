@@ -18,11 +18,16 @@ import Horarios from './pages/Horarios';
 import Festivos from './pages/Festivos';
 import Tareas from './pages/Tareas';
 import Entregas from './pages/Entregas';
-import MisFaltas from './pages/MisFaltas'; // Importar MisFaltas
+import MisFaltas from './pages/MisFaltas';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import MaterialesAlumno from './pages/MaterialesAlumno';
 import MaterialesProfesor from './pages/MaterialesProfesor';
+import Mensajes from './pages/Mensajes';
+import Claustro from './pages/Claustro';
+import Companeros from './pages/Companeros';
+import MisProfesores from './pages/MisProfesores';
+import MisAlumnos from './pages/MisAlumnos'; // Nuevo
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import usePageTitle from './hooks/usePageTitle';
@@ -136,6 +141,36 @@ function App() {
                 <Route path="/mis-temarios" element={
                   <PrivateRoute>
                     <MaterialesProfesor />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/mensajes" element={
+                  <PrivateRoute>
+                    <Mensajes />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/claustro" element={
+                  <PrivateRoute>
+                    <Claustro />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/companeros" element={
+                  <PrivateRoute>
+                    <Companeros />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/mis-profesores" element={
+                  <PrivateRoute>
+                    <MisProfesores />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/mis-alumnos" element={
+                  <PrivateRoute>
+                    <MisAlumnos />
                   </PrivateRoute>
                 } />
 

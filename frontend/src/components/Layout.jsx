@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import styles from './Layout.module.css';
 import { useAuth } from '../context/AuthContext';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, fullHeight = false }) => {
   const { user } = useAuth();
 
   return (
@@ -12,7 +12,10 @@ const Layout = ({ children }) => {
             {/* Solo mostrar Sidebar si el usuario está autenticado */}
             {user && <Sidebar />}
             
-            <main className={styles.content} style={!user ? { width: '100%', maxWidth: '1000px', margin: '0 auto' } : {}}>
+            <main 
+                className={fullHeight ? styles.contentFullHeight : styles.content} 
+                style={!user ? { width: '100%', maxWidth: '1000px', margin: '0 auto' } : {}}
+            >
                 {children}
             </main>
         </div>

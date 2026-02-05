@@ -7,7 +7,7 @@ import styles from './Header.module.css';
 import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
 import NameTitle from '../components/NameTitle'; // Importar NameTitle
-// import { Menu } from 'lucide-react';
+import { Bell } from 'lucide-react'; // Importar icono de campana
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -30,6 +30,8 @@ const Header = () => {
     const {user} = useAuth();
     const {toggleSidebar} = useUI();
     const isMobile = useMediaQuery('(max-width: 1220px)'); // Coincide con el breakpoint del Sidebar
+    const [unreadCount, setUnreadCount] = useState(0);
+    const navigate = useNavigate();
 
     // Función para obtener la URL del logo del centro
     const getCentroLogoUrl = () => {
@@ -44,6 +46,37 @@ const Header = () => {
 
     const centroLogo = getCentroLogoUrl();
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Polling para mensajes no leídos
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchUnread = async () => {
+            try {
+                // Filtramos por destinatario (yo) y leido=false
+                // Nota: CurrentUserExtension ya filtra por "remitente O destinatario", 
+                // así que debemos ser explícitos con el destinatario para contar SOLO los recibidos.
+                // Usamos el IRI del usuario
+                const userIri = `/api/users/${user.id}`;
+                const response = await fetch(`https://localhost:9443/api/mensajes?destinatario=${encodeURIComponent(userIri)}&leido=false&pagination=false`, {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setUnreadCount(data['hydra:totalItems'] || data.length || 0);
+                }
+            } catch (error) {
+                console.error("Error checking messages:", error);
+            }
+        };
+
+        fetchUnread(); // Primera carga
+        const interval = setInterval(fetchUnread, 30000); // Cada 30s
+
+        return () => clearInterval(interval);
+    }, [user]);
 
     const LogoImage = (
         <img
@@ -79,11 +112,6 @@ const Header = () => {
             <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
 
                 {/* Enlaces de navegación (ocultos en móvil si están en el sidebar, o visibles si caben) */}
-                {/* Por simplicidad, mantenemos algunos visibles o dejamos que el CSS los oculte si es necesario */}
-
-
-
-
                 <div className={styles.desktopNav}>
                     <Link to="/about" className={styles.navLink}>About</Link>
                 </div>
@@ -102,6 +130,34 @@ const Header = () => {
 
                 {user ? (
                     <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem'}}>
+                        {/* Icono de Notificaciones */}
+                        <div 
+                            style={{ position: 'relative', cursor: 'pointer', color: 'inherit' }}
+                            onClick={() => navigate('/mensajes')}
+                            title="Mensajes"
+                        >
+                            <Bell size={24} />
+                            {unreadCount > 0 && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '-5px',
+                                    right: '-5px',
+                                    backgroundColor: '#ef4444',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '18px',
+                                    height: '18px',
+                                    fontSize: '11px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 'bold'
+                                }}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </div>
+
                         <UserAvatar size={40}/>
                     </div>
                 ) : (

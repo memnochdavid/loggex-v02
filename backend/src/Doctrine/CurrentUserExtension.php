@@ -8,6 +8,7 @@ use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\CicloFormativo;
 use App\Entity\Festivo;
+use App\Entity\Mensaje;
 use App\Entity\Modulo;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
@@ -32,7 +33,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
     private function addWhere(QueryBuilder $queryBuilder, string $resourceClass): void
     {
         // Entidades que se filtran por centro
-        $supportedClasses = [User::class, CicloFormativo::class, Modulo::class, Festivo::class];
+        $supportedClasses = [User::class, CicloFormativo::class, Modulo::class, Festivo::class, Mensaje::class];
 
         if (!in_array($resourceClass, $supportedClasses)) {
             return;
@@ -46,6 +47,17 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         }
 
         $rootAlias = $queryBuilder->getRootAliases()[0];
+
+        // Lógica específica para Mensajes (independiente del centro)
+        if ($resourceClass === Mensaje::class) {
+            // Debug: Ver qué usuario está filtrando
+            // error_log('Filtrando mensajes para usuario ID: ' . $user->getId());
+
+            // Usamos el ID explícitamente para evitar problemas con objetos desconectados
+            $queryBuilder->andWhere(sprintf('%s.remitente = :current_user_id OR %s.destinatario = :current_user_id', $rootAlias, $rootAlias))
+                ->setParameter('current_user_id', $user->getId());
+            return;
+        }
 
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if ($user->getCentro()) {

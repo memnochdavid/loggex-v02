@@ -1,7 +1,13 @@
 .container {
-    padding: 2rem;
+    padding: var(--space-2);
     max-width: 1000px;
     margin: 0 auto;
+    /* Ajustes para centrado y evitar scroll innecesario */
+    min-height: 100%; /* Ocupa al menos el alto del padre */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centra verticalmente si sobra espacio */
+    box-sizing: border-box;
 }
 
 .card {
@@ -10,6 +16,7 @@
     box-shadow: var(--shadow-md);
     overflow: hidden;
     border: 1px solid var(--border-color);
+    width: 100%; /* Asegura que ocupe el ancho disponible hasta max-width */
 }
 
 .header {
@@ -153,6 +160,40 @@
 
 .hiddenInput {
     display: none;
+}
+
+/* Estilos para Matrículas e Imparticiones (Re-añadidos para asegurar que existan) */
+.matriculasList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.matriculaCard {
+    padding: 1rem;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s;
+}
+
+.matriculaCard:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.matriculaTitle {
+    font-weight: bold;
+    color: var(--color-primary-600);
+    margin-bottom: 0.5rem;
+}
+
+.matriculaDetails {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #64748b;
 }
 
 @media (max-width: 640px) {

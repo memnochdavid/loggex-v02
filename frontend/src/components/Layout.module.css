@@ -18,3 +18,10 @@
     background-color: var(--color-gray-50);
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
 }
+
+/* NUEVO: Clase para vistas que ocupan el 100% y gestionan su propio scroll */
+.contentFullHeight {
+    flex: 1;
+    overflow: hidden; /* Sin scroll ni padding */
+    padding: 0;
+}

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
-import { useUI } from '../context/UIContext'; // Importar contexto UI
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck } from 'lucide-react';
 
 const Sidebar = () => {
     const { logout, user } = useAuth();
-    const { isSidebarOpen, closeSidebar } = useUI(); // Usar contexto
+    const { isSidebarOpen, closeSidebar } = useUI();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const toggleSidebar = () => {
@@ -19,7 +19,6 @@ const Sidebar = () => {
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
 
-    // Helper para clases de NavLink
     const getNavLinkClass = ({ isActive }) => 
         isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
 
@@ -42,14 +41,6 @@ const Sidebar = () => {
                             </div>
                         </div>
                     )}
-                    
-                    {/*<button */}
-                    {/*    className={styles.collapseBtn} */}
-                    {/*    onClick={toggleSidebar}*/}
-                    {/*    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}*/}
-                    {/*>*/}
-                    {/*    {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}*/}
-                    {/*</button>*/}
                 </div>
 
                 <nav className={styles.nav}>
@@ -120,6 +111,12 @@ const Sidebar = () => {
                         </NavLink>
                     )}
 
+                    {/* Mensajería para todos */}
+                    <NavLink to="/mensajes" className={getNavLinkClass} title="Mensajería" onClick={closeSidebar}>
+                        <MessageSquare size={20} />
+                        {!isCollapsed && <span>Mensajería</span>}
+                    </NavLink>
+
                     {/* Materiales Alumno */}
                     {isAlumno && (
                         <>
@@ -131,15 +128,33 @@ const Sidebar = () => {
                                 <AlertCircle size={20} />
                                 {!isCollapsed && <span>Mis Faltas</span>}
                             </NavLink>
+                            <NavLink to="/companeros" className={getNavLinkClass} title="Mis Compañeros" onClick={closeSidebar}>
+                                <UsersRound size={20} />
+                                {!isCollapsed && <span>Mis Compañeros</span>}
+                            </NavLink>
+                            <NavLink to="/mis-profesores" className={getNavLinkClass} title="Mis Profesores" onClick={closeSidebar}>
+                                <UserCheck size={20} />
+                                {!isCollapsed && <span>Mis Profesores</span>}
+                            </NavLink>
                         </>
                     )}
 
                     {/* Materiales Profesor */}
                     {(isProfesor || isSuperAdmin || isAdmin) && (
-                        <NavLink to="/mis-temarios" className={getNavLinkClass} title="Mis Temarios" onClick={closeSidebar}>
-                            <Book size={20} />
-                            {!isCollapsed && <span>Mis Temarios</span>}
-                        </NavLink>
+                        <>
+                            <NavLink to="/mis-temarios" className={getNavLinkClass} title="Mis Temarios" onClick={closeSidebar}>
+                                <Book size={20} />
+                                {!isCollapsed && <span>Mis Temarios</span>}
+                            </NavLink>
+                            <NavLink to="/claustro" className={getNavLinkClass} title="Claustro" onClick={closeSidebar}>
+                                <UserCheck size={20} />
+                                {!isCollapsed && <span>Claustro</span>}
+                            </NavLink>
+                            <NavLink to="/mis-alumnos" className={getNavLinkClass} title="Mis Alumnos" onClick={closeSidebar}>
+                                <UsersRound size={20} />
+                                {!isCollapsed && <span>Mis Alumnos</span>}
+                            </NavLink>
+                        </>
                     )}
 
                     <NavLink to="/perfil" className={getNavLinkClass} title="Perfil" onClick={closeSidebar}>

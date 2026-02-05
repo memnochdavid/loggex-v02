@@ -55,11 +55,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])]
+    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
     private ?string $email = null;
 
     #[ORM\Column]
@@ -73,11 +73,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
@@ -93,7 +93,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rol_app = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read'])]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
     private ?string $foto = null;
 
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
@@ -113,12 +113,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'alumno', targetEntity: Asistencia::class)]
     private Collection $asistencias;
 
+    #[ORM\OneToMany(mappedBy: 'remitente', targetEntity: Mensaje::class)]
+    private Collection $mensajesEnviados;
+
+    #[ORM\OneToMany(mappedBy: 'destinatario', targetEntity: Mensaje::class)]
+    private Collection $mensajesRecibidos;
+
     public function __construct()
     {
         $this->matriculas = new ArrayCollection();
         $this->imparticiones = new ArrayCollection();
         $this->entregas = new ArrayCollection();
         $this->asistencias = new ArrayCollection();
+        $this->mensajesEnviados = new ArrayCollection();
+        $this->mensajesRecibidos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -396,6 +404,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($asistencia->getAlumno() === $this) {
                 $asistencia->setAlumno(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Mensaje>
+     */
+    public function getMensajesEnviados(): Collection
+    {
+        return $this->mensajesEnviados;
+    }
+
+    public function addMensajesEnviado(Mensaje $mensajesEnviado): static
+    {
+        if (!$this->mensajesEnviados->contains($mensajesEnviado)) {
+            $this->mensajesEnviados->add($mensajesEnviado);
+            $mensajesEnviado->setRemitente($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMensajesEnviado(Mensaje $mensajesEnviado): static
+    {
+        if ($this->mensajesEnviados->removeElement($mensajesEnviado)) {
+            // set the owning side to null (unless already changed)
+            if ($mensajesEnviado->getRemitente() === $this) {
+                $mensajesEnviado->setRemitente(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Mensaje>
+     */
+    public function getMensajesRecibidos(): Collection
+    {
+        return $this->mensajesRecibidos;
+    }
+
+    public function addMensajesRecibido(Mensaje $mensajesRecibido): static
+    {
+        if (!$this->mensajesRecibidos->contains($mensajesRecibido)) {
+            $this->mensajesRecibidos->add($mensajesRecibido);
+            $mensajesRecibido->setDestinatario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMensajesRecibido(Mensaje $mensajesRecibido): static
+    {
+        if ($this->mensajesRecibidos->removeElement($mensajesRecibido)) {
+            // set the owning side to null (unless already changed)
+            if ($mensajesRecibido->getDestinatario() === $this) {
+                $mensajesRecibido->setDestinatario(null);
             }
         }
 

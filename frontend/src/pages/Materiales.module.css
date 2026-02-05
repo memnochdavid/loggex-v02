@@ -1,6 +1,6 @@
 .container {
-    padding: 2rem;
-    max-width: 1200px;
+    padding: 0 var(--space-8);
+    /*max-width: 1200px;*/
     margin: 0 auto;
 }
 
