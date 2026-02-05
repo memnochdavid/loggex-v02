@@ -76,6 +76,8 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonActiveTextColor: '#1e293b',
         accordionHeaderBgColor: '#f8fafc',
         accordionHeaderTextColor: '#64748b',
+        accordionHeaderActiveBgColor: '#f1f5f9', // NUEVO
+        accordionHeaderActiveTextColor: '#334155', // NUEVO
         accordionContentBgColor: '#ffffff',
         accordionContentTextColor: '#334155',
         modalHeaderBgColor: '#ffffff',
@@ -104,7 +106,7 @@ export const applyTheme = (colors) => {
         chatHeaderBgColor: '#1e293b',
         chatHeaderTextColor: '#ffffff',
         chatContainerBgColor: '#f8fafc',
-        chatInputAreaBgColor: '#ffffff', // NUEVO
+        chatInputAreaBgColor: '#ffffff',
         chatBubbleSentBgColor: '#6366f1',
         chatBubbleSentTextColor: '#ffffff',
         chatBubbleReceivedBgColor: '#ffffff',
@@ -188,6 +190,8 @@ export const applyTheme = (colors) => {
     // 8. Accordion
     if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
     if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
+    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor); // NUEVO
+    if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor); // NUEVO
     if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
@@ -222,7 +226,7 @@ export const applyTheme = (colors) => {
     if (theme.chatHeaderBgColor) root.style.setProperty('--chat-header-bg', theme.chatHeaderBgColor);
     if (theme.chatHeaderTextColor) root.style.setProperty('--chat-header-text', theme.chatHeaderTextColor);
     if (theme.chatContainerBgColor) root.style.setProperty('--chat-container-bg', theme.chatContainerBgColor);
-    if (theme.chatInputAreaBgColor) root.style.setProperty('--chat-input-area-bg', theme.chatInputAreaBgColor); // NUEVO
+    if (theme.chatInputAreaBgColor) root.style.setProperty('--chat-input-area-bg', theme.chatInputAreaBgColor);
     if (theme.chatBubbleSentBgColor) root.style.setProperty('--chat-bubble-sent-bg', theme.chatBubbleSentBgColor);
     if (theme.chatBubbleSentTextColor) root.style.setProperty('--chat-bubble-sent-text', theme.chatBubbleSentTextColor);
     if (theme.chatBubbleReceivedBgColor) root.style.setProperty('--chat-bubble-received-bg', theme.chatBubbleReceivedBgColor);

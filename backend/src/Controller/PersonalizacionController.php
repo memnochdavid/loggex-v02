@@ -121,6 +121,8 @@ class PersonalizacionController extends AbstractController
         // Accordion
         if (isset($data['accordionHeaderBgColor'])) $personalizacion->setAccordionHeaderBgColor($data['accordionHeaderBgColor']);
         if (isset($data['accordionHeaderTextColor'])) $personalizacion->setAccordionHeaderTextColor($data['accordionHeaderTextColor']);
+        if (isset($data['accordionHeaderActiveBgColor'])) $personalizacion->setAccordionHeaderActiveBgColor($data['accordionHeaderActiveBgColor']); // NUEVO
+        if (isset($data['accordionHeaderActiveTextColor'])) $personalizacion->setAccordionHeaderActiveTextColor($data['accordionHeaderActiveTextColor']); // NUEVO
         if (isset($data['accordionContentBgColor'])) $personalizacion->setAccordionContentBgColor($data['accordionContentBgColor']);
         if (isset($data['accordionContentTextColor'])) $personalizacion->setAccordionContentTextColor($data['accordionContentTextColor']);
 

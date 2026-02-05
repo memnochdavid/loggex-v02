@@ -37,29 +37,15 @@
     --bg-body: var(--color-gray-50);
     --bg-card: #ffffff;
     --bg-dark: var(--color-gray-800);
+    --bg-hover: var(--color-gray-100);
+    --bg-input: #ffffff;
 
     --text-main: var(--color-gray-800);
     --text-muted: var(--color-gray-500);
     --text-light: #ffffff;
+    --text-special: #ffffff; /* Para cabeceras especiales */
 
-    /* --- Variables de Personalización (Defaults) --- */
-    --bg-sidebar: var(--color-gray-800);
-    --bg-sidebar-active: #334155;
-    --text-sidebar-active: #ffffff;
-    --bg-sidebar-hover: #334155;
-    --text-sidebar-hover: #ffffff;
 
-    --btn-primary-bg: var(--color-primary-600);
-    --btn-primary-text: #ffffff;
-    --btn-primary-hover: var(--color-primary-700);
-
-    --btn-secondary-bg: transparent;
-    --btn-secondary-text: var(--text-main);
-
-    --bg-header-footer: var(--bg-dark);
-    --text-header-footer: var(--text-light);
-
-    --logo-container-bg-color: rgb(255, 255, 255);
 
     /* ------------------------- */
     /* 📐 ESPACIADO (Spacing)    */
@@ -115,6 +101,105 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
     --transition-base: all 0.2s ease-in-out;
+
+
+
+    /* ----------------------------------------- */
+    /* 🎨 VARIABLES DE PERSONALIZACIÓN (DEFAULTS) */
+    /* ----------------------------------------- */
+
+    /* Sidebar */
+    --bg-sidebar: var(--color-gray-800);
+    --bg-sidebar-active: #334155;
+    --text-sidebar-active: #ffffff;
+    --bg-sidebar-hover: #334155;
+    --text-sidebar-hover: #ffffff;
+
+    /* Botones */
+    --btn-primary-bg: var(--color-primary-600);
+    --btn-primary-text: #ffffff;
+    --btn-primary-hover: var(--color-primary-700);
+    --btn-secondary-bg: transparent;
+    --btn-secondary-text: var(--text-main);
+
+    /* Header & Footer */
+    --bg-header-footer: var(--bg-dark);
+    --text-header-footer: var(--text-light);
+    --logo-container-bg-color: rgb(255, 255, 255);
+
+    /* Accordion */
+    --accordion-header-bg: var(--bg-card);
+    --accordion-header-text: var(--text-main);
+    --accordion-header-active-bg: var(--color-gray-50);
+    --accordion-header-active-text: var(--text-main);
+    --accordion-content-bg: var(--bg-card);
+    --accordion-content-text: var(--text-main);
+
+    /* DataTable */
+    --datatable-header-bg: var(--color-gray-50);
+    --datatable-header-text: var(--color-gray-600);
+    --datatable-header-hover-bg: var(--color-gray-100);
+    --datatable-header-hover-text: var(--color-gray-900);
+    --datatable-header-active-bg: var(--color-primary-100);
+    --datatable-header-active-text: var(--color-primary-700);
+
+    --datatable-pagination-bg: var(--color-gray-50);
+    --datatable-pagination-text: var(--color-gray-600);
+    --datatable-pagination-btn-bg: white;
+    --datatable-pagination-btn-text: var(--color-gray-700);
+    --datatable-pagination-btn-hover-bg: var(--color-gray-100);
+    --datatable-pagination-btn-hover-text: var(--color-gray-900);
+    --datatable-pagination-btn-active-bg: var(--color-gray-50);
+    --datatable-pagination-btn-active-text: var(--color-gray-500);
+
+    /* Modal */
+    --modal-header-bg: var(--bg-card);
+    --modal-header-text: var(--text-main);
+    --modal-body-bg: var(--bg-card);
+    --modal-body-text: var(--text-main);
+    --modal-footer-bg: var(--color-gray-50);
+    --modal-close-btn-bg: transparent;
+    --modal-close-btn-text: var(--color-gray-500);
+    --modal-close-btn-hover-bg: var(--color-gray-100);
+    --modal-close-btn-hover-text: var(--color-gray-700);
+
+    /* Calendar & Timetable */
+    --calendar-weekend-bg: var(--color-gray-50);
+    --calendar-weekend-text: var(--color-gray-500);
+    --calendar-selected-bg: var(--color-primary-500);
+    --calendar-selected-text: white;
+
+    --timetable-header-bg: var(--color-gray-100);
+    --timetable-header-text: var(--text-main);
+    --timetable-active-header-bg: var(--color-primary-100);
+    --timetable-active-header-text: var(--color-primary-700);
+    --timetable-hours-bg: var(--color-gray-50);
+    --timetable-hours-text: var(--text-muted);
+    --timetable-active-cell-bg: var(--color-primary-50);
+
+    /* UserCard */
+    --usercard-bg: var(--bg-header-footer);
+    --usercard-text: white;
+    --usercard-text-secondary: rgba(255, 255, 255, 0.8);
+
+    /* Chat (Mensajería) */
+    --chat-container-bg: white;
+    --chat-sidebar-bg: var(--bg-card);
+    --chat-item-text-main: var(--text-main);
+    --chat-item-text-secondary: var(--text-muted);
+    --chat-item-hover-bg: var(--bg-hover);
+    --chat-item-active-bg: var(--color-primary-50);
+    --chat-item-active-border: var(--color-primary-500);
+    --chat-badge-bg: var(--color-primary-600);
+    --chat-badge-text: white;
+
+    --chat-header-bg: white;
+    --chat-header-text: var(--text-main);
+    --chat-bubble-sent-bg: var(--color-primary-600);
+    --chat-bubble-sent-text: white;
+    --chat-bubble-received-bg: white;
+    --chat-bubble-received-text: var(--text-main);
+    --chat-input-area-bg: white;
 }
 
 /* Reset básico */

@@ -239,6 +239,14 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionHeaderActiveBgColor = '#f1f5f9'; // NUEVO
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $accordionHeaderActiveTextColor = '#334155'; // NUEVO
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $accordionContentBgColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
@@ -555,6 +563,12 @@ class Personalizacion
 
     public function getAccordionHeaderTextColor(): ?string { return $this->accordionHeaderTextColor; }
     public function setAccordionHeaderTextColor(string $color): static { $this->accordionHeaderTextColor = $color; return $this; }
+
+    public function getAccordionHeaderActiveBgColor(): ?string { return $this->accordionHeaderActiveBgColor; }
+    public function setAccordionHeaderActiveBgColor(string $color): static { $this->accordionHeaderActiveBgColor = $color; return $this; }
+
+    public function getAccordionHeaderActiveTextColor(): ?string { return $this->accordionHeaderActiveTextColor; }
+    public function setAccordionHeaderActiveTextColor(string $color): static { $this->accordionHeaderActiveTextColor = $color; return $this; }
 
     public function getAccordionContentBgColor(): ?string { return $this->accordionContentBgColor; }
     public function setAccordionContentBgColor(string $color): static { $this->accordionContentBgColor = $color; return $this; }

@@ -163,6 +163,8 @@ class SecurityController extends AbstractController
             'datatablePaginationButtonActiveTextColor' => $v($p->getDatatablePaginationButtonActiveTextColor(), '#1e293b'),
             'accordionHeaderBgColor' => $v($p->getAccordionHeaderBgColor(), '#f8fafc'),
             'accordionHeaderTextColor' => $v($p->getAccordionHeaderTextColor(), '#64748b'),
+            'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#f1f5f9'), // NUEVO
+            'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#334155'), // NUEVO
             'accordionContentBgColor' => $v($p->getAccordionContentBgColor(), '#ffffff'),
             'accordionContentTextColor' => $v($p->getAccordionContentTextColor(), '#334155'),
             'modalHeaderBgColor' => $v($p->getModalHeaderBgColor(), '#ffffff'),

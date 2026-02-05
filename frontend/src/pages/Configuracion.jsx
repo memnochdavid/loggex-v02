@@ -939,6 +939,8 @@ const Configuracion = () => {
                                 <div className={styles.grid}>
                                     {renderColorInput('Fondo Cabecera', 'accordionHeaderBgColor')}
                                     {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
+                                    {renderColorInput('Fondo Cabecera Activa', 'accordionHeaderActiveBgColor')}
+                                    {renderColorInput('Texto Cabecera Activa', 'accordionHeaderActiveTextColor')}
                                     {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
                                     {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
                                 </div>
