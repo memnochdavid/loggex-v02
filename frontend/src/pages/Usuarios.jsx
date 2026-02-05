@@ -457,6 +457,7 @@ const Usuarios = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'980px'}
+            mobileHeaderColumns={3} // Mostrar Avatar, Nombre y Apellidos en móvil
         />
 
         <ModalView

@@ -1,6 +1,5 @@
 .container {
     padding: 0 var(--space-8);
-    /*max-width: 1200px;*/
     margin: 0 auto;
 }
 
@@ -26,16 +25,44 @@
 .taskCard {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1rem;
+    border-radius: var(--radius-lg); /* Más redondeado */
+    padding: 1.5rem; /* Más espacio interno */
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: box-shadow 0.2s;
+    flex-direction: column; /* Cambiado a columna para mejor layout móvil */
+    gap: 1rem;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .taskCard:hover {
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-300);
+    transform: translateY(-2px);
+}
+
+/* Borde izquierdo de color según estado (opcional, pero queda bien) */
+.taskCard::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.taskCard:has(.badgePending)::before { background-color: #f59e0b; }
+.taskCard:has(.badgeSubmitted)::before { background-color: #10b981; }
+.taskCard:has(.badgeLate)::before { background-color: #ef4444; }
+.taskCard:has(.badgeGraded)::before { background-color: #3b82f6; }
+
+@media (min-width: 768px) {
+    .taskCard {
+        flex-direction: row;
+        align-items: flex-start; /* Alinear arriba */
+    }
 }
 
 .taskInfo {
@@ -46,59 +73,138 @@
 }
 
 .taskTitle {
-    font-weight: 600;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 1.15rem;
     color: var(--text-main);
     display: flex;
     align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.icon {
+    color: var(--color-primary-500);
+    flex-shrink: 0;
+}
+
+.taskDescription {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.taskFile {
+    margin-bottom: 0.5rem;
+}
+
+.fileLink {
+    display: inline-flex;
+    align-items: center;
     gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--bg-hover);
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    color: var(--color-primary-600);
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.fileLink:hover {
+    background-color: var(--color-primary-50);
 }
 
 .taskMeta {
     display: flex;
+    flex-wrap: wrap;
     gap: 1rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
+    align-items: center;
+    margin-top: auto; /* Empujar hacia abajo si hay espacio */
 }
 
 .taskActions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: center;
+    flex-shrink: 0;
+    margin-top: 0.5rem; /* Espacio en móvil */
+}
+
+@media (min-width: 768px) {
+    .taskActions {
+        margin-top: 0;
+        align-self: center; /* Centrar verticalmente en desktop */
+    }
 }
 
 .badge {
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .badgePending {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: #fffbeb;
+    color: #b45309;
     border: 1px solid #fcd34d;
 }
 
 .badgeSubmitted {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: #ecfdf5;
+    color: #047857;
     border: 1px solid #6ee7b7;
 }
 
 .badgeLate {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
 }
 
 .badgeGraded {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: #eff6ff;
+    color: #1d4ed8;
     border: 1px solid #93c5fd;
 }
 
+/* Estilos para el feedback del profesor */
+.feedbackContainer {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--color-primary-50);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-primary-500);
+}
+
+.feedbackHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: var(--color-primary-800);
+    margin-bottom: 0.5rem;
+}
+
+.feedbackText {
+    font-size: 0.9rem;
+    color: var(--color-primary-900);
+    font-style: italic;
+}
+
+/* ... (Resto de estilos de modal y form sin cambios mayores) ... */
 .modalOverlay {
     position: fixed;
     top: 0;
@@ -172,6 +278,11 @@
 
 .formGroup {
     margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    gap: 0.5rem;
 }
 
 .label {
@@ -194,7 +305,7 @@
 
 .input:focus, .select:focus, .textarea:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-primary-500);
     box-shadow: 0 0 0 2px var(--color-primary-100);
 }
 
@@ -234,7 +345,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--color-primary);
+    color: var(--color-primary-500);
     text-decoration: none;
     font-size: 0.9rem;
 }

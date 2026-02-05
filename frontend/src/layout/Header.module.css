@@ -26,14 +26,14 @@
 }
 
 .logo {
-    height: 32px;
+    height: 55px;
     width: auto;
     object-fit: contain;
 }
 
 .nombrecentro {
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: var(--text-2xl);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

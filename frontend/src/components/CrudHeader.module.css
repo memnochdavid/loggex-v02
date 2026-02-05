@@ -37,4 +37,7 @@
     .actions > * {
         flex: 1;
     }
+    .actions{
+        flex-wrap: wrap;
+    }
 }

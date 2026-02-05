@@ -8,7 +8,7 @@ import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
 import NameTitle from '../components/NameTitle'; // Importar NameTitle
 import { Bell, User } from 'lucide-react'; // Importar icono de campana
-import { getApiUrl, getAssetUrl } from '../config/api';
+import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../config/api';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -110,7 +110,7 @@ const Header = () => {
         };
 
         fetchUnread(); // Primera carga
-        const interval = setInterval(fetchUnread, 30000); // Cada 30s
+        const interval = setInterval(fetchUnread, POLLING_INTERVAL_NOTIFICATIONS); // Cada 30s
 
         return () => clearInterval(interval);
     }, [user]);
@@ -140,7 +140,7 @@ const Header = () => {
 
     return (
         <header className={styles.header}>
-            <div className={styles.logoContainer}>
+            <div className={styles.logoContainer} style={user?.centro?.personalizacion?.nameTitleConfig?.alignment ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment } : {}}>
                 {/* En móvil y logueado, el logo abre el sidebar. En desktop o sin login, va a home */}
                 {isMobile && user ? (
                     <Link to="#" className={styles.logoLink} onClick={toggleSidebar}>

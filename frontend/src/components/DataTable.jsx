@@ -18,6 +18,7 @@ import useMediaQuery from '../hooks/useMediaQuery';
  * @param {function} onSort - Callback cuando se ordena (columnKey)
  * @param {Array} pageSizeOptions - Opciones para el selector de tamaño de página
  * @param {string} mobileBreakpoint - Breakpoint para cambiar a vista móvil (ej: '768px', '1024px')
+ * @param {number} mobileHeaderColumns - Número de columnas a mostrar en la cabecera del acordeón móvil (default: 1)
  */
 const DataTable = ({ 
     columns, 
@@ -32,7 +33,8 @@ const DataTable = ({
     sortDirection,
     onSort,
     pageSizeOptions = [10, 20, 30, 50, 100],
-    mobileBreakpoint = '768px' // Valor por defecto
+    mobileBreakpoint = '768px',
+    mobileHeaderColumns = 1 // Nuevo parámetro
 }) => {
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
 
@@ -244,24 +246,23 @@ const DataTable = ({
                             <AccordionView 
                                 data={data}
                                 renderHeader={(row) => {
-                                    // Renderizar las primeras 3 columnas en la cabecera (Avatar, Nombre, Apellidos)
-                                    const col0 = columns[0];
-                                    const col1 = columns[1];
-                                    const col2 = columns[2];
+                                    // Renderizar las primeras N columnas en la cabecera según mobileHeaderColumns
+                                    const headerCols = columns.slice(0, mobileHeaderColumns);
+                                    
                                     return (
                                         <div className={styles.mobileHeaderContent}>
-                                            {col0 && <div className={styles.mobileHeaderAvatar}>{getCellValue(col0, row)}</div>}
-                                            <div className={styles.mobileHeaderText}>
-                                                {col1 && <span>{getCellValue(col1, row)}</span>}
-                                                {col2 && <span style={{ marginLeft: '4px' }}>{getCellValue(col2, row)}</span>}
-                                            </div>
+                                            {headerCols.map((col, idx) => (
+                                                <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>
+                                                    {getCellValue(col, row)}
+                                                </div>
+                                            ))}
                                         </div>
                                     );
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {/* Mostrar TODAS las columnas excepto la primera (Avatar/ID) en el cuerpo */}
-                                        {columns.slice(1).map((col, index) => (
+                                        {/* Mostrar el RESTO de las columnas en el cuerpo */}
+                                        {columns.slice(mobileHeaderColumns).map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>
                                                 <span className={styles.mobileValue}>

@@ -614,7 +614,7 @@ const Configuracion = () => {
                                     if (titleConfig.casing === 'uppercase') text = text.toUpperCase();
                                     if (titleConfig.casing === 'lowercase') text = text.toLowerCase();
                                     if (titleConfig.casing === 'capitalize') text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-                                    
+
                                     return (
                                         <span key={index} style={{ color: word.color }}>
                                             {text}

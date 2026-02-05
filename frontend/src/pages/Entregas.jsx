@@ -10,6 +10,8 @@ import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare } from 
 import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Entregas = () => {
+  console.log("RENDER: Entregas Component"); // LOG 1
+
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
@@ -45,12 +47,14 @@ const Entregas = () => {
   const [savingGrade, setSavingGrade] = useState(false);
 
   useEffect(() => {
+    console.log("EFFECT: user changed", user?.id); // LOG 2
     if (user) {
         fetchData();
     }
   }, [user]);
 
   const fetchData = async () => {
+    console.log("FETCH: fetchData start"); // LOG 3
     setLoading(true);
     try {
         // 1. Cargar Asignaturas y Tareas
@@ -184,14 +188,14 @@ const Entregas = () => {
   // --- Lógica Profesor ---
 
   const handleViewEntregas = async (tarea) => {
+      console.log("ACTION: handleViewEntregas", tarea.id); // LOG 4
       setCurrentTarea(tarea);
       setIsViewModalOpen(true);
       setLoadingEntregas(true);
       
       try {
           const tareaId = tarea.id || tarea['@id'].split('/').pop();
-          console.log("Cargando tarea completa para ver entregas. ID:", tareaId);
-
+          
           // REVERTIDO: Pedir la tarea completa, que incluye 'entregas' gracias al grupo tarea:read
           const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
               headers: { 'Accept': 'application/ld+json' },
@@ -204,7 +208,6 @@ const Entregas = () => {
 
           const data = await response.json();
           const items = data.entregas || []; // Las entregas vienen dentro de la tarea
-          console.log("Entregas recibidas (desde tarea):", items);
           setEntregasTarea(items);
       } catch (err) {
           console.error(err);
@@ -215,6 +218,7 @@ const Entregas = () => {
   };
 
   const handleOpenGradeModal = (entrega) => {
+      console.log("ACTION: handleOpenGradeModal", entrega.id); // LOG 5
       setCurrentEntrega(entrega);
       setGradeFormData({
           nota: entrega.calificacion ? entrega.calificacion.nota : '',
@@ -224,6 +228,7 @@ const Entregas = () => {
   };
 
   const handleSaveGrade = async (e) => {
+      console.log("ACTION: handleSaveGrade"); // LOG 6
       e.preventDefault();
       setSavingGrade(true);
 
@@ -251,7 +256,19 @@ const Entregas = () => {
 
           if (!response.ok) throw new Error('Error al guardar calificación');
 
-          await handleViewEntregas(currentTarea);
+          const calificacionGuardada = await response.json();
+
+          // ACTUALIZACIÓN LOCAL DEL ESTADO para evitar recarga completa
+          setEntregasTarea(prevEntregas => prevEntregas.map(ent => {
+              if (ent.id === currentEntrega.id) {
+                  return {
+                      ...ent,
+                      calificacion: calificacionGuardada
+                  };
+              }
+              return ent;
+          }));
+
           setIsGradeModalOpen(false);
 
       } catch (err) {
@@ -294,13 +311,13 @@ const Entregas = () => {
                               
                               {/* Mostrar Nota y Feedback para el Alumno */}
                               {isAlumno && entrega && entrega.calificacion && (
-                                  <div style={{marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd'}}>
-                                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: '#0369a1'}}>
+                                  <div className={styles.feedbackContainer}>
+                                      <div className={styles.feedbackHeader}>
                                           <Award size={16} /> Nota: {entrega.calificacion.nota}
                                       </div>
                                       {entrega.calificacion.feedbackProfesor && (
-                                          <div style={{marginTop: '4px', fontSize: '0.9rem', color: '#0c4a6e', display: 'flex', gap: '8px'}}>
-                                              <MessageSquare size={16} style={{flexShrink: 0, marginTop: '2px'}} />
+                                          <div className={styles.feedbackText}>
+                                              <MessageSquare size={16} style={{flexShrink: 0, marginTop: '2px', display: 'inline', marginRight: '8px'}} />
                                               <span>{entrega.calificacion.feedbackProfesor}</span>
                                           </div>
                                       )}
@@ -372,9 +389,13 @@ const Entregas = () => {
                   ) : (
                       <span style={{color: 'var(--text-muted)', fontSize: '0.8rem'}}>Pendiente</span>
                   )}
-                  <button 
+                  <button
+                      type={"button"}
                       className={styles.iconButton} 
-                      onClick={() => handleOpenGradeModal(row)}
+                      onClick={(e) => {
+                          e.stopPropagation(); // Evitar que el clic cierre el acordeón si estuviera en uno
+                          handleOpenGradeModal(row);
+                      }}
                       title="Calificar"
                   >
                       <Award size={18} />
@@ -451,10 +472,10 @@ const Entregas = () => {
                 data={entregasTarea}
                 loading={loadingEntregas}
                 totalItems={entregasTarea.length}
-                itemsPerPage={100}
+                itemsPerPage={5}
                 currentPage={1}
                 onPageChange={() => {}}
-                pageSizeOptions={[100]}
+                pageSizeOptions={[5, 10, 20, 50, 100]}
             />
         </ModalView>
 
