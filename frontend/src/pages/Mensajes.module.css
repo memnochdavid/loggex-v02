@@ -15,6 +15,7 @@
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     min-height: 0;
+    position: relative; /* Para posicionar elementos absolutos en móvil */
 }
 
 .sidebar {
@@ -25,6 +26,7 @@
     background-color: var(--chat-sidebar-bg, var(--bg-card));
     min-height: 0;
     overflow: hidden;
+    transition: transform 0.3s ease;
 }
 
 .searchWrapper {
@@ -145,6 +147,15 @@
     flex-shrink: 0;
 }
 
+.backButton {
+    display: none; /* Oculto por defecto en desktop */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: inherit;
+}
+
 .avatarSmall {
     width: 32px;
     height: 32px;
@@ -174,6 +185,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    min-height: 0; /* IMPORTANTE: Permite que el contenedor se encoja y aparezca el scroll */
 }
 
 .messageBubble {
@@ -210,7 +222,7 @@
 
 .inputArea {
     padding: var(--space-4);
-    background-color: var(--chat-input-area-bg, white); /* NUEVO */
+    background-color: var(--chat-input-area-bg, white);
     border-top: 1px solid var(--border-color);
     display: flex;
     gap: var(--space-2);
@@ -237,21 +249,67 @@
     justify-content: center;
     color: var(--text-muted);
     font-size: 1.1rem;
+    text-align: center;
+    padding: 1rem;
 }
 
+/* Responsive Styles */
 @media (max-width: 768px) {
     .container {
-        height: calc(100vh - 120px);
+        padding: 0; /* Quitar padding en móvil para aprovechar espacio */
+        height: 100%; /* Usar 100% del contenedor padre (Layout) */
     }
 
     .chatLayout {
-        flex-direction: column;
+        border-radius: 0;
+        border: none;
+        height: 100%; /* Asegurar que ocupe todo el alto disponible */
     }
 
     .sidebar {
         width: 100%;
-        height: 40%;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
+        transform: translateX(0); /* Visible por defecto */
+    }
+
+    /* Cuando hay un chat seleccionado, ocultamos el sidebar moviéndolo a la izquierda */
+    .sidebar.hidden {
+        transform: translateX(-100%);
+    }
+
+    .chatArea {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 5;
+        /* El chat siempre está "debajo", pero cuando el sidebar se oculta, se ve */
+        transform: translateX(100%); /* Oculto por defecto a la derecha */
+        transition: transform 0.3s ease;
+        background-color: var(--chat-container-bg, #f8fafc); /* Asegurar fondo opaco */
+    }
+
+    /* Clase para mostrar el chat */
+    .chatArea.visible {
+        transform: translateX(0);
+    }
+
+    .backButton {
+        display: block; /* Mostrar botón de volver en móvil */
+        margin-right: 10px;
+    }
+
+    .conversationItem {
+        padding: 1rem; /* Áreas táctiles más grandes */
+    }
+
+    /* Ajuste para el header del chat en móvil */
+    .chatHeader {
+        padding: 10px; /* Reducir padding */
     }
 }

@@ -1,9 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { applyTheme } from '../utils/theme';
+import { getApiUrl } from '../config/api';
 
 const AuthContext = createContext(null);
-
-const BACKEND_URL = 'https://localhost:9443'; 
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,7 +24,8 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/me`, {
+      // Usamos getApiUrl para que sea relativo a la raíz (gestionado por Caddy)
+      const response = await fetch(getApiUrl('/api/me'), {
         headers: {
           'Accept': 'application/json',
         },
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/login`, {
+      const response = await fetch(getApiUrl('/api/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch(`${BACKEND_URL}/api/logout`, { 
+      await fetch(getApiUrl('/api/logout'), {
           method: 'POST',
           credentials: 'include'
       });

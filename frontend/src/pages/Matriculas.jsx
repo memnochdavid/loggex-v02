@@ -8,6 +8,7 @@ import ModalView from '../components/ModalView'; // Importar ModalView
 import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const Matriculas = () => {
   const { user } = useAuth();
@@ -59,7 +60,7 @@ const Matriculas = () => {
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -74,8 +75,8 @@ const Matriculas = () => {
 
   // Cargar grupos y alumnos (filtrados por centro si se selecciona uno)
   useEffect(() => {
-    let urlGrupos = 'https://localhost:9443/api/grupos?pagination=false';
-    let urlAlumnos = 'https://localhost:9443/api/users?pagination=false&rol_app=alumno';
+    let urlGrupos = getApiUrl('/api/grupos?pagination=false');
+    let urlAlumnos = getApiUrl('/api/users?pagination=false&rol_app=alumno');
     
     if (isSuperAdmin && selectedCentro) {
         urlGrupos += `&centro=${selectedCentro}`;
@@ -139,7 +140,7 @@ const Matriculas = () => {
   const fetchMatriculas = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/matriculas?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/matriculas?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -239,8 +240,8 @@ const Matriculas = () => {
     try {
       const id = currentMatricula ? getMatriculaId(currentMatricula) : null;
       const url = currentMatricula 
-        ? `https://localhost:9443/api/matriculas/${id}`
-        : 'https://localhost:9443/api/matriculas';
+        ? getApiUrl(`/api/matriculas/${id}`)
+        : getApiUrl('/api/matriculas');
       
       const method = currentMatricula ? 'PUT' : 'POST';
 
@@ -288,7 +289,7 @@ const Matriculas = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/matriculas/${id}`, {
+      const response = await fetch(getApiUrl(`/api/matriculas/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

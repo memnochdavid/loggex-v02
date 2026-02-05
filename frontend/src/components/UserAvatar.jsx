@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './UserAvatar.module.css';
 import { User, LogOut, Settings } from 'lucide-react';
+import { getAssetUrl } from '../config/api';
 
 const UserAvatar = ({ size = 40, className = '' }) => {
     const { user, logout } = useAuth();
@@ -16,7 +17,7 @@ const UserAvatar = ({ size = 40, className = '' }) => {
         if (path.startsWith('http')) return path;
         if (path.startsWith('data:')) return path;
         // Asumiendo que el backend sirve las imágenes estáticas en el mismo host/puerto que la API
-        return `https://localhost:9443${path}`;
+        return getAssetUrl(path);
     };
 
     // Cerrar menú al hacer clic fuera

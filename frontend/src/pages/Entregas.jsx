@@ -7,6 +7,7 @@ import DataTable from '../components/DataTable';
 import ModalView from '../components/ModalView'; // Importar ModalView
 import { useAuth } from '../context/AuthContext';
 import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Entregas = () => {
   const { user } = useAuth();
@@ -55,9 +56,9 @@ const Entregas = () => {
         // 1. Cargar Asignaturas y Tareas
         let endpoint = '';
         if (isProfesor) {
-            endpoint = `https://localhost:9443/api/imparticions?profesor=${user.id}&pagination=false`;
+            endpoint = getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`);
         } else if (isAlumno) {
-            const resMatriculas = await fetch(`https://localhost:9443/api/matriculas?alumno=${user.id}&pagination=false`, {
+            const resMatriculas = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
             });
             const dataMatriculas = await resMatriculas.json();
@@ -66,10 +67,10 @@ const Entregas = () => {
             
             if (grupoIds.length > 0) {
                 const gruposQuery = grupoIds.map(id => `grupo[]=${id}`).join('&');
-                endpoint = `https://localhost:9443/api/imparticions?${gruposQuery}&pagination=false`;
+                endpoint = getApiUrl(`/api/imparticions?${gruposQuery}&pagination=false`);
             }
         } else if (isAdmin) {
-             endpoint = `https://localhost:9443/api/imparticions?pagination=false`;
+             endpoint = getApiUrl(`/api/imparticions?pagination=false`);
         }
 
         if (endpoint) {
@@ -103,7 +104,7 @@ const Entregas = () => {
 
         // 2. Si es alumno, cargar sus entregas
         if (isAlumno) {
-            const resEntregas = await fetch(`https://localhost:9443/api/entregas?alumno=${user.id}&pagination=false`, {
+            const resEntregas = await fetch(getApiUrl(`/api/entregas?alumno=${user.id}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
             });
             const dataEntregas = await resEntregas.json();
@@ -160,7 +161,7 @@ const Entregas = () => {
         if (uploadFormData.enlace) data.append('enlace', uploadFormData.enlace);
         if (uploadFormData.archivo) data.append('file', uploadFormData.archivo);
 
-        const response = await fetch('https://localhost:9443/api/entregas/upload', {
+        const response = await fetch(getApiUrl('/api/entregas/upload'), {
             method: 'POST',
             body: data,
             credentials: 'include'
@@ -192,7 +193,7 @@ const Entregas = () => {
           console.log("Cargando tarea completa para ver entregas. ID:", tareaId);
 
           // REVERTIDO: Pedir la tarea completa, que incluye 'entregas' gracias al grupo tarea:read
-          const response = await fetch(`https://localhost:9443/api/tareas/${tareaId}`, {
+          const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
           });
@@ -229,8 +230,8 @@ const Entregas = () => {
       try {
           const method = currentEntrega.calificacion ? 'PUT' : 'POST';
           const url = currentEntrega.calificacion 
-            ? `https://localhost:9443/api/calificacions/${currentEntrega.calificacion.id}`
-            : 'https://localhost:9443/api/calificacions';
+            ? getApiUrl(`/api/calificacions/${currentEntrega.calificacion.id}`)
+            : getApiUrl('/api/calificacions');
 
           const payload = {
               nota: parseFloat(gradeFormData.nota),
@@ -344,7 +345,7 @@ const Entregas = () => {
           accessor: (row) => (
               <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                   {row.archivo && (
-                      <a href={`https://localhost:9443/uploads/entregas/${row.archivo}`} target="_blank" className={styles.downloadLink}>
+                      <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.downloadLink}>
                           <Download size={14}/> Archivo
                       </a>
                   )}

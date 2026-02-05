@@ -2,12 +2,13 @@ import React from 'react';
 import styles from './UserCard.module.css';
 import { User, Mail, Phone, Users, MessageSquare } from 'lucide-react';
 import Button from './Button'; // Importar componente Button
+import { getAssetUrl } from '../config/api';
 
 const UserCard = ({ user, onMessage }) => {
     const getAvatarUrl = (path) => {
         if (!path) return null;
         if (path.startsWith('http')) return path;
-        return `https://localhost:9443${path}`;
+        return getAssetUrl(path);
     };
 
     return (

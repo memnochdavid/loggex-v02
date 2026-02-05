@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import {usePagination} from "../hooks/usePagination.js";
+import { getApiUrl } from '../config/api';
 
 const Imparticiones = () => {
   const { user } = useAuth();
@@ -79,7 +80,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -94,9 +95,9 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
 
   // Cargar datos auxiliares (filtrados por centro)
   useEffect(() => {
-    let urlProfesores = 'https://localhost:9443/api/users?itemsPerPage=100&rol_app=profesor';
-    let urlModulos = 'https://localhost:9443/api/modulos?itemsPerPage=100';
-    let urlGrupos = 'https://localhost:9443/api/grupos?itemsPerPage=100';
+    let urlProfesores = getApiUrl('/api/users?itemsPerPage=100&rol_app=profesor');
+    let urlModulos = getApiUrl('/api/modulos?itemsPerPage=100');
+    let urlGrupos = getApiUrl('/api/grupos?itemsPerPage=100');
     
     if (isSuperAdmin && selectedCentro) {
         urlProfesores += `&centro=${selectedCentro}`;
@@ -158,7 +159,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
   const fetchImparticiones = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/imparticions?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/imparticions?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -262,8 +263,8 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     try {
       const id = currentImparticion ? getImparticionId(currentImparticion) : null;
       const url = currentImparticion 
-        ? `https://localhost:9443/api/imparticions/${id}`
-        : 'https://localhost:9443/api/imparticions';
+        ? getApiUrl(`/api/imparticions/${id}`)
+        : getApiUrl('/api/imparticions');
       
       const method = currentImparticion ? 'PUT' : 'POST';
 
@@ -313,7 +314,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/imparticions/${id}`, {
+      const response = await fetch(getApiUrl(`/api/imparticions/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

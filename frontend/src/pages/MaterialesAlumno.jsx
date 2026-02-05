@@ -5,6 +5,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
 import styles from './Materiales.module.css';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const MaterialesAlumno = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const MaterialesAlumno = () => {
         setLoading(true);
 
         // 1. Obtener matrículas del alumno
-        const matriculasRes = await fetch(`https://localhost:9443/api/matriculas?alumno=${user.id}&pagination=false`, {
+        const matriculasRes = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
           headers: { 'Accept': 'application/ld+json' },
           credentials: 'include'
         });
@@ -48,7 +49,7 @@ const MaterialesAlumno = () => {
         // 3. Obtener imparticiones de esos grupos
         let allImparticiones = [];
         for (const grupoId of uniqueGrupoIds) {
-            const impRes = await fetch(`https://localhost:9443/api/imparticions?grupo=${grupoId}&pagination=false`, {
+            const impRes = await fetch(getApiUrl(`/api/imparticions?grupo=${grupoId}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' },
                 credentials: 'include'
             });
@@ -62,7 +63,7 @@ const MaterialesAlumno = () => {
 
         for (const imp of allImparticiones) {
             const impId = imp.id || imp['@id'].split('/').pop();
-            const matRes = await fetch(`https://localhost:9443/api/materials?imparticion=${impId}&pagination=false`, {
+            const matRes = await fetch(getApiUrl(`/api/materials?imparticion=${impId}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' },
                 credentials: 'include'
             });
@@ -107,7 +108,7 @@ const MaterialesAlumno = () => {
                 </span>
             </div>
             <a 
-                href={`https://localhost:9443/uploads/materiales/${mat.archivo}`} 
+                href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={styles.downloadLink}

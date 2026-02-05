@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const Grupos = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ const Grupos = () => {
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -73,7 +74,7 @@ const Grupos = () => {
 
   // Cargar ciclos (filtrados por centro si se selecciona uno)
   useEffect(() => {
-    let url = 'https://localhost:9443/api/ciclo_formativos?pagination=false';
+    let url = getApiUrl('/api/ciclo_formativos?pagination=false');
     
     if (isSuperAdmin && selectedCentro) {
         url += `&centro=${selectedCentro}`;
@@ -122,7 +123,7 @@ const Grupos = () => {
   const fetchGrupos = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/grupos?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/grupos?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -240,8 +241,8 @@ const Grupos = () => {
     try {
       const id = currentGrupo ? getGrupoId(currentGrupo) : null;
       const url = currentGrupo 
-        ? `https://localhost:9443/api/grupos/${id}`
-        : 'https://localhost:9443/api/grupos';
+        ? getApiUrl(`/api/grupos/${id}`)
+        : getApiUrl('/api/grupos');
       
       const method = currentGrupo ? 'PUT' : 'POST';
 
@@ -297,7 +298,7 @@ const Grupos = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/grupos/${id}`, {
+      const response = await fetch(getApiUrl(`/api/grupos/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

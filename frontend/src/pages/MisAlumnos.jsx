@@ -6,6 +6,7 @@ import AccordionView from '../components/AccordionView';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Claustro.module.css'; // Reutilizamos estilos de grid
+import { getApiUrl } from '../config/api';
 
 const MisAlumnos = () => {
     const { user } = useAuth();
@@ -22,7 +23,7 @@ const MisAlumnos = () => {
     const fetchAlumnos = async () => {
         setLoading(true);
         try {
-            const response = await fetch('https://localhost:9443/api/v1/profesor/alumnos', {
+            const response = await fetch(getApiUrl('/api/v1/profesor/alumnos'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });

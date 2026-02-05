@@ -10,6 +10,7 @@ import ModalView from '../components/ModalView'; // Importar ModalView
 import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const Horarios = () => {
   const { user } = useAuth();
@@ -87,7 +88,7 @@ const Horarios = () => {
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -104,7 +105,7 @@ const Horarios = () => {
   useEffect(() => {
     if (!canEdit) return;
 
-    let url = 'https://localhost:9443/api/imparticions?pagination=false';
+    let url = getApiUrl('/api/imparticions?pagination=false');
     
     fetch(url, {
         headers: { 'Accept': 'application/ld+json' },
@@ -124,13 +125,13 @@ const Horarios = () => {
           setLoading(true);
           
           // Cargar Horario
-          const fetchSchedule = fetch('https://localhost:9443/api/my-schedule', {
+          const fetchSchedule = fetch(getApiUrl('/api/my-schedule'), {
               headers: { 'Accept': 'application/json' },
               credentials: 'include'
           }).then(res => res.json());
 
           // Cargar Festivos
-          let urlFestivos = 'https://localhost:9443/api/festivos?pagination=false';
+          let urlFestivos = getApiUrl('/api/festivos?pagination=false');
           
           const fetchFestivos = fetch(urlFestivos, {
               headers: { 'Accept': 'application/ld+json' },
@@ -196,7 +197,7 @@ const Horarios = () => {
   const fetchHorarios = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/horarios?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/horarios?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           let term = searchTerm;
@@ -302,8 +303,8 @@ const Horarios = () => {
     try {
       const id = currentHorario ? getHorarioId(currentHorario) : null;
       const url = currentHorario 
-        ? `https://localhost:9443/api/horarios/${id}`
-        : 'https://localhost:9443/api/horarios';
+        ? getApiUrl(`/api/horarios/${id}`)
+        : getApiUrl('/api/horarios');
       
       const method = currentHorario ? 'PUT' : 'POST';
 
@@ -351,7 +352,7 @@ const Horarios = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/horarios/${id}`, {
+      const response = await fetch(getApiUrl(`/api/horarios/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

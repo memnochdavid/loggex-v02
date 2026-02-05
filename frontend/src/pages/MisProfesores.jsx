@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Claustro.module.css'; // Reutilizamos estilos
+import { getApiUrl } from '../config/api';
 
 const MisProfesores = () => {
     const { user } = useAuth();
@@ -29,7 +30,7 @@ const MisProfesores = () => {
     const fetchProfesores = async () => {
         setLoading(true);
         try {
-            const response = await fetch('https://localhost:9443/api/v1/alumno/profesores', {
+            const response = await fetch(getApiUrl('/api/v1/alumno/profesores'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });

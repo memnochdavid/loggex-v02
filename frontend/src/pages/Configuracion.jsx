@@ -6,6 +6,7 @@ import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
 import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 // Importar temas predefinidos
 import defaultTheme from './themes-pred/default.json';
@@ -69,7 +70,7 @@ const Configuracion = () => {
                     setSavedThemes(user.centro.personalizacion.savedThemes);
                 }
                 if (user.centro.logo) {
-                    setLogoPreview(`https://localhost:9443/uploads/logo-centro/${user.centro.logo}`);
+                    setLogoPreview(getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`));
                 }
                 if (user.centro.personalizacion.nameTitleConfig) {
                     setTitleConfig(user.centro.personalizacion.nameTitleConfig);
@@ -202,7 +203,7 @@ const Configuracion = () => {
         setMessage(null);
 
         try {
-            const responseConfig = await fetch('https://localhost:9443/api/configuracion/update', {
+            const responseConfig = await fetch(getApiUrl('/api/configuracion/update'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -223,7 +224,7 @@ const Configuracion = () => {
             if (canChangeLogo && logoFile) {
                 const formData = new FormData();
                 
-                const centroRes = await fetch(`https://localhost:9443/api/centros/${user.centro.id}`, {
+                const centroRes = await fetch(getApiUrl(`/api/centros/${user.centro.id}`), {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
@@ -236,7 +237,7 @@ const Configuracion = () => {
                 formData.append('activo', centroData.activo ? 'true' : 'false');
                 formData.append('logo', logoFile);
 
-                const responseLogo = await fetch(`https://localhost:9443/api/centro/${user.centro.id}/update`, {
+                const responseLogo = await fetch(getApiUrl(`/api/centro/${user.centro.id}/update`), {
                     method: 'POST',
                     body: formData,
                     credentials: 'include'

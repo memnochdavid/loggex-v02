@@ -5,6 +5,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
 import styles from './Materiales.module.css'; // Reutilizamos estilos de lista
+import { getApiUrl } from '../config/api';
 
 const MisFaltas = () => {
     const { user } = useAuth();
@@ -22,7 +23,7 @@ const MisFaltas = () => {
         setLoading(true);
         try {
             // Usar ruta personalizada
-            const response = await fetch('https://localhost:9443/api/v1/asistencia/alumno/summary', {
+            const response = await fetch(getApiUrl('/api/v1/asistencia/alumno/summary'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });

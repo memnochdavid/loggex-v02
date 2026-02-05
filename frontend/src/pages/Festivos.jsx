@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const Festivos = () => {
   const { user } = useAuth();
@@ -64,7 +65,7 @@ const Festivos = () => {
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -137,7 +138,7 @@ const Festivos = () => {
 
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/festivos?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/festivos?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -239,8 +240,8 @@ const Festivos = () => {
     try {
       const id = currentFestivo ? getFestivoId(currentFestivo) : null;
       const url = currentFestivo 
-        ? `https://localhost:9443/api/festivos/${id}`
-        : 'https://localhost:9443/api/festivos';
+        ? getApiUrl(`/api/festivos/${id}`)
+        : getApiUrl('/api/festivos');
       
       const method = currentFestivo ? 'PUT' : 'POST';
 
@@ -297,7 +298,7 @@ const Festivos = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/festivos/${id}`, {
+      const response = await fetch(getApiUrl(`/api/festivos/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

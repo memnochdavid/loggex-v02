@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Usuarios = () => {
   const { user } = useAuth();
@@ -64,7 +65,7 @@ const Usuarios = () => {
   // Cargar centros para el selector (solo si es SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -111,13 +112,13 @@ const Usuarios = () => {
   const getAvatarUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `https://localhost:9443${path}`;
+    return getAssetUrl(path);
   };
 
   const fetchUsuarios = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/users?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/users?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -259,8 +260,8 @@ const Usuarios = () => {
       const id = currentUser ? getUserId(currentUser) : null;
       // Usar el nuevo controlador AdminUserController
       const url = currentUser 
-        ? `https://localhost:9443/api/admin/user/${id}/update`
-        : 'https://localhost:9443/api/admin/user/create';
+        ? getApiUrl(`/api/admin/user/${id}/update`)
+        : getApiUrl('/api/admin/user/create');
       
       const data = new FormData();
       data.append('nombre', formData.nombre);
@@ -314,7 +315,7 @@ const Usuarios = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/users/${id}`, {
+      const response = await fetch(getApiUrl(`/api/users/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

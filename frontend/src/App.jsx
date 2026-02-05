@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
 import Header from './layout/Header';
@@ -36,6 +36,15 @@ import './App.css';
 const PageTitleUpdater = () => {
   usePageTitle('Loggex-Machina');
   return null;
+};
+
+// Componente auxiliar para renderizar el Footer condicionalmente
+const ConditionalFooter = () => {
+  const location = useLocation();
+  // Mostrar footer solo en Login y About
+  const showFooter = ['/login', '/about'].includes(location.pathname);
+  
+  return showFooter ? <Footer /> : null;
 };
 
 function App() {
@@ -189,7 +198,7 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
-            <Footer />
+            <ConditionalFooter />
           </div>
         </Router>
       </UIProvider>

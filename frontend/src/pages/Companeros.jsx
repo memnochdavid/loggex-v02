@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard'; // Importar UserCard
 import { useAuth } from '../context/AuthContext';
 import styles from './Claustro.module.css'; // Reutilizamos estilos de grid
+import { getApiUrl } from '../config/api';
 
 const Companeros = () => {
     const { user } = useAuth();
@@ -29,7 +30,7 @@ const Companeros = () => {
     const fetchCompaneros = async () => {
         setLoading(true);
         try {
-            const response = await fetch('https://localhost:9443/api/v1/alumno/companeros', {
+            const response = await fetch(getApiUrl('/api/v1/alumno/companeros'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });

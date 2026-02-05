@@ -7,11 +7,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    allowedHosts: true, // Permitir todos los hosts para ngrok
     hmr: {
-      // El cliente se conecta a Caddy en el puerto externo 8443
-      host: 'localhost',
-      clientPort: 8443,
-      protocol: 'wss'
+      // Dejamos que el cliente infiera el protocolo y host automáticamente
+      // Esto es lo más robusto para entornos mixtos (HTTP/HTTPS, Local/Ngrok)
+      // Solo forzamos el puerto si es estrictamente necesario, pero Caddy debería manejarlo
+      // Al quitar clientPort, Vite usará el puerto de la URL del navegador (8888, 8443, etc.)
+      // y el protocolo adecuado (ws o wss).
     },
     watch: {
       usePolling: true

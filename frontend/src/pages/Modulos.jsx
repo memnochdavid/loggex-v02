@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const Modulos = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ const Modulos = () => {
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -73,7 +74,7 @@ const Modulos = () => {
 
   // Cargar ciclos (filtrados por centro si se selecciona uno, o todos si es admin de centro)
   useEffect(() => {
-    let url = 'https://localhost:9443/api/ciclo_formativos?pagination=false';
+    let url = getApiUrl('/api/ciclo_formativos?pagination=false');
     
     if (isSuperAdmin && selectedCentro) {
         url += `&centro=${selectedCentro}`;
@@ -122,7 +123,7 @@ const Modulos = () => {
   const fetchModulos = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/modulos?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/modulos?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -229,8 +230,8 @@ const Modulos = () => {
     try {
       const id = currentModulo ? getModuloId(currentModulo) : null;
       const url = currentModulo 
-        ? `https://localhost:9443/api/modulos/${id}`
-        : 'https://localhost:9443/api/modulos';
+        ? getApiUrl(`/api/modulos/${id}`)
+        : getApiUrl('/api/modulos');
       
       const method = currentModulo ? 'PUT' : 'POST';
 
@@ -279,7 +280,7 @@ const Modulos = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/modulos/${id}`, {
+      const response = await fetch(getApiUrl(`/api/modulos/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

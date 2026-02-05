@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
 import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Perfil = () => {
     const { user, checkAuth } = useAuth();
@@ -17,7 +18,7 @@ const Perfil = () => {
         if (!path) return null;
         if (path.startsWith('http')) return path;
         if (path.startsWith('data:')) return path;
-        return `https://localhost:9443${path}`;
+        return getAssetUrl(path);
     };
 
     useEffect(() => {
@@ -36,7 +37,7 @@ const Perfil = () => {
 
     const fetchMatriculas = async () => {
         try {
-            const response = await fetch(`https://localhost:9443/api/v1/alumno/matriculas`, {
+            const response = await fetch(getApiUrl('/api/v1/alumno/matriculas'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -51,7 +52,7 @@ const Perfil = () => {
 
     const fetchImparticiones = async () => {
         try {
-            const response = await fetch(`https://localhost:9443/api/v1/profesor/imparticiones`, {
+            const response = await fetch(getApiUrl('/api/v1/profesor/imparticiones'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -80,7 +81,7 @@ const Perfil = () => {
             data.append('nombre', user.nombre); 
             data.append('avatar', file);
 
-            const response = await fetch('https://localhost:9443/api/user/update', {
+            const response = await fetch(getApiUrl('/api/user/update'), {
                 method: 'POST',
                 body: data,
                 credentials: 'include'

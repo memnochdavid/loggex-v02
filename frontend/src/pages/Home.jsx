@@ -4,6 +4,7 @@ import styles from './Home.module.css';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
+import { getApiUrl } from '../config/api';
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -12,7 +13,7 @@ const Home = () => {
 
   useEffect(() => {
     // Usamos la misma URL que en AuthContext
-    fetch('https://localhost:9443/api/hello', {
+    fetch(getApiUrl('/api/hello'), {
         credentials: 'include'
     })
       .then(response => {

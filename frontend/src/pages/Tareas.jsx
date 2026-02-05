@@ -7,6 +7,7 @@ import ModalView from '../components/ModalView'; // Importar ModalView
 import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Tareas = () => {
   const { user } = useAuth();
@@ -44,9 +45,9 @@ const Tareas = () => {
         let endpoint = '';
         
         if (isProfesor) {
-            endpoint = `https://localhost:9443/api/imparticions?profesor=${user.id}&pagination=false`;
+            endpoint = getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`);
         } else if (isAlumno) {
-            const resMatriculas = await fetch(`https://localhost:9443/api/matriculas?alumno=${user.id}&pagination=false`, {
+            const resMatriculas = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
             });
             const dataMatriculas = await resMatriculas.json();
@@ -55,14 +56,14 @@ const Tareas = () => {
             
             if (grupoIds.length > 0) {
                 const gruposQuery = grupoIds.map(id => `grupo[]=${id}`).join('&');
-                endpoint = `https://localhost:9443/api/imparticions?${gruposQuery}&pagination=false`;
+                endpoint = getApiUrl(`/api/imparticions?${gruposQuery}&pagination=false`);
             } else {
                 setAsignaturas([]);
                 setLoading(false);
                 return;
             }
         } else if (isAdmin) {
-             endpoint = `https://localhost:9443/api/imparticions?pagination=false`;
+             endpoint = getApiUrl(`/api/imparticions?pagination=false`);
         }
 
         if (endpoint) {
@@ -175,7 +176,7 @@ const Tareas = () => {
       }
 
       // Usamos el nuevo endpoint de subida que maneja creación y edición con archivo
-      const url = 'https://localhost:9443/api/tareas/upload';
+      const url = getApiUrl('/api/tareas/upload');
       
       const response = await fetch(url, {
         method: 'POST',
@@ -203,7 +204,7 @@ const Tareas = () => {
     if (!window.confirm('¿Eliminar esta tarea?')) return;
 
     try {
-        const response = await fetch(`https://localhost:9443/api/tareas/${tareaId}`, {
+        const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
             method: 'DELETE',
             credentials: 'include'
         });
@@ -246,7 +247,7 @@ const Tareas = () => {
                               {tarea.archivo && (
                                   <div className={styles.taskFile}>
                                       <a 
-                                          href={`https://localhost:9443/uploads/tareas/${tarea.archivo}`} 
+                                          href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
                                           target="_blank" 
                                           rel="noopener noreferrer"
                                           className={styles.fileLink}

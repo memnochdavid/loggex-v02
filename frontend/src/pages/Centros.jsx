@@ -8,6 +8,7 @@ import ModalView from '../components/ModalView'; // Importar ModalView
 import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import {usePagination} from '../hooks/usePagination';
 import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Centros = () => {
     const [centros, setCentros] = useState([]);
@@ -77,14 +78,14 @@ const Centros = () => {
 
     const getLogoUrl = (logoName) => {
         if (!logoName) return null;
-        return `https://localhost:9443/uploads/logo-centro/${logoName}`;
+        return getAssetUrl(`/uploads/logo-centro/${logoName}`);
     };
 
     const fetchCentros = async (page) => {
         setLoading(true);
         try {
             // Construir URL con parámetros
-            let url = `https://localhost:9443/api/centros?page=${page}&itemsPerPage=${itemsPerPage}`;
+            let url = getApiUrl(`/api/centros?page=${page}&itemsPerPage=${itemsPerPage}`);
 
             if (searchTerm) {
                 url += `&${searchField}=${encodeURIComponent(searchTerm)}`;
@@ -190,8 +191,8 @@ const Centros = () => {
         try {
             const id = currentCentro ? getCentroId(currentCentro) : null;
             const url = currentCentro
-                ? `https://localhost:9443/api/centro/${id}/update`
-                : 'https://localhost:9443/api/centro/create';
+                ? getApiUrl(`/api/centro/${id}/update`)
+                : getApiUrl('/api/centro/create');
 
             const method = 'POST';
 
@@ -238,7 +239,7 @@ const Centros = () => {
         if (!id) return;
 
         try {
-            const response = await fetch(`https://localhost:9443/api/centros/${id}`, {
+            const response = await fetch(getApiUrl(`/api/centros/${id}`), {
                 method: 'DELETE',
                 credentials: 'include'
             });

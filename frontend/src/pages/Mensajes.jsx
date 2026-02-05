@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom'; // Importar useLocation
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
-import SearchBar from '../components/SearchBar'; // Importar SearchBar
+import SearchBar from '../components/SearchBar';
 import { useAuth } from '../context/AuthContext';
 import styles from './Mensajes.module.css';
-import { Send, User } from 'lucide-react';
+import { Send, User, ArrowLeft } from 'lucide-react'; // Importar ArrowLeft
 import Button from '../components/Button';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Mensajes = () => {
     const { user } = useAuth();
@@ -35,7 +36,7 @@ const Mensajes = () => {
             const existingChat = conversaciones.find(c => c.usuario.id === targetUser.id);
             
             if (existingChat) {
-                setSelectedUser(existingChat.usuario);
+                handleSelectUser(existingChat.usuario);
             } else {
                 const newChat = {
                     usuario: targetUser,
@@ -45,7 +46,7 @@ const Mensajes = () => {
                     isTemp: true
                 };
                 setConversaciones(prev => [newChat, ...prev]);
-                setSelectedUser(targetUser);
+                handleSelectUser(targetUser);
             }
             window.history.replaceState({}, document.title);
         }
@@ -64,7 +65,7 @@ const Mensajes = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [mensajesChat]);
+    }, [mensajesChat, selectedUser]); // Scroll al cambiar de chat también
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,7 +73,7 @@ const Mensajes = () => {
 
     const fetchMensajes = async () => {
         try {
-            const response = await fetch('https://localhost:9443/api/v1/mensajes', {
+            const response = await fetch(getApiUrl('/api/v1/mensajes'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -145,6 +146,50 @@ const Mensajes = () => {
         setConversaciones(lista);
     };
 
+    const markAsRead = async (userId) => {
+        // 1. Actualizar UI localmente
+        setConversaciones(prev => prev.map(chat => {
+            if (chat.usuario.id === userId) {
+                return { ...chat, noLeidos: 0 };
+            }
+            return chat;
+        }));
+
+        // 2. Encontrar mensajes no leídos de este usuario
+        const chat = conversaciones.find(c => c.usuario.id === userId);
+        if (!chat) return;
+
+        const unreadMessages = chat.mensajes.filter(msg => 
+            msg.remitente.id === userId && !msg.leido
+        );
+
+        if (unreadMessages.length === 0) return;
+
+        // 3. Llamar a la API para cada mensaje usando PATCH
+        try {
+            await Promise.all(unreadMessages.map(msg => 
+                fetch(getApiUrl(`/api/mensajes/${msg.id}`), {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/merge-patch+json',
+                        'Accept': 'application/ld+json'
+                    },
+                    body: JSON.stringify({ leido: true }),
+                    credentials: 'include'
+                })
+            ));
+            // Refrescar para asegurar sincronización
+            fetchMensajes();
+        } catch (error) {
+            console.error("Error marcando como leídos:", error);
+        }
+    };
+
+    const handleSelectUser = (user) => {
+        setSelectedUser(user);
+        markAsRead(user.id);
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedUser) return;
@@ -156,7 +201,7 @@ const Mensajes = () => {
                 destinatario: `/api/users/${selectedUser.id}`
             };
 
-            const response = await fetch('https://localhost:9443/api/mensajes', {
+            const response = await fetch(getApiUrl('/api/mensajes'), {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/ld+json',
@@ -179,6 +224,10 @@ const Mensajes = () => {
         }
     };
 
+    const handleBackToConversations = () => {
+        setSelectedUser(null);
+    };
+
     const filteredConversations = conversaciones.filter(c => {
         const nombre = `${c.usuario.nombre} ${c.usuario.apellidos || ''}`.toLowerCase();
         return nombre.includes(searchTerm.toLowerCase());
@@ -187,12 +236,14 @@ const Mensajes = () => {
     return (
         <Layout fullHeight={true}>
             <div className={styles.container}>
-                <div style={{ padding: '1rem' }}>
+                {/* En móvil, ocultamos el header si estamos dentro de un chat */}
+                <div style={{ padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block' }}>
                     <CrudHeader title="Mensajería" />
                 </div>
                 
                 <div className={styles.chatLayout}>
-                    <div className={styles.sidebar}>
+                    {/* Sidebar: Se oculta en móvil si hay un usuario seleccionado */}
+                    <div className={`${styles.sidebar} ${selectedUser ? styles.hidden : ''}`}>
                         <div className={styles.searchWrapper}>
                             <SearchBar 
                                 value={searchTerm} 
@@ -207,11 +258,11 @@ const Mensajes = () => {
                                 <div 
                                     key={chat.usuario.id} 
                                     className={`${styles.conversationItem} ${selectedUser?.id === chat.usuario.id ? styles.active : ''}`}
-                                    onClick={() => setSelectedUser(chat.usuario)}
+                                    onClick={() => handleSelectUser(chat.usuario)}
                                 >
                                     <div className={styles.avatar}>
                                         {chat.usuario.foto ? (
-                                            <img src={`https://localhost:9443${chat.usuario.foto}`} alt="" />
+                                            <img src={getAssetUrl(chat.usuario.foto)} alt="" />
                                         ) : (
                                             <User size={20} />
                                         )}
@@ -240,13 +291,17 @@ const Mensajes = () => {
                         </div>
                     </div>
 
-                    <div className={styles.chatArea}>
+                    {/* Chat Area: Se muestra siempre en desktop, o en móvil si hay usuario seleccionado */}
+                    <div className={`${styles.chatArea} ${selectedUser ? styles.visible : ''}`}>
                         {selectedUser ? (
                             <>
                                 <div className={styles.chatHeader}>
+                                    <button className={styles.backButton} onClick={handleBackToConversations}>
+                                        <ArrowLeft size={20} />
+                                    </button>
                                     <div className={styles.avatarSmall}>
                                         {selectedUser.foto ? (
-                                            <img src={`https://localhost:9443${selectedUser.foto}`} alt="" />
+                                            <img src={getAssetUrl(selectedUser.foto)} alt="" />
                                         ) : (
                                             <User size={16} />
                                         )}

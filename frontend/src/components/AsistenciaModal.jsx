@@ -3,6 +3,7 @@ import Button from './Button';
 import UserAvatar from './UserAvatar'; // Asumiendo que podemos reutilizarlo o adaptar
 import styles from '../pages/Usuarios.module.css'; // Reutilizar estilos de tabla/form
 import { Check, X, Clock, AlertCircle, Save } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     const [alumnos, setAlumnos] = useState([]);
@@ -17,7 +18,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
         setLoading(true);
         try {
             // Usar ruta personalizada
-            const response = await fetch(`https://localhost:9443/api/v1/asistencia/sheet?imparticion=${imparticionId}&fecha=${fecha}&hora=${hora}`, {
+            const response = await fetch(getApiUrl(`/api/v1/asistencia/sheet?imparticion=${imparticionId}&fecha=${fecha}&hora=${hora}`), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -65,7 +66,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
             };
 
             // Usar ruta personalizada
-            const response = await fetch('https://localhost:9443/api/v1/asistencia/batch', {
+            const response = await fetch(getApiUrl('/api/v1/asistencia/batch'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -105,7 +106,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                                     {/* Avatar simple */}
                                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#eee', overflow: 'hidden' }}>
                                         {alumno.foto ? (
-                                            <img src={alumno.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={getAssetUrl(alumno.foto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '12px' }}>
                                                 {alumno.nombre.charAt(0)}

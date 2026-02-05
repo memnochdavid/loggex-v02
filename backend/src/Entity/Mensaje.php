@@ -8,6 +8,8 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Patch; // Importar Patch
 use ApiPlatform\Metadata\Delete;
 use App\Repository\MensajeRepository;
 use App\State\MensajeProcessor;
@@ -22,6 +24,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Get(),
         new GetCollection(),
         new Post(processor: MensajeProcessor::class),
+        new Put(),
+        new Patch(), // Añadido PATCH para actualizaciones parciales
         new Delete()
     ],
     normalizationContext: ['groups' => ['mensaje:read']],

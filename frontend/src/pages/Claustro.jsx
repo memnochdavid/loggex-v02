@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard'; // Importar UserCard
 import { useAuth } from '../context/AuthContext';
 import styles from './Claustro.module.css';
+import { getApiUrl } from '../config/api';
 
 const Claustro = () => {
     const { user } = useAuth();
@@ -31,7 +32,7 @@ const Claustro = () => {
         setLoading(true);
         try {
             // Usar endpoint personalizado
-            const response = await fetch('https://localhost:9443/api/v1/profesor/claustro', {
+            const response = await fetch(getApiUrl('/api/v1/profesor/claustro'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });

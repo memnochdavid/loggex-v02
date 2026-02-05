@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 const CiclosFormativos = () => {
   const { user } = useAuth();
@@ -53,7 +54,7 @@ const CiclosFormativos = () => {
   // Cargar centros para el selector (solo si es SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
-        fetch('https://localhost:9443/api/centros?pagination=false', {
+        fetch(getApiUrl('/api/centros?pagination=false'), {
             headers: { 'Accept': 'application/ld+json' },
             credentials: 'include'
         })
@@ -97,7 +98,7 @@ const CiclosFormativos = () => {
   const fetchCiclos = async (page) => {
     setLoading(true);
     try {
-      let url = `https://localhost:9443/api/ciclo_formativos?page=${page}&itemsPerPage=${itemsPerPage}`;
+      let url = getApiUrl(`/api/ciclo_formativos?page=${page}&itemsPerPage=${itemsPerPage}`);
       
       if (searchTerm) {
           url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
@@ -198,8 +199,8 @@ const CiclosFormativos = () => {
     try {
       const id = currentCiclo ? getCicloId(currentCiclo) : null;
       const url = currentCiclo 
-        ? `https://localhost:9443/api/ciclo_formativos/${id}`
-        : 'https://localhost:9443/api/ciclo_formativos';
+        ? getApiUrl(`/api/ciclo_formativos/${id}`)
+        : getApiUrl('/api/ciclo_formativos');
       
       const method = currentCiclo ? 'PUT' : 'POST';
 
@@ -244,7 +245,7 @@ const CiclosFormativos = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(`https://localhost:9443/api/ciclo_formativos/${id}`, {
+      const response = await fetch(getApiUrl(`/api/ciclo_formativos/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

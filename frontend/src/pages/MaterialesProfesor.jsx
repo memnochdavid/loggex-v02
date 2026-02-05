@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Trash2 } from 'lucide-react';
 import styles from './Materiales.module.css';
 import modalStyles from './Usuarios.module.css'; // Importamos estilos del modal
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 const MaterialesProfesor = () => {
   const { user } = useAuth();
@@ -31,7 +32,7 @@ const MaterialesProfesor = () => {
       setLoading(true);
 
       // 1. Obtener imparticiones del profesor
-      const impRes = await fetch(`https://localhost:9443/api/imparticions?profesor=${user.id}&pagination=false`, {
+      const impRes = await fetch(getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`), {
         headers: { 'Accept': 'application/ld+json' },
         credentials: 'include'
       });
@@ -43,7 +44,7 @@ const MaterialesProfesor = () => {
 
       for (const imp of imparticiones) {
           const impId = imp.id || imp['@id'].split('/').pop();
-          const matRes = await fetch(`https://localhost:9443/api/materials?imparticion=${impId}&pagination=false`, {
+          const matRes = await fetch(getApiUrl(`/api/materials?imparticion=${impId}&pagination=false`), {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
           });
@@ -106,7 +107,7 @@ const MaterialesProfesor = () => {
         data.append('titulo', formData.titulo);
         data.append('imparticionId', currentImparticionId);
 
-        const response = await fetch('https://localhost:9443/api/materiales/upload', {
+        const response = await fetch(getApiUrl('/api/materiales/upload'), {
             method: 'POST',
             body: data,
             credentials: 'include'
@@ -132,7 +133,7 @@ const MaterialesProfesor = () => {
       if (!window.confirm("¿Seguro que quieres eliminar este material?")) return;
 
       try {
-          const response = await fetch(`https://localhost:9443/api/materials/${materialId}`, {
+          const response = await fetch(getApiUrl(`/api/materials/${materialId}`), {
               method: 'DELETE',
               credentials: 'include'
           });
@@ -164,7 +165,7 @@ const MaterialesProfesor = () => {
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <a 
-                    href={`https://localhost:9443/uploads/materiales/${mat.archivo}`} 
+                    href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className={styles.downloadLink}
