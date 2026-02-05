@@ -317,7 +317,7 @@ const CiclosFormativos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo Ciclo
+                Nuevo
             </Button>
         </CrudHeader>
 

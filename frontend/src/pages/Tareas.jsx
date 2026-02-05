@@ -223,7 +223,7 @@ const Tareas = () => {
               {(isProfesor || isAdmin) && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                       <Button size="sm" onClick={() => handleOpenModal(imparticion.id)}>
-                          <Plus size={16} style={{ marginRight: '4px' }} /> Nueva Tarea
+                          <Plus size={16} style={{ marginRight: '4px' }} /> Nuevo
                       </Button>
                   </div>
               )}

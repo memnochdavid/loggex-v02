@@ -374,7 +374,7 @@ const Modulos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo Módulo
+                Nuevo
             </Button>
         </CrudHeader>
 

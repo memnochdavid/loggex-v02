@@ -334,7 +334,7 @@ const Centros = () => {
                     />
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={18} style={{marginRight: '8px'}}/>
-                        Nuevo Centro
+                        Nuevo
                     </Button>
                 </CrudHeader>
 

@@ -391,7 +391,7 @@ const Grupos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo Grupo
+                Nuevo
             </Button>
         </CrudHeader>
 

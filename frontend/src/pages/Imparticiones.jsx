@@ -402,7 +402,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nueva Asignación
+                Nuevo
             </Button>
         </CrudHeader>
 

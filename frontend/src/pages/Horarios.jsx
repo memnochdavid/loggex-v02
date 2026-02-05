@@ -473,7 +473,7 @@ const Horarios = () => {
                     
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={18} style={{ marginRight: '8px' }} />
-                        Nuevo Horario
+                        Nuevo
                     </Button>
                 </>
             )}

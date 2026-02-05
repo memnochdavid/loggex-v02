@@ -399,7 +399,7 @@ const Festivos = () => {
             {canCreate && (
                 <Button onClick={() => handleOpenModal()}>
                     <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nuevo Festivo
+                    Nuevo
                 </Button>
             )}
         </CrudHeader>

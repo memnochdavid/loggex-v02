@@ -388,7 +388,7 @@ const Matriculas = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nueva Matrícula
+                Nuevo
             </Button>
         </CrudHeader>
 
