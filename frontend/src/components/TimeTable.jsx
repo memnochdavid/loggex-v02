@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styles from './TimeTable.module.css';
 import { Clock, MapPin, Users, User, CalendarOff, CheckSquare } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ModalView from './ModalView';
-import AsistenciaModal from './AsistenciaModal'; // Importar el nuevo componente
+import AsistenciaModal from './AsistenciaModal';
 import Button from './Button';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,11 +18,27 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
 
     // Estado para acordeón móvil (día expandido)
-    const [expandedDayId, setExpandedDayId] = useState(() => {
-        if (!selectedDate) return 1;
-        const day = selectedDate.getDay();
-        return day === 0 || day > 5 ? 1 : day;
-    });
+    const [expandedDayId, setExpandedDayId] = useState(null);
+
+    // Estado para acordeón de turnos (Escritorio) - Controlado
+    const [activeShift, setActiveShift] = useState('morning');
+
+    // Efecto para abrir el día actual en móvil y el turno actual en escritorio
+    useEffect(() => {
+        if (selectedDate) {
+            const day = selectedDate.getDay();
+            const currentDayId = day === 0 || day > 5 ? 1 : day;
+            setExpandedDayId(currentDayId);
+
+            // Determinar turno actual
+            const hour = selectedDate.getHours();
+            if (hour >= 15) {
+                setActiveShift('afternoon');
+            } else {
+                setActiveShift('morning');
+            }
+        }
+    }, [selectedDate]);
 
     // Obtener el índice del día seleccionado (1=Lunes, 5=Viernes)
     const selectedDayIndex = useMemo(() => {
@@ -165,9 +181,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
     const afternoonGrid = useMemo(() => processEvents(afternoonSlots), [events, afternoonSlots, weekDates, festivos]);
 
     const handleEventClick = (event) => {
-        console.log("Evento seleccionado:", event); // DEBUG
         setSelectedEvent(event);
-        setIsTakingAttendance(false); // Resetear modo asistencia
+        setIsTakingAttendance(false);
     };
 
     const handleCloseModal = () => {
@@ -175,43 +190,32 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         setIsTakingAttendance(false);
     };
 
-    // Verificar si se puede pasar lista (fecha actual o pasada)
     const canPassAttendance = (event) => {
         if (!event || !canTakeAttendance) return false;
-
         const eventDate = weekDates[event.diaSemana - 1];
         if (!eventDate) return false;
-
         const now = new Date();
         const eventDateTime = new Date(eventDate);
         const [hours, minutes] = event.horaInicio.split(':');
         eventDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-        // Permitir si la fecha es hoy o anterior
-        // Y si es hoy, que la hora de inicio ya haya pasado (o estemos en ella)
         return now >= eventDateTime;
     };
 
     const getImparticionId = (event) => {
         if (!event) return null;
-        // Si viene del endpoint my-schedule, tiene imparticionId directo
         if (event.imparticionId) return event.imparticionId;
-
-        // Si viene de otro lado (ej. lista de horarios admin), puede tener objeto imparticion
         const imparticion = event.imparticion;
         if (!imparticion) return null;
-
         if (typeof imparticion === 'string') return imparticion.split('/').pop();
         if (imparticion.id) return imparticion.id;
         if (imparticion['@id']) return imparticion['@id'].split('/').pop();
         return null;
     };
 
-    const renderGrid = (slots, gridData, label) => {
+    const renderGrid = (slots, gridData) => {
         return (
             <div className={styles.tableContainer}>
-                <h3 className={styles.tableTitle}>{label}</h3>
-                <div className={styles.grid} style={{ gridTemplateColumns: `80px repeat(5, minmax(100px, 1fr))` }}>
+                <div className={styles.grid} style={{ gridTemplateColumns: `80px repeat(5, minmax(85px, 1fr))` }}>
                     {/* Header Días */}
                     <div className={styles.headerCell}>Hora</div>
                     {days.map((day, index) => (
@@ -285,93 +289,106 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         );
     };
 
-    // Preparar datos para AccordionView
+    // Preparar datos para AccordionView (Escritorio)
+    const shiftsData = [];
+    if (hasMorning) {
+        shiftsData.push({
+            id: 'morning',
+            title: 'Turno de Mañana',
+            slots: morningSlots,
+            grid: morningGrid
+        });
+    }
+    if (hasAfternoon) {
+        shiftsData.push({
+            id: 'afternoon',
+            title: 'Turno de Tarde',
+            slots: afternoonSlots,
+            grid: afternoonGrid
+        });
+    }
+
+    // Preparar datos para AccordionView (Móvil)
     const daysData = days.map((dayName, index) => {
         const dayIndex = index + 1;
         const date = weekDates[index];
         const festivo = getFestivoForDay(date);
 
-        // Filtrar eventos para este día y ordenarlos por hora
         const dayEvents = events
             .filter(e => e.diaSemana === dayIndex)
             .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
+        const dateStr = date ? date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : '';
+
         return {
             id: dayIndex,
-            name: dayName,
+            title: `${dayName} ${dateStr}`, // Título con fecha
             date: date,
             festivo: festivo,
             events: dayEvents
         };
     });
 
-    // Renderizado para móvil (Acordeón)
-    const renderMobileView = () => {
-        return (
-            <div className={styles.mobileView}>
-                <AccordionView
-                    data={daysData}
-                    expandedId={expandedDayId}
-                    onToggle={(id) => setExpandedDayId(expandedDayId === id ? null : id)}
-                    renderHeader={(item, isExpanded) => {
-                        const isActive = selectedDayIndex === item.id;
-                        return (
-                            <div className={`${styles.dayHeaderContent} ${isActive ? styles.dayHeaderActive : ''}`}>
-                                <span className={styles.dayName}>{item.name}</span>
-                                <span className={styles.dateLabel} style={{ marginLeft: '8px' }}>
-                                    {item.date ? item.date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : ''}
-                                </span>
-                            </div>
-                        );
-                    }}
-                    renderItem={(item) => (
-                        <div className={styles.dayContent}>
-                            {item.festivo ? (
-                                <div className={styles.mobileFestivo}>
-                                    <CalendarOff size={24} style={{ marginBottom: '8px' }} />
-                                    <div>{item.festivo.nombre}</div>
-                                </div>
-                            ) : item.events.length > 0 ? (
-                                item.events.map((event, i) => (
-                                    <div
-                                        key={i}
-                                        className={styles.mobileEvent}
-                                        onClick={() => handleEventClick(event)}
-                                    >
-                                        <div className={styles.mobileEventTime}>
-                                            {event.horaInicio} - {event.horaFin}
-                                        </div>
-                                        <div className={styles.mobileEventTitle}>
-                                            {event.modulo}
-                                        </div>
-                                        <div className={styles.mobileEventSubtitle}>
-                                            {event.grupo} • {event.aula}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className={styles.empty} style={{ padding: '1rem' }}>
-                                    No hay clases
-                                </div>
-                            )}
+    const renderMobileItem = (item) => (
+        <div className={styles.dayContent}>
+            {item.festivo ? (
+                <div className={styles.mobileFestivo}>
+                    <CalendarOff size={24} style={{ marginBottom: '8px' }} />
+                    <div>{item.festivo.nombre}</div>
+                </div>
+            ) : item.events.length > 0 ? (
+                item.events.map((event, i) => (
+                    <div
+                        key={i}
+                        className={styles.mobileEvent}
+                        onClick={() => handleEventClick(event)}
+                    >
+                        <div className={styles.mobileEventTime}>
+                            {event.horaInicio} - {event.horaFin}
                         </div>
-                    )}
-                />
-            </div>
-        );
-    };
+                        <div className={styles.mobileEventTitle}>
+                            {event.modulo}
+                        </div>
+                        <div className={styles.mobileEventSubtitle}>
+                            {event.grupo} • {event.aula}
+                        </div>
+                    </div>
+                ))
+            ) : (
+                <div className={styles.empty} style={{ padding: '1rem' }}>
+                    No hay clases
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className={styles.container}>
             {/* Vista Escritorio */}
             <div className={styles.desktopView}>
-                {hasMorning && renderGrid(morningSlots, morningGrid, 'Turno de Mañana')}
-                {hasAfternoon && renderGrid(afternoonSlots, afternoonGrid, 'Turno de Tarde')}
-                {!hasMorning && !hasAfternoon && <p className={styles.empty}>No hay clases programadas.</p>}
+                {shiftsData.length > 0 ? (
+                    <AccordionView 
+                        data={shiftsData}
+                        renderItem={(item) => renderGrid(item.slots, item.grid)}
+                        canAdd={false}
+                        expandedId={activeShift}
+                        onToggle={(id) => setActiveShift(activeShift === id ? null : id)}
+                    />
+                ) : (
+                    <p className={styles.empty}>No hay clases programadas.</p>
+                )}
             </div>
 
             {/* Vista Móvil */}
-            {renderMobileView()}
+            <div className={styles.mobileView}>
+                <AccordionView
+                    data={daysData}
+                    renderItem={renderMobileItem}
+                    canAdd={false}
+                    expandedId={expandedDayId}
+                    onToggle={(id) => setExpandedDayId(expandedDayId === id ? null : id)}
+                />
+            </div>
 
             {/* Modal de Detalle / Asistencia */}
             <ModalView
@@ -380,7 +397,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                 title={selectedEvent ? (isTakingAttendance ? `Pasar Lista: ${selectedEvent.modulo}` : selectedEvent.modulo) : ''}
                 size={isTakingAttendance ? "large" : "small"}
                 cancelText={isTakingAttendance ? "Volver" : "Cerrar"}
-                footer={isTakingAttendance ? null : undefined} // AsistenciaModal tiene su propio footer
+                footer={isTakingAttendance ? null : undefined}
             >
                 {selectedEvent && (
                     isTakingAttendance ? (
@@ -426,7 +443,6 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                 </div>
                             </div>
 
-                            {/* Botón Pasar Lista */}
                             {canPassAttendance(selectedEvent) && (
                                 <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
                                     <Button onClick={() => setIsTakingAttendance(true)} style={{ width: '100%' }}>

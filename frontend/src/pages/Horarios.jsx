@@ -5,39 +5,39 @@ import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
-import CalendarView from '../components/CalendarView';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import EventsSidebar from '../components/EventsSidebar';
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { getApiUrl } from '../config/api';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 const Horarios = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canEdit = isSuperAdmin || isAdmin;
+  
+  const isMobile = useMediaQuery('(max-width: 1200px)');
 
-  // Vista por defecto: Calendario para todos
   const [viewMode, setViewMode] = useState('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
-  const [festivos, setFestivos] = useState([]); // Estado para festivos
+  const [festivos, setFestivos] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
   const [centros, setCentros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
   
-  // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
-  // Inicializar itemsPerPage desde la configuración del usuario
   const [itemsPerPage, setItemsPerPage] = useState(() => {
       if (user?.centro?.personalizacion?.itemsPerPageHorarios) {
           return user.centro.personalizacion.itemsPerPageHorarios;
@@ -50,7 +50,6 @@ const Horarios = () => {
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Campos buscables ACTUALIZADOS
   const searchFields = [
       { value: 'aula', label: 'Aula' },
       { value: 'imparticion.modulo.nombre', label: 'Asignatura' },
@@ -59,13 +58,7 @@ const Horarios = () => {
   ];
 
   const diasSemana = {
-      1: 'Lunes',
-      2: 'Martes',
-      3: 'Miércoles',
-      4: 'Jueves',
-      5: 'Viernes',
-      6: 'Sábado',
-      7: 'Domingo'
+      1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
   };
 
   const diasSemanaInverso = {
@@ -73,7 +66,6 @@ const Horarios = () => {
       'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6, 'domingo': 7
   };
 
-  // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentHorario, setCurrentHorario] = useState(null);
   const [formData, setFormData] = useState({
@@ -85,7 +77,6 @@ const Horarios = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Cargar centros (solo SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
         fetch(getApiUrl('/api/centros?pagination=false'), {
@@ -101,7 +92,6 @@ const Horarios = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar imparticiones (filtradas por centro)
   useEffect(() => {
     if (!canEdit) return;
 
@@ -119,20 +109,16 @@ const Horarios = () => {
     .catch(err => console.error("Error cargando imparticiones:", err));
   }, [selectedCentro, isSuperAdmin, canEdit]);
 
-  // Cargar Mi Horario y Festivos
   useEffect(() => {
       if (viewMode === 'calendar') {
           setLoading(true);
           
-          // Cargar Horario
           const fetchSchedule = fetch(getApiUrl('/api/my-schedule'), {
               headers: { 'Accept': 'application/json' },
               credentials: 'include'
           }).then(res => res.json());
 
-          // Cargar Festivos
           let urlFestivos = getApiUrl('/api/festivos?pagination=false');
-          
           const fetchFestivos = fetch(urlFestivos, {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
@@ -143,15 +129,13 @@ const Horarios = () => {
               setMySchedule(scheduleData);
               
               let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
-              
               if (isSuperAdmin && selectedCentro) {
                   allFestivos = allFestivos.filter(f => {
-                      if (!f.centro) return true; // Global
+                      if (!f.centro) return true;
                       const centroId = typeof f.centro === 'string' ? f.centro.split('/').pop() : f.centro.id;
                       return String(centroId) === String(selectedCentro);
                   });
               }
-              
               setFestivos(allFestivos);
               setLoading(false);
           })
@@ -163,7 +147,6 @@ const Horarios = () => {
       }
   }, [viewMode, selectedCentro, isSuperAdmin]);
 
-  // Debounce para búsqueda (solo lista)
   useEffect(() => {
     if (viewMode !== 'list') return;
     const timer = setTimeout(() => {
@@ -173,7 +156,6 @@ const Horarios = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, selectedCentro, searchField, viewMode]);
 
-  // Fetch al cambiar página u orden (solo lista)
   useEffect(() => {
     if (viewMode === 'list') {
         fetchHorarios(currentPage);
@@ -201,12 +183,9 @@ const Horarios = () => {
       
       if (searchTerm) {
           let term = searchTerm;
-          // Lógica especial para búsqueda por día
           if (searchField === 'diaSemana') {
               const diaNum = diasSemanaInverso[searchTerm.toLowerCase()];
-              if (diaNum) {
-                  term = diaNum;
-              }
+              if (diaNum) term = diaNum;
           }
           url += `&${searchField}=${encodeURIComponent(term)}`; 
       }
@@ -216,15 +195,11 @@ const Horarios = () => {
       }
 
       const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/ld+json',
-        },
+        headers: { 'Accept': 'application/ld+json' },
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Error ${response.status}`);
 
       const data = await response.json();
       const items = data['hydra:member'] || data.member || [];
@@ -254,9 +229,7 @@ const Horarios = () => {
   const handleOpenModal = (horario = null) => {
     if (horario) {
       setCurrentHorario(horario);
-      
       const getId = (obj) => obj ? (obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : '')) : '';
-
       const formatTime = (dateStr) => {
           if (!dateStr) return '';
           const date = new Date(dateStr);
@@ -290,10 +263,7 @@ const Horarios = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -344,9 +314,7 @@ const Horarios = () => {
   };
 
   const handleDelete = async (horario) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este horario?')) {
-      return;
-    }
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este horario?')) return;
 
     const id = getHorarioId(horario);
     if (!id) return;
@@ -357,12 +325,8 @@ const Horarios = () => {
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        throw new Error('No se pudo eliminar el horario');
-      }
-
+      if (!response.ok) throw new Error('No se pudo eliminar el horario');
       fetchHorarios(currentPage);
-
     } catch (err) {
       console.error("Error deleting horario:", err);
       alert(`Error al eliminar: ${err.message}`);
@@ -373,8 +337,7 @@ const Horarios = () => {
     { 
         header: 'Día', 
         accessor: (row) => diasSemana[row.diaSemana] || row.diaSemana, 
-        sortable: true, 
-        sortKey: 'diaSemana' 
+        sortable: true, sortKey: 'diaSemana' 
     },
     { 
         header: 'Hora', 
@@ -383,40 +346,25 @@ const Horarios = () => {
             const end = new Date(row.horaFin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return `${start} - ${end}`;
         }, 
-        sortable: true, 
-        sortKey: 'horaInicio' 
+        sortable: true, sortKey: 'horaInicio' 
     },
     { header: 'Aula', accessor: 'aula', sortable: true, sortKey: 'aula' },
     { 
         header: 'Asignatura', 
         accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-', 
-        sortable: true,
-        sortKey: 'imparticion.modulo.nombre' // SortKey añadido
+        sortable: true, sortKey: 'imparticion.modulo.nombre'
     },
     { 
         header: 'Profesor', 
         accessor: (row) => row.imparticion && row.imparticion.profesor ? `${row.imparticion.profesor.nombre} ${row.imparticion.profesor.apellidos}` : '-', 
-        sortable: true,
-        sortKey: 'imparticion.profesor.nombre' // SortKey añadido
+        sortable: true, sortKey: 'imparticion.profesor.nombre'
     },
     { 
-        header: 'Acciones',
+        header: 'Acciones', 
         accessor: (row) => (
             <div className={styles.actions}>
-                <button 
-                    className={styles.iconButton} 
-                    onClick={() => handleOpenModal(row)}
-                    title="Editar"
-                >
-                    <Edit2 size={18} />
-                </button>
-                <button 
-                    className={`${styles.iconButton} ${styles.danger}`} 
-                    onClick={() => handleDelete(row)}
-                    title="Eliminar"
-                >
-                    <Trash2 size={18} />
-                </button>
+                <button className={styles.iconButton} onClick={() => handleOpenModal(row)} title="Editar"><Edit2 size={18} /></button>
+                <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(row)} title="Eliminar"><Trash2 size={18} /></button>
             </div>
         ),
         sortable: false
@@ -427,7 +375,6 @@ const Horarios = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title="Horarios">
-            {/* Selector de vista (Lista / Calendario) */}
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
                 <Button 
                     variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
@@ -443,6 +390,16 @@ const Horarios = () => {
                         title="Vista Lista (Gestión)"
                     >
                         <List size={18} />
+                    </Button>
+                )}
+                
+                {viewMode === 'calendar' && isMobile && (
+                    <Button 
+                        variant="secondary"
+                        onClick={() => setIsSidebarOpen(true)}
+                        title="Ver Calendario y Eventos"
+                    >
+                        <PanelRightOpen size={18} />
                     </Button>
                 )}
             </div>
@@ -471,10 +428,8 @@ const Horarios = () => {
                         selectedField={searchField}
                         onFieldChange={setSearchField}
                     />
-                    
                     <Button onClick={() => handleOpenModal()}>
-                        <Plus size={18} style={{ marginRight: '8px' }} />
-                        Nuevo
+                        <Plus size={18} style={{ marginRight: '8px' }} /> Nuevo
                     </Button>
                 </>
             )}
@@ -503,7 +458,7 @@ const Horarios = () => {
             />
         ) : (
             <div className={styles.calendarViewModeContainer}>
-                <div style={{ flex: 1, minWidth: '300px' }}>
+                <div className={styles.timeTableWrapper}>
                     <TimeTable 
                         events={mySchedule} 
                         festivos={festivos} 
@@ -511,11 +466,37 @@ const Horarios = () => {
                         selectedDate={selectedDate}
                     />
                 </div>
-                <div style={{ flexShrink: 0, width: '100%', maxWidth: '350px' }}>
-                    <CalendarView 
+                
+                {!isMobile && (
+                    <div className={styles.eventsSidebarWrapper}>
+                        <EventsSidebar 
+                            selectedDate={selectedDate} 
+                            onDateSelect={setSelectedDate}
+                            festivos={festivos}
+                            events={[]} 
+                        />
+                    </div>
+                )}
+            </div>
+        )}
+
+        {isMobile && isSidebarOpen && (
+            <div className={styles.mobileSidebarOverlay} onClick={() => setIsSidebarOpen(false)}>
+                <div className={styles.mobileSidebar} onClick={e => e.stopPropagation()}>
+                    <div className={styles.mobileSidebarHeader}>
+                        <h3>Calendario y Eventos</h3>
+                        <button onClick={() => setIsSidebarOpen(false)} className={styles.closeButton}>
+                            <PanelRightClose size={20} />
+                        </button>
+                    </div>
+                    <EventsSidebar 
                         selectedDate={selectedDate} 
-                        onDateSelect={setSelectedDate}
+                        onDateSelect={(date) => {
+                            setSelectedDate(date);
+                            setIsSidebarOpen(false);
+                        }}
                         festivos={festivos}
+                        events={[]} 
                     />
                 </div>
             </div>
@@ -530,12 +511,7 @@ const Horarios = () => {
         >
             <div className={styles.formGroup}>
                 <label className={styles.label}>Día de la Semana</label>
-                <select
-                    name="diaSemana"
-                    value={formData.diaSemana}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                >
+                <select name="diaSemana" value={formData.diaSemana} onChange={handleInputChange} className={styles.select}>
                     <option value="1">Lunes</option>
                     <option value="2">Martes</option>
                     <option value="3">Miércoles</option>
@@ -545,53 +521,21 @@ const Horarios = () => {
                     <option value="7">Domingo</option>
                 </select>
             </div>
-
             <div className={styles.formGroup}>
                 <label className={styles.label}>Hora Inicio</label>
-                <input
-                    type="time"
-                    name="horaInicio"
-                    value={formData.horaInicio}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    required
-                />
+                <input type="time" name="horaInicio" value={formData.horaInicio} onChange={handleInputChange} className={styles.input} required />
             </div>
-
             <div className={styles.formGroup}>
                 <label className={styles.label}>Hora Fin</label>
-                <input
-                    type="time"
-                    name="horaFin"
-                    value={formData.horaFin}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    required
-                />
+                <input type="time" name="horaFin" value={formData.horaFin} onChange={handleInputChange} className={styles.input} required />
             </div>
-
             <div className={styles.formGroup}>
                 <label className={styles.label}>Aula</label>
-                <input
-                    type="text"
-                    name="aula"
-                    value={formData.aula}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    required
-                    placeholder="Ej: Aula 101"
-                />
+                <input type="text" name="aula" value={formData.aula} onChange={handleInputChange} className={styles.input} required placeholder="Ej: Aula 101" />
             </div>
-
             <div className={styles.formGroup}>
                 <label className={styles.label}>Asignatura (Impartición)</label>
-                <select
-                    name="imparticion"
-                    value={formData.imparticion}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                    required
-                >
+                <select name="imparticion" value={formData.imparticion} onChange={handleInputChange} className={styles.select} required>
                     <option value="">Seleccionar asignatura...</option>
                     {imparticiones.map(i => (
                         <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>

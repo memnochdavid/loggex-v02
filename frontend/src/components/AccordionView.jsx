@@ -1,49 +1,54 @@
 import React, { useState } from 'react';
 import styles from './AccordionView.module.css';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd }) => {
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
   const [localIsOpen, setLocalIsOpen] = useState(false);
+  
+  // Determinar si está abierto (controlado o local)
   const isExpanded = isOpen !== undefined ? isOpen : localIsOpen;
-  const toggle = onToggle || (() => setLocalIsOpen(!localIsOpen));
+  
+  // Función de toggle (controlada o local)
+  const handleToggle = () => {
+      if (onToggle) {
+          onToggle();
+      } else {
+          setLocalIsOpen(!localIsOpen);
+      }
+  };
 
   return (
-    <div className={`${styles.accordionItem} ${isExpanded ? styles.activeItem : ''}`}>
-      <div 
-        className={`${styles.accordionHeader} ${isExpanded ? styles.activeHeader : ''}`} 
-        onClick={toggle}
-      >
+    <div className={styles.accordionItem}>
+      <div className={styles.accordionHeader} onClick={handleToggle}>
         <div className={styles.headerContent}>
-            {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title || item.name}</span>}
+            {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}
         </div>
-        
         <div className={styles.headerActions}>
-            {canAdd && onAdd && (
-                <button 
-                    className={styles.addButton} 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onAdd(item.id);
-                    }}
-                    title="Añadir"
-                >
-                    <Plus size={16} /> Añadir
-                </button>
-            )}
-            <div className={styles.headerIcon}>
-              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </div>
+          {canAdd && onAdd && (
+            <button 
+              className={styles.addButton} 
+              onClick={(e) => {
+                e.stopPropagation(); // Evita que el acordeón se abra/cierre
+                onAdd(item.id);
+              }}
+            >
+              Añadir
+            </button>
+          )}
+          <ChevronDown
+            className={`${styles.chevron} ${isExpanded ? styles.open : ''}`}
+            size={20}
+          />
         </div>
       </div>
-      
-      {isExpanded && (
-        <div className={styles.accordionContentWrapper}>
-            <div className={styles.accordionContent}>
+      <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''}`}>
+        <div className={styles.accordionContent}>
+            <div className={styles.accordionInner}>
                 {children}
             </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -56,8 +61,9 @@ const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, o
           key={item.id || index} 
           item={item}
           renderHeader={renderHeader}
-          isOpen={expandedId !== undefined ? expandedId === (item.id || index) : undefined}
-          onToggle={onToggle ? () => onToggle(item.id || index) : undefined}
+          // Si expandedId está definido (aunque sea null), controlamos la apertura
+          isOpen={expandedId !== undefined ? expandedId === item.id : undefined}
+          onToggle={onToggle ? () => onToggle(item.id) : undefined}
           onAdd={onAdd}
           canAdd={canAdd}
         >

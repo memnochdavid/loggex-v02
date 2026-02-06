@@ -1,209 +1,181 @@
 .container {
     padding: 0 var(--space-8);
-    /*max-width: 1200px;*/
+    max-width: 1600px;
     margin: 0 auto;
+    /*height: calc(100vh - 80px);*/
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Evitar scroll en el contenedor principal */
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-6);
-    flex-wrap: wrap;
-    gap: var(--space-4);
+    margin-bottom: 1rem;
+    flex-shrink: 0; /* El header no se encoge */
 }
 
 .pageTitle {
-    font-size: var(--text-2xl);
-    color: var(--color-gray-900);
-    font-weight: var(--font-bold);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
     margin: 0;
 }
 
 .controls {
     display: flex;
-    gap: var(--space-4);
+    gap: 1rem;
     align-items: center;
-    flex-wrap: wrap;
 }
 
 .select {
-    padding: var(--space-2) var(--space-3);
+    padding: 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    background-color: var(--bg-card);
+    background-color: var(--bg-input);
     color: var(--text-main);
-    min-width: 200px;
-}
-
-.select:focus {
-    outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
-}
-
-.actions {
-    display: flex;
-    gap: var(--space-2);
-}
-
-.iconButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: var(--space-1);
-    color: var(--color-gray-500);
-    transition: color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.iconButton:hover {
-    color: var(--color-primary-600);
-}
-
-.iconButton.danger:hover {
-    color: var(--color-error);
 }
 
 .errorContainer {
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    color: var(--color-error);
-    padding: var(--space-4);
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 1rem;
     border-radius: var(--radius-md);
-    text-align: center;
-    margin-bottom: var(--space-4);
+    margin-bottom: 1rem;
+    border: 1px solid #fecaca;
 }
-.calendarViewModeContainer{
+
+/* Layout de Vista Calendario */
+.calendarViewModeContainer {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    /*align-items: flex-start;*/
-    flex-wrap: wrap;
+    gap: 1.5rem;
+    flex: 1;
+    overflow: hidden; /* Clave para que los hijos controlen su propio scroll */
+    height: 100%;
 }
-/* Modal Styles */
-.modalOverlay {
+
+.timeTableWrapper {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto; /* Este es el único scroll vertical que queremos */
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.eventsSidebarWrapper {
+    width: 320px;
+    flex-shrink: 0;
+    height: 100%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Sidebar Móvil (Drawer) */
+.mobileSidebarOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
     z-index: 1000;
-    padding: var(--space-4);
+    display: flex;
+    justify-content: flex-end;
     backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s ease-out;
 }
 
-.modal {
+.mobileSidebar {
+    width: max-content;
+    max-width: max-content;
     background-color: var(--bg-card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    width: 100%;
-    max-width: 500px;
+    height: 100%;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    max-height: 90vh;
-    animation: slideIn 0.2s ease-out;
+    animation: slideInRight 0.3s ease-out;
 }
 
-.modalHeader {
-    padding: var(--space-4) var(--space-6);
+.mobileSidebarHeader {
+    padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.modalTitle {
-    font-size: var(--text-lg);
-    font-weight: var(--font-bold);
+.mobileSidebarHeader h3 {
     margin: 0;
+    font-size: 1.1rem;
     color: var(--text-main);
 }
 
 .closeButton {
     background: none;
     border: none;
+    color: var(--text-muted);
     cursor: pointer;
-    color: var(--color-gray-400);
-    padding: var(--space-1);
+    padding: 0.5rem;
 }
 
-.closeButton:hover {
-    color: var(--color-gray-600);
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.modalBody {
-    padding: var(--space-6);
-    overflow-y: auto;
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
 }
 
-.modalFooter {
-    padding: var(--space-4) var(--space-6);
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-3);
-}
-
+/* Modal Styles (Reutilizados o específicos si es necesario) */
 .formGroup {
-    margin-bottom: var(--space-4);
+    margin-bottom: 1rem;
 }
 
 .label {
     display: block;
-    margin-bottom: var(--space-2);
-    font-weight: var(--font-medium);
-    font-size: var(--text-sm);
-    color: var(--color-gray-700);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-main);
 }
 
 .input {
     width: 100%;
-    padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--color-gray-300);
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    font-size: var(--text-base);
-    box-sizing: border-box;
-    background-color: white;
+    background-color: var(--bg-input);
     color: var(--text-main);
 }
 
-.input:focus {
-    outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
+/* Media Queries - Breakpoint aumentado a 1200px */
+@media (max-width: 1200px) {
+    .container {
+        padding: 1rem;
+        height: auto; /* En móvil dejamos que crezca */
+        overflow: visible; /* Restaurar scroll normal */
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
-@media (max-width: 768px) {
-    .header {
+    .calendarViewModeContainer {
         flex-direction: column;
-        align-items: stretch;
+        height: auto;
+        overflow: visible;
     }
 
-    .controls {
-        flex-direction: column;
-        align-items: stretch;
+    .timeTableWrapper {
+        height: auto; /* Dejar que el contenido determine la altura */
+        overflow-y: visible; /* Quitar scroll interno */
     }
 
-    .select {
-        width: 100%;
+    .eventsSidebarWrapper {
+        display: none; /* Ocultar en móvil/tablet, se usa el drawer */
     }
 }

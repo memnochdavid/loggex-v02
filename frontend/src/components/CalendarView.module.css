@@ -2,10 +2,11 @@
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    width: 100%;
-    max-width: 350px; /* Tamaño compacto */
+    /*padding: var(--space-4);*/
+    width: min-content;
+    max-width: 350px; /* Tamaño compacto por defecto */
     box-shadow: var(--shadow-sm);
+    margin: 0 auto; /* Centrar si es más pequeño que el contenedor */
 }
 
 .header {
@@ -64,12 +65,12 @@
     justify-content: center;
     background: none;
     border: none;
-    border-radius: 50%;
+    border-radius: 30%;
     cursor: pointer;
     font-size: var(--text-sm);
     color: var(--text-main);
     transition: all 0.2s;
-    margin: var(--space-2);
+    margin: 5px;
 }
 
 .day:hover {
@@ -102,4 +103,29 @@
 
 .emptyDay {
     aspect-ratio: 1;
+}
+
+/* Ajustes para móviles */
+@media (max-width: 480px) {
+    .calendar {
+        max-width: 100%; /* Ocupar todo el ancho disponible */
+        padding: var(--space-2);
+    }
+
+    .monthTitle {
+        font-size: 1rem;
+    }
+
+    .day {
+        /*margin: 0; !* Eliminar margen para maximizar espacio *!*/
+        font-size: 0.8rem;
+        border-radius: 30%;
+        margin: 5px;
+
+
+    }
+
+    .daysGrid {
+        gap: 2px; /* Gap mínimo */
+    }
 }
