@@ -54,11 +54,11 @@ class Modulo
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read'])] // Añadido imparticion:read, horario:read
+    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read'])] // Añadido imparticion:read, horario:read
+    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $codigoOficial = null;
 
     #[ORM\Column]

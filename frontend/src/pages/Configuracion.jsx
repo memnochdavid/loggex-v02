@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User, Bell } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import { getApiUrl, getAssetUrl } from '../config/api';
 
@@ -614,7 +614,7 @@ const Configuracion = () => {
                                     if (titleConfig.casing === 'uppercase') text = text.toUpperCase();
                                     if (titleConfig.casing === 'lowercase') text = text.toLowerCase();
                                     if (titleConfig.casing === 'capitalize') text = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-
+                                    
                                     return (
                                         <span key={index} style={{ color: word.color }}>
                                             {text}
@@ -637,6 +637,34 @@ const Configuracion = () => {
                                 <div className={styles.previewPaginationButton} style={{ backgroundColor: settings.datatablePaginationButtonHoverBgColor, color: settings.datatablePaginationButtonHoverTextColor }}>2</div>
                                 <div className={styles.previewPaginationButton} style={{ backgroundColor: settings.datatablePaginationButtonActiveBgColor, color: settings.datatablePaginationButtonActiveTextColor }}>3</div>
                             </div>
+                        </div>
+                    </div>
+                );
+
+            case 'eventos':
+                return (
+                    <div className={styles.previewBox}>
+                        <h4 className={styles.previewTitle}>Vista Previa Eventos</h4>
+                        <div style={{ 
+                            padding: '1rem', 
+                            backgroundColor: settings.eventCardBgColor, 
+                            border: `1px solid ${settings.eventCardBorderColor}`,
+                            borderLeft: `4px solid ${settings.primaryColor}`,
+                            borderRadius: '6px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}>
+                            <div style={{ fontWeight: '600', color: settings.eventCardTitleColor, marginBottom: '0.25rem' }}>
+                                Título del Evento
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: settings.eventCardMetaColor, display: 'flex', gap: '0.5rem' }}>
+                                <span>📅 Fecha</span>
+                                <span>⏰ Hora</span>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '1rem' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: settings.eventsSidebarTitleColor, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                                Título Sidebar
+                            </h3>
                         </div>
                     </div>
                 );
@@ -694,6 +722,7 @@ const Configuracion = () => {
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
         { id: 'chat', label: 'Mensajería', icon: <MessageSquare size={18} /> },
         { id: 'usercard', label: 'Tarjetas', icon: <User size={18} /> },
+        { id: 'eventos', label: 'Eventos', icon: <Bell size={18} /> }, // NUEVA PESTAÑA
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
@@ -883,6 +912,17 @@ const Configuracion = () => {
                                     {renderColorInput('Fondo Tarjeta', 'userCardBgColor')}
                                     {renderColorInput('Texto Principal', 'userCardTextColor')}
                                     {renderColorInput('Texto Secundario', 'userCardTextSecondaryColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'eventos' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Tarjeta Evento', 'eventCardBgColor')}
+                                    {renderColorInput('Borde Tarjeta Evento', 'eventCardBorderColor')}
+                                    {renderColorInput('Título Tarjeta Evento', 'eventCardTitleColor')}
+                                    {renderColorInput('Meta Tarjeta Evento', 'eventCardMetaColor')}
+                                    {renderColorInput('Fondo Sidebar Eventos', 'eventsSidebarBgColor')}
+                                    {renderColorInput('Título Sidebar Eventos', 'eventsSidebarTitleColor')}
                                 </div>
                             )}
 

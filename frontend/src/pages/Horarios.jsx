@@ -28,6 +28,7 @@ const Horarios = () => {
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
   const [festivos, setFestivos] = useState([]);
+  const [tareas, setTareas] = useState([]); // Estado para tareas/eventos
   const [imparticiones, setImparticiones] = useState([]);
   const [centros, setCentros] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,8 +125,24 @@ const Horarios = () => {
               credentials: 'include'
           }).then(res => res.json());
 
-          Promise.all([fetchSchedule, fetchFestivos])
-          .then(([scheduleData, festivosData]) => {
+          // Cargar Tareas (Eventos)
+          // Simplificación: Cargar todas las tareas visibles para el usuario
+          // Idealmente filtrar por fecha, pero cargamos todas y filtramos en cliente por ahora
+          let urlTareas = getApiUrl('/api/tareas?pagination=false');
+          // Si es alumno, filtrar por sus grupos (esto requeriría lógica compleja aquí o en backend)
+          // Por ahora, asumimos que el backend filtra o que cargamos todas las públicas/asignadas
+          // Para simplificar y no romper, usamos el endpoint genérico y confiamos en la seguridad
+          // O mejor: Usar el endpoint de entregas para alumnos para saber qué tienen que entregar
+
+          // NOTA: Para hacerlo bien, deberíamos tener un endpoint /api/my-tasks
+          // Vamos a intentar cargar tareas genéricas. Si es alumno, verá las de sus grupos si la API lo permite.
+          const fetchTareas = fetch(urlTareas, {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          }).then(res => res.json());
+
+          Promise.all([fetchSchedule, fetchFestivos, fetchTareas])
+          .then(([scheduleData, festivosData, tareasData]) => {
               setMySchedule(scheduleData);
               
               let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
@@ -137,11 +154,15 @@ const Horarios = () => {
                   });
               }
               setFestivos(allFestivos);
+
+              const allTareas = tareasData['hydra:member'] || tareasData.member || [];
+              setTareas(allTareas);
+
               setLoading(false);
           })
           .catch(err => {
               console.error(err);
-              setError("No se pudo cargar el horario o festivos.");
+              setError("No se pudo cargar el horario o eventos.");
               setLoading(false);
           });
       }
@@ -462,6 +483,7 @@ const Horarios = () => {
                     <TimeTable 
                         events={mySchedule} 
                         festivos={festivos} 
+                        tareas={tareas} // Pasar tareas a TimeTable
                         title="Mi Horario" 
                         selectedDate={selectedDate}
                     />
@@ -473,7 +495,12 @@ const Horarios = () => {
                             selectedDate={selectedDate} 
                             onDateSelect={setSelectedDate}
                             festivos={festivos}
-                            events={[]} 
+                            events={tareas.map(t => ({ // Formatear tareas para EventsSidebar
+                                id: t.id,
+                                title: t.titulo,
+                                date: t.fechaLimite,
+                                type: t.tipo
+                            }))} 
                         />
                     </div>
                 )}
@@ -484,7 +511,7 @@ const Horarios = () => {
             <div className={styles.mobileSidebarOverlay} onClick={() => setIsSidebarOpen(false)}>
                 <div className={styles.mobileSidebar} onClick={e => e.stopPropagation()}>
                     <div className={styles.mobileSidebarHeader}>
-                        <h3>Calendario y Eventos</h3>
+                        <h3 className={styles.sectionTitle}>Calendario y Eventos</h3>
                         <button onClick={() => setIsSidebarOpen(false)} className={styles.closeButton}>
                             <PanelRightClose size={20} />
                         </button>
@@ -496,7 +523,12 @@ const Horarios = () => {
                             setIsSidebarOpen(false);
                         }}
                         festivos={festivos}
-                        events={[]} 
+                        events={tareas.map(t => ({ // Formatear tareas para EventsSidebar
+                            id: t.id,
+                            title: t.titulo,
+                            date: t.fechaLimite,
+                            type: t.tipo
+                        }))}
                     />
                 </div>
             </div>

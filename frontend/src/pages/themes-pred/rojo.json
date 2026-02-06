@@ -75,6 +75,12 @@
         "chatBubbleSentBgColor": "#ef4444",
         "chatBubbleSentTextColor": "#ffffff",
         "chatBubbleReceivedBgColor": "#ffffff",
-        "chatBubbleReceivedTextColor": "#450a0a"
+        "chatBubbleReceivedTextColor": "#450a0a",
+        "eventCardBgColor": "#ffffff",
+        "eventCardBorderColor": "#fecaca",
+        "eventCardTitleColor": "#7f1d1d",
+        "eventCardMetaColor": "#991b1b",
+        "eventsSidebarBgColor": "transparent",
+        "eventsSidebarTitleColor": "#7f1d1d"
     }
 }

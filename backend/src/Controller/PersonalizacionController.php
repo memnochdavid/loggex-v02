@@ -121,8 +121,8 @@ class PersonalizacionController extends AbstractController
         // Accordion
         if (isset($data['accordionHeaderBgColor'])) $personalizacion->setAccordionHeaderBgColor($data['accordionHeaderBgColor']);
         if (isset($data['accordionHeaderTextColor'])) $personalizacion->setAccordionHeaderTextColor($data['accordionHeaderTextColor']);
-        if (isset($data['accordionHeaderActiveBgColor'])) $personalizacion->setAccordionHeaderActiveBgColor($data['accordionHeaderActiveBgColor']); // NUEVO
-        if (isset($data['accordionHeaderActiveTextColor'])) $personalizacion->setAccordionHeaderActiveTextColor($data['accordionHeaderActiveTextColor']); // NUEVO
+        if (isset($data['accordionHeaderActiveBgColor'])) $personalizacion->setAccordionHeaderActiveBgColor($data['accordionHeaderActiveBgColor']);
+        if (isset($data['accordionHeaderActiveTextColor'])) $personalizacion->setAccordionHeaderActiveTextColor($data['accordionHeaderActiveTextColor']);
         if (isset($data['accordionContentBgColor'])) $personalizacion->setAccordionContentBgColor($data['accordionContentBgColor']);
         if (isset($data['accordionContentTextColor'])) $personalizacion->setAccordionContentTextColor($data['accordionContentTextColor']);
 
@@ -162,6 +162,14 @@ class PersonalizacionController extends AbstractController
         if (isset($data['chatBubbleSentTextColor'])) $personalizacion->setChatBubbleSentTextColor($data['chatBubbleSentTextColor']);
         if (isset($data['chatBubbleReceivedBgColor'])) $personalizacion->setChatBubbleReceivedBgColor($data['chatBubbleReceivedBgColor']);
         if (isset($data['chatBubbleReceivedTextColor'])) $personalizacion->setChatBubbleReceivedTextColor($data['chatBubbleReceivedTextColor']);
+
+        // EventCard & EventsSidebar
+        if (isset($data['eventCardBgColor'])) $personalizacion->setEventCardBgColor($data['eventCardBgColor']);
+        if (isset($data['eventCardBorderColor'])) $personalizacion->setEventCardBorderColor($data['eventCardBorderColor']);
+        if (isset($data['eventCardTitleColor'])) $personalizacion->setEventCardTitleColor($data['eventCardTitleColor']);
+        if (isset($data['eventCardMetaColor'])) $personalizacion->setEventCardMetaColor($data['eventCardMetaColor']);
+        if (isset($data['eventsSidebarBgColor'])) $personalizacion->setEventsSidebarBgColor($data['eventsSidebarBgColor']); // AÑADIDO
+        if (isset($data['eventsSidebarTitleColor'])) $personalizacion->setEventsSidebarTitleColor($data['eventsSidebarTitleColor']);
 
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);

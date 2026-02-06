@@ -1,13 +1,38 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styles from './EventsSidebar.module.css';
 import CalendarView from './CalendarView';
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
+import EventCard from './EventCard';
 
 const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] }) => {
     
-    // Filtrar eventos próximos (desde hoy o desde la fecha seleccionada)
-    // Por ahora mostramos todos los que se pasen, ordenados por fecha
-    const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Calcular el rango de la semana seleccionada
+    const weekRange = useMemo(() => {
+        if (!selectedDate) return null;
+        
+        const d = new Date(selectedDate);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al lunes
+        
+        const monday = new Date(d);
+        monday.setDate(diff);
+        monday.setHours(0, 0, 0, 0);
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        
+        return { start: monday, end: sunday };
+    }, [selectedDate]);
+
+    // Filtrar eventos de la semana seleccionada
+    const weeklyEvents = useMemo(() => {
+        if (!weekRange) return [];
+
+        return events.filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= weekRange.start && eventDate <= weekRange.end;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, [events, weekRange]);
 
     return (
         <div className={styles.container}>
@@ -18,31 +43,22 @@ const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] 
             />
 
             <div className={styles.eventsSection}>
-                <h3 className={styles.sectionTitle}>Próximos Eventos</h3>
+                <h3 className={styles.sectionTitle}>Eventos de la Semana</h3>
                 
                 <div className={styles.eventsList}>
-                    {sortedEvents.length === 0 ? (
-                        <div className={styles.noEvents}>No hay eventos próximos.</div>
+                    {weeklyEvents.length === 0 ? (
+                        <div className={styles.noEvents}>No hay eventos esta semana.</div>
                     ) : (
-                        sortedEvents.map((event, index) => (
-                            <div key={event.id || index} className={styles.eventCard} style={{ borderLeftColor: event.color || 'var(--color-primary-500)' }}>
-                                <div className={styles.eventTitle}>{event.title}</div>
-                                <div className={styles.eventMeta}>
-                                    <Calendar size={14} />
-                                    {new Date(event.date).toLocaleDateString()} 
-                                    {event.time && (
-                                        <>
-                                            <Clock size={14} style={{ marginLeft: '8px' }} />
-                                            {event.time}
-                                        </>
-                                    )}
-                                </div>
-                                {event.type && (
-                                    <div className={styles.eventMeta} style={{ marginTop: '4px', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                        {event.type}
-                                    </div>
-                                )}
-                            </div>
+                        weeklyEvents.map((event, index) => (
+                            <EventCard 
+                                key={event.id || index}
+                                title={event.title}
+                                subject={event.subject}
+                                date={event.date}
+                                time={event.time}
+                                type={event.type}
+                                color={event.color}
+                            />
                         ))
                     )}
                 </div>

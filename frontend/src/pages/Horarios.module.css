@@ -23,6 +23,13 @@
     color: var(--text-main);
     margin: 0;
 }
+.sectionTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--events-sidebar-title-color, var(--text-main));
+    margin-bottom: 0.75rem;
+    padding-left: 0.25rem;
+}
 
 .controls {
     display: flex;
@@ -94,12 +101,17 @@
 .mobileSidebar {
     width: max-content;
     max-width: max-content;
-    background-color: var(--bg-card);
+    /*background-color: var(--bg-card);*/
+    background-color: var(--events-sidebar-bg, transparent);
+
     height: 100%;
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     animation: slideInRight 0.3s ease-out;
+}
+.sectionTitle {
+    color: var(--events-sidebar-title-color, var(--text-main));
 }
 
 .mobileSidebarHeader {
@@ -113,13 +125,13 @@
 .mobileSidebarHeader h3 {
     margin: 0;
     font-size: 1.1rem;
-    color: var(--text-main);
+    color: var(--events-sidebar-title-color, var(--text-main));
 }
 
 .closeButton {
     background: none;
     border: none;
-    color: var(--text-muted);
+    color: var(--events-sidebar-title-color, var(--text-main));
     cursor: pointer;
     padding: 0.5rem;
 }

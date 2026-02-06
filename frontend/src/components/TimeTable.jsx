@@ -5,9 +5,10 @@ import AccordionView from './AccordionView';
 import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
 import Button from './Button';
+import EventCard from './EventCard'; // Importar EventCard
 import { useAuth } from '../context/AuthContext';
 
-const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
+const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) => {
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
@@ -212,6 +213,29 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         return null;
     };
 
+    // Filtrar tareas para el evento seleccionado
+    const getTasksForEvent = (event) => {
+        if (!event || !tareas) return [];
+        
+        const eventDate = weekDates[event.diaSemana - 1];
+        if (!eventDate) return [];
+        const dateStr = formatDateISO(eventDate);
+
+        return tareas.filter(t => {
+            const taskDate = t.fechaLimite.split('T')[0];
+            if (taskDate !== dateStr) return false;
+            
+            const horarioImpId = getImparticionId(event);
+            let tareaImpId = null;
+            if (t.imparticion) {
+                if (typeof t.imparticion === 'string') tareaImpId = t.imparticion.split('/').pop();
+                else if (t.imparticion.id) tareaImpId = t.imparticion.id;
+            }
+            
+            return String(horarioImpId) === String(tareaImpId);
+        });
+    };
+
     const renderGrid = (slots, gridData) => {
         return (
             <div className={styles.tableContainer}>
@@ -362,6 +386,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
         </div>
     );
 
+    const tasksForSelectedEvent = selectedEvent ? getTasksForEvent(selectedEvent) : [];
+
     return (
         <div className={styles.container}>
             {/* Vista Escritorio */}
@@ -442,6 +468,24 @@ const TimeTable = ({ events, title, selectedDate, festivos = [] }) => {
                                     <span className={styles.value}>{selectedEvent.profesor}</span>
                                 </div>
                             </div>
+
+                            {/* Mostrar Tareas/Eventos del día */}
+                            {tasksForSelectedEvent.length > 0 && (
+                                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>Eventos del día:</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {tasksForSelectedEvent.map(task => (
+                                            <EventCard 
+                                                key={task.id}
+                                                title={task.titulo}
+                                                type={task.tipo}
+                                                // No mostramos fecha porque ya sabemos que es hoy
+                                                // No mostramos asignatura porque ya estamos en el contexto de la asignatura
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {canPassAttendance(selectedEvent) && (
                                 <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>

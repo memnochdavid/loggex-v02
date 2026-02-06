@@ -200,6 +200,17 @@
     --chat-bubble-received-bg: white;
     --chat-bubble-received-text: var(--text-main);
     --chat-input-area-bg: white;
+
+    /* EventCard */
+    --event-card-bg: var(--bg-card);
+    --event-card-border: var(--border-color);
+    --event-card-title-color: var(--text-main);
+    --event-card-meta-color: var(--text-muted);
+    --event-card-hover-shadow: var(--shadow-md);
+
+    /* EventsSidebar */
+    --events-sidebar-bg: transparent;
+    --events-sidebar-title-color: var(--text-main);
 }
 
 /* Reset básico */

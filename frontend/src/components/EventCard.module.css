@@ -1,0 +1,82 @@
+.card {
+    background-color: var(--event-card-bg, var(--bg-card));
+    border: 1px solid var(--event-card-border, var(--border-color));
+    border-left-width: 4px;
+    border-left-style: solid;
+    /* border-left-color se aplica inline */
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem; /* Reducido margen inferior */
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--event-card-hover-shadow, var(--shadow-md));
+}
+
+/* Fila Superior: Título y Badge */
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--event-card-title-color, var(--text-main));
+    line-height: 1.2;
+    flex: 1; /* Ocupar espacio disponible */
+}
+
+.typeBadge {
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--event-card-meta-color, var(--text-muted));
+    background-color: var(--bg-hover); /* Fondo sutil para el badge */
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Fila Inferior: Asignatura y Fecha */
+.metaRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.subject {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-main);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0; /* Permitir truncate */
+}
+
+.dateInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--event-card-meta-color, var(--text-muted));
+    white-space: nowrap;
+    flex-shrink: 0;
+}

@@ -7,7 +7,11 @@
     overflow: hidden;
     box-shadow: var(--shadow-elevation-low);
     background-color: var(--bg-card); /* Asegurar fondo */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
+
 
 .accordionItem {
     border-bottom: 1px solid var(--color-border);

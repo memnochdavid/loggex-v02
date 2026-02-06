@@ -76,8 +76,8 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonActiveTextColor: '#1e293b',
         accordionHeaderBgColor: '#f8fafc',
         accordionHeaderTextColor: '#64748b',
-        accordionHeaderActiveBgColor: '#f1f5f9', // NUEVO
-        accordionHeaderActiveTextColor: '#334155', // NUEVO
+        accordionHeaderActiveBgColor: '#f1f5f9',
+        accordionHeaderActiveTextColor: '#334155',
         accordionContentBgColor: '#ffffff',
         accordionContentTextColor: '#334155',
         modalHeaderBgColor: '#ffffff',
@@ -110,7 +110,17 @@ export const applyTheme = (colors) => {
         chatBubbleSentBgColor: '#6366f1',
         chatBubbleSentTextColor: '#ffffff',
         chatBubbleReceivedBgColor: '#ffffff',
-        chatBubbleReceivedTextColor: '#334155'
+        chatBubbleReceivedTextColor: '#334155',
+
+        // EventCard
+        eventCardBgColor: '#ffffff',
+        eventCardBorderColor: '#e2e8f0',
+        eventCardTitleColor: '#334155',
+        eventCardMetaColor: '#64748b',
+        
+        // EventsSidebar
+        eventsSidebarBgColor: 'transparent', // AÑADIDO
+        eventsSidebarTitleColor: '#334155'
     };
 
     const theme = { ...defaults, ...colors };
@@ -190,8 +200,8 @@ export const applyTheme = (colors) => {
     // 8. Accordion
     if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
     if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
-    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor); // NUEVO
-    if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor); // NUEVO
+    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor);
+    if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor);
     if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
@@ -231,6 +241,16 @@ export const applyTheme = (colors) => {
     if (theme.chatBubbleSentTextColor) root.style.setProperty('--chat-bubble-sent-text', theme.chatBubbleSentTextColor);
     if (theme.chatBubbleReceivedBgColor) root.style.setProperty('--chat-bubble-received-bg', theme.chatBubbleReceivedBgColor);
     if (theme.chatBubbleReceivedTextColor) root.style.setProperty('--chat-bubble-received-text', theme.chatBubbleReceivedTextColor);
+
+    // 14. EventCard
+    if (theme.eventCardBgColor) root.style.setProperty('--event-card-bg', theme.eventCardBgColor);
+    if (theme.eventCardBorderColor) root.style.setProperty('--event-card-border', theme.eventCardBorderColor);
+    if (theme.eventCardTitleColor) root.style.setProperty('--event-card-title-color', theme.eventCardTitleColor);
+    if (theme.eventCardMetaColor) root.style.setProperty('--event-card-meta-color', theme.eventCardMetaColor);
+
+    // 15. EventsSidebar
+    if (theme.eventsSidebarBgColor) root.style.setProperty('--events-sidebar-bg', theme.eventsSidebarBgColor); // AÑADIDO
+    if (theme.eventsSidebarTitleColor) root.style.setProperty('--events-sidebar-title-color', theme.eventsSidebarTitleColor);
 
     // 11. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');

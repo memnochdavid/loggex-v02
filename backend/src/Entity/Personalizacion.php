@@ -239,11 +239,11 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveBgColor = '#f1f5f9'; // NUEVO
+    private ?string $accordionHeaderActiveBgColor = '#f1f5f9';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveTextColor = '#334155'; // NUEVO
+    private ?string $accordionHeaderActiveTextColor = '#334155';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -368,6 +368,31 @@ class Personalizacion
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $chatBubbleReceivedTextColor = '#334155';
+
+    // --- EventCard & EventsSidebar ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventCardBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventCardBorderColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventCardTitleColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventCardMetaColor = '#64748b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventsSidebarBgColor = 'transparent'; // AÑADIDO
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $eventsSidebarTitleColor = '#334155';
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -661,6 +686,25 @@ class Personalizacion
 
     public function getChatBubbleReceivedTextColor(): ?string { return $this->chatBubbleReceivedTextColor; }
     public function setChatBubbleReceivedTextColor(string $color): static { $this->chatBubbleReceivedTextColor = $color; return $this; }
+
+    // --- EventCard & EventsSidebar ---
+    public function getEventCardBgColor(): ?string { return $this->eventCardBgColor; }
+    public function setEventCardBgColor(string $color): static { $this->eventCardBgColor = $color; return $this; }
+
+    public function getEventCardBorderColor(): ?string { return $this->eventCardBorderColor; }
+    public function setEventCardBorderColor(string $color): static { $this->eventCardBorderColor = $color; return $this; }
+
+    public function getEventCardTitleColor(): ?string { return $this->eventCardTitleColor; }
+    public function setEventCardTitleColor(string $color): static { $this->eventCardTitleColor = $color; return $this; }
+
+    public function getEventCardMetaColor(): ?string { return $this->eventCardMetaColor; }
+    public function setEventCardMetaColor(string $color): static { $this->eventCardMetaColor = $color; return $this; }
+
+    public function getEventsSidebarBgColor(): ?string { return $this->eventsSidebarBgColor; } // AÑADIDO
+    public function setEventsSidebarBgColor(string $color): static { $this->eventsSidebarBgColor = $color; return $this; } // AÑADIDO
+
+    public function getEventsSidebarTitleColor(): ?string { return $this->eventsSidebarTitleColor; }
+    public function setEventsSidebarTitleColor(string $color): static { $this->eventsSidebarTitleColor = $color; return $this; }
 
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }

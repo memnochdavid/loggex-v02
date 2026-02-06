@@ -163,8 +163,8 @@ class SecurityController extends AbstractController
             'datatablePaginationButtonActiveTextColor' => $v($p->getDatatablePaginationButtonActiveTextColor(), '#1e293b'),
             'accordionHeaderBgColor' => $v($p->getAccordionHeaderBgColor(), '#f8fafc'),
             'accordionHeaderTextColor' => $v($p->getAccordionHeaderTextColor(), '#64748b'),
-            'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#f1f5f9'), // NUEVO
-            'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#334155'), // NUEVO
+            'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#f1f5f9'),
+            'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#334155'),
             'accordionContentBgColor' => $v($p->getAccordionContentBgColor(), '#ffffff'),
             'accordionContentTextColor' => $v($p->getAccordionContentTextColor(), '#334155'),
             'modalHeaderBgColor' => $v($p->getModalHeaderBgColor(), '#ffffff'),
@@ -199,6 +199,14 @@ class SecurityController extends AbstractController
             'chatBubbleSentTextColor' => $v($p->getChatBubbleSentTextColor(), '#ffffff'),
             'chatBubbleReceivedBgColor' => $v($p->getChatBubbleReceivedBgColor(), '#ffffff'),
             'chatBubbleReceivedTextColor' => $v($p->getChatBubbleReceivedTextColor(), '#334155'),
+
+            // EventCard & EventsSidebar
+            'eventCardBgColor' => $v($p->getEventCardBgColor(), '#ffffff'),
+            'eventCardBorderColor' => $v($p->getEventCardBorderColor(), '#e2e8f0'),
+            'eventCardTitleColor' => $v($p->getEventCardTitleColor(), '#334155'),
+            'eventCardMetaColor' => $v($p->getEventCardMetaColor(), '#64748b'),
+            'eventsSidebarBgColor' => $v($p->getEventsSidebarBgColor(), 'transparent'), // AÑADIDO
+            'eventsSidebarTitleColor' => $v($p->getEventsSidebarTitleColor(), '#334155'),
 
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),
             'itemsPerPageCentros' => $p->getItemsPerPageCentros(),

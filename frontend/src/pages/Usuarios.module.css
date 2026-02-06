@@ -262,6 +262,7 @@
     color: var(--text-main);
 }
 
+
 @keyframes slideIn {
     from {
         opacity: 0;

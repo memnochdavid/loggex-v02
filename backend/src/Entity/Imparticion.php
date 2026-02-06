@@ -51,22 +51,22 @@ class Imparticion
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['imparticion:read', 'horario:read'])]
+    #[Groups(['imparticion:read', 'horario:read', 'tarea:read'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?User $profesor = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Modulo $modulo = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Grupo $grupo = null;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]
