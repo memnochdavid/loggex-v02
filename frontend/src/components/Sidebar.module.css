@@ -42,7 +42,7 @@
     font-weight: var(--font-medium);
     margin-bottom: var(--space-2);
     text-align: center;
-    color: var(--color-primary-400); /* Usa el color primario dinámico */
+    color: var(--color-primary-400);
     word-break: break-all;
 }
 
@@ -50,7 +50,7 @@
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
     text-align: center;
-    color: var(--color-primary-400); /* Cambiado de gray-400 a primary-400 para usar el color principal */
+    color: var(--color-primary-400);
     padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--color-gray-700);
     width: 100%;
@@ -156,16 +156,22 @@
     z-index: 40;
 }
 
-/* Breakpoint cambiado a 1220px */
+/* Breakpoint 1220px */
 @media (max-width: 1220px) {
     .sidebar {
-        left: -100%;
-        transition: left 0.3s ease;
+        display: none; /* Oculto por defecto para no ocupar espacio en el grid */
         width: 250px !important;
     }
 
     .sidebar.mobileOpen {
+        display: flex; /* Mostrar al abrir */
+        position: fixed; /* Superponer */
+        top: 0;
         left: 0;
+        bottom: 0;
+        height: 100vh;
+        animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
+        box-shadow: 2px 0 8px rgba(0,0,0,0.2);
     }
 
     .mobileToggle {
@@ -184,4 +190,9 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
 }
