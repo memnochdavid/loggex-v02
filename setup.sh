@@ -119,7 +119,8 @@ if [ -z "$(ls -A frontend)" ]; then
     echo "Instalando dependencias de frontend..."
     cd frontend
     npm install
-    npm install react-router-dom lucide-react
+    # AÑADIDO: lottie-react
+    npm install react-router-dom lucide-react lottie-react
 
     # Crear estructura de directorios profesional
     echo "Creando estructura de directorios Frontend..."
