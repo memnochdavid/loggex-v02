@@ -165,7 +165,7 @@ const Header = () => {
 
                 {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (
                     <a
-                        href={getApiUrl("/api")}
+                        href="https://localhost:9443/api"
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}

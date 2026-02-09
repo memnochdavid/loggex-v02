@@ -1,43 +1,32 @@
 {
-    # Desactivar administración automática de certificados en producción,
-    # pero para localhost Caddy genera sus propios certificados CA locales.
     local_certs
 }
 
-# Definimos un snippet reutilizable con la lógica de enrutamiento
 (app_routes) {
-    # Redirigir peticiones API al backend
     handle /api/* {
         reverse_proxy backend:80
     }
-
-    # NUEVO: Redirigir peticiones de archivos subidos al backend
     handle /uploads/* {
         reverse_proxy backend:80
     }
-
-    # El resto va al frontend (Vite)
     handle {
         reverse_proxy frontend:5173
     }
 }
 
-# Puerto 80 interno (Mapeado a 8888 externo) - HTTP
-# Acepta cualquier host, ideal para Ngrok (ngrok http 8888)
+# Puerto 80 interno (Mapeado a 8888 externo)
 :80 {
     import app_routes
 }
 
-# Puerto 443 interno (Mapeado a 8443 externo) - HTTPS
-# Específico para localhost para asegurar certificados correctos
+# Puerto 443 interno (Mapeado a 8443 externo) - Frontend + API
 localhost:443 {
     tls internal
     import app_routes
 }
 
-# Puerto 8443 interno (Mapeado a 9443 externo) - HTTPS
-# Específico para localhost
+# Puerto 8443 interno (Mapeado a 9443 externo) - SOLO BACKEND
 localhost:8443 {
     tls internal
-    import app_routes
+    reverse_proxy backend:80
 }

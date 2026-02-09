@@ -29,12 +29,11 @@ security:
                 path: api_logout
                 target: api_logout_success
 
-            # Importante: No ponemos 'stateless: true' aquí.
-            # Al ser stateful, la sesión creada en el login se reutiliza en las peticiones subsiguientes.
-
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api$,      roles: PUBLIC_ACCESS } # Permitir Swagger UI
+        - { path: ^/api/docs,  roles: PUBLIC_ACCESS } # Permitir Docs JSON
+        - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY } # Bloquear el resto
 
 when@test:
     security:
