@@ -2,13 +2,22 @@ api_platform:
     title: Loggex API
     version: 1.0.0
     formats:
+        html: ['text/html'] # HTML PRIMERO para priorizar Swagger UI
         jsonld: ['application/ld+json']
         json: ['application/json']
     defaults:
-        stateless: false # CAMBIO CRÍTICO: Permitir sesiones
+        stateless: false
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
         pagination_items_per_page: 20
         pagination_client_items_per_page: true
     patch_formats:
         json: ['application/merge-patch+json']
+
+    # Habilitar Swagger UI explícitamente
+    enable_swagger_ui: true
+    enable_re_doc: true
+    enable_docs: true
+
+    mapping:
+        paths: ['%kernel.project_dir%/src/Entity']
