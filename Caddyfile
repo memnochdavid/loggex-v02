@@ -1,5 +1,6 @@
 {
     local_certs
+    auto_https off
 }
 
 (app_routes) {
@@ -14,19 +15,19 @@
     }
 }
 
-# Puerto 80 interno (Mapeado a 8888 externo)
-:80 {
+# Puerto 80 interno (Mapeado a 8888 externo) - HTTP SIN REDIRECCIÓN
+http://:80 {
     import app_routes
 }
 
 # Puerto 443 interno (Mapeado a 8443 externo) - Frontend + API
-localhost:443 {
+https://localhost:443 {
     tls internal
     import app_routes
 }
 
 # Puerto 8443 interno (Mapeado a 9443 externo) - SOLO BACKEND
-localhost:8443 {
+https://localhost:8443 {
     tls internal
     reverse_proxy backend:80
 }
