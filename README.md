@@ -56,6 +56,7 @@ Para mantener el proyecto ordenado, **nunca trabajes directamente en la rama `ma
 
 ### Acceso Seguro (HTTPS)
 - **Frontend**: [https://localhost:8443](https://localhost:8443)
+- **Frontend (HTTP)**: [http://localhost:8888](http://localhost:8888)
 - **Backend API**: [https://localhost:9443/api/hello](https://localhost:9443/api/hello)
 - **Base de Datos (MariaDB)**: Puerto `3307`
   - Usuario: `app_user`
@@ -122,3 +123,19 @@ Si alguno está ocupado, edita `docker-compose.yml`.
 ```bash
 sudo chown -R $USER:$USER backend/ frontend/
 ```
+
+## 🌐 Acceso Externo (Ngrok)
+
+Si necesitas probar la aplicación desde un móvil o compartirla externamente:
+
+1. **Instalar Ngrok** (Ubuntu/Debian):
+   ```bash
+   curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+   echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+   sudo apt update && sudo apt install ngrok
+   ```
+
+2. **Exponer Servicios**:
+   - **Frontend (HTTPS)**: `ngrok http https://localhost:8443`
+   - **Frontend (HTTP)**: `ngrok http 8888`
+   - **Backend (HTTPS)**: `ngrok http https://localhost:9443`
