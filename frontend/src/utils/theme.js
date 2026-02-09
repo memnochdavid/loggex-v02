@@ -36,6 +36,13 @@ export const applyTheme = (colors) => {
         sidebarActiveTextColor: '#ffffff',
         sidebarHoverColor: '#334155',
         sidebarHoverTextColor: '#ffffff',
+        
+        // Sidebar Accordion
+        sidebarAccordionHeaderBgColor: '#1e293b',
+        sidebarAccordionHeaderTextColor: '#ffffff',
+        sidebarAccordionContentBgColor: '#0f172a',
+        sidebarAccordionContentTextColor: '#cbd5e1',
+
         textMainColor: '#334155',
         textSecondaryColor: '#64748b',
         specialTextColor: '#ffffff',
@@ -146,6 +153,12 @@ export const applyTheme = (colors) => {
     if (theme.sidebarActiveTextColor) root.style.setProperty('--text-sidebar-active', theme.sidebarActiveTextColor);
     if (theme.sidebarHoverColor) root.style.setProperty('--bg-sidebar-hover', theme.sidebarHoverColor);
     if (theme.sidebarHoverTextColor) root.style.setProperty('--text-sidebar-hover', theme.sidebarHoverTextColor);
+
+    // Sidebar Accordion
+    if (theme.sidebarAccordionHeaderBgColor) root.style.setProperty('--sidebar-accordion-header-bg', theme.sidebarAccordionHeaderBgColor);
+    if (theme.sidebarAccordionHeaderTextColor) root.style.setProperty('--sidebar-accordion-header-text', theme.sidebarAccordionHeaderTextColor);
+    if (theme.sidebarAccordionContentBgColor) root.style.setProperty('--sidebar-accordion-content-bg', theme.sidebarAccordionContentBgColor);
+    if (theme.sidebarAccordionContentTextColor) root.style.setProperty('--sidebar-accordion-content-text', theme.sidebarAccordionContentTextColor);
 
     // 3. Textos
     if (theme.textMainColor) root.style.setProperty('--text-main', theme.textMainColor);

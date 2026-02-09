@@ -123,6 +123,13 @@ class SecurityController extends AbstractController
             'sidebarActiveTextColor' => $v($p->getSidebarActiveTextColor(), '#ffffff'),
             'sidebarHoverColor' => $v($p->getSidebarHoverColor(), '#334155'),
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
+
+            // Sidebar Accordion (NUEVO)
+            'sidebarAccordionHeaderBgColor' => $v($p->getSidebarAccordionHeaderBgColor(), '#1e293b'),
+            'sidebarAccordionHeaderTextColor' => $v($p->getSidebarAccordionHeaderTextColor(), '#ffffff'),
+            'sidebarAccordionContentBgColor' => $v($p->getSidebarAccordionContentBgColor(), '#0f172a'),
+            'sidebarAccordionContentTextColor' => $v($p->getSidebarAccordionContentTextColor(), '#cbd5e1'),
+
             'textMainColor' => $v($p->getTextMainColor(), '#334155'),
             'textSecondaryColor' => $v($p->getTextSecondaryColor(), '#64748b'),
             'specialTextColor' => $v($p->getSpecialTextColor(), '#ffffff'),

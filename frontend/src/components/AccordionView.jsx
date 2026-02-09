@@ -53,9 +53,9 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   );
 };
 
-const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd }) => {
+const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className }) => {
   return (
-    <div className={styles.accordionContainer}>
+    <div className={`${styles.accordionContainer} ${className || ''}`}>
       {data.map((item, index) => (
         <AccordionItem 
           key={item.id || index} 

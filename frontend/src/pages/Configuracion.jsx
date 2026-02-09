@@ -377,6 +377,32 @@ const Configuracion = () => {
                             <div className={styles.previewSidebarItem} style={{ color: '#94a3b8' }}>
                                 <LayoutIcon size={16} /> Inicio
                             </div>
+                            {/* Preview Accordion in Sidebar */}
+                            <div style={{ margin: '10px 0' }}>
+                                <div style={{ 
+                                    backgroundColor: settings.sidebarAccordionHeaderBgColor, 
+                                    color: settings.sidebarAccordionHeaderTextColor,
+                                    padding: '8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold'
+                                }}>
+                                    Administración
+                                </div>
+                                <div style={{ 
+                                    backgroundColor: settings.sidebarAccordionContentBgColor, 
+                                    color: settings.sidebarAccordionContentTextColor,
+                                    padding: '8px',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '5px'
+                                }}>
+                                    <div>Usuarios</div>
+                                    <div>Grupos</div>
+                                </div>
+                            </div>
+
                             <div className={styles.previewSidebarItem} style={{ backgroundColor: settings.sidebarActiveColor, color: settings.sidebarActiveTextColor }}>
                                 <LayoutIcon size={16} /> Perfil (Activo)
                             </div>
@@ -865,6 +891,13 @@ const Configuracion = () => {
                                     {renderColorInput('Texto Elemento Activo', 'sidebarActiveTextColor')}
                                     {renderColorInput('Fondo Hover', 'sidebarHoverColor')}
                                     {renderColorInput('Texto Hover', 'sidebarHoverTextColor')}
+                                    
+                                    {/* Nuevos campos para el acordeón del sidebar */}
+                                    <div style={{ gridColumn: '1 / -1', marginTop: '10px', marginBottom: '5px', fontWeight: 'bold', color: '#64748b' }}>Acordeón Sidebar</div>
+                                    {renderColorInput('Fondo Cabecera Acordeón', 'sidebarAccordionHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera Acordeón', 'sidebarAccordionHeaderTextColor')}
+                                    {renderColorInput('Fondo Contenido Acordeón', 'sidebarAccordionContentBgColor')}
+                                    {renderColorInput('Texto Contenido Acordeón', 'sidebarAccordionContentTextColor')}
                                 </div>
                             )}
 

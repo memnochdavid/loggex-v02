@@ -8,6 +8,10 @@
         "sidebarActiveTextColor": "#ffffff",
         "sidebarHoverColor": "#991b1b",
         "sidebarHoverTextColor": "#ffffff",
+        "sidebarAccordionHeaderBgColor": "#7f1d1d",
+        "sidebarAccordionHeaderTextColor": "#ffffff",
+        "sidebarAccordionContentBgColor": "#450a0a",
+        "sidebarAccordionContentTextColor": "#fca5a5",
         "textMainColor": "#450a0a",
         "textSecondaryColor": "#7f1d1d",
         "specialTextColor": "#ffffff",
@@ -57,6 +61,10 @@
         "modalBodyBgColor": "#ffffff",
         "modalBodyTextColor": "#450a0a",
         "modalFooterBgColor": "#fef2f2",
+        "modalCloseButtonBgColor": "#ffffff",
+        "modalCloseButtonTextColor": "#7f1d1d",
+        "modalCloseButtonHoverBgColor": "#fee2e2",
+        "modalCloseButtonHoverTextColor": "#450a0a",
         "userCardBgColor": "#7f1d1d",
         "userCardTextColor": "#ffffff",
         "userCardTextSecondaryColor": "#fca5a5",
@@ -81,6 +89,14 @@
         "eventCardTitleColor": "#7f1d1d",
         "eventCardMetaColor": "#991b1b",
         "eventsSidebarBgColor": "transparent",
-        "eventsSidebarTitleColor": "#7f1d1d"
+        "eventsSidebarTitleColor": "#7f1d1d",
+        "itemsPerPageUsuarios": 20,
+        "itemsPerPageCentros": 20,
+        "itemsPerPageCiclos": 20,
+        "itemsPerPageGrupos": 20,
+        "itemsPerPageModulos": 20,
+        "itemsPerPageMatriculas": 20,
+        "itemsPerPageImparticiones": 20,
+        "itemsPerPageHorarios": 20
     }
 }

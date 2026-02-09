@@ -4,7 +4,7 @@
     local_certs
 }
 
-# Definimos un snippet reutilizable con la lógica de enrutamiento
+# Definimos un snippet reutilizable con la lógica de enrutamiento PRINCIPAL (Frontend + API)
 (app_routes) {
     # Redirigir peticiones API al backend
     handle /api/* {
@@ -23,21 +23,21 @@
 }
 
 # Puerto 80 interno (Mapeado a 8888 externo) - HTTP
-# Acepta cualquier host, ideal para Ngrok (ngrok http 8888)
+# Frontend principal en HTTP
 :80 {
     import app_routes
 }
 
 # Puerto 443 interno (Mapeado a 8443 externo) - HTTPS
-# Específico para localhost para asegurar certificados correctos
+# Frontend principal en HTTPS
 localhost:443 {
     tls internal
     import app_routes
 }
 
 # Puerto 8443 interno (Mapeado a 9443 externo) - HTTPS
-# Específico para localhost
+# BACKEND DIRECTO (Para acceso a API/Swagger en raíz)
 localhost:8443 {
     tls internal
-    import app_routes
+    reverse_proxy backend:80
 }

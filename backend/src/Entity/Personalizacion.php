@@ -69,6 +69,23 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $sidebarHoverTextColor = '#ffffff';
 
+    // --- Sidebar Accordion (NUEVO) ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionHeaderBgColor = '#1e293b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionHeaderTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionContentBgColor = '#0f172a';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionContentTextColor = '#cbd5e1';
+
     // --- Textos ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -468,6 +485,19 @@ class Personalizacion
 
     public function getSidebarHoverTextColor(): ?string { return $this->sidebarHoverTextColor; }
     public function setSidebarHoverTextColor(string $color): static { $this->sidebarHoverTextColor = $color; return $this; }
+
+    // --- Sidebar Accordion ---
+    public function getSidebarAccordionHeaderBgColor(): ?string { return $this->sidebarAccordionHeaderBgColor; }
+    public function setSidebarAccordionHeaderBgColor(string $color): static { $this->sidebarAccordionHeaderBgColor = $color; return $this; }
+
+    public function getSidebarAccordionHeaderTextColor(): ?string { return $this->sidebarAccordionHeaderTextColor; }
+    public function setSidebarAccordionHeaderTextColor(string $color): static { $this->sidebarAccordionHeaderTextColor = $color; return $this; }
+
+    public function getSidebarAccordionContentBgColor(): ?string { return $this->sidebarAccordionContentBgColor; }
+    public function setSidebarAccordionContentBgColor(string $color): static { $this->sidebarAccordionContentBgColor = $color; return $this; }
+
+    public function getSidebarAccordionContentTextColor(): ?string { return $this->sidebarAccordionContentTextColor; }
+    public function setSidebarAccordionContentTextColor(string $color): static { $this->sidebarAccordionContentTextColor = $color; return $this; }
 
     public function getTextMainColor(): ?string { return $this->textMainColor; }
     public function setTextMainColor(string $color): static { $this->textMainColor = $color; return $this; }

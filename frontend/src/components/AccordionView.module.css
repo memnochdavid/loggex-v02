@@ -2,11 +2,11 @@
     width: 100%;
     /* max-width: 800px; ELIMINADO para ocupar todo el espacio */
     /* margin: 2rem auto; ELIMINADO para que el padre controle el margen */
-    border: 1px solid var(--color-border);
+    /*border: 1px solid var(--color-border);*/
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--shadow-elevation-low);
-    background-color: var(--bg-card); /* Asegurar fondo */
+    /*background-color: var(--bg-card); !* Asegurar fondo *!*/
     display: flex;
     flex-direction: column;
     gap: 0.5rem;

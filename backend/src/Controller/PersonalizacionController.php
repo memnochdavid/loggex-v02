@@ -65,6 +65,12 @@ class PersonalizacionController extends AbstractController
         if (isset($data['sidebarHoverColor'])) $personalizacion->setSidebarHoverColor($data['sidebarHoverColor']);
         if (isset($data['sidebarHoverTextColor'])) $personalizacion->setSidebarHoverTextColor($data['sidebarHoverTextColor']);
 
+        // Sidebar Accordion (NUEVO)
+        if (isset($data['sidebarAccordionHeaderBgColor'])) $personalizacion->setSidebarAccordionHeaderBgColor($data['sidebarAccordionHeaderBgColor']);
+        if (isset($data['sidebarAccordionHeaderTextColor'])) $personalizacion->setSidebarAccordionHeaderTextColor($data['sidebarAccordionHeaderTextColor']);
+        if (isset($data['sidebarAccordionContentBgColor'])) $personalizacion->setSidebarAccordionContentBgColor($data['sidebarAccordionContentBgColor']);
+        if (isset($data['sidebarAccordionContentTextColor'])) $personalizacion->setSidebarAccordionContentTextColor($data['sidebarAccordionContentTextColor']);
+
         // Textos
         if (isset($data['textMainColor'])) $personalizacion->setTextMainColor($data['textMainColor']);
         if (isset($data['textSecondaryColor'])) $personalizacion->setTextSecondaryColor($data['textSecondaryColor']);

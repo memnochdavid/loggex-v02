@@ -129,6 +129,40 @@
     border-top: 1px solid var(--color-gray-700);
 }
 
+/* Accordion Wrapper in Sidebar */
+.accordionWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    /*
+       REDEFINICIÓN DE VARIABLES CSS LOCALES
+       Esto fuerza al componente AccordionView (que usa estas variables)
+       a usar los valores específicos del Sidebar cuando está dentro de este wrapper.
+    */
+    --accordion-header-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-text: var(--sidebar-accordion-header-text, inherit);
+
+    /* Para el estado activo, usamos el mismo que el header normal del sidebar si no hay uno específico */
+    --accordion-header-active-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-active-text: var(--sidebar-accordion-header-text, inherit);
+
+    --accordion-content-bg: var(--sidebar-accordion-content-bg, rgba(0,0,0,0.2));
+    --accordion-content-text: var(--sidebar-accordion-content-text, inherit);
+
+    /* Eliminamos bordes y sombras por defecto del acordeón */
+    --color-border: transparent;
+    --shadow-elevation-low: none;
+}
+
+/* Ajustes adicionales para asegurar que el contenido se vea bien */
+.accordionWrapper :global(.accordionInner) {
+    padding: 0.5rem 0 0.5rem 0.5rem; /* Indent content */
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
 /* Mobile Styles */
 .mobileToggle {
     display: none;
