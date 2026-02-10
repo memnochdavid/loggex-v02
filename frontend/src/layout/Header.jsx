@@ -147,7 +147,8 @@ const Header = () => {
                         {LogoImage}
                     </Link>
                 ) : (
-                    <Link to="/" className={styles.logoLink} onClick={toggleSidebar}>
+                    // <Link to="/" className={styles.logoLink} onClick={toggleSidebar}>
+                    <Link to="/horarios" className={styles.logoLink} onClick={toggleSidebar}>
                         {LogoImage}
                     </Link>
                 )}

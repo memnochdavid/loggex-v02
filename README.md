@@ -28,6 +28,33 @@ Si acabas de clonar este repositorio desde Git en un equipo nuevo:
 
 ---
 
+## 📥 Actualización de Cambios (Git Pull)
+
+Si ya tienes el proyecto y has bajado cambios recientes (`git pull`), sigue estos pasos para asegurar que todo funcione (especialmente si hubo cambios en infraestructura o base de datos):
+
+1. **Arreglar permisos y entorno**:
+   ```bash
+   ./fix_env.sh
+   ```
+
+2. **Reconstruir contenedores** (para aplicar cambios en Caddy/PHP):
+   ```bash
+   docker compose down
+   docker compose up -d --build
+   ```
+
+3. **Actualizar Base de Datos** (si hubo cambios en Entidades):
+   ```bash
+   docker compose exec backend php bin/console doctrine:schema:update --force
+   ```
+
+4. **Limpiar Caché** (siempre recomendado):
+   ```bash
+   docker compose exec backend php bin/console cache:clear
+   ```
+
+---
+
 ## 🌿 Flujo de Trabajo Recomendado (Git)
 
 Para mantener el proyecto ordenado, **nunca trabajes directamente en la rama `main`**.
@@ -57,7 +84,7 @@ Para mantener el proyecto ordenado, **nunca trabajes directamente en la rama `ma
 ### Acceso Seguro (HTTPS)
 - **Frontend**: [https://localhost:8443](https://localhost:8443)
 - **Frontend (HTTP)**: [http://localhost:8888](http://localhost:8888)
-- **Backend API**: [https://localhost:9443/api/hello](https://localhost:9443/api/hello)
+- **Backend API**: [https://localhost:9443/api](https://localhost:9443/api) (Swagger UI)
 - **Base de Datos (MariaDB)**: Puerto `3307`
   - Usuario: `app_user`
   - Contraseña: `app_password`
@@ -92,8 +119,8 @@ docker compose exec frontend npm install [paquete]
 
 ### Frontend (`frontend/`)
 - `src/components/`: Componentes reutilizables (Botones, Inputs, Cards).
-- `src/layout/`: Componentes estructurales (Header, Footer).
-- `src/pages/`: Vistas completas (Home, About, NotFound).
+- `src/layout/`: Componentes estructurales (Header, Sidebar).
+- `src/pages/`: Vistas completas (Home, Login, Horarios).
 - `src/App.jsx`: Router y Layout principal.
 - `src/index.css`: Variables globales de diseño (:root).
 
@@ -107,6 +134,7 @@ Se recomienda usar CSS Modules.
 - `Caddyfile`: Configuración del Proxy HTTPS.
 - `setup.sh`: Script para crear el proyecto desde cero (scaffolding).
 - `init.sh`: Script para instalar dependencias tras clonar (bootstrapping).
+- `fix_env.sh`: Script para corregir permisos y claves JWT.
 
 ## 🔧 Solución de Problemas
 
