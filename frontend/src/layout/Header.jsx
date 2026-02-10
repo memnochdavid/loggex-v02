@@ -215,7 +215,10 @@ const Header = () => {
 
                 {/* Enlaces de navegación (ocultos en móvil si están en el sidebar, o visibles si caben) */}
                 <div className={styles.desktopNav}>
-                    <Link to="/about" className={styles.navLink}>About</Link>
+                    {/* Mostrar About solo si NO hay usuario logueado, O si es Superadmin */}
+                    {(!user || isSuperAdmin) && (
+                        <Link to="/about" className={styles.navLink}>About</Link>
+                    )}
                     
                     {/* Enlace de Soporte */}
                     {user && !isSuperAdmin && (
