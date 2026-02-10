@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from './Usuarios.module.css'; // Reutilizamos estilos
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
@@ -18,6 +18,8 @@ const Grupos = () => {
   const [grupos, setGrupos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -36,6 +38,12 @@ const Grupos = () => {
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -92,25 +100,6 @@ const Grupos = () => {
     .catch(err => console.error("Error cargando ciclos:", err));
   }, [selectedCentro, isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        fetchGrupos(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCiclo, selectedCentro, searchField]);
-
-  // Fetch al cambiar página u orden
-  useEffect(() => {
-    fetchGrupos(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getGrupoId = (g) => {
     if (g.id) return g.id;
     if (g['@id']) {
@@ -120,32 +109,40 @@ const Grupos = () => {
     return null;
   };
 
-  const fetchGrupos = async (page) => {
+  // Función de carga optimizada
+  const fetchGruposData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/grupos?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/grupos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (selectedCiclo) {
-          url += `&ciclo=${selectedCiclo}`;
+      if (params.selectedCiclo) {
+          url += `&ciclo=${params.selectedCiclo}`;
       }
       
-      if (isSuperAdmin && selectedCentro) {
-          url += `&centro=${selectedCentro}`;
+      if (params.isSuperAdmin && params.selectedCentro) {
+          url += `&centro=${params.selectedCentro}`;
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -161,23 +158,76 @@ const Grupos = () => {
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching grupos:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchGruposData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchGruposData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      selectedCiclo,
+      selectedCentro, 
+      sortColumn, 
+      sortDirection, 
+      isSuperAdmin,
+      fetchGruposData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (grupo = null) => {
+  const handleOpenModal = useCallback((grupo = null) => {
     if (grupo) {
       setCurrentGrupo(grupo);
       
@@ -219,7 +269,7 @@ const Grupos = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, [isSuperAdmin, user.centro]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -278,7 +328,18 @@ const Grupos = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchGrupos(currentPage);
+      // Recargar datos
+      fetchGruposData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -289,7 +350,7 @@ const Grupos = () => {
     }
   };
 
-  const handleDelete = async (grupo) => {
+  const handleDelete = useCallback(async (grupo) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este grupo?')) {
       return;
     }
@@ -307,15 +368,25 @@ const Grupos = () => {
         throw new Error('No se pudo eliminar el grupo');
       }
 
-      fetchGrupos(currentPage);
+      fetchGruposData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
 
     } catch (err) {
       console.error("Error deleting grupo:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
     { header: 'Año Escolar', accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
@@ -346,7 +417,7 @@ const Grupos = () => {
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
@@ -399,7 +470,7 @@ const Grupos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchGrupos(currentPage)} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

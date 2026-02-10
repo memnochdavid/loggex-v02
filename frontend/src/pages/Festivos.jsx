@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from './Festivos.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
@@ -19,6 +19,8 @@ const Festivos = () => {
 
   const [festivos, setFestivos] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -37,14 +39,11 @@ const Festivos = () => {
   const [sortColumn, setSortColumn] = useState('fechaInicio');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Estado para forzar recarga (ej: tras borrar/guardar)
-  const [forceReload, setForceReload] = useState(0);
-
-  // Referencia para evitar peticiones duplicadas con los mismos parámetros
-  const lastParamsRef = useRef(null);
-  
-  // Referencia para controlar el primer renderizado del buscador
-  const isFirstSearchRender = useRef(true);
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -78,36 +77,6 @@ const Festivos = () => {
     }
   }, [isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    if (isFirstSearchRender.current) {
-        isFirstSearchRender.current = false;
-        return;
-    }
-
-    const timer = setTimeout(() => {
-        setCurrentPage(1);
-        // Forzamos recarga incrementando este contador
-        setForceReload(prev => prev + 1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCentro, searchField]);
-
-  // Efecto Principal de Carga
-  useEffect(() => {
-    if (!itemsPerPage) return;
-    
-    const controller = new AbortController();
-    fetchFestivos(currentPage, controller.signal);
-
-    return () => controller.abort();
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage, forceReload]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getFestivoId = (f) => {
     if (f.id) return f.id;
     if (f['@id']) {
@@ -117,39 +86,28 @@ const Festivos = () => {
     return null;
   };
 
-  const fetchFestivos = async (page, signal) => {
-    // Construir parámetros actuales
-    const currentParams = {
-        page,
-        itemsPerPage,
-        sortColumn,
-        sortDirection,
-        searchTerm,
-        selectedCentro,
-        searchField,
-        forceReload // Incluimos forceReload para que si cambia, los params sean distintos
-    };
-
-    // Verificar si son idénticos a la última petición exitosa
-    // Esto evita la doble carga inicial
-    if (lastParamsRef.current && JSON.stringify(lastParamsRef.current) === JSON.stringify(currentParams)) {
-        return;
+  // Función de carga optimizada
+  const fetchFestivosData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
     }
+    abortController.current = new AbortController();
 
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/festivos?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/festivos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (selectedCentro) {
-          url += `&centro=${selectedCentro}`;
+      if (params.selectedCentro) {
+          url += `&centro=${params.selectedCentro}`;
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
@@ -157,7 +115,7 @@ const Festivos = () => {
           'Accept': 'application/ld+json',
         },
         credentials: 'include',
-        signal
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -171,32 +129,74 @@ const Festivos = () => {
       setFestivos(items);
       setTotalItems(total);
       setError(null);
-      
-      // Actualizar referencia de últimos parámetros solo si tuvo éxito
-      lastParamsRef.current = currentParams;
 
     } catch (err) {
-      if (err.name !== 'AbortError') {
-          console.error("Error fetching festivos:", err);
-          setError(err.message);
-      }
+      if (err.name === 'AbortError') return;
+      console.error("Error fetching festivos:", err);
+      setError(err.message);
     } finally {
-        if (!signal?.aborted) {
-            setLoading(false);
-        }
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchFestivosData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchFestivosData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      selectedCentro, 
+      sortColumn, 
+      sortDirection, 
+      fetchFestivosData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (festivo = null) => {
+  const handleOpenModal = useCallback((festivo = null) => {
     if (festivo) {
       setCurrentFestivo(festivo);
       
@@ -214,11 +214,11 @@ const Festivos = () => {
         nombre: '',
         fechaInicio: '',
         fechaFin: '',
-        centro: isSuperAdmin ? '' : (user?.centro?.id || '') // Preseleccionar centro si no es superadmin
+        centro: isSuperAdmin ? '' : (user?.centro?.id || '')
       });
     }
     setIsModalOpen(true);
-  };
+  }, [isSuperAdmin, user.centro]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -245,7 +245,6 @@ const Festivos = () => {
       
       const method = currentFestivo ? 'PUT' : 'POST';
 
-      // Preparar payload
       const payload = {
         nombre: formData.nombre,
         fechaInicio: formData.fechaInicio,
@@ -277,8 +276,16 @@ const Festivos = () => {
         throw new Error(errorMessage);
       }
 
-      // Forzar recarga
-      setForceReload(prev => prev + 1);
+      // Recargar datos
+      fetchFestivosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -289,7 +296,7 @@ const Festivos = () => {
     }
   };
 
-  const handleDelete = async (festivo) => {
+  const handleDelete = useCallback(async (festivo) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este festivo?')) {
       return;
     }
@@ -307,15 +314,23 @@ const Festivos = () => {
         throw new Error('No se pudo eliminar el festivo');
       }
 
-      setForceReload(prev => prev + 1);
+      fetchFestivosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection
+      });
 
     } catch (err) {
       console.error("Error deleting festivo:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { 
         header: 'Fecha Inicio', 
@@ -335,7 +350,7 @@ const Festivos = () => {
         sortable: false 
     },
     { 
-        header: 'Acciones',
+        header: 'Acciones', 
         accessor: (row) => {
             const isGlobal = !row.centro;
             const canEditRow = isSuperAdmin || (!isGlobal && isAdmin);
@@ -369,7 +384,7 @@ const Festivos = () => {
         },
         sortable: false
     }
-  ];
+  ], [isSuperAdmin, isAdmin, handleOpenModal, handleDelete]);
 
   return (
     <Layout>
@@ -408,7 +423,7 @@ const Festivos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => window.location.reload()} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchFestivosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from './Horarios.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
+import { usePagination } from '../hooks/usePagination';
 
 const Horarios = () => {
   const { user } = useAuth();
@@ -28,9 +29,11 @@ const Horarios = () => {
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
   const [festivos, setFestivos] = useState([]);
-  const [tareas, setTareas] = useState([]); // Estado para tareas/eventos
+  const [tareas, setTareas] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -39,17 +42,18 @@ const Horarios = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
-  const [itemsPerPage, setItemsPerPage] = useState(() => {
-      if (user?.centro?.personalizacion?.itemsPerPageHorarios) {
-          return user.centro.personalizacion.itemsPerPageHorarios;
-      }
-      return 20;
-  });
+  const [itemsPerPage, setItemsPerPage] = usePagination('horarios');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('aula');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   const searchFields = [
       { value: 'aula', label: 'Aula' },
@@ -110,6 +114,7 @@ const Horarios = () => {
     .catch(err => console.error("Error cargando imparticiones:", err));
   }, [selectedCentro, isSuperAdmin, canEdit]);
 
+  // Carga de vista calendario (no usa DataTable, lógica separada)
   useEffect(() => {
       if (viewMode === 'calendar') {
           setLoading(true);
@@ -125,17 +130,7 @@ const Horarios = () => {
               credentials: 'include'
           }).then(res => res.json());
 
-          // Cargar Tareas (Eventos)
-          // Simplificación: Cargar todas las tareas visibles para el usuario
-          // Idealmente filtrar por fecha, pero cargamos todas y filtramos en cliente por ahora
           let urlTareas = getApiUrl('/api/tareas?pagination=false');
-          // Si es alumno, filtrar por sus grupos (esto requeriría lógica compleja aquí o en backend)
-          // Por ahora, asumimos que el backend filtra o que cargamos todas las públicas/asignadas
-          // Para simplificar y no romper, usamos el endpoint genérico y confiamos en la seguridad
-          // O mejor: Usar el endpoint de entregas para alumnos para saber qué tienen que entregar
-
-          // NOTA: Para hacerlo bien, deberíamos tener un endpoint /api/my-tasks
-          // Vamos a intentar cargar tareas genéricas. Si es alumno, verá las de sus grupos si la API lo permite.
           const fetchTareas = fetch(urlTareas, {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
@@ -168,26 +163,6 @@ const Horarios = () => {
       }
   }, [viewMode, selectedCentro, isSuperAdmin]);
 
-  useEffect(() => {
-    if (viewMode !== 'list') return;
-    const timer = setTimeout(() => {
-        fetchHorarios(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCentro, searchField, viewMode]);
-
-  useEffect(() => {
-    if (viewMode === 'list') {
-        fetchHorarios(currentPage);
-    }
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage, viewMode]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getHorarioId = (h) => {
     if (h.id) return h.id;
     if (h['@id']) {
@@ -197,27 +172,35 @@ const Horarios = () => {
     return null;
   };
 
-  const fetchHorarios = async (page) => {
+  // Función de carga optimizada para DataTable
+  const fetchHorariosData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/horarios?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/horarios?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          let term = searchTerm;
-          if (searchField === 'diaSemana') {
-              const diaNum = diasSemanaInverso[searchTerm.toLowerCase()];
+      if (params.searchTerm) {
+          let term = params.searchTerm;
+          if (params.searchField === 'diaSemana') {
+              const diaNum = diasSemanaInverso[params.searchTerm.toLowerCase()];
               if (diaNum) term = diaNum;
           }
-          url += `&${searchField}=${encodeURIComponent(term)}`; 
+          url += `&${params.searchField}=${encodeURIComponent(term)}`; 
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: { 'Accept': 'application/ld+json' },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) throw new Error(`Error ${response.status}`);
@@ -231,23 +214,73 @@ const Horarios = () => {
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching horarios:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios en modo lista
+  useEffect(() => {
+      if (viewMode !== 'list') return;
+
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchHorariosData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchHorariosData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      sortColumn, 
+      sortDirection, 
+      viewMode,
+      fetchHorariosData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (horario = null) => {
+  const handleOpenModal = useCallback((horario = null) => {
     if (horario) {
       setCurrentHorario(horario);
       const getId = (obj) => obj ? (obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : '')) : '';
@@ -275,7 +308,7 @@ const Horarios = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -323,7 +356,15 @@ const Horarios = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchHorarios(currentPage);
+      // Recargar datos
+      fetchHorariosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -334,7 +375,7 @@ const Horarios = () => {
     }
   };
 
-  const handleDelete = async (horario) => {
+  const handleDelete = useCallback(async (horario) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este horario?')) return;
 
     const id = getHorarioId(horario);
@@ -347,14 +388,21 @@ const Horarios = () => {
       });
 
       if (!response.ok) throw new Error('No se pudo eliminar el horario');
-      fetchHorarios(currentPage);
+      fetchHorariosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      });
     } catch (err) {
       console.error("Error deleting horario:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { 
         header: 'Día', 
         accessor: (row) => diasSemana[row.diaSemana] || row.diaSemana, 
@@ -390,7 +438,7 @@ const Horarios = () => {
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
@@ -444,7 +492,7 @@ const Horarios = () => {
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar..."
+                        placeholder="Buscar..." 
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}

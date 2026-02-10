@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import useMediaQuery from '../hooks/useMediaQuery';
 
@@ -28,13 +28,13 @@ const DataTable = ({
     currentPage, 
     onPageChange,
     onItemsPerPageChange,
-    loading,
+    loading, // Único estado de carga
     sortColumn,
     sortDirection,
     onSort,
     pageSizeOptions = [10, 20, 30, 50, 100],
     mobileBreakpoint = '768px',
-    mobileHeaderColumns = 1 // Nuevo parámetro
+    mobileHeaderColumns = 1
 }) => {
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
 
@@ -42,7 +42,6 @@ const DataTable = ({
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-    // Asegurar que itemsPerPage esté en las opciones
     const options = [...new Set([...pageSizeOptions, itemsPerPage])].sort((a, b) => a - b);
 
     const handleSort = (column) => {
@@ -63,7 +62,6 @@ const DataTable = ({
         if (typeof col.accessor === 'function') {
             return col.accessor(row);
         }
-        // Soporte para accessors anidados como 'centro.nombre'
         if (typeof col.accessor === 'string' && col.accessor.includes('.')) {
             return col.accessor.split('.').reduce((obj, key) => obj && obj[key], row);
         }
@@ -71,7 +69,8 @@ const DataTable = ({
     };
 
     const renderPagination = (position) => {
-        if (totalItems === 0) return null;
+        // Mostrar paginación incluso si no hay items (pero deshabilitada) para mantener altura
+        if (totalItems === 0 && !loading) return null;
         
         return (
             <div className={`${styles.pagination} ${position === 'top' ? styles.paginationTop : styles.paginationBottom}`}>
@@ -90,7 +89,7 @@ const DataTable = ({
                         </select>
                     </div>
                     <div className={styles.pageInfo}>
-                        {startItem}-{endItem} de {totalItems}
+                        {totalItems > 0 ? `${startItem}-${endItem} de ${totalItems}` : '0 de 0'}
                     </div>
                 </div>
                 
@@ -98,41 +97,33 @@ const DataTable = ({
                     <button 
                         className={styles.pageButton} 
                         onClick={() => onPageChange(1)}
-                        disabled={currentPage === 1 || loading}
-                        aria-label="Primera página"
-                        title="Primera página"
+                        disabled={currentPage === 1 || loading || totalItems === 0}
                     >
                         <ChevronsLeft size={16} />
                     </button>
                     <button 
                         className={styles.pageButton} 
                         onClick={() => onPageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || loading}
-                        aria-label="Página anterior"
-                        title="Página anterior"
+                        disabled={currentPage === 1 || loading || totalItems === 0}
                     >
                         <ChevronLeft size={16} />
                     </button>
                     
                     <span className={styles.pageNumber}>
-                        Página {currentPage} de {totalPages}
+                        Página {currentPage} {totalPages > 0 ? `de ${totalPages}` : ''}
                     </span>
 
                     <button 
                         className={styles.pageButton} 
                         onClick={() => onPageChange(currentPage + 1)}
-                        disabled={currentPage >= totalPages || loading}
-                        aria-label="Página siguiente"
-                        title="Página siguiente"
+                        disabled={currentPage >= totalPages || loading || totalItems === 0}
                     >
                         <ChevronRight size={16} />
                     </button>
                     <button 
                         className={styles.pageButton} 
                         onClick={() => onPageChange(totalPages)}
-                        disabled={currentPage >= totalPages || loading}
-                        aria-label="Última página"
-                        title="Última página"
+                        disabled={currentPage >= totalPages || loading || totalItems === 0}
                     >
                         <ChevronsRight size={16} />
                     </button>
@@ -141,45 +132,33 @@ const DataTable = ({
         );
     };
 
-    if (!loading && (!data || data.length === 0)) {
-        return (
-            <div className={styles.container}>
-                {!isMobile ? (
-                    <div className={styles.desktopView}>
-                        <table className={styles.table}>
-                            <thead className={styles.thead}>
-                                <tr>
-                                    {columns.map((col, index) => (
-                                        <th key={index} className={`${styles.th} ${col.className || ''}`}>
-                                            {col.header}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className={styles.tbody}>
-                                <tr>
-                                    <td colSpan={columns.length} className={styles.emptyState}>
-                                        No hay datos disponibles.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className={styles.mobileView}>
-                        <div className={styles.emptyState}>No hay datos disponibles.</div>
-                    </div>
-                )}
-            </div>
-        );
-    }
+    // Determinar si estamos en estado "sin datos" (loading=false y data vacía)
+    const noDataAvailable = !loading && (!data || data.length === 0);
 
     return (
-        <div className={styles.container}>
-            {/* Renderizado Condicional basado en JS (useMediaQuery) */}
+        <div className={styles.container} style={{ position: 'relative', minHeight: '200px' }}>
+            {/* Overlay de carga sutil si loading es true Y hay datos previos */}
+            {loading && data && data.length > 0 && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none'
+                }}>
+                    <Loader2 className="animate-spin" size={32} color="#4f46e5" />
+                </div>
+            )}
+
             {!isMobile ? (
                 /* Vista Escritorio */
-                <div className={styles.desktopView}>
+                <div className={styles.desktopView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
                     {renderPagination('top')}
                     
                     <div className={styles.tableWrapper}>
@@ -209,13 +188,25 @@ const DataTable = ({
                                 </tr>
                             </thead>
                             <tbody className={styles.tbody}>
-                                {loading ? (
+                                {/* Caso 1: Cargando y sin datos previos */}
+                                {loading && (!data || data.length === 0) ? (
                                     <tr>
-                                        <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '2rem' }}>
-                                            Cargando datos...
+                                        <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                                                <Loader2 className="animate-spin" size={24} />
+                                                <span>Cargando datos...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : noDataAvailable ? (
+                                    /* Caso 2: Sin datos y sin cargar */
+                                    <tr>
+                                        <td colSpan={columns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
+                                            No hay datos disponibles.
                                         </td>
                                     </tr>
                                 ) : (
+                                    /* Caso 3: Datos disponibles */
                                     data.map((row, rowIndex) => (
                                         <tr key={row.id || row['@id'] || rowIndex}>
                                             {columns.map((col, colIndex) => (
@@ -233,22 +224,27 @@ const DataTable = ({
                     {renderPagination('bottom')}
                 </div>
             ) : (
-                /* Vista Móvil con AccordionView */
-                <div className={styles.mobileView}>
+                /* Vista Móvil */
+                <div className={styles.mobileView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
                     <div className={styles.mobileContainer}>
                         <div className={styles.mobilePaginationContainer}>
                             {renderPagination('top')}
                         </div>
 
-                        {loading ? (
-                            <div className={styles.emptyState}>Cargando datos...</div>
+                        {loading && (!data || data.length === 0) ? (
+                            <div className={styles.emptyState} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem' }}>
+                                <Loader2 className="animate-spin" size={24} />
+                                <span>Cargando datos...</span>
+                            </div>
+                        ) : noDataAvailable ? (
+                            <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
+                                No hay datos disponibles.
+                            </div>
                         ) : (
                             <AccordionView 
                                 data={data}
                                 renderHeader={(row) => {
-                                    // Renderizar las primeras N columnas en la cabecera según mobileHeaderColumns
                                     const headerCols = columns.slice(0, mobileHeaderColumns);
-                                    
                                     return (
                                         <div className={styles.mobileHeaderContent}>
                                             {headerCols.map((col, idx) => (
@@ -261,7 +257,6 @@ const DataTable = ({
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {/* Mostrar el RESTO de las columnas en el cuerpo */}
                                         {columns.slice(mobileHeaderColumns).map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>

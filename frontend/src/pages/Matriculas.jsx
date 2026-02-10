@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from './Usuarios.module.css'; // Reutilizamos estilos
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 
@@ -18,6 +19,8 @@ const Matriculas = () => {
   const [grupos, setGrupos] = useState([]);
   const [alumnos, setAlumnos] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -29,18 +32,19 @@ const Matriculas = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
-  // Inicializar itemsPerPage desde la configuración del usuario
-  const [itemsPerPage, setItemsPerPage] = useState(() => {
-      if (user?.centro?.personalizacion?.itemsPerPageMatriculas) {
-          return user.centro.personalizacion.itemsPerPageMatriculas;
-      }
-      return 20;
-  });
+  // Usar hook de paginación
+  const [itemsPerPage, setItemsPerPage] = usePagination('matriculas');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('alumno.nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -109,25 +113,6 @@ const Matriculas = () => {
 
   }, [selectedCentro, isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        fetchMatriculas(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedGrupo, selectedCentro, searchField]);
-
-  // Fetch al cambiar página u orden
-  useEffect(() => {
-    fetchMatriculas(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getMatriculaId = (m) => {
     if (m.id) return m.id;
     if (m['@id']) {
@@ -137,28 +122,36 @@ const Matriculas = () => {
     return null;
   };
 
-  const fetchMatriculas = async (page) => {
+  // Función de carga optimizada
+  const fetchMatriculasData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/matriculas?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/matriculas?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (selectedGrupo) {
-          url += `&grupo=${selectedGrupo}`;
+      if (params.selectedGrupo) {
+          url += `&grupo=${params.selectedGrupo}`;
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -174,27 +167,75 @@ const Matriculas = () => {
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching matriculas:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedGrupo,
+          sortColumn,
+          sortDirection
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchMatriculasData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchMatriculasData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      selectedGrupo, 
+      sortColumn, 
+      sortDirection, 
+      fetchMatriculasData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (matricula = null) => {
+  const handleOpenModal = useCallback((matricula = null) => {
     if (matricula) {
       setCurrentMatricula(matricula);
       
-      // Función robusta para obtener ID
       const getId = (obj) => {
           if (!obj) return '';
           if (typeof obj === 'object') {
@@ -218,7 +259,7 @@ const Matriculas = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -269,7 +310,16 @@ const Matriculas = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchMatriculas(currentPage);
+      // Recargar datos
+      fetchMatriculasData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedGrupo,
+          sortColumn,
+          sortDirection
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -280,7 +330,7 @@ const Matriculas = () => {
     }
   };
 
-  const handleDelete = async (matricula) => {
+  const handleDelete = useCallback(async (matricula) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta matrícula?')) {
       return;
     }
@@ -298,15 +348,23 @@ const Matriculas = () => {
         throw new Error('No se pudo eliminar la matrícula');
       }
 
-      fetchMatriculas(currentPage);
+      fetchMatriculasData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedGrupo,
+          sortColumn,
+          sortDirection
+      });
 
     } catch (err) {
       console.error("Error deleting matricula:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { 
         header: 'Alumno', 
         accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : '-', 
@@ -341,7 +399,7 @@ const Matriculas = () => {
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
@@ -396,7 +454,7 @@ const Matriculas = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchMatriculas(currentPage)} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

@@ -1,17 +1,19 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import styles from './Centros.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
 import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Centros = () => {
     const [centros, setCentros] = useState([]);
+    
+    // Estado de carga único
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -26,6 +28,12 @@ const Centros = () => {
     const [searchField, setSearchField] = useState('nombre');
     const [sortColumn, setSortColumn] = useState('id');
     const [sortDirection, setSortDirection] = useState('asc');
+
+    // Refs para control de flujo
+    const debounceTimeout = useRef(null);
+    const prevSearchTerm = useRef(searchTerm);
+    const prevSearchField = useRef(searchField);
+    const abortController = useRef(null);
 
     // Campos buscables
     const searchFields = [
@@ -48,25 +56,6 @@ const Centros = () => {
     const [logoPreview, setLogoPreview] = useState(null);
     const [saving, setSaving] = useState(false);
 
-    // Debounce para búsqueda
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchCentros(1); // Reset a página 1 al buscar
-            setCurrentPage(1);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [searchTerm, searchField]);
-
-    // Fetch al cambiar página, orden o items por página
-    useEffect(() => {
-        fetchCentros(currentPage);
-    }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-    const handleItemsPerPageChange = (newItemsPerPage) => {
-        setItemsPerPage(newItemsPerPage);
-        setCurrentPage(1); // Resetear a página 1 al cambiar tamaño
-    };
-
     const getCentroId = (centro) => {
         if (centro.id) return centro.id;
         if (centro['@id']) {
@@ -76,30 +65,38 @@ const Centros = () => {
         return null;
     };
 
-    const getLogoUrl = (logoName) => {
+    const getLogoUrl = useCallback((logoName) => {
         if (!logoName) return null;
         return getAssetUrl(`/uploads/logo-centro/${logoName}`);
-    };
+    }, []);
 
-    const fetchCentros = async (page) => {
+    // Función de carga optimizada
+    const fetchCentrosData = useCallback(async (params) => {
+        if (abortController.current) {
+            abortController.current.abort();
+        }
+        abortController.current = new AbortController();
+
         setLoading(true);
+
         try {
             // Construir URL con parámetros
-            let url = getApiUrl(`/api/centros?page=${page}&itemsPerPage=${itemsPerPage}`);
+            let url = getApiUrl(`/api/centros?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
 
-            if (searchTerm) {
-                url += `&${searchField}=${encodeURIComponent(searchTerm)}`;
+            if (params.searchTerm) {
+                url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`;
             }
 
-            if (sortColumn) {
-                url += `&order[${sortColumn}]=${sortDirection}`;
+            if (params.sortColumn) {
+                url += `&order[${params.sortColumn}]=${params.sortDirection}`;
             }
 
             const response = await fetch(url, {
                 headers: {
                     'Accept': 'application/ld+json',
                 },
-                credentials: 'include'
+                credentials: 'include',
+                signal: abortController.current.signal
             });
 
             if (!response.ok) {
@@ -115,23 +112,70 @@ const Centros = () => {
             setError(null);
 
         } catch (err) {
+            if (err.name === 'AbortError') return;
             console.error("Error fetching centros:", err);
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (abortController.current && !abortController.current.signal.aborted) {
+                setLoading(false);
+            }
         }
+    }, []); 
+
+    // Efecto ÚNICO para cambios
+    useEffect(() => {
+        const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+        
+        prevSearchTerm.current = searchTerm;
+        prevSearchField.current = searchField;
+
+        const params = {
+            page: currentPage,
+            itemsPerPage,
+            searchTerm,
+            searchField,
+            sortColumn,
+            sortDirection
+        };
+
+        if (searchChanged) {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            debounceTimeout.current = setTimeout(() => {
+                fetchCentrosData(params);
+            }, 500);
+        } else {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+            fetchCentrosData(params);
+        }
+
+        return () => {
+            if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        };
+    }, [
+        currentPage, 
+        itemsPerPage, 
+        searchTerm, 
+        searchField, 
+        sortColumn, 
+        sortDirection,
+        fetchCentrosData
+    ]);
+
+    const handleItemsPerPageChange = (newItemsPerPage) => {
+        setItemsPerPage(newItemsPerPage);
+        setCurrentPage(1);
     };
 
-    const handleSort = (columnKey) => {
+    const handleSort = useCallback((columnKey) => {
         if (sortColumn === columnKey) {
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         } else {
             setSortColumn(columnKey);
             setSortDirection('asc');
         }
-    };
+    }, [sortColumn]);
 
-    const handleOpenModal = (centro = null) => {
+    const handleOpenModal = useCallback((centro = null) => {
         setLogoFile(null);
         if (centro) {
             setCurrentCentro(centro);
@@ -155,7 +199,7 @@ const Centros = () => {
             setLogoPreview(null);
         }
         setIsModalOpen(true);
-    };
+    }, [getLogoUrl]);
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
@@ -219,7 +263,15 @@ const Centros = () => {
                 throw new Error(errorMessage);
             }
 
-            await fetchCentros(currentPage);
+            // Recargar datos
+            fetchCentrosData({
+                page: currentPage,
+                itemsPerPage,
+                searchTerm,
+                searchField,
+                sortColumn,
+                sortDirection
+            });
             handleCloseModal();
 
         } catch (err) {
@@ -230,7 +282,7 @@ const Centros = () => {
         }
     };
 
-    const handleDelete = async (centro) => {
+    const handleDelete = useCallback(async (centro) => {
         if (!window.confirm('¿Estás seguro de que quieres eliminar este centro? Esta acción no se puede deshacer.')) {
             return;
         }
@@ -248,15 +300,22 @@ const Centros = () => {
                 throw new Error('No se pudo eliminar el centro');
             }
 
-            fetchCentros(currentPage);
+            fetchCentrosData({
+                page: currentPage,
+                itemsPerPage,
+                searchTerm,
+                searchField,
+                sortColumn,
+                sortDirection
+            });
 
         } catch (err) {
             console.error("Error deleting centro:", err);
             alert(`Error al eliminar: ${err.message}`);
         }
-    };
+    }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchCentrosData]);
 
-    const columns = [
+    const columns = useMemo(() => [
         {
             header: 'Logo',
             accessor: (row) => (
@@ -319,7 +378,7 @@ const Centros = () => {
             ),
             sortable: false
         }
-    ];
+    ], [getLogoUrl, handleOpenModal, handleDelete]);
 
     return (
         <Layout>
@@ -342,7 +401,7 @@ const Centros = () => {
                 {error && (
                     <div className={styles.errorContainer}>
                         <p>{error}</p>
-                        <Button onClick={() => fetchCentros(currentPage)} variant="secondary"
+                        <Button onClick={() => fetchCentrosData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary"
                                 style={{marginTop: '1rem'}}>Reintentar</Button>
                     </div>
                 )}
@@ -368,6 +427,7 @@ const Centros = () => {
                     onSubmit={handleSubmit}
                     isSubmitting={saving}
                 >
+                    {/* ... Contenido del modal ... */}
                     {/* Campo de Logo */}
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Logo del Centro</label>
