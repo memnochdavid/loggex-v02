@@ -81,6 +81,10 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                 if ($resourceClass === Festivo::class) {
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
                     $queryBuilder->setParameter('current_centro', $user->getCentro());
+                } elseif ($resourceClass === User::class && in_array('ROLE_ADMIN', $user->getRoles())) {
+                    // Permitir a los Admins ver usuarios de su centro Y usuarios globales (Superadmins)
+                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
+                    $queryBuilder->setParameter('current_centro', $user->getCentro());
                 } else {
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro', $rootAlias));
                     $queryBuilder->setParameter('current_centro', $user->getCentro());

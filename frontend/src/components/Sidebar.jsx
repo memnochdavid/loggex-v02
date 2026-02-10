@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -11,6 +11,7 @@ const Sidebar = () => {
     const { isSidebarOpen, closeSidebar } = useUI();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [expandedAccordion, setExpandedAccordion] = useState(null);
+    const location = useLocation();
 
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);
@@ -28,6 +29,49 @@ const Sidebar = () => {
         setExpandedAccordion(expandedAccordion === id ? null : id);
     };
 
+    // Mapa de rutas a IDs de acordeón para mantenerlos abiertos
+    const routeToAccordionMap = {
+        '/horarios': 'general',
+        '/mensajes': 'general',
+        '/perfil': 'general',
+        
+        '/tareas': isAlumno ? 'alumno' : 'profesor', // Tareas está en ambos, priorizamos rol
+        '/entregas': isAlumno ? 'alumno' : 'profesor',
+        '/mis-temarios': 'profesor',
+        '/claustro': 'profesor',
+        '/mis-alumnos': 'profesor',
+        
+        '/apuntes': 'alumno',
+        '/faltas': 'alumno',
+        '/companeros': 'alumno',
+        '/mis-profesores': 'alumno',
+        
+        '/usuarios': 'administracion',
+        '/ciclos': 'administracion',
+        '/grupos': 'administracion',
+        '/modulos': 'administracion',
+        '/matriculas': 'administracion',
+        '/imparticiones': 'administracion',
+        '/festivos': isSuperAdmin ? 'superadmin' : 'administracion',
+        '/configuracion': 'administracion',
+        
+        '/centros': 'superadmin',
+    };
+
+    // Efecto para abrir el acordeón correcto al cambiar de ruta o cargar
+    useEffect(() => {
+        const currentPath = location.pathname;
+        // Buscar coincidencia exacta o parcial (para subrutas si las hubiera)
+        const accordionId = Object.keys(routeToAccordionMap).find(path => currentPath.startsWith(path));
+        
+        if (accordionId) {
+            const targetId = routeToAccordionMap[accordionId];
+            // Solo actualizar si es diferente para evitar re-renders innecesarios
+            // Y si no está colapsado el sidebar (opcional, pero mejor UX)
+            setExpandedAccordion(targetId);
+        }
+    }, [location.pathname, isAlumno, isSuperAdmin]); // Dependencias clave
+
     // Definición de las secciones del acordeón
     const accordionData = [];
 
@@ -37,10 +81,6 @@ const Sidebar = () => {
         title: 'General',
         content: (
             <>
-                {/*<NavLink to="/" className={getNavLinkClass} title="Inicio" end onClick={closeSidebar}>*/}
-                {/*    <Home size={20} />*/}
-                {/*    {!isCollapsed && <span>Inicio</span>}*/}
-                {/*</NavLink>*/}
                 <NavLink to="/horarios" className={getNavLinkClass} title="Horarios" onClick={closeSidebar}>
                     <Calendar size={20} />
                     {!isCollapsed && <span>Horarios</span>}

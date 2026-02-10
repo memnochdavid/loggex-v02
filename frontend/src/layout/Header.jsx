@@ -7,7 +7,7 @@ import styles from './Header.module.css';
 import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
 import NameTitle from '../components/NameTitle'; // Importar NameTitle
-import { Bell, User } from 'lucide-react'; // Importar icono de campana
+import { Bell, User, MessageCircleQuestion } from 'lucide-react'; // Importar iconos
 import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../config/api';
 
 // Hook simple para media query
@@ -34,6 +34,7 @@ const Header = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState([]); // Almacenar mensajes para el dropdown
     const [isNotifOpen, setIsNotifOpen] = useState(false); // Estado del dropdown
+    const [supportLoading, setSupportLoading] = useState(false); // Estado de carga para soporte
     const notifRef = useRef(null);
     const navigate = useNavigate();
 
@@ -49,7 +50,8 @@ const Header = () => {
     }
 
     const centroLogo = getCentroLogoUrl();
-    const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
     // Cerrar dropdown al hacer clic fuera
     useEffect(() => {
@@ -125,6 +127,59 @@ const Header = () => {
         navigate('/mensajes');
     };
 
+    const handleSupportClick = async (e) => {
+        e.preventDefault();
+        if (supportLoading) return;
+        setSupportLoading(true);
+
+        try {
+            let targetUser = null;
+
+            if (isAdmin) {
+                // Si es Admin, busca al Superadmin
+                // Como no hay filtro directo fácil por rol en array JSON, pedimos usuarios y filtramos
+                // Optimización: Pedimos sin paginación pero limitamos si es posible, o asumimos que no hay tantos usuarios globales visibles
+                const response = await fetch(getApiUrl('/api/users?pagination=false'), {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const users = data['hydra:member'] || data.member || [];
+                    targetUser = users.find(u => u.roles.includes('ROLE_SUPERADMIN'));
+                }
+
+            } else {
+                // Si es Alumno o Profesor, busca al Admin de su centro
+                if (user.centro && user.centro.id) {
+                    const response = await fetch(getApiUrl(`/api/users?centro=${user.centro.id}&pagination=false`), {
+                        headers: { 'Accept': 'application/ld+json' },
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const users = data['hydra:member'] || data.member || [];
+                        targetUser = users.find(u => u.roles.includes('ROLE_ADMIN'));
+                    }
+                }
+            }
+
+            if (targetUser) {
+                navigate('/mensajes', { state: { chatWith: targetUser } });
+            } else {
+                alert('No se ha encontrado personal de soporte disponible en este momento.');
+            }
+
+        } catch (error) {
+            console.error("Error buscando soporte:", error);
+            alert('Error al conectar con soporte.');
+        } finally {
+            setSupportLoading(false);
+        }
+    };
+
     const LogoImage = (
         <img
             src={centroLogo || viteLogo}
@@ -147,8 +202,7 @@ const Header = () => {
                         {LogoImage}
                     </Link>
                 ) : (
-                    // <Link to="/" className={styles.logoLink} onClick={toggleSidebar}>
-                    <Link to="/horarios" className={styles.logoLink} onClick={toggleSidebar}>
+                    <Link to="/" className={styles.logoLink} onClick={toggleSidebar}>
                         {LogoImage}
                     </Link>
                 )}
@@ -162,11 +216,23 @@ const Header = () => {
                 {/* Enlaces de navegación (ocultos en móvil si están en el sidebar, o visibles si caben) */}
                 <div className={styles.desktopNav}>
                     <Link to="/about" className={styles.navLink}>About</Link>
+                    
+                    {/* Enlace de Soporte */}
+                    {user && !isSuperAdmin && (
+                        <a 
+                            href="#" 
+                            onClick={handleSupportClick} 
+                            className={styles.navLink}
+                            style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: supportLoading ? 'wait' : 'pointer' }}
+                        >
+                            <MessageCircleQuestion size={18} />
+                            Soporte
+                        </a>
+                    )}
                 </div>
 
-                {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (
+                {user && isSuperAdmin && (
                     <a
-                        // href={getApiUrl("/api/docs")}
                         href="https://localhost:9443"
                         target="_blank"
                         rel="noopener noreferrer"

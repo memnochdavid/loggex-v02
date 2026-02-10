@@ -39,7 +39,9 @@
     text-overflow: ellipsis;
     max-width: 300px;
 }
-
+.desktopNav {
+    display: flex;
+}
 .navLink {
     color: inherit;
     text-decoration: none;
