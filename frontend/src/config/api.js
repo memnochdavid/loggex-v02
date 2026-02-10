@@ -5,8 +5,8 @@
 export const API_BASE_URL = '';
 
 // Intervalos de Polling (en milisegundos)
-export const POLLING_INTERVAL_NOTIFICATIONS = 10000; // 30 segundos para el Header
-export const POLLING_INTERVAL_CHAT = 5000;         // 5 segundos para el Chat activo
+export const POLLING_INTERVAL_NOTIFICATIONS = 1000; // 30 segundos para el Header
+export const POLLING_INTERVAL_CHAT = 1000;         // 5 segundos para el Chat activo
 
 // Helper para construir URLs completas
 export const getApiUrl = (path) => {

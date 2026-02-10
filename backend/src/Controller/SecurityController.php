@@ -88,7 +88,7 @@ class SecurityController extends AbstractController
             if ($personalizacionData) {
                 $centroData = [
                     'id' => 'global',
-                    'nombre' => 'Configuración Global',
+                    'nombre' => '',
                     'logo' => null,
                     'personalizacion' => $personalizacionData
                 ];
