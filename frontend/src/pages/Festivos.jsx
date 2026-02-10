@@ -251,13 +251,22 @@ const Festivos = () => {
         fechaFin: formData.fechaFin || null,
       };
 
-      if (isSuperAdmin && formData.centro) {
-          payload.centro = `/api/centros/${formData.centro}`;
-      } else if (!isSuperAdmin && !currentFestivo && user?.centro) {
-           const centroId = user.centro.id || (typeof user.centro === 'string' ? user.centro.split('/').pop() : null);
-           if (centroId) {
-               payload.centro = `/api/centros/${centroId}`;
-           }
+      // Lógica corregida para asignación de centro
+      if (isSuperAdmin) {
+          // Si es SuperAdmin, usa el valor del formulario (puede ser null para global)
+          if (formData.centro) {
+              payload.centro = `/api/centros/${formData.centro}`;
+          } else {
+              payload.centro = null;
+          }
+      } else {
+          // Si es Admin normal, SIEMPRE asigna su centro, sea creación o edición
+          if (user?.centro) {
+               const centroId = user.centro.id || (typeof user.centro === 'string' ? user.centro.split('/').pop() : null);
+               if (centroId) {
+                   payload.centro = `/api/centros/${centroId}`;
+               }
+          }
       }
 
       const response = await fetch(url, {
