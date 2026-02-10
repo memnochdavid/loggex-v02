@@ -31,6 +31,7 @@ const Sidebar = () => {
 
     // Mapa de rutas a IDs de acordeón para mantenerlos abiertos
     const routeToAccordionMap = {
+        '/': 'general',
         '/horarios': 'general',
         '/mensajes': 'general',
         '/perfil': 'general',
@@ -81,6 +82,10 @@ const Sidebar = () => {
         title: 'General',
         content: (
             <>
+                <NavLink to="/" className={getNavLinkClass} title="Inicio" onClick={closeSidebar}>
+                    <Home size={20} />
+                    {!isCollapsed && <span>Inicio</span>}
+                </NavLink>
                 <NavLink to="/horarios" className={getNavLinkClass} title="Horarios" onClick={closeSidebar}>
                     <Calendar size={20} />
                     {!isCollapsed && <span>Horarios</span>}

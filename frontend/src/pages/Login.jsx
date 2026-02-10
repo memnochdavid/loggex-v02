@@ -16,7 +16,7 @@ const Login = () => {
   const location = useLocation();
 
   // Redirigir a la página que intentaba visitar o a /horarios por defecto
-  const from = location.state?.from?.pathname || '/horarios';
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();

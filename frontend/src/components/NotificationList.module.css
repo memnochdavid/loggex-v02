@@ -1,0 +1,163 @@
+.listContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* Eliminamos bordes y sombras aquí para que el contenedor padre (dropdown o card) decida */
+    /* background-color: var(--bg-card); */
+}
+
+.widgetHeader {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.widgetTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.unreadCountBadge {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.listItem {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.listItem:last-child {
+    border-bottom: none;
+}
+
+.itemButton {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.itemButton:hover {
+    background-color: var(--color-background-light);
+}
+
+.itemAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.itemAvatarPlaceholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.itemContent {
+    flex: 1;
+    min-width: 0; /* Para que el truncate funcione */
+}
+
+.itemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.itemName {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.itemCount {
+    background-color: var(--color-primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+}
+
+.itemMessage {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+}
+
+.itemMeta {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.itemTime {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.emptyState {
+    padding: 2rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+}
+
+.widgetFooter {
+    padding: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    background-color: var(--color-background-secondary);
+}
+
+.viewAllLink {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.viewAllLink:hover {
+    text-decoration: underline;
+}

@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { getApiUrl } from '../config/api';
+import NotificationList from '../components/NotificationList'; // Importar widget de notificaciones
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -29,19 +30,36 @@ const Home = () => {
   return (
     <Layout>
       <div className={styles.container}>
-          <img src={logoApp} className={styles.logo} alt="LM logo" />
-          <h1>Bienvenido, {user?.nombre}</h1>
-      </div>
-      <div className={styles.card}>
-        <h2>Estado del Backend:</h2>
-        <p className={`${styles.backendStatus} ${isError ? styles.statusError : styles.statusSuccess}`}>
-          {backendMessage}
-        </p>
-      </div>
-      <div className={styles.card}>
-        <Button onClick={() => setCount((count) => count + 1)}>
-          Contador es {count}
-        </Button>
+          <div className={styles.welcomeSection}>
+              <img src={logoApp} className={styles.logo} alt="LM logo" />
+              <h1>Bienvenido, {user?.nombre}</h1>
+          </div>
+          
+          <div className={styles.dashboardGrid}>
+              {/* Widget de Mensajes Recientes */}
+              <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
+                  <NotificationList 
+                      title="Mensajes Recientes" 
+                      limit={5} 
+                      showViewAllButton={true} 
+                  />
+              </div>
+
+              {/* Widget de Estado del Backend (Legacy/Debug) */}
+              <div className={styles.card}>
+                <h2>Estado del Backend:</h2>
+                <p className={`${styles.backendStatus} ${isError ? styles.statusError : styles.statusSuccess}`}>
+                  {backendMessage}
+                </p>
+              </div>
+              
+              {/* Widget de Contador (Legacy/Demo) */}
+              <div className={styles.card}>
+                <Button onClick={() => setCount((count) => count + 1)}>
+                  Contador es {count}
+                </Button>
+              </div>
+          </div>
       </div>
     </Layout>
   );

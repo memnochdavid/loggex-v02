@@ -1,14 +1,19 @@
 .container {
     text-align: center;
     padding: var(--space-12) var(--space-4);
-    /*max-width: 1200px;*/
     margin: 0 auto;
-    /*height: 92vh;*/
+}
+
+.welcomeSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-8);
 }
 
 .logo {
     height: 120px;
-    /*margin-bottom: var(--space-6);*/
+    margin-bottom: var(--space-6);
     transition: filter 300ms;
 }
 
@@ -18,19 +23,28 @@
 
 h1 {
     font-size: var(--text-3xl);
-    margin-bottom: var(--space-8);
     color: var(--color-gray-900);
+    margin: 0; /* Reset default margin */
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-6);
+    max-width: 1200px;
+    margin: var(--space-8) auto;
 }
 
 .card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     padding: var(--space-6);
-    margin: var(--space-6) auto;
-    max-width: 500px;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     transition: var(--transition-base);
+    text-align: left; /* Alineación de texto por defecto para las tarjetas */
+    display: flex;
+    flex-direction: column;
 }
 
 .card:hover {
@@ -38,10 +52,20 @@ h1 {
     border-color: var(--color-primary-300);
 }
 
+.cardTitle {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-main);
+    margin-top: 0;
+    margin-bottom: var(--space-4);
+    text-align: center;
+}
+
 .backendStatus {
     font-size: var(--text-lg);
     font-weight: var(--font-medium);
     margin-top: var(--space-2);
+    text-align: center;
 }
 
 .statusSuccess {
