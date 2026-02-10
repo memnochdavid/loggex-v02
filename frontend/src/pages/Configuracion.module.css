@@ -30,7 +30,7 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-1);
 }
 
 .tabButton {
@@ -71,6 +71,7 @@
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     box-shadow: var(--shadow-sm);
+    flex: 1;
 }
 
 .grid {
@@ -118,6 +119,7 @@
 .previewContainer {
     position: sticky;
     top: var(--space-8);
+    flex: 1;
 }
 
 .previewTitle {
@@ -133,6 +135,8 @@
     border-radius: var(--radius-lg);
     padding: var(--space-4);
     box-shadow: var(--shadow-sm);
+
+    overflow-x: auto; /* Permitir scroll si el contenido es muy ancho */
 }
 
 .message {
@@ -597,7 +601,7 @@
     align-items: center;
 }
 
-@media (max-width: 1024px) {
+@media (max-width:1024px) {
     .layout {
         flex-direction: column;
     }
@@ -606,17 +610,49 @@
         width: 100%;
         flex-direction: row;
         overflow-x: auto;
-        padding-bottom: var(--space-2);
+        padding-bottom: var(--space-1);
         flex-wrap: wrap;
         justify-content: center;
     }
 
     .content {
-        grid-template-columns: 1fr;
+        display: flex; /* CAMBIO: Usar Flexbox para apilar */
+        flex-direction: column-reverse;
+        width: 100%; /* Asegurar ancho completo */
     }
 
     .previewContainer {
         position: static;
         margin-top: var(--space-8);
+        width: 100%; /* Asegurar ancho completo */
+    }
+
+    .colorItem {
+        width: 100%;
+    }
+
+    .container {
+        padding: 0;
+    }
+
+    /* Estilos para que el botón de cambiar logo ocupe todo el ancho */
+    .fileInputWrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fileInputWrapper > div {
+        width: 100%;
+    }
+
+    .fileInputWrapper button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .fileInputWrapper img {
+        width: 100% !important;
+        height: 100px !important;
+        margin-bottom: 1rem;
     }
 }

@@ -1,0 +1,102 @@
+.widgetContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.widgetHeader {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.headerIcon {
+    color: var(--color-primary);
+}
+
+.widgetTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.widgetContent {
+    padding: 0;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.taskList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.taskItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.taskItem:last-child {
+    border-bottom: none;
+}
+
+.taskItem:hover {
+    background-color: var(--color-background-light);
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.title {
+    font-weight: 500;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.module {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.dueDate {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    background-color: var(--color-background-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.urgent {
+    color: #b91c1c;
+    background-color: #fef2f2;
+    font-weight: 500;
+}
+
+.loading, .empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}

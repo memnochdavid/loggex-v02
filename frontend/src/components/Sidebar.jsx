@@ -10,33 +10,21 @@ const Sidebar = () => {
     const { logout, user } = useAuth();
     const { isSidebarOpen, closeSidebar } = useUI();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [expandedAccordion, setExpandedAccordion] = useState(null);
     const location = useLocation();
-
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
-    };
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
 
-    const getNavLinkClass = ({ isActive }) => 
-        isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
-
-    const handleAccordionToggle = (id) => {
-        setExpandedAccordion(expandedAccordion === id ? null : id);
-    };
-
-    // Mapa de rutas a IDs de acordeón para mantenerlos abiertos
+    // Mapa de rutas a IDs de acordeón
     const routeToAccordionMap = {
-        '/': 'general',
+        // Rutas más específicas primero
         '/horarios': 'general',
         '/mensajes': 'general',
         '/perfil': 'general',
         
-        '/tareas': isAlumno ? 'alumno' : 'profesor', // Tareas está en ambos, priorizamos rol
+        '/tareas': isAlumno ? 'alumno' : 'profesor',
         '/entregas': isAlumno ? 'alumno' : 'profesor',
         '/mis-temarios': 'profesor',
         '/claustro': 'profesor',
@@ -57,21 +45,45 @@ const Sidebar = () => {
         '/configuracion': 'administracion',
         
         '/centros': 'superadmin',
+
+        // Ruta raíz al final
+        '/': 'general',
     };
 
-    // Efecto para abrir el acordeón correcto al cambiar de ruta o cargar
+    // Inicialización perezosa del estado
+    const [expandedAccordion, setExpandedAccordion] = useState(() => {
+        const currentPath = location.pathname;
+        // Buscar la coincidencia más larga para priorizar rutas específicas
+        const bestMatch = Object.keys(routeToAccordionMap)
+            .filter(path => currentPath.startsWith(path))
+            .sort((a, b) => b.length - a.length)[0]; // Ordenar por longitud descendente
+
+        return bestMatch ? routeToAccordionMap[bestMatch] : null;
+    });
+
+    // Efecto para actualizar el acordeón si la ruta cambia (navegación)
     useEffect(() => {
         const currentPath = location.pathname;
-        // Buscar coincidencia exacta o parcial (para subrutas si las hubiera)
-        const accordionId = Object.keys(routeToAccordionMap).find(path => currentPath.startsWith(path));
+        const bestMatch = Object.keys(routeToAccordionMap)
+            .filter(path => currentPath.startsWith(path))
+            .sort((a, b) => b.length - a.length)[0];
         
-        if (accordionId) {
-            const targetId = routeToAccordionMap[accordionId];
-            // Solo actualizar si es diferente para evitar re-renders innecesarios
-            // Y si no está colapsado el sidebar (opcional, pero mejor UX)
+        if (bestMatch) {
+            const targetId = routeToAccordionMap[bestMatch];
             setExpandedAccordion(targetId);
         }
-    }, [location.pathname, isAlumno, isSuperAdmin]); // Dependencias clave
+    }, [location.pathname, isAlumno, isSuperAdmin]);
+
+    const toggleSidebar = () => {
+        setIsCollapsed(!isCollapsed);
+    };
+
+    const getNavLinkClass = ({ isActive }) => 
+        isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
+
+    const handleAccordionToggle = (id) => {
+        setExpandedAccordion(expandedAccordion === id ? null : id);
+    };
 
     // Definición de las secciones del acordeón
     const accordionData = [];

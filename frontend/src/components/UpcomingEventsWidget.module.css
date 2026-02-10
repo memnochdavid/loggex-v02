@@ -1,0 +1,90 @@
+.widgetContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.widgetHeader {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.headerIcon {
+    color: var(--color-primary);
+}
+
+.widgetTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.widgetContent {
+    padding: 0;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.holidayBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-700);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-primary-200);
+}
+
+.eventList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.eventItem {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.eventItem:last-child {
+    border-bottom: none;
+}
+
+.time {
+    font-weight: 600;
+    color: var(--color-primary);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+}
+
+.subject {
+    font-weight: 500;
+    color: var(--color-text-main);
+}
+
+.group {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.loading, .empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}

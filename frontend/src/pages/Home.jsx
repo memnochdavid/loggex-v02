@@ -5,15 +5,21 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { getApiUrl } from '../config/api';
-import NotificationList from '../components/NotificationList'; // Importar widget de notificaciones
+import NotificationList from '../components/NotificationList';
+import UpcomingEventsWidget from '../components/UpcomingEventsWidget';
+import PendingTasksWidget from '../components/PendingTasksWidget';
+import CrudHeader from '../components/CrudHeader';
 
 const Home = () => {
   const [count, setCount] = useState(0);
   const [backendMessage, setBackendMessage] = useState('Cargando...');
   const { user } = useAuth();
 
+  const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
+  const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+
   useEffect(() => {
-    // Usamos la misma URL que en AuthContext
     fetch(getApiUrl('/api/hello'), {
         credentials: 'include'
     })
@@ -30,13 +36,16 @@ const Home = () => {
   return (
     <Layout>
       <div className={styles.container}>
-          <div className={styles.welcomeSection}>
-              <img src={logoApp} className={styles.logo} alt="LM logo" />
-              <h1>Bienvenido, {user?.nombre}</h1>
-          </div>
+          <CrudHeader 
+              title={`Hola, ${user?.nombre || 'Usuario'}, que tengas un buen día.`}
+              logo={logoApp}
+              // subtitle="Panel de control" // Opcional
+          >
+              {/* Acciones extra si fueran necesarias */}
+          </CrudHeader>
           
           <div className={styles.dashboardGrid}>
-              {/* Widget de Mensajes Recientes */}
+              {/* Widget de Mensajes Recientes (Para todos) */}
               <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
                   <NotificationList 
                       title="Mensajes Recientes" 
@@ -45,20 +54,17 @@ const Home = () => {
                   />
               </div>
 
-              {/* Widget de Estado del Backend (Legacy/Debug) */}
-              <div className={styles.card}>
-                <h2>Estado del Backend:</h2>
-                <p className={`${styles.backendStatus} ${isError ? styles.statusError : styles.statusSuccess}`}>
-                  {backendMessage}
-                </p>
+              {/* Widget de Próximos Eventos (Para todos) */}
+              <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
+                  <UpcomingEventsWidget />
               </div>
-              
-              {/* Widget de Contador (Legacy/Demo) */}
-              <div className={styles.card}>
-                <Button onClick={() => setCount((count) => count + 1)}>
-                  Contador es {count}
-                </Button>
-              </div>
+
+              {/* Widget de Tareas Pendientes (Solo Alumnos) */}
+              {isAlumno && (
+                  <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
+                      <PendingTasksWidget />
+                  </div>
+              )}
           </div>
       </div>
     </Layout>

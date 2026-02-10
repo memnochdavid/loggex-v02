@@ -7,6 +7,7 @@ import styles from './Configuracion.module.css';
 import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User, Bell } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 
 // Importar temas predefinidos
 import defaultTheme from './themes-pred/default.json';
@@ -351,7 +352,7 @@ const Configuracion = () => {
             case 'general':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa General</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa General</h4>*/}
                         <div className={styles.previewGeneral}>
                             <div className={styles.previewHeader} style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor }}>
                                 <span style={{ fontWeight: 'bold' }}>Logo</span>
@@ -372,7 +373,7 @@ const Configuracion = () => {
             case 'sidebar':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Barra Lateral</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Barra Lateral</h4>*/}
                         <div className={styles.previewSidebar} style={{ backgroundColor: settings.sidebarColor }}>
                             <div className={styles.previewSidebarItem} style={{ color: '#94a3b8' }}>
                                 <LayoutIcon size={16} /> Inicio
@@ -415,7 +416,7 @@ const Configuracion = () => {
             case 'chat':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Mensajería</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Mensajería</h4>*/}
                         <div style={{ display: 'flex', height: '200px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
                             {/* Sidebar Chat */}
                             <div style={{ width: '120px', backgroundColor: settings.chatSidebarBgColor, borderRight: '1px solid #e2e8f0' }}>
@@ -451,7 +452,7 @@ const Configuracion = () => {
             case 'usercard':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Tarjeta Usuario</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Tarjeta Usuario</h4>*/}
                         <div style={{ 
                             width: '200px', 
                             backgroundColor: settings.userCardBgColor, 
@@ -481,7 +482,7 @@ const Configuracion = () => {
             case 'text':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Tipografía</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Tipografía</h4>*/}
                         <div className={styles.previewTextContainer}>
                             <h1 style={{ color: settings.textMainColor, margin: '0 0 10px 0' }}>Encabezado Principal</h1>
                             <p style={{ color: settings.textMainColor, lineHeight: '1.5' }}>
@@ -501,7 +502,7 @@ const Configuracion = () => {
             case 'buttons':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Botones</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Botones</h4>*/}
                         <div className={styles.previewButtonsContainer}>
                             <button className={styles.previewButton} style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor }}>
                                 Botón Primario
@@ -516,7 +517,7 @@ const Configuracion = () => {
             case 'scrollbar':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Scrollbar</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Scrollbar</h4>*/}
                         <div className={styles.previewScrollbarContainer}>
                             <div className={styles.previewScrollbarThumb} style={{ backgroundColor: settings.scrollbarThumbColor, width: settings.scrollbarWidth || '12px' }}></div>
                             <div className={styles.previewScrollbarTrack} style={{ backgroundColor: settings.scrollbarTrackColor, width: settings.scrollbarWidth || '12px' }}></div>
@@ -532,7 +533,7 @@ const Configuracion = () => {
             case 'calendar':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Calendario</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Calendario</h4>*/}
                         <div className={styles.previewCalendarContainer}>
                             <div className={styles.previewCalendarGrid}>
                                 <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
@@ -556,7 +557,7 @@ const Configuracion = () => {
             case 'timetable':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Horario</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Horario</h4>*/}
                         <div className={styles.previewTimetableContainer}>
                             {/* Header */}
                             <div className={styles.previewTimetableHeader} style={{ backgroundColor: '#f8fafc' }}>Hora</div>
@@ -574,7 +575,7 @@ const Configuracion = () => {
             case 'datatable':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Tabla</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Tabla</h4>*/}
                         <div className={styles.previewDatatableHeader} style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor }}>
                             <span>NOMBRE</span>
                             <span style={{ backgroundColor: settings.datatableHeaderHoverBgColor, color: settings.datatableHeaderHoverTextColor, padding: '2px 5px', borderRadius: '2px' }}>APELLIDOS (Hover)</span>
@@ -596,7 +597,7 @@ const Configuracion = () => {
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Acordeón</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Acordeón</h4>*/}
                         <div className={styles.previewAccordionContainer}>
                             <div className={styles.previewAccordionHeader} style={{ backgroundColor: settings.accordionHeaderBgColor, color: settings.accordionHeaderTextColor }}>
                                 Cabecera del Acordeón
@@ -611,7 +612,7 @@ const Configuracion = () => {
             case 'modal':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Modal</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Modal</h4>*/}
                         <div className={styles.previewModalContainer}>
                             <div className={styles.previewModalHeader} style={{ backgroundColor: settings.modalHeaderBgColor, color: settings.modalHeaderTextColor }}>
                                 <span>Título del Modal</span>
@@ -631,7 +632,7 @@ const Configuracion = () => {
             case 'title':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Título</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Título</h4>*/}
                         <div className={styles.previewTitleContainer} style={{ backgroundColor: settings.headerFooterColor }}>
                             {/* Usamos un componente simulado para la preview */}
                             <div style={{ display: 'flex', gap: titleConfig.spacing, fontSize: '1.5rem', fontWeight: 'bold', alignItems: titleConfig.alignment }}>
@@ -655,7 +656,7 @@ const Configuracion = () => {
             case 'pagination':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Paginación</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Paginación</h4>*/}
                         <div className={styles.previewDatatablePagination} style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor }}>
                             <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
                             <div style={{ display: 'flex', gap: '5px' }}>
@@ -670,7 +671,7 @@ const Configuracion = () => {
             case 'eventos':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Vista Previa Eventos</h4>
+                        {/*<h4 className={styles.previewTitle}>Vista Previa Eventos</h4>*/}
                         <div style={{ 
                             padding: '1rem', 
                             backgroundColor: settings.eventCardBgColor, 
@@ -762,14 +763,23 @@ const Configuracion = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <div className={styles.header}>
-                    <h1 className={styles.title}>Personalización</h1>
-                    <span className={styles.subtitle}>
-                        {user.centro && user.centro.id !== 'global' 
-                            ? `Ajusta la apariencia para ${user.centro.nombre}` 
-                            : 'Ajusta la apariencia global del sistema'}
-                    </span>
-                </div>
+                <CrudHeader title="Personalización" subtitle={user.centro && user.centro.id !== 'global' ? `Ajusta la apariencia para ${user.centro.nombre}` : 'Ajusta la apariencia global del sistema'}>
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={handleReset}
+                    >
+                        <RotateCcw size={18} style={{ marginRight: '8px' }} />
+                        Restablecer
+                    </Button>
+                    <Button 
+                        onClick={handleSubmit} 
+                        disabled={loading}
+                    >
+                        <Save size={18} style={{ marginRight: '8px' }} />
+                        {loading ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                </CrudHeader>
 
                 {message && (
                     <div className={`${styles.message} ${styles[message.type]}`}>
@@ -789,26 +799,6 @@ const Configuracion = () => {
                                 {tab.label}
                             </button>
                         ))}
-                        
-                        <div className={styles.actions}>
-                            <Button 
-                                type="button" 
-                                variant="secondary" 
-                                onClick={handleReset}
-                                style={{ width: '100%', justifyContent: 'center' }}
-                            >
-                                <RotateCcw size={18} style={{ marginRight: '8px' }} />
-                                Restablecer
-                            </Button>
-                            <Button 
-                                onClick={handleSubmit} 
-                                disabled={loading}
-                                style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}
-                            >
-                                <Save size={18} style={{ marginRight: '8px' }} />
-                                {loading ? 'Guardando...' : 'Guardar'}
-                            </Button>
-                        </div>
                     </div>
 
                     <div className={styles.content}>
@@ -836,7 +826,7 @@ const Configuracion = () => {
                                                     <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} style={{ display: 'none' }} />
                                                     <Button type="button" onClick={() => fileInputRef.current.click()} variant="secondary">
                                                         <Upload size={16} style={{ marginRight: '8px' }} />
-                                                        Seleccionar archivo
+                                                        Cambiar
                                                     </Button>
                                                     {logoFile && <span className={styles.fileName} style={{ marginLeft: '10px' }}>{logoFile.name}</span>}
                                                 </div>
@@ -1054,12 +1044,12 @@ const Configuracion = () => {
                                             type="text" 
                                             value={newThemeName}
                                             onChange={(e) => setNewThemeName(e.target.value)}
-                                            placeholder="Nombre del nuevo tema"
+                                            placeholder="Guarda actual"
                                             className={styles.colorTextInput}
                                             style={{ flex: 1 }}
                                         />
                                         <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
-                                            Guardar Actual
+                                            Añadir
                                         </Button>
                                     </div>
                                     
