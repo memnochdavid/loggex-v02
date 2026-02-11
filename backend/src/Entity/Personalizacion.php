@@ -403,7 +403,7 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventCardMetaColor = '#64748b';
 
-    #[ORM\Column(length: 7)]
+    #[ORM\Column(length: 11)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventsSidebarBgColor = 'transparent'; // AÑADIDO
 
@@ -448,11 +448,6 @@ class Personalizacion
     #[ORM\Column(name: 'name_title_config', type: 'json', nullable: true)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?array $nameTitleConfig = null;
-
-    // --- Temas Guardados ---
-    #[ORM\Column(name: 'temas_guardados', type: 'json', nullable: true)]
-    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?array $savedThemes = [];
 
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
@@ -762,9 +757,6 @@ class Personalizacion
 
     public function getNameTitleConfig(): ?array { return $this->nameTitleConfig; }
     public function setNameTitleConfig(?array $config): static { $this->nameTitleConfig = $config; return $this; }
-
-    public function getSavedThemes(): ?array { return $this->savedThemes; }
-    public function setSavedThemes(?array $themes): static { $this->savedThemes = $themes; return $this; }
 
     public function getCentro(): ?Centro
     {

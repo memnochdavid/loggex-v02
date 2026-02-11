@@ -48,12 +48,6 @@ class PersonalizacionController extends AbstractController
 
         $logger->info('DATOS RECIBIDOS EN UPDATE (RAW): ' . $content);
 
-        if (isset($data['savedThemes'])) {
-            $logger->info('SAVED THEMES RECIBIDO (Payload):', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
-        } else {
-            $logger->info('SAVED THEMES NO PRESENTE EN DATA');
-        }
-
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
         if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
@@ -190,11 +184,6 @@ class PersonalizacionController extends AbstractController
         // Configuración Título Centro
         if (isset($data['nameTitleConfig'])) {
             $personalizacion->setNameTitleConfig($data['nameTitleConfig']);
-        }
-
-        // Temas Guardados
-        if (isset($data['savedThemes'])) {
-            $personalizacion->setSavedThemes($data['savedThemes']);
         }
 
         try {

@@ -48,14 +48,6 @@ class SecurityController extends AbstractController
 
         $userData = $this->formatUser($user, $entityManager);
 
-        // Log para depuración de temas guardados
-        if (isset($userData['centro']['personalizacion']['savedThemes'])) {
-            $themes = $userData['centro']['personalizacion']['savedThemes'];
-            $logger->info('API/ME - Temas guardados encontrados:', ['count' => count($themes), 'data' => $themes]);
-        } else {
-            $logger->info('API/ME - No se encontraron temas guardados o estructura inesperada.');
-        }
-
         return $this->json([
             'user' => $userData
         ]);
@@ -115,7 +107,7 @@ class SecurityController extends AbstractController
         $v = fn($val, $default) => $val !== null ? $val : $default;
 
         return [
-            'savedThemes' => $p->getSavedThemes() ?? [],
+            // 'savedThemes' => $p->getSavedThemes() ?? [], // ELIMINADO
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),

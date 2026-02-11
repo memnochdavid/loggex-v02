@@ -641,10 +641,10 @@
 
     .tabButton {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-content: center;
         white-space: wrap;
-        width: 45%;
+        width: 30%;
         padding: var(--space-2) var(--space-3);
     }
 
@@ -686,5 +686,25 @@
         width: 100% !important;
         height: 100px !important;
         margin-bottom: 1rem;
+    }
+}
+@media (max-width: 500px) {
+    .tabButton {
+        display: flex;
+        justify-content: flex-start;
+        align-content: center;
+        white-space: wrap;
+        width: 45%;
+        padding: var(--space-2) var(--space-3);
+    }
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: var(--space-2);
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        justify-content: space-between;
+
     }
 }

@@ -7,14 +7,10 @@ import styles from './Configuracion.module.css';
 import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User, Bell } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import { getApiUrl, getAssetUrl } from '../config/api';
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import CrudHeader from '../components/CrudHeader';
 
-// Importar temas predefinidos
-import defaultTheme from './themes-pred/default.json';
-import rojoTheme from './themes-pred/rojo.json';
-import moradoTheme from './themes-pred/morado.json';
-import azulTheme from './themes-pred/azul.json';
-import verdeTheme from './themes-pred/verde.json';
+// Importar tema por defecto desde la nueva ubicación
+import { DEFAULT_THEME } from '../config/themeDefaults';
 
 const Configuracion = () => {
     const { user, checkAuth } = useAuth();
@@ -23,18 +19,10 @@ const Configuracion = () => {
     
     const canChangeLogo = isAdmin && !isSuperAdmin && user?.centro;
 
-    const defaultSettings = defaultTheme.settings;
-
-    const predefinedThemes = [
-        defaultTheme,
-        rojoTheme,
-        moradoTheme,
-        azulTheme,
-        verdeTheme
-    ];
+    const defaultSettings = DEFAULT_THEME;
 
     const [settings, setSettings] = useState(defaultSettings);
-    const [savedThemes, setSavedThemes] = useState([]);
+    const [themes, setThemes] = useState([]); // Lista unificada de temas
     const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
@@ -51,11 +39,11 @@ const Configuracion = () => {
         alignment: 'center'
     });
 
+    // Cargar configuración inicial
     useEffect(() => {
         if (user) {
             let initialSettings = { ...defaultSettings };
 
-            // Función auxiliar para mezclar settings evitando nulos
             const mergeSettings = (source) => {
                 Object.keys(source).forEach(key => {
                     if (source[key] !== null && source[key] !== undefined) {
@@ -67,9 +55,6 @@ const Configuracion = () => {
             if (user.centro && user.centro.personalizacion) {
                 mergeSettings(user.centro.personalizacion);
                 
-                if (user.centro.personalizacion.savedThemes) {
-                    setSavedThemes(user.centro.personalizacion.savedThemes);
-                }
                 if (user.centro.logo) {
                     setLogoPreview(getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`));
                 }
@@ -89,16 +74,33 @@ const Configuracion = () => {
                 }
             } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
                 mergeSettings(user.centro.personalizacion);
-                
-                if (user.centro.personalizacion.savedThemes) {
-                    setSavedThemes(user.centro.personalizacion.savedThemes);
-                }
             }
             
-            console.log("Settings inicializados:", initialSettings); // DEBUG
             setSettings(initialSettings);
         }
     }, [user, isSuperAdmin]);
+
+    // Cargar temas desde API
+    const fetchThemes = async () => {
+        try {
+            const response = await fetch(getApiUrl('/api/temas?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const items = data['hydra:member'] || data.member || [];
+                setThemes(items);
+            }
+        } catch (error) {
+            console.error("Error cargando temas:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchThemes();
+    }, []);
 
     useEffect(() => {
         applyTheme(settings);
@@ -143,59 +145,78 @@ const Configuracion = () => {
     };
 
     const handleReset = () => {
-        setSettings(prev => ({
-            ...defaultSettings,
-            savedThemes: prev.savedThemes
-        }));
+        setSettings(defaultSettings);
         applyTheme(defaultSettings);
     };
 
-    const handleSaveTheme = () => {
+    const handleSaveTheme = async () => {
         if (!newThemeName.trim()) return;
         
-        console.log("Guardando tema, settings actuales:", settings); // DEBUG
+        try {
+            const themeSettings = {};
+            Object.keys(settings).forEach(key => {
+                if (settings[key] !== null && settings[key] !== undefined) {
+                    themeSettings[key] = settings[key];
+                }
+            });
 
-        // Asegurar que tenemos todos los valores, rellenando con defaults si faltan o son nulos
-        const completeSettings = { ...defaultSettings };
-        Object.keys(settings).forEach(key => {
-            if (settings[key] !== null && settings[key] !== undefined && key !== 'savedThemes') {
-                completeSettings[key] = settings[key];
+            const payload = {
+                nombre: newThemeName,
+                configuracion: themeSettings,
+                esPredefinido: false,
+                centro: user.centro ? `/api/centros/${user.centro.id}` : null
+            };
+
+            const response = await fetch(getApiUrl('/api/temas'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/ld+json',
+                    'Accept': 'application/ld+json'
+                },
+                body: JSON.stringify(payload),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                setNewThemeName('');
+                fetchThemes();
+                setMessage({ type: 'success', text: 'Tema guardado correctamente' });
+                setTimeout(() => setMessage(null), 3000);
+            } else {
+                throw new Error('Error al guardar el tema');
             }
-        });
-
-        const { savedThemes: ignored, ...themeSettings } = completeSettings;
-        
-        const newTheme = {
-            name: newThemeName,
-            settings: themeSettings
-        };
-        
-        const updatedThemes = [...savedThemes, newTheme];
-        setSavedThemes(updatedThemes);
-        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
-        setNewThemeName('');
+        } catch (error) {
+            console.error(error);
+            setMessage({ type: 'error', text: 'No se pudo guardar el tema' });
+        }
     };
 
-    const handleLoadTheme = (themeSettings) => {
-        // Filtrar valores nulos o indefinidos para evitar sobrescribir con nada
-        const validThemeSettings = {};
-        Object.keys(themeSettings).forEach(key => {
-            if (themeSettings[key] !== null && themeSettings[key] !== undefined) {
-                validThemeSettings[key] = themeSettings[key];
-            }
-        });
-
-        setSettings(prev => ({
-            ...prev,
-            ...validThemeSettings,
-            savedThemes: savedThemes
-        }));
+    const handleLoadTheme = (theme) => {
+        if (!theme || !theme.configuracion) return;
+        const newSettings = { ...defaultSettings, ...theme.configuracion };
+        setSettings(newSettings);
     };
 
-    const handleDeleteTheme = (index) => {
-        const updatedThemes = savedThemes.filter((_, i) => i !== index);
-        setSavedThemes(updatedThemes);
-        setSettings(prev => ({ ...prev, savedThemes: updatedThemes }));
+    const handleDeleteTheme = async (theme) => {
+        if (!window.confirm(`¿Eliminar el tema "${theme.nombre}"?`)) return;
+
+        try {
+            const response = await fetch(getApiUrl(`/api/temas/${theme.id}`), {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                fetchThemes();
+                setMessage({ type: 'success', text: 'Tema eliminado' });
+                setTimeout(() => setMessage(null), 3000);
+            } else {
+                throw new Error('Error al eliminar');
+            }
+        } catch (error) {
+            console.error(error);
+            setMessage({ type: 'error', text: 'No se pudo eliminar el tema' });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -211,7 +232,6 @@ const Configuracion = () => {
                 },
                 body: JSON.stringify({ 
                     ...settings, 
-                    savedThemes,
                     nameTitleConfig: titleConfig
                 }),
                 credentials: 'include'
@@ -309,33 +329,35 @@ const Configuracion = () => {
         </div>
     );
 
-    const renderThemeCard = (theme, index, isPredefined = false) => {
-        const themeSettings = theme.settings;
+    const renderThemeCard = (theme) => {
+        const themeSettings = theme.configuracion || {};
+        const displaySettings = { ...defaultSettings, ...themeSettings };
+        
         return (
-            <div key={index} className={styles.themeCard}>
-                <div className={styles.themePreview} style={{ backgroundColor: themeSettings.sidebarColor }}>
-                    <div className={styles.themeHeader} style={{ backgroundColor: themeSettings.headerFooterColor }}></div>
+            <div key={theme.id} className={styles.themeCard}>
+                <div className={styles.themePreview} style={{ backgroundColor: displaySettings.sidebarColor }}>
+                    <div className={styles.themeHeader} style={{ backgroundColor: displaySettings.headerFooterColor }}></div>
                     <div className={styles.themeBody}>
-                        <div className={styles.themeSidebar} style={{ backgroundColor: themeSettings.sidebarColor }}></div>
+                        <div className={styles.themeSidebar} style={{ backgroundColor: displaySettings.sidebarColor }}></div>
                         <div className={styles.themeContent}>
-                            <div className={styles.themeButton} style={{ backgroundColor: themeSettings.primaryColor }}></div>
+                            <div className={styles.themeButton} style={{ backgroundColor: displaySettings.primaryColor }}></div>
                         </div>
                     </div>
                 </div>
                 <div className={styles.themeInfo}>
-                    <span className={styles.themeName}>{theme.name}</span>
+                    <span className={styles.themeName}>{theme.nombre}</span>
                     <div className={styles.themeActions}>
                         <button 
                             className={styles.iconButton} 
-                            onClick={() => handleLoadTheme(themeSettings)}
+                            onClick={() => handleLoadTheme(theme)}
                             title="Aplicar Tema"
                         >
                             <Check size={16} />
                         </button>
-                        {!isPredefined && (
+                        {!theme.esPredefinido && (
                             <button 
                                 className={`${styles.iconButton} ${styles.deleteButton}`} 
-                                onClick={() => handleDeleteTheme(index)}
+                                onClick={() => handleDeleteTheme(theme)}
                                 title="Eliminar Tema"
                             >
                                 <Trash2 size={16} />
@@ -352,7 +374,6 @@ const Configuracion = () => {
             case 'general':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa General</h4>*/}
                         <div className={styles.previewGeneral}>
                             <div className={styles.previewHeader} style={{ backgroundColor: settings.headerFooterColor, color: settings.headerFooterTextColor }}>
                                 <span style={{ fontWeight: 'bold' }}>Logo</span>
@@ -373,12 +394,10 @@ const Configuracion = () => {
             case 'sidebar':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Barra Lateral</h4>*/}
                         <div className={styles.previewSidebar} style={{ backgroundColor: settings.sidebarColor }}>
                             <div className={styles.previewSidebarItem} style={{ color: '#94a3b8' }}>
                                 <LayoutIcon size={16} /> Inicio
                             </div>
-                            {/* Preview Accordion in Sidebar */}
                             <div style={{ margin: '10px 0' }}>
                                 <div style={{ 
                                     backgroundColor: settings.sidebarAccordionHeaderBgColor, 
@@ -416,9 +435,7 @@ const Configuracion = () => {
             case 'chat':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Mensajería</h4>*/}
                         <div style={{ display: 'flex', height: '200px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                            {/* Sidebar Chat */}
                             <div style={{ width: '120px', backgroundColor: settings.chatSidebarBgColor, borderRight: '1px solid #e2e8f0' }}>
                                 <div style={{ padding: '10px', backgroundColor: settings.chatItemActiveBgColor, borderLeft: `3px solid ${settings.chatItemActiveBorderColor}`, color: settings.chatItemTextMainColor }}>
                                     <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Usuario Activo</div>
@@ -429,7 +446,6 @@ const Configuracion = () => {
                                     <div style={{ fontSize: '10px', color: settings.chatItemTextSecondaryColor }}>Hola...</div>
                                 </div>
                             </div>
-                            {/* Chat Area */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: settings.chatContainerBgColor }}>
                                 <div style={{ padding: '10px', backgroundColor: settings.chatHeaderBgColor, color: settings.chatHeaderTextColor, fontSize: '12px', fontWeight: 'bold' }}>
                                     Usuario Activo
@@ -452,7 +468,6 @@ const Configuracion = () => {
             case 'usercard':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Tarjeta Usuario</h4>*/}
                         <div style={{ 
                             width: '200px', 
                             backgroundColor: settings.userCardBgColor, 
@@ -471,8 +486,8 @@ const Configuracion = () => {
                                 borderRadius: '4px', 
                                 border: 'none', 
                                 backgroundColor: settings.buttonPrimaryColor, 
-                                color: settings.buttonPrimaryTextColor,
-                                fontSize: '12px'
+                                color: settings.buttonPrimaryTextColor, 
+                                fontSize: '12px' 
                             }}>
                                 Enviar Mensaje
                             </button>
@@ -482,7 +497,6 @@ const Configuracion = () => {
             case 'text':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Tipografía</h4>*/}
                         <div className={styles.previewTextContainer}>
                             <h1 style={{ color: settings.textMainColor, margin: '0 0 10px 0' }}>Encabezado Principal</h1>
                             <p style={{ color: settings.textMainColor, lineHeight: '1.5' }}>
@@ -502,7 +516,6 @@ const Configuracion = () => {
             case 'buttons':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Botones</h4>*/}
                         <div className={styles.previewButtonsContainer}>
                             <button className={styles.previewButton} style={{ backgroundColor: settings.buttonPrimaryColor, color: settings.buttonPrimaryTextColor }}>
                                 Botón Primario
@@ -517,7 +530,6 @@ const Configuracion = () => {
             case 'scrollbar':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Scrollbar</h4>*/}
                         <div className={styles.previewScrollbarContainer}>
                             <div className={styles.previewScrollbarThumb} style={{ backgroundColor: settings.scrollbarThumbColor, width: settings.scrollbarWidth || '12px' }}></div>
                             <div className={styles.previewScrollbarTrack} style={{ backgroundColor: settings.scrollbarTrackColor, width: settings.scrollbarWidth || '12px' }}></div>
@@ -533,7 +545,6 @@ const Configuracion = () => {
             case 'calendar':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Calendario</h4>*/}
                         <div className={styles.previewCalendarContainer}>
                             <div className={styles.previewCalendarGrid}>
                                 <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
@@ -557,7 +568,6 @@ const Configuracion = () => {
             case 'timetable':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Horario</h4>*/}
                         <div className={styles.previewTimetableContainer}>
                             {/* Header */}
                             <div className={styles.previewTimetableHeader} style={{ backgroundColor: '#f8fafc' }}>Hora</div>
@@ -575,14 +585,12 @@ const Configuracion = () => {
             case 'datatable':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Tabla</h4>*/}
                         <div className={styles.previewDatatableHeader} style={{ backgroundColor: settings.datatableHeaderBgColor, color: settings.datatableHeaderTextColor }}>
                             <span>NOMBRE</span>
                             <span style={{ backgroundColor: settings.datatableHeaderHoverBgColor, color: settings.datatableHeaderHoverTextColor, padding: '2px 5px', borderRadius: '2px' }}>APELLIDOS (Hover)</span>
                             <span style={{ backgroundColor: settings.datatableHeaderActiveBgColor, color: settings.datatableHeaderActiveTextColor, padding: '2px 5px', borderRadius: '2px' }}>EDAD (Activo)</span>
                         </div>
                         
-                        {/* Paginación en Tabla */}
                         <div className={styles.previewDatatablePagination} style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor }}>
                             <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
                             <div style={{ display: 'flex', gap: '5px' }}>
@@ -597,7 +605,6 @@ const Configuracion = () => {
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Acordeón</h4>*/}
                         <div className={styles.previewAccordionContainer}>
                             <div className={styles.previewAccordionHeader} style={{ backgroundColor: settings.accordionHeaderBgColor, color: settings.accordionHeaderTextColor }}>
                                 Cabecera del Acordeón
@@ -612,7 +619,6 @@ const Configuracion = () => {
             case 'modal':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Modal</h4>*/}
                         <div className={styles.previewModalContainer}>
                             <div className={styles.previewModalHeader} style={{ backgroundColor: settings.modalHeaderBgColor, color: settings.modalHeaderTextColor }}>
                                 <span>Título del Modal</span>
@@ -632,9 +638,7 @@ const Configuracion = () => {
             case 'title':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Título</h4>*/}
                         <div className={styles.previewTitleContainer} style={{ backgroundColor: settings.headerFooterColor }}>
-                            {/* Usamos un componente simulado para la preview */}
                             <div style={{ display: 'flex', gap: titleConfig.spacing, fontSize: '1.5rem', fontWeight: 'bold', alignItems: titleConfig.alignment }}>
                                 {titleConfig.words.map((word, index) => {
                                     let text = word.text;
@@ -656,7 +660,6 @@ const Configuracion = () => {
             case 'pagination':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Paginación</h4>*/}
                         <div className={styles.previewDatatablePagination} style={{ backgroundColor: settings.datatablePaginationBgColor, color: settings.datatablePaginationTextColor }}>
                             <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
                             <div style={{ display: 'flex', gap: '5px' }}>
@@ -671,7 +674,6 @@ const Configuracion = () => {
             case 'eventos':
                 return (
                     <div className={styles.previewBox}>
-                        {/*<h4 className={styles.previewTitle}>Vista Previa Eventos</h4>*/}
                         <div style={{ 
                             padding: '1rem', 
                             backgroundColor: settings.eventCardBgColor, 
@@ -701,7 +703,7 @@ const Configuracion = () => {
                     <div className={styles.previewBox}>
                         <h4 className={styles.previewTitle}>Resumen de Vistas Previas</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            
+
                             {/* Resumen General */}
                             <div>
                                 <h5 style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>General</h5>
@@ -749,7 +751,7 @@ const Configuracion = () => {
         { id: 'buttons', label: 'Botones', icon: <MousePointer size={18} /> },
         { id: 'chat', label: 'Mensajería', icon: <MessageSquare size={18} /> },
         { id: 'usercard', label: 'Tarjetas', icon: <User size={18} /> },
-        { id: 'eventos', label: 'Eventos', icon: <Bell size={18} /> }, // NUEVA PESTAÑA
+        { id: 'eventos', label: 'Eventos', icon: <Bell size={18} /> },
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
@@ -1053,19 +1055,10 @@ const Configuracion = () => {
                                         </Button>
                                     </div>
                                     
-                                    <h4 className={styles.sectionTitle}>Temas Predefinidos</h4>
+                                    <h4 className={styles.sectionTitle}>Temas Disponibles</h4>
                                     <div className={styles.themesGrid}>
-                                        {predefinedThemes.map((theme, index) => renderThemeCard(theme, index, true))}
+                                        {themes.map((theme) => renderThemeCard(theme))}
                                     </div>
-
-                                    {savedThemes.length > 0 && (
-                                        <>
-                                            <h4 className={styles.sectionTitle} style={{ marginTop: '20px' }}>Mis Temas Guardados</h4>
-                                            <div className={styles.themesGrid}>
-                                                {savedThemes.map((theme, index) => renderThemeCard(theme, index, false))}
-                                            </div>
-                                        </>
-                                    )}
                                 </div>
                             )}
                         </div>
