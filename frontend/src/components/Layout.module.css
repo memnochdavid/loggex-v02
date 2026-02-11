@@ -25,3 +25,8 @@
     overflow: hidden; /* Sin scroll ni padding */
     padding: 0;
 }
+@media (max-width: 1200px) {
+    .content{
+        padding: var(--space-4) var(--space-1);
+    }
+}
