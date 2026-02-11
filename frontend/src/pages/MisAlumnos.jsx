@@ -5,7 +5,7 @@ import CrudHeader from '../components/CrudHeader';
 import AccordionView from '../components/AccordionView';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
-import styles from './Claustro.module.css'; // Reutilizamos estilos de grid
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
 
 const MisAlumnos = () => {
@@ -50,7 +50,7 @@ const MisAlumnos = () => {
 
     const renderGrupoContent = (grupo) => {
         if (grupo.alumnos.length === 0) {
-            return <p className={styles.empty}>No hay alumnos en este grupo.</p>;
+            return <p className={styles.emptyState}>No hay alumnos en este grupo.</p>;
         }
 
         return (
@@ -72,9 +72,9 @@ const MisAlumnos = () => {
                 <CrudHeader title="Mis Alumnos" />
 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : grupos.length === 0 ? (
-                    <div className={styles.empty} style={{ textAlign: 'center', marginTop: '2rem' }}>
+                    <div className={styles.emptyState}>
                         No tienes alumnos asignados.
                     </div>
                 ) : (

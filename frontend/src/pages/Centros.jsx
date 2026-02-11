@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
-import styles from './Centros.module.css';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
@@ -427,7 +427,6 @@ const Centros = () => {
                     onSubmit={handleSubmit}
                     isSubmitting={saving}
                 >
-                    {/* ... Contenido del modal ... */}
                     {/* Campo de Logo */}
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Logo del Centro</label>

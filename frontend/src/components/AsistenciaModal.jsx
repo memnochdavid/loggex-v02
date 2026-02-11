@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import Button from './Button';
-import UserAvatar from './UserAvatar'; // Asumiendo que podemos reutilizarlo o adaptar
-import styles from '../pages/Usuarios.module.css'; // Reutilizar estilos de tabla/form
 import { Check, X, Clock, AlertCircle, Save } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 

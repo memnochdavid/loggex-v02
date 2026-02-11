@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
-import styles from './Materiales.module.css'; // Reutilizamos estilos de lista
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
 
 const MisFaltas = () => {
@@ -22,7 +22,6 @@ const MisFaltas = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Usar ruta personalizada
             const response = await fetch(getApiUrl('/api/v1/asistencia/alumno/summary'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
@@ -63,7 +62,7 @@ const MisFaltas = () => {
 
     const renderDetalles = (asignatura) => {
         if (!asignatura.detalles || asignatura.detalles.length === 0) {
-            return <p className={styles.emptyMessage}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</p>;
+            return <div className={styles.emptyState}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</div>;
         }
 
         return (
@@ -73,10 +72,10 @@ const MisFaltas = () => {
                     <span>Retrasos: <b>{asignatura.retrasos}</b></span>
                     <span>Justificadas: <b>{asignatura.justificadas}</b></span>
                 </div>
-                <ul className={styles.materialList}>
+                <ul className={styles.list}>
                     {asignatura.detalles.map(detalle => (
-                        <li key={detalle.id} className={styles.materialItem} style={{ alignItems: 'flex-start' }}>
-                            <div className={styles.materialInfo}>
+                        <li key={detalle.id} className={styles.listItem} style={{ alignItems: 'flex-start' }}>
+                            <div className={styles.itemInfo}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
                                     {getStatusIcon(detalle.estado)}
                                     <span>{getStatusLabel(detalle.estado)}</span>
@@ -103,9 +102,9 @@ const MisFaltas = () => {
                 <CrudHeader title="Mis Faltas de Asistencia" />
                 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : error ? (
-                    <p className={styles.error}>{error}</p>
+                    <div className={styles.errorContainer}>{error}</div>
                 ) : asignaturasConFaltas.length === 0 ? (
                     <div className={styles.emptyState}>No estás matriculado en ninguna asignatura.</div>
                 ) : (

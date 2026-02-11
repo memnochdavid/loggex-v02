@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import styles from './Usuarios.module.css';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
@@ -372,11 +372,11 @@ const Usuarios = () => {
     {
         header: 'Avatar',
         accessor: (row) => (
-            <div className={styles.userAvatarCell} style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', backgroundColor: '#f3f4f6' }}>
+            <div className={styles.userAvatarCell}>
                 {row.foto ? (
-                    <img src={getAvatarUrl(row.foto)} alt={row.nombre} className={styles.userAvatarImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                    <img src={getAvatarUrl(row.foto)} alt={row.nombre} className={styles.userAvatarImage} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                 ) : null}
-                <div className={styles.userAvatarPlaceholder} style={{ display: row.foto ? 'none' : 'flex', fontWeight: 'bold', color: '#6b7280' }}>
+                <div className={styles.userAvatarPlaceholder} style={{ display: row.foto ? 'none' : 'flex' }}>
                     {row.nombre.charAt(0)}
                 </div>
             </div>
@@ -458,9 +458,9 @@ const Usuarios = () => {
                 <label className={styles.label}>Avatar</label>
                 <div className={styles.avatarPreviewContainer}>
                     {avatarPreview ? (
-                        <img src={avatarPreview} alt="Previsualización" className={styles.avatarPreview} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <img src={avatarPreview} alt="Previsualización" className={styles.avatarPreview} />
                     ) : (
-                        <div className={styles.avatarPreview} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f3f4f6' }}>
+                        <div className={styles.avatarPreview} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <ImageIcon size={24} color="#cbd5e1" />
                         </div>
                     )}

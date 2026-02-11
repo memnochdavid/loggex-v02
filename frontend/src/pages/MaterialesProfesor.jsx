@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Trash2 } from 'lucide-react';
-import styles from './Materiales.module.css';
-import modalStyles from './Usuarios.module.css'; // Importamos estilos del modal
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
 
 const MaterialesProfesor = () => {
@@ -149,21 +148,21 @@ const MaterialesProfesor = () => {
 
   const renderMateriales = (asignatura) => {
     if (asignatura.materiales.length === 0) {
-      return <p className={styles.emptyMessage}>No has subido temarios aún.</p>;
+      return <div className={styles.emptyState}>No has subido temarios aún.</div>;
     }
 
     return (
-      <ul className={styles.materialList}>
+      <ul className={styles.list}>
         {asignatura.materiales.map(mat => (
-          <li key={mat.id} className={styles.materialItem}>
-            <div className={styles.materialInfo}>
+          <li key={mat.id} className={styles.listItem}>
+            <div className={styles.itemInfo}>
                 <FileText size={20} className={styles.icon} />
                 <span>{mat.titulo}</span>
                 <span className={styles.date}>
                     {new Date(mat.fechaSubida).toLocaleDateString()}
                 </span>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className={styles.itemActions}>
                 <a 
                     href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
                     target="_blank" 
@@ -174,9 +173,9 @@ const MaterialesProfesor = () => {
                     <Download size={18} />
                 </a>
                 <button 
-                    className={styles.closeButton} 
+                    className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(mat.id)}
-                    style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                    title="Eliminar"
                 >
                     <Trash2 size={18} />
                 </button>
@@ -193,9 +192,9 @@ const MaterialesProfesor = () => {
         <CrudHeader title="Mis Temarios" />
 
         {loading ? (
-          <p>Cargando...</p>
+          <div className={styles.loadingContainer}>Cargando...</div>
         ) : error ? (
-          <p className={styles.error}>{error}</p>
+          <div className={styles.errorContainer}>{error}</div>
         ) : (
           <AccordionView 
             data={asignaturas} 
@@ -213,25 +212,25 @@ const MaterialesProfesor = () => {
             isSubmitting={uploading}
             submitText="Subir"
         >
-            <div className={modalStyles.formGroup}>
-                <label className={modalStyles.label}>Título</label>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Título</label>
                 <input 
                     type="text" 
                     name="titulo" 
                     value={formData.titulo} 
                     onChange={handleInputChange} 
-                    className={modalStyles.input} 
+                    className={styles.input} 
                     required 
                     placeholder="Ej: Tema 1 - Introducción"
                 />
             </div>
-            <div className={modalStyles.formGroup}>
-                <label className={modalStyles.label}>Archivo (PDF, DOCX...)</label>
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Archivo (PDF, DOCX...)</label>
                 <input 
                     type="file" 
                     name="archivo" 
                     onChange={handleInputChange} 
-                    className={modalStyles.fileInput} 
+                    className={styles.fileInput}
                     required 
                 />
             </div>

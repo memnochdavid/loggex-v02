@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import styles from './Entregas.module.css';
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
-import ModalView from '../components/ModalView'; // Importar ModalView
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
-import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Paperclip } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Entregas = () => {
-  console.log("RENDER: Entregas Component"); // LOG 1
-
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [asignaturas, setAsignaturas] = useState([]);
-  const [misEntregas, setMisEntregas] = useState({}); // Mapa tareaId -> entrega (Solo alumno)
+  const [misEntregas, setMisEntregas] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,17 +46,14 @@ const Entregas = () => {
   const [savingGrade, setSavingGrade] = useState(false);
 
   useEffect(() => {
-    console.log("EFFECT: user changed", user?.id); // LOG 2
     if (user) {
         fetchData();
     }
   }, [user]);
 
   const fetchData = async () => {
-    console.log("FETCH: fetchData start"); // LOG 3
     setLoading(true);
     try {
-        // 1. Cargar Asignaturas y Tareas
         let endpoint = '';
         if (isProfesor) {
             endpoint = getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`);
@@ -106,7 +102,6 @@ const Entregas = () => {
             setAsignaturas(asignaturasConTareas);
         }
 
-        // 2. Si es alumno, cargar sus entregas
         if (isAlumno) {
             const resEntregas = await fetch(getApiUrl(`/api/entregas?alumno=${user.id}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
@@ -139,8 +134,6 @@ const Entregas = () => {
         setLoading(false);
     }
   };
-
-  // --- Lógica Alumno ---
 
   const handleOpenUploadModal = (tarea) => {
     setCurrentTarea(tarea);
@@ -185,29 +178,22 @@ const Entregas = () => {
     }
   };
 
-  // --- Lógica Profesor ---
-
   const handleViewEntregas = async (tarea) => {
-      console.log("ACTION: handleViewEntregas", tarea.id); // LOG 4
       setCurrentTarea(tarea);
       setIsViewModalOpen(true);
       setLoadingEntregas(true);
       
       try {
           const tareaId = tarea.id || tarea['@id'].split('/').pop();
-          
-          // REVERTIDO: Pedir la tarea completa, que incluye 'entregas' gracias al grupo tarea:read
           const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
           });
           
-          if (!response.ok) {
-              throw new Error(`Error ${response.status}`);
-          }
+          if (!response.ok) throw new Error(`Error ${response.status}`);
 
           const data = await response.json();
-          const items = data.entregas || []; // Las entregas vienen dentro de la tarea
+          const items = data.entregas || [];
           setEntregasTarea(items);
       } catch (err) {
           console.error(err);
@@ -218,7 +204,6 @@ const Entregas = () => {
   };
 
   const handleOpenGradeModal = (entrega) => {
-      console.log("ACTION: handleOpenGradeModal", entrega.id); // LOG 5
       setCurrentEntrega(entrega);
       setGradeFormData({
           nota: entrega.calificacion ? entrega.calificacion.nota : '',
@@ -228,7 +213,6 @@ const Entregas = () => {
   };
 
   const handleSaveGrade = async (e) => {
-      console.log("ACTION: handleSaveGrade"); // LOG 6
       e.preventDefault();
       setSavingGrade(true);
 
@@ -258,7 +242,6 @@ const Entregas = () => {
 
           const calificacionGuardada = await response.json();
 
-          // ACTUALIZACIÓN LOCAL DEL ESTADO para evitar recarga completa
           setEntregasTarea(prevEntregas => prevEntregas.map(ent => {
               if (ent.id === currentEntrega.id) {
                   return {
@@ -278,38 +261,35 @@ const Entregas = () => {
       }
   };
 
-  // --- Renderizado ---
-
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
       if (tareas.length === 0) return <div className={styles.emptyState}>No hay tareas.</div>;
 
       return (
-          <div className={styles.taskList}>
+          <div className={styles.cardList}>
               {tareas.map(tarea => {
                   const entrega = misEntregas[tarea.id];
                   const estado = entrega ? (entrega.calificacion ? 'Calificado' : 'Entregado') : 'Pendiente';
-                  const badgeClass = entrega ? (entrega.calificacion ? styles.badgeGraded : styles.badgeSubmitted) : styles.badgePending;
+                  const badgeClass = entrega ? (entrega.calificacion ? styles.badgeInfo : styles.badgeSuccess) : styles.badgePending;
                   
                   const isLate = !entrega && new Date() > new Date(tarea.fechaLimite);
                   
                   return (
-                      <div key={tarea.id} className={styles.taskCard}>
-                          <div className={styles.taskInfo}>
-                              <div className={styles.taskTitle}>
-                                  <FileText size={18} /> {tarea.titulo}
+                      <div key={tarea.id} className={styles.card}>
+                          <div className={styles.cardInfo}>
+                              <div className={styles.cardTitle}>
+                                  <FileText size={18} className={styles.icon} /> {tarea.titulo}
                               </div>
-                              <div className={styles.taskMeta}>
+                              <div className={styles.cardMeta}>
                                   <span><Calendar size={14}/> {new Date(tarea.fechaLimite).toLocaleString()}</span>
                                   {isAlumno && (
-                                      <span className={`${styles.badge} ${isLate ? styles.badgeLate : badgeClass}`}>
+                                      <span className={`${styles.badge} ${isLate ? styles.badgeError : badgeClass}`}>
                                           {isLate ? 'Retrasada' : estado}
                                       </span>
                                   )}
                               </div>
                               
-                              {/* Mostrar Nota y Feedback para el Alumno */}
                               {isAlumno && entrega && entrega.calificacion && (
                                   <div className={styles.feedbackContainer}>
                                       <div className={styles.feedbackHeader}>
@@ -325,7 +305,7 @@ const Entregas = () => {
                               )}
                           </div>
                           
-                          <div className={styles.taskActions}>
+                          <div className={styles.cardActions}>
                               {isAlumno && (
                                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                                       <Upload size={16} style={{marginRight:'4px'}}/> 
@@ -362,12 +342,12 @@ const Entregas = () => {
           accessor: (row) => (
               <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                   {row.archivo && (
-                      <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.downloadLink}>
+                      <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.fileLink}>
                           <Download size={14}/> Archivo
                       </a>
                   )}
                   {row.enlace && (
-                      <a href={row.enlace} target="_blank" className={styles.downloadLink}>
+                      <a href={row.enlace} target="_blank" className={styles.fileLink}>
                           <FileText size={14}/> Enlace
                       </a>
                   )}
@@ -383,17 +363,17 @@ const Entregas = () => {
           accessor: (row) => (
               <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                   {row.calificacion ? (
-                      <span className={styles.badge} style={{backgroundColor: '#dbeafe', color: '#1e40af'}}>
+                      <span className={`${styles.badge} ${styles.badgeInfo}`}>
                           {row.calificacion.nota}
                       </span>
                   ) : (
-                      <span style={{color: 'var(--text-muted)', fontSize: '0.8rem'}}>Pendiente</span>
+                      <span className={`${styles.badge} ${styles.badgePending}`}>Pendiente</span>
                   )}
                   <button
                       type={"button"}
                       className={styles.iconButton} 
                       onClick={(e) => {
-                          e.stopPropagation(); // Evitar que el clic cierre el acordeón si estuviera en uno
+                          e.stopPropagation();
                           handleOpenGradeModal(row);
                       }}
                       title="Calificar"
@@ -408,12 +388,10 @@ const Entregas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.pageTitle}>Entregas</h1>
-        </div>
+        <CrudHeader title="Entregas" />
 
         {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando...</div>
+            <div className={styles.loadingContainer}>Cargando...</div>
         ) : (
             <AccordionView 
                 data={asignaturas}

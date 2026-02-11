@@ -5,7 +5,7 @@ import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
-import styles from './Claustro.module.css'; // Reutilizamos estilos
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
 
 const MisProfesores = () => {
@@ -76,7 +76,7 @@ const MisProfesores = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -87,7 +87,7 @@ const MisProfesores = () => {
                             />
                         ))}
                         {filteredProfesores.length === 0 && (
-                            <p className={styles.empty}>No se encontraron profesores.</p>
+                            <div className={styles.emptyState}>No se encontraron profesores.</div>
                         )}
                     </div>
                 )}

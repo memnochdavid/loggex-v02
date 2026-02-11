@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import styles from './Tareas.module.css';
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
@@ -15,7 +15,7 @@ const Tareas = () => {
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
-  const [asignaturas, setAsignaturas] = useState([]); // Imparticiones agrupadas
+  const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -27,7 +27,7 @@ const Tareas = () => {
     titulo: '',
     descripcion: '',
     fechaLimite: '',
-    tipo: 'tarea', // tarea, examen, practica
+    tipo: 'tarea',
     visible: true,
     archivo: null
   });
@@ -79,7 +79,6 @@ const Tareas = () => {
             const data = await response.json();
             const items = data['hydra:member'] || data.member || [];
             
-            // Transformar datos para AccordionView (necesita 'title')
             const asignaturasConTareas = items.map(imp => {
                 const nombreModulo = imp.modulo?.nombre || 'Módulo desconocido';
                 const nombreGrupo = imp.grupo?.nombre || 'Grupo desconocido';
@@ -93,7 +92,7 @@ const Tareas = () => {
                 return {
                     ...imp,
                     id: imp.id || imp['@id'].split('/').pop(),
-                    title: title, // Propiedad requerida por AccordionView
+                    title: title,
                     tareas: imp.tareas || []
                 };
             });
@@ -116,10 +115,10 @@ const Tareas = () => {
       setFormData({
         titulo: tarea.titulo,
         descripcion: tarea.descripcion || '',
-        fechaLimite: tarea.fechaLimite ? tarea.fechaLimite.slice(0, 16) : '', // Formato datetime-local
+        fechaLimite: tarea.fechaLimite ? tarea.fechaLimite.slice(0, 16) : '',
         tipo: tarea.tipo || 'tarea',
         visible: tarea.visible,
-        archivo: null // No precargamos archivo en edición, solo si se quiere cambiar
+        archivo: null
       });
     } else {
       setCurrentTarea(null);
@@ -158,7 +157,6 @@ const Tareas = () => {
     setSaving(true);
 
     try {
-      // Usamos FormData para enviar archivo
       const data = new FormData();
       data.append('titulo', formData.titulo);
       data.append('descripcion', formData.descripcion);
@@ -175,7 +173,6 @@ const Tareas = () => {
           data.append('file', formData.archivo);
       }
 
-      // Usamos el nuevo endpoint de subida que maneja creación y edición con archivo
       const url = getApiUrl('/api/tareas/upload');
       
       const response = await fetch(url, {
@@ -189,7 +186,7 @@ const Tareas = () => {
         throw new Error(errorData.message || 'Error al guardar la tarea');
       }
 
-      await fetchData(); // Recargar datos
+      await fetchData();
       handleCloseModal();
 
     } catch (err) {
@@ -215,12 +212,11 @@ const Tareas = () => {
     }
   };
 
-  // Renderizado de contenido (Lista de tareas)
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
       return (
-          <div className={styles.taskList}>
+          <div className={styles.cardList}>
               {(isProfesor || isAdmin) && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                       <Button size="sm" onClick={() => handleOpenModal(imparticion.id)}>
@@ -233,19 +229,19 @@ const Tareas = () => {
                   <div className={styles.emptyState}>No hay tareas asignadas.</div>
               ) : (
                   tareas.map(tarea => (
-                      <div key={tarea.id} className={styles.taskCard}>
-                          <div className={styles.taskInfo}>
-                              <div className={styles.taskTitle}>
+                      <div key={tarea.id} className={styles.card}>
+                          <div className={styles.cardInfo}>
+                              <div className={styles.cardTitle}>
                                   <FileText size={18} className={styles.icon} />
                                   {tarea.titulo}
-                                  {!tarea.visible && <span style={{fontSize:'0.7rem', color:'red', border:'1px solid red', padding:'0 4px', borderRadius:'4px', marginLeft: '8px'}}>Oculta</span>}
+                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`}>Oculta</span>}
                               </div>
                               {tarea.descripcion && (
-                                  <div className={styles.taskDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
+                                  <div className={styles.cardDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
                               )}
                               
                               {tarea.archivo && (
-                                  <div className={styles.taskFile}>
+                                  <div style={{ marginBottom: '0.5rem' }}>
                                       <a 
                                           href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
                                           target="_blank" 
@@ -258,18 +254,18 @@ const Tareas = () => {
                                   </div>
                               )}
 
-                              <div className={styles.taskMeta}>
+                              <div className={styles.cardMeta}>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       <Calendar size={14} /> 
                                       Entrega: {new Date(tarea.fechaLimite).toLocaleString()}
                                   </span>
-                                  <span className={`${styles.badge} ${styles.badgePending}`}>
+                                  <span className={`${styles.badge} ${styles.badgeInfo}`}>
                                       {tarea.tipo}
                                   </span>
                               </div>
                           </div>
                           
-                          <div className={styles.taskActions}>
+                          <div className={styles.cardActions}>
                               {(isProfesor || isAdmin) ? (
                                   <>
                                       <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)}>
@@ -298,7 +294,7 @@ const Tareas = () => {
         <CrudHeader title="Tareas y Actividades" />
 
         {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando asignaturas...</div>
+            <div className={styles.loadingContainer}>Cargando asignaturas...</div>
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
@@ -313,7 +309,6 @@ const Tareas = () => {
             />
         )}
 
-        {/* Modal Crear/Editar */}
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
@@ -344,7 +339,7 @@ const Tareas = () => {
                 <label className={styles.label}>Archivo Adjunto (Opcional)</label>
                 <input 
                     type="file" 
-                    className={styles.input} 
+                    className={styles.fileInput}
                     name="archivo" 
                     onChange={handleInputChange} 
                 />

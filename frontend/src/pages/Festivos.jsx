@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import styles from './Festivos.module.css';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
@@ -251,16 +251,13 @@ const Festivos = () => {
         fechaFin: formData.fechaFin || null,
       };
 
-      // Lógica corregida para asignación de centro
       if (isSuperAdmin) {
-          // Si es SuperAdmin, usa el valor del formulario (puede ser null para global)
           if (formData.centro) {
               payload.centro = `/api/centros/${formData.centro}`;
           } else {
               payload.centro = null;
           }
       } else {
-          // Si es Admin normal, SIEMPRE asigna su centro, sea creación o edición
           if (user?.centro) {
                const centroId = user.centro.id || (typeof user.centro === 'string' ? user.centro.split('/').pop() : null);
                if (centroId) {

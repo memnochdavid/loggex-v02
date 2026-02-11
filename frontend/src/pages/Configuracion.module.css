@@ -1,17 +1,19 @@
 .container {
     padding: 0 var(--space-8);
-    /*max-width: 1200px;*/
     margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .header {
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-6);
 }
 
 .title {
     font-size: var(--text-2xl);
-    color: var(--color-gray-900);
+    color: var(--text-main);
     margin-bottom: var(--space-2);
+    font-weight: var(--font-bold);
 }
 
 .subtitle {
@@ -26,7 +28,7 @@
 }
 
 .sidebar {
-    width: min-content;
+    width: 250px; /* Ancho fijo para sidebar de configuración */
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -46,6 +48,7 @@
     text-align: left;
     font-weight: var(--font-medium);
     transition: all 0.2s;
+    font-size: var(--text-sm);
 }
 
 .tabButton:hover {
@@ -61,8 +64,9 @@
 .content {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 1fr 350px; /* Formulario | Preview */
     gap: var(--space-8);
+    min-width: 0; /* Evitar desbordamiento en grid */
 }
 
 .formSection {
@@ -89,7 +93,7 @@
 .label {
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--color-gray-700);
+    color: var(--text-main);
 }
 
 .colorInputContainer {
@@ -114,19 +118,22 @@
     border-radius: var(--radius-md);
     font-family: monospace;
     font-size: var(--text-sm);
+    background-color: var(--bg-input);
+    color: var(--text-main);
 }
 
 .previewContainer {
     position: sticky;
     top: var(--space-8);
     flex: 1;
+    min-width: 0;
 }
 
 .previewTitle {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
     margin-bottom: var(--space-4);
-    color: var(--color-gray-800);
+    color: var(--text-main);
 }
 
 .previewBox {
@@ -135,8 +142,7 @@
     border-radius: var(--radius-lg);
     padding: var(--space-4);
     box-shadow: var(--shadow-sm);
-
-    overflow-x: auto; /* Permitir scroll si el contenido es muy ancho */
+    overflow-x: auto;
 }
 
 .message {
@@ -174,7 +180,7 @@
 .sectionTitle {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
-    color: var(--color-gray-800);
+    color: var(--text-main);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-2);
     border-bottom: 1px solid var(--border-color);
@@ -190,7 +196,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    background-color: white;
+    background-color: var(--bg-card);
     transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
@@ -245,13 +251,13 @@
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid var(--border-color);
-    background-color: white;
+    background-color: var(--bg-card);
 }
 
 .themeName {
     font-weight: var(--font-medium);
     font-size: var(--text-sm);
-    color: var(--color-gray-800);
+    color: var(--text-main);
 }
 
 .themeActions {
@@ -267,7 +273,7 @@
     height: 28px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    background-color: white;
+    background-color: var(--bg-card);
     color: var(--color-gray-600);
     cursor: pointer;
     transition: all 0.2s;
@@ -296,17 +302,18 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    flex-wrap: wrap; /* Permitir que los elementos se envuelvan */
+    flex-wrap: wrap;
 }
 
 .titleWordText {
     min-width: 100px;
     font-weight: bold;
+    color: var(--text-main);
 }
 
 .titleWordInput {
     flex: 1;
-    min-width: 120px; /* Ancho mínimo para el input de texto */
+    min-width: 120px;
 }
 
 /* Estilos para el input de archivo personalizado */
@@ -325,10 +332,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background-color: white;
+    background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    color: var(--color-gray-700);
+    color: var(--text-main);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     cursor: pointer;
@@ -349,10 +356,10 @@
     max-width: 200px;
 }
 
-/* Estilos para las vistas previas (reemplazando estilos en línea) */
+/* Estilos para las vistas previas */
 .previewGeneral {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -371,7 +378,7 @@
     background-color: white;
     padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
 }
 
 .previewFooter {
@@ -381,7 +388,8 @@
 }
 
 .previewSidebar {
-    width: 200px;
+    width: 100%;
+    max-width: 200px;
     border-radius: 8px;
     overflow: hidden;
     padding: 10px;
@@ -394,13 +402,14 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    font-size: 12px;
 }
 
 .previewTextContainer {
     background-color: white;
     padding: 20px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
 }
 
 .previewButtonsContainer {
@@ -415,6 +424,7 @@
     border-radius: 6px;
     font-weight: 500;
     cursor: pointer;
+    font-size: 12px;
 }
 
 .previewButtonSecondary {
@@ -423,13 +433,14 @@
     border-radius: 6px;
     font-weight: 500;
     cursor: pointer;
+    font-size: 12px;
 }
 
 .previewScrollbarContainer {
     height: 100px;
-    width: 200px;
+    width: 100%;
     overflow-y: scroll;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 10px;
     position: relative;
@@ -456,8 +467,9 @@
 }
 
 .previewCalendarContainer {
-    width: 250px;
-    border: 1px solid #e2e8f0;
+    width: 100%;
+    max-width: 250px;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 10px;
     background-color: white;
@@ -489,7 +501,7 @@
 .previewTimetableContainer {
     display: grid;
     grid-template-columns: 60px 1fr 1fr;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     overflow: hidden;
     font-size: 12px;
@@ -497,15 +509,15 @@
 
 .previewTimetableHeader {
     padding: 5px;
-    border-bottom: 1px solid #e2e8f0;
-    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
     text-align: center;
     font-weight: bold;
 }
 
 .previewTimetableCell {
     padding: 10px;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid var(--border-color);
 }
 
 .previewDatatableHeader {
@@ -514,7 +526,7 @@
     font-size: 12px;
     font-weight: bold;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     margin-bottom: 10px;
     display: flex;
     gap: 10px;
@@ -537,7 +549,7 @@
 }
 
 .previewAccordionContainer {
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -545,6 +557,7 @@
 .previewAccordionHeader {
     padding: 10px 15px;
     font-weight: 600;
+    font-size: 14px;
 }
 
 .previewAccordionContent {
@@ -553,21 +566,23 @@
 }
 
 .previewModalContainer {
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    width: 300px;
+    box-shadow: var(--shadow-sm);
+    width: 100%;
+    max-width: 300px;
     margin: 0 auto;
 }
 
 .previewModalHeader {
     padding: 10px 15px;
     font-weight: bold;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 14px;
 }
 
 .previewModalClose {
@@ -577,7 +592,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
 }
 
 .previewModalBody {
@@ -587,7 +603,7 @@
 
 .previewModalFooter {
     padding: 10px 15px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -601,41 +617,48 @@
     align-items: center;
 }
 
-@media (max-width:1024px) {
+/* Media Queries */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 var(--space-2);
+    }
+
     .layout {
         flex-direction: column;
+        gap: var(--space-4);
     }
 
     .sidebar {
         width: 100%;
         flex-direction: row;
         overflow-x: auto;
-        padding-bottom: var(--space-1);
-        flex-wrap: wrap;
-        justify-content: center;
+        padding-bottom: var(--space-2);
+        flex-wrap: nowrap; /* Scroll horizontal */
+        gap: var(--space-2);
+    }
+
+    .tabButton {
+        white-space: nowrap;
+        padding: var(--space-2) var(--space-3);
     }
 
     .content {
-        display: flex; /* CAMBIO: Usar Flexbox para apilar */
-        flex-direction: column-reverse;
-        width: 100%; /* Asegurar ancho completo */
+        display: flex;
+        flex-direction: column-reverse; /* Preview arriba en móvil si se quiere, o abajo */
+        width: 100%;
+        gap: var(--space-6);
     }
 
     .previewContainer {
         position: static;
-        margin-top: var(--space-8);
-        width: 100%; /* Asegurar ancho completo */
-    }
-
-    .colorItem {
         width: 100%;
     }
 
-    .container {
-        padding: 0;
+    .grid {
+        grid-template-columns: 1fr; /* Una columna en móvil */
     }
 
-    /* Estilos para que el botón de cambiar logo ocupe todo el ancho */
+    /* Ajustes para el input de archivo en móvil */
     .fileInputWrapper {
         flex-direction: column;
         align-items: stretch;
@@ -643,6 +666,9 @@
 
     .fileInputWrapper > div {
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
     }
 
     .fileInputWrapper button {
