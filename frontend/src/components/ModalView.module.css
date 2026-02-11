@@ -93,7 +93,10 @@
 }
 
 .modalBody {
+    display: flex;
+    flex-direction: column;
     padding: var(--space-6);
+    gap: var(--space-1);
     flex: 1;
     overflow-y: auto;
     background-color: var(--modal-body-bg, var(--bg-card));

@@ -172,7 +172,7 @@ const Header = () => {
 
                 {user && isSuperAdmin && (
                     <a
-                        href="https://localhost:9443"
+                        href="https://localhost:9443/api"
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}
