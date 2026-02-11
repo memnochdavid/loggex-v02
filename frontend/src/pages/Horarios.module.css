@@ -54,6 +54,32 @@
     border: 1px solid #fecaca;
 }
 
+/* Estilos para acciones de tabla (Botones Editar/Eliminar) */
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:hover {
+    color: var(--primary-color);
+}
+
+.iconButton.danger:hover {
+    color: #ef4444;
+}
+
 /* Layout de Vista Calendario */
 .calendarViewModeContainer {
     display: flex;
