@@ -2,11 +2,21 @@ import React, { useEffect, useState } from 'react';
 import Button from './Button';
 import { Check, X, Clock, AlertCircle, Save } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import styles from './AsistenciaModal.module.css';
+import AccordionView from './AccordionView';
 
 const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [expandedId, setExpandedId] = useState(null);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -15,17 +25,15 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Usar ruta personalizada
             const response = await fetch(getApiUrl(`/api/v1/asistencia/sheet?imparticion=${imparticionId}&fecha=${fecha}&hora=${hora}`), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();
-                // Inicializar estado local
                 const initializedData = data.map(a => ({
                     ...a,
-                    estado: a.asistencia ? a.asistencia.estado : 'P', // Por defecto Presente
+                    estado: a.asistencia ? a.asistencia.estado : 'P',
                     comentario: a.asistencia ? a.asistencia.comentario : ''
                 }));
                 setAlumnos(initializedData);
@@ -38,13 +46,13 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     };
 
     const handleEstadoChange = (alumnoId, nuevoEstado) => {
-        setAlumnos(prev => prev.map(a => 
+        setAlumnos(prev => prev.map(a =>
             a.id === alumnoId ? { ...a, estado: nuevoEstado } : a
         ));
     };
 
     const handleComentarioChange = (alumnoId, texto) => {
-        setAlumnos(prev => prev.map(a => 
+        setAlumnos(prev => prev.map(a =>
             a.id === alumnoId ? { ...a, comentario: texto } : a
         ));
     };
@@ -63,7 +71,6 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                 }))
             };
 
-            // Usar ruta personalizada
             const response = await fetch(getApiUrl('/api/v1/asistencia/batch'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -72,7 +79,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
             });
 
             if (response.ok) {
-                onClose(); // Cerrar modal al guardar
+                onClose();
             } else {
                 alert("Error al guardar asistencia");
             }
@@ -84,107 +91,165 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
         }
     };
 
-    if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando lista...</div>;
+    const handleToggle = (id) => {
+        setExpandedId(prevId => (prevId === id ? null : id));
+    };
+
+    if (loading) return <div className={styles.loading}>Cargando lista...</div>;
+
+    const renderMobileItem = (alumno) => (
+        <div className={styles.mobileItemContent}>
+            <div className={styles.mobileActions}>
+                <button
+                    type="button"
+                    onClick={() => handleEstadoChange(alumno.id, 'P')}
+                    className={`${styles.mobileActionButton} ${alumno.estado === 'P' ? styles.mobileActionButtonActiveP : ''}`}
+                >
+                    <Check size={20} />
+                    <span className={styles.mobileActionLabel}>Presente</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleEstadoChange(alumno.id, 'F')}
+                    className={`${styles.mobileActionButton} ${alumno.estado === 'F' ? styles.mobileActionButtonActiveF : ''}`}
+                >
+                    <X size={20} />
+                    <span className={styles.mobileActionLabel}>Falta</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleEstadoChange(alumno.id, 'R')}
+                    className={`${styles.mobileActionButton} ${alumno.estado === 'R' ? styles.mobileActionButtonActiveR : ''}`}
+                >
+                    <Clock size={20} />
+                    <span className={styles.mobileActionLabel}>Retraso</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleEstadoChange(alumno.id, 'J')}
+                    className={`${styles.mobileActionButton} ${alumno.estado === 'J' ? styles.mobileActionButtonActiveJ : ''}`}
+                >
+                    <AlertCircle size={20} />
+                    <span className={styles.mobileActionLabel}>Justif.</span>
+                </button>
+            </div>
+            <input
+                type="text"
+                value={alumno.comentario || ''}
+                onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
+                placeholder="Añadir comentario..."
+                className={styles.inputComentario}
+            />
+        </div>
+    );
+
+    const renderMobileHeader = (alumno) => (
+        <div className={styles.tdAlumno}>
+            <div className={styles.avatar}>
+                {alumno.foto ? (
+                    <img src={getAssetUrl(alumno.foto)} alt="" className={styles.avatarImg} />
+                ) : (
+                    <div className={styles.avatarPlaceholder}>
+                        {alumno.nombre.charAt(0)}
+                    </div>
+                )}
+            </div>
+            <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
+        </div>
+    );
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left' }}>
-                            <th style={{ padding: '0.5rem' }}>Alumno</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'center' }}>Estado</th>
-                            <th style={{ padding: '0.5rem' }}>Comentario</th>
+        <div className={styles.container}>
+            <div className={styles.tableContainer}>
+                {isMobile ? (
+                    <AccordionView
+                        data={alumnos}
+                        renderItem={renderMobileItem}
+                        renderHeader={renderMobileHeader}
+                        expandedId={expandedId}
+                        onToggle={handleToggle}
+                    />
+                ) : (
+                    <table className={styles.table}>
+                        <thead>
+                        <tr className={styles.tr}>
+                            <th className={styles.th}>Alumno</th>
+                            <th className={styles.thCenter}>Estado</th>
+                            <th className={styles.th}>Comentario</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         {alumnos.map(alumno => (
-                            <tr key={alumno.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                <td style={{ padding: '0.8rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                    {/* Avatar simple */}
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#eee', overflow: 'hidden' }}>
+                            <tr key={alumno.id} className={styles.tr}>
+                                <td className={styles.tdAlumno}>
+                                    <div className={styles.avatar}>
                                         {alumno.foto ? (
-                                            <img src={getAssetUrl(alumno.foto)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={getAssetUrl(alumno.foto)} alt="" className={styles.avatarImg} />
                                         ) : (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '12px' }}>
+                                            <div className={styles.avatarPlaceholder}>
                                                 {alumno.nombre.charAt(0)}
                                             </div>
                                         )}
                                     </div>
                                     <div>
-                                        <div style={{ fontWeight: '500' }}>{alumno.apellidos}, {alumno.nombre}</div>
+                                        <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
                                     </div>
                                 </td>
-                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                                        <button 
+                                <td className={styles.tdActions}>
+                                    <div className={styles.actionsContainer}>
+                                        <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'P')}
                                             title="Presente"
-                                            style={{ 
-                                                padding: '6px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer',
-                                                backgroundColor: alumno.estado === 'P' ? '#dcfce7' : 'white',
-                                                color: alumno.estado === 'P' ? '#166534' : '#64748b'
-                                            }}
+                                            className={alumno.estado === 'P' ? styles.btnPresenteActive : styles.btnPresente}
                                         >
                                             <Check size={16} />
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'F')}
                                             title="Falta"
-                                            style={{ 
-                                                padding: '6px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer',
-                                                backgroundColor: alumno.estado === 'F' ? '#fee2e2' : 'white',
-                                                color: alumno.estado === 'F' ? '#991b1b' : '#64748b'
-                                            }}
+                                            className={alumno.estado === 'F' ? styles.btnFaltaActive : styles.btnFalta}
                                         >
                                             <X size={16} />
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'R')}
                                             title="Retraso"
-                                            style={{ 
-                                                padding: '6px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer',
-                                                backgroundColor: alumno.estado === 'R' ? '#fef9c3' : 'white',
-                                                color: alumno.estado === 'R' ? '#854d0e' : '#64748b'
-                                            }}
+                                            className={alumno.estado === 'R' ? styles.btnRetrasoActive : styles.btnRetraso}
                                         >
                                             <Clock size={16} />
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'J')}
                                             title="Justificada"
-                                            style={{ 
-                                                padding: '6px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer',
-                                                backgroundColor: alumno.estado === 'J' ? '#dbeafe' : 'white',
-                                                color: alumno.estado === 'J' ? '#1e40af' : '#64748b'
-                                            }}
+                                            className={alumno.estado === 'J' ? styles.btnJustificadaActive : styles.btnJustificada}
                                         >
                                             <AlertCircle size={16} />
                                         </button>
                                     </div>
                                 </td>
-                                <td style={{ padding: '0.5rem' }}>
-                                    <input 
-                                        type="text" 
+                                <td className={styles.tdComentario}>
+                                    <input
+                                        type="text"
                                         value={alumno.comentario || ''}
                                         onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
                                         placeholder="..."
-                                        style={{ width: '100%', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                        className={styles.inputComentario}
                                     />
                                 </td>
                             </tr>
                         ))}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                )}
             </div>
-            <div style={{ padding: '1rem', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <div className={styles.footer}>
                 <Button variant="secondary" onClick={onClose}>Cancelar</Button>
                 <Button onClick={handleSave} disabled={saving}>
-                    <Save size={18} style={{ marginRight: '8px' }} />
+                    <Save size={18} className={styles.saveIcon} />
                     {saving ? 'Guardando...' : 'Guardar Asistencia'}
                 </Button>
             </div>
