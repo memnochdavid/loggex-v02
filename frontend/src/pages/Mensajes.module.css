@@ -1,9 +1,10 @@
 .container {
-    padding: var(--space-4);
+    padding: 0 var(--space-8); /* Alineado con Crud/Academic */
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .chatLayout {
@@ -15,7 +16,8 @@
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     min-height: 0;
-    position: relative; /* Para posicionar elementos absolutos en móvil */
+    position: relative;
+    margin-bottom: var(--space-4); /* Espacio inferior */
 }
 
 .sidebar {
@@ -148,7 +150,7 @@
 }
 
 .backButton {
-    display: none; /* Oculto por defecto en desktop */
+    display: none;
     background: none;
     border: none;
     cursor: pointer;
@@ -185,7 +187,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    min-height: 0; /* IMPORTANTE: Permite que el contenedor se encoja y aparezca el scroll */
+    min-height: 0;
 }
 
 .messageBubble {
@@ -256,14 +258,15 @@
 /* Responsive Styles */
 @media (max-width: 768px) {
     .container {
-        padding: 0; /* Quitar padding en móvil para aprovechar espacio */
-        height: 100%; /* Usar 100% del contenedor padre (Layout) */
+        padding: 0; /* En móvil, sin padding para chat full screen */
+        height: 100%;
     }
 
     .chatLayout {
         border-radius: 0;
         border: none;
-        height: 100%; /* Asegurar que ocupe todo el alto disponible */
+        height: 100%;
+        margin-bottom: 0;
     }
 
     .sidebar {
@@ -273,10 +276,9 @@
         bottom: 0;
         left: 0;
         z-index: 10;
-        transform: translateX(0); /* Visible por defecto */
+        transform: translateX(0);
     }
 
-    /* Cuando hay un chat seleccionado, ocultamos el sidebar moviéndolo a la izquierda */
     .sidebar.hidden {
         transform: translateX(-100%);
     }
@@ -288,28 +290,25 @@
         bottom: 0;
         left: 0;
         z-index: 5;
-        /* El chat siempre está "debajo", pero cuando el sidebar se oculta, se ve */
-        transform: translateX(100%); /* Oculto por defecto a la derecha */
+        transform: translateX(100%);
         transition: transform 0.3s ease;
-        background-color: var(--chat-container-bg, #f8fafc); /* Asegurar fondo opaco */
+        background-color: var(--chat-container-bg, #f8fafc);
     }
 
-    /* Clase para mostrar el chat */
     .chatArea.visible {
         transform: translateX(0);
     }
 
     .backButton {
-        display: block; /* Mostrar botón de volver en móvil */
+        display: block;
         margin-right: 10px;
     }
 
     .conversationItem {
-        padding: 1rem; /* Áreas táctiles más grandes */
+        padding: 1rem;
     }
 
-    /* Ajuste para el header del chat en móvil */
     .chatHeader {
-        padding: 10px; /* Reducir padding */
+        padding: 10px;
     }
 }
