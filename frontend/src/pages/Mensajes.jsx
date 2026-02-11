@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
 import { useAuth } from '../context/AuthContext';
 import styles from './Mensajes.module.css';
-import { Send, User, ArrowLeft } from 'lucide-react'; // Importar ArrowLeft
+import { Send, User, ArrowLeft } from 'lucide-react';
 import Button from '../components/Button';
 import { getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT } from '../config/api';
 
@@ -21,8 +21,10 @@ const Mensajes = () => {
     const [searchTerm, setSearchTerm] = useState('');
     
     const messagesEndRef = useRef(null);
-    // Ref para controlar si ya procesamos la navegación inicial
+    const messagesContainerRef = useRef(null);
     const navigationProcessed = useRef(false);
+    const prevMensajesLength = useRef(0);
+    const isUserNearBottom = useRef(true);
 
     useEffect(() => {
         if (user) {
@@ -32,13 +34,21 @@ const Mensajes = () => {
         }
     }, [user]);
 
-    // Efecto para manejar la navegación desde otras páginas (ej: Claustro)
+    // Manejar scroll manual para detectar si el usuario subió
+    const handleScroll = () => {
+        if (messagesContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+            // Consideramos "cerca del fondo" si está a menos de 100px
+            isUserNearBottom.current = scrollHeight - scrollTop - clientHeight < 100;
+        }
+    };
+
+    // Efecto para navegación inicial
     useEffect(() => {
         if (location.state?.chatWith && !loading && !navigationProcessed.current) {
             const targetUser = location.state.chatWith;
             const existingChat = conversaciones.find(c => c.usuario.id === targetUser.id);
             
-            // Marcar como procesado para evitar bucles
             navigationProcessed.current = true;
 
             if (existingChat) {
@@ -54,16 +64,17 @@ const Mensajes = () => {
                 setConversaciones(prev => [newChat, ...prev]);
                 handleSelectUser(targetUser);
             }
-            
-            // Limpiar el estado de navegación para que no vuelva a dispararse
             window.history.replaceState({}, document.title);
         }
     }, [location.state, loading, conversaciones]);
 
+    // Actualizar mensajes del chat activo cuando llegan nuevos datos
     useEffect(() => {
         if (selectedUser) {
             const chat = conversaciones.find(c => c.usuario.id === selectedUser.id);
             if (chat) {
+                // Solo actualizar si hay cambios reales para evitar re-renders innecesarios
+                // (Aunque React suele ser inteligente, aquí forzamos la actualización del estado)
                 setMensajesChat(chat.mensajes);
             } else {
                 setMensajesChat([]);
@@ -71,12 +82,40 @@ const Mensajes = () => {
         }
     }, [conversaciones, selectedUser]);
 
+    // Control de Scroll Inteligente
+    useLayoutEffect(() => {
+        // Caso 1: Cambio de usuario -> Scroll al fondo siempre
+        if (prevMensajesLength.current === 0 && mensajesChat.length > 0) {
+            scrollToBottom();
+            isUserNearBottom.current = true;
+        } 
+        // Caso 2: Nuevos mensajes llegaron
+        else if (mensajesChat.length > prevMensajesLength.current) {
+            const lastMessage = mensajesChat[0]; // El array está invertido en render ([...].reverse()), pero aquí el último es el 0 o el último según cómo venga de API
+            // La API devuelve lista, agruparConversaciones hace push.
+            // En render hacemos [...mensajesChat].reverse().
+            // Significa que mensajesChat[mensajesChat.length - 1] es el más reciente.
+            
+            const realLastMessage = mensajesChat[mensajesChat.length - 1];
+            const isMyMessage = realLastMessage?.remitente?.id === user.id;
+
+            if (isMyMessage || isUserNearBottom.current) {
+                scrollToBottom();
+            }
+        }
+
+        prevMensajesLength.current = mensajesChat.length;
+    }, [mensajesChat, selectedUser]);
+
+    // Resetear ref al cambiar de usuario
     useEffect(() => {
+        prevMensajesLength.current = 0;
+        isUserNearBottom.current = true;
         scrollToBottom();
-    }, [mensajesChat, selectedUser]); // Scroll al cambiar de chat también
+    }, [selectedUser]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" }); // Auto es más instantáneo que smooth para cargas
     };
 
     const fetchMensajes = async () => {
@@ -91,8 +130,6 @@ const Mensajes = () => {
                 const allMessages = data || [];
                 agruparConversaciones(allMessages);
                 setLoading(false);
-            } else {
-                console.error("Error fetching mensajes:", response.status);
             }
         } catch (error) {
             console.error("Error cargando mensajes:", error);
@@ -106,9 +143,7 @@ const Mensajes = () => {
         mensajes.forEach(msg => {
             const remitenteId = msg.remitente.id;
             const destinatarioId = msg.destinatario.id;
-            
             const soyYoRemitente = remitenteId === user.id;
-            
             const otroUsuario = soyYoRemitente ? msg.destinatario : msg.remitente;
             const otroId = soyYoRemitente ? destinatarioId : remitenteId;
 
@@ -151,11 +186,12 @@ const Mensajes = () => {
             }
         }
 
+        // Optimización: Solo actualizar estado si hay cambios reales en la estructura
+        // (Para simplificar, actualizamos siempre, pero el control de scroll lo maneja el useEffect)
         setConversaciones(lista);
     };
 
     const markAsRead = async (userId) => {
-        // 1. Actualizar UI localmente
         setConversaciones(prev => prev.map(chat => {
             if (chat.usuario.id === userId) {
                 return { ...chat, noLeidos: 0 };
@@ -163,7 +199,6 @@ const Mensajes = () => {
             return chat;
         }));
 
-        // 2. Encontrar mensajes no leídos de este usuario
         const chat = conversaciones.find(c => c.usuario.id === userId);
         if (!chat) return;
 
@@ -173,7 +208,6 @@ const Mensajes = () => {
 
         if (unreadMessages.length === 0) return;
 
-        // 3. Llamar a la API para cada mensaje usando PATCH
         try {
             await Promise.all(unreadMessages.map(msg => 
                 fetch(getApiUrl(`/api/mensajes/${msg.id}`), {
@@ -186,7 +220,6 @@ const Mensajes = () => {
                     credentials: 'include'
                 })
             ));
-            // Refrescar para asegurar sincronización
             fetchMensajes();
         } catch (error) {
             console.error("Error marcando como leídos:", error);
@@ -222,6 +255,9 @@ const Mensajes = () => {
             if (response.ok) {
                 setNewMessage('');
                 fetchMensajes();
+                // Forzar scroll al enviar
+                isUserNearBottom.current = true;
+                scrollToBottom();
             } else {
                 alert("Error al enviar mensaje");
             }
@@ -244,13 +280,11 @@ const Mensajes = () => {
     return (
         <Layout fullHeight={true}>
             <div className={styles.container}>
-                {/* En móvil, ocultamos el header si estamos dentro de un chat */}
                 <div style={{ padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block' }}>
                     <CrudHeader title="Mensajería" />
                 </div>
                 
                 <div className={styles.chatLayout}>
-                    {/* Sidebar: Se oculta en móvil si hay un usuario seleccionado */}
                     <div className={`${styles.sidebar} ${selectedUser ? styles.hidden : ''}`}>
                         <div className={styles.searchWrapper}>
                             <SearchBar 
@@ -299,7 +333,6 @@ const Mensajes = () => {
                         </div>
                     </div>
 
-                    {/* Chat Area: Se muestra siempre en desktop, o en móvil si hay usuario seleccionado */}
                     <div className={`${styles.chatArea} ${selectedUser ? styles.visible : ''}`}>
                         {selectedUser ? (
                             <>
@@ -317,7 +350,11 @@ const Mensajes = () => {
                                     <span className={styles.chatUserName}>{selectedUser.nombre} {selectedUser.apellidos}</span>
                                 </div>
 
-                                <div className={styles.messagesContainer}>
+                                <div 
+                                    className={styles.messagesContainer} 
+                                    ref={messagesContainerRef}
+                                    onScroll={handleScroll}
+                                >
                                     {mensajesChat.length === 0 ? (
                                         <div className={styles.emptyChat}>
                                             <p>No hay mensajes. ¡Saluda!</p>
