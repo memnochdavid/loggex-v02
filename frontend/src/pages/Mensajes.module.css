@@ -167,7 +167,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border: 2px solid rgba(255,255,255,0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .avatarSmall img {
@@ -234,14 +234,19 @@
 .messageInput {
     flex: 1;
     padding: 10px;
-    border: 1px solid var(--border-color);
+    border: none; /* Sin borde por defecto */
     border-radius: var(--radius-md);
     font-size: 0.95rem;
+    background-color: var(--bg-input); /* Asegurar fondo */
+    height: min-content;
+    resize: none;
 }
 
 .messageInput:focus {
     outline: none;
-    border-color: var(--color-primary-500);
+    border: none; /* Sin borde al enfocar */
+    box-shadow: none; /* Sin sombra al enfocar */
+    min-height: min-content;
 }
 
 .emptyChat {

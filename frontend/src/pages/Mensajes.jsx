@@ -8,6 +8,7 @@ import styles from './Mensajes.module.css';
 import { Send, User, ArrowLeft } from 'lucide-react';
 import Button from '../components/Button';
 import { getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT } from '../config/api';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 const Mensajes = () => {
     const { user } = useAuth();
@@ -22,9 +23,12 @@ const Mensajes = () => {
     
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const textareaRef = useRef(null); // Ref para el textarea
     const navigationProcessed = useRef(false);
     const prevMensajesLength = useRef(0);
     const isUserNearBottom = useRef(true);
+
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
         if (user) {
@@ -34,16 +38,21 @@ const Mensajes = () => {
         }
     }, [user]);
 
-    // Manejar scroll manual para detectar si el usuario subió
+    // Ajustar altura del textarea automáticamente
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; // Max 120px
+        }
+    }, [newMessage]);
+
     const handleScroll = () => {
         if (messagesContainerRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-            // Consideramos "cerca del fondo" si está a menos de 100px
             isUserNearBottom.current = scrollHeight - scrollTop - clientHeight < 100;
         }
     };
 
-    // Efecto para navegación inicial
     useEffect(() => {
         if (location.state?.chatWith && !loading && !navigationProcessed.current) {
             const targetUser = location.state.chatWith;
@@ -68,13 +77,10 @@ const Mensajes = () => {
         }
     }, [location.state, loading, conversaciones]);
 
-    // Actualizar mensajes del chat activo cuando llegan nuevos datos
     useEffect(() => {
         if (selectedUser) {
             const chat = conversaciones.find(c => c.usuario.id === selectedUser.id);
             if (chat) {
-                // Solo actualizar si hay cambios reales para evitar re-renders innecesarios
-                // (Aunque React suele ser inteligente, aquí forzamos la actualización del estado)
                 setMensajesChat(chat.mensajes);
             } else {
                 setMensajesChat([]);
@@ -82,20 +88,12 @@ const Mensajes = () => {
         }
     }, [conversaciones, selectedUser]);
 
-    // Control de Scroll Inteligente
     useLayoutEffect(() => {
-        // Caso 1: Cambio de usuario -> Scroll al fondo siempre
         if (prevMensajesLength.current === 0 && mensajesChat.length > 0) {
             scrollToBottom();
             isUserNearBottom.current = true;
         } 
-        // Caso 2: Nuevos mensajes llegaron
         else if (mensajesChat.length > prevMensajesLength.current) {
-            const lastMessage = mensajesChat[0]; // El array está invertido en render ([...].reverse()), pero aquí el último es el 0 o el último según cómo venga de API
-            // La API devuelve lista, agruparConversaciones hace push.
-            // En render hacemos [...mensajesChat].reverse().
-            // Significa que mensajesChat[mensajesChat.length - 1] es el más reciente.
-            
             const realLastMessage = mensajesChat[mensajesChat.length - 1];
             const isMyMessage = realLastMessage?.remitente?.id === user.id;
 
@@ -107,15 +105,16 @@ const Mensajes = () => {
         prevMensajesLength.current = mensajesChat.length;
     }, [mensajesChat, selectedUser]);
 
-    // Resetear ref al cambiar de usuario
     useEffect(() => {
         prevMensajesLength.current = 0;
         isUserNearBottom.current = true;
         scrollToBottom();
+        setNewMessage(''); // Limpiar mensaje al cambiar de chat
+        if (textareaRef.current) textareaRef.current.focus(); // Enfocar
     }, [selectedUser]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "auto" }); // Auto es más instantáneo que smooth para cargas
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     };
 
     const fetchMensajes = async () => {
@@ -186,8 +185,6 @@ const Mensajes = () => {
             }
         }
 
-        // Optimización: Solo actualizar estado si hay cambios reales en la estructura
-        // (Para simplificar, actualizamos siempre, pero el control de scroll lo maneja el useEffect)
         setConversaciones(lista);
     };
 
@@ -232,7 +229,7 @@ const Mensajes = () => {
     };
 
     const handleSendMessage = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault(); // Prevenir submit si viene de form o evento
         if (!newMessage.trim() || !selectedUser) return;
 
         setSending(true);
@@ -255,9 +252,13 @@ const Mensajes = () => {
             if (response.ok) {
                 setNewMessage('');
                 fetchMensajes();
-                // Forzar scroll al enviar
                 isUserNearBottom.current = true;
                 scrollToBottom();
+                // Re-enfocar textarea
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto'; // Reset altura
+                    textareaRef.current.focus();
+                }
             } else {
                 alert("Error al enviar mensaje");
             }
@@ -265,6 +266,16 @@ const Mensajes = () => {
             console.error(error);
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        // Si es móvil, no interceptamos Enter (deja que haga salto de línea)
+        if (isMobile) return;
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
@@ -365,7 +376,7 @@ const Mensajes = () => {
                                             const isMe = remitenteId === user.id;
                                             return (
                                                 <div key={msg.id} className={`${styles.messageBubble} ${isMe ? styles.sent : styles.received}`}>
-                                                    <div className={styles.messageContent}>
+                                                    <div className={styles.messageContent} style={{ whiteSpace: 'pre-wrap' }}>
                                                         {msg.texto}
                                                     </div>
                                                     <div className={styles.messageTime}>
@@ -378,19 +389,21 @@ const Mensajes = () => {
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                <form onSubmit={handleSendMessage} className={styles.inputArea}>
-                                    <input 
-                                        type="text" 
+                                <div className={styles.inputArea}>
+                                    <textarea 
+                                        ref={textareaRef}
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyDown={handleKeyDown}
                                         placeholder="Escribe un mensaje..."
                                         className={styles.messageInput}
                                         disabled={sending}
+                                        rows={1}
                                     />
-                                    <Button type="submit" disabled={sending || !newMessage.trim()}>
+                                    <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
                                         <Send size={18} />
                                     </Button>
-                                </form>
+                                </div>
                             </>
                         ) : (
                             <div className={styles.emptyChat}>
