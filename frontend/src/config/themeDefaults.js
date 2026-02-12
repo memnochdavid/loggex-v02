@@ -88,6 +88,16 @@ export const DEFAULT_THEME = {
     eventCardMetaColor: '#64748b',
     eventsSidebarBgColor: 'transparent',
     eventsSidebarTitleColor: '#334155',
+    
+    // Dashboard Widgets
+    widgetBgColor: '#ffffff',
+    widgetHeaderBgColor: '#ffffff',
+    widgetHeaderTextColor: '#334155',
+    widgetBorderColor: '#e2e8f0',
+    widgetItemTextColor: '#334155',
+    widgetItemHoverBgColor: '#f1f5f9',
+    widgetIconColor: '#6366f1',
+
     itemsPerPageUsuarios: 20,
     itemsPerPageCentros: 20,
     itemsPerPageCiclos: 20,

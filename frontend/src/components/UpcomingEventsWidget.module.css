@@ -3,24 +3,26 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    background-color: var(--widget-bg, var(--bg-card));
 }
 
 .widgetHeader {
     padding: 1rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background-color: var(--widget-header-bg, transparent);
 }
 
 .headerIcon {
-    color: var(--color-primary);
+    color: var(--widget-icon-color, var(--color-primary));
 }
 
 .widgetTitle {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--color-text-main);
+    color: var(--widget-header-text, var(--color-text-main));
     margin: 0;
 }
 
@@ -53,7 +55,8 @@
     display: flex;
     align-items: center;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
+    color: var(--widget-item-text, var(--color-text-main));
 }
 
 .eventItem:last-child {
@@ -62,7 +65,7 @@
 
 .time {
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--widget-icon-color, var(--color-primary));
     width: 60px;
     flex-shrink: 0;
 }
@@ -74,17 +77,18 @@
 
 .subject {
     font-weight: 500;
-    color: var(--color-text-main);
+    color: var(--widget-item-text, var(--color-text-main));
 }
 
 .group {
     font-size: 0.85rem;
-    color: var(--color-text-secondary);
+    color: var(--widget-item-text, var(--color-text-secondary));
+    opacity: 0.8;
 }
 
 .loading, .empty {
     padding: 1.5rem;
     text-align: center;
-    color: var(--color-text-secondary);
+    color: var(--widget-item-text, var(--color-text-secondary));
     font-size: 0.9rem;
 }

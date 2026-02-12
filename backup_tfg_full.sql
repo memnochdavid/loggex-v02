@@ -915,6 +915,13 @@ CREATE TABLE `personalizacion` (
   `sidebar_accordion_header_text_color` varchar(7) NOT NULL,
   `sidebar_accordion_content_bg_color` varchar(7) NOT NULL,
   `sidebar_accordion_content_text_color` varchar(7) NOT NULL,
+  `widget_bg_color` varchar(7) NOT NULL,
+  `widget_header_bg_color` varchar(7) NOT NULL,
+  `widget_header_text_color` varchar(7) NOT NULL,
+  `widget_border_color` varchar(7) NOT NULL,
+  `widget_item_text_color` varchar(7) NOT NULL,
+  `widget_item_hover_bg_color` varchar(7) NOT NULL,
+  `widget_icon_color` varchar(7) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
@@ -928,9 +935,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-11 17:06:49',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff'),
-(2,'#3b82f6','#1e3a8a',4,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-03 14:40:48','2026-02-03 14:40:48',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155',NULL,'','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''),
-(3,'#3b82f6','#1e3a8a',NULL,'#0f172a','#334155','#3b82f6','#ffffff','#1e3a8a','#ffffff','#1e40af','#ffffff','#1e40af','#ffffff','#ffffff','#0f172a','#64748b','2026-02-04 17:19:09','2026-02-04 17:19:09',0,NULL,'#bfdbfe','#eff6ff','#93c5fd','#3b82f6','#ffffff','#f1f5f9','#64748b','#f1f5f9','#334155','#f8fafc','#64748b','#f8fafc','#64748b','#f8fafc','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b','#ffffff','#64748b','#f1f5f9','#334155','#e2e8f0','#1e293b',20,20,20,20,20,20,20,20,'#dbeafe','#1e40af','#eff6ff','12px','#f1f5f9','#334155','#ffffff','#64748b','#ffffff','#1e3a8a','#ffffff','#ffffff','#0f172a','#eff6ff','#ffffff','#64748b','#f1f5f9','#334155','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','');
+(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-12 08:15:45',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f0f0f0','#5c94f0','#ffffff','#f0f0f0','#46505d','#cbe5eb','#ff0000');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1092,4 +1097,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-11 18:59:55
+-- Dump completed on 2026-02-12  8:38:55

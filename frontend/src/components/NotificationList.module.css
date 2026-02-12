@@ -2,28 +2,29 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    /* Eliminamos bordes y sombras aquí para que el contenedor padre (dropdown o card) decida */
-    /* background-color: var(--bg-card); */
+    background-color: var(--widget-bg, var(--bg-card));
 }
 
 .widgetHeader {
     padding: 1rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: var(--widget-header-bg, transparent);
 }
 
 .widgetTitle {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--color-text-main);
+    color: var(--widget-header-text, var(--color-text-main));
     margin: 0;
 }
 
 .unreadCountBadge {
     font-size: 0.8rem;
-    color: var(--color-text-secondary);
+    color: var(--widget-header-text, var(--color-text-secondary));
+    opacity: 0.8;
 }
 
 .list {
@@ -35,7 +36,7 @@
 }
 
 .listItem {
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
 }
 
 .listItem:last-child {
@@ -56,7 +57,7 @@
 }
 
 .itemButton:hover {
-    background-color: var(--color-background-light);
+    background-color: var(--widget-item-hover-bg, var(--color-background-light));
 }
 
 .itemAvatar {
@@ -93,14 +94,14 @@
 .itemName {
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--color-text-main);
+    color: var(--widget-item-text, var(--color-text-main));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .itemCount {
-    background-color: var(--color-primary);
+    background-color: var(--widget-icon-color, var(--color-primary));
     color: white;
     font-size: 0.7rem;
     padding: 0.1rem 0.4rem;
@@ -111,7 +112,8 @@
 .itemMessage {
     display: block;
     font-size: 0.85rem;
-    color: var(--color-text-secondary);
+    color: var(--widget-item-text, var(--color-text-secondary));
+    opacity: 0.8;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -125,34 +127,35 @@
 
 .itemTime {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--widget-item-text, #94a3b8);
+    opacity: 0.6;
 }
 
 .emptyState {
     padding: 2rem;
     text-align: center;
-    color: var(--color-text-secondary);
+    color: var(--widget-item-text, var(--color-text-secondary));
     font-size: 0.9rem;
 }
 
 .loading {
     padding: 1rem;
     text-align: center;
-    color: var(--color-text-secondary);
+    color: var(--widget-item-text, var(--color-text-secondary));
     font-size: 0.8rem;
 }
 
 .widgetFooter {
     padding: 0.75rem;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--widget-border, var(--color-border));
     text-align: center;
-    background-color: var(--color-background-secondary);
+    background-color: var(--widget-header-bg, var(--color-background-secondary));
 }
 
 .viewAllLink {
     background: none;
     border: none;
-    color: var(--color-primary);
+    color: var(--widget-icon-color, var(--color-primary));
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;

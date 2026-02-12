@@ -207,6 +207,15 @@ class SecurityController extends AbstractController
             'eventsSidebarBgColor' => $v($p->getEventsSidebarBgColor(), 'transparent'), // AÑADIDO
             'eventsSidebarTitleColor' => $v($p->getEventsSidebarTitleColor(), '#334155'),
 
+            // Dashboard Widgets
+            'widgetBgColor' => $v($p->getWidgetBgColor(), '#ffffff'),
+            'widgetHeaderBgColor' => $v($p->getWidgetHeaderBgColor(), '#ffffff'),
+            'widgetHeaderTextColor' => $v($p->getWidgetHeaderTextColor(), '#334155'),
+            'widgetBorderColor' => $v($p->getWidgetBorderColor(), '#e2e8f0'),
+            'widgetItemTextColor' => $v($p->getWidgetItemTextColor(), '#334155'),
+            'widgetItemHoverBgColor' => $v($p->getWidgetItemHoverBgColor(), '#f1f5f9'),
+            'widgetIconColor' => $v($p->getWidgetIconColor(), '#6366f1'),
+
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),
             'itemsPerPageCentros' => $p->getItemsPerPageCentros(),
             'itemsPerPageCiclos' => $p->getItemsPerPageCiclos(),

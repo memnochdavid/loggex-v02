@@ -411,6 +411,35 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventsSidebarTitleColor = '#334155';
 
+    // --- Dashboard Widgets ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetHeaderBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetHeaderTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetBorderColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetItemTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetItemHoverBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetIconColor = '#6366f1';
+
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -730,6 +759,28 @@ class Personalizacion
 
     public function getEventsSidebarTitleColor(): ?string { return $this->eventsSidebarTitleColor; }
     public function setEventsSidebarTitleColor(string $color): static { $this->eventsSidebarTitleColor = $color; return $this; }
+
+    // --- Dashboard Widgets ---
+    public function getWidgetBgColor(): ?string { return $this->widgetBgColor; }
+    public function setWidgetBgColor(string $color): static { $this->widgetBgColor = $color; return $this; }
+
+    public function getWidgetHeaderBgColor(): ?string { return $this->widgetHeaderBgColor; }
+    public function setWidgetHeaderBgColor(string $color): static { $this->widgetHeaderBgColor = $color; return $this; }
+
+    public function getWidgetHeaderTextColor(): ?string { return $this->widgetHeaderTextColor; }
+    public function setWidgetHeaderTextColor(string $color): static { $this->widgetHeaderTextColor = $color; return $this; }
+
+    public function getWidgetBorderColor(): ?string { return $this->widgetBorderColor; }
+    public function setWidgetBorderColor(string $color): static { $this->widgetBorderColor = $color; return $this; }
+
+    public function getWidgetItemTextColor(): ?string { return $this->widgetItemTextColor; }
+    public function setWidgetItemTextColor(string $color): static { $this->widgetItemTextColor = $color; return $this; }
+
+    public function getWidgetItemHoverBgColor(): ?string { return $this->widgetItemHoverBgColor; }
+    public function setWidgetItemHoverBgColor(string $color): static { $this->widgetItemHoverBgColor = $color; return $this; }
+
+    public function getWidgetIconColor(): ?string { return $this->widgetIconColor; }
+    public function setWidgetIconColor(string $color): static { $this->widgetIconColor = $color; return $this; }
 
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }

@@ -126,8 +126,17 @@ export const applyTheme = (colors) => {
         eventCardMetaColor: '#64748b',
         
         // EventsSidebar
-        eventsSidebarBgColor: 'transparent', // AÑADIDO
-        eventsSidebarTitleColor: '#334155'
+        eventsSidebarBgColor: 'transparent',
+        eventsSidebarTitleColor: '#334155',
+
+        // Dashboard Widgets
+        widgetBgColor: '#ffffff',
+        widgetHeaderBgColor: '#ffffff',
+        widgetHeaderTextColor: '#334155',
+        widgetBorderColor: '#e2e8f0',
+        widgetItemTextColor: '#334155',
+        widgetItemHoverBgColor: '#f1f5f9',
+        widgetIconColor: '#6366f1'
     };
 
     const theme = { ...defaults, ...colors };
@@ -262,8 +271,17 @@ export const applyTheme = (colors) => {
     if (theme.eventCardMetaColor) root.style.setProperty('--event-card-meta-color', theme.eventCardMetaColor);
 
     // 15. EventsSidebar
-    if (theme.eventsSidebarBgColor) root.style.setProperty('--events-sidebar-bg', theme.eventsSidebarBgColor); // AÑADIDO
+    if (theme.eventsSidebarBgColor) root.style.setProperty('--events-sidebar-bg', theme.eventsSidebarBgColor);
     if (theme.eventsSidebarTitleColor) root.style.setProperty('--events-sidebar-title-color', theme.eventsSidebarTitleColor);
+
+    // 16. Dashboard Widgets
+    if (theme.widgetBgColor) root.style.setProperty('--widget-bg', theme.widgetBgColor);
+    if (theme.widgetHeaderBgColor) root.style.setProperty('--widget-header-bg', theme.widgetHeaderBgColor);
+    if (theme.widgetHeaderTextColor) root.style.setProperty('--widget-header-text', theme.widgetHeaderTextColor);
+    if (theme.widgetBorderColor) root.style.setProperty('--widget-border', theme.widgetBorderColor);
+    if (theme.widgetItemTextColor) root.style.setProperty('--widget-item-text', theme.widgetItemTextColor);
+    if (theme.widgetItemHoverBgColor) root.style.setProperty('--widget-item-hover-bg', theme.widgetItemHoverBgColor);
+    if (theme.widgetIconColor) root.style.setProperty('--widget-icon-color', theme.widgetIconColor);
 
     // 11. Scrollbar (Inyección de estilos dinámicos)
     let styleTag = document.getElementById('theme-scrollbar-styles');

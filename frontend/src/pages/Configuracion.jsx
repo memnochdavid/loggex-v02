@@ -4,7 +4,7 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { applyTheme } from '../utils/theme';
 import styles from './Configuracion.module.css';
-import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User, Bell } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout as LayoutIcon, Type, MousePointer, Scroll, Calendar, Clock, Table, List, Layers, Trash2, Check, Maximize, Image as ImageIcon, Heading, Upload, MessageSquare, User, Bell, Grid } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import CrudHeader from '../components/CrudHeader';
@@ -698,6 +698,58 @@ const Configuracion = () => {
                     </div>
                 );
 
+            case 'widgets':
+                return (
+                    <div className={styles.previewBox}>
+                        <div style={{ 
+                            backgroundColor: settings.widgetBgColor, 
+                            border: `1px solid ${settings.widgetBorderColor}`, 
+                            borderRadius: '8px', 
+                            overflow: 'hidden',
+                            width: '100%',
+                            maxWidth: '300px',
+                            margin: '0 auto'
+                        }}>
+                            <div style={{ 
+                                padding: '1rem', 
+                                borderBottom: `1px solid ${settings.widgetBorderColor}`, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem',
+                                backgroundColor: settings.widgetHeaderBgColor
+                            }}>
+                                <Bell size={20} color={settings.widgetIconColor} />
+                                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: settings.widgetHeaderTextColor }}>
+                                    Título Widget
+                                </h3>
+                            </div>
+                            <div style={{ padding: '0' }}>
+                                <div style={{ 
+                                    padding: '0.75rem 1rem', 
+                                    borderBottom: `1px solid ${settings.widgetBorderColor}`,
+                                    color: settings.widgetItemTextColor
+                                }}>
+                                    Elemento 1
+                                </div>
+                                <div style={{ 
+                                    padding: '0.75rem 1rem', 
+                                    borderBottom: `1px solid ${settings.widgetBorderColor}`,
+                                    backgroundColor: settings.widgetItemHoverBgColor,
+                                    color: settings.widgetItemTextColor
+                                }}>
+                                    Elemento 2 (Hover)
+                                </div>
+                                <div style={{ 
+                                    padding: '0.75rem 1rem',
+                                    color: settings.widgetItemTextColor
+                                }}>
+                                    Elemento 3
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
             case 'themes':
                 return (
                     <div className={styles.previewBox}>
@@ -752,6 +804,7 @@ const Configuracion = () => {
         { id: 'chat', label: 'Mensajería', icon: <MessageSquare size={18} /> },
         { id: 'usercard', label: 'Tarjetas', icon: <User size={18} /> },
         { id: 'eventos', label: 'Eventos', icon: <Bell size={18} /> },
+        { id: 'widgets', label: 'Widgets', icon: <Grid size={18} /> },
         { id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18} /> },
         { id: 'calendar', label: 'Calendario', icon: <Calendar size={18} /> },
         { id: 'timetable', label: 'Horario', icon: <Clock size={18} /> },
@@ -948,6 +1001,18 @@ const Configuracion = () => {
                                     {renderColorInput('Meta Tarjeta Evento', 'eventCardMetaColor')}
                                     {renderColorInput('Fondo Sidebar Eventos', 'eventsSidebarBgColor')}
                                     {renderColorInput('Título Sidebar Eventos', 'eventsSidebarTitleColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'widgets' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput('Fondo Widget', 'widgetBgColor')}
+                                    {renderColorInput('Borde Widget', 'widgetBorderColor')}
+                                    {renderColorInput('Fondo Cabecera', 'widgetHeaderBgColor')}
+                                    {renderColorInput('Texto Cabecera', 'widgetHeaderTextColor')}
+                                    {renderColorInput('Color Icono', 'widgetIconColor')}
+                                    {renderColorInput('Texto Elemento', 'widgetItemTextColor')}
+                                    {renderColorInput('Fondo Hover Elemento', 'widgetItemHoverBgColor')}
                                 </div>
                             )}
 

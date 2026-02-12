@@ -171,6 +171,15 @@ class PersonalizacionController extends AbstractController
         if (isset($data['eventsSidebarBgColor'])) $personalizacion->setEventsSidebarBgColor($data['eventsSidebarBgColor']); // AÑADIDO
         if (isset($data['eventsSidebarTitleColor'])) $personalizacion->setEventsSidebarTitleColor($data['eventsSidebarTitleColor']);
 
+        // Dashboard Widgets
+        if (isset($data['widgetBgColor'])) $personalizacion->setWidgetBgColor($data['widgetBgColor']);
+        if (isset($data['widgetHeaderBgColor'])) $personalizacion->setWidgetHeaderBgColor($data['widgetHeaderBgColor']);
+        if (isset($data['widgetHeaderTextColor'])) $personalizacion->setWidgetHeaderTextColor($data['widgetHeaderTextColor']);
+        if (isset($data['widgetBorderColor'])) $personalizacion->setWidgetBorderColor($data['widgetBorderColor']);
+        if (isset($data['widgetItemTextColor'])) $personalizacion->setWidgetItemTextColor($data['widgetItemTextColor']);
+        if (isset($data['widgetItemHoverBgColor'])) $personalizacion->setWidgetItemHoverBgColor($data['widgetItemHoverBgColor']);
+        if (isset($data['widgetIconColor'])) $personalizacion->setWidgetIconColor($data['widgetIconColor']);
+
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);
         if (isset($data['itemsPerPageCentros'])) $personalizacion->setItemsPerPageCentros((int)$data['itemsPerPageCentros']);
