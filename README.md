@@ -167,3 +167,5 @@ Si necesitas probar la aplicación desde un móvil o compartirla externamente:
    - **Frontend (HTTPS)**: `ngrok http https://localhost:8443`
    - **Frontend (HTTP)**: `ngrok http 8888`
    - **Backend (HTTPS)**: `ngrok http https://localhost:9443`
+
+TODO: mercure hub para actualizaciones

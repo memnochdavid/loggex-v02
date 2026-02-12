@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import ShowProgress from '../components/ShowProgress'; // Importar el nuevo componente
 
 const MisFaltas = () => {
     const { user } = useAuth();
@@ -60,6 +61,17 @@ const MisFaltas = () => {
         }
     };
 
+    const renderHeader = (item, isOpen) => {
+        return (
+            <div style={{ width: '100%', paddingRight: '1rem' }}>
+                <div className={styles.accordionHeaderContentAttendance}>
+                    <span style={{ flex: 1 }}>{item.title}</span>
+                    <ShowProgress percentage={item.porcentajeFaltas} height="15px" showLabel={true} />
+                </div>
+            </div>
+        );
+    };
+
     const renderDetalles = (asignatura) => {
         if (!asignatura.detalles || asignatura.detalles.length === 0) {
             return <div className={styles.emptyState}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</div>;
@@ -67,10 +79,13 @@ const MisFaltas = () => {
 
         return (
             <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
                     <span>Faltas: <b>{asignatura.faltas}</b></span>
                     <span>Retrasos: <b>{asignatura.retrasos}</b></span>
                     <span>Justificadas: <b>{asignatura.justificadas}</b></span>
+                    {asignatura.totalHoras > 0 && (
+                        <span>Total Horas Impartidas: <b>{asignatura.totalHoras}</b></span>
+                    )}
                 </div>
                 <ul className={styles.list}>
                     {asignatura.detalles.map(detalle => (
@@ -110,7 +125,8 @@ const MisFaltas = () => {
                 ) : (
                     <AccordionView 
                         data={asignaturasConFaltas}
-                        renderItem={renderDetalles} 
+                        renderItem={renderDetalles}
+                        renderHeader={renderHeader}
                         canAdd={false}
                     />
                 )}

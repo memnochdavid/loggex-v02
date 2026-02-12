@@ -59,6 +59,8 @@ const Grupos = () => {
     abreviatura: '',
     curso: 1,
     anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+    fechaInicio: '',
+    fechaFin: '',
     ciclo: '',
     centro: ''
   });
@@ -254,6 +256,8 @@ const Grupos = () => {
         abreviatura: grupo.abreviatura || '',
         curso: grupo.curso,
         anioEscolar: grupo.anioEscolar,
+        fechaInicio: grupo.fechaInicio ? grupo.fechaInicio.split('T')[0] : '',
+        fechaFin: grupo.fechaFin ? grupo.fechaFin.split('T')[0] : '',
         ciclo: cicloId,
         centro: centroId
       });
@@ -264,6 +268,8 @@ const Grupos = () => {
         abreviatura: '',
         curso: 1,
         anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+        fechaInicio: '',
+        fechaFin: '',
         ciclo: '',
         centro: isSuperAdmin ? '' : (user.centro ? user.centro.id : '')
       });
@@ -304,7 +310,9 @@ const Grupos = () => {
         ...formData,
         curso: parseInt(formData.curso),
         ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`,
-        centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null
+        centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null,
+        fechaInicio: formData.fechaInicio || null,
+        fechaFin: formData.fechaFin || null
       };
 
       // Si no es superadmin, asignar centro automáticamente si es nuevo
@@ -390,6 +398,18 @@ const Grupos = () => {
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
     { header: 'Año Escolar', accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
+    { 
+        header: 'Inicio', 
+        accessor: (row) => row.fechaInicio ? new Date(row.fechaInicio).toLocaleDateString() : '-', 
+        sortable: true, 
+        sortKey: 'fechaInicio' 
+    },
+    { 
+        header: 'Fin', 
+        accessor: (row) => row.fechaFin ? new Date(row.fechaFin).toLocaleDateString() : '-', 
+        sortable: true, 
+        sortKey: 'fechaFin' 
+    },
     { 
         header: 'Ciclo', 
         accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
@@ -531,6 +551,28 @@ const Grupos = () => {
                     className={styles.input}
                     required
                     placeholder="Ej: 2023-2024"
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Fecha Inicio Curso</label>
+                <input
+                    type="date"
+                    name="fechaInicio"
+                    value={formData.fechaInicio}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>Fecha Fin Curso</label>
+                <input
+                    type="date"
+                    name="fechaFin"
+                    value={formData.fechaFin}
+                    onChange={handleInputChange}
+                    className={styles.input}
                 />
             </div>
 

@@ -439,6 +439,23 @@
     cursor: pointer;
 }
 
+/* Estilos para el porcentaje de faltas */
+.accordionHeaderContent {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+    padding-right: 1rem;
+}
+.accordionHeaderContentAttendance {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+    padding-right: 1rem;
+}
+
+
 /* Media Queries */
 @media (max-width: 768px) {
     .container {
@@ -449,5 +466,11 @@
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-4);
+    }
+
+    .accordionHeaderContentAttendance {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
 }

@@ -8,7 +8,7 @@ import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
 import { useAuth } from '../context/AuthContext';
 
-const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) => {
+const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
@@ -107,8 +107,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
     ], []);
 
     // Detectar turnos
-    const hasAfternoon = useMemo(() => events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
-    const hasMorning = useMemo(() => events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
+    const hasAfternoon = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
+    const hasMorning = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
 
     // Función para procesar eventos y calcular rowSpan (pura, sin hooks)
     const processEvents = (slots) => {
@@ -133,19 +133,21 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
         });
 
         // 2. Colocar eventos en la matriz (solo si no es festivo)
-        slots.forEach((slot, hIndex) => {
-            days.forEach((day, dIndex) => {
-                if (grid[hIndex][dIndex]) return;
+        if (Array.isArray(events)) {
+            slots.forEach((slot, hIndex) => {
+                days.forEach((day, dIndex) => {
+                    if (grid[hIndex][dIndex]) return;
 
-                const event = events.find(e =>
-                    e.diaSemana === (dIndex + 1) &&
-                    e.horaInicio === slot.start
-                );
-                if (event) {
-                    grid[hIndex][dIndex] = { event, rowSpan: 1, skip: false };
-                }
+                    const event = events.find(e =>
+                        e.diaSemana === (dIndex + 1) &&
+                        e.horaInicio === slot.start
+                    );
+                    if (event) {
+                        grid[hIndex][dIndex] = { event, rowSpan: 1, skip: false };
+                    }
+                });
             });
-        });
+        }
 
         // 3. Calcular fusiones (verticales)
         for (let d = 0; d < days.length; d++) {
@@ -338,9 +340,11 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
         const date = weekDates[index];
         const festivo = getFestivoForDay(date);
 
-        const dayEvents = events
-            .filter(e => e.diaSemana === dayIndex)
-            .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+        const dayEvents = Array.isArray(events) 
+            ? events
+                .filter(e => e.diaSemana === dayIndex)
+                .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
+            : [];
 
         const dateStr = date ? date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : '';
 
