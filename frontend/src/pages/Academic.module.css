@@ -77,8 +77,8 @@
 
 /* Tarjetas Genéricas (Tareas, Entregas) */
 .cardList {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--space-4);
 }
 
@@ -100,10 +100,37 @@
     border-color: var(--color-primary-300);
     transform: translateY(-2px);
 }
+.iconButton {
+    /*background: none;*/
+    border: none;
+    cursor: pointer;
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    /*color: var(--color-gray-500);*/
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:active {
+    scale: 0.9;
+}
+
+/*.iconButton.danger:hover {*/
+/*    background-color: #fef2f2;*/
+/*    color: var(--color-error);*/
+/*}*/
+.iconButton.danger{
+    color: var(--btn-primary-text);
+    background-color: var(--color-error);
+}
 
 @media (min-width: 768px) {
     .card {
-        flex-direction: row;
+        /*flex-direction: row;*/ /* Cambiado para que sea columna y ocupe el grid */
         align-items: flex-start;
     }
 }
@@ -130,6 +157,7 @@
     flex-direction: column;
     gap: var(--space-2);
     flex: 1;
+    width: 100%; /* Asegurar que ocupe todo el ancho */
 }
 
 .cardTitle {
@@ -139,6 +167,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    flex-wrap: wrap; /* Permitir que el badge baje si no cabe */
 }
 
 .cardDescription {
@@ -146,7 +175,7 @@
     color: var(--text-muted);
     line-height: 1.5;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3; /* Aumentado a 3 líneas */
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -159,6 +188,9 @@
     color: var(--text-muted);
     align-items: center;
     margin-top: auto;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-gray-100);
+    width: 100%;
 }
 
 .cardActions {
@@ -167,12 +199,14 @@
     align-items: center;
     flex-shrink: 0;
     margin-top: var(--space-2);
+    width: 100%;
+    justify-content: flex-end; /* Alinear acciones a la derecha */
 }
 
 @media (min-width: 768px) {
     .cardActions {
         margin-top: 0;
-        align-self: center;
+        /*align-self: center;*/ /* Eliminado para que se alinee abajo */
     }
 }
 
@@ -369,29 +403,6 @@
     margin-bottom: var(--space-4);
 }
 
-/* Botones Icono */
-.iconButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: var(--space-2);
-    border-radius: var(--radius-sm);
-    color: var(--color-gray-500);
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.iconButton:hover {
-    background-color: var(--bg-hover);
-    color: var(--color-primary-600);
-}
-
-.iconButton.danger:hover {
-    background-color: #fef2f2;
-    color: var(--color-error);
-}
 
 /* Modal Styles (Copiados de Crud.module.css para consistencia) */
 .formGroup {

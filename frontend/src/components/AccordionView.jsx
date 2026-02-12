@@ -27,7 +27,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
         <div className={styles.headerActions}>
           {canAdd && onAdd && (
             <button 
-              className={styles.addButton} 
+              className={styles.button + ' ' + styles.primary}
               onClick={(e) => {
                 e.stopPropagation(); // Evita que el acordeón se abra/cierre
                 onAdd(item.id);

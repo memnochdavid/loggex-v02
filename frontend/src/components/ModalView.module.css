@@ -94,6 +94,7 @@
 .closeButton:active{
     scale: 0.9;
 }
+
 .modalBody {
     display: flex;
     flex-direction: column;

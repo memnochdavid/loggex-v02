@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 
 const Tareas = () => {
@@ -14,10 +14,12 @@ const Tareas = () => {
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+  const fileInputRef = useRef(null);
 
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   // Estado para modal de creación/edición (Solo Profesores)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -212,19 +214,15 @@ const Tareas = () => {
     }
   };
 
+  const handleToggle = (id) => {
+      setExpandedId(prevId => (prevId === id ? null : id));
+  };
+
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
       return (
           <div className={styles.cardList}>
-              {(isProfesor || isAdmin) && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                      <Button size="sm" onClick={() => handleOpenModal(imparticion.id)}>
-                          <Plus size={16} style={{ marginRight: '4px' }} /> Nuevo
-                      </Button>
-                  </div>
-              )}
-              
               {tareas.length === 0 ? (
                   <div className={styles.emptyState}>No hay tareas asignadas.</div>
               ) : (
@@ -268,7 +266,7 @@ const Tareas = () => {
                           <div className={styles.cardActions}>
                               {(isProfesor || isAdmin) ? (
                                   <>
-                                      <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)}>
+                                      <button className={`${styles.iconButton}`} onClick={() => handleOpenModal(imparticion.id, tarea)}>
                                           <Edit2 size={18} />
                                       </button>
                                       <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)}>
@@ -305,7 +303,10 @@ const Tareas = () => {
             <AccordionView 
                 data={asignaturas}
                 renderItem={renderContent}
-                canAdd={false}
+                canAdd={isProfesor || isAdmin}
+                onAdd={(id) => handleOpenModal(id)}
+                expandedId={expandedId}
+                onToggle={handleToggle}
             />
         )}
 
@@ -337,13 +338,30 @@ const Tareas = () => {
             </div>
             <div className={styles.formGroup}>
                 <label className={styles.label}>Archivo Adjunto (Opcional)</label>
-                <input 
-                    type="file" 
-                    className={styles.fileInput}
-                    name="archivo" 
-                    onChange={handleInputChange} 
-                />
-                {currentTarea && currentTarea.archivo && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className={styles.fileInput}
+                        name="archivo" 
+                        onChange={handleInputChange} 
+                        style={{ display: 'none' }}
+                    />
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => fileInputRef.current.click()}
+                    >
+                        <Upload size={16} style={{ marginRight: '8px' }} />
+                        {formData.archivo ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                    </Button>
+                    {formData.archivo && (
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                            {formData.archivo.name}
+                        </span>
+                    )}
+                </div>
+                {currentTarea && currentTarea.archivo && !formData.archivo && (
                     <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
                         Archivo actual: {currentTarea.archivo}
                     </small>
