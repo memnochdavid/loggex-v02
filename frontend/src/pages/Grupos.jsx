@@ -506,7 +506,7 @@ const Grupos = () => {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
-            mobileBreakpoint={'650px'}
+            mobileBreakpoint={'1000px'}
         />
 
         <ModalView

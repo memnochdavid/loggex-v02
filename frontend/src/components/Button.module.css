@@ -31,6 +31,10 @@
 .primary:active {
   transform: translateY(0);
 }
+.button:active{
+  scale: 0.9;
+
+}
 
 /* Variante Secundaria (Outline) */
 .secondary {

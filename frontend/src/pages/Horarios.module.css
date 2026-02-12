@@ -66,26 +66,31 @@
 }
 
 .iconButton {
-    background: none;
+    /*background: none;*/
     border: none;
     cursor: pointer;
     padding: var(--space-1);
     border-radius: var(--radius-sm);
-    color: var(--color-gray-500);
+    /*color: var(--color-gray-500);*/
+    background-color: var(--btn-primary-bg, var(--color-primary-600));
+    color: var(--btn-primary-text, white);
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.iconButton:hover {
-    background-color: var(--color-gray-100);
-    color: var(--color-primary-600);
+.iconButton:active {
+    scale: 0.9;
 }
 
-.iconButton.danger:hover {
-    background-color: #fef2f2;
-    color: var(--color-error);
+/*.iconButton.danger:hover {*/
+/*    background-color: #fef2f2;*/
+/*    color: var(--color-error);*/
+/*}*/
+.iconButton.danger{
+    color: var(--btn-primary-text);
+    background-color: var(--color-error);
 }
 
 /* Layout de Vista Calendario */
@@ -163,6 +168,13 @@
     color: var(--text-muted);
     cursor: pointer;
     padding: var(--space-2);
+}
+.closeButton:hover {
+    background-color: var(--modal-close-btn-hover-bg, var(--color-gray-100));
+    color: var(--modal-close-btn-hover-text, var(--color-gray-700));
+}
+.closeButton:active{
+    scale: 0.9;
 }
 
 /* Animaciones */
@@ -248,6 +260,9 @@
 .modalBody {
     padding: var(--space-6);
     overflow-y: auto;
+    .select{
+        width: 100%;
+    }
 }
 
 .modalFooter {
@@ -261,6 +276,9 @@
 
 .formGroup {
     margin-bottom: var(--space-4);
+    select{
+        width: 100%;
+    }
 }
 
 .label {

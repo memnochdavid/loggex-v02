@@ -91,7 +91,9 @@
     background-color: var(--modal-close-btn-hover-bg, var(--color-gray-100));
     color: var(--modal-close-btn-hover-text, var(--color-gray-700));
 }
-
+.closeButton:active{
+    scale: 0.9;
+}
 .modalBody {
     display: flex;
     flex-direction: column;
@@ -155,8 +157,9 @@
     .modalContainer {
         width: 100%;
         max-width: 100%;
-        height: 95vh; /* Ocupar casi toda la altura */
-        max-height: 95vh;
+        /*height: 95vh; !* Ocupar casi toda la altura *!*/
+        /*max-height: 95vh;*/
+        flex: 1;
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
     }

@@ -193,10 +193,26 @@
 .mobileHeaderContent {
     display: flex;
     align-items: center;
+    justify-content: space-between; /* Separar info de acciones */
     gap: 1rem;
     font-weight: 600;
     color: inherit;
     width: 100%;
+}
+
+.mobileHeaderInfo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.mobileHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .mobileHeaderAvatar {
@@ -210,24 +226,33 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
-.mobileCardContent {
+.iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-500);
+    transition: all 0.2s;
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
+}
+.mobileCardContent {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem;
 }
 
 .mobileRow {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--color-gray-100);
-}
-
-.mobileRow:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+    padding: 0.75rem;
+    background-color: var(--color-gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-gray-100);
 }
 
 .mobileLabel {
@@ -236,6 +261,7 @@
     color: var(--text-muted);
     font-weight: 600;
     letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
 }
 
 .mobileValue {
@@ -243,6 +269,7 @@
     color: var(--text-main);
     word-break: break-word;
     line-height: 1.5;
+    font-weight: 500;
 }
 
 .mobilePaginationContainer {
@@ -295,4 +322,3 @@
         display: none;
     }
 }
-

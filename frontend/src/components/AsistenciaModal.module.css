@@ -88,6 +88,9 @@
     align-items: center;
     justify-content: center;
 }
+.actionButton:active{
+    scale: 0.9;
+}
 
 .btnPresente {
     composes: actionButton;

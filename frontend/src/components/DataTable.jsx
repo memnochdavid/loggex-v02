@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './DataTable.module.css';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import AccordionView from './AccordionView';
@@ -37,6 +37,7 @@ const DataTable = ({
     mobileHeaderColumns = 1
 }) => {
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
+    const [expandedId, setExpandedId] = useState(null);
 
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -66,6 +67,10 @@ const DataTable = ({
             return col.accessor.split('.').reduce((obj, key) => obj && obj[key], row);
         }
         return row[col.accessor];
+    };
+
+    const handleToggle = (id) => {
+        setExpandedId(prevId => (prevId === id ? null : id));
     };
 
     const renderPagination = (position) => {
@@ -243,21 +248,33 @@ const DataTable = ({
                         ) : (
                             <AccordionView 
                                 data={data}
+                                expandedId={expandedId}
+                                onToggle={handleToggle}
                                 renderHeader={(row) => {
                                     const headerCols = columns.slice(0, mobileHeaderColumns);
+                                    // Buscar la columna de acciones (asumiendo que es la última o tiene header 'Acciones')
+                                    const actionsCol = columns.find(col => col.header === 'Acciones' || col.accessor === 'actions');
+                                    
                                     return (
                                         <div className={styles.mobileHeaderContent}>
-                                            {headerCols.map((col, idx) => (
-                                                <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>
-                                                    {getCellValue(col, row)}
+                                            <div className={styles.mobileHeaderInfo}>
+                                                {headerCols.map((col, idx) => (
+                                                    <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>
+                                                        {getCellValue(col, row)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {actionsCol && (
+                                                <div className={styles.mobileHeaderActions} onClick={(e) => e.stopPropagation()}>
+                                                    {getCellValue(actionsCol, row)}
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     );
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {columns.slice(mobileHeaderColumns).map((col, index) => (
+                                        {columns.slice(mobileHeaderColumns).filter(col => col.header !== 'Acciones' && col.accessor !== 'actions').map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>
                                                 <span className={styles.mobileValue}>
