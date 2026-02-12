@@ -5,7 +5,7 @@ import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../confi
 import { useAuth } from '../context/AuthContext';
 import styles from './NotificationList.module.css';
 
-const NotificationList = ({ title, onUnreadCountChange, onItemClick, onViewAll, limit = 5, showViewAllButton = true, showUnreadCountInHeader = false }) => {
+const NotificationList = ({ title, onUnreadCountChange, onItemClick, onViewAll, limit = 5, showViewAllButton = true, showUnreadCountInHeader = false, hideHeader = false }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [unreadMessages, setUnreadMessages] = useState([]);
@@ -87,7 +87,7 @@ const NotificationList = ({ title, onUnreadCountChange, onItemClick, onViewAll, 
     if (loading && unreadMessages.length === 0) {
         return (
             <div className={styles.listContainer}>
-                {title && <div className={styles.widgetHeader}><h3 className={styles.widgetTitle}>{title}</h3></div>}
+                {!hideHeader && title && <div className={styles.widgetHeader}><h3 className={styles.widgetTitle}>{title}</h3></div>}
                 <div className={styles.loading}>Cargando notificaciones...</div>
             </div>
         );
@@ -95,7 +95,7 @@ const NotificationList = ({ title, onUnreadCountChange, onItemClick, onViewAll, 
 
     return (
         <div className={styles.listContainer}>
-            {title && (
+            {!hideHeader && title && (
                 <div className={styles.widgetHeader}>
                     <h3 className={styles.widgetTitle}>{title}</h3>
                     {showUnreadCountInHeader && totalUnreadCount > 0 && (

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './PendingTasksWidget.module.css';
 import { ClipboardList, AlertTriangle } from 'lucide-react';
 
-const PendingTasksWidget = () => {
+const PendingTasksWidget = ({ hideHeader = false }) => {
     const { user } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -91,10 +91,12 @@ const PendingTasksWidget = () => {
 
     return (
         <div className={styles.widgetContainer}>
-            <div className={styles.widgetHeader}>
-                <ClipboardList size={20} className={styles.headerIcon} />
-                <h3 className={styles.widgetTitle}>Tareas Pendientes</h3>
-            </div>
+            {!hideHeader && (
+                <div className={styles.widgetHeader}>
+                    <ClipboardList size={20} className={styles.headerIcon} />
+                    <h3 className={styles.widgetTitle}>Tareas Pendientes</h3>
+                </div>
+            )}
             <div className={styles.widgetContent}>
                 {renderContent()}
             </div>

@@ -9,6 +9,8 @@ import NotificationList from '../components/NotificationList';
 import UpcomingEventsWidget from '../components/UpcomingEventsWidget';
 import PendingTasksWidget from '../components/PendingTasksWidget';
 import CrudHeader from '../components/CrudHeader';
+import AccordionView from '../components/AccordionView';
+import { MessageSquare, CalendarClock, ClipboardList } from 'lucide-react';
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -33,38 +35,60 @@ const Home = () => {
 
   const isError = backendMessage && backendMessage.includes('Error');
 
+  // Definición de los widgets para el AccordionView
+  const widgets = [
+      {
+          id: 'notifications',
+          title: 'Mensajes Recientes',
+          icon: <MessageSquare size={20} />,
+          component: <NotificationList limit={5} showViewAllButton={true} hideHeader={true} />
+      },
+      {
+          id: 'events',
+          title: 'Horario de Hoy',
+          icon: <CalendarClock size={20} />,
+          component: <UpcomingEventsWidget hideHeader={true} />
+      }
+  ];
+
+  if (isAlumno) {
+      widgets.push({
+          id: 'tasks',
+          title: 'Tareas Pendientes',
+          icon: <ClipboardList size={20} />,
+          component: <PendingTasksWidget hideHeader={true} />
+      });
+  }
+
+  // Renderizado personalizado del header del acordeón para incluir iconos y estilos de widget
+  const renderWidgetHeader = (item, isOpen) => (
+      <div className={styles.accordionHeaderContent}>
+          <span className={styles.accordionIcon} style={{ color: 'var(--widget-icon-color, var(--color-primary))' }}>
+              {item.icon}
+          </span>
+          <span className={styles.accordionTitle} style={{ color: 'var(--widget-header-text, var(--color-text-main))' }}>
+              {item.title}
+          </span>
+      </div>
+  );
+
   return (
     <Layout>
       <div className={styles.container}>
           <CrudHeader 
               title={`Hola, ${user?.nombre || 'Usuario'}, que tengas un buen día.`}
               logo={logoApp}
-              // subtitle="Panel de control" // Opcional
           >
-              {/* Acciones extra si fueran necesarias */}
           </CrudHeader>
           
           <div className={styles.dashboardGrid}>
-              {/* Widget de Mensajes Recientes (Para todos) */}
-              <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
-                  <NotificationList 
-                      title="Mensajes Recientes" 
-                      limit={5} 
-                      showViewAllButton={true} 
-                  />
-              </div>
-
-              {/* Widget de Próximos Eventos (Para todos) */}
-              <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
-                  <UpcomingEventsWidget />
-              </div>
-
-              {/* Widget de Tareas Pendientes (Solo Alumnos) */}
-              {isAlumno && (
-                  <div className={styles.card} style={{ padding: 0, overflow: 'hidden' }}>
-                      <PendingTasksWidget />
-                  </div>
-              )}
+              {/* Usamos AccordionView para renderizar los widgets */}
+              <AccordionView 
+                  data={widgets}
+                  renderItem={(item) => item.component}
+                  renderHeader={renderWidgetHeader}
+                  className={styles.widgetsAccordion}
+              />
           </div>
       </div>
     </Layout>

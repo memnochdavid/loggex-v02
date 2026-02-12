@@ -25,6 +25,33 @@
     flex-direction: column;
     gap: var(--space-6);
     margin: var(--space-8) auto;
+    max-width: 800px; /* Limitamos el ancho para que el acordeón no sea demasiado ancho */
+}
+
+/* Estilos específicos para el acordeón de widgets */
+.widgetsAccordion {
+    /* Sobrescribimos variables del acordeón para usar las de los widgets */
+    --accordion-header-bg: var(--widget-header-bg, var(--color-background-secondary));
+    --accordion-header-text: var(--widget-header-text, var(--color-text-main));
+    --accordion-content-bg: var(--widget-bg, var(--bg-card));
+    --color-border: var(--widget-border, #e2e8f0);
+}
+
+.accordionHeaderContent {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.accordionIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.accordionTitle {
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .card {

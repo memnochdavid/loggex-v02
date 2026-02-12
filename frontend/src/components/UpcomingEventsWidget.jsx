@@ -4,7 +4,7 @@ import { getApiUrl } from '../config/api';
 import styles from './UpcomingEventsWidget.module.css';
 import { CalendarClock, Sun } from 'lucide-react';
 
-const UpcomingEventsWidget = () => {
+const UpcomingEventsWidget = ({ hideHeader = false }) => {
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -126,10 +126,12 @@ const UpcomingEventsWidget = () => {
 
     return (
         <div className={styles.widgetContainer}>
-            <div className={styles.widgetHeader}>
-                <CalendarClock size={20} className={styles.headerIcon} />
-                <h3 className={styles.widgetTitle}>Horario de Hoy</h3>
-            </div>
+            {!hideHeader && (
+                <div className={styles.widgetHeader}>
+                    <CalendarClock size={20} className={styles.headerIcon} />
+                    <h3 className={styles.widgetTitle}>Horario de Hoy</h3>
+                </div>
+            )}
             <div className={styles.widgetContent}>
                 {renderContent()}
             </div>
