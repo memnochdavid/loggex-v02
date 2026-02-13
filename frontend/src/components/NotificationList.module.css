@@ -63,7 +63,7 @@
 .itemAvatar {
     width: 40px;
     height: 40px;
-    /*border-radius: 50%;*/
+    border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
 }
