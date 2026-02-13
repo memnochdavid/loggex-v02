@@ -36,21 +36,23 @@ const Home = () => {
   const isError = backendMessage && backendMessage.includes('Error');
 
   // Definición de los widgets para el AccordionView
-  const widgets = [
-      {
-          id: 'notifications',
-          title: 'Mensajes Recientes',
-          icon: <MessageSquare size={20} />,
-          component: <NotificationList limit={5} showViewAllButton={true} hideHeader={true} />
-      },
-      {
-          id: 'events',
-          title: 'Horario de Hoy',
-          icon: <CalendarClock size={20} />,
-          component: <UpcomingEventsWidget hideHeader={true} />
-      }
-  ];
+  // ORDEN IMPORTANTE PARA MASONRY (Columnas CSS):
+  // Los elementos se apilan verticalmente en la primera columna y luego pasan a la segunda.
+  // Queremos:
+  // Columna 1: Mensajes + Tareas (se apilan sin huecos)
+  // Columna 2: Horario (ocupa toda la altura)
+  
+  const widgets = [];
 
+  // 1. Mensajes Recientes (Siempre primero, arriba a la izquierda)
+  widgets.push({
+      id: 'notifications',
+      title: 'Mensajes Recientes',
+      icon: <MessageSquare size={20} />,
+      component: <NotificationList limit={5} showViewAllButton={true} hideHeader={true} onlyUnread={false} />
+  });
+
+  // 2. Tareas Pendientes (Si es alumno, va debajo de mensajes en la columna izquierda)
   if (isAlumno) {
       widgets.push({
           id: 'tasks',
@@ -59,6 +61,14 @@ const Home = () => {
           component: <PendingTasksWidget hideHeader={true} />
       });
   }
+
+  // 3. Horario de Hoy (Va al final, forzando que caiga en la segunda columna en desktop)
+  widgets.push({
+      id: 'events',
+      title: 'Horario de Hoy',
+      icon: <CalendarClock size={20} />,
+      component: <UpcomingEventsWidget hideHeader={true} />
+  });
 
   // Renderizado personalizado del header del acordeón para incluir iconos y estilos de widget
   const renderWidgetHeader = (item, isOpen) => (
@@ -82,13 +92,17 @@ const Home = () => {
           </CrudHeader>
           
           <div className={styles.dashboardGrid}>
-              {/* Usamos AccordionView para renderizar los widgets */}
-              <AccordionView 
-                  data={widgets}
-                  renderItem={(item) => item.component}
-                  renderHeader={renderWidgetHeader}
-                  className={styles.widgetsAccordion}
-              />
+              {/* Renderizamos cada widget en su propio AccordionView independiente */}
+              {widgets.map(widget => (
+                  <AccordionView 
+                      key={widget.id}
+                      data={[widget]} // Pasamos solo este widget como dato
+                      renderItem={(item) => item.component}
+                      renderHeader={renderWidgetHeader}
+                      className={styles.widgetsAccordion}
+                      defaultOpenAll={true} // Abrir por defecto
+                  />
+              ))}
           </div>
       </div>
     </Layout>

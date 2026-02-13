@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import styles from './AccordionView.module.css';
+import stylesButton from '../pages/Crud.module.css';
 import { ChevronDown } from 'lucide-react';
 
-const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd }) => {
+const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen }) => {
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
-  const [localIsOpen, setLocalIsOpen] = useState(false);
+  // Inicializamos el estado local con defaultOpen si está presente
+  const [localIsOpen, setLocalIsOpen] = useState(defaultOpen || false);
   
   // Determinar si está abierto (controlado o local)
   const isExpanded = isOpen !== undefined ? isOpen : localIsOpen;
@@ -27,7 +29,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
         <div className={styles.headerActions}>
           {canAdd && onAdd && (
             <button 
-              className={styles.button + ' ' + styles.primary}
+              className={stylesButton.iconButton}
               onClick={(e) => {
                 e.stopPropagation(); // Evita que el acordeón se abra/cierre
                 onAdd(item.id);
@@ -53,7 +55,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   );
 };
 
-const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className }) => {
+const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll }) => {
   return (
     <div className={`${styles.accordionContainer} ${className || ''}`}>
       {data.map((item, index) => (
@@ -66,6 +68,7 @@ const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, o
           onToggle={onToggle ? () => onToggle(item.id) : undefined}
           onAdd={onAdd}
           canAdd={canAdd}
+          defaultOpen={defaultOpenAll} // Pasamos la prop para abrir por defecto
         >
           {renderItem(item)}
         </AccordionItem>

@@ -246,13 +246,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                     </table>
                 )}
             </div>
-            <div className={styles.footer}>
-                <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-                <Button onClick={handleSave} disabled={saving}>
-                    <Save size={18} className={styles.saveIcon} />
-                    {saving ? 'Guardando...' : 'Guardar Asistencia'}
-                </Button>
-            </div>
+            {/* Botones movidos al footer del ModalView en TimeTable.jsx */}
         </div>
     );
 };

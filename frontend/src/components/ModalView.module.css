@@ -22,7 +22,9 @@
 .modalContainer {
     width: 100%;
     max-width: 600px;
-    max-height: 90vh;
+    max-height: 90vh; /* Límite de altura */
+    display: flex; /* Necesario para que el hijo ocupe la altura */
+    flex-direction: column;
     /* Importante: No aplicar transform aquí, lo hace react-draggable */
 }
 
@@ -32,7 +34,8 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     width: 100%;
-    height: 100%;
+    /* height: 100%; ELIMINADO: Esto forzaba a ocupar el 100% del contenedor padre, que es 90vh */
+    max-height: 100%; /* Ocupar como máximo el espacio del padre */
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Para que el contenido no se salga de los bordes redondeados */
@@ -100,8 +103,9 @@
     flex-direction: column;
     padding: var(--space-6);
     gap: var(--space-1);
-    flex: 1;
-    overflow-y: auto;
+    flex: 1; /* Ocupar espacio restante */
+    overflow-y: auto; /* Scroll vertical si es necesario */
+    min-height: 0; /* Importante para que flexbox permita el scroll */
     background-color: var(--modal-body-bg, var(--bg-card));
     color: var(--modal-body-text, var(--text-main));
 }
@@ -158,11 +162,13 @@
     .modalContainer {
         width: 100%;
         max-width: 100%;
-        /*height: 95vh; !* Ocupar casi toda la altura *!*/
-        /*max-height: 95vh;*/
+        max-height: 95vh; /* Límite de altura en móvil */
         flex: 1;
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end; /* Alinear contenido al fondo */
     }
 
     .modalContent {
@@ -171,10 +177,14 @@
         animation: slideUp 0.3s ease-out forwards;
         transform: translateY(100%); /* Estado inicial para la animación */
         opacity: 1; /* Opacidad manejada por transform */
+        max-height: 100%; /* Respetar el límite del contenedor */
     }
 
     .modalContent.closing {
         animation: slideDown 0.2s ease-in forwards;
+    }
+    .modalFooter {
+        justify-content: center;
     }
 
     @keyframes slideUp {

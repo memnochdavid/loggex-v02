@@ -1,7 +1,8 @@
 .container {
     margin: 0 auto;
     width: 100%;
-    /*padding: var(--space-1);*/
+    padding: 0 var(--space-8);
+    box-sizing: border-box;
 }
 
 /* Estilos para el título personalizado en CrudHeader */
@@ -18,14 +19,20 @@
 }
 
 .dashboardGrid {
-    display: flex;
-    /*grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));*/
-    flex-wrap: wrap;
-    justify-content: center;
-    flex-direction: column;
-    gap: var(--space-6);
+    display: block; /* Reseteamos display grid */
+    column-count: 1; /* Por defecto 1 columna (móvil) */
+    column-gap: var(--space-6);
     margin: var(--space-8) auto;
-    max-width: 800px; /* Limitamos el ancho para que el acordeón no sea demasiado ancho */
+    width: 100%;
+    max-width: 1200px;
+    box-sizing: border-box;
+}
+
+/* Media query para escritorio */
+@media (min-width: 768px) {
+    .dashboardGrid {
+        column-count: 2; /* 2 columnas tipo periódico/masonry */
+    }
 }
 
 /* Estilos específicos para el acordeón de widgets */
@@ -35,6 +42,11 @@
     --accordion-header-text: var(--widget-header-text, var(--color-text-main));
     --accordion-content-bg: var(--widget-bg, var(--bg-card));
     --color-border: var(--widget-border, #e2e8f0);
+
+    /* Propiedades para Masonry */
+    break-inside: avoid; /* Evita que el widget se parta entre columnas */
+    margin-bottom: var(--space-6); /* Espacio vertical entre widgets */
+    height: auto; /* Dejar que crezca según contenido */
 }
 
 .accordionHeaderContent {

@@ -1,8 +1,8 @@
 .container {
     /*width: 100%;*/
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    /*background-color: var(--bg-card);*/
+    /*border: 1px solid var(--border-color);*/
+    /*border-radius: var(--radius-lg);*/
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
@@ -88,17 +88,17 @@
     gap: var(--space-4);
 }
 
-.paginationTop {
-    border-bottom: 1px solid var(--border-color);
-    border-top-left-radius: var(--radius-lg);
-    border-top-right-radius: var(--radius-lg);
-}
+/*.paginationTop {*/
+/*    border-bottom: 1px solid var(--border-color);*/
+/*    border-top-left-radius: var(--radius-lg);*/
+/*    border-top-right-radius: var(--radius-lg);*/
+/*}*/
 
-.paginationBottom {
-    border-top: 1px solid var(--border-color);
-    border-bottom-left-radius: var(--radius-lg);
-    border-bottom-right-radius: var(--radius-lg);
-}
+/*.paginationBottom {*/
+/*    border-top: 1px solid var(--border-color);*/
+/*    border-bottom-left-radius: var(--radius-lg);*/
+/*    border-bottom-right-radius: var(--radius-lg);*/
+/*}*/
 
 .paginationControls {
     display: flex;
@@ -226,6 +226,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .iconButton {
     background: none;
     border: none;
@@ -238,6 +239,7 @@
     align-items: center;
     justify-content: center;
 }
+
 .mobileCardContent {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -249,10 +251,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding: 0.75rem;
+    /*padding: 0.75rem;*/
     background-color: var(--color-gray-50);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-gray-100);
+    /*border-radius: var(--radius-md);*/
+    /*border: 1px solid var(--color-gray-100);*/
 }
 
 .mobileLabel {
@@ -274,9 +276,9 @@
 
 .mobilePaginationContainer {
     margin-top: 0.5rem;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    /*background-color: transparent;*/
+    /*border: 1px solid var(--border-color);*/
+    /*border-radius: var(--radius-md);*/
     padding: 0; /* Eliminado padding interno */
     overflow: hidden; /* Asegurar bordes redondeados */
 }
@@ -316,9 +318,18 @@
 }
 
 /* Ocultar botones de primera/última página en móvil si es necesario */
-@media (max-width: 400px) {
+@media (max-width: 500px) {
     .mobileView .pageButton[aria-label="Primera página"],
     .mobileView .pageButton[aria-label="Última página"] {
         display: none;
     }
+
+    .mobileHeaderText {
+        font-size: var(--text-sm);
+        overflow: visible;
+    }
+
+    /*.mobileHeaderAvatar {*/
+    /*    display: none*/
+    /*}*/
 }

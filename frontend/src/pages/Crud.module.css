@@ -340,4 +340,7 @@
         max-height: 100vh;
         border-radius: 0;
     }
+    .modalFooter {
+        justify-content: center;
+    }
 }

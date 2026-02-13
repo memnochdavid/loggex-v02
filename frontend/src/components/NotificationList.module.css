@@ -63,7 +63,7 @@
 .itemAvatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    /*border-radius: 50%;*/
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -71,7 +71,7 @@
 .itemAvatarPlaceholder {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    /*border-radius: 50%;*/
     background-color: #f1f5f9;
     display: flex;
     align-items: center;
@@ -118,6 +118,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     margin-bottom: 0.25rem;
+    font-weight: 600; /* Mensajes no leídos en negrita por defecto */
+}
+
+.readMessage {
+    font-weight: normal; /* Mensajes leídos en normal */
+    opacity: 0.6;
 }
 
 .itemMeta {

@@ -30,3 +30,10 @@
         padding: var(--space-4) var(--space-1);
     }
 }
+
+/*para compensar el grosor de la barra de direcciones del navegador en móviles*/
+@media (max-width: 500px) {
+    .content{
+        margin-bottom: 50px;
+    }
+}

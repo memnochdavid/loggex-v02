@@ -230,3 +230,13 @@
         margin-top: 0.25rem;
     }
 }
+@media (max-width: 500px){
+    .avatar{
+        display: none;
+    }
+    .alumnoName{
+        font-size: var(--text-base);
+        overflow: visible;
+    }
+
+}
