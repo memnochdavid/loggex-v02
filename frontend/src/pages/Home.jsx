@@ -8,9 +8,10 @@ import { getApiUrl } from '../config/api';
 import NotificationList from '../components/NotificationList';
 import UpcomingEventsWidget from '../components/UpcomingEventsWidget';
 import PendingTasksWidget from '../components/PendingTasksWidget';
+import TablonWidget from '../components/TablonWidget';
 import CrudHeader from '../components/CrudHeader';
 import AccordionView from '../components/AccordionView';
-import { MessageSquare, CalendarClock, ClipboardList } from 'lucide-react';
+import { MessageSquare, CalendarClock, ClipboardList, Megaphone } from 'lucide-react';
 
 const Home = () => {
   const [count, setCount] = useState(0);
@@ -39,12 +40,20 @@ const Home = () => {
   // ORDEN IMPORTANTE PARA MASONRY (Columnas CSS):
   // Los elementos se apilan verticalmente en la primera columna y luego pasan a la segunda.
   // Queremos:
-  // Columna 1: Mensajes + Tareas (se apilan sin huecos)
+  // Columna 1: Tablón + Mensajes + Tareas (se apilan sin huecos)
   // Columna 2: Horario (ocupa toda la altura)
   
   const widgets = [];
 
-  // 1. Mensajes Recientes (Siempre primero, arriba a la izquierda)
+  // 0. Tablón de Anuncios (Siempre primero, arriba a la izquierda)
+  widgets.push({
+      id: 'tablon',
+      title: 'Tablón de Anuncios',
+      icon: <Megaphone size={20} />,
+      component: <TablonWidget hideHeader={true} />
+  });
+
+  // 1. Mensajes Recientes (Debajo del tablón)
   widgets.push({
       id: 'notifications',
       title: 'Mensajes Recientes',

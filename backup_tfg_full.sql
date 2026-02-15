@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -181,6 +181,51 @@ INSERT INTO `ciclo_formativo` VALUES
 (3,'Desarrollo de Aplicaciones Web','Superior',3,'2026-02-01 08:05:15',NULL,0,NULL),
 (4,'Desarrollo de Aplicaciones Multiplataforma','Superior',3,'2026-02-01 08:05:15',NULL,0,NULL);
 /*!40000 ALTER TABLE `ciclo_formativo` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `comunicado`
+--
+
+DROP TABLE IF EXISTS `comunicado`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `comunicado` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `titulo` varchar(255) NOT NULL,
+  `contenido` longtext NOT NULL,
+  `global` tinyint(4) NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL,
+  `deleted` tinyint(4) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  `autor_id` int(11) NOT NULL,
+  `centro_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_B5F8831014D45BBE` (`autor_id`),
+  KEY `IDX_B5F88310298137A7` (`centro_id`),
+  CONSTRAINT `FK_B5F8831014D45BBE` FOREIGN KEY (`autor_id`) REFERENCES `usuario` (`id`),
+  CONSTRAINT `FK_B5F88310298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `comunicado`
+--
+
+LOCK TABLES `comunicado` WRITE;
+/*!40000 ALTER TABLE `comunicado` DISABLE KEYS */;
+INSERT INTO `comunicado` VALUES
+(1,'xfhbcfxzh','cfghnjxcfgvjn',0,'2026-02-15 11:57:56','2026-02-15 11:57:56',0,NULL,55,3),
+(2,'fzdhzdfh','zcgjfgxn',0,'2026-02-15 11:58:09','2026-02-15 11:58:09',0,NULL,55,3),
+(3,'fdhdf','fgjfghdcj',0,'2026-02-15 11:59:50','2026-02-15 11:59:50',0,NULL,55,3),
+(4,'scdgfdh','fxvjchv',0,'2026-02-15 12:01:09','2026-02-15 12:01:09',0,NULL,55,3),
+(5,'cgvhncgxv','fsxgjdfguj',0,'2026-02-15 12:03:58','2026-02-15 12:03:58',0,NULL,55,3),
+(6,'fhzfdx','cgxhjxf',0,'2026-02-15 12:04:31','2026-02-15 12:04:31',0,NULL,55,3),
+(7,'gdfhfgh','fgjdfj',0,'2026-02-15 12:06:52','2026-02-15 12:06:52',0,NULL,55,3),
+(8,'prueba 666','prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666',0,'2026-02-15 12:07:05','2026-02-15 12:07:05',0,NULL,55,3),
+(9,'tttt','rythed',0,'2026-02-15 12:08:28','2026-02-15 12:08:28',0,NULL,55,3);
+/*!40000 ALTER TABLE `comunicado` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -373,7 +418,7 @@ CREATE TABLE `grupo` (
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
-(5,'1º DAW','2025/2026',3,3,1,'1º DAW',NULL,'2026-02-12 16:52:42',0,NULL,'2025-09-01','2026-06-05'),
+(5,'1º DAW','2025/2026',3,3,1,'1º DAW',NULL,'2026-02-15 11:52:32',0,NULL,'2025-09-01','2026-06-05'),
 (6,'2º DAW','2024/2025',3,3,2,'2º DAW',NULL,'2026-02-12 16:52:56',0,NULL,'2025-09-01','2026-03-04'),
 (7,'1º DAM','2025/2026',4,3,1,'1º DAM',NULL,'2026-02-12 16:53:09',0,NULL,'2025-09-01','2026-06-05'),
 (8,'2º DAM','2024/2025',4,3,2,'2º DAM',NULL,'2026-02-12 16:53:17',0,NULL,'2025-09-01','2026-03-04');
@@ -699,7 +744,7 @@ CREATE TABLE `mensaje` (
   KEY `IDX_9B631D01B564FBC1` (`destinatario_id`),
   CONSTRAINT `FK_9B631D011C3E945F` FOREIGN KEY (`remitente_id`) REFERENCES `usuario` (`id`),
   CONSTRAINT `FK_9B631D01B564FBC1` FOREIGN KEY (`destinatario_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -737,7 +782,9 @@ INSERT INTO `mensaje` VALUES
 (46,'T150MlREW0H8xTPj8BMH4klIQWMzZGpXa3VrbitpckNoMWFaM2c9PQ==','2026-02-10 17:49:42',1,55,49),
 (47,'n2GT9bEl4dUnCmhY6GVzi1Jaa2VEcFQ5MWtEM0F4WFE0MHJST1FWd0F3S2pFa1BuZDFlcm1FeFREZWM9','2026-02-10 17:50:00',0,55,49),
 (48,'nX9/AanonymWActMYrpC3G0zV1hNVzZ3amszN0RxUGtXWXkxbnc9PQ==','2026-02-12 09:41:02',1,57,55),
-(49,'GledBZiIe+2zYi6VXhkdQ0V0V2dxUFBycldqQXo0ZUsxbGVJQ1E9PQ==','2026-02-12 09:41:43',1,50,55);
+(49,'GledBZiIe+2zYi6VXhkdQ0V0V2dxUFBycldqQXo0ZUsxbGVJQ1E9PQ==','2026-02-12 09:41:43',1,50,55),
+(50,'xIIAVRiMdeEoVsJwobe+IEpzVVRUelhtS3NtS3hjSXhna09tNFJsZ0JvT1dxWE1nMHB2dVV6WnNDcXNFcVZhNVljbnFYZ1E5c0k2dWRvbkM=','2026-02-14 19:08:46',1,57,55),
+(51,'j+NxpJp8242V5t+4pydEEzNjaVRpZDRWb053S2hRMUVvb1BES2JxdWV2SXFsWE5mU2VFcFhpZzJQT3c9','2026-02-14 19:08:58',1,55,57);
 /*!40000 ALTER TABLE `mensaje` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -959,7 +1006,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-12 08:15:45',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f0f0f0','#5c94f0','#ffffff','#f0f0f0','#46505d','#cbe5eb','#ff0000');
+(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-02-14 19:14:54',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f0f0f0','#5c94f0','#ffffff','#f0f0f0','#46505d','#cbe5eb','#ff0000');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1121,4 +1168,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-13 10:26:48
+-- Dump completed on 2026-02-15 12:27:33

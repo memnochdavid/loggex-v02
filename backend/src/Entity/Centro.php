@@ -44,11 +44,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema:read'])]
+    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read'])]
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]

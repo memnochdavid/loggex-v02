@@ -2,9 +2,9 @@ api_platform:
     title: Loggex API
     version: 1.0.0
     formats:
-        html: ['text/html'] # HTML PRIMERO para priorizar Swagger UI
         jsonld: ['application/ld+json']
         json: ['application/json']
+        html: ['text/html']
     defaults:
         stateless: false
         cache_headers:
