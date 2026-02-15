@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './TablonWidget.module.css';
-import { Megaphone, Globe, Building2, Trash2, Edit, Plus } from 'lucide-react';
+import crudStyles from '../pages/Crud.module.css';
+import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
 
@@ -20,22 +21,18 @@ const TablonWidget = ({ hideHeader = false }) => {
     });
 
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
-    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN');
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
     const fetchComunicados = async () => {
         setLoading(true);
         try {
             let url = getApiUrl('/api/comunicados?order[createdAt]=desc');
-            
             const response = await fetch(url, {
                 headers: { 'Accept': 'application/ld+json' },
                 credentials: 'include'
             });
-            
             if (!response.ok) throw new Error('Error al cargar comunicados');
-            
             const data = await response.json();
-            // API Platform 4 puede devolver 'member' en lugar de 'hydra:member' según configuración
             const items = data['hydra:member'] || data['member'] || [];
             setComunicados(items);
         } catch (err) {
@@ -137,21 +134,16 @@ const TablonWidget = ({ hideHeader = false }) => {
         <div className={styles.widget}>
             {!hideHeader && (
                 <div className={styles.header}>
-                    <h3><Megaphone size={20} /> Tablón de Anuncios</h3>
+                    <div className={styles.headerTitle}>
+                        <Megaphone size={20} />
+                        <h3>Tablón de Anuncios</h3>
+                    </div>
                     {(isAdmin || isSuperAdmin) && (
                         <Button size="small" onClick={() => openModal()}>
-                            <Plus size={16} /> Nuevo
+                            <Plus size={18} style={{ marginRight: '4px' }} /> Publicar Anuncio
                         </Button>
                     )}
                 </div>
-            )}
-            
-            {hideHeader && (isAdmin || isSuperAdmin) && (
-                 <div className={styles.floatingAction}>
-                    <Button size="small" variant="secondary" onClick={() => openModal()}>
-                        <Plus size={16} /> Publicar Anuncio
-                    </Button>
-                 </div>
             )}
 
             <div className={styles.list}>
@@ -166,7 +158,9 @@ const TablonWidget = ({ hideHeader = false }) => {
                                     {comunicado.global ? (
                                         <span className={styles.badgeGlobal} title="Comunicado Global"><Globe size={14} /> Global</span>
                                     ) : (
-                                        <span className={styles.badgeCentro} title="Comunicado de Centro"><Building2 size={14} /> Centro</span>
+                                        <span className={styles.badgeCentro} title={comunicado.centro?.nombre || "Comunicado de Centro"}>
+                                            <Building2 size={14} /> {comunicado.centro?.nombre || "Centro"}
+                                        </span>
                                     )}
                                 </div>
                             </div>
@@ -179,9 +173,9 @@ const TablonWidget = ({ hideHeader = false }) => {
                                     <span className={styles.date}> • {new Date(comunicado.createdAt).toLocaleDateString()}</span>
                                 </span>
                                 {canEdit(comunicado) && (
-                                    <div className={styles.actions}>
-                                        <button onClick={() => openModal(comunicado)} className={styles.actionBtn}><Edit size={16}/></button>
-                                        <button onClick={() => handleDelete(comunicado.id)} className={styles.actionBtn}><Trash2 size={16}/></button>
+                                    <div className={crudStyles.actions}>
+                                        <button className={crudStyles.iconButton} onClick={() => openModal(comunicado)} title="Editar"><Edit2 size={18} /></button>
+                                        <button className={`${crudStyles.iconButton} ${crudStyles.danger}`} onClick={() => handleDelete(comunicado.id)} title="Eliminar"><Trash2 size={18} /></button>
                                     </div>
                                 )}
                             </div>
@@ -199,32 +193,35 @@ const TablonWidget = ({ hideHeader = false }) => {
                     submitText="Guardar"
                     cancelText="Cancelar"
                 >
-                    <div className={styles.formGroup}>
-                        <label>Título</label>
+                    <div className={crudStyles.formGroup}>
+                        <label className={crudStyles.label}>Título</label>
                         <input 
                             type="text" 
                             value={formData.titulo} 
                             onChange={e => setFormData({...formData, titulo: e.target.value})} 
+                            className={crudStyles.input}
                             required 
                         />
                     </div>
-                    <div className={styles.formGroup}>
-                        <label>Contenido</label>
+                    <div className={crudStyles.formGroup}>
+                        <label className={crudStyles.label}>Contenido</label>
                         <textarea 
                             value={formData.contenido} 
                             onChange={e => setFormData({...formData, contenido: e.target.value})} 
+                            className={crudStyles.input}
                             required 
                             rows={5}
                         />
                     </div>
                     {isSuperAdmin && (
-                        <div className={styles.formGroupCheckbox}>
-                            <label>
-                                <input 
-                                    type="checkbox" 
-                                    checked={formData.global} 
-                                    onChange={e => setFormData({...formData, global: e.target.checked})} 
-                                />
+                        <div className={crudStyles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                            <input 
+                                type="checkbox" 
+                                id="global-check"
+                                checked={formData.global} 
+                                onChange={e => setFormData({...formData, global: e.target.checked})} 
+                            />
+                            <label htmlFor="global-check" className={crudStyles.label} style={{ marginBottom: 0 }}>
                                 Es un comunicado global (para todos los centros)
                             </label>
                         </div>
