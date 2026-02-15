@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './TablonWidget.module.css';
 import crudStyles from '../pages/Crud.module.css';
-import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
+import { Megaphone, Globe, Building2, Trash2, Edit2 } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
 
-const TablonWidget = ({ hideHeader = false }) => {
+const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     const { user } = useAuth();
     const [comunicados, setComunicados] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,6 +22,11 @@ const TablonWidget = ({ hideHeader = false }) => {
 
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Exponer la función openModal al componente padre (Home.jsx)
+    useImperativeHandle(ref, () => ({
+        openModal: () => openModal()
+    }));
 
     const fetchComunicados = async () => {
         setLoading(true);
@@ -230,6 +235,6 @@ const TablonWidget = ({ hideHeader = false }) => {
             )}
         </div>
     );
-};
+});
 
 export default TablonWidget;

@@ -3,6 +3,7 @@
     flex-direction: column;
     gap: 1rem;
     height: 100%;
+    position: relative;
 }
 
 .header {
@@ -12,6 +13,14 @@
     margin-bottom: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--color-border);
+}
+
+/* Estilo para cuando el header está oculto pero queremos mostrar el botón */
+.headerActionsOnly {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: -0.5rem; /* Ajuste para acercarlo a la cabecera del acordeón */
+    padding-top: 0.25rem;
 }
 
 .headerTitle {
@@ -33,6 +42,7 @@
     gap: 1rem;
     overflow-y: auto;
     max-height: 500px;
+    padding-top: 0.5rem;
 }
 
 .empty {

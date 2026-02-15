@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logoApp from '../../public/logo_app.png';
 import styles from './Home.module.css';
 import Button from '../components/Button';
@@ -14,13 +14,13 @@ import AccordionView from '../components/AccordionView';
 import { MessageSquare, CalendarClock, ClipboardList, Megaphone } from 'lucide-react';
 
 const Home = () => {
-  const [count, setCount] = useState(0);
   const [backendMessage, setBackendMessage] = useState('Cargando...');
   const { user } = useAuth();
+  const tablonRef = useRef(null);
 
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
-  const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
   useEffect(() => {
     fetch(getApiUrl('/api/hello'), {
@@ -34,26 +34,24 @@ const Home = () => {
       .catch(error => setBackendMessage('Error conectando al backend: ' + error));
   }, []);
 
-  const isError = backendMessage && backendMessage.includes('Error');
-
   // Definición de los widgets para el AccordionView
-  // ORDEN IMPORTANTE PARA MASONRY (Columnas CSS):
-  // Los elementos se apilan verticalmente en la primera columna y luego pasan a la segunda.
-  // Queremos:
-  // Columna 1: Tablón + Mensajes + Tareas (se apilan sin huecos)
-  // Columna 2: Horario (ocupa toda la altura)
-  
   const widgets = [];
 
-  // 0. Tablón de Anuncios (Siempre primero, arriba a la izquierda)
+  // 0. Tablón de Anuncios
   widgets.push({
       id: 'tablon',
       title: 'Tablón de Anuncios',
       icon: <Megaphone size={20} />,
-      component: <TablonWidget hideHeader={true} />
+      component: <TablonWidget ref={tablonRef} hideHeader={true} />,
+      canAdd: isAdmin || isSuperAdmin,
+      onAdd: () => {
+          if (tablonRef.current) {
+              tablonRef.current.openModal();
+          }
+      }
   });
 
-  // 1. Mensajes Recientes (Debajo del tablón)
+  // 1. Mensajes Recientes
   widgets.push({
       id: 'notifications',
       title: 'Mensajes Recientes',
@@ -61,7 +59,7 @@ const Home = () => {
       component: <NotificationList limit={5} showViewAllButton={true} hideHeader={true} onlyUnread={false} />
   });
 
-  // 2. Tareas Pendientes (Si es alumno, va debajo de mensajes en la columna izquierda)
+  // 2. Tareas Pendientes (Si es alumno)
   if (isAlumno) {
       widgets.push({
           id: 'tasks',
@@ -71,7 +69,7 @@ const Home = () => {
       });
   }
 
-  // 3. Horario de Hoy (Va al final, forzando que caiga en la segunda columna en desktop)
+  // 3. Horario de Hoy
   widgets.push({
       id: 'events',
       title: 'Horario de Hoy',
@@ -79,7 +77,7 @@ const Home = () => {
       component: <UpcomingEventsWidget hideHeader={true} />
   });
 
-  // Renderizado personalizado del header del acordeón para incluir iconos y estilos de widget
+  // Renderizado personalizado del header del acordeón
   const renderWidgetHeader = (item, isOpen) => (
       <div className={styles.accordionHeaderContent}>
           <span className={styles.accordionIcon} style={{ color: 'var(--widget-icon-color, var(--color-primary))' }}>
@@ -101,15 +99,16 @@ const Home = () => {
           </CrudHeader>
           
           <div className={styles.dashboardGrid}>
-              {/* Renderizamos cada widget en su propio AccordionView independiente */}
               {widgets.map(widget => (
                   <AccordionView 
                       key={widget.id}
-                      data={[widget]} // Pasamos solo este widget como dato
+                      data={[widget]} 
                       renderItem={(item) => item.component}
                       renderHeader={renderWidgetHeader}
                       className={styles.widgetsAccordion}
-                      defaultOpenAll={true} // Abrir por defecto
+                      defaultOpenAll={true}
+                      canAdd={widget.canAdd}
+                      onAdd={widget.onAdd}
                   />
               ))}
           </div>
