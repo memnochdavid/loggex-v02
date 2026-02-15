@@ -206,7 +206,7 @@ CREATE TABLE `comunicado` (
   KEY `IDX_B5F88310298137A7` (`centro_id`),
   CONSTRAINT `FK_B5F8831014D45BBE` FOREIGN KEY (`autor_id`) REFERENCES `usuario` (`id`),
   CONSTRAINT `FK_B5F88310298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -216,15 +216,9 @@ CREATE TABLE `comunicado` (
 LOCK TABLES `comunicado` WRITE;
 /*!40000 ALTER TABLE `comunicado` DISABLE KEYS */;
 INSERT INTO `comunicado` VALUES
-(1,'xfhbcfxzh','cfghnjxcfgvjn',0,'2026-02-15 11:57:56','2026-02-15 11:57:56',0,NULL,55,3),
-(2,'fzdhzdfh','zcgjfgxn',0,'2026-02-15 11:58:09','2026-02-15 11:58:09',0,NULL,55,3),
-(3,'fdhdf','fgjfghdcj',0,'2026-02-15 11:59:50','2026-02-15 11:59:50',0,NULL,55,3),
-(4,'scdgfdh','fxvjchv',0,'2026-02-15 12:01:09','2026-02-15 12:01:09',0,NULL,55,3),
-(5,'cgvhncgxv','fsxgjdfguj',0,'2026-02-15 12:03:58','2026-02-15 12:03:58',0,NULL,55,3),
-(6,'fhzfdx','cgxhjxf',0,'2026-02-15 12:04:31','2026-02-15 12:04:31',0,NULL,55,3),
-(7,'gdfhfgh','fgjdfj',0,'2026-02-15 12:06:52','2026-02-15 12:06:52',0,NULL,55,3),
-(8,'prueba 666','prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666prueba 666',0,'2026-02-15 12:07:05','2026-02-15 12:07:05',0,NULL,55,3),
-(9,'tttt','rythed',0,'2026-02-15 12:08:28','2026-02-15 12:08:28',0,NULL,55,3);
+(8,'Comunicado de Prueba','Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s.',0,'2026-02-15 12:07:05','2026-02-15 12:07:05',0,NULL,55,3),
+(10,'Nuevo comunicado 666','Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 ',0,'2026-02-15 15:02:53','2026-02-15 15:02:53',0,NULL,55,3),
+(11,'Comunicado GLOBAL','Me tenéis que obedecer, porque soy el SUPERADMIN.',0,'2026-02-15 15:13:28','2026-02-15 15:13:28',0,NULL,49,NULL);
 /*!40000 ALTER TABLE `comunicado` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1168,4 +1162,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-15 12:27:33
+-- Dump completed on 2026-02-15 15:15:11
