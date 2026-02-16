@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './TablonWidget.module.css';
 import crudStyles from '../pages/Crud.module.css';
-import { Megaphone, Globe, Building2, Trash2, Edit2 } from 'lucide-react';
+import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
 
@@ -19,6 +19,8 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
         contenido: '',
         global: false
     });
+
+    const listRef = useRef(null);
 
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
@@ -38,7 +40,11 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
             });
             if (!response.ok) throw new Error('Error al cargar comunicados');
             const data = await response.json();
-            const items = data['hydra:member'] || data['member'] || [];
+            let items = data['hydra:member'] || data['member'] || [];
+            
+            // Asegurar orden descendente (más nuevo primero) en el frontend
+            items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
             setComunicados(items);
         } catch (err) {
             console.error(err);
@@ -51,6 +57,13 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     useEffect(() => {
         if (user) fetchComunicados();
     }, [user]);
+
+    // Efecto para hacer scroll al inicio cuando cambian los comunicados
+    useEffect(() => {
+        if (listRef.current) {
+            listRef.current.scrollTop = 0;
+        }
+    }, [comunicados]);
 
     const handleSave = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
@@ -151,7 +164,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                 </div>
             )}
 
-            <div className={styles.list}>
+            <div className={styles.list} ref={listRef}>
                 {comunicados.length === 0 ? (
                     <p className={styles.empty}>No hay comunicados recientes.</p>
                 ) : (
@@ -164,7 +177,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                                         <span className={styles.badgeGlobal} title="Comunicado Global"><Globe size={14} /> Global</span>
                                     ) : (
                                         <span className={styles.badgeCentro} title={comunicado.centro?.nombre || "Comunicado de Centro"}>
-                                            <Building2 size={14} /> {comunicado.centro?.nombre || "Centro"}
+                                            <Building2 size={14} /> {comunicado.centro?.nombre || "Administración"}
                                         </span>
                                     )}
                                 </div>
