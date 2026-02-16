@@ -53,19 +53,24 @@
 }
 
 .card {
-    background-color: var(--color-bg-secondary);
+    /*background-color: var(--color-bg-secondary);*/
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    /*border-radius: 8px;*/
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     transition: transform 0.2s, box-shadow 0.2s;
+    background-color: var(--color-background-light);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: var(--widget-item-hover-bg, var(--color-background-light));
+
 }
 
 .card.global {
@@ -127,7 +132,7 @@
     align-items: flex-end;
     margin-top: 0.5rem;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--color-border);
+    /*border-top: 1px solid var(--color-border);*/
 }
 
 .author {

@@ -306,7 +306,7 @@ const Entregas = () => {
                           </div>
                           
                           <div className={styles.cardActions}>
-                              {isAlumno && (
+                              {isAlumno && !isLate && (
                                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                                       <Upload size={16} style={{marginRight:'4px'}}/> 
                                       {entrega ? 'Editar Entrega' : 'Entregar'}
@@ -409,16 +409,17 @@ const Entregas = () => {
             isSubmitting={uploading}
             submitText="Entregar"
         >
+            {/*mejor no subir archivos*/}
+            {/*<div className={styles.formGroup}>*/}
+            {/*    <label className={styles.label}>Archivo</label>*/}
+            {/*    <input */}
+            {/*        type="file" */}
+            {/*        className={styles.fileInput}*/}
+            {/*        onChange={e => setUploadFormData({...uploadFormData, archivo: e.target.files[0]})}*/}
+            {/*    />*/}
+            {/*</div>*/}
             <div className={styles.formGroup}>
-                <label className={styles.label}>Archivo</label>
-                <input 
-                    type="file" 
-                    className={styles.fileInput}
-                    onChange={e => setUploadFormData({...uploadFormData, archivo: e.target.files[0]})}
-                />
-            </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>Enlace (Opcional)</label>
+                <label className={styles.label}>Enlace a Drive, Dropbox, etc.</label>
                 <input 
                     type="url" 
                     className={styles.input}

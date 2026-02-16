@@ -1,5 +1,5 @@
 .container {
-    padding: var(--space-2);
+    padding: var(--space-8);
     max-width: 1000px;
     margin: 0 auto;
     /* Ajustes para centrado y evitar scroll innecesario */

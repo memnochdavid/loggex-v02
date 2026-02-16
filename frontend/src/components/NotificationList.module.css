@@ -53,11 +53,16 @@
     border: none;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
 }
 
 .itemButton:hover {
     background-color: var(--widget-item-hover-bg, var(--color-background-light));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .itemAvatar {
@@ -161,7 +166,7 @@
 .viewAllLink {
     background: none;
     border: none;
-    color: var(--widget-icon-color, var(--color-primary));
+    color: var(--widget-header-text);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;

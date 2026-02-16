@@ -273,11 +273,7 @@ const Tareas = () => {
                                           <Trash2 size={18} />
                                       </button>
                                   </>
-                              ) : (
-                                  <Button size="sm" variant="secondary">
-                                      Ver / Entregar
-                                  </Button>
-                              )}
+                              ) : null /* Eliminado el botón Ver / Entregar para alumnos */}
                           </div>
                       </div>
                   ))
@@ -339,12 +335,12 @@ const Tareas = () => {
             <div className={styles.formGroup}>
                 <label className={styles.label}>Archivo Adjunto (Opcional)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <input 
-                        type="file" 
+                    <input
+                        type="file"
                         ref={fileInputRef}
                         className={styles.fileInput}
-                        name="archivo" 
-                        onChange={handleInputChange} 
+                        name="archivo"
+                        onChange={handleInputChange}
                         style={{ display: 'none' }}
                     />
                     <Button 
