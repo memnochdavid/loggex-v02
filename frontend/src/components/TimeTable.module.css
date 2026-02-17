@@ -206,7 +206,7 @@
     display: none;
 }
 
-/* Modal Styles */
+/* Modal Styles - IGUALADOS A HOME.MODULE.CSS */
 .modalBody {
     display: flex;
     flex-direction: column;
@@ -215,29 +215,40 @@
 
 .detailRow {
     display: flex;
-    gap: 1rem;
     align-items: flex-start;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.detailRow:last-child {
+    border-bottom: none;
 }
 
 .icon {
-    color: var(--text-muted);
+    color: var(--color-primary-500);
+    flex-shrink: 0;
     margin-top: 0.2rem;
 }
 
 .label {
     font-weight: 600;
-    color: var(--text-muted);
-    font-size: 0.9rem;
+    color: var(--color-text-secondary);
     margin-right: 0.5rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .value {
-    color: var(--text-main);
+    color: var(--color-text-main);
+    font-weight: 500;
 }
 
 .subValue {
-    color: var(--text-muted);
-    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9em;
+    margin-left: 0.5rem;
 }
 
 .empty {
