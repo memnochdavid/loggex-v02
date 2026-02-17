@@ -7,6 +7,8 @@ import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import teacherAnimation from '../../public/teacher.json';
 
 const Claustro = () => {
     const { user } = useAuth();
@@ -60,7 +62,9 @@ const Claustro = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Claustro de Profesores">
+                <CrudHeader title="Claustro de Profesores"
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 

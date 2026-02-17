@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import { FileText, Download, Trash2 } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const MaterialesProfesor = () => {
   const { user } = useAuth();
@@ -189,7 +191,9 @@ const MaterialesProfesor = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Mis Temarios" />
+        <CrudHeader title="Mis Temarios"
+                    logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        />
 
         {loading ? (
           <div className={styles.loadingContainer}>Cargando...</div>

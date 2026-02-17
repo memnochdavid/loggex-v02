@@ -15,6 +15,8 @@ import ModalView from '../components/ModalView';
 import AsistenciaModal from '../components/AsistenciaModal';
 import EventCard from '../components/EventCard';
 import { MessageSquare, CalendarClock, ClipboardList, Megaphone, Clock, MapPin, Users, User, CheckSquare, Save } from 'lucide-react';
+import Lottie from 'lottie-react';
+import helloAnimation from '../../public/hello.json';
 
 const Home = () => {
   const [backendMessage, setBackendMessage] = useState('Cargando...');
@@ -233,7 +235,7 @@ const Home = () => {
       <div className={styles.container}>
           <CrudHeader 
               title={`Hola, ${user?.nombre || 'Usuario'}, que tengas un buen día.`}
-              logo={logoApp}
+              logo={<Lottie animationData={helloAnimation} loop={true} style={{ width: 60, height: 60 }} />}
           >
           </CrudHeader>
           

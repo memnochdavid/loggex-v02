@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, {useState, useEffect, useRef, useLayoutEffect} from 'react';
+import {useLocation} from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
-import { useAuth } from '../context/AuthContext';
+import {useAuth} from '../context/AuthContext';
 import styles from './Mensajes.module.css';
-import { Send, User, ArrowLeft } from 'lucide-react';
+import {Send, User, ArrowLeft} from 'lucide-react';
 import Button from '../components/Button';
-import { getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT } from '../config/api';
+import {getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT} from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
+import Lottie from 'lottie-react';
+import messageAnimation from '../../public/message.json';
 
 const Mensajes = () => {
-    const { user } = useAuth();
+    const {user} = useAuth();
     const location = useLocation();
     const [conversaciones, setConversaciones] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -20,7 +22,7 @@ const Mensajes = () => {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const textareaRef = useRef(null); // Ref para el textarea
@@ -48,7 +50,7 @@ const Mensajes = () => {
 
     const handleScroll = () => {
         if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+            const {scrollTop, scrollHeight, clientHeight} = messagesContainerRef.current;
             isUserNearBottom.current = scrollHeight - scrollTop - clientHeight < 100;
         }
     };
@@ -57,7 +59,7 @@ const Mensajes = () => {
         if (location.state?.chatWith && !loading && !navigationProcessed.current) {
             const targetUser = location.state.chatWith;
             const existingChat = conversaciones.find(c => c.usuario.id === targetUser.id);
-            
+
             navigationProcessed.current = true;
 
             if (existingChat) {
@@ -66,7 +68,7 @@ const Mensajes = () => {
                 const newChat = {
                     usuario: targetUser,
                     mensajes: [],
-                    ultimoMensaje: { fechaEnvio: new Date(), texto: 'Nueva conversación' },
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: 'Nueva conversación'},
                     noLeidos: 0,
                     isTemp: true
                 };
@@ -92,8 +94,7 @@ const Mensajes = () => {
         if (prevMensajesLength.current === 0 && mensajesChat.length > 0) {
             scrollToBottom();
             isUserNearBottom.current = true;
-        } 
-        else if (mensajesChat.length > prevMensajesLength.current) {
+        } else if (mensajesChat.length > prevMensajesLength.current) {
             const realLastMessage = mensajesChat[mensajesChat.length - 1];
             const isMyMessage = realLastMessage?.remitente?.id === user.id;
 
@@ -114,16 +115,16 @@ const Mensajes = () => {
     }, [selectedUser]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        messagesEndRef.current?.scrollIntoView({behavior: "auto"});
     };
 
     const fetchMensajes = async () => {
         try {
             const response = await fetch(getApiUrl('/api/v1/mensajes'), {
-                headers: { 'Accept': 'application/json' },
+                headers: {'Accept': 'application/json'},
                 credentials: 'include'
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 const allMessages = data || [];
@@ -156,7 +157,7 @@ const Mensajes = () => {
             }
 
             grupos[otroId].mensajes.push(msg);
-            
+
             if (!grupos[otroId].ultimoMensaje) {
                 grupos[otroId].ultimoMensaje = msg;
             }
@@ -178,7 +179,7 @@ const Mensajes = () => {
                 lista.unshift({
                     usuario: selectedUser,
                     mensajes: [],
-                    ultimoMensaje: { fechaEnvio: new Date(), texto: '' },
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: ''},
                     noLeidos: 0,
                     isTemp: true
                 });
@@ -191,7 +192,7 @@ const Mensajes = () => {
     const markAsRead = async (userId) => {
         setConversaciones(prev => prev.map(chat => {
             if (chat.usuario.id === userId) {
-                return { ...chat, noLeidos: 0 };
+                return {...chat, noLeidos: 0};
             }
             return chat;
         }));
@@ -199,21 +200,21 @@ const Mensajes = () => {
         const chat = conversaciones.find(c => c.usuario.id === userId);
         if (!chat) return;
 
-        const unreadMessages = chat.mensajes.filter(msg => 
+        const unreadMessages = chat.mensajes.filter(msg =>
             msg.remitente.id === userId && !msg.leido
         );
 
         if (unreadMessages.length === 0) return;
 
         try {
-            await Promise.all(unreadMessages.map(msg => 
+            await Promise.all(unreadMessages.map(msg =>
                 fetch(getApiUrl(`/api/mensajes/${msg.id}`), {
                     method: 'PATCH',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/merge-patch+json',
                         'Accept': 'application/ld+json'
                     },
-                    body: JSON.stringify({ leido: true }),
+                    body: JSON.stringify({leido: true}),
                     credentials: 'include'
                 })
             ));
@@ -241,7 +242,7 @@ const Mensajes = () => {
 
             const response = await fetch(getApiUrl('/api/mensajes'), {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/ld+json',
                     'Accept': 'application/ld+json'
                 },
@@ -291,40 +292,47 @@ const Mensajes = () => {
     return (
         <Layout fullHeight={true}>
             <div className={styles.container}>
-                <div style={{ padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block' }}>
-                    <CrudHeader title="Mensajería" />
+                <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
+                    <CrudHeader title="Mensajería"
+                                logo={<Lottie animationData={messageAnimation} loop={true}
+                                              style={{width: 60, height: 60}}/>}
+                    />
                 </div>
-                
+
                 <div className={styles.chatLayout}>
                     <div className={`${styles.sidebar} ${selectedUser ? styles.hidden : ''}`}>
                         <div className={styles.searchWrapper}>
-                            <SearchBar 
-                                value={searchTerm} 
-                                onChange={setSearchTerm} 
-                                placeholder="Buscar conversación..." 
+                            <SearchBar
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                placeholder="Buscar conversación..."
                                 fields={[]}
                             />
                         </div>
-                        
+
                         <div className={styles.conversationList}>
                             {filteredConversations.map(chat => (
-                                <div 
-                                    key={chat.usuario.id} 
+                                <div
+                                    key={chat.usuario.id}
                                     className={`${styles.conversationItem} ${selectedUser?.id === chat.usuario.id ? styles.active : ''}`}
                                     onClick={() => handleSelectUser(chat.usuario)}
                                 >
                                     <div className={styles.avatar}>
                                         {chat.usuario.foto ? (
-                                            <img src={getAssetUrl(chat.usuario.foto)} alt="" />
+                                            <img src={getAssetUrl(chat.usuario.foto)} alt=""/>
                                         ) : (
-                                            <User size={20} />
+                                            <User size={20}/>
                                         )}
                                     </div>
                                     <div className={styles.conversationInfo}>
                                         <div className={styles.conversationHeader}>
-                                            <span className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
+                                            <span
+                                                className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
                                             <span className={styles.time}>
-                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
                                             </span>
                                         </div>
                                         <div className={styles.lastMessage}>
@@ -349,20 +357,21 @@ const Mensajes = () => {
                             <>
                                 <div className={styles.chatHeader}>
                                     <button className={styles.backButton} onClick={handleBackToConversations}>
-                                        <ArrowLeft size={20} />
+                                        <ArrowLeft size={20}/>
                                     </button>
                                     <div className={styles.avatarSmall}>
                                         {selectedUser.foto ? (
-                                            <img src={getAssetUrl(selectedUser.foto)} alt="" />
+                                            <img src={getAssetUrl(selectedUser.foto)} alt=""/>
                                         ) : (
-                                            <User size={16} />
+                                            <User size={16}/>
                                         )}
                                     </div>
-                                    <span className={styles.chatUserName}>{selectedUser.nombre} {selectedUser.apellidos}</span>
+                                    <span
+                                        className={styles.chatUserName}>{selectedUser.nombre} {selectedUser.apellidos}</span>
                                 </div>
 
-                                <div 
-                                    className={styles.messagesContainer} 
+                                <div
+                                    className={styles.messagesContainer}
                                     ref={messagesContainerRef}
                                     onScroll={handleScroll}
                                 >
@@ -375,22 +384,27 @@ const Mensajes = () => {
                                             const remitenteId = msg.remitente.id;
                                             const isMe = remitenteId === user.id;
                                             return (
-                                                <div key={msg.id} className={`${styles.messageBubble} ${isMe ? styles.sent : styles.received}`}>
-                                                    <div className={styles.messageContent} style={{ whiteSpace: 'pre-wrap' }}>
+                                                <div key={msg.id}
+                                                     className={`${styles.messageBubble} ${isMe ? styles.sent : styles.received}`}>
+                                                    <div className={styles.messageContent}
+                                                         style={{whiteSpace: 'pre-wrap'}}>
                                                         {msg.texto}
                                                     </div>
                                                     <div className={styles.messageTime}>
-                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
                                                     </div>
                                                 </div>
                                             );
                                         })
                                     )}
-                                    <div ref={messagesEndRef} />
+                                    <div ref={messagesEndRef}/>
                                 </div>
 
                                 <div className={styles.inputArea}>
-                                    <textarea 
+                                    <textarea
                                         ref={textareaRef}
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
@@ -401,7 +415,7 @@ const Mensajes = () => {
                                         rows={1}
                                     />
                                     <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
-                                        <Send size={18} />
+                                        <Send size={18}/>
                                     </Button>
                                 </div>
                             </>

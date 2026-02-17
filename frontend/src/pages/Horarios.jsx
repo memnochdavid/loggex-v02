@@ -13,6 +13,8 @@ import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, Pa
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
+import Lottie from 'lottie-react';
+import calendarAnimation from '../../public/time.json';
 
 const Horarios = () => {
   const { user } = useAuth();
@@ -443,7 +445,9 @@ const Horarios = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Horarios">
+        <CrudHeader title="Horarios"
+                    logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
                 <Button 
                     variant={viewMode === 'calendar' ? 'primary' : 'secondary'}

@@ -8,6 +8,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Tareas = () => {
   const { user } = useAuth();
@@ -285,7 +287,9 @@ const Tareas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Tareas y Actividades" />
+        <CrudHeader title="Tareas y Actividades"
+                    logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        />
 
         {loading ? (
             <div className={styles.loadingContainer}>Cargando asignaturas...</div>

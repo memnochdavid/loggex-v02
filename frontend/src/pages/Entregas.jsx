@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
 import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Paperclip } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Entregas = () => {
   const { user } = useAuth();
@@ -388,7 +390,9 @@ const Entregas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Entregas" />
+        <CrudHeader title="Entregas"
+                    logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        />
 
         {loading ? (
             <div className={styles.loadingContainer}>Cargando...</div>

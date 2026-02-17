@@ -6,7 +6,13 @@ const CrudHeader = ({ title, subtitle, logo, children }) => {
         <div className={styles.container}>
             <div className={styles.titleGroup}>
                 {logo && (
-                    <img src={logo} alt="Logo" className={styles.logo} />
+                    <div className={styles.logoContainer}>
+                        {typeof logo === 'string' ? (
+                            <img src={logo} alt="Logo" className={styles.logo} />
+                        ) : (
+                            logo
+                        )}
+                    </div>
                 )}
                 <div className={styles.textContainer}>
                     <h1 className={styles.title}>{title}</h1>

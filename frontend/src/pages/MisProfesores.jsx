@@ -7,6 +7,8 @@ import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import teacherAnimation from '../../public/teacher.json';
 
 const MisProfesores = () => {
     const { user } = useAuth();
@@ -64,7 +66,9 @@ const MisProfesores = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Profesores">
+                <CrudHeader title="Mis Profesores"
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
