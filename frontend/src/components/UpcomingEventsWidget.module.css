@@ -29,8 +29,8 @@
 .widgetContent {
     padding: 0;
     flex: 1;
-    overflow-y: auto;
-    max-height: 300px;
+    /*overflow-y: auto;*/
+    /*max-height: 300px;*/
 }
 
 .holidayBanner {
@@ -47,7 +47,7 @@
 
 .eventList {
     list-style: none;
-    padding: var(--space-2) 0;
+    padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;

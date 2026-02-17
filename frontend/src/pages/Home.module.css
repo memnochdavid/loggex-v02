@@ -22,10 +22,11 @@
     display: block; /* Reseteamos display grid */
     column-count: 1; /* Por defecto 1 columna (móvil) */
     column-gap: var(--space-6);
-    margin: var(--space-8) auto;
+    /*margin: var(--space-8) auto;*/
     width: 100%;
-    max-width: 1200px;
+    /*max-width: 1200px;*/
     box-sizing: border-box;
+    transition: var(--transition-base);
 }
 
 /* Media query para escritorio */

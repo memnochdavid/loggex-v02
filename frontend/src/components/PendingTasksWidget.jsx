@@ -16,11 +16,9 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
 
         const fetchPendingTasks = async () => {
             try {
-                // Asumimos que el endpoint de tareas devuelve las tareas del usuario logueado
-                // y que podemos filtrar por las que no están entregadas (si existe esa lógica)
-                // Por ahora, mostraremos las tareas con fecha de entrega futura.
                 const today = new Date().toISOString();
-                const response = await fetch(getApiUrl(`/api/tareas?fechaEntrega[after]=${today}&pagination=false&order[fechaEntrega]=asc`), {
+                // Intentamos filtrar por API, pero reforzaremos en el frontend
+                const response = await fetch(getApiUrl(`/api/tareas?fechaLimite[after]=${today}&pagination=false&order[fechaLimite]=asc`), {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
@@ -30,8 +28,14 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                 const data = await response.json();
                 const allTasks = data['hydra:member'] || data.member || [];
                 
-                // Aquí podrías añadir lógica para filtrar tareas ya entregadas si la API lo permite
-                setTasks(allTasks.slice(0, 5)); // Limitar a 5
+                // Refuerzo de filtrado en frontend: solo tareas cuya fecha límite no haya pasado
+                const now = new Date();
+                const futureTasks = allTasks.filter(task => {
+                    if (!task.fechaLimite) return false;
+                    return new Date(task.fechaLimite) > now;
+                });
+                
+                setTasks(futureTasks.slice(0, 5)); 
 
             } catch (error) {
                 console.error("Error fetching pending tasks:", error);
@@ -44,19 +48,23 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
     }, [user]);
 
     const handleTaskClick = (task) => {
-        // Navegar a la vista de entregas, pasando el ID de la tarea
         navigate('/entregas', { state: { selectedTask: task } });
     };
 
     const getDaysRemaining = (dueDate) => {
+        if (!dueDate) return { text: 'Sin fecha', urgent: false };
+        
         const today = new Date();
         const due = new Date(dueDate);
+        
+        if (isNaN(due.getTime())) return { text: 'Fecha inválida', urgent: false };
+
         const diffTime = due.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (diffDays < 0) return { text: 'Vencida', urgent: true };
-        if (diffDays === 0) return { text: 'Vence hoy', urgent: true };
-        if (diffDays === 1) return { text: 'Vence mañana', urgent: false };
+        if (diffDays <= 0) return { text: 'Vence hoy', urgent: true };
+        if (diffDays === 1) return { text: 'Vence mañana', urgent: true };
+        if (diffDays <= 3) return { text: `Vence en ${diffDays} días`, urgent: true };
         return { text: `Vence en ${diffDays} días`, urgent: false };
     };
 
@@ -71,12 +79,14 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
         return (
             <ul className={styles.taskList}>
                 {tasks.map(task => {
-                    const remaining = getDaysRemaining(task.fechaEntrega);
+                    const remaining = getDaysRemaining(task.fechaLimite);
                     return (
                         <li key={task.id} className={styles.taskItem} onClick={() => handleTaskClick(task)}>
                             <div className={styles.details}>
                                 <span className={styles.title}>{task.titulo}</span>
-                                <span className={styles.module}>{task.imparticion.modulo.nombre}</span>
+                                <span className={styles.module}>
+                                    {task.imparticion?.modulo?.nombre || 'Módulo desconocido'}
+                                </span>
                             </div>
                             <div className={`${styles.dueDate} ${remaining.urgent ? styles.urgent : ''}`}>
                                 {remaining.urgent && <AlertTriangle size={14} />}
