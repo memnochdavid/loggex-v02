@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+
 
 const Usuarios = () => {
   const { user } = useAuth();
@@ -405,7 +408,9 @@ const Usuarios = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Gestión de Usuarios">
+        <CrudHeader title="Gestión de Usuarios"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select className={styles.select} value={selectedCentro} onChange={(e) => handleCentroChange(e.target.value)} style={{ width: '200px' }}>
                     <option value="">Todos los centros</option>

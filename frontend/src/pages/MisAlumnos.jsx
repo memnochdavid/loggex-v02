@@ -9,7 +9,6 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import pupilsAnimation from '../../public/pupils.json';
-import teacherAnimation from "../../public/teacher.json";
 
 const MisAlumnos = () => {
     const { user } = useAuth();

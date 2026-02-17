@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
 import bookAnimation from "../../public/book.json";
 
 const MaterialesAlumno = () => {

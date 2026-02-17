@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+
 
 const Imparticiones = () => {
   const { user } = useAuth();
@@ -430,7 +433,9 @@ const Imparticiones = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Asignación de Docencia">
+        <CrudHeader title="Asignación de Docencia"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select 
                     className={styles.select} 

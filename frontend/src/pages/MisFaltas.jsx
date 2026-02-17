@@ -7,6 +7,9 @@ import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
 import ShowProgress from '../components/ShowProgress'; // Importar el nuevo componente
+import Lottie from 'lottie-react';
+import checkAnimation from '../../public/check.json';
+
 
 const MisFaltas = () => {
     const { user } = useAuth();
@@ -114,7 +117,9 @@ const MisFaltas = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Faltas de Asistencia" />
+                <CrudHeader title="Mis Faltas de Asistencia"
+                            logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                />
                 
                 {loading ? (
                     <div className={styles.loadingContainer}>Cargando...</div>

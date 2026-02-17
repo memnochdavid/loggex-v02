@@ -9,6 +9,9 @@ import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
 import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+import helloAnimation from "../../public/hello.json";
 
 const Centros = () => {
     const [centros, setCentros] = useState([]);
@@ -383,7 +386,9 @@ const Centros = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Centros Educativos">
+                <CrudHeader title="Centros Educativos"
+                            logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar
                         value={searchTerm}
                         onChange={setSearchTerm}

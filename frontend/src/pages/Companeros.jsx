@@ -7,6 +7,8 @@ import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Companeros = () => {
     const { user } = useAuth();
@@ -59,7 +61,9 @@ const Companeros = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Compañeros">
+                <CrudHeader title="Mis Compañeros"
+                            logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 

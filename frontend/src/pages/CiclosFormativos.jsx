@@ -10,6 +10,9 @@ import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+
 
 const CiclosFormativos = () => {
   const { user } = useAuth();
@@ -357,7 +360,9 @@ const CiclosFormativos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Ciclos Formativos">
+        <CrudHeader title="Ciclos Formativos"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select 
                     className={styles.select} 
