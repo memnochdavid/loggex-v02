@@ -620,7 +620,7 @@
 /* Media Queries */
 @media (max-width: 1366px) {
     .container {
-        padding: 0 var(--space-2);
+        padding: var(--space-8);
     }
 
     .layout {
