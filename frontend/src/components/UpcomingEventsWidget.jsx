@@ -4,7 +4,7 @@ import { getApiUrl } from '../config/api';
 import styles from './UpcomingEventsWidget.module.css';
 import { CalendarClock, Sun } from 'lucide-react';
 
-const UpcomingEventsWidget = ({ hideHeader = false }) => {
+const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,8 +69,6 @@ const UpcomingEventsWidget = ({ hideHeader = false }) => {
                     allSlots = scheduleData['hydra:member'] || scheduleData.member || [];
                 }
 
-                console.log("Total slots recibidos:", allSlots.length);
-
                 // 3. Filtrar por el día de hoy
                 const todaySlots = allSlots
                     .filter(slot => parseInt(slot.diaSemana) === isoDayOfWeek)
@@ -111,7 +109,12 @@ const UpcomingEventsWidget = ({ hideHeader = false }) => {
                 )}
                 <ul className={styles.eventList}>
                     {events.map(event => (
-                        <li key={event.id} className={styles.eventItem}>
+                        <li 
+                            key={event.id} 
+                            className={styles.eventItem}
+                            onClick={() => onEventClick && onEventClick(event)}
+                            style={{ cursor: onEventClick ? 'pointer' : 'default' }}
+                        >
                             <div className={styles.time}>{event.horaInicio.substring(0, 5)}</div>
                             <div className={styles.details}>
                                 <span className={styles.subject}>{event.modulo}</span>

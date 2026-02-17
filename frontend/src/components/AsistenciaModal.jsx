@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import Button from './Button';
-import { Check, X, Clock, AlertCircle, Save } from 'lucide-react';
+import { Check, X, Clock, AlertCircle } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import styles from './AsistenciaModal.module.css';
 import AccordionView from './AccordionView';
 
-const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
+const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) => {
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [expandedId, setExpandedId] = useState(null);
 
@@ -21,6 +19,18 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
     useEffect(() => {
         fetchData();
     }, [imparticionId, fecha, hora]);
+
+    // Notificar cambios al padre cada vez que cambian los alumnos
+    useEffect(() => {
+        if (onDataChange && !loading) {
+            onDataChange({
+                imparticionId,
+                fecha,
+                hora,
+                alumnos
+            });
+        }
+    }, [alumnos, loading, onDataChange, imparticionId, fecha, hora]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -55,40 +65,6 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
         setAlumnos(prev => prev.map(a =>
             a.id === alumnoId ? { ...a, comentario: texto } : a
         ));
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const payload = {
-                imparticion: imparticionId,
-                fecha: fecha,
-                hora: hora,
-                asistencias: alumnos.map(a => ({
-                    alumnoId: a.id,
-                    estado: a.estado,
-                    comentario: a.comentario
-                }))
-            };
-
-            const response = await fetch(getApiUrl('/api/v1/asistencia/batch'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                onClose();
-            } else {
-                alert("Error al guardar asistencia");
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión");
-        } finally {
-            setSaving(false);
-        }
     };
 
     const handleToggle = (id) => {
@@ -246,7 +222,6 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose }) => {
                     </table>
                 )}
             </div>
-            {/* Botones movidos al footer del ModalView en TimeTable.jsx */}
         </div>
     );
 };

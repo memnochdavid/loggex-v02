@@ -47,8 +47,12 @@
 
 .eventList {
     list-style: none;
-    padding: 0;
+    padding: var(--space-2) 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    overflow: hidden;
 }
 
 .eventItem {
@@ -57,6 +61,13 @@
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--widget-border, var(--color-border));
     color: var(--widget-item-text, var(--color-text-main));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.eventItem:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: var(--widget-item-hover-bg, var(--color-background-light));
 }
 
 .eventItem:last-child {
