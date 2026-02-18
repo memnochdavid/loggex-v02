@@ -15,24 +15,27 @@ use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class CurrentUserExtension implements QueryCollectionExtensionInterface, QueryItemExtensionInterface
 {
-    public function __construct(private readonly Security $security)
-    {
+    public function __construct(
+        private readonly Security $security,
+        private readonly RequestStack $requestStack
+    ) {
     }
 
     public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, Operation $operation = null, array $context = []): void
     {
-        $this->addWhere($queryBuilder, $resourceClass);
+        $this->addWhere($queryBuilder, $resourceClass, true);
     }
 
     public function applyToItem(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, array $identifiers, Operation $operation = null, array $context = []): void
     {
-        $this->addWhere($queryBuilder, $resourceClass);
+        $this->addWhere($queryBuilder, $resourceClass, false);
     }
 
-    private function addWhere(QueryBuilder $queryBuilder, string $resourceClass): void
+    private function addWhere(QueryBuilder $queryBuilder, string $resourceClass, bool $isCollection): void
     {
         $supportedClasses = [
             User::class,
@@ -41,7 +44,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             Festivo::class,
             Mensaje::class,
             Tarea::class,
-            // Comunicado::class // TEMPORALMENTE COMENTADO PARA VER TODO
+            Comunicado::class
         ];
 
         if (!in_array($resourceClass, $supportedClasses)) {
@@ -69,6 +72,19 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             return;
         }
 
+        // Lógica específica para Comunicados
+        if ($resourceClass === Comunicado::class) {
+            if ($user->getCentro()) {
+                $queryBuilder->andWhere(sprintf('%s.global = :is_global OR %s.centro = :current_centro', $rootAlias, $rootAlias))
+                    ->setParameter('current_centro', $user->getCentro())
+                    ->setParameter('is_global', true);
+            } else {
+                $queryBuilder->andWhere(sprintf('%s.global = :is_global', $rootAlias))
+                    ->setParameter('is_global', true);
+            }
+            return;
+        }
+
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if (method_exists($user, 'getCentro') && $user->getCentro()) {
             if ($resourceClass === Modulo::class) {
@@ -80,8 +96,21 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
                     $queryBuilder->setParameter('current_centro', $user->getCentro());
                 } elseif ($resourceClass === User::class && in_array('ROLE_ADMIN', $user->getRoles())) {
-                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
-                    $queryBuilder->setParameter('current_centro', $user->getCentro());
+                    // Admin de centro ve usuarios de su centro
+                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias))
+                                 ->setParameter('current_centro', $user->getCentro());
+
+                    // EXCLUIR SuperAdmins SOLO si es una colección Y no se está buscando explícitamente por ese rol
+                    if ($isCollection) {
+                        $request = $this->requestStack->getCurrentRequest();
+                        $rolesFilter = $request ? $request->query->get('roles') : null;
+
+                        // Si no se está filtrando por rol SUPERADMIN, excluirlos
+                        if (!$rolesFilter || !str_contains($rolesFilter, 'SUPERADMIN')) {
+                            $queryBuilder->andWhere(sprintf('%s.roles NOT LIKE :superadmin_role', $rootAlias))
+                                         ->setParameter('superadmin_role', '%ROLE_SUPERADMIN%');
+                        }
+                    }
                 } else {
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro', $rootAlias));
                     $queryBuilder->setParameter('current_centro', $user->getCentro());

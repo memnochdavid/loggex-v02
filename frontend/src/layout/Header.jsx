@@ -82,7 +82,9 @@ const Header = () => {
             let targetUser = null;
 
             if (isAdmin) {
-                const response = await fetch(getApiUrl('/api/users?pagination=false'), {
+                // Si es Admin, busca al SuperAdmin
+                // Añadimos roles=ROLE_SUPERADMIN para saltar el filtro de CurrentUserExtension
+                const response = await fetch(getApiUrl('/api/users?roles=ROLE_SUPERADMIN&pagination=false'), {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
@@ -90,10 +92,12 @@ const Header = () => {
                 if (response.ok) {
                     const data = await response.json();
                     const users = data['hydra:member'] || data.member || [];
-                    targetUser = users.find(u => u.roles.includes('ROLE_SUPERADMIN'));
+                    // Buscar cualquier usuario que tenga el rol SUPERADMIN
+                    targetUser = users.find(u => u.roles.includes('ROLE_SUPERADMIN') || u.roles.includes('ROLE_SUPER_ADMIN'));
                 }
 
             } else {
+                // Si es usuario normal, busca al Admin de su centro
                 if (user.centro && user.centro.id) {
                     const response = await fetch(getApiUrl(`/api/users?centro=${user.centro.id}&pagination=false`), {
                         headers: { 'Accept': 'application/ld+json' },
