@@ -4,11 +4,14 @@ import Draggable from 'react-draggable';
 import Button from './Button';
 import styles from './ModalView.module.css';
 import useMediaQuery from '../hooks/useMediaQuery';
+import Lottie from 'lottie-react';
+import pencilAnimation from '../../public/pencil.json';
 
 const ModalView = ({ 
     isOpen, 
     onClose, 
     title, 
+    headerIcon, // Nueva prop para icono/Lottie en el header
     children, 
     footer, 
     onSubmit, 
@@ -88,8 +91,13 @@ const ModalView = ({
                     {/* Área de arrastre (Título) - Solo cursor move si no es móvil */}
                     <div 
                         className={`modal-drag-handle ${styles.modalTitleContainer}`} 
-                        style={{ cursor: isMobile ? 'default' : 'move', flex: 1 }}
+                        style={{ cursor: isMobile ? 'default' : 'move', flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}
                     >
+                        <div className={styles.headerIconContainer}>
+                            {headerIcon ? headerIcon : (
+                                <Lottie animationData={pencilAnimation} loop={true} style={{ width: 40, height: 40 }} />
+                            )}
+                        </div>
                         <h3 className={styles.modalTitle}>{title}</h3>
                     </div>
                     
