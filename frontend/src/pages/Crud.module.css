@@ -161,7 +161,7 @@
 }
 
 .modalHeader {
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-1) var(--space-2);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;

@@ -30,7 +30,7 @@
 
 /* Contenedor visual interno con animación */
 .modalContent {
-    background-color: var(--bg-card);
+    background-color: var(--modal-header-bg);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     width: 100%;
@@ -44,6 +44,7 @@
     transform: scale(0.95);
     opacity: 0;
     animation: scaleIn 0.2s ease-out forwards;
+    border: 3px solid var(--modal-header-bg);
 }
 
 .modalContent.closing {
@@ -51,7 +52,7 @@
 }
 
 .modalHeader {
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-1) var(--space-2);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
