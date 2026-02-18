@@ -275,7 +275,8 @@ const Entregas = () => {
                   const estado = entrega ? (entrega.calificacion ? 'Calificado' : 'Entregado') : 'Pendiente';
                   const badgeClass = entrega ? (entrega.calificacion ? styles.badgeInfo : styles.badgeSuccess) : styles.badgePending;
                   
-                  const isLate = !entrega && new Date() > new Date(tarea.fechaLimite);
+                  // CORRECCIÓN: Calcular isLate correctamente
+                  const isLate = new Date() > new Date(tarea.fechaLimite);
                   
                   return (
                       <div key={tarea.id} className={styles.card}>
@@ -286,8 +287,8 @@ const Entregas = () => {
                               <div className={styles.cardMeta}>
                                   <span><Calendar size={14}/> {new Date(tarea.fechaLimite).toLocaleString()}</span>
                                   {isAlumno && (
-                                      <span className={`${styles.badge} ${isLate ? styles.badgeError : badgeClass}`}>
-                                          {isLate ? 'Retrasada' : estado}
+                                      <span className={`${styles.badge} ${isLate && !entrega ? styles.badgeError : badgeClass}`}>
+                                          {isLate && !entrega ? 'Retrasada' : estado}
                                       </span>
                                   )}
                               </div>
@@ -308,6 +309,7 @@ const Entregas = () => {
                           </div>
                           
                           <div className={styles.cardActions}>
+                              {/* CORRECCIÓN: Ocultar botón si es tarde */}
                               {isAlumno && !isLate && (
                                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                                       <Upload size={16} style={{marginRight:'4px'}}/> 
