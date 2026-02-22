@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Download, Trash2 } from 'lucide-react';
+import { FileText, Download, Trash2, Upload } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -16,6 +16,7 @@ const MaterialesProfesor = () => {
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
   
   // Estado Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -230,13 +231,30 @@ const MaterialesProfesor = () => {
             </div>
             <div className={styles.formGroup}>
                 <label className={styles.label}>Archivo (PDF, DOCX...)</label>
-                <input 
-                    type="file" 
-                    name="archivo" 
-                    onChange={handleInputChange} 
-                    className={styles.fileInput}
-                    required 
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <input 
+                        type="file" 
+                        name="archivo" 
+                        ref={fileInputRef}
+                        onChange={handleInputChange} 
+                        className={styles.fileInput}
+                        style={{ display: 'none' }}
+                        required 
+                    />
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => fileInputRef.current.click()}
+                    >
+                        <Upload size={16} style={{ marginRight: '8px' }} />
+                        {formData.archivo ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                    </Button>
+                    {formData.archivo && (
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                            {formData.archivo.name}
+                        </span>
+                    )}
+                </div>
             </div>
         </ModalView>
       </div>
