@@ -22,7 +22,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
 
     // Notificar cambios al padre cada vez que cambian los alumnos
     useEffect(() => {
-        if (onDataChange && !loading) {
+        if (onDataChange && !loading && alumnos.length > 0) {
             onDataChange({
                 imparticionId,
                 fecha,

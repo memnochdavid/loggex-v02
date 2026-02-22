@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './TimeTable.module.css';
 import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save } from 'lucide-react';
 import AccordionView from './AccordionView';
@@ -436,9 +436,9 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
     };
 
     // Función para recibir datos desde AsistenciaModal
-    const handleAsistenciaDataChange = (data) => {
+    const handleAsistenciaDataChange = useCallback((data) => {
         setAsistenciaData(data);
-    };
+    }, []);
 
     return (
         <div className={styles.container}>
