@@ -14,14 +14,15 @@ docker compose up -d --build --remove-orphans
 
 # 2. Instalar dependencias Backend
 echo "📦 Instalando dependencias de Symfony (Composer)..."
-docker compose exec backend composer install --no-interaction --optimize-autoloader
 
-# Asegurar paquetes críticos (API Platform, JWT, etc. si se añaden)
-# docker compose exec backend composer require api --no-interaction # Ya debería estar en composer.json
+# Asegurar paquetes para MinIO/S3 antes del install por si no están en composer.json
+echo "☁️  Asegurando dependencias de almacenamiento (MinIO/S3)..."
+docker compose exec backend composer require league/flysystem-aws-s3-v3 oneup/flysystem-bundle --no-interaction
+
+docker compose exec backend composer install --no-interaction --optimize-autoloader
 
 # 3. Instalar dependencias Frontend
 echo "📦 Instalando dependencias de React (NPM)..."
-# Esto instalará react-draggable y cualquier otra dependencia nueva en package.json
 docker compose exec frontend npm install
 
 # 4. Sincronizar Base de Datos

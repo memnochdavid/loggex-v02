@@ -6,8 +6,8 @@ use App\Entity\Imparticion;
 use App\Entity\Material;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,7 +21,8 @@ class UploadMaterialController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
-        #[CurrentUser] ?User $user
+        #[CurrentUser] ?User $user,
+        FilesystemOperator $storage
     ): JsonResponse
     {
         if (!$user) {
@@ -60,17 +61,12 @@ class UploadMaterialController extends AbstractController
         $safeFilename = $slugger->slug($originalFilename);
         $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
 
-        // Directorio de destino
-        $targetDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/materiales';
-
-        // Crear directorio si no existe
-        if (!file_exists($targetDirectory)) {
-            mkdir($targetDirectory, 0777, true);
-        }
-
         try {
-            $file->move($targetDirectory, $newFilename);
-        } catch (FileException $e) {
+            // Subir a MinIO usando Flysystem
+            $stream = fopen($file->getRealPath(), 'r+');
+            $storage->writeStream('materiales/' . $newFilename, $stream);
+            fclose($stream);
+        } catch (\Exception $e) {
             return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
         }
 
