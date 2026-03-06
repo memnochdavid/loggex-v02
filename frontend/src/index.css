@@ -211,6 +211,22 @@
     /* EventsSidebar */
     --events-sidebar-bg: transparent;
     --events-sidebar-title-color: var(--text-main);
+
+    /*widgets*/
+    --widget-header-bg: var(--bg-card);
+    --widget-header-text: var(--text-main);
+    --widget-bg: var(--bg-card);
+    --widget-border: var(--border-color);
+
+
+    /*colores*/
+    --color-background-secondary: var();
+    --color-text-main: var();
+    --color-text-secondary: var();
+    --widget-item-hover-bg: var();
+    --color-background-light: var();
+    --widget-item-text: var();
+    --widget-icon-color:var();
 }
 
 /* Reset básico */

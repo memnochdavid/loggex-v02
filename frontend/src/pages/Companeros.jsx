@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
-import UserCard from '../components/UserCard'; // Importar UserCard
+import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
-import styles from './Claustro.module.css'; // Reutilizamos estilos de grid
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Companeros = () => {
     const { user } = useAuth();
@@ -59,7 +61,9 @@ const Companeros = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Compañeros">
+                <CrudHeader title="Mis Compañeros"
+                            logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
@@ -71,7 +75,7 @@ const Companeros = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredCompaneros.map(comp => (
@@ -82,7 +86,7 @@ const Companeros = () => {
                             />
                         ))}
                         {filteredCompaneros.length === 0 && (
-                            <p className={styles.empty}>No se encontraron compañeros.</p>
+                            <div className={styles.emptyState}>No se encontraron compañeros.</div>
                         )}
                     </div>
                 )}

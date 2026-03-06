@@ -1,14 +1,15 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
-import {useUI} from '../context/UIContext'; // Importar contexto UI
+import {useUI} from '../context/UIContext';
 import viteLogo from '/logo_texto_horizontal.png';
 import styles from './Header.module.css';
 import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
-import NameTitle from '../components/NameTitle'; // Importar NameTitle
-import { Bell, User } from 'lucide-react'; // Importar icono de campana
-import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../config/api';
+import NameTitle from '../components/NameTitle';
+import NotificationList from '../components/NotificationList';
+import { Bell, MessageCircleQuestion } from 'lucide-react';
+import { getApiUrl, getAssetUrl } from '../config/api';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -30,14 +31,13 @@ const useMediaQuery = (query) => {
 const Header = () => {
     const {user} = useAuth();
     const {toggleSidebar} = useUI();
-    const isMobile = useMediaQuery('(max-width: 1220px)'); // Coincide con el breakpoint del Sidebar
+    const isMobile = useMediaQuery('(max-width: 1220px)');
     const [unreadCount, setUnreadCount] = useState(0);
-    const [unreadMessages, setUnreadMessages] = useState([]); // Almacenar mensajes para el dropdown
-    const [isNotifOpen, setIsNotifOpen] = useState(false); // Estado del dropdown
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [supportLoading, setSupportLoading] = useState(false);
     const notifRef = useRef(null);
     const navigate = useNavigate();
 
-    // Función para obtener la URL del logo del centro
     const getCentroLogoUrl = () => {
         if (user && user.centro && user.centro.logo) {
             return getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`);
@@ -49,7 +49,8 @@ const Header = () => {
     }
 
     const centroLogo = getCentroLogoUrl();
-    const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
     // Cerrar dropdown al hacer clic fuera
     useEffect(() => {
@@ -62,59 +63,6 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Polling para mensajes no leídos
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchUnread = async () => {
-            try {
-                const userIri = `/api/users/${user.id}`;
-                // Pedimos los mensajes no leídos ordenados por fecha descendente
-                const response = await fetch(getApiUrl(`/api/mensajes?destinatario=${encodeURIComponent(userIri)}&leido=false&pagination=false&order[fechaEnvio]=desc`), {
-                    headers: { 'Accept': 'application/ld+json' },
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const messages = data['hydra:member'] || data.member || [];
-                    
-                    // CORRECCIÓN: Usar la longitud del array directamente si totalItems falla o no viene
-                    const count = messages.length;
-                    setUnreadCount(count);
-                    
-                    // Agrupar mensajes por remitente
-                    const grouped = {};
-                    messages.forEach(msg => {
-                        const senderId = msg.remitente.id;
-                        if (!grouped[senderId]) {
-                            grouped[senderId] = {
-                                user: msg.remitente,
-                                count: 0,
-                                lastMessage: msg
-                            };
-                        }
-                        grouped[senderId].count++;
-                        // Como vienen ordenados por fecha desc, el primero es el último
-                        if (new Date(msg.fechaEnvio) > new Date(grouped[senderId].lastMessage.fechaEnvio)) {
-                            grouped[senderId].lastMessage = msg;
-                        }
-                    });
-                    
-                    // Convertir a array y limitar a 5
-                    setUnreadMessages(Object.values(grouped).slice(0, 5));
-                }
-            } catch (error) {
-                console.error("Error checking messages:", error);
-            }
-        };
-
-        fetchUnread(); // Primera carga
-        const interval = setInterval(fetchUnread, POLLING_INTERVAL_NOTIFICATIONS); // Cada 30s
-
-        return () => clearInterval(interval);
-    }, [user]);
-
     const handleNotificationClick = (sender) => {
         setIsNotifOpen(false);
         navigate('/mensajes', { state: { chatWith: sender } });
@@ -123,6 +71,59 @@ const Header = () => {
     const handleViewAll = () => {
         setIsNotifOpen(false);
         navigate('/mensajes');
+    };
+
+    const handleSupportClick = async (e) => {
+        e.preventDefault();
+        if (supportLoading) return;
+        setSupportLoading(true);
+
+        try {
+            let targetUser = null;
+
+            if (isAdmin) {
+                // Si es Admin, busca al SuperAdmin
+                // Añadimos roles=ROLE_SUPERADMIN para saltar el filtro de CurrentUserExtension
+                const response = await fetch(getApiUrl('/api/users?roles=ROLE_SUPERADMIN&pagination=false'), {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const users = data['hydra:member'] || data.member || [];
+                    // Buscar cualquier usuario que tenga el rol SUPERADMIN
+                    targetUser = users.find(u => u.roles.includes('ROLE_SUPERADMIN') || u.roles.includes('ROLE_SUPER_ADMIN'));
+                }
+
+            } else {
+                // Si es usuario normal, busca al Admin de su centro
+                if (user.centro && user.centro.id) {
+                    const response = await fetch(getApiUrl(`/api/users?centro=${user.centro.id}&pagination=false`), {
+                        headers: { 'Accept': 'application/ld+json' },
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const users = data['hydra:member'] || data.member || [];
+                        targetUser = users.find(u => u.roles.includes('ROLE_ADMIN'));
+                    }
+                }
+            }
+
+            if (targetUser) {
+                navigate('/mensajes', { state: { chatWith: targetUser } });
+            } else {
+                alert('No se ha encontrado personal de soporte disponible en este momento.');
+            }
+
+        } catch (error) {
+            console.error("Error buscando soporte:", error);
+            alert('Error al conectar con soporte.');
+        } finally {
+            setSupportLoading(false);
+        }
     };
 
     const LogoImage = (
@@ -141,7 +142,6 @@ const Header = () => {
     return (
         <header className={styles.header}>
             <div className={styles.logoContainer} style={user?.centro?.personalizacion?.nameTitleConfig?.alignment ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment } : {}}>
-                {/* En móvil y logueado, el logo abre el sidebar. En desktop o sin login, va a home */}
                 {isMobile && user ? (
                     <Link to="#" className={styles.logoLink} onClick={toggleSidebar}>
                         {LogoImage}
@@ -152,18 +152,29 @@ const Header = () => {
                     </Link>
                 )}
                 
-                {/* Usar NameTitle en lugar de span directo */}
                 <NameTitle name={getCentroName()} className={styles.nombrecentro} />
             </div>
 
             <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-
-                {/* Enlaces de navegación (ocultos en móvil si están en el sidebar, o visibles si caben) */}
                 <div className={styles.desktopNav}>
-                    <Link to="/about" className={styles.navLink}>About</Link>
+                    {(!user || isSuperAdmin) && (
+                        <Link to="/about" className={styles.navLink}>About</Link>
+                    )}
+                    
+                    {user && !isSuperAdmin && (
+                        <a 
+                            href="#" 
+                            onClick={handleSupportClick} 
+                            className={styles.navLink}
+                            style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: supportLoading ? 'wait' : 'pointer' }}
+                        >
+                            <MessageCircleQuestion size={18} />
+                            Soporte
+                        </a>
+                    )}
                 </div>
 
-                {user && user.roles && user.roles.includes('ROLE_SUPERADMIN') && (
+                {user && isSuperAdmin && (
                     <a
                         href="https://localhost:9443/api"
                         target="_blank"
@@ -177,7 +188,6 @@ const Header = () => {
 
                 {user ? (
                     <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem'}}>
-                        {/* Dropdown de Notificaciones */}
                         <div className={styles.notificationContainer} ref={notifRef}>
                             <button 
                                 className={styles.notificationButton}
@@ -187,7 +197,6 @@ const Header = () => {
                                 <Bell size={24} />
                             </button>
                             
-                            {/* Badge fuera del botón para evitar problemas de overflow/clipping */}
                             {unreadCount > 0 && (
                                 <span className={styles.badge} onClick={() => setIsNotifOpen(!isNotifOpen)}>
                                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -196,71 +205,23 @@ const Header = () => {
 
                             {isNotifOpen && (
                                 <div className={styles.dropdown}>
-                                    <div className={styles.dropdownHeader}>
-                                        <span>Notificaciones</span>
-                                        {unreadCount > 0 && (
-                                            <span style={{fontSize: '0.8rem', color: '#64748b'}}>
-                                                {unreadCount} no leídos
-                                            </span>
-                                        )}
-                                    </div>
-                                    
-                                    <ul className={styles.dropdownList}>
-                                        {unreadMessages.length > 0 ? (
-                                            unreadMessages.map((item) => (
-                                                <li key={item.user.id}>
-                                                    <button 
-                                                        className={styles.dropdownItem}
-                                                        onClick={() => handleNotificationClick(item.user)}
-                                                    >
-                                                        {item.user.foto ? (
-                                                            <img 
-                                                                src={getAssetUrl(item.user.foto)} 
-                                                                alt="" 
-                                                                className={styles.itemAvatar}
-                                                            />
-                                                        ) : (
-                                                            <div className={styles.itemAvatar} style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                                                <User size={20} color="#94a3b8" />
-                                                            </div>
-                                                        )}
-                                                        <div className={styles.itemContent}>
-                                                            <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                                                                <span className={styles.itemName}>
-                                                                    {item.user.nombre} {item.user.apellidos}
-                                                                </span>
-                                                                {item.count > 1 && (
-                                                                    <span className={styles.itemCount}>{item.count}</span>
-                                                                )}
-                                                            </div>
-                                                            <span className={styles.itemMessage}>
-                                                                {item.lastMessage.texto}
-                                                            </span>
-                                                            <div className={styles.itemMeta}>
-                                                                <span className={styles.itemTime}>
-                                                                    {new Date(item.lastMessage.fechaEnvio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </li>
-                                            ))
-                                        ) : (
-                                            <div className={styles.emptyState}>
-                                                No tienes mensajes nuevos
-                                            </div>
-                                        )}
-                                    </ul>
-                                    
-                                    <div className={styles.dropdownFooter}>
-                                        <button 
-                                            className={styles.viewAllLink}
-                                            onClick={handleViewAll}
-                                            style={{background: 'none', border: 'none', cursor: 'pointer'}}
-                                        >
-                                            Ver todos los mensajes
-                                        </button>
-                                    </div>
+                                    <NotificationList 
+                                        title="Notificaciones"
+                                        showUnreadCountInHeader={true}
+                                        onUnreadCountChange={setUnreadCount}
+                                        onItemClick={handleNotificationClick}
+                                        onViewAll={handleViewAll}
+                                        limit={5}
+                                    />
+                                </div>
+                            )}
+                            
+                            {!isNotifOpen && (
+                                <div style={{ display: 'none' }}>
+                                    <NotificationList 
+                                        onUnreadCountChange={setUnreadCount}
+                                        limit={0}
+                                    />
                                 </div>
                             )}
                         </div>

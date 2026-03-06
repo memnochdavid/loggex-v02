@@ -14,7 +14,7 @@ const Layout = ({ children, fullHeight = false }) => {
             
             <main 
                 className={fullHeight ? styles.contentFullHeight : styles.content} 
-                style={!user ? { width: '100%', maxWidth: '1000px', margin: '0 auto' } : {}}
+                // style={!user ? { width: '100%', maxWidth: '1000px', margin: 'auto' } : {}}
             >
                 {children}
             </main>

@@ -39,7 +39,9 @@
     text-overflow: ellipsis;
     max-width: 300px;
 }
-
+.desktopNav {
+    display: flex;
+}
 .navLink {
     color: inherit;
     text-decoration: none;
@@ -106,130 +108,18 @@
     right: -10px;
     margin-top: 10px;
     width: 320px;
-    background-color: white;
-    border-radius: 8px;
+    background-color: white; /* Fondo blanco explícito para el dropdown */
+    color: #334155; /* Texto oscuro explícito para el dropdown */
+    /*border-radius: 8px;*/
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    border: 1px solid #e2e8f0;
+    /*border: 1px solid #e2e8f0;*/
     overflow: hidden;
     z-index: 1000;
     animation: fadeIn 0.2s ease-out;
 }
 
-.dropdownHeader {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e2e8f0;
-    font-weight: 600;
-    color: #334155;
-    background-color: #f8fafc;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.dropdownList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 350px;
-    overflow-y: auto;
-}
-
-.dropdownItem {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    text-align: left;
-    width: 100%;
-    background: none;
-    border-left: none;
-    border-right: none;
-    border-top: none;
-}
-
-.dropdownItem:hover {
-    background-color: #f8fafc;
-}
-
-.itemAvatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #e2e8f0;
-    flex-shrink: 0;
-}
-
-.itemContent {
-    flex: 1;
-    min-width: 0;
-}
-
-.itemName {
-    display: block;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #334155;
-    margin-bottom: 2px;
-}
-
-.itemMessage {
-    display: block;
-    font-size: 0.8rem;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.itemMeta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 4px;
-}
-
-.itemTime {
-    font-size: 0.7rem;
-    color: #94a3b8;
-}
-
-.itemCount {
-    background-color: #ef4444;
-    color: white;
-    font-size: 0.65rem;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: bold;
-}
-
-.dropdownFooter {
-    padding: 10px;
-    text-align: center;
-    background-color: #f8fafc;
-    border-top: 1px solid #e2e8f0;
-}
-
-.viewAllLink {
-    color: #6366f1;
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.viewAllLink:hover {
-    text-decoration: underline;
-}
-
-.emptyState {
-    padding: 20px;
-    text-align: center;
-    color: #94a3b8;
-    font-size: 0.9rem;
-}
+/* Eliminamos estilos antiguos que ya no se usan porque están en NotificationList */
+/* .dropdownHeader, .dropdownList, .dropdownItem, etc. */
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }

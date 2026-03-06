@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, {useState, useEffect, useRef, useLayoutEffect} from 'react';
+import {useLocation} from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
-import { useAuth } from '../context/AuthContext';
+import {useAuth} from '../context/AuthContext';
 import styles from './Mensajes.module.css';
-import { Send, User, ArrowLeft } from 'lucide-react'; // Importar ArrowLeft
+import {Send, User, ArrowLeft} from 'lucide-react';
 import Button from '../components/Button';
-import { getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT } from '../config/api';
+import {getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT} from '../config/api';
+import useMediaQuery from '../hooks/useMediaQuery';
+import Lottie from 'lottie-react';
+import messageAnimation from '../../public/message.json';
 
 const Mensajes = () => {
-    const { user } = useAuth();
+    const {user} = useAuth();
     const location = useLocation();
     const [conversaciones, setConversaciones] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -19,10 +22,15 @@ const Mensajes = () => {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const messagesEndRef = useRef(null);
-    // Ref para controlar si ya procesamos la navegación inicial
+    const messagesContainerRef = useRef(null);
+    const textareaRef = useRef(null); // Ref para el textarea
     const navigationProcessed = useRef(false);
+    const prevMensajesLength = useRef(0);
+    const isUserNearBottom = useRef(true);
+
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
         if (user) {
@@ -32,13 +40,26 @@ const Mensajes = () => {
         }
     }, [user]);
 
-    // Efecto para manejar la navegación desde otras páginas (ej: Claustro)
+    // Ajustar altura del textarea automáticamente
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; // Max 120px
+        }
+    }, [newMessage]);
+
+    const handleScroll = () => {
+        if (messagesContainerRef.current) {
+            const {scrollTop, scrollHeight, clientHeight} = messagesContainerRef.current;
+            isUserNearBottom.current = scrollHeight - scrollTop - clientHeight < 100;
+        }
+    };
+
     useEffect(() => {
         if (location.state?.chatWith && !loading && !navigationProcessed.current) {
             const targetUser = location.state.chatWith;
             const existingChat = conversaciones.find(c => c.usuario.id === targetUser.id);
-            
-            // Marcar como procesado para evitar bucles
+
             navigationProcessed.current = true;
 
             if (existingChat) {
@@ -47,15 +68,13 @@ const Mensajes = () => {
                 const newChat = {
                     usuario: targetUser,
                     mensajes: [],
-                    ultimoMensaje: { fechaEnvio: new Date(), texto: 'Nueva conversación' },
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: 'Nueva conversación'},
                     noLeidos: 0,
                     isTemp: true
                 };
                 setConversaciones(prev => [newChat, ...prev]);
                 handleSelectUser(targetUser);
             }
-            
-            // Limpiar el estado de navegación para que no vuelva a dispararse
             window.history.replaceState({}, document.title);
         }
     }, [location.state, loading, conversaciones]);
@@ -71,28 +90,46 @@ const Mensajes = () => {
         }
     }, [conversaciones, selectedUser]);
 
+    useLayoutEffect(() => {
+        if (prevMensajesLength.current === 0 && mensajesChat.length > 0) {
+            scrollToBottom();
+            isUserNearBottom.current = true;
+        } else if (mensajesChat.length > prevMensajesLength.current) {
+            const realLastMessage = mensajesChat[mensajesChat.length - 1];
+            const isMyMessage = realLastMessage?.remitente?.id === user.id;
+
+            if (isMyMessage || isUserNearBottom.current) {
+                scrollToBottom();
+            }
+        }
+
+        prevMensajesLength.current = mensajesChat.length;
+    }, [mensajesChat, selectedUser]);
+
     useEffect(() => {
+        prevMensajesLength.current = 0;
+        isUserNearBottom.current = true;
         scrollToBottom();
-    }, [mensajesChat, selectedUser]); // Scroll al cambiar de chat también
+        setNewMessage(''); // Limpiar mensaje al cambiar de chat
+        if (textareaRef.current) textareaRef.current.focus(); // Enfocar
+    }, [selectedUser]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({behavior: "auto"});
     };
 
     const fetchMensajes = async () => {
         try {
             const response = await fetch(getApiUrl('/api/v1/mensajes'), {
-                headers: { 'Accept': 'application/json' },
+                headers: {'Accept': 'application/json'},
                 credentials: 'include'
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 const allMessages = data || [];
                 agruparConversaciones(allMessages);
                 setLoading(false);
-            } else {
-                console.error("Error fetching mensajes:", response.status);
             }
         } catch (error) {
             console.error("Error cargando mensajes:", error);
@@ -106,9 +143,7 @@ const Mensajes = () => {
         mensajes.forEach(msg => {
             const remitenteId = msg.remitente.id;
             const destinatarioId = msg.destinatario.id;
-            
             const soyYoRemitente = remitenteId === user.id;
-            
             const otroUsuario = soyYoRemitente ? msg.destinatario : msg.remitente;
             const otroId = soyYoRemitente ? destinatarioId : remitenteId;
 
@@ -122,7 +157,7 @@ const Mensajes = () => {
             }
 
             grupos[otroId].mensajes.push(msg);
-            
+
             if (!grupos[otroId].ultimoMensaje) {
                 grupos[otroId].ultimoMensaje = msg;
             }
@@ -144,7 +179,7 @@ const Mensajes = () => {
                 lista.unshift({
                     usuario: selectedUser,
                     mensajes: [],
-                    ultimoMensaje: { fechaEnvio: new Date(), texto: '' },
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: ''},
                     noLeidos: 0,
                     isTemp: true
                 });
@@ -155,38 +190,34 @@ const Mensajes = () => {
     };
 
     const markAsRead = async (userId) => {
-        // 1. Actualizar UI localmente
         setConversaciones(prev => prev.map(chat => {
             if (chat.usuario.id === userId) {
-                return { ...chat, noLeidos: 0 };
+                return {...chat, noLeidos: 0};
             }
             return chat;
         }));
 
-        // 2. Encontrar mensajes no leídos de este usuario
         const chat = conversaciones.find(c => c.usuario.id === userId);
         if (!chat) return;
 
-        const unreadMessages = chat.mensajes.filter(msg => 
+        const unreadMessages = chat.mensajes.filter(msg =>
             msg.remitente.id === userId && !msg.leido
         );
 
         if (unreadMessages.length === 0) return;
 
-        // 3. Llamar a la API para cada mensaje usando PATCH
         try {
-            await Promise.all(unreadMessages.map(msg => 
+            await Promise.all(unreadMessages.map(msg =>
                 fetch(getApiUrl(`/api/mensajes/${msg.id}`), {
                     method: 'PATCH',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/merge-patch+json',
                         'Accept': 'application/ld+json'
                     },
-                    body: JSON.stringify({ leido: true }),
+                    body: JSON.stringify({leido: true}),
                     credentials: 'include'
                 })
             ));
-            // Refrescar para asegurar sincronización
             fetchMensajes();
         } catch (error) {
             console.error("Error marcando como leídos:", error);
@@ -199,7 +230,7 @@ const Mensajes = () => {
     };
 
     const handleSendMessage = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault(); // Prevenir submit si viene de form o evento
         if (!newMessage.trim() || !selectedUser) return;
 
         setSending(true);
@@ -211,7 +242,7 @@ const Mensajes = () => {
 
             const response = await fetch(getApiUrl('/api/mensajes'), {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/ld+json',
                     'Accept': 'application/ld+json'
                 },
@@ -222,6 +253,13 @@ const Mensajes = () => {
             if (response.ok) {
                 setNewMessage('');
                 fetchMensajes();
+                isUserNearBottom.current = true;
+                scrollToBottom();
+                // Re-enfocar textarea
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto'; // Reset altura
+                    textareaRef.current.focus();
+                }
             } else {
                 alert("Error al enviar mensaje");
             }
@@ -229,6 +267,16 @@ const Mensajes = () => {
             console.error(error);
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        // Si es móvil, no interceptamos Enter (deja que haga salto de línea)
+        if (isMobile) return;
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
@@ -244,42 +292,47 @@ const Mensajes = () => {
     return (
         <Layout fullHeight={true}>
             <div className={styles.container}>
-                {/* En móvil, ocultamos el header si estamos dentro de un chat */}
-                <div style={{ padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block' }}>
-                    <CrudHeader title="Mensajería" />
+                <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
+                    <CrudHeader title="Mensajería"
+                                logo={<Lottie animationData={messageAnimation} loop={true}
+                                              style={{width: 60, height: 60}}/>}
+                    />
                 </div>
-                
+
                 <div className={styles.chatLayout}>
-                    {/* Sidebar: Se oculta en móvil si hay un usuario seleccionado */}
                     <div className={`${styles.sidebar} ${selectedUser ? styles.hidden : ''}`}>
                         <div className={styles.searchWrapper}>
-                            <SearchBar 
-                                value={searchTerm} 
-                                onChange={setSearchTerm} 
-                                placeholder="Buscar conversación..." 
+                            <SearchBar
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                placeholder="Buscar conversación..."
                                 fields={[]}
                             />
                         </div>
-                        
+
                         <div className={styles.conversationList}>
                             {filteredConversations.map(chat => (
-                                <div 
-                                    key={chat.usuario.id} 
+                                <div
+                                    key={chat.usuario.id}
                                     className={`${styles.conversationItem} ${selectedUser?.id === chat.usuario.id ? styles.active : ''}`}
                                     onClick={() => handleSelectUser(chat.usuario)}
                                 >
                                     <div className={styles.avatar}>
                                         {chat.usuario.foto ? (
-                                            <img src={getAssetUrl(chat.usuario.foto)} alt="" />
+                                            <img src={getAssetUrl(chat.usuario.foto)} alt=""/>
                                         ) : (
-                                            <User size={20} />
+                                            <User size={20}/>
                                         )}
                                     </div>
                                     <div className={styles.conversationInfo}>
                                         <div className={styles.conversationHeader}>
-                                            <span className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
+                                            <span
+                                                className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
                                             <span className={styles.time}>
-                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
                                             </span>
                                         </div>
                                         <div className={styles.lastMessage}>
@@ -299,25 +352,29 @@ const Mensajes = () => {
                         </div>
                     </div>
 
-                    {/* Chat Area: Se muestra siempre en desktop, o en móvil si hay usuario seleccionado */}
                     <div className={`${styles.chatArea} ${selectedUser ? styles.visible : ''}`}>
                         {selectedUser ? (
                             <>
                                 <div className={styles.chatHeader}>
                                     <button className={styles.backButton} onClick={handleBackToConversations}>
-                                        <ArrowLeft size={20} />
+                                        <ArrowLeft size={20}/>
                                     </button>
                                     <div className={styles.avatarSmall}>
                                         {selectedUser.foto ? (
-                                            <img src={getAssetUrl(selectedUser.foto)} alt="" />
+                                            <img src={getAssetUrl(selectedUser.foto)} alt=""/>
                                         ) : (
-                                            <User size={16} />
+                                            <User size={16}/>
                                         )}
                                     </div>
-                                    <span className={styles.chatUserName}>{selectedUser.nombre} {selectedUser.apellidos}</span>
+                                    <span
+                                        className={styles.chatUserName}>{selectedUser.nombre} {selectedUser.apellidos}</span>
                                 </div>
 
-                                <div className={styles.messagesContainer}>
+                                <div
+                                    className={styles.messagesContainer}
+                                    ref={messagesContainerRef}
+                                    onScroll={handleScroll}
+                                >
                                     {mensajesChat.length === 0 ? (
                                         <div className={styles.emptyChat}>
                                             <p>No hay mensajes. ¡Saluda!</p>
@@ -327,33 +384,40 @@ const Mensajes = () => {
                                             const remitenteId = msg.remitente.id;
                                             const isMe = remitenteId === user.id;
                                             return (
-                                                <div key={msg.id} className={`${styles.messageBubble} ${isMe ? styles.sent : styles.received}`}>
-                                                    <div className={styles.messageContent}>
+                                                <div key={msg.id}
+                                                     className={`${styles.messageBubble} ${isMe ? styles.sent : styles.received}`}>
+                                                    <div className={styles.messageContent}
+                                                         style={{whiteSpace: 'pre-wrap'}}>
                                                         {msg.texto}
                                                     </div>
                                                     <div className={styles.messageTime}>
-                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
                                                     </div>
                                                 </div>
                                             );
                                         })
                                     )}
-                                    <div ref={messagesEndRef} />
+                                    <div ref={messagesEndRef}/>
                                 </div>
 
-                                <form onSubmit={handleSendMessage} className={styles.inputArea}>
-                                    <input 
-                                        type="text" 
+                                <div className={styles.inputArea}>
+                                    <textarea
+                                        ref={textareaRef}
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyDown={handleKeyDown}
                                         placeholder="Escribe un mensaje..."
                                         className={styles.messageInput}
                                         disabled={sending}
+                                        rows={1}
                                     />
-                                    <Button type="submit" disabled={sending || !newMessage.trim()}>
-                                        <Send size={18} />
+                                    <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
+                                        <Send size={18}/>
                                     </Button>
-                                </form>
+                                </div>
                             </>
                         ) : (
                             <div className={styles.emptyChat}>

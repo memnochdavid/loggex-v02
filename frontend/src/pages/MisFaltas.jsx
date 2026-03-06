@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Clock, XCircle, CheckCircle } from 'lucide-react';
-import styles from './Materiales.module.css'; // Reutilizamos estilos de lista
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import ShowProgress from '../components/ShowProgress'; // Importar el nuevo componente
+import Lottie from 'lottie-react';
+import checkAnimation from '../../public/check.json';
+
 
 const MisFaltas = () => {
     const { user } = useAuth();
@@ -22,7 +26,6 @@ const MisFaltas = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Usar ruta personalizada
             const response = await fetch(getApiUrl('/api/v1/asistencia/alumno/summary'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
@@ -61,22 +64,36 @@ const MisFaltas = () => {
         }
     };
 
+    const renderHeader = (item, isOpen) => {
+        return (
+            <div style={{ width: '100%', paddingRight: '1rem' }}>
+                <div className={styles.accordionHeaderContentAttendance}>
+                    <span style={{ flex: 1 }}>{item.title}</span>
+                    <ShowProgress percentage={item.porcentajeFaltas} height="15px" showLabel={true} />
+                </div>
+            </div>
+        );
+    };
+
     const renderDetalles = (asignatura) => {
         if (!asignatura.detalles || asignatura.detalles.length === 0) {
-            return <p className={styles.emptyMessage}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</p>;
+            return <div className={styles.emptyState}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</div>;
         }
 
         return (
             <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
                     <span>Faltas: <b>{asignatura.faltas}</b></span>
                     <span>Retrasos: <b>{asignatura.retrasos}</b></span>
                     <span>Justificadas: <b>{asignatura.justificadas}</b></span>
+                    {asignatura.totalHoras > 0 && (
+                        <span>Total Horas Impartidas: <b>{asignatura.totalHoras}</b></span>
+                    )}
                 </div>
-                <ul className={styles.materialList}>
+                <ul className={styles.list}>
                     {asignatura.detalles.map(detalle => (
-                        <li key={detalle.id} className={styles.materialItem} style={{ alignItems: 'flex-start' }}>
-                            <div className={styles.materialInfo}>
+                        <li key={detalle.id} className={styles.listItem} style={{ alignItems: 'flex-start' }}>
+                            <div className={styles.itemInfo}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
                                     {getStatusIcon(detalle.estado)}
                                     <span>{getStatusLabel(detalle.estado)}</span>
@@ -100,18 +117,21 @@ const MisFaltas = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Faltas de Asistencia" />
+                <CrudHeader title="Mis Faltas de Asistencia"
+                            logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                />
                 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : error ? (
-                    <p className={styles.error}>{error}</p>
+                    <div className={styles.errorContainer}>{error}</div>
                 ) : asignaturasConFaltas.length === 0 ? (
                     <div className={styles.emptyState}>No estás matriculado en ninguna asignatura.</div>
                 ) : (
                     <AccordionView 
                         data={asignaturasConFaltas}
-                        renderItem={renderDetalles} 
+                        renderItem={renderDetalles}
+                        renderHeader={renderHeader}
                         canAdd={false}
                     />
                 )}

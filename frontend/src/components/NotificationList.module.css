@@ -1,0 +1,177 @@
+.listContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--widget-bg, var(--bg-card));
+}
+
+.widgetHeader {
+    padding: 1rem;
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--widget-header-bg, transparent);
+}
+
+.widgetTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--widget-header-text, var(--color-text-main));
+    margin: 0;
+}
+
+.unreadCountBadge {
+    font-size: 0.8rem;
+    color: var(--widget-header-text, var(--color-text-secondary));
+    opacity: 0.8;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    /*max-height: 300px;*/
+    overflow-y: auto;
+}
+
+.listItem {
+    border-bottom: 1px solid var(--widget-border, var(--color-border));
+}
+
+.listItem:last-child {
+    border-bottom: none;
+}
+
+.itemButton {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+}
+
+.itemButton:hover {
+    background-color: var(--widget-item-hover-bg, var(--color-background-light));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.itemAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.itemAvatarPlaceholder {
+    width: 40px;
+    height: 40px;
+    /*border-radius: 50%;*/
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.itemContent {
+    flex: 1;
+    min-width: 0; /* Para que el truncate funcione */
+}
+
+.itemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.itemName {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--widget-item-text, var(--color-text-main));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.itemCount {
+    background-color: var(--widget-icon-color, var(--color-primary));
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+}
+
+.itemMessage {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--widget-item-text, var(--color-text-secondary));
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+    font-weight: 600; /* Mensajes no leídos en negrita por defecto */
+}
+
+.readMessage {
+    font-weight: normal; /* Mensajes leídos en normal */
+    opacity: 0.6;
+}
+
+.itemMeta {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.itemTime {
+    font-size: 0.75rem;
+    color: var(--widget-item-text, #94a3b8);
+    opacity: 0.6;
+}
+
+.emptyState {
+    padding: 2rem;
+    text-align: center;
+    color: var(--widget-item-text, var(--color-text-secondary));
+    font-size: 0.9rem;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: var(--widget-item-text, var(--color-text-secondary));
+    font-size: 0.8rem;
+}
+
+.widgetFooter {
+    padding: 0.75rem;
+    border-top: 1px solid var(--widget-border, var(--color-border));
+    text-align: center;
+    background-color: var(--widget-header-bg, var(--color-background-secondary));
+}
+
+.viewAllLink {
+    background: none;
+    border: none;
+    color: var(--widget-header-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.viewAllLink:hover {
+    text-decoration: underline;
+}

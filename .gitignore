@@ -16,4 +16,6 @@ db_data/
 .DS_Store
 Thumbs.db
 
-node_modules
+
+# token file
+token-github.txt

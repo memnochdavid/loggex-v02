@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
-import UserCard from '../components/UserCard'; // Importar UserCard
+import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
-import styles from './Claustro.module.css';
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import teacherAnimation from '../../public/teacher.json';
 
 const Claustro = () => {
     const { user } = useAuth();
@@ -31,7 +33,6 @@ const Claustro = () => {
     const fetchProfesores = async () => {
         setLoading(true);
         try {
-            // Usar endpoint personalizado
             const response = await fetch(getApiUrl('/api/v1/profesor/claustro'), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
@@ -52,7 +53,6 @@ const Claustro = () => {
         navigate('/mensajes', { state: { chatWith: targetUser } });
     };
 
-    // Filtrado en cliente
     const filteredProfesores = profesores.filter(p => {
         if (!searchTerm) return true;
         const value = p[searchField]?.toLowerCase() || '';
@@ -62,7 +62,9 @@ const Claustro = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Claustro de Profesores">
+                <CrudHeader title="Claustro de Profesores"
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
@@ -74,7 +76,7 @@ const Claustro = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -85,7 +87,7 @@ const Claustro = () => {
                             />
                         ))}
                         {filteredProfesores.length === 0 && (
-                            <p className={styles.empty}>No se encontraron profesores.</p>
+                            <div className={styles.emptyState}>No se encontraron profesores.</div>
                         )}
                     </div>
                 )}

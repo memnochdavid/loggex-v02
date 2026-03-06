@@ -3,7 +3,7 @@
 ## Estado Actual (2026-02-01)
 El proyecto es una plataforma de gestión académica (Symfony + React) funcional con las siguientes características implementadas:
 
-### Backend (Symfony 7 + API Platform 3)
+### Backend (Symfony 8 + API Platform 3)
 - **Autenticación**: JWT (LexikJWT) con roles (SUPERADMIN, ADMIN, PROFESOR, ALUMNO).
 - **Entidades**: User, Centro, CicloFormativo, Modulo, Grupo, Matricula, Imparticion, Horario, Festivo, Personalizacion.
 - **Seguridad**: `CurrentUserExtension` filtra automáticamente los datos por centro para usuarios no-SuperAdmin.

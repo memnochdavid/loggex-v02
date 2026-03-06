@@ -48,14 +48,6 @@ class SecurityController extends AbstractController
 
         $userData = $this->formatUser($user, $entityManager);
 
-        // Log para depuración de temas guardados
-        if (isset($userData['centro']['personalizacion']['savedThemes'])) {
-            $themes = $userData['centro']['personalizacion']['savedThemes'];
-            $logger->info('API/ME - Temas guardados encontrados:', ['count' => count($themes), 'data' => $themes]);
-        } else {
-            $logger->info('API/ME - No se encontraron temas guardados o estructura inesperada.');
-        }
-
         return $this->json([
             'user' => $userData
         ]);
@@ -88,7 +80,7 @@ class SecurityController extends AbstractController
             if ($personalizacionData) {
                 $centroData = [
                     'id' => 'global',
-                    'nombre' => 'Configuración Global',
+                    'nombre' => '',
                     'logo' => null,
                     'personalizacion' => $personalizacionData
                 ];
@@ -115,7 +107,7 @@ class SecurityController extends AbstractController
         $v = fn($val, $default) => $val !== null ? $val : $default;
 
         return [
-            'savedThemes' => $p->getSavedThemes() ?? [],
+            // 'savedThemes' => $p->getSavedThemes() ?? [], // ELIMINADO
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
@@ -123,6 +115,13 @@ class SecurityController extends AbstractController
             'sidebarActiveTextColor' => $v($p->getSidebarActiveTextColor(), '#ffffff'),
             'sidebarHoverColor' => $v($p->getSidebarHoverColor(), '#334155'),
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
+
+            // Sidebar Accordion (NUEVO)
+            'sidebarAccordionHeaderBgColor' => $v($p->getSidebarAccordionHeaderBgColor(), '#1e293b'),
+            'sidebarAccordionHeaderTextColor' => $v($p->getSidebarAccordionHeaderTextColor(), '#ffffff'),
+            'sidebarAccordionContentBgColor' => $v($p->getSidebarAccordionContentBgColor(), '#0f172a'),
+            'sidebarAccordionContentTextColor' => $v($p->getSidebarAccordionContentTextColor(), '#cbd5e1'),
+
             'textMainColor' => $v($p->getTextMainColor(), '#334155'),
             'textSecondaryColor' => $v($p->getTextSecondaryColor(), '#64748b'),
             'specialTextColor' => $v($p->getSpecialTextColor(), '#ffffff'),
@@ -207,6 +206,15 @@ class SecurityController extends AbstractController
             'eventCardMetaColor' => $v($p->getEventCardMetaColor(), '#64748b'),
             'eventsSidebarBgColor' => $v($p->getEventsSidebarBgColor(), 'transparent'), // AÑADIDO
             'eventsSidebarTitleColor' => $v($p->getEventsSidebarTitleColor(), '#334155'),
+
+            // Dashboard Widgets
+            'widgetBgColor' => $v($p->getWidgetBgColor(), '#ffffff'),
+            'widgetHeaderBgColor' => $v($p->getWidgetHeaderBgColor(), '#ffffff'),
+            'widgetHeaderTextColor' => $v($p->getWidgetHeaderTextColor(), '#334155'),
+            'widgetBorderColor' => $v($p->getWidgetBorderColor(), '#e2e8f0'),
+            'widgetItemTextColor' => $v($p->getWidgetItemTextColor(), '#334155'),
+            'widgetItemHoverBgColor' => $v($p->getWidgetItemHoverBgColor(), '#f1f5f9'),
+            'widgetIconColor' => $v($p->getWidgetIconColor(), '#6366f1'),
 
             'itemsPerPageUsuarios' => $p->getItemsPerPageUsuarios(),
             'itemsPerPageCentros' => $p->getItemsPerPageCentros(),

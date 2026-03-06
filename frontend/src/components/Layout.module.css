@@ -25,3 +25,15 @@
     overflow: hidden; /* Sin scroll ni padding */
     padding: 0;
 }
+@media (max-width: 1200px) {
+    .content{
+        padding: var(--space-4) var(--space-1);
+    }
+}
+
+/*para compensar el grosor de la barra de direcciones del navegador en móviles*/
+@media (max-width: 500px) {
+    .content{
+        margin-bottom: 50px;
+    }
+}

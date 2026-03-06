@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
-import styles from './Materiales.module.css';
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from "../../public/book.json";
 
 const MaterialesAlumno = () => {
   const { user } = useAuth();
@@ -93,14 +95,14 @@ const MaterialesAlumno = () => {
 
   const renderMateriales = (asignatura) => {
     if (asignatura.materiales.length === 0) {
-      return <p className={styles.emptyMessage}>No hay apuntes disponibles.</p>;
+      return <div className={styles.emptyState}>No hay apuntes disponibles.</div>;
     }
 
     return (
-      <ul className={styles.materialList}>
+      <ul className={styles.list}>
         {asignatura.materiales.map(mat => (
-          <li key={mat.id} className={styles.materialItem}>
-            <div className={styles.materialInfo}>
+          <li key={mat.id} className={styles.listItem}>
+            <div className={styles.itemInfo}>
                 <FileText size={20} className={styles.icon} />
                 <span>{mat.titulo}</span>
                 <span className={styles.date}>
@@ -125,12 +127,14 @@ const MaterialesAlumno = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Mis Apuntes" />
+        <CrudHeader title="Mis Apuntes"
+                    logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        />
 
         {loading ? (
-          <p>Cargando...</p>
+          <div className={styles.loadingContainer}>Cargando...</div>
         ) : error ? (
-          <p className={styles.error}>{error}</p>
+          <div className={styles.errorContainer}>{error}</div>
         ) : (
           <AccordionView 
             data={asignaturas} 

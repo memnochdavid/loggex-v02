@@ -23,3 +23,10 @@ RUN mkdir -p public/uploads/avatar && \
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copiar y configurar script de entrada
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["apache2-foreground"]

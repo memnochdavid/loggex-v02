@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import styles from './Usuarios.module.css'; // Reutilizamos estilos
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
 
 const Modulos = () => {
   const { user } = useAuth();
@@ -17,7 +19,9 @@ const Modulos = () => {
 
   const [modulos, setModulos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
-  const [centros, setCentros] = useState([]); // Para SuperAdmin
+  const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -36,6 +40,12 @@ const Modulos = () => {
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -92,25 +102,6 @@ const Modulos = () => {
     .catch(err => console.error("Error cargando ciclos:", err));
   }, [selectedCentro, isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        fetchModulos(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCiclo, selectedCentro, searchField]); // Añadido selectedCentro
-
-  // Fetch al cambiar página u orden
-  useEffect(() => {
-    fetchModulos(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getModuloId = (m) => {
     if (m.id) return m.id;
     if (m['@id']) {
@@ -120,31 +111,39 @@ const Modulos = () => {
     return null;
   };
 
-  const fetchModulos = async (page) => {
+  // Función de carga optimizada
+  const fetchModulosData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/modulos?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/modulos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (selectedCiclo) {
-          url += `&ciclo=${selectedCiclo}`;
-      } else if (isSuperAdmin && selectedCentro) {
+      if (params.selectedCiclo) {
+          url += `&ciclo=${params.selectedCiclo}`;
+      } else if (params.isSuperAdmin && params.selectedCentro) {
           // Si no hay ciclo seleccionado pero sí centro, filtrar por centro del ciclo
-          url += `&ciclo.centro=${selectedCentro}`;
+          url += `&ciclo.centro=${params.selectedCentro}`;
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -160,23 +159,76 @@ const Modulos = () => {
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching modulos:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchModulosData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchModulosData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      selectedCiclo,
+      selectedCentro, 
+      sortColumn, 
+      sortDirection, 
+      isSuperAdmin,
+      fetchModulosData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (modulo = null) => {
+  const handleOpenModal = useCallback((modulo = null) => {
     if (modulo) {
       setCurrentModulo(modulo);
       
@@ -208,7 +260,7 @@ const Modulos = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -260,7 +312,18 @@ const Modulos = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchModulos(currentPage);
+      // Recargar datos
+      fetchModulosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -271,7 +334,7 @@ const Modulos = () => {
     }
   };
 
-  const handleDelete = async (modulo) => {
+  const handleDelete = useCallback(async (modulo) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este módulo?')) {
       return;
     }
@@ -289,15 +352,25 @@ const Modulos = () => {
         throw new Error('No se pudo eliminar el módulo');
       }
 
-      fetchModulos(currentPage);
+      fetchModulosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCiclo,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
 
     } catch (err) {
       console.error("Error deleting modulo:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: 'Código', accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
     { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
@@ -329,12 +402,14 @@ const Modulos = () => {
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Módulos Formativos">
+        <CrudHeader title="Módulos Formativos"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select 
                     className={styles.select} 
@@ -382,7 +457,7 @@ const Modulos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchModulos(currentPage)} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

@@ -1,23 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import styles from './Tareas.module.css';
+import React, { useEffect, useState, useRef } from 'react';
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Tareas = () => {
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+  const fileInputRef = useRef(null);
 
-  const [asignaturas, setAsignaturas] = useState([]); // Imparticiones agrupadas
+  const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   // Estado para modal de creación/edición (Solo Profesores)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +31,7 @@ const Tareas = () => {
     titulo: '',
     descripcion: '',
     fechaLimite: '',
-    tipo: 'tarea', // tarea, examen, practica
+    tipo: 'tarea',
     visible: true,
     archivo: null
   });
@@ -79,7 +83,6 @@ const Tareas = () => {
             const data = await response.json();
             const items = data['hydra:member'] || data.member || [];
             
-            // Transformar datos para AccordionView (necesita 'title')
             const asignaturasConTareas = items.map(imp => {
                 const nombreModulo = imp.modulo?.nombre || 'Módulo desconocido';
                 const nombreGrupo = imp.grupo?.nombre || 'Grupo desconocido';
@@ -93,7 +96,7 @@ const Tareas = () => {
                 return {
                     ...imp,
                     id: imp.id || imp['@id'].split('/').pop(),
-                    title: title, // Propiedad requerida por AccordionView
+                    title: title,
                     tareas: imp.tareas || []
                 };
             });
@@ -116,10 +119,10 @@ const Tareas = () => {
       setFormData({
         titulo: tarea.titulo,
         descripcion: tarea.descripcion || '',
-        fechaLimite: tarea.fechaLimite ? tarea.fechaLimite.slice(0, 16) : '', // Formato datetime-local
+        fechaLimite: tarea.fechaLimite ? tarea.fechaLimite.slice(0, 16) : '',
         tipo: tarea.tipo || 'tarea',
         visible: tarea.visible,
-        archivo: null // No precargamos archivo en edición, solo si se quiere cambiar
+        archivo: null
       });
     } else {
       setCurrentTarea(null);
@@ -158,7 +161,6 @@ const Tareas = () => {
     setSaving(true);
 
     try {
-      // Usamos FormData para enviar archivo
       const data = new FormData();
       data.append('titulo', formData.titulo);
       data.append('descripcion', formData.descripcion);
@@ -175,7 +177,6 @@ const Tareas = () => {
           data.append('file', formData.archivo);
       }
 
-      // Usamos el nuevo endpoint de subida que maneja creación y edición con archivo
       const url = getApiUrl('/api/tareas/upload');
       
       const response = await fetch(url, {
@@ -189,7 +190,7 @@ const Tareas = () => {
         throw new Error(errorData.message || 'Error al guardar la tarea');
       }
 
-      await fetchData(); // Recargar datos
+      await fetchData();
       handleCloseModal();
 
     } catch (err) {
@@ -215,37 +216,32 @@ const Tareas = () => {
     }
   };
 
-  // Renderizado de contenido (Lista de tareas)
+  const handleToggle = (id) => {
+      setExpandedId(prevId => (prevId === id ? null : id));
+  };
+
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
       return (
-          <div className={styles.taskList}>
-              {(isProfesor || isAdmin) && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                      <Button size="sm" onClick={() => handleOpenModal(imparticion.id)}>
-                          <Plus size={16} style={{ marginRight: '4px' }} /> Nuevo
-                      </Button>
-                  </div>
-              )}
-              
+          <div className={styles.cardList}>
               {tareas.length === 0 ? (
                   <div className={styles.emptyState}>No hay tareas asignadas.</div>
               ) : (
                   tareas.map(tarea => (
-                      <div key={tarea.id} className={styles.taskCard}>
-                          <div className={styles.taskInfo}>
-                              <div className={styles.taskTitle}>
+                      <div key={tarea.id} className={styles.card}>
+                          <div className={styles.cardInfo}>
+                              <div className={styles.cardTitle}>
                                   <FileText size={18} className={styles.icon} />
                                   {tarea.titulo}
-                                  {!tarea.visible && <span style={{fontSize:'0.7rem', color:'red', border:'1px solid red', padding:'0 4px', borderRadius:'4px', marginLeft: '8px'}}>Oculta</span>}
+                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`}>Oculta</span>}
                               </div>
                               {tarea.descripcion && (
-                                  <div className={styles.taskDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
+                                  <div className={styles.cardDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
                               )}
                               
                               {tarea.archivo && (
-                                  <div className={styles.taskFile}>
+                                  <div style={{ marginBottom: '0.5rem' }}>
                                       <a 
                                           href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
                                           target="_blank" 
@@ -258,32 +254,28 @@ const Tareas = () => {
                                   </div>
                               )}
 
-                              <div className={styles.taskMeta}>
+                              <div className={styles.cardMeta}>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       <Calendar size={14} /> 
                                       Entrega: {new Date(tarea.fechaLimite).toLocaleString()}
                                   </span>
-                                  <span className={`${styles.badge} ${styles.badgePending}`}>
+                                  <span className={`${styles.badge} ${styles.badgeInfo}`}>
                                       {tarea.tipo}
                                   </span>
                               </div>
                           </div>
                           
-                          <div className={styles.taskActions}>
+                          <div className={styles.cardActions}>
                               {(isProfesor || isAdmin) ? (
                                   <>
-                                      <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)}>
+                                      <button className={`${styles.iconButton}`} onClick={() => handleOpenModal(imparticion.id, tarea)}>
                                           <Edit2 size={18} />
                                       </button>
                                       <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)}>
                                           <Trash2 size={18} />
                                       </button>
                                   </>
-                              ) : (
-                                  <Button size="sm" variant="secondary">
-                                      Ver / Entregar
-                                  </Button>
-                              )}
+                              ) : null /* Eliminado el botón Ver / Entregar para alumnos */}
                           </div>
                       </div>
                   ))
@@ -295,10 +287,12 @@ const Tareas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Tareas y Actividades" />
+        <CrudHeader title="Tareas y Actividades"
+                    logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        />
 
         {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando asignaturas...</div>
+            <div className={styles.loadingContainer}>Cargando asignaturas...</div>
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
@@ -309,11 +303,13 @@ const Tareas = () => {
             <AccordionView 
                 data={asignaturas}
                 renderItem={renderContent}
-                canAdd={false}
+                canAdd={isProfesor || isAdmin}
+                onAdd={(id) => handleOpenModal(id)}
+                expandedId={expandedId}
+                onToggle={handleToggle}
             />
         )}
 
-        {/* Modal Crear/Editar */}
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
@@ -342,13 +338,30 @@ const Tareas = () => {
             </div>
             <div className={styles.formGroup}>
                 <label className={styles.label}>Archivo Adjunto (Opcional)</label>
-                <input 
-                    type="file" 
-                    className={styles.input} 
-                    name="archivo" 
-                    onChange={handleInputChange} 
-                />
-                {currentTarea && currentTarea.archivo && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className={styles.fileInput}
+                        name="archivo"
+                        onChange={handleInputChange}
+                        style={{ display: 'none' }}
+                    />
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => fileInputRef.current.click()}
+                    >
+                        <Upload size={16} style={{ marginRight: '8px' }} />
+                        {formData.archivo ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                    </Button>
+                    {formData.archivo && (
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                            {formData.archivo.name}
+                        </span>
+                    )}
+                </div>
+                {currentTarea && currentTarea.archivo && !formData.archivo && (
                     <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
                         Archivo actual: {currentTarea.archivo}
                     </small>

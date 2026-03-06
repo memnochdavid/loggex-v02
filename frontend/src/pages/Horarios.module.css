@@ -1,72 +1,111 @@
 .container {
-    padding: 0 var(--space-8);
-    max-width: 1600px;
+    padding: var(--space-8);
     margin: 0 auto;
-    /*height: calc(100vh - 80px);*/
-    height: 85vh;
+    width: 100%;
+    box-sizing: border-box;
+    height: 85vh; /* Específico de Horarios para el calendario */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Evitar scroll en el contenedor principal */
+    overflow: hidden;
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    flex-shrink: 0; /* El header no se encoge */
+    margin-bottom: var(--space-6);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: var(--space-4);
 }
 
 .pageTitle {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: var(--text-2xl);
     color: var(--text-main);
+    font-weight: var(--font-bold);
     margin: 0;
 }
+
 .sectionTitle {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--events-sidebar-title-color, var(--text-main));
-    margin-bottom: 0.75rem;
-    padding-left: 0.25rem;
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    margin-bottom: var(--space-3);
+    padding-left: var(--space-1);
 }
 
 .controls {
     display: flex;
-    gap: 1rem;
+    gap: var(--space-4);
     align-items: center;
 }
 
 .select {
-    padding: 0.5rem;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
+    font-size: var(--text-base);
     background-color: var(--bg-input);
     color: var(--text-main);
 }
 
 .errorContainer {
-    background-color: #fee2e2;
-    color: #991b1b;
-    padding: 1rem;
+    background-color: #fef2f2;
+    border: 1px solid var(--color-error);
+    color: var(--color-error);
+    padding: var(--space-4);
     border-radius: var(--radius-md);
-    margin-bottom: 1rem;
-    border: 1px solid #fecaca;
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+/* Estilos para acciones de tabla (Botones Editar/Eliminar) */
+.actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.iconButton {
+    /*background: none;*/
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    /*color: var(--color-gray-500);*/
+    background-color: var(--btn-primary-bg, var(--color-primary-600));
+    color: var(--btn-primary-text, white);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:active {
+    scale: 0.9;
+}
+
+/*.iconButton.danger:hover {*/
+/*    background-color: #fef2f2;*/
+/*    color: var(--color-error);*/
+/*}*/
+.iconButton.danger{
+    color: var(--btn-primary-text);
+    background-color: var(--color-error);
 }
 
 /* Layout de Vista Calendario */
 .calendarViewModeContainer {
     display: flex;
-    gap: 1.5rem;
+    gap: var(--space-6);
     flex: 1;
-    overflow: hidden; /* Clave para que los hijos controlen su propio scroll */
+    overflow: hidden;
     height: 100%;
 }
 
 .timeTableWrapper {
     flex: 1;
     min-width: 0;
-    overflow-y: auto; /* Este es el único scroll vertical que queremos */
+    overflow-y: auto;
     background-color: var(--bg-card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
@@ -99,23 +138,18 @@
 }
 
 .mobileSidebar {
-    width: max-content;
-    max-width: max-content;
-    /*background-color: var(--bg-card);*/
-    background-color: var(--events-sidebar-bg, transparent);
-
+    width: 85%; /* Ancho relativo para móvil */
+    max-width: 320px;
+    background-color: var(--bg-card);
     height: 100%;
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     animation: slideInRight 0.3s ease-out;
 }
-.sectionTitle {
-    color: var(--events-sidebar-title-color, var(--text-main));
-}
 
 .mobileSidebarHeader {
-    padding: 1rem;
+    padding: var(--space-4);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
@@ -124,16 +158,23 @@
 
 .mobileSidebarHeader h3 {
     margin: 0;
-    font-size: 1.1rem;
-    color: var(--events-sidebar-title-color, var(--text-main));
+    font-size: var(--text-lg);
+    color: var(--text-main);
 }
 
 .closeButton {
     background: none;
     border: none;
-    color: var(--events-sidebar-title-color, var(--text-main));
+    color: var(--text-muted);
     cursor: pointer;
-    padding: 0.5rem;
+    padding: var(--space-2);
+}
+.closeButton:hover {
+    background-color: var(--modal-close-btn-hover-bg, var(--color-gray-100));
+    color: var(--modal-close-btn-hover-text, var(--color-gray-700));
+}
+.closeButton:active{
+    scale: 0.9;
 }
 
 /* Animaciones */
@@ -147,33 +188,137 @@
     to { transform: translateX(0); }
 }
 
-/* Modal Styles (Reutilizados o específicos si es necesario) */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+    padding: var(--space-4);
+}
+
+.modal {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideIn 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    padding: var(--space-1) var(--space-2);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    margin: 0;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-gray-500);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+.closeButton:hover {
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-700);
+}
+
+.modalBody {
+    padding: var(--space-6);
+    overflow-y: auto;
+    .select{
+        width: 100%;
+    }
+}
+
+.modalFooter {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    background-color: var(--color-gray-50);
+}
+
 .formGroup {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-4);
+    select{
+        width: 100%;
+    }
 }
 
 .label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+    margin-bottom: var(--space-2);
+    font-weight: var(--font-medium);
     color: var(--text-main);
+    font-size: var(--text-sm);
 }
 
 .input {
     width: 100%;
-    padding: 0.75rem;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
     background-color: var(--bg-input);
     color: var(--text-main);
 }
 
-/* Media Queries - Breakpoint aumentado a 1200px */
+.input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+/* Media Queries */
 @media (max-width: 1200px) {
     .container {
-        padding: 1rem;
-        height: auto; /* En móvil dejamos que crezca */
-        overflow: visible; /* Restaurar scroll normal */
+        padding: 0 var(--space-2);
+        height: auto;
+        overflow: visible;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
     }
 
     .calendarViewModeContainer {
@@ -183,11 +328,17 @@
     }
 
     .timeTableWrapper {
-        height: auto; /* Dejar que el contenido determine la altura */
-        overflow-y: visible; /* Quitar scroll interno */
+        height: auto;
+        overflow-y: visible;
     }
 
     .eventsSidebarWrapper {
-        display: none; /* Ocultar en móvil/tablet, se usa el drawer */
+        display: none;
+    }
+
+    .modal {
+        max-height: 100vh;
+        border-radius: 0;
     }
 }
+

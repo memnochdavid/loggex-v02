@@ -1,33 +1,43 @@
 {
+    # Desactivar administración automática de certificados en producción,
+    # pero para localhost Caddy genera sus propios certificados CA locales.
     local_certs
-    auto_https off
 }
 
+# Definimos un snippet reutilizable con la lógica de enrutamiento PRINCIPAL (Frontend + API)
 (app_routes) {
+    # Redirigir peticiones API al backend
     handle /api/* {
         reverse_proxy backend:80
     }
+
+    # NUEVO: Redirigir peticiones de archivos subidos al backend
     handle /uploads/* {
         reverse_proxy backend:80
     }
+
+    # El resto va al frontend (Vite)
     handle {
         reverse_proxy frontend:5173
     }
 }
 
-# Puerto 80 interno (Mapeado a 8888 externo) - HTTP SIN REDIRECCIÓN
-http://:80 {
+# Puerto 80 interno (Mapeado a 8888 externo) - HTTP
+# Frontend principal en HTTP
+:80 {
     import app_routes
 }
 
-# Puerto 443 interno (Mapeado a 8443 externo) - Frontend + API
-https://localhost:443 {
+# Puerto 443 interno (Mapeado a 8443 externo) - HTTPS
+# Frontend principal en HTTPS
+localhost:443 {
     tls internal
     import app_routes
 }
 
-# Puerto 8443 interno (Mapeado a 9443 externo) - SOLO BACKEND
-https://localhost:8443 {
+# Puerto 8443 interno (Mapeado a 9443 externo) - HTTPS
+# BACKEND DIRECTO (Para acceso a API/Swagger en raíz)
+localhost:8443 {
     tls internal
     reverse_proxy backend:80
 }

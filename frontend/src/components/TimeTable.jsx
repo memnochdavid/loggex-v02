@@ -1,14 +1,15 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './TimeTable.module.css';
-import { Clock, MapPin, Users, User, CalendarOff, CheckSquare } from 'lucide-react';
+import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
 import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
 import { useAuth } from '../context/AuthContext';
+import { getApiUrl } from '../config/api'; // Importar getApiUrl
 
-const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) => {
+const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
@@ -17,6 +18,10 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
+    const [savingAttendance, setSavingAttendance] = useState(false);
+    
+    // Referencia para acceder a los datos del AsistenciaModal desde fuera
+    const [asistenciaData, setAsistenciaData] = useState(null);
 
     // Estado para acordeón móvil (día expandido)
     const [expandedDayId, setExpandedDayId] = useState(null);
@@ -107,8 +112,8 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
     ], []);
 
     // Detectar turnos
-    const hasAfternoon = useMemo(() => events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
-    const hasMorning = useMemo(() => events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
+    const hasAfternoon = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
+    const hasMorning = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
 
     // Función para procesar eventos y calcular rowSpan (pura, sin hooks)
     const processEvents = (slots) => {
@@ -133,19 +138,21 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
         });
 
         // 2. Colocar eventos en la matriz (solo si no es festivo)
-        slots.forEach((slot, hIndex) => {
-            days.forEach((day, dIndex) => {
-                if (grid[hIndex][dIndex]) return;
+        if (Array.isArray(events)) {
+            slots.forEach((slot, hIndex) => {
+                days.forEach((day, dIndex) => {
+                    if (grid[hIndex][dIndex]) return;
 
-                const event = events.find(e =>
-                    e.diaSemana === (dIndex + 1) &&
-                    e.horaInicio === slot.start
-                );
-                if (event) {
-                    grid[hIndex][dIndex] = { event, rowSpan: 1, skip: false };
-                }
+                    const event = events.find(e =>
+                        e.diaSemana === (dIndex + 1) &&
+                        e.horaInicio === slot.start
+                    );
+                    if (event) {
+                        grid[hIndex][dIndex] = { event, rowSpan: 1, skip: false };
+                    }
+                });
             });
-        });
+        }
 
         // 3. Calcular fusiones (verticales)
         for (let d = 0; d < days.length; d++) {
@@ -189,6 +196,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
     const handleCloseModal = () => {
         setSelectedEvent(null);
         setIsTakingAttendance(false);
+        setAsistenciaData(null); // Limpiar datos al cerrar
     };
 
     const canPassAttendance = (event) => {
@@ -338,9 +346,11 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
         const date = weekDates[index];
         const festivo = getFestivoForDay(date);
 
-        const dayEvents = events
-            .filter(e => e.diaSemana === dayIndex)
-            .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+        const dayEvents = Array.isArray(events) 
+            ? events
+                .filter(e => e.diaSemana === dayIndex)
+                .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
+            : [];
 
         const dateStr = date ? date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : '';
 
@@ -388,6 +398,48 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
 
     const tasksForSelectedEvent = selectedEvent ? getTasksForEvent(selectedEvent) : [];
 
+    // Función para manejar el guardado desde el footer del ModalView
+    const handleSaveAttendance = async () => {
+        if (!asistenciaData || !asistenciaData.alumnos) return;
+        
+        setSavingAttendance(true);
+        try {
+            const payload = {
+                imparticion: asistenciaData.imparticionId,
+                fecha: asistenciaData.fecha,
+                hora: asistenciaData.hora,
+                asistencias: asistenciaData.alumnos.map(a => ({
+                    alumnoId: a.id,
+                    estado: a.estado,
+                    comentario: a.comentario
+                }))
+            };
+
+            const response = await fetch(getApiUrl('/api/v1/asistencia/batch'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                handleCloseModal();
+            } else {
+                alert("Error al guardar asistencia");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión");
+        } finally {
+            setSavingAttendance(false);
+        }
+    };
+
+    // Función para recibir datos desde AsistenciaModal
+    const handleAsistenciaDataChange = useCallback((data) => {
+        setAsistenciaData(data);
+    }, []);
+
     return (
         <div className={styles.container}>
             {/* Vista Escritorio */}
@@ -422,8 +474,17 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
                 onClose={handleCloseModal}
                 title={selectedEvent ? (isTakingAttendance ? `Pasar Lista: ${selectedEvent.modulo}` : selectedEvent.modulo) : ''}
                 size={isTakingAttendance ? "large" : "small"}
-                cancelText={isTakingAttendance ? "Volver" : "Cerrar"}
-                footer={isTakingAttendance ? null : undefined}
+                cancelText={isTakingAttendance ? "Cancelar" : "Cerrar"}
+                // Footer personalizado para el modo de asistencia
+                footer={isTakingAttendance ? (
+                    <>
+                        <Button variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
+                        <Button onClick={handleSaveAttendance} disabled={savingAttendance}>
+                            <Save size={18} style={{ marginRight: '8px' }} />
+                            {savingAttendance ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                    </>
+                ) : undefined}
             >
                 {selectedEvent && (
                     isTakingAttendance ? (
@@ -432,6 +493,7 @@ const TimeTable = ({ events, title, selectedDate, festivos = [], tareas = [] }) 
                             fecha={formatDateISO(weekDates[selectedEvent.diaSemana - 1])}
                             hora={selectedEvent.horaInicio}
                             onClose={handleCloseModal}
+                            onDataChange={handleAsistenciaDataChange} // Pasar callback para recibir datos
                         />
                     ) : (
                         <div className={styles.modalBody}>

@@ -48,12 +48,6 @@ class PersonalizacionController extends AbstractController
 
         $logger->info('DATOS RECIBIDOS EN UPDATE (RAW): ' . $content);
 
-        if (isset($data['savedThemes'])) {
-            $logger->info('SAVED THEMES RECIBIDO (Payload):', ['count' => count($data['savedThemes']), 'data' => $data['savedThemes']]);
-        } else {
-            $logger->info('SAVED THEMES NO PRESENTE EN DATA');
-        }
-
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
         if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
@@ -64,6 +58,12 @@ class PersonalizacionController extends AbstractController
         if (isset($data['sidebarActiveTextColor'])) $personalizacion->setSidebarActiveTextColor($data['sidebarActiveTextColor']);
         if (isset($data['sidebarHoverColor'])) $personalizacion->setSidebarHoverColor($data['sidebarHoverColor']);
         if (isset($data['sidebarHoverTextColor'])) $personalizacion->setSidebarHoverTextColor($data['sidebarHoverTextColor']);
+
+        // Sidebar Accordion (NUEVO)
+        if (isset($data['sidebarAccordionHeaderBgColor'])) $personalizacion->setSidebarAccordionHeaderBgColor($data['sidebarAccordionHeaderBgColor']);
+        if (isset($data['sidebarAccordionHeaderTextColor'])) $personalizacion->setSidebarAccordionHeaderTextColor($data['sidebarAccordionHeaderTextColor']);
+        if (isset($data['sidebarAccordionContentBgColor'])) $personalizacion->setSidebarAccordionContentBgColor($data['sidebarAccordionContentBgColor']);
+        if (isset($data['sidebarAccordionContentTextColor'])) $personalizacion->setSidebarAccordionContentTextColor($data['sidebarAccordionContentTextColor']);
 
         // Textos
         if (isset($data['textMainColor'])) $personalizacion->setTextMainColor($data['textMainColor']);
@@ -171,6 +171,15 @@ class PersonalizacionController extends AbstractController
         if (isset($data['eventsSidebarBgColor'])) $personalizacion->setEventsSidebarBgColor($data['eventsSidebarBgColor']); // AÑADIDO
         if (isset($data['eventsSidebarTitleColor'])) $personalizacion->setEventsSidebarTitleColor($data['eventsSidebarTitleColor']);
 
+        // Dashboard Widgets
+        if (isset($data['widgetBgColor'])) $personalizacion->setWidgetBgColor($data['widgetBgColor']);
+        if (isset($data['widgetHeaderBgColor'])) $personalizacion->setWidgetHeaderBgColor($data['widgetHeaderBgColor']);
+        if (isset($data['widgetHeaderTextColor'])) $personalizacion->setWidgetHeaderTextColor($data['widgetHeaderTextColor']);
+        if (isset($data['widgetBorderColor'])) $personalizacion->setWidgetBorderColor($data['widgetBorderColor']);
+        if (isset($data['widgetItemTextColor'])) $personalizacion->setWidgetItemTextColor($data['widgetItemTextColor']);
+        if (isset($data['widgetItemHoverBgColor'])) $personalizacion->setWidgetItemHoverBgColor($data['widgetItemHoverBgColor']);
+        if (isset($data['widgetIconColor'])) $personalizacion->setWidgetIconColor($data['widgetIconColor']);
+
         // Paginación (Items Per Page)
         if (isset($data['itemsPerPageUsuarios'])) $personalizacion->setItemsPerPageUsuarios((int)$data['itemsPerPageUsuarios']);
         if (isset($data['itemsPerPageCentros'])) $personalizacion->setItemsPerPageCentros((int)$data['itemsPerPageCentros']);
@@ -184,11 +193,6 @@ class PersonalizacionController extends AbstractController
         // Configuración Título Centro
         if (isset($data['nameTitleConfig'])) {
             $personalizacion->setNameTitleConfig($data['nameTitleConfig']);
-        }
-
-        // Temas Guardados
-        if (isset($data['savedThemes'])) {
-            $personalizacion->setSavedThemes($data['savedThemes']);
         }
 
         try {

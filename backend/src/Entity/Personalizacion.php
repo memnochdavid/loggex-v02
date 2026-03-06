@@ -69,6 +69,23 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $sidebarHoverTextColor = '#ffffff';
 
+    // --- Sidebar Accordion (NUEVO) ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionHeaderBgColor = '#1e293b';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionHeaderTextColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionContentBgColor = '#0f172a';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $sidebarAccordionContentTextColor = '#cbd5e1';
+
     // --- Textos ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -386,13 +403,42 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventCardMetaColor = '#64748b';
 
-    #[ORM\Column(length: 7)]
+    #[ORM\Column(length: 11)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventsSidebarBgColor = 'transparent'; // AÑADIDO
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $eventsSidebarTitleColor = '#334155';
+
+    // --- Dashboard Widgets ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetHeaderBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetHeaderTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetBorderColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetItemTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetItemHoverBgColor = '#f1f5f9';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $widgetIconColor = '#6366f1';
 
     // --- Paginación (Items Per Page) ---
     #[ORM\Column]
@@ -432,11 +478,6 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?array $nameTitleConfig = null;
 
-    // --- Temas Guardados ---
-    #[ORM\Column(name: 'temas_guardados', type: 'json', nullable: true)]
-    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?array $savedThemes = [];
-
     #[ORM\OneToOne(inversedBy: 'personalizacion', targetEntity: Centro::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?Centro $centro = null;
@@ -468,6 +509,19 @@ class Personalizacion
 
     public function getSidebarHoverTextColor(): ?string { return $this->sidebarHoverTextColor; }
     public function setSidebarHoverTextColor(string $color): static { $this->sidebarHoverTextColor = $color; return $this; }
+
+    // --- Sidebar Accordion ---
+    public function getSidebarAccordionHeaderBgColor(): ?string { return $this->sidebarAccordionHeaderBgColor; }
+    public function setSidebarAccordionHeaderBgColor(string $color): static { $this->sidebarAccordionHeaderBgColor = $color; return $this; }
+
+    public function getSidebarAccordionHeaderTextColor(): ?string { return $this->sidebarAccordionHeaderTextColor; }
+    public function setSidebarAccordionHeaderTextColor(string $color): static { $this->sidebarAccordionHeaderTextColor = $color; return $this; }
+
+    public function getSidebarAccordionContentBgColor(): ?string { return $this->sidebarAccordionContentBgColor; }
+    public function setSidebarAccordionContentBgColor(string $color): static { $this->sidebarAccordionContentBgColor = $color; return $this; }
+
+    public function getSidebarAccordionContentTextColor(): ?string { return $this->sidebarAccordionContentTextColor; }
+    public function setSidebarAccordionContentTextColor(string $color): static { $this->sidebarAccordionContentTextColor = $color; return $this; }
 
     public function getTextMainColor(): ?string { return $this->textMainColor; }
     public function setTextMainColor(string $color): static { $this->textMainColor = $color; return $this; }
@@ -706,6 +760,28 @@ class Personalizacion
     public function getEventsSidebarTitleColor(): ?string { return $this->eventsSidebarTitleColor; }
     public function setEventsSidebarTitleColor(string $color): static { $this->eventsSidebarTitleColor = $color; return $this; }
 
+    // --- Dashboard Widgets ---
+    public function getWidgetBgColor(): ?string { return $this->widgetBgColor; }
+    public function setWidgetBgColor(string $color): static { $this->widgetBgColor = $color; return $this; }
+
+    public function getWidgetHeaderBgColor(): ?string { return $this->widgetHeaderBgColor; }
+    public function setWidgetHeaderBgColor(string $color): static { $this->widgetHeaderBgColor = $color; return $this; }
+
+    public function getWidgetHeaderTextColor(): ?string { return $this->widgetHeaderTextColor; }
+    public function setWidgetHeaderTextColor(string $color): static { $this->widgetHeaderTextColor = $color; return $this; }
+
+    public function getWidgetBorderColor(): ?string { return $this->widgetBorderColor; }
+    public function setWidgetBorderColor(string $color): static { $this->widgetBorderColor = $color; return $this; }
+
+    public function getWidgetItemTextColor(): ?string { return $this->widgetItemTextColor; }
+    public function setWidgetItemTextColor(string $color): static { $this->widgetItemTextColor = $color; return $this; }
+
+    public function getWidgetItemHoverBgColor(): ?string { return $this->widgetItemHoverBgColor; }
+    public function setWidgetItemHoverBgColor(string $color): static { $this->widgetItemHoverBgColor = $color; return $this; }
+
+    public function getWidgetIconColor(): ?string { return $this->widgetIconColor; }
+    public function setWidgetIconColor(string $color): static { $this->widgetIconColor = $color; return $this; }
+
     public function getItemsPerPageUsuarios(): int { return $this->itemsPerPageUsuarios; }
     public function setItemsPerPageUsuarios(int $items): static { $this->itemsPerPageUsuarios = $items; return $this; }
 
@@ -732,9 +808,6 @@ class Personalizacion
 
     public function getNameTitleConfig(): ?array { return $this->nameTitleConfig; }
     public function setNameTitleConfig(?array $config): static { $this->nameTitleConfig = $config; return $this; }
-
-    public function getSavedThemes(): ?array { return $this->savedThemes; }
-    public function setSavedThemes(?array $themes): static { $this->savedThemes = $themes; return $this; }
 
     public function getCentro(): ?Centro
     {

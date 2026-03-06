@@ -5,8 +5,10 @@ import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
-import styles from './Claustro.module.css'; // Reutilizamos estilos
+import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import teacherAnimation from '../../public/teacher.json';
 
 const MisProfesores = () => {
     const { user } = useAuth();
@@ -64,7 +66,9 @@ const MisProfesores = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Profesores">
+                <CrudHeader title="Mis Profesores"
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
@@ -76,7 +80,7 @@ const MisProfesores = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <p>Cargando...</p>
+                    <div className={styles.loadingContainer}>Cargando...</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -87,7 +91,7 @@ const MisProfesores = () => {
                             />
                         ))}
                         {filteredProfesores.length === 0 && (
-                            <p className={styles.empty}>No se encontraron profesores.</p>
+                            <div className={styles.emptyState}>No se encontraron profesores.</div>
                         )}
                     </div>
                 )}

@@ -20,38 +20,60 @@ class GetMyScheduleController extends AbstractController
         }
 
         $horarios = [];
+        $roles = $user->getRoles();
+        $userId = $user->getId();
 
-        if (in_array('ROLE_ALUMNO', $user->getRoles())) {
-            $qb = $entityManager->createQueryBuilder();
-            $qb->select('h', 'i', 'm', 'g', 'p')
-               ->from(Horario::class, 'h')
-               ->join('h.imparticion', 'i')
-               ->join('i.modulo', 'm')
-               ->join('i.grupo', 'g')
-               ->join('g.matriculas', 'mat')
-               ->leftJoin('i.profesor', 'p')
-               ->where('mat.alumno = :user')
-               ->setParameter('user', $user);
+        // 1. Buscar como ALUMNO
+        if (in_array('ROLE_ALUMNO', $roles)) {
+            $dql = "SELECT h, i, m, g, p
+                    FROM App\Entity\Horario h
+                    JOIN h.imparticion i
+                    JOIN i.modulo m
+                    JOIN i.grupo g
+                    JOIN g.matriculas mat
+                    LEFT JOIN i.profesor p
+                    WHERE mat.alumno = :userId AND h.deleted = false";
 
-            $horarios = $qb->getQuery()->getResult();
+            $query = $entityManager->createQuery($dql)->setParameter('userId', $userId);
+            $horarios = array_merge($horarios, $query->getResult());
+        }
 
-        } elseif (in_array('ROLE_PROFESOR', $user->getRoles())) {
-            $qb = $entityManager->createQueryBuilder();
-            $qb->select('h', 'i', 'm', 'g')
-               ->from(Horario::class, 'h')
-               ->join('h.imparticion', 'i')
-               ->join('i.modulo', 'm')
-               ->join('i.grupo', 'g')
-               ->where('i.profesor = :user')
-               ->setParameter('user', $user);
+        // 2. Buscar como PROFESOR/ADMIN
+        if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles) || in_array('ROLE_SUPERADMIN', $roles)) {
+            // Usamos IDENTITY() o comparamos con el ID de la relación para ser explícitos
+            $dql = "SELECT h, i, m, g
+                    FROM App\Entity\Horario h
+                    JOIN h.imparticion i
+                    JOIN i.modulo m
+                    JOIN i.grupo g
+                    WHERE i.profesor = :userId AND h.deleted = false";
 
-            $horarios = $qb->getQuery()->getResult();
+            $query = $entityManager->createQuery($dql)->setParameter('userId', $userId);
+            $resultadosProfesor = $query->getResult();
+
+            // Fusionar
+            foreach ($resultadosProfesor as $rp) {
+                $existe = false;
+                foreach ($horarios as $h) {
+                    if ($h->getId() === $rp->getId()) {
+                        $existe = true;
+                        break;
+                    }
+                }
+                if (!$existe) {
+                    $horarios[] = $rp;
+                }
+            }
         }
 
         $data = [];
         foreach ($horarios as $h) {
-            /** @var Horario $h */
             $grupo = $h->getImparticion()->getGrupo();
+            $profesorNombre = 'Sin asignar';
+            if ($h->getImparticion()->getProfesor()) {
+                $profesorNombre = $h->getImparticion()->getProfesor()->getNombre() . ' ' . $h->getImparticion()->getProfesor()->getApellidos();
+            }
+
             $data[] = [
                 'id' => $h->getId(),
                 'diaSemana' => $h->getDiaSemana(),
@@ -61,10 +83,8 @@ class GetMyScheduleController extends AbstractController
                 'modulo' => $h->getImparticion()->getModulo()->getNombre(),
                 'grupo' => $grupo->getNombre(),
                 'grupoAbreviatura' => $grupo->getAbreviatura(),
-                'profesor' => $h->getImparticion()->getProfesor() ?
-                    $h->getImparticion()->getProfesor()->getNombre() . ' ' . $h->getImparticion()->getProfesor()->getApellidos() :
-                    'Sin asignar',
-                'imparticionId' => $h->getImparticion()->getId() // Añadido
+                'profesor' => $profesorNombre,
+                'imparticionId' => $h->getImparticion()->getId()
             ];
         }
 

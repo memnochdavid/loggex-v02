@@ -129,6 +129,36 @@ class Imparticion
     }
 
     /**
+     * @return Collection<int, Horario>
+     */
+    public function getHorarios(): Collection
+    {
+        return $this->horarios;
+    }
+
+    public function addHorario(Horario $horario): static
+    {
+        if (!$this->horarios->contains($horario)) {
+            $this->horarios->add($horario);
+            $horario->setImparticion($this);
+        }
+
+        return $this;
+    }
+
+    public function removeHorario(Horario $horario): static
+    {
+        if ($this->horarios->removeElement($horario)) {
+            // set the owning side to null (unless already changed)
+            if ($horario->getImparticion() === $this) {
+                $horario->setImparticion(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * @return Collection<int, Tarea>
      */
     public function getTareas(): Collection

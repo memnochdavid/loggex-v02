@@ -15,7 +15,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirigir a la página que intentaba visitar o al home
+  // Redirigir a la página que intentaba visitar o a /horarios por defecto
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {

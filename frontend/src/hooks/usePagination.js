@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -26,7 +26,7 @@ export const usePagination = (viewName, defaultFallback = 20) => {
             // Mapear nombre de vista a propiedad de personalización
             const key = `itemsPerPage${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`;
             if (personalizacion[key]) {
-                return personalizacion[key];
+                return Number(personalizacion[key]); // Asegurar que es número
             }
         }
         
@@ -34,11 +34,25 @@ export const usePagination = (viewName, defaultFallback = 20) => {
     };
 
     const [itemsPerPage, setItemsPerPage] = useState(getPersonalizedItemsPerPage());
+    
+    // Referencia para evitar actualizaciones innecesarias
+    const currentItemsPerPageRef = useRef(itemsPerPage);
 
     // Actualizar si cambia el usuario o su configuración (ej: al guardar en Configuración)
     useEffect(() => {
-        setItemsPerPage(getPersonalizedItemsPerPage());
-    }, [user]);
+        const newValue = getPersonalizedItemsPerPage();
+        // Solo actualizamos si el valor es realmente diferente
+        if (newValue !== currentItemsPerPageRef.current) {
+            currentItemsPerPageRef.current = newValue;
+            setItemsPerPage(newValue);
+        }
+    }, [user]); // Dependencia user es correcta, pero filtramos dentro
 
-    return [itemsPerPage, setItemsPerPage];
+    // Wrapper para setItemsPerPage que actualiza también la ref
+    const setAndTrackItemsPerPage = (value) => {
+        currentItemsPerPageRef.current = value;
+        setItemsPerPage(value);
+    };
+
+    return [itemsPerPage, setAndTrackItemsPerPage];
 };

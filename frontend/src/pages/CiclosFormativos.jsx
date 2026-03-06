@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import styles from './Usuarios.module.css'; // Reutilizamos estilos por ahora
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+
 
 const CiclosFormativos = () => {
   const { user } = useAuth();
@@ -17,6 +20,8 @@ const CiclosFormativos = () => {
 
   const [ciclos, setCiclos] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -34,6 +39,12 @@ const CiclosFormativos = () => {
   const [searchField, setSearchField] = useState('nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -67,25 +78,6 @@ const CiclosFormativos = () => {
     }
   }, [isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        fetchCiclos(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCentro, searchField]);
-
-  // Fetch al cambiar página u orden
-  useEffect(() => {
-    fetchCiclos(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getCicloId = (c) => {
     if (c.id) return c.id;
     if (c['@id']) {
@@ -95,28 +87,36 @@ const CiclosFormativos = () => {
     return null;
   };
 
-  const fetchCiclos = async (page) => {
+  // Función de carga optimizada
+  const fetchCiclosData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/ciclo_formativos?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/ciclo_formativos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (isSuperAdmin && selectedCentro) {
-          url += `&centro=${selectedCentro}`;
+      if (params.isSuperAdmin && params.selectedCentro) {
+          url += `&centro=${params.selectedCentro}`;
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -132,33 +132,82 @@ const CiclosFormativos = () => {
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching ciclos:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchCiclosData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchCiclosData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      selectedCentro, 
+      sortColumn, 
+      sortDirection, 
+      isSuperAdmin,
+      fetchCiclosData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (ciclo = null) => {
+  const handleOpenModal = useCallback((ciclo = null) => {
     if (ciclo) {
       setCurrentCiclo(ciclo);
       
       let centroId = '';
       if (ciclo.centro) {
           if (typeof ciclo.centro === 'string') {
-              // Si es un IRI string ("/api/centros/1")
               centroId = ciclo.centro.split('/').pop();
           } else if (ciclo.centro.id) {
-              // Si es un objeto ({ id: 1, nombre: "..." })
               centroId = ciclo.centro.id;
           }
       }
@@ -177,7 +226,7 @@ const CiclosFormativos = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, [isSuperAdmin, user.centro]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -225,7 +274,17 @@ const CiclosFormativos = () => {
         throw new Error(errorMessage);
       }
 
-      await fetchCiclos(currentPage);
+      // Recargar datos
+      fetchCiclosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -236,7 +295,7 @@ const CiclosFormativos = () => {
     }
   };
 
-  const handleDelete = async (ciclo) => {
+  const handleDelete = useCallback(async (ciclo) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este ciclo?')) {
       return;
     }
@@ -254,15 +313,24 @@ const CiclosFormativos = () => {
         throw new Error('No se pudo eliminar el ciclo');
       }
 
-      fetchCiclos(currentPage);
+      fetchCiclosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin
+      });
 
     } catch (err) {
       console.error("Error deleting ciclo:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: 'Nivel', accessor: 'nivel', sortable: true, sortKey: 'nivel' },
     { 
@@ -287,12 +355,14 @@ const CiclosFormativos = () => {
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Ciclos Formativos">
+        <CrudHeader title="Ciclos Formativos"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select 
                     className={styles.select} 
@@ -325,7 +395,7 @@ const CiclosFormativos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchCiclos(currentPage)} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchCiclosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

@@ -44,11 +44,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read'])] // Añadido festivo:read
+    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read'])] // Añadido festivo:read
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -87,6 +87,10 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Festivo::class)]
     private Collection $festivos;
 
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Tema::class, cascade: ['persist', 'remove'])]
+    #[Groups(['centro:read'])]
+    private Collection $temas;
+
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
@@ -97,6 +101,7 @@ class Centro
         $this->ciclos = new ArrayCollection();
         $this->grupos = new ArrayCollection();
         $this->festivos = new ArrayCollection();
+        $this->temas = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -250,6 +255,35 @@ class Centro
         if ($this->festivos->removeElement($festivo)) {
             if ($festivo->getCentro() === $this) {
                 $festivo->setCentro(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Tema>
+     */
+    public function getTemas(): Collection
+    {
+        return $this->temas;
+    }
+
+    public function addTema(Tema $tema): static
+    {
+        if (!$this->temas->contains($tema)) {
+            $this->temas->add($tema);
+            $tema->setCentro($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTema(Tema $tema): static
+    {
+        if ($this->temas->removeElement($tema)) {
+            if ($tema->getCentro() === $this) {
+                $tema->setCentro(null);
             }
         }
 

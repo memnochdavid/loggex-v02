@@ -1,15 +1,18 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import styles from './Usuarios.module.css'; // Reutilizamos estilos
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
 import Layout from '../components/Layout';
-import ModalView from '../components/ModalView'; // Importar ModalView
-import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
+import ModalView from '../components/ModalView';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
-import {usePagination} from "../hooks/usePagination.js";
+import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
+import Lottie from 'lottie-react';
+import crudAnimation from '../../public/crud.json';
+
 
 const Imparticiones = () => {
   const { user } = useAuth();
@@ -17,9 +20,11 @@ const Imparticiones = () => {
 
   const [imparticiones, setImparticiones] = useState([]);
   const [profesores, setProfesores] = useState([]);
-  const [allModulos, setAllModulos] = useState([]); // Todos los módulos cargados
-  const [allGrupos, setAllGrupos] = useState([]);   // Todos los grupos cargados
+  const [allModulos, setAllModulos] = useState([]);
+  const [allGrupos, setAllGrupos] = useState([]);
   const [centros, setCentros] = useState([]);
+  
+  // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -29,12 +34,17 @@ const Imparticiones = () => {
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  // const [itemsPerPage, setItemsPerPage] = useState(20);
-const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
+  const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('profesor.nombre');
   const [sortColumn, setSortColumn] = useState('id');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Refs para control de flujo
+  const debounceTimeout = useRef(null);
+  const prevSearchTerm = useRef(searchTerm);
+  const prevSearchField = useRef(searchField);
+  const abortController = useRef(null);
 
   // Campos buscables
   const searchFields = [
@@ -55,21 +65,17 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
 
   // Listas filtradas para el modal
   const filteredModulos = useMemo(() => {
-      if (!formData.grupo) return []; // Si no hay grupo, no mostrar módulos (forzar orden)
+      if (!formData.grupo) return [];
       
       const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
       if (!selectedGrupo) return [];
 
-      // Filtrar módulos que coincidan en Ciclo y Curso con el grupo seleccionado
       return allModulos.filter(m => {
-          // Comparar curso
           if (m.curso !== selectedGrupo.curso) return false;
           
-          // Comparar ciclo (puede venir como objeto o IRI)
           const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
           const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
           
-          // Normalizar IDs para comparar
           const modCicloIdStr = String(modCicloId).split('/').pop();
           const grupCicloIdStr = String(grupCicloId).split('/').pop();
 
@@ -128,25 +134,6 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     fetchData();
   }, [selectedCentro, isSuperAdmin]);
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        fetchImparticiones(1);
-        setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedCentro, searchField]);
-
-  // Fetch al cambiar página u orden
-  useEffect(() => {
-    fetchImparticiones(currentPage);
-  }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1);
-  };
-
   const getImparticionId = (i) => {
     if (i.id) return i.id;
     if (i['@id']) {
@@ -156,24 +143,32 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     return null;
   };
 
-  const fetchImparticiones = async (page) => {
+  // Función de carga optimizada
+  const fetchImparticionesData = useCallback(async (params) => {
+    if (abortController.current) {
+        abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     setLoading(true);
+
     try {
-      let url = getApiUrl(`/api/imparticions?page=${page}&itemsPerPage=${itemsPerPage}`);
+      let url = getApiUrl(`/api/imparticions?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (searchTerm) {
-          url += `&${searchField}=${encodeURIComponent(searchTerm)}`; 
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (sortColumn) {
-          url += `&order[${sortColumn}]=${sortDirection}`;
+      if (params.sortColumn) {
+          url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
 
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/ld+json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortController.current.signal
       });
 
       if (!response.ok) {
@@ -189,23 +184,70 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
       setError(null);
 
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error("Error fetching imparticiones:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (abortController.current && !abortController.current.signal.aborted) {
+          setLoading(false);
+      }
     }
+  }, []); 
+
+  // Efecto ÚNICO para cambios
+  useEffect(() => {
+      const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
+      
+      prevSearchTerm.current = searchTerm;
+      prevSearchField.current = searchField;
+
+      const params = {
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      };
+
+      if (searchChanged) {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          debounceTimeout.current = setTimeout(() => {
+              fetchImparticionesData(params);
+          }, 500);
+      } else {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+          fetchImparticionesData(params);
+      }
+
+      return () => {
+          if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+      };
+  }, [
+      currentPage, 
+      itemsPerPage, 
+      searchTerm, 
+      searchField, 
+      sortColumn, 
+      sortDirection, 
+      fetchImparticionesData
+  ]);
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1);
   };
 
-  const handleSort = (columnKey) => {
+  const handleSort = useCallback((columnKey) => {
       if (sortColumn === columnKey) {
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortColumn(columnKey);
           setSortDirection('asc');
       }
-  };
+  }, [sortColumn]);
 
-  const handleOpenModal = (imparticion = null) => {
+  const handleOpenModal = useCallback((imparticion = null) => {
     if (imparticion) {
       setCurrentImparticion(imparticion);
       
@@ -234,7 +276,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
       });
     }
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -247,7 +289,6 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     setFormData(prev => {
         const newData = { ...prev, [name]: value };
         
-        // Si cambiamos grupo, reseteamos módulo porque la lista de módulos disponibles cambiará
         if (name === 'grupo') {
             newData.modulo = ''; 
         }
@@ -294,7 +335,15 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
         throw new Error(errorMessage);
       }
 
-      await fetchImparticiones(currentPage);
+      // Recargar datos
+      fetchImparticionesData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      });
       handleCloseModal();
 
     } catch (err) {
@@ -305,7 +354,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
     }
   };
 
-  const handleDelete = async (imparticion) => {
+  const handleDelete = useCallback(async (imparticion) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta asignación?')) {
       return;
     }
@@ -323,15 +372,22 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
         throw new Error('No se pudo eliminar la asignación');
       }
 
-      fetchImparticiones(currentPage);
+      fetchImparticionesData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection
+      });
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { 
         header: 'Profesor', 
         accessor: (row) => row.profesor ? `${row.profesor.nombre} ${row.profesor.apellidos}` : '-', 
@@ -351,7 +407,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
         sortKey: 'grupo.nombre' 
     },
     { 
-        header: 'Acciones',
+        header: 'Acciones', 
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
@@ -372,12 +428,14 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
         ),
         sortable: false
     }
-  ];
+  ], [handleOpenModal, handleDelete]);
 
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Asignación de Docencia">
+        <CrudHeader title="Asignación de Docencia"
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        >
             {isSuperAdmin && (
                 <select 
                     className={styles.select} 
@@ -410,7 +468,7 @@ const [itemsPerPage, setItemsPerPage] = usePagination('imparticiones');
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticiones(currentPage)} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 

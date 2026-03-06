@@ -1,0 +1,162 @@
+.widget {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+    position: relative;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Estilo para cuando el header está oculto pero queremos mostrar el botón */
+.headerActionsOnly {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: -0.5rem; /* Ajuste para acercarlo a la cabecera del acordeón */
+    padding-top: 0.25rem;
+}
+
+.headerTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--color-text-main);
+}
+
+.headerTitle h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.list {
+    display: flex;
+    flex-direction: column; /* Cambiado de column-reverse a column */
+    gap: 1rem;
+    overflow-y: auto;
+    max-height: 500px;
+    padding-top: 0.5rem;
+}
+
+.empty {
+    color: var(--color-text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+}
+
+.card {
+    /*background-color: var(--color-bg-secondary);*/
+    border: 1px solid var(--color-border);
+    /*border-radius: 8px;*/
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background-color: var(--color-background-light);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: var(--widget-item-hover-bg, var(--color-background-light));
+
+}
+
+.card.global {
+    border-left: 4px solid var(--color-accent);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.cardTitle {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--color-text-main);
+    line-height: 1.4;
+}
+
+.badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.badgeGlobal, .badgeCentro {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.badgeGlobal {
+    background-color: var(--color-accent);
+    color: var(--color-text-main);
+}
+
+.badgeCentro {
+    background-color: var(--color-secondary);
+    color: var(--color-text-main);
+}
+
+.cardBody {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.cardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    /*border-top: 1px solid var(--color-border);*/
+}
+
+.author {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.date {
+    font-weight: 500;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-secondary);
+}
+
+.error {
+    color: var(--color-danger);
+    padding: 1rem;
+    text-align: center;
+    background-color: rgba(var(--color-danger-rgb), 0.1);
+    border-radius: 8px;
+}

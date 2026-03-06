@@ -55,11 +55,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
+    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $email = null;
 
     #[ORM\Column]
@@ -73,11 +73,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
@@ -93,7 +93,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rol_app = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read'])] // Añadido mensaje:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $foto = null;
 
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
