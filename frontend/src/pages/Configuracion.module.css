@@ -175,6 +175,9 @@
     display: flex;
     gap: var(--space-4);
     margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
 }
 
 .sectionTitle {
