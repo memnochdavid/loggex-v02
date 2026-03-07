@@ -31,6 +31,7 @@ export const applyTheme = (colors) => {
     const defaults = {
         primaryColor: '#6366f1',
         secondaryColor: '#64748b',
+        viewBackgroundColor: '#ffffff', // NUEVO
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -81,12 +82,15 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
-        accordionHeaderBgColor: '#f8fafc',
-        accordionHeaderTextColor: '#64748b',
-        accordionHeaderActiveBgColor: '#f1f5f9',
-        accordionHeaderActiveTextColor: '#334155',
-        accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#334155',
+        
+        // Accordion
+        accordionHeaderBgColor: '#5c94f0',
+        accordionHeaderTextColor: '#ffffff',
+        accordionHeaderActiveBgColor: '#77a9f8',
+        accordionHeaderActiveTextColor: '#ffffff',
+        accordionContentBgColor: '#f0f0f0',
+        accordionContentTextColor: '#46505d',
+
         modalHeaderBgColor: '#ffffff',
         modalHeaderTextColor: '#334155',
         modalBodyBgColor: '#ffffff',
@@ -154,6 +158,13 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-700', mixColors(p, '#000000', 0.75));
         root.style.setProperty('--color-primary-800', mixColors(p, '#000000', 0.6));
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
+    }
+
+    // 1.1 Fondo de Vistas (NUEVO)
+    if (theme.viewBackgroundColor) {
+        root.style.setProperty('--bg-view', theme.viewBackgroundColor);
+        // Opcional: Aplicar directamente al body si no se usa la variable en CSS global
+        // document.body.style.backgroundColor = theme.viewBackgroundColor;
     }
 
     // 2. Sidebar

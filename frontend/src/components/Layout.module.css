@@ -15,7 +15,8 @@
 .content {
     flex: 1;
     padding: var(--space-4);
-    background-color: var(--color-gray-50);
+    /* Usamos la variable --bg-view definida en theme.js, con fallback al gris original */
+    background-color: var(--bg-view, var(--color-gray-50));
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
 }
 
@@ -24,6 +25,8 @@
     flex: 1;
     overflow: hidden; /* Sin scroll ni padding */
     padding: 0;
+    /* También aplicamos el fondo aquí por consistencia, aunque a veces estas vistas tienen su propio fondo */
+    background-color: var(--bg-view, var(--color-gray-50));
 }
 @media (max-width: 1200px) {
     .content{

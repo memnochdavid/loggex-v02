@@ -103,20 +103,19 @@ class SecurityController extends AbstractController
 
     private function formatPersonalizacion(Personalizacion $p): array
     {
-        // Helper para valores por defecto
         $v = fn($val, $default) => $val !== null ? $val : $default;
 
         return [
-            // 'savedThemes' => $p->getSavedThemes() ?? [], // ELIMINADO
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
+            'viewBackgroundColor' => $v($p->getViewBackgroundColor(), '#ffffff'), // NUEVO
+
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
             'sidebarActiveColor' => $v($p->getSidebarActiveColor(), '#334155'),
             'sidebarActiveTextColor' => $v($p->getSidebarActiveTextColor(), '#ffffff'),
             'sidebarHoverColor' => $v($p->getSidebarHoverColor(), '#334155'),
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
 
-            // Sidebar Accordion (NUEVO)
             'sidebarAccordionHeaderBgColor' => $v($p->getSidebarAccordionHeaderBgColor(), '#1e293b'),
             'sidebarAccordionHeaderTextColor' => $v($p->getSidebarAccordionHeaderTextColor(), '#ffffff'),
             'sidebarAccordionContentBgColor' => $v($p->getSidebarAccordionContentBgColor(), '#0f172a'),
@@ -160,12 +159,15 @@ class SecurityController extends AbstractController
             'datatablePaginationButtonHoverTextColor' => $v($p->getDatatablePaginationButtonHoverTextColor(), '#334155'),
             'datatablePaginationButtonActiveBgColor' => $v($p->getDatatablePaginationButtonActiveBgColor(), '#e2e8f0'),
             'datatablePaginationButtonActiveTextColor' => $v($p->getDatatablePaginationButtonActiveTextColor(), '#1e293b'),
+
+            // Accordion (Sincronizado con frontend)
             'accordionHeaderBgColor' => $v($p->getAccordionHeaderBgColor(), '#f8fafc'),
             'accordionHeaderTextColor' => $v($p->getAccordionHeaderTextColor(), '#64748b'),
             'accordionHeaderActiveBgColor' => $v($p->getAccordionHeaderActiveBgColor(), '#f1f5f9'),
             'accordionHeaderActiveTextColor' => $v($p->getAccordionHeaderActiveTextColor(), '#334155'),
             'accordionContentBgColor' => $v($p->getAccordionContentBgColor(), '#ffffff'),
             'accordionContentTextColor' => $v($p->getAccordionContentTextColor(), '#334155'),
+
             'modalHeaderBgColor' => $v($p->getModalHeaderBgColor(), '#ffffff'),
             'modalHeaderTextColor' => $v($p->getModalHeaderTextColor(), '#334155'),
             'modalBodyBgColor' => $v($p->getModalBodyBgColor(), '#ffffff'),
@@ -176,12 +178,10 @@ class SecurityController extends AbstractController
             'modalCloseButtonHoverBgColor' => $v($p->getModalCloseButtonHoverBgColor(), '#f1f5f9'),
             'modalCloseButtonHoverTextColor' => $v($p->getModalCloseButtonHoverTextColor(), '#334155'),
 
-            // UserCard (NUEVO)
             'userCardBgColor' => $v($p->getUserCardBgColor(), '#1e293b'),
             'userCardTextColor' => $v($p->getUserCardTextColor(), '#ffffff'),
             'userCardTextSecondaryColor' => $v($p->getUserCardTextSecondaryColor(), '#cbd5e1'),
 
-            // Chat (NUEVO)
             'chatSidebarBgColor' => $v($p->getChatSidebarBgColor(), '#ffffff'),
             'chatItemHoverBgColor' => $v($p->getChatItemHoverBgColor(), '#f1f5f9'),
             'chatItemActiveBgColor' => $v($p->getChatItemActiveBgColor(), '#e0e7ff'),
@@ -193,21 +193,19 @@ class SecurityController extends AbstractController
             'chatHeaderBgColor' => $v($p->getChatHeaderBgColor(), '#1e293b'),
             'chatHeaderTextColor' => $v($p->getChatHeaderTextColor(), '#ffffff'),
             'chatContainerBgColor' => $v($p->getChatContainerBgColor(), '#f8fafc'),
-            'chatInputAreaBgColor' => $v($p->getChatInputAreaBgColor(), '#ffffff'), // NUEVO
+            'chatInputAreaBgColor' => $v($p->getChatInputAreaBgColor(), '#ffffff'),
             'chatBubbleSentBgColor' => $v($p->getChatBubbleSentBgColor(), '#6366f1'),
             'chatBubbleSentTextColor' => $v($p->getChatBubbleSentTextColor(), '#ffffff'),
             'chatBubbleReceivedBgColor' => $v($p->getChatBubbleReceivedBgColor(), '#ffffff'),
             'chatBubbleReceivedTextColor' => $v($p->getChatBubbleReceivedTextColor(), '#334155'),
 
-            // EventCard & EventsSidebar
             'eventCardBgColor' => $v($p->getEventCardBgColor(), '#ffffff'),
             'eventCardBorderColor' => $v($p->getEventCardBorderColor(), '#e2e8f0'),
             'eventCardTitleColor' => $v($p->getEventCardTitleColor(), '#334155'),
             'eventCardMetaColor' => $v($p->getEventCardMetaColor(), '#64748b'),
-            'eventsSidebarBgColor' => $v($p->getEventsSidebarBgColor(), 'transparent'), // AÑADIDO
+            'eventsSidebarBgColor' => $v($p->getEventsSidebarBgColor(), 'transparent'),
             'eventsSidebarTitleColor' => $v($p->getEventsSidebarTitleColor(), '#334155'),
 
-            // Dashboard Widgets
             'widgetBgColor' => $v($p->getWidgetBgColor(), '#ffffff'),
             'widgetHeaderBgColor' => $v($p->getWidgetHeaderBgColor(), '#ffffff'),
             'widgetHeaderTextColor' => $v($p->getWidgetHeaderTextColor(), '#334155'),

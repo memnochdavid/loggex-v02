@@ -412,7 +412,7 @@ const Configuracion = () => {
                                 <span style={{fontWeight: 'bold'}}>Logo</span>
                                 <span>Usuario</span>
                             </div>
-                            <div className={styles.previewBody}>
+                            <div className={styles.previewBody} style={{backgroundColor: settings.viewBackgroundColor}}>
                                 <div className={styles.previewCard}>
                                     <h3 style={{color: settings.primaryColor, marginTop: 0}}>Título Principal</h3>
                                     <p style={{color: settings.secondaryColor}}>Subtítulo o texto secundario de
@@ -790,17 +790,27 @@ const Configuracion = () => {
                 return (
                     <div className={styles.previewBox}>
                         <div className={styles.previewAccordionContainer}>
+                            {/* Ejemplo de ítem inactivo */}
                             <div className={styles.previewAccordionHeader} style={{
                                 backgroundColor: settings.accordionHeaderBgColor,
-                                color: settings.accordionHeaderTextColor
+                                color: settings.accordionHeaderTextColor,
+                                borderBottom: '1px solid #e2e8f0'
                             }}>
-                                Cabecera del Acordeón
+                                Cabecera Inactiva
+                            </div>
+                            
+                            {/* Ejemplo de ítem activo */}
+                            <div className={styles.previewAccordionHeader} style={{
+                                backgroundColor: settings.accordionHeaderActiveBgColor,
+                                color: settings.accordionHeaderActiveTextColor
+                            }}>
+                                Cabecera Activa
                             </div>
                             <div className={styles.previewAccordionContent} style={{
                                 backgroundColor: settings.accordionContentBgColor,
                                 color: settings.accordionContentTextColor
                             }}>
-                                Contenido del acordeón.
+                                Contenido del acordeón activo.
                             </div>
                         </div>
                     </div>
@@ -1176,6 +1186,7 @@ const Configuracion = () => {
                                     {renderColorInput('Color Secundario', 'secondaryColor')}
                                     {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
                                     {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
+                                    {renderColorInput('Fondo de Vistas', 'viewBackgroundColor')} {/* NUEVO */}
 
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>

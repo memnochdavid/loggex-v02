@@ -1,20 +1,18 @@
 .accordionContainer {
     width: 100%;
-    /* max-width: 800px; ELIMINADO para ocupar todo el espacio */
-    /* margin: 2rem auto; ELIMINADO para que el padre controle el margen */
-    /*border: 1px solid var(--color-border);*/
     border-radius: var(--border-radius);
-    /*overflow: hidden;*/
     box-shadow: var(--shadow-elevation-low);
-    /*background-color: var(--bg-card); !* Asegurar fondo *!*/
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-
 .accordionItem {
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    /* Fondo del contenido por defecto */
+    background-color: var(--accordion-content-bg, #f0f0f0);
 }
 
 .accordionItem:last-child {
@@ -26,12 +24,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    background-color: var(--accordion-header-bg, var(--color-background-secondary));
-    color: var(--accordion-header-text, var(--color-text-main));
+    /* Variables de personalización con defaults del tip */
+    background-color: var(--accordion-header-bg, #5c94f0);
+    color: var(--accordion-header-text, #ffffff);
     cursor: pointer;
     font-weight: 600;
     font-size: 1.1rem;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
     gap: var(--space-4);
 }
 
@@ -39,8 +38,15 @@
     filter: brightness(0.95);
 }
 
+/* Estado activo (abierto) */
+.accordionItem.open > .accordionHeader {
+    /* Usamos el mismo color de fondo que el estado plegado por petición del usuario */
+    background-color: var(--accordion-header-bg, #5c94f0) !important;
+    color: var(--accordion-header-text, #ffffff) !important;
+}
+
 .headerContent {
-    flex: 1; /* Ocupar espacio disponible */
+    flex: 1;
     display: flex;
     align-items: center;
 }
@@ -51,6 +57,38 @@
     gap: 1rem;
 }
 
+.chevron {
+    transition: transform 0.3s ease;
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+}
+
+/* Contenido del acordeón */
+.accordionContentWrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    /* Variables de personalización para el contenido */
+    background-color: var(--accordion-content-bg, #f0f0f0);
+    color: var(--accordion-content-text, #46505d);
+}
+
+.accordionContentWrapper.open {
+    max-height: 2000px;
+    border-top: 1px solid var(--color-border);
+}
+
+.accordionContent {
+    padding: 0;
+}
+
+.accordionInner {
+    padding: 1rem;
+}
+
+/* Estilos de botones (respetando los originales de Crud.module.css) */
 .addButton {
     background-color: var(--color-button-primary);
     color: var(--color-button-primary-text);
@@ -65,102 +103,19 @@
 .addButton:hover {
     background-color: var(--color-button-primary-hover);
 }
+
+/* Soporte para botones de Crud.module.css */
 .button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid transparent;
-
     font-family: inherit;
     font-weight: var(--font-medium);
     font-size: var(--text-base);
     cursor: pointer;
-
     transition: var(--transition-base);
     box-shadow: var(--shadow-sm);
 }
-
-/* Variante Primaria (Por defecto) */
-.primary {
-    background-color: var(--btn-primary-bg, var(--color-primary-600));
-    color: var(--btn-primary-text, white);
-}
-
-.primary:hover {
-    background-color: var(--btn-primary-hover, var(--color-primary-700));
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.primary:active {
-    transform: translateY(0);
-}
-.button:active{
-    scale: 0.9;
-
-}
-
-/* Variante Secundaria (Outline) */
-.secondary {
-    background-color: var(--btn-secondary-bg, transparent);
-    /*border-color: var(--color-gray-300);*/
-    color: var(--btn-secondary-text, var(--text-main));
-}
-
-.secondary:hover {
-    /* Eliminamos el cambio de color de borde al primario */
-    /* border-color: var(--color-primary-500); */
-
-    /* Mantenemos el borde gris o lo hacemos un poco más oscuro */
-    /*border-color: var(--color-gray-400);*/
-
-    background-color: var(--btn-secondary-bg, var(--color-primary-700));
-    transform: translateY(-1px); /* Añadimos el efecto de movimiento */
-    box-shadow: var(--shadow-md);
-}
-
-.secondary:active {
-    transform: translateY(0);
-}
-
-/* Variante Danger */
-.danger {
-    background-color: var(--color-error);
-    color: white;
-}
-
-.danger:hover {
-    background-color: #dc2626; /* Un rojo más oscuro */
-}
-.chevron {
-    transition: transform 0.3s ease;
-}
-
-.chevron.open {
-    transform: rotate(180deg);
-}
-
-/* Animación simplificada */
-.accordionContentWrapper {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    background-color: var(--accordion-content-bg, var(--color-background-light));
-    color: var(--accordion-content-text, var(--color-text-secondary));
-}
-
-.accordionContentWrapper.open {
-    max-height: 2000px; /* Altura suficiente */
-    border-top: 1px solid var(--color-border);
-}
-
-.accordionContent {
-    padding: 0;
-}
-
-/*.accordionInner {*/
-/*    padding: 0.2rem;*/
-/*}*/
