@@ -223,64 +223,52 @@ const Tareas = () => {
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
-      return (
-          <div className={styles.cardList}>
-              {tareas.length === 0 ? (
-                  <div className={styles.emptyState}>No hay tareas asignadas.</div>
-              ) : (
-                  tareas.map(tarea => (
-                      <div key={tarea.id} className={styles.card}>
-                          <div className={styles.cardInfo}>
-                              <div className={styles.cardTitle}>
-                                  <FileText size={18} className={styles.icon} />
-                                  {tarea.titulo}
-                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`}>Oculta</span>}
-                              </div>
-                              {tarea.descripcion && (
-                                  <div className={styles.cardDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
-                              )}
-                              
-                              {tarea.archivo && (
-                                  <div style={{ marginBottom: '0.5rem' }}>
-                                      <a 
-                                          href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className={styles.fileLink}
-                                      >
-                                          <Paperclip size={16} />
-                                          Descargar adjunto
-                                      </a>
-                                  </div>
-                              )}
+      if (tareas.length === 0) {
+          return <div className={styles.emptyState}>No hay tareas asignadas.</div>;
+      }
 
-                              <div className={styles.cardMeta}>
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <Calendar size={14} /> 
-                                      Entrega: {new Date(tarea.fechaLimite).toLocaleString()}
-                                  </span>
-                                  <span className={`${styles.badge} ${styles.badgeInfo}`}>
-                                      {tarea.tipo}
-                                  </span>
-                              </div>
-                          </div>
-                          
-                          <div className={styles.cardActions}>
-                              {(isProfesor || isAdmin) ? (
-                                  <>
-                                      <button className={`${styles.iconButton}`} onClick={() => handleOpenModal(imparticion.id, tarea)}>
-                                          <Edit2 size={18} />
-                                      </button>
-                                      <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)}>
-                                          <Trash2 size={18} />
-                                      </button>
-                                  </>
-                              ) : null /* Eliminado el botón Ver / Entregar para alumnos */}
+      return (
+          <ul className={styles.list}>
+              {tareas.map(tarea => (
+                  <li key={tarea.id} className={styles.listItem}>
+                      <div className={styles.itemInfo}>
+                          <FileText size={20} className={styles.icon} />
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
+                              <span className={styles.date}>
+                                  Entrega: {new Date(tarea.fechaLimite).toLocaleString()} • {tarea.tipo}
+                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`} style={{ marginLeft: '8px' }}>Oculta</span>}
+                              </span>
                           </div>
                       </div>
-                  ))
-              )}
-          </div>
+                      
+                      <div className={styles.itemActions}>
+                          {tarea.archivo && (
+                              <a 
+                                  href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.downloadLink}
+                                  title="Descargar adjunto"
+                              >
+                                  <Paperclip size={18} />
+                              </a>
+                          )}
+                          
+                          {(isProfesor || isAdmin) && (
+                              <>
+                                  <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)} title="Editar">
+                                      <Edit2 size={18} />
+                                  </button>
+                                  <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)} title="Eliminar">
+                                      <Trash2 size={18} />
+                                  </button>
+                              </>
+                          )}
+                      </div>
+                  </li>
+              ))}
+          </ul>
       );
   };
 

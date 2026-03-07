@@ -109,15 +109,17 @@ const MaterialesAlumno = () => {
                     {new Date(mat.fechaSubida).toLocaleDateString()}
                 </span>
             </div>
-            <a 
-                href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={styles.downloadLink}
-                download
-            >
-                <Download size={18} />
-            </a>
+            <div className={styles.itemActions}>
+                <a 
+                    href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.downloadLink}
+                    download
+                >
+                    <Download size={18} />
+                </a>
+            </div>
           </li>
         ))}
       </ul>

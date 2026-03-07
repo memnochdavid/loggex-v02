@@ -269,7 +269,7 @@ const Entregas = () => {
       if (tareas.length === 0) return <div className={styles.emptyState}>No hay tareas.</div>;
 
       return (
-          <div className={styles.cardList}>
+          <ul className={styles.list}>
               {tareas.map(tarea => {
                   const entrega = misEntregas[tarea.id];
                   const estado = entrega ? (entrega.calificacion ? 'Calificado' : 'Entregado') : 'Pendiente';
@@ -279,41 +279,42 @@ const Entregas = () => {
                   const isLate = new Date() > new Date(tarea.fechaLimite);
                   
                   return (
-                      <div key={tarea.id} className={styles.card}>
-                          <div className={styles.cardInfo}>
-                              <div className={styles.cardTitle}>
-                                  <FileText size={18} className={styles.icon} /> {tarea.titulo}
-                              </div>
-                              <div className={styles.cardMeta}>
-                                  <span><Calendar size={14}/> {new Date(tarea.fechaLimite).toLocaleString()}</span>
-                                  {isAlumno && (
-                                      <span className={`${styles.badge} ${isLate && !entrega ? styles.badgeError : badgeClass}`}>
-                                          {isLate && !entrega ? 'Retrasada' : estado}
-                                      </span>
-                                  )}
-                              </div>
-                              
-                              {isAlumno && entrega && entrega.calificacion && (
-                                  <div className={styles.feedbackContainer}>
-                                      <div className={styles.feedbackHeader}>
-                                          <Award size={16} /> Nota: {entrega.calificacion.nota}
-                                      </div>
-                                      {entrega.calificacion.feedbackProfesor && (
-                                          <div className={styles.feedbackText}>
-                                              <MessageSquare size={16} style={{flexShrink: 0, marginTop: '2px', display: 'inline', marginRight: '8px'}} />
-                                              <span>{entrega.calificacion.feedbackProfesor}</span>
-                                          </div>
+                      <li key={tarea.id} className={styles.listItem}>
+                          <div className={styles.itemInfo}>
+                              <FileText size={20} className={styles.icon} />
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
+                                  <div className={styles.cardMeta}>
+                                      <span><Calendar size={14}/> {new Date(tarea.fechaLimite).toLocaleString()}</span>
+                                      {isAlumno && (
+                                          <span className={`${styles.badge} ${isLate && !entrega ? styles.badgeError : badgeClass}`} style={{ marginLeft: '8px' }}>
+                                              {isLate && !entrega ? 'Retrasada' : estado}
+                                          </span>
                                       )}
                                   </div>
-                              )}
+                                  
+                                  {isAlumno && entrega && entrega.calificacion && (
+                                      <div className={styles.feedbackContainer} style={{ marginTop: '0.5rem' }}>
+                                          <div className={styles.feedbackHeader}>
+                                              <Award size={16} /> Nota: {entrega.calificacion.nota}
+                                          </div>
+                                          {entrega.calificacion.feedbackProfesor && (
+                                              <div className={styles.feedbackText}>
+                                                  <MessageSquare size={16} style={{flexShrink: 0, marginTop: '2px', display: 'inline', marginRight: '8px'}} />
+                                                  <span>{entrega.calificacion.feedbackProfesor}</span>
+                                              </div>
+                                          )}
+                                      </div>
+                                  )}
+                              </div>
                           </div>
                           
-                          <div className={styles.cardActions}>
+                          <div className={styles.itemActions}>
                               {/* CORRECCIÓN: Ocultar botón si es tarde */}
                               {isAlumno && !isLate && (
                                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                                       <Upload size={16} style={{marginRight:'4px'}}/> 
-                                      {entrega ? 'Editar Entrega' : 'Entregar'}
+                                      {entrega ? 'Editar' : 'Entregar'}
                                   </Button>
                               )}
                               
@@ -323,10 +324,10 @@ const Entregas = () => {
                                   </Button>
                               )}
                           </div>
-                      </div>
+                      </li>
                   );
               })}
-          </div>
+          </ul>
       );
   };
 
