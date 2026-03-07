@@ -31,7 +31,10 @@ export const applyTheme = (colors) => {
     const defaults = {
         primaryColor: '#6366f1',
         secondaryColor: '#64748b',
-        viewBackgroundColor: '#ffffff', // NUEVO
+        viewBackgroundColor: '#ffffff',
+        borderRadius: '0.5rem',
+        showLottie: true,
+        enableDraggableModal: true,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -145,6 +148,15 @@ export const applyTheme = (colors) => {
 
     const theme = { ...defaults, ...colors };
 
+    // Guardar configuración global para acceso JS (Lottie, Draggable)
+    window.themeConfig = {
+        showLottie: theme.showLottie,
+        enableDraggableModal: theme.enableDraggableModal
+    };
+
+    // Disparar evento para que los componentes se actualicen
+    window.dispatchEvent(new Event('themeConfigChanged'));
+
     // 1. Color Primario
     if (theme.primaryColor) {
         const p = theme.primaryColor;
@@ -160,11 +172,21 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
     }
 
-    // 1.1 Fondo de Vistas (NUEVO)
+    // 1.1 Fondo de Vistas
     if (theme.viewBackgroundColor) {
         root.style.setProperty('--bg-view', theme.viewBackgroundColor);
-        // Opcional: Aplicar directamente al body si no se usa la variable en CSS global
-        // document.body.style.backgroundColor = theme.viewBackgroundColor;
+    }
+
+    // 1.2 Border Radius
+    if (theme.borderRadius) {
+        root.style.setProperty('--border-radius', theme.borderRadius);
+        // Variables derivadas
+        root.style.setProperty('--radius-md', theme.borderRadius);
+        root.style.setProperty('--radius-lg', `calc(${theme.borderRadius} + 0.25rem)`);
+        root.style.setProperty('--radius-sm', `calc(${theme.borderRadius} - 0.125rem)`);
+        
+        // Variable específica usada en AccordionView.module.css
+        root.style.setProperty('--border-radius-small', `calc(${theme.borderRadius} - 0.125rem)`);
     }
 
     // 2. Sidebar

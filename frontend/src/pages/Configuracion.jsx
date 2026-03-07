@@ -133,10 +133,10 @@ const Configuracion = () => {
     }, [settings]);
 
     const handleChange = (e) => {
-        const {name, value, type} = e.target;
+        const {name, value, type, checked} = e.target;
         setSettings(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseInt(value) : value
+            [name]: type === 'checkbox' ? checked : (type === 'number' ? parseInt(value) : value)
         }));
     };
 
@@ -413,7 +413,7 @@ const Configuracion = () => {
                                 <span>Usuario</span>
                             </div>
                             <div className={styles.previewBody} style={{backgroundColor: settings.viewBackgroundColor}}>
-                                <div className={styles.previewCard}>
+                                <div className={styles.previewCard} style={{borderRadius: settings.borderRadius}}>
                                     <h3 style={{color: settings.primaryColor, marginTop: 0}}>Título Principal</h3>
                                     <p style={{color: settings.secondaryColor}}>Subtítulo o texto secundario de
                                         ejemplo.</p>
@@ -1186,7 +1186,52 @@ const Configuracion = () => {
                                     {renderColorInput('Color Secundario', 'secondaryColor')}
                                     {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
                                     {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
-                                    {renderColorInput('Fondo de Vistas', 'viewBackgroundColor')} {/* NUEVO */}
+                                    {renderColorInput('Fondo de Vistas', 'viewBackgroundColor')}
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>Forma de Elementos (Border Radius)</label>
+                                        <select
+                                            name="borderRadius"
+                                            value={settings.borderRadius || '0.5rem'}
+                                            onChange={handleChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="0">Cuadrado (0px)</option>
+                                            <option value="0.25rem">Pequeño (4px)</option>
+                                            <option value="0.5rem">Mediano (8px)</option>
+                                            <option value="0.75rem">Grande (12px)</option>
+                                            <option value="1rem">Muy Grande (16px)</option>
+                                            <option value="1.5rem">Extra Grande (24px)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
+                                        <input
+                                            type="checkbox"
+                                            name="showLottie"
+                                            checked={settings.showLottie !== false}
+                                            onChange={handleChange}
+                                            id="showLottie"
+                                            style={{width: '20px', height: '20px'}}
+                                        />
+                                        <label htmlFor="showLottie" className={styles.label} style={{cursor: 'pointer'}}>
+                                            Mostrar animaciones Lottie en cabeceras
+                                        </label>
+                                    </div>
+
+                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
+                                        <input
+                                            type="checkbox"
+                                            name="enableDraggableModal"
+                                            checked={settings.enableDraggableModal !== false}
+                                            onChange={handleChange}
+                                            id="enableDraggableModal"
+                                            style={{width: '20px', height: '20px'}}
+                                        />
+                                        <label htmlFor="enableDraggableModal" className={styles.label} style={{cursor: 'pointer'}}>
+                                            Habilitar arrastre de modales (Draggable)
+                                        </label>
+                                    </div>
 
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>

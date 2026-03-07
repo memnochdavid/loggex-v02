@@ -1,7 +1,10 @@
 export const DEFAULT_THEME = {
     primaryColor: '#6366f1',
     secondaryColor: '#64748b',
-    viewBackgroundColor: '#ffffff', // NUEVO
+    viewBackgroundColor: '#ffffff',
+    borderRadius: '0.5rem', // NUEVO
+    showLottie: true, // NUEVO
+    enableDraggableModal: true, // NUEVO
     sidebarColor: '#1e293b',
     sidebarActiveColor: '#334155',
     sidebarActiveTextColor: '#ffffff',

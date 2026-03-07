@@ -50,7 +50,19 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $viewBackgroundColor = '#ffffff'; // NUEVO
+    private ?string $viewBackgroundColor = '#ffffff';
+
+    #[ORM\Column(length: 20)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $borderRadius = '0.5rem'; // NUEVO
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private bool $showLottie = true; // NUEVO
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private bool $enableDraggableModal = true; // NUEVO
 
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
@@ -499,6 +511,15 @@ class Personalizacion
 
     public function getViewBackgroundColor(): ?string { return $this->viewBackgroundColor; }
     public function setViewBackgroundColor(string $color): static { $this->viewBackgroundColor = $color; return $this; }
+
+    public function getBorderRadius(): ?string { return $this->borderRadius; }
+    public function setBorderRadius(string $radius): static { $this->borderRadius = $radius; return $this; }
+
+    public function isShowLottie(): bool { return $this->showLottie; }
+    public function setShowLottie(bool $show): static { $this->showLottie = $show; return $this; }
+
+    public function isEnableDraggableModal(): bool { return $this->enableDraggableModal; }
+    public function setEnableDraggableModal(bool $enable): static { $this->enableDraggableModal = $enable; return $this; }
 
     public function getSidebarColor(): ?string { return $this->sidebarColor; }
     public function setSidebarColor(string $color): static { $this->sidebarColor = $color; return $this; }

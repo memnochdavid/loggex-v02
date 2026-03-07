@@ -51,7 +51,10 @@ class PersonalizacionController extends AbstractController
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
         if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
-        if (isset($data['viewBackgroundColor'])) $personalizacion->setViewBackgroundColor($data['viewBackgroundColor']); // NUEVO
+        if (isset($data['viewBackgroundColor'])) $personalizacion->setViewBackgroundColor($data['viewBackgroundColor']);
+        if (isset($data['borderRadius'])) $personalizacion->setBorderRadius($data['borderRadius']); // NUEVO
+        if (isset($data['showLottie'])) $personalizacion->setShowLottie($data['showLottie']); // NUEVO
+        if (isset($data['enableDraggableModal'])) $personalizacion->setEnableDraggableModal($data['enableDraggableModal']); // NUEVO
 
         // Sidebar
         if (isset($data['sidebarColor'])) $personalizacion->setSidebarColor($data['sidebarColor']);

@@ -108,7 +108,10 @@ class SecurityController extends AbstractController
         return [
             'primaryColor' => $v($p->getPrimaryColor(), '#6366f1'),
             'secondaryColor' => $v($p->getSecondaryColor(), '#64748b'),
-            'viewBackgroundColor' => $v($p->getViewBackgroundColor(), '#ffffff'), // NUEVO
+            'viewBackgroundColor' => $v($p->getViewBackgroundColor(), '#ffffff'),
+            'borderRadius' => $v($p->getBorderRadius(), '0.5rem'), // NUEVO
+            'showLottie' => $p->isShowLottie(), // NUEVO
+            'enableDraggableModal' => $p->isEnableDraggableModal(), // NUEVO
 
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
             'sidebarActiveColor' => $v($p->getSidebarActiveColor(), '#334155'),
