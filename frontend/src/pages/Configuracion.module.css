@@ -42,7 +42,7 @@
     padding: var(--space-3) var(--space-4);
     border: none;
     background: transparent;
-    color: var(--color-gray-600);
+    color: var(--text-main); /* Usar variable de texto principal */
     border-radius: var(--radius-md);
     cursor: pointer;
     text-align: left;
@@ -52,8 +52,8 @@
 }
 
 .tabButton:hover {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-900);
+    background-color: var(--bg-input); /* Usar fondo de input/hover */
+    color: var(--text-main);
 }
 
 .activeTab {
@@ -70,8 +70,8 @@
 }
 
 .formSection {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     box-shadow: var(--shadow-sm);
@@ -105,7 +105,7 @@
     width: 40px;
     height: 40px;
     padding: 0;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-md);
     cursor: pointer;
     background: none;
@@ -114,12 +114,12 @@
 .colorTextInput {
     flex: 1;
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-md);
     font-family: monospace;
     font-size: var(--text-sm);
-    background-color: var(--bg-input);
-    color: var(--text-main);
+    background-color: var(--bg-input); /* Usar variable maestra */
+    color: var(--text-input); /* Usar variable maestra */
 }
 
 .previewContainer {
@@ -137,8 +137,8 @@
 }
 
 .previewBox {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     padding: var(--space-4);
     box-shadow: var(--shadow-sm);
@@ -183,7 +183,7 @@
     color: var(--text-main);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--color-border); /* Usar variable maestra */
 }
 
 .themesGrid {
@@ -193,10 +193,10 @@
 }
 
 .themeCard {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     overflow: hidden;
-    background-color: var(--bg-card);
+    background-color: var(--bg-card); /* Usar variable maestra */
     transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
@@ -232,7 +232,7 @@
 
 .themeContent {
     flex: 1;
-    background-color: #f8fafc;
+    background-color: var(--bg-view, #f8fafc); /* Usar variable de vista */
     padding: 10px;
     display: flex;
     align-items: center;
@@ -250,8 +250,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-card);
+    border-top: 1px solid var(--color-border); /* Usar variable maestra */
+    background-color: var(--bg-card); /* Usar variable maestra */
 }
 
 .themeName {
@@ -271,16 +271,16 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-md);
-    background-color: var(--bg-card);
-    color: var(--color-gray-600);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    color: var(--text-main); /* Usar variable maestra */
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .iconButton:hover {
-    background-color: var(--color-gray-50);
+    background-color: var(--bg-input); /* Usar variable maestra */
     color: var(--color-primary-600);
     border-color: var(--color-primary-200);
 }
@@ -332,8 +332,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-md);
     color: var(--text-main);
     font-size: var(--text-sm);
@@ -343,7 +343,7 @@
 }
 
 .fileInputLabel:hover {
-    background-color: var(--color-gray-50);
+    background-color: var(--bg-input); /* Usar variable maestra */
     border-color: var(--color-gray-400);
 }
 
@@ -358,7 +358,7 @@
 
 /* Estilos para las vistas previas */
 .previewGeneral {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
@@ -371,13 +371,13 @@
 
 .previewBody {
     padding: 20px;
-    background-color: #f8fafc;
+    background-color: var(--bg-view); /* Usar variable de vista */
 }
 
 .previewCard {
-    background-color: white;
+    background-color: var(--bg-card); /* Usar variable maestra */
     padding: 15px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
 }
 
@@ -390,7 +390,7 @@
 .previewSidebar {
     width: 100%;
     max-width: 200px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     padding: 10px;
 }
@@ -398,7 +398,7 @@
 .previewSidebarItem {
     padding: 10px;
     margin-bottom: 5px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -406,10 +406,10 @@
 }
 
 .previewTextContainer {
-    background-color: white;
+    background-color: var(--bg-card); /* Usar variable maestra */
     padding: 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
 }
 
 .previewButtonsContainer {
@@ -421,16 +421,16 @@
 .previewButton {
     border: none;
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
     font-size: 12px;
 }
 
 .previewButtonSecondary {
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
     font-size: 12px;
@@ -440,8 +440,8 @@
     height: 100px;
     width: 100%;
     overflow-y: scroll;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
+    border-radius: var(--radius-md);
     padding: 10px;
     position: relative;
 }
@@ -469,10 +469,10 @@
 .previewCalendarContainer {
     width: 100%;
     max-width: 250px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
+    border-radius: var(--radius-md);
     padding: 10px;
-    background-color: white;
+    background-color: var(--bg-card); /* Usar variable maestra */
 }
 
 .previewCalendarGrid {
@@ -501,32 +501,32 @@
 .previewTimetableContainer {
     display: grid;
     grid-template-columns: 60px 1fr 1fr;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
+    border-radius: var(--radius-sm);
     overflow: hidden;
     font-size: 12px;
 }
 
 .previewTimetableHeader {
     padding: 5px;
-    border-bottom: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--color-border); /* Usar variable maestra */
+    border-right: 1px solid var(--color-border); /* Usar variable maestra */
     text-align: center;
     font-weight: bold;
 }
 
 .previewTimetableCell {
     padding: 10px;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid var(--color-border); /* Usar variable maestra */
 }
 
 .previewDatatableHeader {
     padding: 10px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: bold;
     text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--color-border); /* Usar variable maestra */
     margin-bottom: 10px;
     display: flex;
     gap: 10px;
@@ -534,7 +534,7 @@
 
 .previewDatatablePagination {
     padding: 10px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     display: flex;
     justify-content: space-between;
@@ -544,13 +544,13 @@
 
 .previewPaginationButton {
     padding: 5px 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
 }
 
 .previewAccordionContainer {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
@@ -566,8 +566,8 @@
 }
 
 .previewModalContainer {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 1px solid var(--color-border); /* Usar variable maestra */
+    border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     width: 100%;
@@ -578,7 +578,7 @@
 .previewModalHeader {
     padding: 10px 15px;
     font-weight: bold;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--color-border); /* Usar variable maestra */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -591,8 +591,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); /* Usar variable maestra */
     font-size: 12px;
 }
 
@@ -603,7 +603,7 @@
 
 .previewModalFooter {
     padding: 10px 15px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--color-border); /* Usar variable maestra */
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -611,7 +611,7 @@
 
 .previewTitleContainer {
     padding: 20px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: flex;
     justify-content: center;
     align-items: center;

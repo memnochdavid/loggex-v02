@@ -24,6 +24,15 @@ const mixColors = (color1, color2, weight) => {
     return `rgb(${r}, ${g}, ${b})`;
 };
 
+// Función para determinar si un color es oscuro (para ajustar textos automáticamente si es necesario)
+const isDark = (color) => {
+    const rgb = hexToRgb(color);
+    if (!rgb) return false;
+    // Fórmula de luminancia
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return luminance < 0.5;
+};
+
 export const applyTheme = (colors) => {
     const root = document.documentElement;
     
@@ -148,14 +157,32 @@ export const applyTheme = (colors) => {
 
     const theme = { ...defaults, ...colors };
 
-    // Guardar configuración global para acceso JS (Lottie, Draggable)
+    // Guardar configuración global
     window.themeConfig = {
         showLottie: theme.showLottie,
         enableDraggableModal: theme.enableDraggableModal
     };
-
-    // Disparar evento para que los componentes se actualicen
     window.dispatchEvent(new Event('themeConfigChanged'));
+
+    // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
+    // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra
+    root.style.setProperty('--bg-card', theme.widgetBgColor);
+    
+    // Usamos widgetBorderColor como base para bordes genéricos
+    root.style.setProperty('--color-border', theme.widgetBorderColor);
+    
+    // Inputs: Si el fondo de la vista es oscuro, el input debe ser un poco más claro u oscuro
+    const isViewDark = isDark(theme.viewBackgroundColor);
+    const inputBg = isViewDark 
+        ? mixColors(theme.viewBackgroundColor, '#ffffff', 0.9) // Un poco más claro que el fondo
+        : '#ffffff'; // Blanco por defecto en modo claro
+    const inputText = isViewDark ? '#ffffff' : theme.textMainColor;
+    
+    root.style.setProperty('--bg-input', inputBg);
+    root.style.setProperty('--text-input', inputText);
+    root.style.setProperty('--border-input', theme.widgetBorderColor);
+
+    // --- FIN VARIABLES MAESTRAS ---
 
     // 1. Color Primario
     if (theme.primaryColor) {
@@ -180,12 +207,9 @@ export const applyTheme = (colors) => {
     // 1.2 Border Radius
     if (theme.borderRadius) {
         root.style.setProperty('--border-radius', theme.borderRadius);
-        // Variables derivadas
         root.style.setProperty('--radius-md', theme.borderRadius);
         root.style.setProperty('--radius-lg', `calc(${theme.borderRadius} + 0.25rem)`);
         root.style.setProperty('--radius-sm', `calc(${theme.borderRadius} - 0.125rem)`);
-        
-        // Variable específica usada en AccordionView.module.css
         root.style.setProperty('--border-radius-small', `calc(${theme.borderRadius} - 0.125rem)`);
     }
 
