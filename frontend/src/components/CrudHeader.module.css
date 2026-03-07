@@ -34,7 +34,7 @@
 .title {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--text-special, var(--text-main)); /* Usar color especial o principal */
+    color: var(--text-main); /* Usar color principal */
     margin: 0;
     line-height: 1.2;
 }
