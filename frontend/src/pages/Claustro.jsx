@@ -18,29 +18,68 @@ const Claustro = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchField, setSearchField] = useState('nombre');
 
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Estados para filtros de SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+
     const searchFields = [
         { value: 'nombre', label: 'Nombre' },
         { value: 'apellidos', label: 'Apellidos' },
         { value: 'email', label: 'Email' }
     ];
 
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetch(getApiUrl('/api/centros?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setCentros(items);
+            })
+            .catch(err => console.error("Error cargando centros:", err));
+        }
+    }, [isSuperAdmin]);
+
     useEffect(() => {
         if (user) {
             fetchProfesores();
         }
-    }, [user]);
+    }, [user, selectedCentro]);
 
     const fetchProfesores = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getApiUrl('/api/v1/profesor/claustro'), {
-                headers: { 'Accept': 'application/json' },
+            let url;
+            let options = {
+                headers: { 'Accept': 'application/json' }, // Por defecto JSON simple para endpoint custom
                 credentials: 'include'
-            });
+            };
+
+            if (isSuperAdmin) {
+                // Superadmin usa endpoint estándar de usuarios filtrado por rol y centro
+                url = getApiUrl('/api/users?roles=ROLE_PROFESOR&pagination=false');
+                if (selectedCentro) {
+                    url += `&centro=${selectedCentro}`;
+                }
+                options.headers['Accept'] = 'application/ld+json'; // API Platform usa ld+json
+            } else {
+                // Usuarios normales usan el endpoint custom que ya filtra por su contexto
+                url = getApiUrl('/api/v1/profesor/claustro');
+            }
+
+            const response = await fetch(url, options);
 
             if (response.ok) {
                 const data = await response.json();
-                setProfesores(data);
+                // Normalizar respuesta (endpoint custom devuelve array directo, API Platform devuelve hydra:member)
+                const items = Array.isArray(data) ? data : (data['hydra:member'] || data.member || []);
+                setProfesores(items);
             }
         } catch (error) {
             console.error("Error cargando claustro:", error);
@@ -65,6 +104,19 @@ const Claustro = () => {
                 <CrudHeader title="Claustro de Profesores"
                             logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
+                    {isSuperAdmin && (
+                        <select 
+                            className={styles.select} // Usar clase de Academic.module.css (o importarla si no está disponible globalmente, pero styles apunta a Academic)
+                            value={selectedCentro}
+                            onChange={(e) => setSelectedCentro(e.target.value)}
+                            style={{ minWidth: '200px', marginRight: '1rem' }}
+                        >
+                            <option value="">Todos los Centros</option>
+                            {centros.map(c => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
+                            ))}
+                        </select>
+                    )}
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
@@ -87,7 +139,11 @@ const Claustro = () => {
                             />
                         ))}
                         {filteredProfesores.length === 0 && (
-                            <div className={styles.emptyState}>No se encontraron profesores.</div>
+                            <div className={styles.emptyState}>
+                                {isSuperAdmin && !selectedCentro 
+                                    ? "Selecciona un centro para ver el claustro." 
+                                    : "No se encontraron profesores."}
+                            </div>
                         )}
                     </div>
                 )}

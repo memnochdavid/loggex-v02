@@ -16,12 +16,21 @@ const Entregas = () => {
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [asignaturas, setAsignaturas] = useState([]);
   const [misEntregas, setMisEntregas] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Estados para filtros de SuperAdmin
+  const [centros, setCentros] = useState([]);
+  const [selectedCentro, setSelectedCentro] = useState('');
+  const [grupos, setGrupos] = useState([]);
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [modulos, setModulos] = useState([]); // NUEVO
+  const [selectedModulo, setSelectedModulo] = useState(''); // NUEVO
 
   // Estado Modal Alumno (Subir Entrega)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -47,11 +56,81 @@ const Entregas = () => {
   });
   const [savingGrade, setSavingGrade] = useState(false);
 
+  // Cargar centros para SuperAdmin
+  useEffect(() => {
+      if (isSuperAdmin) {
+          fetch(getApiUrl('/api/centros?pagination=false'), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setCentros(items);
+          })
+          .catch(err => console.error("Error cargando centros:", err));
+      }
+  }, [isSuperAdmin]);
+
+  // Cargar grupos cuando cambia el centro seleccionado
+  useEffect(() => {
+      if (isSuperAdmin && selectedCentro) {
+          fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setGrupos(items);
+              setSelectedGrupo(''); // Resetear grupo al cambiar centro
+              setModulos([]); // Resetear módulos
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando grupos:", err));
+      } else {
+          setGrupos([]);
+          setSelectedGrupo('');
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedCentro, isSuperAdmin]);
+
+  // Cargar módulos cuando cambia el grupo seleccionado (NUEVO)
+  useEffect(() => {
+      if (isSuperAdmin && selectedGrupo) {
+          // Obtener imparticiones del grupo para sacar los módulos
+          fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              // Extraer módulos únicos
+              const uniqueModulos = [];
+              const map = new Map();
+              for (const item of items) {
+                  if (item.modulo && !map.has(item.modulo.id)) {
+                      map.set(item.modulo.id, true);
+                      uniqueModulos.push(item.modulo);
+                  }
+              }
+              setModulos(uniqueModulos);
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando módulos:", err));
+      } else {
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedGrupo, isSuperAdmin]);
+
   useEffect(() => {
     if (user) {
         fetchData();
     }
-  }, [user]);
+  }, [user, selectedCentro, selectedGrupo, selectedModulo]); // Añadidos filtros a dependencias
 
   const fetchData = async () => {
     setLoading(true);
@@ -71,6 +150,18 @@ const Entregas = () => {
                 const gruposQuery = grupoIds.map(id => `grupo[]=${id}`).join('&');
                 endpoint = getApiUrl(`/api/imparticions?${gruposQuery}&pagination=false`);
             }
+        } else if (isSuperAdmin) {
+             // Lógica de filtrado para SuperAdmin
+             let query = 'pagination=false';
+             if (selectedModulo) {
+                 query += `&modulo=${selectedModulo}`;
+                 if (selectedGrupo) query += `&grupo=${selectedGrupo}`;
+             } else if (selectedGrupo) {
+                 query += `&grupo=${selectedGrupo}`;
+             } else if (selectedCentro) {
+                 query += `&grupo.centro=${selectedCentro}`;
+             }
+             endpoint = getApiUrl(`/api/imparticions?${query}`);
         } else if (isAdmin) {
              endpoint = getApiUrl(`/api/imparticions?pagination=false`);
         }
@@ -89,7 +180,7 @@ const Entregas = () => {
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
-                if (isAlumno && nombreProfesor) {
+                if ((isAlumno || isSuperAdmin) && nombreProfesor) {
                     title += ` (${nombreProfesor})`;
                 }
 
@@ -318,7 +409,7 @@ const Entregas = () => {
                                   </Button>
                               )}
                               
-                              {(isProfesor || isAdmin) && (
+                              {(isProfesor || isAdmin || isSuperAdmin) && (
                                   <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea)}>
                                       <Eye size={16} style={{marginRight:'4px'}}/> Ver Entregas
                                   </Button>
@@ -395,10 +486,60 @@ const Entregas = () => {
       <div className={styles.container}>
         <CrudHeader title="Entregas"
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        />
+        >
+            {isSuperAdmin && (
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select 
+                        className={styles.select} // Usar clase de Academic.module.css
+                        value={selectedCentro}
+                        onChange={(e) => setSelectedCentro(e.target.value)}
+                        style={{ minWidth: '200px' }}
+                    >
+                        <option value="">Todos los Centros</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select}
+                        value={selectedGrupo}
+                        onChange={(e) => setSelectedGrupo(e.target.value)}
+                        disabled={!selectedCentro}
+                        style={{ minWidth: '150px' }}
+                    >
+                        <option value="">Todos los Grupos</option>
+                        {grupos.map(g => (
+                            <option key={g.id} value={g.id}>{g.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select}
+                        value={selectedModulo}
+                        onChange={(e) => setSelectedModulo(e.target.value)}
+                        disabled={!selectedGrupo}
+                        style={{ minWidth: '150px' }}
+                    >
+                        <option value="">Todos los Módulos</option>
+                        {modulos.map(m => (
+                            <option key={m.id} value={m.id}>{m.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </CrudHeader>
 
         {loading ? (
             <div className={styles.loadingContainer}>Cargando...</div>
+        ) : error ? (
+            <div className={styles.errorContainer}>{error}</div>
+        ) : asignaturas.length === 0 ? (
+            <div className={styles.emptyState}>
+                {isSuperAdmin && !selectedCentro 
+                    ? "Selecciona un centro para ver las entregas." 
+                    : "No se encontraron asignaturas con los filtros actuales."}
+            </div>
         ) : (
             <AccordionView 
                 data={asignaturas}

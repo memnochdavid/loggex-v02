@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class AsistenciaController extends AbstractController
 {
@@ -115,15 +116,30 @@ class AsistenciaController extends AbstractController
     }
 
     #[Route('/api/v1/asistencia/alumno/summary', name: 'api_asistencia_alumno_summary', methods: ['GET'])]
-    public function getAlumnoSummary(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
+    public function getAlumnoSummary(Request $request, #[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
     {
         try {
             if (!$user) {
                 return $this->json(['message' => 'No autenticado'], 401);
             }
 
-            // 1. Obtener matrículas del alumno
-            $matriculas = $entityManager->getRepository(Matricula::class)->findBy(['alumno' => $user]);
+            $targetUser = $user;
+            $alumnoId = $request->query->get('alumnoId');
+
+            // Si se solicita ver otro alumno, verificar permisos
+            if ($alumnoId) {
+                if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
+                    throw new AccessDeniedException('No tienes permiso para ver las faltas de otros alumnos.');
+                }
+
+                $targetUser = $entityManager->getRepository(User::class)->find($alumnoId);
+                if (!$targetUser) {
+                    return $this->json(['message' => 'Alumno no encontrado'], 404);
+                }
+            }
+
+            // 1. Obtener matrículas del alumno objetivo
+            $matriculas = $entityManager->getRepository(Matricula::class)->findBy(['alumno' => $targetUser]);
 
             // Optimización: Cargar festivos una sola vez
             $festivos = $entityManager->getRepository(Festivo::class)->findAll();
@@ -166,7 +182,7 @@ class AsistenciaController extends AbstractController
 
                     // 4. Buscar asistencias del alumno en esta impartición
                     $asistencias = $entityManager->getRepository(Asistencia::class)->findBy([
-                        'alumno' => $user,
+                        'alumno' => $targetUser,
                         'imparticion' => $imparticion
                     ]);
 

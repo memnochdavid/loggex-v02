@@ -40,7 +40,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'modulo' => 'exact',
     'modulo.nombre' => 'partial',
     'grupo' => 'exact',
-    'grupo.nombre' => 'partial'
+    'grupo.nombre' => 'partial',
+    'grupo.centro' => 'exact' // AÑADIDO: Permite filtrar imparticiones por centro del grupo
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'modulo.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Imparticion

@@ -18,6 +18,14 @@ const MaterialesProfesor = () => {
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
   
+  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+  // Estados para filtros de SuperAdmin
+  const [centros, setCentros] = useState([]);
+  const [selectedCentro, setSelectedCentro] = useState('');
+  const [grupos, setGrupos] = useState([]);
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+
   // Estado Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImparticionId, setCurrentImparticionId] = useState(null);
@@ -27,14 +35,65 @@ const MaterialesProfesor = () => {
   });
   const [uploading, setUploading] = useState(false);
 
+  // Cargar centros para SuperAdmin
+  useEffect(() => {
+      if (isSuperAdmin) {
+          fetch(getApiUrl('/api/centros?pagination=false'), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setCentros(items);
+          })
+          .catch(err => console.error("Error cargando centros:", err));
+      }
+  }, [isSuperAdmin]);
+
+  // Cargar grupos cuando cambia el centro seleccionado
+  useEffect(() => {
+      if (isSuperAdmin && selectedCentro) {
+          fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setGrupos(items);
+              setSelectedGrupo(''); // Resetear grupo al cambiar centro
+          })
+          .catch(err => console.error("Error cargando grupos:", err));
+      } else {
+          setGrupos([]);
+          setSelectedGrupo('');
+      }
+  }, [selectedCentro, isSuperAdmin]);
+
   const fetchData = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
 
-      // 1. Obtener imparticiones del profesor
-      const impRes = await fetch(getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`), {
+      let endpoint = '';
+      if (isSuperAdmin) {
+           // Lógica de filtrado para SuperAdmin
+           let query = 'pagination=false';
+           if (selectedGrupo) {
+               query += `&grupo=${selectedGrupo}`;
+           } else if (selectedCentro) {
+               query += `&grupo.centro=${selectedCentro}`;
+           }
+           endpoint = getApiUrl(`/api/imparticions?${query}`);
+      } else {
+           // Profesor normal
+           endpoint = getApiUrl(`/api/imparticions?profesor=${user.id}&pagination=false`);
+      }
+
+      // 1. Obtener imparticiones
+      const impRes = await fetch(endpoint, {
         headers: { 'Accept': 'application/ld+json' },
         credentials: 'include'
       });
@@ -53,9 +112,15 @@ const MaterialesProfesor = () => {
           const matData = await matRes.json();
           const materiales = matData['hydra:member'] || matData.member || [];
 
+          const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
+          let title = `${imp.modulo.nombre} - ${imp.grupo.nombre}`;
+          if (isSuperAdmin && nombreProfesor) {
+              title += ` (${nombreProfesor})`;
+          }
+
           asignaturasData.push({
               id: impId,
-              title: `${imp.modulo.nombre} - ${imp.grupo.nombre}`,
+              title: title,
               materiales: materiales
           });
       }
@@ -72,7 +137,7 @@ const MaterialesProfesor = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, selectedCentro, selectedGrupo]);
 
   const handleAddClick = (imparticionId) => {
     setCurrentImparticionId(imparticionId);
@@ -194,12 +259,47 @@ const MaterialesProfesor = () => {
       <div className={styles.container}>
         <CrudHeader title="Mis Temarios"
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        />
+        >
+            {isSuperAdmin && (
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select 
+                        className={styles.select}
+                        value={selectedCentro}
+                        onChange={(e) => setSelectedCentro(e.target.value)}
+                        style={{ minWidth: '200px' }}
+                    >
+                        <option value="">Todos los Centros</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select}
+                        value={selectedGrupo}
+                        onChange={(e) => setSelectedGrupo(e.target.value)}
+                        disabled={!selectedCentro}
+                        style={{ minWidth: '150px' }}
+                    >
+                        <option value="">Todos los Grupos</option>
+                        {grupos.map(g => (
+                            <option key={g.id} value={g.id}>{g.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </CrudHeader>
 
         {loading ? (
           <div className={styles.loadingContainer}>Cargando...</div>
         ) : error ? (
           <div className={styles.errorContainer}>{error}</div>
+        ) : asignaturas.length === 0 ? (
+            <div className={styles.emptyState}>
+                {isSuperAdmin && !selectedCentro 
+                    ? "Selecciona un centro para ver los materiales." 
+                    : "No se encontraron asignaturas con los filtros actuales."}
+            </div>
         ) : (
           <AccordionView 
             data={asignaturas} 

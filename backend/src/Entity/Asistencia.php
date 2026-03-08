@@ -34,7 +34,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'alumno' => 'exact',
-    'imparticion' => 'exact'
+    'alumno.id' => 'exact', // AÑADIDO: Para filtrar por ID numérico explícitamente
+    'imparticion' => 'exact',
+    'imparticion.grupo' => 'exact',
+    'imparticion.grupo.centro' => 'exact',
+    'imparticion.modulo' => 'exact'
 ])]
 class Asistencia
 {

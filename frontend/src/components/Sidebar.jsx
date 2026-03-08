@@ -24,8 +24,8 @@ const Sidebar = () => {
         '/mensajes': 'general',
         '/perfil': 'general',
         
-        '/tareas': isAlumno ? 'alumno' : 'profesor',
-        '/entregas': isAlumno ? 'alumno' : 'profesor',
+        '/tareas': (isAlumno || isSuperAdmin) ? 'alumno' : 'profesor', // Priorizar alumno si es ambos o superadmin para ver ambas
+        '/entregas': (isAlumno || isSuperAdmin) ? 'alumno' : 'profesor',
         '/mis-temarios': 'profesor',
         '/claustro': 'profesor',
         '/mis-alumnos': 'profesor',
@@ -147,7 +147,7 @@ const Sidebar = () => {
     }
 
     // 3. Alumno
-    if (isAlumno) {
+    if (isAlumno || isSuperAdmin) { // AÑADIDO isSuperAdmin
         accordionData.push({
             id: 'alumno',
             title: 'Alumno',
@@ -169,15 +169,21 @@ const Sidebar = () => {
                         <UserCheck size={20} />
                         {!isCollapsed && <span>Mis Profesores</span>}
                     </NavLink>
-                    {/* Tareas y Entregas también para alumnos */}
-                    <NavLink to="/tareas" className={getNavLinkClass} title="Tareas" onClick={closeSidebar}>
-                        <ClipboardList size={20} />
-                        {!isCollapsed && <span>Tareas</span>}
-                    </NavLink>
-                    <NavLink to="/entregas" className={getNavLinkClass} title="Entregas" onClick={closeSidebar}>
-                        <UploadCloud size={20} />
-                        {!isCollapsed && <span>Entregas</span>}
-                    </NavLink>
+                    {/* Tareas y Entregas también para alumnos (duplicado intencional o condicional) */}
+                    {/* Si es Superadmin, ya las ve en Profesor, pero si quiere ver la vista de alumno... */}
+                    {/* Dejamos que el Superadmin acceda a Tareas/Entregas desde Profesor, que es más completo */}
+                    {isAlumno && (
+                        <>
+                            <NavLink to="/tareas" className={getNavLinkClass} title="Tareas" onClick={closeSidebar}>
+                                <ClipboardList size={20} />
+                                {!isCollapsed && <span>Tareas</span>}
+                            </NavLink>
+                            <NavLink to="/entregas" className={getNavLinkClass} title="Entregas" onClick={closeSidebar}>
+                                <UploadCloud size={20} />
+                                {!isCollapsed && <span>Entregas</span>}
+                            </NavLink>
+                        </>
+                    )}
                 </>
             )
         });
