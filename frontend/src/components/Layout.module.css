@@ -37,6 +37,6 @@
 /*para compensar el grosor de la barra de direcciones del navegador en móviles*/
 @media (max-width: 500px) {
     .content{
-        margin-bottom: 50px;
+        /*margin-bottom: 50px;*/
     }
 }

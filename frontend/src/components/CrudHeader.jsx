@@ -24,20 +24,19 @@ const CrudHeader = ({ title, subtitle, logo, children }) => {
     // Determinar si el logo es un componente Lottie (React Element) o una imagen (string)
     const isLottie = React.isValidElement(logo);
 
+    // Determinar si debemos mostrar el logo
+    // Si es Lottie, depende de showLottie. Si no es Lottie (imagen), siempre se muestra si existe.
+    const shouldShowLogo = logo && (!isLottie || showLottie);
+
     return (
         <div className={styles.container}>
             <div className={styles.titleGroup}>
-                {logo && (
+                {shouldShowLogo && (
                     <div className={styles.logoContainer}>
-                        {isLottie ? (
-                            // Si es Lottie, solo mostrar si showLottie es true
-                            showLottie ? logo : null
-                        ) : (
-                            // Si es imagen (string), mostrar siempre
+                        {isLottie ? logo : (
                             typeof logo === 'string' ? (
                                 <img src={logo} alt="Logo" className={styles.logo} />
                             ) : (
-                                // Fallback para otros tipos
                                 logo
                             )
                         )}
