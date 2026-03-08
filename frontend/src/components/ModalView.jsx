@@ -22,7 +22,8 @@ const ModalView = ({
     showCloseButton = true,
     closeOnOverlayClick = true,
     className = '', // Clase para el contenido (ventana)
-    overlayClassName = '' // Clase para el fondo (overlay)
+    overlayClassName = '', // Clase para el fondo (overlay)
+    bodyClassName = '' // Nueva prop para clase del cuerpo
 }) => {
     const nodeRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
@@ -196,7 +197,7 @@ const ModalView = ({
                 </div>
                 
                 <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-                    <div className={styles.modalBody}>
+                    <div className={`${styles.modalBody} ${bodyClassName}`}>
                         {children}
                     </div>
 
