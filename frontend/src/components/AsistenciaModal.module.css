@@ -35,7 +35,8 @@
 }
 
 .tr:hover {
-    background-color: var(--bg-hover); /* Usar variable maestra */
+    /* Usar color-mix para un hover sutil y consistente con DataTable */
+    background-color: color-mix(in srgb, var(--bg-card), var(--text-main) 5%);
 }
 
 .tdAlumno {
