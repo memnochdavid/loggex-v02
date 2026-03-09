@@ -16,29 +16,204 @@ const MisAlumnos = () => {
     const [grupos, setGrupos] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Estados para filtros de SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+    const [profesores, setProfesores] = useState([]);
+    const [selectedProfesor, setSelectedProfesor] = useState('');
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetch(getApiUrl('/api/centros?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setCentros(items);
+            })
+            .catch(err => console.error("Error cargando centros:", err));
+        }
+    }, [isSuperAdmin]);
+
+    // Cargar profesores cuando cambia el centro seleccionado
+    useEffect(() => {
+        if (isSuperAdmin && selectedCentro) {
+            // Pedimos todos los usuarios del centro y filtramos en cliente por rol
+            fetch(getApiUrl(`/api/users?centro=${selectedCentro}&pagination=false`), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                // Filtrar solo profesores en el cliente
+                const soloProfesores = items.filter(u => u.roles && u.roles.includes('ROLE_PROFESOR'));
+                setProfesores(soloProfesores);
+                setSelectedProfesor(''); // Resetear profesor al cambiar centro
+            })
+            .catch(err => console.error("Error cargando profesores:", err));
+        } else {
+            setProfesores([]);
+            setSelectedProfesor('');
+        }
+    }, [selectedCentro, isSuperAdmin]);
+
     useEffect(() => {
         if (user) {
             fetchAlumnos();
         }
-    }, [user]);
+    }, [user, selectedCentro, selectedProfesor]);
 
     const fetchAlumnos = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getApiUrl('/api/v1/profesor/alumnos'), {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'include'
-            });
+            let data = [];
 
-            if (response.ok) {
-                const data = await response.json();
-                // Adaptar para AccordionView (necesita 'title')
-                const adaptedData = data.map(g => ({
-                    ...g,
-                    title: `${g.nombre} ${g.abreviatura ? `(${g.abreviatura})` : ''} - ${g.alumnos.length} alumnos`
-                }));
-                setGrupos(adaptedData);
+            if (isSuperAdmin) {
+                if (selectedProfesor) {
+                    // Lógica por profesor: Obtener sus imparticiones
+                    const impRes = await fetch(getApiUrl(`/api/imparticions?profesor=${selectedProfesor}&pagination=false`), {
+                        headers: { 'Accept': 'application/ld+json' },
+                        credentials: 'include'
+                    });
+                    const impData = await impRes.json();
+                    const imps = impData['hydra:member'] || impData.member || [];
+
+                    // Agrupar por IMPARTICIÓN (no solo por grupo)
+                    // Usamos el ID de la impartición como clave
+                    const imparticionesMap = {};
+                    const gruposIdsSet = new Set();
+
+                    imps.forEach(imp => {
+                        const impId = String(imp.id || imp['@id'].split('/').pop());
+                        const g = imp.grupo;
+                        if (g) {
+                            const gId = String(g.id || g['@id'].split('/').pop());
+                            gruposIdsSet.add(gId);
+                            
+                            imparticionesMap[impId] = {
+                                ...g, // Datos del grupo base
+                                id: impId, // ID de la impartición (para la key del acordeón)
+                                grupoId: gId, // ID real del grupo
+                                moduloNombre: imp.modulo?.nombre, // Nombre de la asignatura
+                                alumnos: []
+                            };
+                        }
+                    });
+
+                    // Obtener alumnos de los grupos involucrados
+                    const grupoIds = Array.from(gruposIdsSet);
+                    if (grupoIds.length > 0) {
+                        const q = grupoIds.map(id => `grupo[]=${id}`).join('&');
+                        const matRes = await fetch(getApiUrl(`/api/matriculas?${q}&pagination=false`), {
+                            headers: { 'Accept': 'application/ld+json' },
+                            credentials: 'include'
+                        });
+                        const matData = await matRes.json();
+                        const mats = matData['hydra:member'] || matData.member || [];
+
+                        mats.forEach(m => {
+                            let gId;
+                            if (typeof m.grupo === 'string') {
+                                gId = m.grupo.split('/').pop();
+                            } else if (m.grupo.id) {
+                                gId = m.grupo.id.toString();
+                            } else if (m.grupo['@id']) {
+                                gId = m.grupo['@id'].split('/').pop();
+                            }
+
+                            // Añadir alumno a TODAS las imparticiones de ese grupo
+                            if (gId) {
+                                Object.values(imparticionesMap).forEach(imp => {
+                                    if (imp.grupoId === gId) {
+                                        imp.alumnos.push(m.alumno);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    data = Object.values(imparticionesMap);
+
+                } else if (selectedCentro) {
+                    // Lógica por centro: Obtener todos los grupos del centro
+                    const gruposRes = await fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+                        headers: { 'Accept': 'application/ld+json' },
+                        credentials: 'include'
+                    });
+                    const gruposData = await gruposRes.json();
+                    const gruposList = gruposData['hydra:member'] || gruposData.member || [];
+
+                    // Obtener alumnos de esos grupos
+                    const grupoIds = gruposList.map(g => String(g.id));
+                    if (grupoIds.length > 0) {
+                        const q = grupoIds.map(id => `grupo[]=${id}`).join('&');
+                        const matRes = await fetch(getApiUrl(`/api/matriculas?${q}&pagination=false`), {
+                            headers: { 'Accept': 'application/ld+json' },
+                            credentials: 'include'
+                        });
+                        const matData = await matRes.json();
+                        const mats = matData['hydra:member'] || matData.member || [];
+
+                        const gruposMap = {};
+                        gruposList.forEach(g => {
+                            const gId = String(g.id);
+                            gruposMap[gId] = { ...g, id: gId, alumnos: [] };
+                        });
+
+                        mats.forEach(m => {
+                            let gId;
+                            if (typeof m.grupo === 'string') {
+                                gId = m.grupo.split('/').pop();
+                            } else if (m.grupo.id) {
+                                gId = m.grupo.id.toString();
+                            } else if (m.grupo['@id']) {
+                                gId = m.grupo['@id'].split('/').pop();
+                            }
+
+                            if (gId && gruposMap[gId]) {
+                                gruposMap[gId].alumnos.push(m.alumno);
+                            }
+                        });
+                        data = Object.values(gruposMap);
+                    }
+                }
+            } else {
+                // Profesor normal (endpoint custom)
+                const response = await fetch(getApiUrl('/api/v1/profesor/alumnos'), {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    data = await response.json();
+                }
             }
+
+            // Adaptar para AccordionView
+            const adaptedData = data.map(item => {
+                // Construir título: Grupo (Asignatura) - X alumnos
+                let title = `${item.nombre} ${item.abreviatura ? `(${item.abreviatura})` : ''}`;
+                
+                // Si tenemos nombre de módulo (asignatura), lo añadimos
+                if (item.moduloNombre) {
+                    title += ` (${item.moduloNombre})`;
+                }
+                
+                title += ` - ${item.alumnos ? item.alumnos.length : 0} alumnos`;
+
+                return {
+                    ...item,
+                    title: title,
+                    alumnos: item.alumnos || []
+                };
+            });
+            setGrupos(adaptedData);
+
         } catch (error) {
             console.error("Error cargando alumnos:", error);
         } finally {
@@ -51,7 +226,7 @@ const MisAlumnos = () => {
     };
 
     const renderGrupoContent = (grupo) => {
-        if (grupo.alumnos.length === 0) {
+        if (!grupo.alumnos || grupo.alumnos.length === 0) {
             return <p className={styles.emptyState}>No hay alumnos en este grupo.</p>;
         }
 
@@ -73,13 +248,44 @@ const MisAlumnos = () => {
             <div className={styles.container}>
                 <CrudHeader title="Mis Alumnos"
                             logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-                />
+                >
+                    {isSuperAdmin && (
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <select 
+                                className={styles.select}
+                                value={selectedCentro}
+                                onChange={(e) => setSelectedCentro(e.target.value)}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">Todos los Centros</option>
+                                {centros.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+
+                            <select 
+                                className={styles.select}
+                                value={selectedProfesor}
+                                onChange={(e) => setSelectedProfesor(e.target.value)}
+                                disabled={!selectedCentro}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">Todos los Profesores</option>
+                                {profesores.map(p => (
+                                    <option key={p.id} value={p.id}>{p.nombre} {p.apellidos}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </CrudHeader>
 
                 {loading ? (
                     <div className={styles.loadingContainer}>Cargando...</div>
                 ) : grupos.length === 0 ? (
                     <div className={styles.emptyState}>
-                        No tienes alumnos asignados.
+                        {isSuperAdmin && !selectedCentro 
+                            ? "Selecciona un centro para ver los alumnos." 
+                            : "No se encontraron alumnos."}
                     </div>
                 ) : (
                     <AccordionView 

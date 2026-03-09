@@ -18,28 +18,101 @@ const Companeros = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchField, setSearchField] = useState('nombre');
 
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Estados para filtros de SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+    const [grupos, setGrupos] = useState([]);
+    const [selectedGrupo, setSelectedGrupo] = useState('');
+
     const searchFields = [
         { value: 'nombre', label: 'Nombre' },
         { value: 'apellidos', label: 'Apellidos' }
     ];
 
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetch(getApiUrl('/api/centros?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setCentros(items);
+            })
+            .catch(err => console.error("Error cargando centros:", err));
+        }
+    }, [isSuperAdmin]);
+
+    // Cargar grupos cuando cambia el centro seleccionado
+    useEffect(() => {
+        if (isSuperAdmin && selectedCentro) {
+            fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setGrupos(items);
+                setSelectedGrupo('');
+            })
+            .catch(err => console.error("Error cargando grupos:", err));
+        } else {
+            setGrupos([]);
+            setSelectedGrupo('');
+        }
+    }, [selectedCentro, isSuperAdmin]);
+
     useEffect(() => {
         if (user) {
             fetchCompaneros();
         }
-    }, [user]);
+    }, [user, selectedCentro, selectedGrupo]);
 
     const fetchCompaneros = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getApiUrl('/api/v1/alumno/companeros'), {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'include'
-            });
+            if (isSuperAdmin) {
+                // Lógica para SuperAdmin
+                if (!selectedGrupo) {
+                    setCompaneros([]);
+                    setLoading(false);
+                    return;
+                }
 
-            if (response.ok) {
-                const data = await response.json();
-                setCompaneros(data);
+                // Obtener alumnos del grupo seleccionado (vía matrículas)
+                const response = await fetch(getApiUrl(`/api/matriculas?grupo=${selectedGrupo}&pagination=false`), {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const items = data['hydra:member'] || data.member || [];
+                    // Extraer alumnos únicos
+                    const alumnosMap = new Map();
+                    items.forEach(m => {
+                        if (m.alumno && !alumnosMap.has(m.alumno.id)) {
+                            alumnosMap.set(m.alumno.id, m.alumno);
+                        }
+                    });
+                    setCompaneros(Array.from(alumnosMap.values()));
+                }
+            } else {
+                // Lógica para Alumno normal
+                const response = await fetch(getApiUrl('/api/v1/alumno/companeros'), {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setCompaneros(data);
+                }
             }
         } catch (error) {
             console.error("Error cargando compañeros:", error);
@@ -64,6 +137,34 @@ const Companeros = () => {
                 <CrudHeader title="Mis Compañeros"
                             logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
+                    {isSuperAdmin && (
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginRight: '1rem' }}>
+                            <select 
+                                className={styles.select}
+                                value={selectedCentro}
+                                onChange={(e) => setSelectedCentro(e.target.value)}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">Todos los Centros</option>
+                                {centros.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+
+                            <select 
+                                className={styles.select}
+                                value={selectedGrupo}
+                                onChange={(e) => setSelectedGrupo(e.target.value)}
+                                disabled={!selectedCentro}
+                                style={{ minWidth: '150px' }}
+                            >
+                                <option value="">Todos los Grupos</option>
+                                {grupos.map(g => (
+                                    <option key={g.id} value={g.id}>{g.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
@@ -86,7 +187,11 @@ const Companeros = () => {
                             />
                         ))}
                         {filteredCompaneros.length === 0 && (
-                            <div className={styles.emptyState}>No se encontraron compañeros.</div>
+                            <div className={styles.emptyState}>
+                                {isSuperAdmin && !selectedGrupo 
+                                    ? "Selecciona un grupo para ver los alumnos." 
+                                    : "No se encontraron compañeros."}
+                            </div>
                         )}
                     </div>
                 )}

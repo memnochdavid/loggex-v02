@@ -7,7 +7,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
   // Inicializamos el estado local con defaultOpen si está presente
   const [localIsOpen, setLocalIsOpen] = useState(defaultOpen || false);
-  
+
   // Determinar si está abierto (controlado o local)
   const isExpanded = isOpen !== undefined ? isOpen : localIsOpen;
   
@@ -21,7 +21,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   };
 
   return (
-    <div className={styles.accordionItem}>
+    <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''}`}>
       <div className={styles.accordionHeader} onClick={handleToggle}>
         <div className={styles.headerContent}>
             {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}

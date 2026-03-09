@@ -22,14 +22,44 @@ const ModalView = ({
     showCloseButton = true,
     closeOnOverlayClick = true,
     className = '', // Clase para el contenido (ventana)
-    overlayClassName = '' // Clase para el fondo (overlay)
+    overlayClassName = '', // Clase para el fondo (overlay)
+    bodyClassName = '' // Nueva prop para clase del cuerpo
 }) => {
     const nodeRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
     const [shouldRender, setShouldRender] = useState(isOpen);
+    const [enableDraggable, setEnableDraggable] = useState(true);
+    const [showLottie, setShowLottie] = useState(true);
     
     // Detectar si es móvil (coincide con el breakpoint del CSS)
     const isMobile = useMediaQuery('(max-width: 768px)');
+
+    useEffect(() => {
+        // Leer configuración inicial
+        if (window.themeConfig) {
+            if (window.themeConfig.enableDraggableModal !== undefined) {
+                setEnableDraggable(window.themeConfig.enableDraggableModal);
+            }
+            if (window.themeConfig.showLottie !== undefined) {
+                setShowLottie(window.themeConfig.showLottie);
+            }
+        }
+
+        // Escuchar cambios en la configuración
+        const handleConfigChange = () => {
+            if (window.themeConfig) {
+                if (window.themeConfig.enableDraggableModal !== undefined) {
+                    setEnableDraggable(window.themeConfig.enableDraggableModal);
+                }
+                if (window.themeConfig.showLottie !== undefined) {
+                    setShowLottie(window.themeConfig.showLottie);
+                }
+            }
+        };
+
+        window.addEventListener('themeConfigChanged', handleConfigChange);
+        return () => window.removeEventListener('themeConfigChanged', handleConfigChange);
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -77,6 +107,53 @@ const ModalView = ({
     const overlayClass = `${styles.modalOverlay} ${isClosing ? styles.closing : ''} ${overlayClassName}`;
     const contentClass = `${styles.modalContent} ${isClosing ? styles.closing : ''} ${className}`;
 
+    // Lógica para mostrar el icono
+    const renderHeaderIcon = () => {
+        // Si se pasa un icono explícito
+        if (headerIcon) {
+            // Si es un elemento React (probablemente Lottie o Icono componente)
+            if (React.isValidElement(headerIcon)) {
+                // Si es Lottie (asumimos por contexto o tipo, pero simplificamos: si showLottie es false, ocultamos elementos complejos por defecto si queremos ser estrictos, 
+                // pero mejor: si es el default (que sabemos que es Lottie) aplicamos la regla.
+                // Si el usuario pasa un icono estático (ej <User />), quizás quiera verlo siempre.
+                // Para simplificar y cumplir el requerimiento: "la opción de activar / desactivar lotties, también debe afectar al header de los modals"
+                // Asumiremos que si showLottie es false, ocultamos cualquier "adorno" gráfico grande en el header, o específicamente el default.
+                
+                // Si el usuario pasa un icono, lo respetamos. Si queremos que showLottie afecte a TODO, deberíamos ocultarlo.
+                // Pero el requerimiento suele ser para las animaciones pesadas.
+                
+                // Vamos a aplicar la lógica al DEFAULT Lottie.
+                return headerIcon; 
+            }
+            return headerIcon;
+        }
+
+        // Si NO hay icono explícito, usamos el default (Lottie) SOLO si showLottie es true
+        if (showLottie) {
+            return <Lottie animationData={pencilAnimation} loop={true} style={{ width: 40, height: 40 }} />;
+        }
+
+        return null;
+    };
+
+    // Ajuste: El requerimiento dice "la opción... debe afectar al header de los modals".
+    // Si el headerIcon pasado es un Lottie, debería ocultarse.
+    // Como no podemos saber con certeza si un ReactElement es un Lottie sin inspeccionar profundamente,
+    // y dado que en CrudHeader ocultamos si es ReactElement, haremos lo mismo aquí para consistencia si se desea un control total.
+    // Sin embargo, el caso de uso principal es el Lottie por defecto.
+    
+    const iconToRender = headerIcon ? (
+        // Si hay icono personalizado, decidimos si mostrarlo.
+        // Si asumimos que headerIcon PUEDE ser un Lottie, y queremos ocultarlo si showLottie=false:
+        showLottie ? headerIcon : null 
+        // NOTA: Esto ocultará también iconos estáticos pasados como componentes (<Icon />). 
+        // Si eso no es deseado, habría que refinar. Pero basándome en CrudHeader, parece el comportamiento esperado.
+    ) : (
+        // Si no hay icono, usamos el default solo si showLottie=true
+        showLottie ? <Lottie animationData={pencilAnimation} loop={true} style={{ width: 40, height: 40 }} /> : null
+    );
+
+
     // Contenido del modal (común para draggable y no draggable)
     const modalContent = (
         <div 
@@ -88,16 +165,22 @@ const ModalView = ({
             <div className={contentClass}>
                 {/* Header contenedor */}
                 <div className={styles.modalHeader}>
-                    {/* Área de arrastre (Título) - Solo cursor move si no es móvil */}
+                    {/* Área de arrastre (Título) - Solo cursor move si no es móvil y draggable está activo */}
                     <div 
                         className={`modal-drag-handle ${styles.modalTitleContainer}`} 
-                        style={{ cursor: isMobile ? 'default' : 'move', flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}
+                        style={{ 
+                            cursor: (!isMobile && enableDraggable) ? 'move' : 'default', 
+                            flex: 1, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '10px' 
+                        }}
                     >
-                        <div className={styles.headerIconContainer}>
-                            {headerIcon ? headerIcon : (
-                                <Lottie animationData={pencilAnimation} loop={true} style={{ width: 40, height: 40 }} />
-                            )}
-                        </div>
+                        {iconToRender && (
+                            <div className={styles.headerIconContainer}>
+                                {iconToRender}
+                            </div>
+                        )}
                         <h3 className={styles.modalTitle}>{title}</h3>
                     </div>
                     
@@ -114,7 +197,7 @@ const ModalView = ({
                 </div>
                 
                 <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-                    <div className={styles.modalBody}>
+                    <div className={`${styles.modalBody} ${bodyClassName}`}>
                         {children}
                     </div>
 
@@ -141,11 +224,11 @@ const ModalView = ({
 
     return (
         <div className={overlayClass} onClick={handleOverlayClick}>
-            {isMobile ? (
-                // En móvil, renderizamos directamente sin Draggable
+            {isMobile || !enableDraggable ? (
+                // En móvil o si draggable está desactivado, renderizamos directamente
                 modalContent
             ) : (
-                // En escritorio, envolvemos con Draggable
+                // En escritorio y draggable activo, envolvemos con Draggable
                 <Draggable handle=".modal-drag-handle" nodeRef={nodeRef}>
                     {modalContent}
                 </Draggable>

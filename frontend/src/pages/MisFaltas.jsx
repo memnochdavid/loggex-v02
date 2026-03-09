@@ -17,16 +17,102 @@ const MisFaltas = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Estados para filtros de SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+    const [grupos, setGrupos] = useState([]);
+    const [selectedGrupo, setSelectedGrupo] = useState('');
+    const [alumnos, setAlumnos] = useState([]); // CAMBIADO: Alumnos en lugar de módulos
+    const [selectedAlumno, setSelectedAlumno] = useState(''); // CAMBIADO
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetch(getApiUrl('/api/centros?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setCentros(items);
+            })
+            .catch(err => console.error("Error cargando centros:", err));
+        }
+    }, [isSuperAdmin]);
+
+    // Cargar grupos cuando cambia el centro seleccionado
+    useEffect(() => {
+        if (isSuperAdmin && selectedCentro) {
+            fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setGrupos(items);
+                setSelectedGrupo('');
+                setAlumnos([]);
+                setSelectedAlumno('');
+            })
+            .catch(err => console.error("Error cargando grupos:", err));
+        } else {
+            setGrupos([]);
+            setSelectedGrupo('');
+            setAlumnos([]);
+            setSelectedAlumno('');
+        }
+    }, [selectedCentro, isSuperAdmin]);
+
+    // Cargar alumnos cuando cambia el grupo seleccionado (CAMBIADO)
+    useEffect(() => {
+        if (isSuperAdmin && selectedGrupo) {
+            // Obtener matrículas del grupo para sacar los alumnos
+            fetch(getApiUrl(`/api/matriculas?grupo=${selectedGrupo}&pagination=false`), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                const alumnosList = items.map(m => m.alumno).filter(a => a); // Extraer alumnos
+                // Ordenar por nombre
+                alumnosList.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                setAlumnos(alumnosList);
+                setSelectedAlumno('');
+            })
+            .catch(err => console.error("Error cargando alumnos:", err));
+        } else {
+            setAlumnos([]);
+            setSelectedAlumno('');
+        }
+    }, [selectedGrupo, isSuperAdmin]);
+
     useEffect(() => {
         if (user) {
             fetchData();
         }
-    }, [user]);
+    }, [user, selectedCentro, selectedGrupo, selectedAlumno]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getApiUrl('/api/v1/asistencia/alumno/summary'), {
+            let url = '/api/v1/asistencia/alumno/summary';
+            
+            if (isSuperAdmin) {
+                if (!selectedAlumno) {
+                    setAsignaturasConFaltas([]);
+                    setLoading(false);
+                    return;
+                }
+                // Usar el parámetro alumnoId para ver las faltas de otro alumno
+                url += `?alumnoId=${selectedAlumno}`;
+            }
+
+            const response = await fetch(getApiUrl(url), {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             });
@@ -64,34 +150,50 @@ const MisFaltas = () => {
         }
     };
 
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        // Si viene como fecha completa ISO
+        if (timeStr.includes('T')) {
+            return new Date(timeStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        // Si viene como HH:MM:SS
+        if (timeStr.includes(':')) {
+            return timeStr.substring(0, 5);
+        }
+        return timeStr;
+    };
+
     const renderHeader = (item, isOpen) => {
         return (
             <div style={{ width: '100%', paddingRight: '1rem' }}>
                 <div className={styles.accordionHeaderContentAttendance}>
                     <span style={{ flex: 1 }}>{item.title}</span>
-                    <ShowProgress percentage={item.porcentajeFaltas} height="15px" showLabel={true} />
+                    {/* Mostrar barra solo si hay porcentaje calculado (Alumno normal y Superadmin ahora) */}
+                    {item.porcentajeFaltas !== undefined && (
+                        <ShowProgress percentage={item.porcentajeFaltas} height="15px" showLabel={true} />
+                    )}
                 </div>
             </div>
         );
     };
 
-    const renderDetalles = (asignatura) => {
-        if (!asignatura.detalles || asignatura.detalles.length === 0) {
-            return <div className={styles.emptyState}>¡Enhorabuena! No tienes faltas ni retrasos en esta asignatura.</div>;
+    const renderDetalles = (item) => {
+        if (!item.detalles || item.detalles.length === 0) {
+            return <div className={styles.emptyState}>No hay faltas registradas.</div>;
         }
 
         return (
             <div style={{ padding: '0 1rem 1rem 1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
-                    <span>Faltas: <b>{asignatura.faltas}</b></span>
-                    <span>Retrasos: <b>{asignatura.retrasos}</b></span>
-                    <span>Justificadas: <b>{asignatura.justificadas}</b></span>
-                    {asignatura.totalHoras > 0 && (
-                        <span>Total Horas Impartidas: <b>{asignatura.totalHoras}</b></span>
+                    <span>Faltas: <b>{item.faltas}</b></span>
+                    <span>Retrasos: <b>{item.retrasos}</b></span>
+                    <span>Justificadas: <b>{item.justificadas}</b></span>
+                    {item.totalHoras > 0 && (
+                        <span>Total Horas Impartidas: <b>{item.totalHoras}</b></span>
                     )}
                 </div>
                 <ul className={styles.list}>
-                    {asignatura.detalles.map(detalle => (
+                    {item.detalles.map(detalle => (
                         <li key={detalle.id} className={styles.listItem} style={{ alignItems: 'flex-start' }}>
                             <div className={styles.itemInfo}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
@@ -99,7 +201,7 @@ const MisFaltas = () => {
                                     <span>{getStatusLabel(detalle.estado)}</span>
                                 </div>
                                 <span className={styles.date}>
-                                    {new Date(detalle.fecha).toLocaleDateString()} a las {detalle.hora}
+                                    {new Date(detalle.fecha).toLocaleDateString()} a las {formatTime(detalle.hora)}
                                 </span>
                                 {detalle.comentario && (
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem', fontStyle: 'italic' }}>
@@ -117,16 +219,62 @@ const MisFaltas = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Faltas de Asistencia"
+                <CrudHeader title="Faltas de Asistencia"
                             logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-                />
+                >
+                    {isSuperAdmin && (
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <select 
+                                className={styles.select}
+                                value={selectedCentro}
+                                onChange={(e) => setSelectedCentro(e.target.value)}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">Todos los Centros</option>
+                                {centros.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+
+                            <select 
+                                className={styles.select}
+                                value={selectedGrupo}
+                                onChange={(e) => setSelectedGrupo(e.target.value)}
+                                disabled={!selectedCentro}
+                                style={{ minWidth: '150px' }}
+                            >
+                                <option value="">Todos los Grupos</option>
+                                {grupos.map(g => (
+                                    <option key={g.id} value={g.id}>{g.nombre}</option>
+                                ))}
+                            </select>
+
+                            <select 
+                                className={styles.select}
+                                value={selectedAlumno}
+                                onChange={(e) => setSelectedAlumno(e.target.value)}
+                                disabled={!selectedGrupo}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">Seleccionar Alumno</option>
+                                {alumnos.map(a => (
+                                    <option key={a.id} value={a.id}>{a.nombre} {a.apellidos}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                </CrudHeader>
                 
                 {loading ? (
                     <div className={styles.loadingContainer}>Cargando...</div>
                 ) : error ? (
                     <div className={styles.errorContainer}>{error}</div>
                 ) : asignaturasConFaltas.length === 0 ? (
-                    <div className={styles.emptyState}>No estás matriculado en ninguna asignatura.</div>
+                    <div className={styles.emptyState}>
+                        {isSuperAdmin && !selectedAlumno 
+                            ? "Selecciona un alumno para ver sus faltas."
+                            : "No hay faltas registradas con los filtros actuales."}
+                    </div>
                 ) : (
                     <AccordionView 
                         data={asignaturasConFaltas}

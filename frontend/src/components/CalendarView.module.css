@@ -1,11 +1,11 @@
 .calendar {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Restaurado fondo */
+    border: none; /* Quitado borde */
     border-radius: var(--radius-lg);
     /*padding: var(--space-4);*/
     width: min-content;
     max-width: 350px; /* Tamaño compacto por defecto */
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm); /* Restaurada sombra para dar profundidad sin borde */
     margin: 0 auto; /* Centrar si es más pequeño que el contenedor */
 }
 
@@ -14,6 +14,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-4);
+    padding: var(--space-2); /* Añadir padding interno al header */
 }
 
 .monthTitle {
@@ -27,14 +28,14 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--color-gray-500);
+    color: var(--text-muted); /* Usar variable maestra */
     padding: var(--space-1);
     border-radius: var(--radius-sm);
     transition: all 0.2s;
 }
 
 .navButton:hover {
-    background-color: var(--color-gray-100);
+    background-color: var(--bg-input); /* Usar variable maestra */
     color: var(--color-primary-600);
 }
 
@@ -74,19 +75,19 @@
 }
 
 .day:hover {
-    background-color: var(--color-gray-100);
+    background-color: var(--bg-input); /* Usar variable maestra */
 }
 
 /* Fin de semana (Sábado y Domingo) */
 .day:nth-child(7n), .day:nth-child(7n-1) {
-    background-color: var(--calendar-weekend-bg, var(--color-gray-50));
-    color: var(--calendar-weekend-text, var(--color-gray-500));
+    background-color: var(--calendar-weekend-bg, var(--bg-input));
+    color: var(--calendar-weekend-text, var(--text-muted));
 }
 
 /* Festivos (mismo estilo que fin de semana) */
 .festivo {
-    background-color: var(--calendar-weekend-bg, var(--color-gray-50)) !important;
-    color: var(--calendar-weekend-text, var(--color-gray-500)) !important;
+    background-color: var(--calendar-weekend-bg, var(--bg-input)) !important;
+    color: var(--calendar-weekend-text, var(--text-muted)) !important;
     font-weight: var(--font-medium);
 }
 

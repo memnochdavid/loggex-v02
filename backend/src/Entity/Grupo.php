@@ -67,7 +67,7 @@ class Grupo
     private ?int $curso = null;
 
     #[ORM\Column(length: 20)]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
     private ?string $anioEscolar = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
@@ -80,7 +80,7 @@ class Grupo
 
     #[ORM\ManyToOne(inversedBy: 'grupos')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
     private ?CicloFormativo $ciclo = null;
 
     #[ORM\ManyToOne(inversedBy: 'grupos')]

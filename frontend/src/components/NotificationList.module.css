@@ -3,6 +3,8 @@
     display: flex;
     flex-direction: column;
     background-color: var(--widget-bg, var(--bg-card));
+    border-radius: var(--radius-lg); /* Aplicar border radius configurado */
+    overflow: hidden; /* Recortar esquinas */
 }
 
 .widgetHeader {
@@ -54,15 +56,16 @@
     text-align: left;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
-
+    /* border-radius: var(--radius-md); Quitado para que ocupe todo el ancho de la lista */
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-
 }
 
 .itemButton:hover {
     background-color: var(--widget-item-hover-bg, var(--color-background-light));
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1; /* Para que la sombra se vea sobre los otros elementos */
+    position: relative;
 }
 
 .itemAvatar {
@@ -76,7 +79,7 @@
 .itemAvatarPlaceholder {
     width: 40px;
     height: 40px;
-    /*border-radius: 50%;*/
+    border-radius: 50%; /* Mantener circular por defecto para avatares */
     background-color: #f1f5f9;
     display: flex;
     align-items: center;

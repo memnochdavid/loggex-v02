@@ -52,10 +52,10 @@
     position: absolute;
     top: calc(100% + 8px); /* Un poco separado del avatar */
     right: 0;
-    width: 200px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    width: 220px; /* Un poco más ancho */
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--border-color); /* Usar variable maestra */
+    border-radius: var(--radius-lg); /* Usar variable maestra */
     box-shadow: var(--shadow-lg);
     z-index: 100;
     overflow: hidden;
@@ -65,14 +65,14 @@
 
 .menuHeader {
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-gray-100);
-    background-color: var(--color-gray-50);
+    border-bottom: 1px solid var(--border-color); /* Usar variable maestra */
+    background-color: var(--widget-header-bg, var(--bg-input)); /* Usar color de cabecera de widget */
 }
 
 .userName {
     display: block;
     font-weight: var(--font-medium);
-    color: var(--color-gray-900);
+    color: var(--widget-header-text, var(--text-main)); /* Usar color de texto de cabecera de widget */
     font-size: var(--text-sm);
     white-space: nowrap;
     overflow: hidden;
@@ -81,7 +81,8 @@
 
 .userEmail {
     display: block;
-    color: var(--color-gray-500);
+    color: var(--widget-header-text, var(--text-muted)); /* Usar color de texto de cabecera de widget (con opacidad si se pudiera, pero directo es seguro) */
+    opacity: 0.8; /* Darle un poco de transparencia para diferenciar del nombre */
     font-size: var(--text-xs);
     white-space: nowrap;
     overflow: hidden;
@@ -105,7 +106,7 @@
     text-align: left;
     cursor: pointer;
     font-size: var(--text-sm);
-    color: var(--color-gray-700);
+    color: var(--text-main); /* Usar variable maestra */
     border-radius: var(--radius-sm);
     transition: background-color 0.15s;
     text-decoration: none; /* Por si usamos <a> */
@@ -113,18 +114,18 @@
 }
 
 .menuItem:hover {
-    background-color: var(--color-gray-100);
+    background-color: var(--bg-hover); /* Usar variable maestra */
     color: var(--color-primary-600);
 }
 
 .menuItem.danger {
     color: var(--color-error);
-    border-top: 1px solid var(--color-gray-100);
+    border-top: 1px solid var(--border-color); /* Usar variable maestra */
     margin-top: var(--space-1);
 }
 
 .menuItem.danger:hover {
-    background-color: #fef2f2;
+    background-color: color-mix(in srgb, var(--color-error), var(--bg-card) 90%); /* Color mix para modo oscuro */
 }
 
 @keyframes fadeIn {

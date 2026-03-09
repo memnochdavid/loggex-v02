@@ -10,30 +10,34 @@
 .chatLayout {
     display: flex;
     flex: 1;
-    background-color: var(--chat-container-bg, white);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
+    background-color: transparent; /* Fondo transparente para integrarse */
+    /* border-radius: var(--radius-lg); */ /* Quitado borde radius del contenedor principal */
+    /* border: 1px solid var(--border-color); */ /* Quitado borde "horrible" */
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
+    /* box-shadow: var(--shadow-sm); */ /* Quitado sombra */
     min-height: 0;
     position: relative;
     margin-bottom: var(--space-4); /* Espacio inferior */
+    gap: 1rem; /* Gap entre sidebar y chat area si se separan visualmente */
 }
 
 .sidebar {
     width: 300px;
-    border-right: 1px solid var(--border-color);
+    /* border-right: 1px solid var(--border-color); */ /* Quitado borde derecho */
     display: flex;
     flex-direction: column;
     background-color: var(--chat-sidebar-bg, var(--bg-card));
     min-height: 0;
     overflow: hidden;
     transition: transform 0.3s ease;
+    border-radius: var(--radius-lg); /* Borde redondeado propio */
+    /* border: 1px solid var(--border-color); */ /* Quitado borde */
+    box-shadow: var(--shadow-sm); /* Sombra sutil para dar profundidad sin borde */
 }
 
 .searchWrapper {
     padding: var(--space-4);
-    border-bottom: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde inferior */
     flex-shrink: 0;
 }
 
@@ -41,17 +45,22 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem; /* Gap pequeño entre items */
+    padding: 0.5rem;
 }
 
 .conversationItem {
-    padding: var(--space-4);
+    padding: var(--space-3);
     display: flex;
     gap: var(--space-3);
     cursor: pointer;
     transition: background-color 0.2s;
-    border-bottom: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde inferior */
     position: relative;
     color: var(--chat-item-text-main, var(--text-main));
+    border-radius: var(--radius-md); /* Items redondeados */
 }
 
 .conversationItem:hover {
@@ -60,7 +69,8 @@
 
 .conversationItem.active {
     background-color: var(--chat-item-active-bg, var(--color-primary-50));
-    border-left: 4px solid var(--chat-item-active-border, var(--color-primary-500));
+    /* border-left: 4px solid var(--chat-item-active-border, var(--color-primary-500)); */ /* Quitado borde izquierdo */
+    /* box-shadow: inset 4px 0 0 var(--chat-item-active-border, var(--color-primary-500)); */ /* Quitado indicador lateral */
 }
 
 .avatar {
@@ -131,22 +141,28 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: var(--chat-container-bg, #f8fafc);
+    background-color: var(--chat-container-bg, var(--bg-card)); /* Usar bg-card para consistencia */
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+    border-radius: var(--radius-lg); /* Borde redondeado propio */
+    /* border: 1px solid var(--border-color); */ /* Quitado borde */
+    box-shadow: var(--shadow-sm); /* Sombra sutil */
 }
 
 .chatHeader {
     padding: var(--space-4);
-    background-color: var(--chat-header-bg, white);
+    background-color: var(--chat-header-bg, var(--bg-card)); /* Usar variable maestra */
     color: var(--chat-header-text, var(--text-main));
-    border-bottom: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde inferior */
     display: flex;
     align-items: center;
     gap: var(--space-3);
     font-weight: 600;
     flex-shrink: 0;
+    /* Sombra sutil para separar del contenido si es del mismo color */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    z-index: 10;
 }
 
 .backButton {
@@ -198,6 +214,7 @@
     font-size: 0.95rem;
     line-height: 1.4;
     word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .sent {
@@ -209,9 +226,9 @@
 
 .received {
     align-self: flex-start;
-    background-color: var(--chat-bubble-received-bg, white);
+    background-color: var(--chat-bubble-received-bg, var(--bg-input)); /* Usar bg-input para diferenciar del fondo */
     color: var(--chat-bubble-received-text, var(--text-main));
-    border: 1px solid var(--border-color);
+    /* border: 1px solid var(--border-color); */ /* Quitado borde */
     border-bottom-left-radius: 2px;
 }
 
@@ -224,28 +241,37 @@
 
 .inputArea {
     padding: var(--space-4);
-    background-color: var(--chat-input-area-bg, white);
-    border-top: 1px solid var(--border-color);
+    background-color: var(--chat-input-area-bg, var(--bg-card)); /* Usar variable maestra */
+    /* border-top: 1px solid var(--border-color); */ /* Quitado borde superior */
     display: flex;
     gap: var(--space-2);
     flex-shrink: 0;
+    /* Sombra sutil invertida para separar del contenido */
+    box-shadow: 0 -1px 2px rgba(0,0,0,0.05);
+    z-index: 10;
 }
 
 .messageInput {
     flex: 1;
     padding: 10px;
-    border: none; /* Sin borde por defecto */
+    border: none; /* Sin borde */
     border-radius: var(--radius-md);
     font-size: 0.95rem;
-    background-color: var(--bg-input); /* Asegurar fondo */
+    background-color: var(--bg-input); /* Usar variable maestra */
+    color: var(--text-input); /* Usar variable maestra */
     height: min-content;
     resize: none;
+    transition: background-color 0.2s;
 }
 
 .messageInput:focus {
     outline: none;
-    border: none; /* Sin borde al enfocar */
-    box-shadow: none; /* Sin sombra al enfocar */
+    /* border-color: var(--color-primary-500); */ /* Quitado borde focus */
+    /* box-shadow: 0 0 0 2px var(--color-primary-100); */ /* Quitado ring */
+
+    /* Tinte automático: mezcla 5% del color del texto con el fondo del input */
+    background-color: color-mix(in srgb, var(--bg-input), var(--text-input) 5%);
+
     min-height: min-content;
 }
 
@@ -272,6 +298,7 @@
         border: none;
         height: 100%;
         margin-bottom: 0;
+        gap: 0; /* Sin gap en móvil */
     }
 
     .sidebar {
@@ -282,6 +309,9 @@
         left: 0;
         z-index: 10;
         transform: translateX(0);
+        border-radius: 0; /* Sin borde redondeado en móvil */
+        border: none;
+        box-shadow: none;
     }
 
     .sidebar.hidden {
@@ -297,7 +327,10 @@
         z-index: 5;
         transform: translateX(100%);
         transition: transform 0.3s ease;
-        background-color: var(--chat-container-bg, #f8fafc);
+        background-color: var(--chat-container-bg, var(--bg-view));
+        border-radius: 0; /* Sin borde redondeado en móvil */
+        border: none;
+        box-shadow: none;
     }
 
     .chatArea.visible {

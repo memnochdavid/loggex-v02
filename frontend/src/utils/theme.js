@@ -31,6 +31,10 @@ export const applyTheme = (colors) => {
     const defaults = {
         primaryColor: '#6366f1',
         secondaryColor: '#64748b',
+        viewBackgroundColor: '#ffffff',
+        borderRadius: '0.5rem',
+        showLottie: true,
+        enableDraggableModal: true,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -81,12 +85,15 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
-        accordionHeaderBgColor: '#f8fafc',
-        accordionHeaderTextColor: '#64748b',
-        accordionHeaderActiveBgColor: '#f1f5f9',
-        accordionHeaderActiveTextColor: '#334155',
-        accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#334155',
+        
+        // Accordion
+        accordionHeaderBgColor: '#5c94f0',
+        accordionHeaderTextColor: '#ffffff',
+        accordionHeaderActiveBgColor: '#77a9f8',
+        accordionHeaderActiveTextColor: '#ffffff',
+        accordionContentBgColor: '#f0f0f0',
+        accordionContentTextColor: '#46505d',
+
         modalHeaderBgColor: '#ffffff',
         modalHeaderTextColor: '#334155',
         modalBodyBgColor: '#ffffff',
@@ -141,6 +148,32 @@ export const applyTheme = (colors) => {
 
     const theme = { ...defaults, ...colors };
 
+    // Guardar configuración global
+    window.themeConfig = {
+        showLottie: theme.showLottie,
+        enableDraggableModal: theme.enableDraggableModal
+    };
+    window.dispatchEvent(new Event('themeConfigChanged'));
+
+    // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
+    // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra
+    root.style.setProperty('--bg-card', theme.widgetBgColor);
+    
+    // Usamos color-mix con valores directos para evitar problemas de orden de variables
+    // CORRECCIÓN: Usar --border-color en lugar de --color-border para coincidir con CSS modules
+    root.style.setProperty('--border-color', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`);
+    root.style.setProperty('--color-border', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`); // Mantener alias por si acaso
+    
+    // Inputs: Si el fondo de la vista es oscuro, el input debe ser un poco más claro u oscuro
+    // Usamos color-mix con valores directos
+    root.style.setProperty('--bg-input', `color-mix(in srgb, ${theme.viewBackgroundColor}, ${theme.textMainColor} 5%)`);
+    root.style.setProperty('--text-input', theme.textMainColor);
+    
+    // Borde de input derivado
+    root.style.setProperty('--border-input', `color-mix(in srgb, ${theme.viewBackgroundColor}, ${theme.textMainColor} 20%)`);
+
+    // --- FIN VARIABLES MAESTRAS ---
+
     // 1. Color Primario
     if (theme.primaryColor) {
         const p = theme.primaryColor;
@@ -154,6 +187,20 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-700', mixColors(p, '#000000', 0.75));
         root.style.setProperty('--color-primary-800', mixColors(p, '#000000', 0.6));
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
+    }
+
+    // 1.1 Fondo de Vistas
+    if (theme.viewBackgroundColor) {
+        root.style.setProperty('--bg-view', theme.viewBackgroundColor);
+    }
+
+    // 1.2 Border Radius
+    if (theme.borderRadius) {
+        root.style.setProperty('--border-radius', theme.borderRadius);
+        root.style.setProperty('--radius-md', theme.borderRadius);
+        root.style.setProperty('--radius-lg', `calc(${theme.borderRadius} + 0.25rem)`);
+        root.style.setProperty('--radius-sm', `calc(${theme.borderRadius} - 0.125rem)`);
+        root.style.setProperty('--border-radius-small', `calc(${theme.borderRadius} - 0.125rem)`);
     }
 
     // 2. Sidebar

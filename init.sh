@@ -12,19 +12,31 @@ echo "🚀 Iniciando despliegue de Loggex v02..."
 echo "🐳 Levantando contenedores Docker..."
 docker compose up -d --build --remove-orphans
 
-# 2. Instalar dependencias Backend
+# 2. Configurar MinIO (Crear bucket si no existe)
+echo "☁️  Configurando almacenamiento MinIO..."
+# Esperar un momento a que MinIO esté listo
+sleep 2
+# Usamos una imagen temporal de minio/mc para configurar el servidor
+docker run --rm --network $(docker network ls -q --filter name=loggex-v02_default | head -n 1 || echo "loggex-v02_default") \
+    minio/mc alias set myminio http://minio:9000 minio_admin minio_password
+docker run --rm --network $(docker network ls -q --filter name=loggex-v02_default | head -n 1 || echo "loggex-v02_default") \
+    minio/mc mb --ignore-existing myminio/loggex-data
+echo "✅ Bucket 'loggex-data' listo."
+
+# 3. Instalar dependencias Backend
 echo "📦 Instalando dependencias de Symfony (Composer)..."
+
+# Asegurar paquetes para MinIO/S3 antes del install por si no están en composer.json
+echo "☁️  Asegurando dependencias de almacenamiento (MinIO/S3)..."
+docker compose exec backend composer require league/flysystem-aws-s3-v3 oneup/flysystem-bundle --no-interaction
+
 docker compose exec backend composer install --no-interaction --optimize-autoloader
 
-# Asegurar paquetes críticos (API Platform, JWT, etc. si se añaden)
-# docker compose exec backend composer require api --no-interaction # Ya debería estar en composer.json
-
-# 3. Instalar dependencias Frontend
+# 4. Instalar dependencias Frontend
 echo "📦 Instalando dependencias de React (NPM)..."
-# Esto instalará react-draggable y cualquier otra dependencia nueva en package.json
 docker compose exec frontend npm install
 
-# 4. Sincronizar Base de Datos
+# 5. Sincronizar Base de Datos
 echo "🔄 Sincronizando esquema de base de datos..."
 echo "   (Esperando 5s a que MariaDB esté lista...)"
 sleep 5
@@ -32,18 +44,18 @@ sleep 5
 # Actualizar esquema (crea tablas/columnas nuevas sin borrar datos)
 docker compose exec backend php bin/console doctrine:schema:update --force --no-interaction
 
-# 5. Limpieza y Optimización (CRÍTICO)
+# 6. Limpieza y Optimización (CRÍTICO)
 echo "🧹 Limpiando y regenerando caché..."
 # Borrado físico para asegurar que no quedan restos corruptos
 docker compose exec backend rm -rf var/cache/dev var/cache/prod
 # Regeneración oficial
 docker compose exec backend php bin/console cache:clear
 
-# 6. Permisos
+# 7. Permisos
 echo "🔒 Ajustando permisos internos..."
 docker compose exec backend chown -R www-data:www-data var/
 
-# 7. Reinicio final del backend (Para asegurar que OPcache/PHP-FPM toman los cambios de código/config)
+# 8. Reinicio final del backend (Para asegurar que OPcache/PHP-FPM toman los cambios de código/config)
 echo "🔄 Reiniciando servicio backend..."
 docker compose restart backend
 

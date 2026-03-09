@@ -48,6 +48,22 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $secondaryColor = '#64748b';
 
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $viewBackgroundColor = '#ffffff';
+
+    #[ORM\Column(length: 20)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $borderRadius = '0.5rem'; // NUEVO
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private bool $showLottie = true; // NUEVO
+
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private bool $enableDraggableModal = true; // NUEVO
+
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -69,7 +85,7 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $sidebarHoverTextColor = '#ffffff';
 
-    // --- Sidebar Accordion (NUEVO) ---
+    // --- Sidebar Accordion ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $sidebarAccordionHeaderBgColor = '#1e293b';
@@ -248,27 +264,27 @@ class Personalizacion
     // --- Accordion ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderBgColor = '#f1f5f9';
+    private ?string $accordionHeaderBgColor = '#5c94f0';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderTextColor = '#334155';
+    private ?string $accordionHeaderTextColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveBgColor = '#f1f5f9';
+    private ?string $accordionHeaderActiveBgColor = '#77a9f8';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionHeaderActiveTextColor = '#334155';
+    private ?string $accordionHeaderActiveTextColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionContentBgColor = '#ffffff';
+    private ?string $accordionContentBgColor = '#f0f0f0';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $accordionContentTextColor = '#64748b';
+    private ?string $accordionContentTextColor = '#46505d';
 
     // --- Modal ---
     #[ORM\Column(length: 7)]
@@ -308,7 +324,7 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $modalCloseButtonHoverTextColor = '#334155';
 
-    // --- UserCard (NUEVO) ---
+    // --- UserCard ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $userCardBgColor = '#1e293b';
@@ -321,7 +337,7 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $userCardTextSecondaryColor = '#cbd5e1';
 
-    // --- Chat (NUEVO) ---
+    // --- Chat ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $chatSidebarBgColor = '#ffffff';
@@ -368,7 +384,7 @@ class Personalizacion
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $chatInputAreaBgColor = '#ffffff'; // NUEVO
+    private ?string $chatInputAreaBgColor = '#ffffff';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -405,7 +421,7 @@ class Personalizacion
 
     #[ORM\Column(length: 11)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
-    private ?string $eventsSidebarBgColor = 'transparent'; // AÑADIDO
+    private ?string $eventsSidebarBgColor = 'transparent';
 
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -487,13 +503,23 @@ class Personalizacion
         return $this->id;
     }
 
-    // ... (Getters y Setters) ...
-
     public function getPrimaryColor(): ?string { return $this->primaryColor; }
     public function setPrimaryColor(string $color): static { $this->primaryColor = $color; return $this; }
 
     public function getSecondaryColor(): ?string { return $this->secondaryColor; }
     public function setSecondaryColor(string $color): static { $this->secondaryColor = $color; return $this; }
+
+    public function getViewBackgroundColor(): ?string { return $this->viewBackgroundColor; }
+    public function setViewBackgroundColor(string $color): static { $this->viewBackgroundColor = $color; return $this; }
+
+    public function getBorderRadius(): ?string { return $this->borderRadius; }
+    public function setBorderRadius(string $radius): static { $this->borderRadius = $radius; return $this; }
+
+    public function isShowLottie(): bool { return $this->showLottie; }
+    public function setShowLottie(bool $show): static { $this->showLottie = $show; return $this; }
+
+    public function isEnableDraggableModal(): bool { return $this->enableDraggableModal; }
+    public function setEnableDraggableModal(bool $enable): static { $this->enableDraggableModal = $enable; return $this; }
 
     public function getSidebarColor(): ?string { return $this->sidebarColor; }
     public function setSidebarColor(string $color): static { $this->sidebarColor = $color; return $this; }
@@ -510,7 +536,6 @@ class Personalizacion
     public function getSidebarHoverTextColor(): ?string { return $this->sidebarHoverTextColor; }
     public function setSidebarHoverTextColor(string $color): static { $this->sidebarHoverTextColor = $color; return $this; }
 
-    // --- Sidebar Accordion ---
     public function getSidebarAccordionHeaderBgColor(): ?string { return $this->sidebarAccordionHeaderBgColor; }
     public function setSidebarAccordionHeaderBgColor(string $color): static { $this->sidebarAccordionHeaderBgColor = $color; return $this; }
 
@@ -682,7 +707,6 @@ class Personalizacion
     public function getModalCloseButtonHoverTextColor(): ?string { return $this->modalCloseButtonHoverTextColor; }
     public function setModalCloseButtonHoverTextColor(string $color): static { $this->modalCloseButtonHoverTextColor = $color; return $this; }
 
-    // --- UserCard ---
     public function getUserCardBgColor(): ?string { return $this->userCardBgColor; }
     public function setUserCardBgColor(string $color): static { $this->userCardBgColor = $color; return $this; }
 
@@ -692,7 +716,6 @@ class Personalizacion
     public function getUserCardTextSecondaryColor(): ?string { return $this->userCardTextSecondaryColor; }
     public function setUserCardTextSecondaryColor(string $color): static { $this->userCardTextSecondaryColor = $color; return $this; }
 
-    // --- Chat ---
     public function getChatSidebarBgColor(): ?string { return $this->chatSidebarBgColor; }
     public function setChatSidebarBgColor(string $color): static { $this->chatSidebarBgColor = $color; return $this; }
 
@@ -741,7 +764,6 @@ class Personalizacion
     public function getChatBubbleReceivedTextColor(): ?string { return $this->chatBubbleReceivedTextColor; }
     public function setChatBubbleReceivedTextColor(string $color): static { $this->chatBubbleReceivedTextColor = $color; return $this; }
 
-    // --- EventCard & EventsSidebar ---
     public function getEventCardBgColor(): ?string { return $this->eventCardBgColor; }
     public function setEventCardBgColor(string $color): static { $this->eventCardBgColor = $color; return $this; }
 
@@ -754,13 +776,12 @@ class Personalizacion
     public function getEventCardMetaColor(): ?string { return $this->eventCardMetaColor; }
     public function setEventCardMetaColor(string $color): static { $this->eventCardMetaColor = $color; return $this; }
 
-    public function getEventsSidebarBgColor(): ?string { return $this->eventsSidebarBgColor; } // AÑADIDO
-    public function setEventsSidebarBgColor(string $color): static { $this->eventsSidebarBgColor = $color; return $this; } // AÑADIDO
+    public function getEventsSidebarBgColor(): ?string { return $this->eventsSidebarBgColor; }
+    public function setEventsSidebarBgColor(string $color): static { $this->eventsSidebarBgColor = $color; return $this; }
 
     public function getEventsSidebarTitleColor(): ?string { return $this->eventsSidebarTitleColor; }
     public function setEventsSidebarTitleColor(string $color): static { $this->eventsSidebarTitleColor = $color; return $this; }
 
-    // --- Dashboard Widgets ---
     public function getWidgetBgColor(): ?string { return $this->widgetBgColor; }
     public function setWidgetBgColor(string $color): static { $this->widgetBgColor = $color; return $this; }
 

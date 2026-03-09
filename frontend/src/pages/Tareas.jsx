@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload, Filter } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -15,13 +15,22 @@ const Tareas = () => {
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
   const fileInputRef = useRef(null);
 
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+
+  // Estados para filtros de SuperAdmin
+  const [centros, setCentros] = useState([]);
+  const [selectedCentro, setSelectedCentro] = useState('');
+  const [grupos, setGrupos] = useState([]);
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [modulos, setModulos] = useState([]); // NUEVO
+  const [selectedModulo, setSelectedModulo] = useState(''); // NUEVO
 
   // Estado para modal de creación/edición (Solo Profesores)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,11 +46,81 @@ const Tareas = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Cargar centros para SuperAdmin
+  useEffect(() => {
+      if (isSuperAdmin) {
+          fetch(getApiUrl('/api/centros?pagination=false'), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setCentros(items);
+          })
+          .catch(err => console.error("Error cargando centros:", err));
+      }
+  }, [isSuperAdmin]);
+
+  // Cargar grupos cuando cambia el centro seleccionado
+  useEffect(() => {
+      if (isSuperAdmin && selectedCentro) {
+          fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setGrupos(items);
+              setSelectedGrupo(''); // Resetear grupo al cambiar centro
+              setModulos([]); // Resetear módulos
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando grupos:", err));
+      } else {
+          setGrupos([]);
+          setSelectedGrupo('');
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedCentro, isSuperAdmin]);
+
+  // Cargar módulos cuando cambia el grupo seleccionado (NUEVO)
+  useEffect(() => {
+      if (isSuperAdmin && selectedGrupo) {
+          // Obtener imparticiones del grupo para sacar los módulos
+          fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              // Extraer módulos únicos
+              const uniqueModulos = [];
+              const map = new Map();
+              for (const item of items) {
+                  if (item.modulo && !map.has(item.modulo.id)) {
+                      map.set(item.modulo.id, true);
+                      uniqueModulos.push(item.modulo);
+                  }
+              }
+              setModulos(uniqueModulos);
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando módulos:", err));
+      } else {
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedGrupo, isSuperAdmin]);
+
   useEffect(() => {
     if (user) {
         fetchData();
     }
-  }, [user]);
+  }, [user, selectedCentro, selectedGrupo, selectedModulo]); // Añadidos filtros a dependencias
 
   const fetchData = async () => {
     setLoading(true);
@@ -66,7 +145,24 @@ const Tareas = () => {
                 setLoading(false);
                 return;
             }
+        } else if (isSuperAdmin) {
+             // Lógica de filtrado para SuperAdmin
+             let query = 'pagination=false';
+             if (selectedModulo) {
+                 query += `&modulo=${selectedModulo}`;
+                 // Si hay módulo, implícitamente hay grupo, pero añadimos grupo para asegurar contexto si es necesario
+                 if (selectedGrupo) query += `&grupo=${selectedGrupo}`;
+             } else if (selectedGrupo) {
+                 query += `&grupo=${selectedGrupo}`;
+             } else if (selectedCentro) {
+                 query += `&grupo.centro=${selectedCentro}`;
+             }
+             // Si no hay centro seleccionado, trae todo (o podrías decidir no traer nada)
+             endpoint = getApiUrl(`/api/imparticions?${query}`);
         } else if (isAdmin) {
+             // Admin de centro ve todo lo de su centro (gestionado por CurrentUserExtension en backend idealmente, 
+             // o filtrado aquí si el backend devuelve todo)
+             // Asumimos que el backend filtra por el usuario logueado si es admin de centro
              endpoint = getApiUrl(`/api/imparticions?pagination=false`);
         }
 
@@ -89,7 +185,7 @@ const Tareas = () => {
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
-                if (isAlumno && nombreProfesor) {
+                if ((isAlumno || isSuperAdmin) && nombreProfesor) {
                     title += ` (${nombreProfesor})`;
                 }
 
@@ -223,64 +319,52 @@ const Tareas = () => {
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
-      return (
-          <div className={styles.cardList}>
-              {tareas.length === 0 ? (
-                  <div className={styles.emptyState}>No hay tareas asignadas.</div>
-              ) : (
-                  tareas.map(tarea => (
-                      <div key={tarea.id} className={styles.card}>
-                          <div className={styles.cardInfo}>
-                              <div className={styles.cardTitle}>
-                                  <FileText size={18} className={styles.icon} />
-                                  {tarea.titulo}
-                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`}>Oculta</span>}
-                              </div>
-                              {tarea.descripcion && (
-                                  <div className={styles.cardDescription} dangerouslySetInnerHTML={{ __html: tarea.descripcion }} />
-                              )}
-                              
-                              {tarea.archivo && (
-                                  <div style={{ marginBottom: '0.5rem' }}>
-                                      <a 
-                                          href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className={styles.fileLink}
-                                      >
-                                          <Paperclip size={16} />
-                                          Descargar adjunto
-                                      </a>
-                                  </div>
-                              )}
+      if (tareas.length === 0) {
+          return <div className={styles.emptyState}>No hay tareas asignadas.</div>;
+      }
 
-                              <div className={styles.cardMeta}>
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <Calendar size={14} /> 
-                                      Entrega: {new Date(tarea.fechaLimite).toLocaleString()}
-                                  </span>
-                                  <span className={`${styles.badge} ${styles.badgeInfo}`}>
-                                      {tarea.tipo}
-                                  </span>
-                              </div>
-                          </div>
-                          
-                          <div className={styles.cardActions}>
-                              {(isProfesor || isAdmin) ? (
-                                  <>
-                                      <button className={`${styles.iconButton}`} onClick={() => handleOpenModal(imparticion.id, tarea)}>
-                                          <Edit2 size={18} />
-                                      </button>
-                                      <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)}>
-                                          <Trash2 size={18} />
-                                      </button>
-                                  </>
-                              ) : null /* Eliminado el botón Ver / Entregar para alumnos */}
+      return (
+          <ul className={styles.list}>
+              {tareas.map(tarea => (
+                  <li key={tarea.id} className={styles.listItem}>
+                      <div className={styles.itemInfo}>
+                          <FileText size={20} className={styles.icon} />
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
+                              <span className={styles.date}>
+                                  Entrega: {new Date(tarea.fechaLimite).toLocaleString()} • {tarea.tipo}
+                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`} style={{ marginLeft: '8px' }}>Oculta</span>}
+                              </span>
                           </div>
                       </div>
-                  ))
-              )}
-          </div>
+                      
+                      <div className={styles.itemActions}>
+                          {tarea.archivo && (
+                              <a 
+                                  href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.downloadLink}
+                                  title="Descargar adjunto"
+                              >
+                                  <Paperclip size={18} />
+                              </a>
+                          )}
+                          
+                          {(isProfesor || isAdmin || isSuperAdmin) && (
+                              <>
+                                  <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)} title="Editar">
+                                      <Edit2 size={18} />
+                                  </button>
+                                  <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)} title="Eliminar">
+                                      <Trash2 size={18} />
+                                  </button>
+                              </>
+                          )}
+                      </div>
+                  </li>
+              ))}
+          </ul>
       );
   };
 
@@ -289,7 +373,49 @@ const Tareas = () => {
       <div className={styles.container}>
         <CrudHeader title="Tareas y Actividades"
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        />
+        >
+            {isSuperAdmin && (
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select 
+                        className={styles.select}
+                        value={selectedCentro}
+                        onChange={(e) => setSelectedCentro(e.target.value)}
+                        style={{ minWidth: '200px' }}
+                    >
+                        <option value="">Todos los Centros</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select}
+                        value={selectedGrupo}
+                        onChange={(e) => setSelectedGrupo(e.target.value)}
+                        disabled={!selectedCentro}
+                        style={{ minWidth: '150px' }}
+                    >
+                        <option value="">Todos los Grupos</option>
+                        {grupos.map(g => (
+                            <option key={g.id} value={g.id}>{g.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select}
+                        value={selectedModulo}
+                        onChange={(e) => setSelectedModulo(e.target.value)}
+                        disabled={!selectedGrupo}
+                        style={{ minWidth: '150px' }}
+                    >
+                        <option value="">Todos los Módulos</option>
+                        {modulos.map(m => (
+                            <option key={m.id} value={m.id}>{m.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </CrudHeader>
 
         {loading ? (
             <div className={styles.loadingContainer}>Cargando asignaturas...</div>
@@ -297,13 +423,15 @@ const Tareas = () => {
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
             <div className={styles.emptyState}>
-                No tienes asignaturas asignadas.
+                {isSuperAdmin && !selectedCentro 
+                    ? "Selecciona un centro para ver las tareas." 
+                    : "No se encontraron asignaturas con los filtros actuales."}
             </div>
         ) : (
             <AccordionView 
                 data={asignaturas}
                 renderItem={renderContent}
-                canAdd={isProfesor || isAdmin}
+                canAdd={isProfesor || isAdmin || isSuperAdmin}
                 onAdd={(id) => handleOpenModal(id)}
                 expandedId={expandedId}
                 onToggle={handleToggle}

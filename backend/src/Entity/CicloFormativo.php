@@ -48,11 +48,11 @@ class CicloFormativo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ciclo:read', 'modulo:read', 'grupo:read'])] // Añadido grupo:read
+    #[Groups(['ciclo:read', 'modulo:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read', 'grupo:read'])] // Añadido grupo:read
+    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50)]

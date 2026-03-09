@@ -8,10 +8,10 @@
 
 /* Estilos para el acordeón de turnos (Escritorio) */
 .shiftAccordion {
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     overflow: hidden;
-    background-color: var(--bg-card);
+    background-color: var(--bg-card); /* Usar variable maestra */
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
@@ -20,7 +20,7 @@
 
 .shiftHeader {
     padding: 0.75rem 1rem; /* Reducido padding */
-    background-color: var(--bg-hover);
+    background-color: var(--bg-input); /* Usar fondo de input/hover */
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -32,11 +32,11 @@
 }
 
 .shiftHeader:hover {
-    background-color: var(--bg-active);
+    background-color: var(--bg-hover); /* O usar una variable de hover genérica si existe, o bg-input oscurecido */
 }
 
 .shiftHeader.active {
-    border-bottom-color: var(--border-color);
+    border-bottom-color: var(--border-color); /* Usar variable maestra */
     background-color: var(--color-primary-50);
     color: var(--color-primary-700);
 }
@@ -61,20 +61,27 @@
 .grid {
     display: grid;
     /* grid-template-columns se define inline */
-    border: 1px solid var(--border-color);
+    /* border: 1px solid var(--border-color); */ /* Quitado borde exterior */
     border-radius: var(--radius-md);
-    background-color: var(--bg-card);
+
+    /* Estrategia color-mix: Fondo sutil derivado del texto para las líneas divisorias (gap) */
+    background-color: color-mix(in srgb, var(--bg-card), var(--text-main) 10%);
+
+    gap: 1px; /* Espacio entre celdas para mostrar el fondo (líneas) */
     overflow: hidden;
+
+    /* Borde exterior también sutil usando la misma mezcla */
+    border: 1px solid color-mix(in srgb, var(--bg-card), var(--text-main) 10%);
 }
 
 .headerCell {
-    background-color: var(--timetable-header-bg, var(--bg-hover));
+    background-color: var(--timetable-header-bg, var(--bg-input));
     color: var(--timetable-header-text, var(--text-muted));
     padding: 0.5rem; /* Reducido */
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde explícito */
+    /* border-right: 1px solid var(--border-color); */ /* Quitado borde explícito */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -83,7 +90,7 @@
 }
 
 .headerCell:last-child {
-    border-right: none;
+    /* border-right: none; */ /* Ya no es necesario */
 }
 
 .dateLabel {
@@ -99,46 +106,53 @@
 }
 
 .timeCell {
-    background-color: var(--timetable-hours-bg, var(--bg-hover));
+    background-color: var(--timetable-hours-bg, var(--bg-input));
     color: var(--timetable-hours-text, var(--text-muted));
     padding: 0.25rem;
     font-size: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-bottom: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde explícito */
+    /* border-right: 1px solid var(--border-color); */ /* Quitado borde explícito */
     font-weight: 500;
 }
 
 .cell {
-    border-bottom: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
+    /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde explícito */
+    /* border-right: 1px solid var(--border-color); */ /* Quitado borde explícito */
     padding: 0.15rem; /* Reducido */
     min-height: 45px; /* Reducido de 60px para permitir más compactación */
     position: relative;
-    background-color: var(--bg-card);
+    background-color: var(--bg-card); /* Usar variable maestra */
 }
 
 .cell:last-child {
-    border-right: none;
+    /* border-right: none; */ /* Ya no es necesario */
 }
 
 .highlightCell {
-    background-color: var(--timetable-active-cell-bg, var(--color-primary-50));
+    /* Usar color-mix para un tinte sutil en lugar de color fijo */
+    background-color: color-mix(in srgb, var(--bg-card), var(--color-primary-500) 5%);
 }
 
 .eventCard {
-    background-color: var(--color-primary-100);
+    /* CORRECCIÓN: Usar color-mix con el fondo de la tarjeta en lugar de --color-primary-100 */
+    /* Esto asegura que en modo oscuro sea oscuro y en modo claro sea claro */
+    background-color: color-mix(in srgb, var(--color-primary-500), var(--bg-card) 85%);
+
     border-left: 3px solid var(--color-primary-500);
     padding: 0.25rem 0.4rem; /* Reducido */
-    border-radius: 3px;
+    border-radius: var(--radius-sm); /* Usar variable derivada */
     height: 100%;
     cursor: pointer;
     transition: transform 0.1s, box-shadow 0.1s;
     overflow: hidden;
     font-size: 0.8rem; /* Reducido */
-    color: var(--color-primary-900);
+
+    /* CORRECCIÓN: Usar texto principal para asegurar contraste en ambos modos */
+    color: var(--text-main);
+
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -147,7 +161,8 @@
 .eventCard:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
-    background-color: var(--color-primary-200);
+    /* Al hacer hover, oscurecemos/aclaramos ligeramente la mezcla */
+    background-color: color-mix(in srgb, var(--color-primary-500), var(--bg-card) 80%);
 }
 
 .eventModulo {
@@ -168,7 +183,7 @@
 
 /* Festivos */
 .festivoCell {
-    background-color: var(--bg-hover);
+    background-color: var(--bg-input); /* Usar variable maestra */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,7 +233,7 @@
     align-items: flex-start;
     gap: 1rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border-color); /* Usar variable maestra */
 }
 
 .detailRow:last-child {
@@ -233,7 +248,7 @@
 
 .label {
     font-weight: 600;
-    color: var(--color-text-secondary);
+    color: var(--text-muted); /* Usar variable maestra */
     margin-right: 0.5rem;
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -241,12 +256,12 @@
 }
 
 .value {
-    color: var(--color-text-main);
+    color: var(--text-main); /* Usar variable maestra */
     font-weight: 500;
 }
 
 .subValue {
-    color: var(--color-text-secondary);
+    color: var(--text-muted); /* Usar variable maestra */
     font-size: 0.9em;
     margin-left: 0.5rem;
 }
@@ -290,8 +305,8 @@
 }
 
 .mobileEvent {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--border-color); /* Usar variable maestra */
     border-left: 4px solid var(--color-primary-500);
     border-radius: var(--radius-md);
     padding: 0.75rem;
@@ -314,14 +329,14 @@
 
 .mobileEventSubtitle {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: var(--text-muted); /* Usar variable maestra */
 }
 
 .mobileFestivo {
     text-align: center;
     padding: 1.5rem;
     color: var(--text-muted);
-    background-color: var(--bg-hover);
+    background-color: var(--bg-input); /* Usar variable maestra */
     border-radius: var(--radius-md);
     font-style: italic;
 }

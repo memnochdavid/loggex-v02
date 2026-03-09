@@ -15,6 +15,7 @@ services:
     depends_on:
       - frontend
       - backend
+      - minio
 
   database:
     image: mariadb:10.11
@@ -32,6 +33,21 @@ services:
     security_opt:
       - apparmor:unconfined
 
+  minio:
+    image: minio/minio:latest
+    container_name: loggex-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -41,9 +57,15 @@ services:
       - ./backend:/var/www/html:z
     depends_on:
       - database
+      - minio
     environment:
       DATABASE_URL: "mysql://app_user:app_password@database:3306/app_db?serverVersion=10.11.15-MariaDB&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?'
+      # Configuración MinIO para el Backend
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "minio_admin"
+      MINIO_SECRET_KEY: "minio_password"
+      MINIO_BUCKET: "loggex-data"
     security_opt:
       - apparmor:unconfined
 
@@ -68,3 +90,4 @@ volumes:
   db_data:
   caddy_data:
   caddy_config:
+  minio_data:

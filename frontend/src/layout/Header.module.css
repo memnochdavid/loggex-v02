@@ -110,7 +110,7 @@
     width: 320px;
     background-color: white; /* Fondo blanco explícito para el dropdown */
     color: #334155; /* Texto oscuro explícito para el dropdown */
-    /*border-radius: 8px;*/
+    border-radius: var(--radius-lg); /* Usar variable de configuración */
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     /*border: 1px solid #e2e8f0;*/
     overflow: hidden;

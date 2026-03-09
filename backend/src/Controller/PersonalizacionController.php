@@ -51,6 +51,10 @@ class PersonalizacionController extends AbstractController
         // General
         if (isset($data['primaryColor'])) $personalizacion->setPrimaryColor($data['primaryColor']);
         if (isset($data['secondaryColor'])) $personalizacion->setSecondaryColor($data['secondaryColor']);
+        if (isset($data['viewBackgroundColor'])) $personalizacion->setViewBackgroundColor($data['viewBackgroundColor']);
+        if (isset($data['borderRadius'])) $personalizacion->setBorderRadius($data['borderRadius']); // NUEVO
+        if (isset($data['showLottie'])) $personalizacion->setShowLottie($data['showLottie']); // NUEVO
+        if (isset($data['enableDraggableModal'])) $personalizacion->setEnableDraggableModal($data['enableDraggableModal']); // NUEVO
 
         // Sidebar
         if (isset($data['sidebarColor'])) $personalizacion->setSidebarColor($data['sidebarColor']);
@@ -59,7 +63,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['sidebarHoverColor'])) $personalizacion->setSidebarHoverColor($data['sidebarHoverColor']);
         if (isset($data['sidebarHoverTextColor'])) $personalizacion->setSidebarHoverTextColor($data['sidebarHoverTextColor']);
 
-        // Sidebar Accordion (NUEVO)
+        // Sidebar Accordion
         if (isset($data['sidebarAccordionHeaderBgColor'])) $personalizacion->setSidebarAccordionHeaderBgColor($data['sidebarAccordionHeaderBgColor']);
         if (isset($data['sidebarAccordionHeaderTextColor'])) $personalizacion->setSidebarAccordionHeaderTextColor($data['sidebarAccordionHeaderTextColor']);
         if (isset($data['sidebarAccordionContentBgColor'])) $personalizacion->setSidebarAccordionContentBgColor($data['sidebarAccordionContentBgColor']);
@@ -157,7 +161,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['chatHeaderBgColor'])) $personalizacion->setChatHeaderBgColor($data['chatHeaderBgColor']);
         if (isset($data['chatHeaderTextColor'])) $personalizacion->setChatHeaderTextColor($data['chatHeaderTextColor']);
         if (isset($data['chatContainerBgColor'])) $personalizacion->setChatContainerBgColor($data['chatContainerBgColor']);
-        if (isset($data['chatInputAreaBgColor'])) $personalizacion->setChatInputAreaBgColor($data['chatInputAreaBgColor']); // NUEVO
+        if (isset($data['chatInputAreaBgColor'])) $personalizacion->setChatInputAreaBgColor($data['chatInputAreaBgColor']);
         if (isset($data['chatBubbleSentBgColor'])) $personalizacion->setChatBubbleSentBgColor($data['chatBubbleSentBgColor']);
         if (isset($data['chatBubbleSentTextColor'])) $personalizacion->setChatBubbleSentTextColor($data['chatBubbleSentTextColor']);
         if (isset($data['chatBubbleReceivedBgColor'])) $personalizacion->setChatBubbleReceivedBgColor($data['chatBubbleReceivedBgColor']);
@@ -168,7 +172,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['eventCardBorderColor'])) $personalizacion->setEventCardBorderColor($data['eventCardBorderColor']);
         if (isset($data['eventCardTitleColor'])) $personalizacion->setEventCardTitleColor($data['eventCardTitleColor']);
         if (isset($data['eventCardMetaColor'])) $personalizacion->setEventCardMetaColor($data['eventCardMetaColor']);
-        if (isset($data['eventsSidebarBgColor'])) $personalizacion->setEventsSidebarBgColor($data['eventsSidebarBgColor']); // AÑADIDO
+        if (isset($data['eventsSidebarBgColor'])) $personalizacion->setEventsSidebarBgColor($data['eventsSidebarBgColor']);
         if (isset($data['eventsSidebarTitleColor'])) $personalizacion->setEventsSidebarTitleColor($data['eventsSidebarTitleColor']);
 
         // Dashboard Widgets

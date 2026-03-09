@@ -13,6 +13,13 @@
     gap: 1rem;
 }
 
+.logoContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; /* Ancho fijo para evitar saltos si no hay logo */
+}
+
 .logo {
     height: 40px;
     width: auto;
@@ -27,14 +34,14 @@
 .title {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--color-gray-900);
+    color: var(--text-main); /* Usar color principal */
     margin: 0;
     line-height: 1.2;
 }
 
 .subtitle {
     font-size: var(--text-sm);
-    color: var(--color-text-secondary);
+    color: var(--text-muted); /* Usar variable maestra */
     margin: 0;
     margin-top: 0.25rem;
 }

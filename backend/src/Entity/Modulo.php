@@ -50,7 +50,7 @@ class Modulo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['modulo:read'])]
+    #[Groups(['modulo:read', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido imparticion:read, horario:read, tarea:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]

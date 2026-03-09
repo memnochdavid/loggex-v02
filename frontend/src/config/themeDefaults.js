@@ -1,6 +1,10 @@
 export const DEFAULT_THEME = {
     primaryColor: '#6366f1',
     secondaryColor: '#64748b',
+    viewBackgroundColor: '#ffffff',
+    borderRadius: '0.5rem', // NUEVO
+    showLottie: true, // NUEVO
+    enableDraggableModal: true, // NUEVO
     sidebarColor: '#1e293b',
     sidebarActiveColor: '#334155',
     sidebarActiveTextColor: '#ffffff',
@@ -48,12 +52,12 @@ export const DEFAULT_THEME = {
     datatablePaginationButtonHoverTextColor: '#334155',
     datatablePaginationButtonActiveBgColor: '#e2e8f0',
     datatablePaginationButtonActiveTextColor: '#1e293b',
-    accordionHeaderBgColor: '#f8fafc',
-    accordionHeaderTextColor: '#64748b',
-    accordionHeaderActiveBgColor: '#f1f5f9',
-    accordionHeaderActiveTextColor: '#334155',
-    accordionContentBgColor: '#ffffff',
-    accordionContentTextColor: '#334155',
+    accordionHeaderBgColor: '#5c94f0',
+    accordionHeaderTextColor: '#ffffff',
+    accordionHeaderActiveBgColor: '#77a9f8',
+    accordionHeaderActiveTextColor: '#ffffff',
+    accordionContentBgColor: '#f0f0f0',
+    accordionContentTextColor: '#46505d',
     modalHeaderBgColor: '#ffffff',
     modalHeaderTextColor: '#334155',
     modalBodyBgColor: '#ffffff',

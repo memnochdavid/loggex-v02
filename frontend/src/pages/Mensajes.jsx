@@ -284,6 +284,29 @@ const Mensajes = () => {
         setSelectedUser(null);
     };
 
+    const formatMessageDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Hoy: hora
+        if (date.toDateString() === now.toDateString()) {
+            return timeStr;
+        }
+
+        // Ayer: ayer - hora
+        if (date.toDateString() === yesterday.toDateString()) {
+            return `Ayer - ${timeStr}`;
+        }
+
+        // Esta semana / más antiguo: fecha - hora
+        return `${date.toLocaleDateString()} - ${timeStr}`;
+    };
+
     const filteredConversations = conversaciones.filter(c => {
         const nombre = `${c.usuario.nombre} ${c.usuario.apellidos || ''}`.toLowerCase();
         return nombre.includes(searchTerm.toLowerCase());
@@ -328,12 +351,6 @@ const Mensajes = () => {
                                         <div className={styles.conversationHeader}>
                                             <span
                                                 className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
-                                            <span className={styles.time}>
-                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
-                                            </span>
                                         </div>
                                         <div className={styles.lastMessage}>
                                             {chat.isTemp ? 'Inicia la conversación' : (
@@ -391,10 +408,7 @@ const Mensajes = () => {
                                                         {msg.texto}
                                                     </div>
                                                     <div className={styles.messageTime}>
-                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
+                                                        {formatMessageDate(msg.fechaEnvio)}
                                                     </div>
                                                 </div>
                                             );

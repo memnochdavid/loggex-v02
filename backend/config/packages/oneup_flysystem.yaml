@@ -1,0 +1,10 @@
+oneup_flysystem:
+    adapters:
+        minio_adapter:
+            awss3v3:
+                client: app.minio_client
+                bucket: '%env(MINIO_BUCKET)%'
+
+    filesystems:
+        loggex_storage:
+            adapter: minio_adapter

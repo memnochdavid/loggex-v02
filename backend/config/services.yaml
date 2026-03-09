@@ -30,3 +30,19 @@ services:
             $removeProcessor: '@api_platform.doctrine.orm.state.remove_processor'
         tags:
             - { name: 'api_platform.state_processor', priority: 100 }
+
+    # Configuración del Cliente S3 para MinIO
+    app.minio_client:
+        class: 'Aws\S3\S3Client'
+        arguments:
+            -
+                endpoint: '%env(MINIO_ENDPOINT)%'
+                region: 'us-east-1'
+                version: 'latest'
+                use_path_style_endpoint: true
+                credentials:
+                    key: '%env(MINIO_ACCESS_KEY)%'
+                    secret: '%env(MINIO_SECRET_KEY)%'
+
+    # Alias para inyectar el filesystem fácilmente
+    League\Flysystem\FilesystemOperator: '@oneup_flysystem.loggex_storage_filesystem'

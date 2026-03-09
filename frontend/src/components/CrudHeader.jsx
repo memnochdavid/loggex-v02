@@ -1,16 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './CrudHeader.module.css';
 
 const CrudHeader = ({ title, subtitle, logo, children }) => {
+    const [showLottie, setShowLottie] = useState(true);
+
+    useEffect(() => {
+        // Leer configuración inicial
+        if (window.themeConfig && window.themeConfig.showLottie !== undefined) {
+            setShowLottie(window.themeConfig.showLottie);
+        }
+
+        // Escuchar cambios en la configuración
+        const handleConfigChange = () => {
+            if (window.themeConfig && window.themeConfig.showLottie !== undefined) {
+                setShowLottie(window.themeConfig.showLottie);
+            }
+        };
+
+        window.addEventListener('themeConfigChanged', handleConfigChange);
+        return () => window.removeEventListener('themeConfigChanged', handleConfigChange);
+    }, []);
+
+    // Determinar si el logo es un componente Lottie (React Element) o una imagen (string)
+    const isLottie = React.isValidElement(logo);
+
+    // Determinar si debemos mostrar el logo
+    // Si es Lottie, depende de showLottie. Si no es Lottie (imagen), siempre se muestra si existe.
+    const shouldShowLogo = logo && (!isLottie || showLottie);
+
     return (
         <div className={styles.container}>
             <div className={styles.titleGroup}>
-                {logo && (
+                {shouldShowLogo && (
                     <div className={styles.logoContainer}>
-                        {typeof logo === 'string' ? (
-                            <img src={logo} alt="Logo" className={styles.logo} />
-                        ) : (
-                            logo
+                        {isLottie ? logo : (
+                            typeof logo === 'string' ? (
+                                <img src={logo} alt="Logo" className={styles.logo} />
+                            ) : (
+                                logo
+                            )
                         )}
                     </div>
                 )}

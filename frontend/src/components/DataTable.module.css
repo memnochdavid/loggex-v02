@@ -1,11 +1,12 @@
 .container {
     /*width: 100%;*/
-    /*background-color: var(--bg-card);*/
+    background-color: var(--bg-card); /* Aseguramos fondo para que se note el borde */
     /*border: 1px solid var(--border-color);*/
-    /*border-radius: var(--radius-lg);*/
+    border-radius: var(--radius-lg); /* Descomentado y usando variable dinámica */
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Necesario para que el contenido respete el border-radius */
 }
 
 .tableWrapper {
@@ -59,8 +60,9 @@
 }
 
 .tbody tr {
-    border-bottom: 1px solid var(--color-gray-100);
+    border-bottom: 1px solid var(--border-color); /* Usar variable maestra */
     transition: background-color 0.15s;
+    background-color: var(--bg-card); /* Asegurar fondo base */
 }
 
 .tbody tr:last-child {
@@ -68,12 +70,13 @@
 }
 
 .tbody tr:hover {
-    background-color: var(--color-gray-50);
+    /* Usar color-mix para un hover sutil y consistente en cualquier tema */
+    background-color: color-mix(in srgb, var(--bg-card), var(--text-main) 5%);
 }
 
 .td {
     padding: var(--space-3) var(--space-4);
-    color: var(--color-gray-700);
+    color: var(--text-main); /* Usar variable maestra */
     vertical-align: middle;
 }
 
@@ -116,11 +119,11 @@
 
 .select {
     padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--color-gray-300);
-    border-radius: var(--radius-sm);
-    background-color: white;
+    border: 1px solid var(--border-color); /* Usar variable maestra */
+    border-radius: var(--radius-sm); /* Usa la variable derivada */
+    background-color: var(--bg-input); /* Usar variable maestra */
     font-size: var(--text-sm);
-    color: var(--color-gray-700);
+    color: var(--text-main); /* Usar variable maestra */
     cursor: pointer;
 }
 
@@ -142,10 +145,10 @@
 
 .pageButton {
     padding: var(--space-1) var(--space-2);
-    border: 1px solid var(--color-gray-300);
+    border: 1px solid var(--border-color); /* Usar variable maestra */
     background-color: var(--datatable-pagination-btn-bg, white);
     color: var(--datatable-pagination-btn-text, var(--color-gray-700));
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-md); /* Usa la variable derivada */
     cursor: pointer;
     font-size: var(--text-sm);
     transition: all 0.2s;
@@ -158,7 +161,7 @@
 .pageButton:hover:not(:disabled) {
     background-color: var(--datatable-pagination-btn-hover-bg, var(--color-gray-100));
     color: var(--datatable-pagination-btn-hover-text, var(--color-gray-900));
-    border-color: var(--color-gray-400);
+    border-color: var(--color-primary-300);
 }
 
 .pageButton:disabled {
@@ -178,7 +181,7 @@
 .emptyState {
     padding: var(--space-8);
     text-align: center;
-    color: var(--color-gray-500);
+    color: var(--text-muted); /* Usar variable maestra */
 }
 
 /* --- Mobile View Styles --- */
@@ -231,13 +234,18 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: var(--space-1);
-    border-radius: var(--radius-sm);
-    color: var(--color-gray-500);
+    padding: var(--space-2);
+    border-radius: var(--radius-sm); /* Usa la variable derivada */
+    color: var(--text-muted); /* Usar variable maestra */
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.iconButton:hover {
+    background-color: var(--bg-hover); /* Usar variable maestra */
+    color: var(--color-primary-600);
 }
 
 .mobileCardContent {
@@ -251,9 +259,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    /*padding: 0.75rem;*/
-    background-color: var(--color-gray-50);
-    /*border-radius: var(--radius-md);*/
+    padding: 0.55rem;
+    background-color: var(--bg-input); /* Usar variable maestra */
+    border-radius: var(--radius-md); /* Usa la variable derivada */
     /*border: 1px solid var(--color-gray-100);*/
 }
 
@@ -278,7 +286,7 @@
     margin-top: 0.5rem;
     /*background-color: transparent;*/
     /*border: 1px solid var(--border-color);*/
-    /*border-radius: var(--radius-md);*/
+    border-radius: var(--radius-md); /* Usa la variable derivada */
     padding: 0; /* Eliminado padding interno */
     overflow: hidden; /* Asegurar bordes redondeados */
 }
@@ -300,6 +308,7 @@
     width: 100%;
     padding: 0.75rem; /* Padding reducido */
     box-sizing: border-box; /* Crucial */
+    border-radius: var(--radius-md); /* Usa la variable derivada */
 }
 
 .mobileView .paginationControls {
