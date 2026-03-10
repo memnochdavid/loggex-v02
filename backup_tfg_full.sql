@@ -465,10 +465,10 @@ CREATE TABLE `grupo` (
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
-(5,'1º DAW','2025/2026',3,3,1,'1º DAW',NULL,'2026-02-15 11:52:32',0,NULL,'2025-09-01','2026-06-05'),
-(6,'2º DAW','2024/2025',3,3,2,'2º DAW',NULL,'2026-02-12 16:52:56',0,NULL,'2025-09-01','2026-03-04'),
-(7,'1º DAM','2025/2026',4,3,1,'1º DAM',NULL,'2026-02-12 16:53:09',0,NULL,'2025-09-01','2026-06-05'),
-(8,'2º DAM','2024/2025',4,3,2,'2º DAM',NULL,'2026-02-12 16:53:17',0,NULL,'2025-09-01','2026-03-04');
+(5,'DAW','2025/2026',3,3,1,'1º DAW',NULL,'2026-03-10 15:00:51',0,NULL,'2025-09-01','2026-06-05'),
+(6,'DAW','2024/2025',3,3,2,'2º DAW',NULL,'2026-03-10 15:00:59',0,NULL,'2025-09-01','2026-03-04'),
+(7,'DAM','2025/2026',4,3,1,'1º DAM',NULL,'2026-03-10 15:01:07',0,NULL,'2025-09-01','2026-06-05'),
+(8,'DAM','2024/2025',4,3,2,'2º DAM',NULL,'2026-03-10 15:01:14',0,NULL,'2025-09-01','2026-03-04');
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1060,7 +1060,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#6366f1','#1e293b',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#ffffff','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-08 10:08:24',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#2d3b52','#cbd5e1','#172131','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','0.75rem',0,0),
+(1,'#6366f1','#1e293b',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#ffffff','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-10 14:58:57',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#2d3b52','#cbd5e1','#172131','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','0.75rem',1,0),
 (4,'#6366f1','#1e293b',NULL,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#818cf8','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-03-07 15:52:21','2026-03-08 08:17:54',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#1e293b','#cbd5e1','#0f172a','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','1rem',1,0);
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -1227,4 +1227,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-08 10:23:27
+-- Dump completed on 2026-03-10 15:13:32

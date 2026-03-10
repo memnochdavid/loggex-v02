@@ -30,6 +30,10 @@ const Imparticiones = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [selectedModulo, setSelectedModulo] = useState('');
+  const [grupos, setGrupos] = useState([]); // Grupos filtrados para el selector
+  const [modulos, setModulos] = useState([]); // Módulos filtrados para el selector
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,18 +67,18 @@ const Imparticiones = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Listas filtradas para el modal
-  const filteredModulos = useMemo(() => {
+  // Listas filtradas para el modal (lógica interna del modal)
+  const filteredModulosForModal = useMemo(() => {
       if (!formData.grupo) return [];
       
-      const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
-      if (!selectedGrupo) return [];
+      const selectedGrupoObj = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
+      if (!selectedGrupoObj) return [];
 
       return allModulos.filter(m => {
-          if (m.curso !== selectedGrupo.curso) return false;
+          if (m.curso !== selectedGrupoObj.curso) return false;
           
           const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
-          const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
+          const grupCicloId = typeof selectedGrupoObj.ciclo === 'object' ? (selectedGrupoObj.ciclo.id || selectedGrupoObj.ciclo['@id']) : selectedGrupoObj.ciclo;
           
           const modCicloIdStr = String(modCicloId).split('/').pop();
           const grupCicloIdStr = String(grupCicloId).split('/').pop();
@@ -99,7 +103,62 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar datos auxiliares (filtrados por centro)
+  // Cargar grupos cuando cambia el centro seleccionado (para el filtro)
+  useEffect(() => {
+      if (isSuperAdmin && selectedCentro) {
+          fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              setGrupos(items);
+              setSelectedGrupo('');
+              setModulos([]);
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando grupos:", err));
+      } else {
+          setGrupos([]);
+          setSelectedGrupo('');
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedCentro, isSuperAdmin]);
+
+  // Cargar módulos cuando cambia el grupo seleccionado (para el filtro)
+  useEffect(() => {
+      if (isSuperAdmin && selectedGrupo) {
+          // Obtener imparticiones del grupo para sacar los módulos (o módulos del ciclo del grupo si queremos todos los posibles)
+          // Para filtrar lo que YA existe, usamos imparticiones.
+          fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false`), {
+              headers: { 'Accept': 'application/ld+json' },
+              credentials: 'include'
+          })
+          .then(res => res.json())
+          .then(data => {
+              const items = data['hydra:member'] || data.member || [];
+              const uniqueModulos = [];
+              const map = new Map();
+              for (const item of items) {
+                  if (item.modulo && !map.has(item.modulo.id)) {
+                      map.set(item.modulo.id, true);
+                      uniqueModulos.push(item.modulo);
+                  }
+              }
+              setModulos(uniqueModulos);
+              setSelectedModulo('');
+          })
+          .catch(err => console.error("Error cargando módulos:", err));
+      } else {
+          setModulos([]);
+          setSelectedModulo('');
+      }
+  }, [selectedGrupo, isSuperAdmin]);
+
+
+  // Cargar datos auxiliares para el MODAL (filtrados por centro si hay uno seleccionado)
   useEffect(() => {
     let urlProfesores = getApiUrl('/api/users?itemsPerPage=100&rol_app=profesor');
     let urlModulos = getApiUrl('/api/modulos?itemsPerPage=100');
@@ -159,6 +218,16 @@ const Imparticiones = () => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
+      // Aplicar filtros jerárquicos
+      if (params.selectedModulo) {
+          url += `&modulo=${params.selectedModulo}`;
+          if (params.selectedGrupo) url += `&grupo=${params.selectedGrupo}`;
+      } else if (params.selectedGrupo) {
+          url += `&grupo=${params.selectedGrupo}`;
+      } else if (isSuperAdmin && params.selectedCentro) {
+          url += `&grupo.centro=${params.selectedCentro}`;
+      }
+      
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -192,7 +261,7 @@ const Imparticiones = () => {
           setLoading(false);
       }
     }
-  }, []); 
+  }, [isSuperAdmin]); 
 
   // Efecto ÚNICO para cambios
   useEffect(() => {
@@ -206,6 +275,9 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedModulo,
           sortColumn,
           sortDirection
       };
@@ -228,6 +300,9 @@ const Imparticiones = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
+      selectedCentro,
+      selectedGrupo,
+      selectedModulo,
       sortColumn, 
       sortDirection, 
       fetchImparticionesData
@@ -341,6 +416,9 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedModulo,
           sortColumn,
           sortDirection
       });
@@ -377,6 +455,9 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedModulo,
           sortColumn,
           sortDirection
       });
@@ -385,7 +466,7 @@ const Imparticiones = () => {
       console.error("Error deleting imparticion:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedModulo, sortColumn, sortDirection, fetchImparticionesData]);
 
   const columns = useMemo(() => [
     { 
@@ -437,17 +518,56 @@ const Imparticiones = () => {
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select 
+                        className={styles.select} 
+                        value={selectedCentro} 
+                        onChange={(e) => {
+                            setSelectedCentro(e.target.value);
+                            setSelectedGrupo('');
+                            setSelectedModulo('');
+                        }}
+                        style={{ width: '200px' }}
+                    >
+                        <option value="">Todos los centros</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select} 
+                        value={selectedGrupo} 
+                        onChange={(e) => {
+                            setSelectedGrupo(e.target.value);
+                            setSelectedModulo('');
+                        }}
+                        disabled={!selectedCentro}
+                        style={{ width: '200px' }}
+                    >
+                        <option value="">Todos los grupos</option>
+                        {grupos.map(g => (
+                            <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
+                                {g.curso}º {g.nombre}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className={styles.select} 
+                        value={selectedModulo} 
+                        onChange={(e) => setSelectedModulo(e.target.value)}
+                        disabled={!selectedGrupo}
+                        style={{ width: '200px' }}
+                    >
+                        <option value="">Todos los módulos</option>
+                        {modulos.map(m => (
+                            <option key={m.id || m['@id']} value={m.id || m['@id'].split('/').pop()}>
+                                {m.nombre}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             )}
             
             <SearchBar 
@@ -468,7 +588,7 @@ const Imparticiones = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedModulo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 
@@ -531,7 +651,7 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Módulo ({filteredModulos.length})</label>
+                <label className={styles.label}>Módulo ({filteredModulosForModal.length})</label>
                 <select
                     name="modulo"
                     value={formData.modulo}
@@ -543,7 +663,7 @@ const Imparticiones = () => {
                     <option value="">
                         {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
                     </option>
-                    {filteredModulos.map(m => (
+                    {filteredModulosForModal.map(m => (
                         <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
                             {m.nombre} ({m.codigoOficial}) - {m.curso}º
                         </option>

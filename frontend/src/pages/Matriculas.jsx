@@ -29,6 +29,7 @@ const Matriculas = () => {
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [selectedAnioEscolar, setSelectedAnioEscolar] = useState(''); // NUEVO
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,6 +54,12 @@ const Matriculas = () => {
       { value: 'alumno.nombre', label: 'Alumno' },
       { value: 'grupo.nombre', label: 'Grupo' }
   ];
+
+  // Obtener años escolares únicos de los grupos cargados
+  const aniosEscolares = useMemo(() => {
+      const anios = grupos.map(g => g.anioEscolar).filter(Boolean);
+      return [...new Set(anios)].sort().reverse();
+  }, [grupos]);
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -142,6 +149,13 @@ const Matriculas = () => {
       
       if (params.selectedGrupo) {
           url += `&grupo=${params.selectedGrupo}`;
+      } else {
+          if (isSuperAdmin && params.selectedCentro) {
+              url += `&grupo.centro=${params.selectedCentro}`;
+          }
+          if (params.selectedAnioEscolar) {
+              url += `&grupo.anioEscolar=${encodeURIComponent(params.selectedAnioEscolar)}`;
+          }
       }
       
       if (params.sortColumn) {
@@ -177,7 +191,7 @@ const Matriculas = () => {
           setLoading(false);
       }
     }
-  }, []); 
+  }, [isSuperAdmin]); 
 
   // Efecto ÚNICO para cambios
   useEffect(() => {
@@ -191,7 +205,9 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
+          selectedAnioEscolar,
           sortColumn,
           sortDirection
       };
@@ -215,6 +231,8 @@ const Matriculas = () => {
       searchTerm, 
       searchField, 
       selectedGrupo, 
+      selectedCentro,
+      selectedAnioEscolar,
       sortColumn, 
       sortDirection, 
       fetchMatriculasData
@@ -318,7 +336,9 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
+          selectedAnioEscolar,
           sortColumn,
           sortDirection
       });
@@ -355,7 +375,9 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
+          selectedAnioEscolar,
           sortColumn,
           sortDirection
       });
@@ -364,7 +386,7 @@ const Matriculas = () => {
       console.error("Error deleting matricula:", err);
       alert(`Error al eliminar: ${err.message}`);
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedAnioEscolar, sortColumn, sortDirection, fetchMatriculasData]);
 
   const columns = useMemo(() => [
     { 
@@ -378,6 +400,12 @@ const Matriculas = () => {
         accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
+    },
+    { 
+        header: 'Año Escolar', 
+        accessor: (row) => row.grupo ? row.grupo.anioEscolar : '-', 
+        sortable: true, 
+        sortKey: 'grupo.anioEscolar' 
     },
     { 
         header: 'Acciones',
@@ -409,36 +437,57 @@ const Matriculas = () => {
         <CrudHeader title="Matrículas"
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
-            {isSuperAdmin && (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {isSuperAdmin && (
+                    <select 
+                        className={styles.select} 
+                        value={selectedCentro} 
+                        onChange={(e) => {
+                            setSelectedCentro(e.target.value);
+                            setSelectedGrupo('');
+                            setSelectedAnioEscolar('');
+                        }}
+                        style={{ width: '180px' }}
+                    >
+                        <option value="">Todos los centros</option>
+                        {centros.map(c => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                )}
+
                 <select 
                     className={styles.select} 
-                    value={selectedCentro} 
+                    value={selectedAnioEscolar} 
                     onChange={(e) => {
-                        setSelectedCentro(e.target.value);
+                        setSelectedAnioEscolar(e.target.value);
                         setSelectedGrupo('');
                     }}
-                    style={{ width: '200px' }}
+                    style={{ width: '140px' }}
                 >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    <option value="">Todos los años</option>
+                    {aniosEscolares.map(anio => (
+                        <option key={anio} value={anio}>{anio}</option>
                     ))}
                 </select>
-            )}
 
-            <select 
-                className={styles.select} 
-                value={selectedGrupo} 
-                onChange={(e) => setSelectedGrupo(e.target.value)}
-                style={{ width: '200px' }}
-            >
-                <option value="">Todos los grupos</option>
-                {grupos.map(g => (
-                    <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                        {g.curso}º {g.nombre}
-                    </option>
-                ))}
-            </select>
+                <select 
+                    className={styles.select} 
+                    value={selectedGrupo} 
+                    onChange={(e) => setSelectedGrupo(e.target.value)}
+                    style={{ width: '180px' }}
+                >
+                    <option value="">Todos los grupos</option>
+                    {grupos
+                        .filter(g => !selectedAnioEscolar || g.anioEscolar === selectedAnioEscolar)
+                        .map(g => (
+                            <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
+                                {g.curso}º {g.nombre} ({g.anioEscolar})
+                            </option>
+                        ))
+                    }
+                </select>
+            </div>
             
             <SearchBar 
                 value={searchTerm} 
@@ -458,7 +507,7 @@ const Matriculas = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedAnioEscolar, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
             </div>
         )}
 
@@ -514,7 +563,7 @@ const Matriculas = () => {
                     <option value="">Seleccionar grupo...</option>
                     {grupos.map(g => (
                         <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                            {g.curso}º {g.nombre}
+                            {g.curso}º {g.nombre} ({g.anioEscolar})
                         </option>
                     ))}
                 </select>
