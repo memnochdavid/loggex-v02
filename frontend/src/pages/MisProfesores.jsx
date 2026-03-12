@@ -9,8 +9,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import teacherAnimation from '../../public/teacher.json';
+import { useTranslation } from 'react-i18next';
 
 const MisProfesores = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profesores, setProfesores] = useState([]);
@@ -27,8 +29,8 @@ const MisProfesores = () => {
     const [selectedGrupo, setSelectedGrupo] = useState('');
 
     const searchFields = [
-        { value: 'nombre', label: 'Nombre' },
-        { value: 'apellidos', label: 'Apellidos' }
+        { value: 'nombre', label: t('users.firstName') },
+        { value: 'apellidos', label: t('users.lastName') }
     ];
 
     // Cargar centros para SuperAdmin
@@ -152,7 +154,7 @@ const MisProfesores = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Profesores"
+                <CrudHeader title={t('myTeachers.title')}
                             logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
@@ -163,7 +165,7 @@ const MisProfesores = () => {
                                 onChange={(e) => setSelectedCentro(e.target.value)}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Todos los Centros</option>
+                                <option value="">{t('common.allCenters')}</option>
                                 {centros.map(c => (
                                     <option key={c.id} value={c.id}>{c.nombre}</option>
                                 ))}
@@ -176,7 +178,7 @@ const MisProfesores = () => {
                                 disabled={!selectedCentro}
                                 style={{ minWidth: '150px' }}
                             >
-                                <option value="">Todos los Grupos</option>
+                                <option value="">{t('common.allGroups')}</option>
                                 {grupos.map(g => (
                                     <option key={g.id} value={g.id}>{g.nombre}</option>
                                 ))}
@@ -186,7 +188,7 @@ const MisProfesores = () => {
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar profesor..." 
+                        placeholder={t('myTeachers.searchPlaceholder')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
@@ -194,7 +196,7 @@ const MisProfesores = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -207,8 +209,8 @@ const MisProfesores = () => {
                         {filteredProfesores.length === 0 && (
                             <div className={styles.emptyState}>
                                 {isSuperAdmin && !selectedGrupo 
-                                    ? "Selecciona un grupo para ver los profesores." 
-                                    : "No se encontraron profesores."}
+                                    ? t('myTeachers.selectGroup')
+                                    : t('myTeachers.noTeachers')}
                             </div>
                         )}
                     </div>

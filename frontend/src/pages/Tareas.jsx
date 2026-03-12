@@ -10,8 +10,10 @@ import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload, Filter } fr
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
+import { useTranslation } from 'react-i18next';
 
 const Tareas = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
@@ -180,8 +182,8 @@ const Tareas = () => {
             const items = data['hydra:member'] || data.member || [];
             
             const asignaturasConTareas = items.map(imp => {
-                const nombreModulo = imp.modulo?.nombre || 'Módulo desconocido';
-                const nombreGrupo = imp.grupo?.nombre || 'Grupo desconocido';
+                const nombreModulo = imp.modulo?.nombre || t('common.unknownModule');
+                const nombreGrupo = imp.grupo?.nombre || t('common.unknownGroup');
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
@@ -202,7 +204,7 @@ const Tareas = () => {
 
     } catch (err) {
         console.error("Error cargando tareas:", err);
-        setError("No se pudieron cargar las tareas.");
+        setError(t('tasks.errorLoading'));
     } finally {
         setLoading(false);
     }
@@ -283,7 +285,7 @@ const Tareas = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al guardar la tarea');
+        throw new Error(errorData.message || t('common.errorSaving', { message: 'Error desconocido' }));
       }
 
       await fetchData();
@@ -291,21 +293,21 @@ const Tareas = () => {
 
     } catch (err) {
       console.error(err);
-      alert("Error al guardar: " + err.message);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (tareaId) => {
-    if (!window.confirm('¿Eliminar esta tarea?')) return;
+    if (!window.confirm(t('tasks.confirmDelete'))) return;
 
     try {
         const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
             method: 'DELETE',
             credentials: 'include'
         });
-        if (!response.ok) throw new Error('Error al eliminar');
+        if (!response.ok) throw new Error(t('tasks.errorDelete'));
         fetchData();
     } catch (err) {
         alert(err.message);
@@ -320,7 +322,7 @@ const Tareas = () => {
       const tareas = imparticion.tareas || [];
       
       if (tareas.length === 0) {
-          return <div className={styles.emptyState}>No hay tareas asignadas.</div>;
+          return <div className={styles.emptyState}>{t('tasks.noTasks')}</div>;
       }
 
       return (
@@ -332,8 +334,8 @@ const Tareas = () => {
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
                               <span className={styles.date}>
-                                  Entrega: {new Date(tarea.fechaLimite).toLocaleString()} • {tarea.tipo}
-                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`} style={{ marginLeft: '8px' }}>Oculta</span>}
+                                  {t('tasks.delivery')} {new Date(tarea.fechaLimite).toLocaleString()} • {tarea.tipo}
+                                  {!tarea.visible && <span className={`${styles.badge} ${styles.badgeError}`} style={{ marginLeft: '8px' }}>{t('tasks.hidden')}</span>}
                               </span>
                           </div>
                       </div>
@@ -345,7 +347,7 @@ const Tareas = () => {
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className={styles.downloadLink}
-                                  title="Descargar adjunto"
+                                  title={t('tasks.downloadAttachment')}
                               >
                                   <Paperclip size={18} />
                               </a>
@@ -353,10 +355,10 @@ const Tareas = () => {
                           
                           {(isProfesor || isAdmin || isSuperAdmin) && (
                               <>
-                                  <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)} title="Editar">
+                                  <button className={styles.iconButton} onClick={() => handleOpenModal(imparticion.id, tarea)} title={t('common.edit')}>
                                       <Edit2 size={18} />
                                   </button>
-                                  <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)} title="Eliminar">
+                                  <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(tarea.id)} title={t('common.delete')}>
                                       <Trash2 size={18} />
                                   </button>
                               </>
@@ -371,7 +373,7 @@ const Tareas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Tareas y Actividades"
+        <CrudHeader title={t('tasks.title')}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -382,7 +384,7 @@ const Tareas = () => {
                         onChange={(e) => setSelectedCentro(e.target.value)}
                         style={{ minWidth: '200px' }}
                     >
-                        <option value="">Todos los Centros</option>
+                        <option value="">{t('common.allCenters')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
@@ -395,7 +397,7 @@ const Tareas = () => {
                         disabled={!selectedCentro}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Grupos</option>
+                        <option value="">{t('common.allGroups')}</option>
                         {grupos.map(g => (
                             <option key={g.id} value={g.id}>{g.nombre}</option>
                         ))}
@@ -408,7 +410,7 @@ const Tareas = () => {
                         disabled={!selectedGrupo}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Módulos</option>
+                        <option value="">{t('common.allModules')}</option>
                         {modulos.map(m => (
                             <option key={m.id} value={m.id}>{m.nombre}</option>
                         ))}
@@ -418,14 +420,14 @@ const Tareas = () => {
         </CrudHeader>
 
         {loading ? (
-            <div className={styles.loadingContainer}>Cargando asignaturas...</div>
+            <div className={styles.loadingContainer}>{t('tasks.loadingSubjects')}</div>
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
             <div className={styles.emptyState}>
                 {isSuperAdmin && !selectedCentro 
-                    ? "Selecciona un centro para ver las tareas." 
-                    : "No se encontraron asignaturas con los filtros actuales."}
+                    ? t('tasks.selectCenter')
+                    : t('tasks.noSubjects')}
             </div>
         ) : (
             <AccordionView 
@@ -441,12 +443,12 @@ const Tareas = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentTarea ? 'Editar Tarea' : 'Nueva Tarea'}
+            title={currentTarea ? t('tasks.editTitle') : t('tasks.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Título</label>
+                <label className={styles.label}>{t('tasks.titleLabel')}</label>
                 <input 
                     className={styles.input} 
                     name="titulo" 
@@ -456,7 +458,7 @@ const Tareas = () => {
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Descripción</label>
+                <label className={styles.label}>{t('tasks.descriptionLabel')}</label>
                 <textarea 
                     className={styles.textarea} 
                     name="descripcion" 
@@ -465,7 +467,7 @@ const Tareas = () => {
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Archivo Adjunto (Opcional)</label>
+                <label className={styles.label}>{t('tasks.attachmentLabel')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <input
                         type="file"
@@ -481,7 +483,7 @@ const Tareas = () => {
                         onClick={() => fileInputRef.current.click()}
                     >
                         <Upload size={16} style={{ marginRight: '8px' }} />
-                        {formData.archivo ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                        {formData.archivo ? t('common.changeFile') : t('common.selectFile')}
                     </Button>
                     {formData.archivo && (
                         <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
@@ -491,12 +493,12 @@ const Tareas = () => {
                 </div>
                 {currentTarea && currentTarea.archivo && !formData.archivo && (
                     <small style={{color: 'var(--text-muted)', display: 'block', marginTop: '4px'}}>
-                        Archivo actual: {currentTarea.archivo}
+                        {t('common.currentFile')}: {currentTarea.archivo}
                     </small>
                 )}
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Límite</label>
+                <label className={styles.label}>{t('tasks.dueDate')}</label>
                 <input 
                     type="datetime-local" 
                     className={styles.input} 
@@ -507,16 +509,16 @@ const Tareas = () => {
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Tipo</label>
+                <label className={styles.label}>{t('tasks.typeLabel')}</label>
                 <select 
                     className={styles.select} 
                     name="tipo" 
                     value={formData.tipo} 
                     onChange={handleInputChange}
                 >
-                    <option value="tarea">Tarea</option>
-                    <option value="examen">Examen</option>
-                    <option value="practica">Práctica</option>
+                    <option value="tarea">{t('tasks.typeTask')}</option>
+                    <option value="examen">{t('tasks.typeExam')}</option>
+                    <option value="practica">{t('tasks.typePractice')}</option>
                 </select>
             </div>
             <div className={styles.formGroup}>
@@ -527,7 +529,7 @@ const Tareas = () => {
                         checked={formData.visible} 
                         onChange={handleInputChange} 
                     />
-                    Visible para alumnos
+                    {t('tasks.visibleToStudents')}
                 </label>
             </div>
         </ModalView>

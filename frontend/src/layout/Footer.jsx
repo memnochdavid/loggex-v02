@@ -1,10 +1,12 @@
 import React from 'react';
 import styles from './Footer.module.css';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
     <footer className={styles.footer}>
-      <p>&copy; {new Date().getFullYear()} Loggex-Machina v0.2 - Propiedad de David Duque Díaz.</p>
+      <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
     </footer>
   );
 };

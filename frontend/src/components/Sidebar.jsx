@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck } from 'lucide-react';
 import AccordionView from './AccordionView';
+import { useTranslation } from 'react-i18next';
 
 const Sidebar = () => {
+    const { t } = useTranslation();
     const { logout, user } = useAuth();
     const { isSidebarOpen, closeSidebar } = useUI();
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -91,24 +93,24 @@ const Sidebar = () => {
     // 1. General (Para todos)
     accordionData.push({
         id: 'general',
-        title: 'General',
+        title: t('sidebar.general'),
         content: (
             <>
-                <NavLink to="/" className={getNavLinkClass} title="Inicio" onClick={closeSidebar}>
+                <NavLink to="/" className={getNavLinkClass} title={t('sidebar.home')} onClick={closeSidebar}>
                     <Home size={20} />
-                    {!isCollapsed && <span>Inicio</span>}
+                    {!isCollapsed && <span>{t('sidebar.home')}</span>}
                 </NavLink>
-                <NavLink to="/horarios" className={getNavLinkClass} title="Horarios" onClick={closeSidebar}>
+                <NavLink to="/horarios" className={getNavLinkClass} title={t('sidebar.schedule')} onClick={closeSidebar}>
                     <Calendar size={20} />
-                    {!isCollapsed && <span>Horarios</span>}
+                    {!isCollapsed && <span>{t('sidebar.schedule')}</span>}
                 </NavLink>
-                <NavLink to="/mensajes" className={getNavLinkClass} title="Mensajería" onClick={closeSidebar}>
+                <NavLink to="/mensajes" className={getNavLinkClass} title={t('sidebar.messaging')} onClick={closeSidebar}>
                     <MessageSquare size={20} />
-                    {!isCollapsed && <span>Mensajería</span>}
+                    {!isCollapsed && <span>{t('sidebar.messaging')}</span>}
                 </NavLink>
-                <NavLink to="/perfil" className={getNavLinkClass} title="Perfil" onClick={closeSidebar}>
+                <NavLink to="/perfil" className={getNavLinkClass} title={t('sidebar.profile')} onClick={closeSidebar}>
                     <User size={20} />
-                    {!isCollapsed && <span>Perfil</span>}
+                    {!isCollapsed && <span>{t('sidebar.profile')}</span>}
                 </NavLink>
             </>
         )
@@ -118,28 +120,28 @@ const Sidebar = () => {
     if (isProfesor || isSuperAdmin || isAdmin) {
         accordionData.push({
             id: 'profesor',
-            title: 'Profesor',
+            title: t('sidebar.teacher'),
             content: (
                 <>
-                    <NavLink to="/tareas" className={getNavLinkClass} title="Tareas" onClick={closeSidebar}>
+                    <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
                         <ClipboardList size={20} />
-                        {!isCollapsed && <span>Tareas</span>}
+                        {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
                     </NavLink>
-                    <NavLink to="/entregas" className={getNavLinkClass} title="Entregas" onClick={closeSidebar}>
+                    <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                         <UploadCloud size={20} />
-                        {!isCollapsed && <span>Entregas</span>}
+                        {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
                     </NavLink>
-                    <NavLink to="/mis-temarios" className={getNavLinkClass} title="Mis Temarios" onClick={closeSidebar}>
+                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={closeSidebar}>
                         <Book size={20} />
-                        {!isCollapsed && <span>Mis Temarios</span>}
+                        {!isCollapsed && <span>{t('sidebar.myMaterials')}</span>}
                     </NavLink>
-                    <NavLink to="/claustro" className={getNavLinkClass} title="Claustro" onClick={closeSidebar}>
+                    <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={closeSidebar}>
                         <UserCheck size={20} />
-                        {!isCollapsed && <span>Claustro</span>}
+                        {!isCollapsed && <span>{t('sidebar.faculty')}</span>}
                     </NavLink>
-                    <NavLink to="/mis-alumnos" className={getNavLinkClass} title="Mis Alumnos" onClick={closeSidebar}>
+                    <NavLink to="/mis-alumnos" className={getNavLinkClass} title={t('sidebar.myStudents')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>Mis Alumnos</span>}
+                        {!isCollapsed && <span>{t('sidebar.myStudents')}</span>}
                     </NavLink>
                 </>
             )
@@ -150,37 +152,37 @@ const Sidebar = () => {
     if (isAlumno || isSuperAdmin) { // AÑADIDO isSuperAdmin
         accordionData.push({
             id: 'alumno',
-            title: 'Alumno',
+            title: t('sidebar.student'),
             content: (
                 <>
-                    <NavLink to="/apuntes" className={getNavLinkClass} title="Mis Apuntes" onClick={closeSidebar}>
+                    <NavLink to="/apuntes" className={getNavLinkClass} title={t('sidebar.myNotes')} onClick={closeSidebar}>
                         <FileText size={20} />
-                        {!isCollapsed && <span>Mis Apuntes</span>}
+                        {!isCollapsed && <span>{t('sidebar.myNotes')}</span>}
                     </NavLink>
-                    <NavLink to="/faltas" className={getNavLinkClass} title="Mis Faltas" onClick={closeSidebar}>
+                    <NavLink to="/faltas" className={getNavLinkClass} title={t('sidebar.myAbsences')} onClick={closeSidebar}>
                         <AlertCircle size={20} />
-                        {!isCollapsed && <span>Mis Faltas</span>}
+                        {!isCollapsed && <span>{t('sidebar.myAbsences')}</span>}
                     </NavLink>
-                    <NavLink to="/companeros" className={getNavLinkClass} title="Mis Compañeros" onClick={closeSidebar}>
+                    <NavLink to="/companeros" className={getNavLinkClass} title={t('sidebar.myClassmates')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>Mis Compañeros</span>}
+                        {!isCollapsed && <span>{t('sidebar.myClassmates')}</span>}
                     </NavLink>
-                    <NavLink to="/mis-profesores" className={getNavLinkClass} title="Mis Profesores" onClick={closeSidebar}>
+                    <NavLink to="/mis-profesores" className={getNavLinkClass} title={t('sidebar.myTeachers')} onClick={closeSidebar}>
                         <UserCheck size={20} />
-                        {!isCollapsed && <span>Mis Profesores</span>}
+                        {!isCollapsed && <span>{t('sidebar.myTeachers')}</span>}
                     </NavLink>
                     {/* Tareas y Entregas también para alumnos (duplicado intencional o condicional) */}
                     {/* Si es Superadmin, ya las ve en Profesor, pero si quiere ver la vista de alumno... */}
                     {/* Dejamos que el Superadmin acceda a Tareas/Entregas desde Profesor, que es más completo */}
                     {isAlumno && (
                         <>
-                            <NavLink to="/tareas" className={getNavLinkClass} title="Tareas" onClick={closeSidebar}>
+                            <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
                                 <ClipboardList size={20} />
-                                {!isCollapsed && <span>Tareas</span>}
+                                {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
                             </NavLink>
-                            <NavLink to="/entregas" className={getNavLinkClass} title="Entregas" onClick={closeSidebar}>
+                            <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                                 <UploadCloud size={20} />
-                                {!isCollapsed && <span>Entregas</span>}
+                                {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
                             </NavLink>
                         </>
                     )}
@@ -193,42 +195,42 @@ const Sidebar = () => {
     if (isSuperAdmin || isAdmin) {
         accordionData.push({
             id: 'administracion',
-            title: 'Administración',
+            title: t('sidebar.admin'),
             content: (
                 <>
-                    <NavLink to="/usuarios" className={getNavLinkClass} title="Usuarios" onClick={closeSidebar}>
+                    <NavLink to="/usuarios" className={getNavLinkClass} title={t('sidebar.users')} onClick={closeSidebar}>
                         <Users size={20} />
-                        {!isCollapsed && <span>Usuarios</span>}
+                        {!isCollapsed && <span>{t('sidebar.users')}</span>}
                     </NavLink>
-                    <NavLink to="/ciclos" className={getNavLinkClass} title="Ciclos Formativos" onClick={closeSidebar}>
+                    <NavLink to="/ciclos" className={getNavLinkClass} title={t('sidebar.cycles')} onClick={closeSidebar}>
                         <Layers size={20} />
-                        {!isCollapsed && <span>Ciclos</span>}
+                        {!isCollapsed && <span>{t('sidebar.cycles')}</span>}
                     </NavLink>
-                    <NavLink to="/grupos" className={getNavLinkClass} title="Grupos" onClick={closeSidebar}>
+                    <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>Grupos</span>}
+                        {!isCollapsed && <span>{t('sidebar.groups')}</span>}
                     </NavLink>
-                    <NavLink to="/modulos" className={getNavLinkClass} title="Módulos" onClick={closeSidebar}>
+                    <NavLink to="/modulos" className={getNavLinkClass} title={t('sidebar.modules')} onClick={closeSidebar}>
                         <BookOpen size={20} />
-                        {!isCollapsed && <span>Módulos</span>}
+                        {!isCollapsed && <span>{t('sidebar.modules')}</span>}
                     </NavLink>
-                    <NavLink to="/matriculas" className={getNavLinkClass} title="Matrículas" onClick={closeSidebar}>
+                    <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={closeSidebar}>
                         <GraduationCap size={20} />
-                        {!isCollapsed && <span>Matrículas</span>}
+                        {!isCollapsed && <span>{t('sidebar.enrollments')}</span>}
                     </NavLink>
-                    <NavLink to="/imparticiones" className={getNavLinkClass} title="Asignación Docencia" onClick={closeSidebar}>
+                    <NavLink to="/imparticiones" className={getNavLinkClass} title={t('sidebar.teachingAssignment')} onClick={closeSidebar}>
                         <Briefcase size={20} />
-                        {!isCollapsed && <span>Docencia</span>}
+                        {!isCollapsed && <span>{t('sidebar.teaching')}</span>}
                     </NavLink>
                     {!isSuperAdmin && ( // Superadmin ya tiene festivos globales arriba
-                        <NavLink to="/festivos" className={getNavLinkClass} title="Festivos" onClick={closeSidebar}>
+                        <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.holidays')} onClick={closeSidebar}>
                             <CalendarDays size={20} />
-                            {!isCollapsed && <span>Festivos</span>}
+                            {!isCollapsed && <span>{t('sidebar.holidays')}</span>}
                         </NavLink>
                     )}
-                    <NavLink to="/configuracion" className={getNavLinkClass} title="Configuración" onClick={closeSidebar}>
+                    <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar}>
                         <Settings size={20} />
-                        {!isCollapsed && <span>Configuración</span>}
+                        {!isCollapsed && <span>{t('sidebar.settings')}</span>}
                     </NavLink>
                 </>
             )
@@ -239,16 +241,16 @@ const Sidebar = () => {
     if (isSuperAdmin) {
         accordionData.push({
             id: 'superadmin',
-            title: 'Superadmin',
+            title: t('sidebar.superadmin'),
             content: (
                 <>
-                    <NavLink to="/centros" className={getNavLinkClass} title="Centros" onClick={closeSidebar}>
+                    <NavLink to="/centros" className={getNavLinkClass} title={t('sidebar.centers')} onClick={closeSidebar}>
                         <Building size={20} />
-                        {!isCollapsed && <span>Centros</span>}
+                        {!isCollapsed && <span>{t('sidebar.centers')}</span>}
                     </NavLink>
-                    <NavLink to="/festivos" className={getNavLinkClass} title="Festivos Globales" onClick={closeSidebar}>
+                    <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.globalHolidays')} onClick={closeSidebar}>
                         <CalendarDays size={20} />
-                        {!isCollapsed && <span>Festivos Globales</span>}
+                        {!isCollapsed && <span>{t('sidebar.globalHolidays')}</span>}
                     </NavLink>
                 </>
             )
@@ -294,9 +296,9 @@ const Sidebar = () => {
                 </nav>
 
                 <div className={styles.footer}>
-                    <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title="Cerrar Sesión" style={{ cursor: 'pointer' }}>
+                    <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title={t('sidebar.logout')} style={{ cursor: 'pointer' }}>
                         <LogOut size={20} />
-                        {!isCollapsed && <span>Cerrar Sesión</span>}
+                        {!isCollapsed && <span>{t('sidebar.logout')}</span>}
                     </div>
                 </div>
             </aside>

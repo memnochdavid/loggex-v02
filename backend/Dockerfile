@@ -1,18 +1,21 @@
 FROM php:8.4-apache
 
 # Instalar dependencias del sistema y extensiones PHP
-# Cambiamos libpq-dev (Postgres) por default-mysql-client (opcional) y extensiones pdo_mysql
+# Añadimos opcache para mejorar rendimiento
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     default-mysql-client \
-    && docker-php-ext-install pdo pdo_mysql
+    && docker-php-ext-install pdo pdo_mysql opcache
 
 # Habilitar mod_rewrite
 RUN a2enmod rewrite
 
 # Copiar configuración personalizada de Apache
 COPY apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+
+# Copiar configuración personalizada de PHP (Opcache)
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
 WORKDIR /var/www/html
 
@@ -25,8 +28,8 @@ RUN mkdir -p public/uploads/avatar && \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copiar y configurar script de entrada
-COPY entrypoint.sh /usr/local/bin/
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["apache2-foreground"]

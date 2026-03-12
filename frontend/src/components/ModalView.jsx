@@ -6,6 +6,7 @@ import styles from './ModalView.module.css';
 import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import pencilAnimation from '../../public/pencil.json';
+import { useTranslation } from 'react-i18next';
 
 const ModalView = ({ 
     isOpen, 
@@ -16,8 +17,8 @@ const ModalView = ({
     footer, 
     onSubmit, 
     isSubmitting = false,
-    submitText = 'Guardar',
-    cancelText = 'Cancelar',
+    submitText,
+    cancelText,
     size = 'medium', // small, medium, large
     showCloseButton = true,
     closeOnOverlayClick = true,
@@ -25,6 +26,7 @@ const ModalView = ({
     overlayClassName = '', // Clase para el fondo (overlay)
     bodyClassName = '' // Nueva prop para clase del cuerpo
 }) => {
+    const { t } = useTranslation();
     const nodeRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
     const [shouldRender, setShouldRender] = useState(isOpen);
@@ -204,14 +206,14 @@ const ModalView = ({
                     <div className={styles.modalFooter}>
                         {footer ? footer : (
                             <>
-                                {cancelText && (
+                                {cancelText !== null && ( // Permitir null para ocultar
                                     <Button type="button" variant="secondary" onClick={handleClose}>
-                                        {cancelText}
+                                        {cancelText || t('modal.cancel')}
                                     </Button>
                                 )}
                                 {onSubmit && (
                                     <Button type="submit" disabled={isSubmitting}>
-                                        {isSubmitting ? 'Guardando...' : submitText}
+                                        {isSubmitting ? t('modal.saving') : (submitText || t('modal.save'))}
                                     </Button>
                                 )}
                             </>

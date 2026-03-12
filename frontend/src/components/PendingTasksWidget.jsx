@@ -4,8 +4,10 @@ import { getApiUrl } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import styles from './PendingTasksWidget.module.css';
 import { ClipboardList, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const PendingTasksWidget = ({ hideHeader = false }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -52,28 +54,28 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
     };
 
     const getDaysRemaining = (dueDate) => {
-        if (!dueDate) return { text: 'Sin fecha', urgent: false };
+        if (!dueDate) return { text: t('pendingTasks.noDate'), urgent: false };
         
         const today = new Date();
         const due = new Date(dueDate);
         
-        if (isNaN(due.getTime())) return { text: 'Fecha inválida', urgent: false };
+        if (isNaN(due.getTime())) return { text: t('pendingTasks.invalidDate'), urgent: false };
 
         const diffTime = due.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (diffDays <= 0) return { text: 'Vence hoy', urgent: true };
-        if (diffDays === 1) return { text: 'Vence mañana', urgent: true };
-        if (diffDays <= 3) return { text: `Vence en ${diffDays} días`, urgent: true };
-        return { text: `Vence en ${diffDays} días`, urgent: false };
+        if (diffDays <= 0) return { text: t('pendingTasks.dueToday'), urgent: true };
+        if (diffDays === 1) return { text: t('pendingTasks.dueTomorrow'), urgent: true };
+        if (diffDays <= 3) return { text: t('pendingTasks.dueInDays', { days: diffDays }), urgent: true };
+        return { text: t('pendingTasks.dueInDays', { days: diffDays }), urgent: false };
     };
 
     const renderContent = () => {
         if (loading) {
-            return <p className={styles.loading}>Cargando tareas...</p>;
+            return <p className={styles.loading}>{t('pendingTasks.loading')}</p>;
         }
         if (tasks.length === 0) {
-            return <p className={styles.empty}>¡No tienes tareas pendientes!</p>;
+            return <p className={styles.empty}>{t('pendingTasks.empty')}</p>;
         }
 
         return (
@@ -85,7 +87,7 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                             <div className={styles.details}>
                                 <span className={styles.title}>{task.titulo}</span>
                                 <span className={styles.module}>
-                                    {task.imparticion?.modulo?.nombre || 'Módulo desconocido'}
+                                    {task.imparticion?.modulo?.nombre || t('common.unknownModule')}
                                 </span>
                             </div>
                             <div className={`${styles.dueDate} ${remaining.urgent ? styles.urgent : ''}`}>
@@ -104,7 +106,7 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
             {!hideHeader && (
                 <div className={styles.widgetHeader}>
                     <ClipboardList size={20} className={styles.headerIcon} />
-                    <h3 className={styles.widgetTitle}>Tareas Pendientes</h3>
+                    <h3 className={styles.widgetTitle}>{t('pendingTasks.title')}</h3>
                 </div>
             )}
             <div className={styles.widgetContent}>

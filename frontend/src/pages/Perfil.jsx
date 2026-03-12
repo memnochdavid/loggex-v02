@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
 import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const Perfil = () => {
+    const { t } = useTranslation();
     const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -125,7 +127,7 @@ const Perfil = () => {
                             )}
                             
                             {canEditAvatar && (
-                                <label className={styles.avatarUpload} title="Cambiar foto">
+                                <label className={styles.avatarUpload} title={t('profile.changePhoto')}>
                                     <Camera size={16} />
                                     <input 
                                         type="file" 
@@ -146,51 +148,51 @@ const Perfil = () => {
                     <div className={styles.content}>
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <User size={20} /> Información Personal
+                                <User size={20} /> {t('profile.personalInfo')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Nombre</span>
+                                    <span className={styles.label}>{t('profile.firstName')}</span>
                                     <span className={styles.value}>{user.nombre}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Apellidos</span>
-                                    <span className={styles.value}>{user.apellidos || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.lastName')}</span>
+                                    <span className={styles.value}>{user.apellidos || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>NIF / DNI</span>
-                                    <span className={styles.value}>{user.nif || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.nif')}</span>
+                                    <span className={styles.value}>{user.nif || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <Mail size={20} /> Contacto
+                                <Mail size={20} /> {t('profile.contact')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Email</span>
+                                    <span className={styles.label}>{t('profile.email')}</span>
                                     <span className={styles.value}>{user.email}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Teléfono</span>
-                                    <span className={styles.value}>{user.telefono || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.phone')}</span>
+                                    <span className={styles.value}>{user.telefono || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <Building size={20} /> Información Académica
+                                <Building size={20} /> {t('profile.academicInfo')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Centro</span>
-                                    <span className={styles.value}>{user.centro ? user.centro.nombre : <span className={styles.emptyValue}>Sin centro asignado</span>}</span>
+                                    <span className={styles.label}>{t('profile.center')}</span>
+                                    <span className={styles.value}>{user.centro ? user.centro.nombre : <span className={styles.emptyValue}>{t('common.noCenter')}</span>}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Rol en la App</span>
+                                    <span className={styles.label}>{t('profile.appRole')}</span>
                                     <span className={styles.value}>{user.rol_app || roles}</span>
                                 </div>
                             </div>
@@ -199,20 +201,20 @@ const Perfil = () => {
                             {matriculas.length > 0 && (
                                 <div className={styles.section} style={{ marginTop: '2rem' }}>
                                     <h3 className={styles.sectionTitle}>
-                                        <GraduationCap size={20} /> Matrículas Activas
+                                        <GraduationCap size={20} /> {t('profile.activeEnrollments')}
                                     </h3>
                                     {matriculas.map(matricula => (
                                         <div key={matricula.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Ciclo Formativo</span>
-                                                <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || 'Ciclo desconocido'}</span>
+                                                <span className={styles.label}>{t('profile.cycle')}</span>
+                                                <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || t('profile.unknownCycle')}</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.label}>{t('profile.course')}</span>
                                                 <span className={styles.value}>{matricula.grupo?.curso}º</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Año Escolar</span>
+                                                <span className={styles.label}>{t('profile.schoolYear')}</span>
                                                 <span className={styles.value}>{matricula.grupo?.anioEscolar}</span>
                                             </div>
                                         </div>
@@ -224,20 +226,20 @@ const Perfil = () => {
                             {imparticiones.length > 0 && (
                                 <div className={styles.section} style={{ marginTop: '2rem' }}>
                                     <h3 className={styles.sectionTitle}>
-                                        <BookOpen size={20} /> Asignaturas Impartidas
+                                        <BookOpen size={20} /> {t('profile.taughtSubjects')}
                                     </h3>
                                     {imparticiones.map(imp => (
                                         <div key={imp.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Módulo</span>
-                                                <span className={styles.value}>{imp.modulo?.nombre || 'Módulo desconocido'}</span>
+                                                <span className={styles.label}>{t('profile.module')}</span>
+                                                <span className={styles.value}>{imp.modulo?.nombre || t('profile.unknownModule')}</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Grupo</span>
+                                                <span className={styles.label}>{t('profile.group')}</span>
                                                 <span className={styles.value}>{imp.grupo?.nombre}</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.label}>{t('profile.course')}</span>
                                                 <span className={styles.value}>{imp.grupo?.curso}º</span>
                                             </div>
                                         </div>

@@ -1,11 +1,8 @@
 #!/bin/sh
 set -e
 
-# Check if vendor directory exists, if not, install dependencies
-if [ ! -f vendor/autoload.php ]; then
-    echo "🚀 Dependencies missing. Running 'composer install'..."
-    composer install --prefer-dist --no-progress --no-interaction
-fi
+# Eliminamos la instalacion automatica de composer para evitar conflictos con init.bat
+# y evitar que el contenedor muera si falla la red al inicio.
 
 # Ensure directories exist (for cache/logs and uploads)
 mkdir -p var public/uploads
@@ -14,5 +11,4 @@ mkdir -p var public/uploads
 chown -R www-data:www-data var public/uploads
 
 # Execute the original entrypoint (which starts Apache)
-# We use docker-php-entrypoint to maintain base image behavior
 exec docker-php-entrypoint "$@"

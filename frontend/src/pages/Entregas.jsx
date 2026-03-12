@@ -11,8 +11,10 @@ import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Paperc
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
+import { useTranslation } from 'react-i18next';
 
 const Entregas = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
@@ -175,8 +177,8 @@ const Entregas = () => {
             const items = data['hydra:member'] || data.member || [];
             
             const asignaturasConTareas = items.map(imp => {
-                const nombreModulo = imp.modulo?.nombre || 'Módulo desconocido';
-                const nombreGrupo = imp.grupo?.nombre || 'Grupo desconocido';
+                const nombreModulo = imp.modulo?.nombre || t('common.unknownModule');
+                const nombreGrupo = imp.grupo?.nombre || t('common.unknownGroup');
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
@@ -222,7 +224,7 @@ const Entregas = () => {
 
     } catch (err) {
         console.error("Error cargando datos:", err);
-        setError("No se pudieron cargar los datos.");
+        setError(t('common.errorLoading'));
     } finally {
         setLoading(false);
     }
@@ -259,7 +261,7 @@ const Entregas = () => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Error al subir entrega');
+            throw new Error(errorData.message || t('deliveries.errorUpload'));
         }
 
         await fetchData();
@@ -290,7 +292,7 @@ const Entregas = () => {
           setEntregasTarea(items);
       } catch (err) {
           console.error(err);
-          alert("Error cargando entregas");
+          alert(t('deliveries.errorLoadDeliveries'));
       } finally {
           setLoadingEntregas(false);
       }
@@ -331,7 +333,7 @@ const Entregas = () => {
               credentials: 'include'
           });
 
-          if (!response.ok) throw new Error('Error al guardar calificación');
+          if (!response.ok) throw new Error(t('deliveries.errorSaveGrade'));
 
           const calificacionGuardada = await response.json();
 
@@ -357,13 +359,13 @@ const Entregas = () => {
   const renderContent = (imparticion) => {
       const tareas = imparticion.tareas || [];
       
-      if (tareas.length === 0) return <div className={styles.emptyState}>No hay tareas.</div>;
+      if (tareas.length === 0) return <div className={styles.emptyState}>{t('deliveries.noTasks')}</div>;
 
       return (
           <ul className={styles.list}>
               {tareas.map(tarea => {
                   const entrega = misEntregas[tarea.id];
-                  const estado = entrega ? (entrega.calificacion ? 'Calificado' : 'Entregado') : 'Pendiente';
+                  const estado = entrega ? (entrega.calificacion ? t('deliveries.graded') : t('deliveries.delivered')) : t('deliveries.pending');
                   const badgeClass = entrega ? (entrega.calificacion ? styles.badgeInfo : styles.badgeSuccess) : styles.badgePending;
                   
                   // CORRECCIÓN: Calcular isLate correctamente
@@ -379,7 +381,7 @@ const Entregas = () => {
                                       <span><Calendar size={14}/> {new Date(tarea.fechaLimite).toLocaleString()}</span>
                                       {isAlumno && (
                                           <span className={`${styles.badge} ${isLate && !entrega ? styles.badgeError : badgeClass}`} style={{ marginLeft: '8px' }}>
-                                              {isLate && !entrega ? 'Retrasada' : estado}
+                                              {isLate && !entrega ? t('deliveries.delayed') : estado}
                                           </span>
                                       )}
                                   </div>
@@ -387,7 +389,7 @@ const Entregas = () => {
                                   {isAlumno && entrega && entrega.calificacion && (
                                       <div className={styles.feedbackContainer} style={{ marginTop: '0.5rem' }}>
                                           <div className={styles.feedbackHeader}>
-                                              <Award size={16} /> Nota: {entrega.calificacion.nota}
+                                              <Award size={16} /> {t('deliveries.grade', { grade: entrega.calificacion.nota })}
                                           </div>
                                           {entrega.calificacion.feedbackProfesor && (
                                               <div className={styles.feedbackText}>
@@ -405,13 +407,13 @@ const Entregas = () => {
                               {isAlumno && !isLate && (
                                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                                       <Upload size={16} style={{marginRight:'4px'}}/> 
-                                      {entrega ? 'Editar' : 'Entregar'}
+                                      {entrega ? t('common.edit') : t('deliveries.deliver')}
                                   </Button>
                               )}
                               
                               {(isProfesor || isAdmin || isSuperAdmin) && (
                                   <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea)}>
-                                      <Eye size={16} style={{marginRight:'4px'}}/> Ver Entregas
+                                      <Eye size={16} style={{marginRight:'4px'}}/> {t('deliveries.viewDeliveries')}
                                   </Button>
                               )}
                           </div>
@@ -424,38 +426,38 @@ const Entregas = () => {
 
   const entregasColumns = [
       { 
-          header: 'Alumno', 
-          accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : 'Desconocido',
+          header: t('deliveries.studentCol'), 
+          accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : t('common.unknown'),
           sortable: true 
       },
       { 
-          header: 'Fecha', 
+          header: t('deliveries.dateCol'), 
           accessor: (row) => new Date(row.fechaEntrega).toLocaleString(),
           sortable: true 
       },
       {
-          header: 'Archivos/Enlaces',
+          header: t('deliveries.filesCol'),
           accessor: (row) => (
               <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                   {row.archivo && (
                       <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.fileLink}>
-                          <Download size={14}/> Archivo
+                          <Download size={14}/> {t('deliveries.file')}
                       </a>
                   )}
                   {row.enlace && (
                       <a href={row.enlace} target="_blank" className={styles.fileLink}>
-                          <FileText size={14}/> Enlace
+                          <FileText size={14}/> {t('deliveries.link')}
                       </a>
                   )}
               </div>
           )
       },
       {
-          header: 'Comentario',
+          header: t('deliveries.commentCol'),
           accessor: 'comentarioAlumno'
       },
       {
-          header: 'Calificación',
+          header: t('deliveries.gradeCol'),
           accessor: (row) => (
               <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                   {row.calificacion ? (
@@ -463,7 +465,7 @@ const Entregas = () => {
                           {row.calificacion.nota}
                       </span>
                   ) : (
-                      <span className={`${styles.badge} ${styles.badgePending}`}>Pendiente</span>
+                      <span className={`${styles.badge} ${styles.badgePending}`}>{t('common.pending')}</span>
                   )}
                   <button
                       type={"button"}
@@ -472,7 +474,7 @@ const Entregas = () => {
                           e.stopPropagation();
                           handleOpenGradeModal(row);
                       }}
-                      title="Calificar"
+                      title={t('deliveries.gradeCol')}
                   >
                       <Award size={18} />
                   </button>
@@ -484,7 +486,7 @@ const Entregas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Entregas"
+        <CrudHeader title={t('deliveries.title')}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -495,7 +497,7 @@ const Entregas = () => {
                         onChange={(e) => setSelectedCentro(e.target.value)}
                         style={{ minWidth: '200px' }}
                     >
-                        <option value="">Todos los Centros</option>
+                        <option value="">{t('common.allCenters')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
@@ -508,7 +510,7 @@ const Entregas = () => {
                         disabled={!selectedCentro}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Grupos</option>
+                        <option value="">{t('common.allGroups')}</option>
                         {grupos.map(g => (
                             <option key={g.id} value={g.id}>{g.nombre}</option>
                         ))}
@@ -521,7 +523,7 @@ const Entregas = () => {
                         disabled={!selectedGrupo}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Módulos</option>
+                        <option value="">{t('common.allModules')}</option>
                         {modulos.map(m => (
                             <option key={m.id} value={m.id}>{m.nombre}</option>
                         ))}
@@ -531,14 +533,14 @@ const Entregas = () => {
         </CrudHeader>
 
         {loading ? (
-            <div className={styles.loadingContainer}>Cargando...</div>
+            <div className={styles.loadingContainer}>{t('common.loading')}</div>
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
             <div className={styles.emptyState}>
                 {isSuperAdmin && !selectedCentro 
-                    ? "Selecciona un centro para ver las entregas." 
-                    : "No se encontraron asignaturas con los filtros actuales."}
+                    ? t('deliveries.selectCenter')
+                    : t('deliveries.noSubjects')}
             </div>
         ) : (
             <AccordionView 
@@ -552,10 +554,10 @@ const Entregas = () => {
         <ModalView
             isOpen={isUploadModalOpen}
             onClose={() => setIsUploadModalOpen(false)}
-            title={`Entregar Tarea: ${currentTarea?.titulo}`}
+            title={t('deliveries.deliverTitle', { title: currentTarea?.titulo })}
             onSubmit={handleUploadSubmit}
             isSubmitting={uploading}
-            submitText="Entregar"
+            submitText={t('deliveries.deliver')}
         >
             {/*mejor no subir archivos*/}
             {/*<div className={styles.formGroup}>*/}
@@ -567,17 +569,17 @@ const Entregas = () => {
             {/*    />*/}
             {/*</div>*/}
             <div className={styles.formGroup}>
-                <label className={styles.label}>Enlace a Drive, Dropbox, etc.</label>
+                <label className={styles.label}>{t('deliveries.linkLabel')}</label>
                 <input 
                     type="url" 
                     className={styles.input}
                     value={uploadFormData.enlace}
                     onChange={e => setUploadFormData({...uploadFormData, enlace: e.target.value})}
-                    placeholder="https://..."
+                    placeholder={t('deliveries.linkPlaceholder')}
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Comentario</label>
+                <label className={styles.label}>{t('deliveries.commentLabel')}</label>
                 <textarea 
                     className={styles.textarea}
                     value={uploadFormData.comentario}
@@ -590,9 +592,9 @@ const Entregas = () => {
         <ModalView
             isOpen={isViewModalOpen}
             onClose={() => setIsViewModalOpen(false)}
-            title={`Entregas: ${currentTarea?.titulo}`}
+            title={t('deliveries.deliveriesTitle', { title: currentTarea?.titulo })}
             size="large"
-            footer={<Button type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>Cerrar</Button>}
+            footer={<Button type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>{t('common.close')}</Button>}
         >
             <DataTable 
                 columns={entregasColumns}
@@ -610,14 +612,14 @@ const Entregas = () => {
         <ModalView
             isOpen={isGradeModalOpen}
             onClose={() => setIsGradeModalOpen(false)}
-            title="Calificar Entrega"
+            title={t('deliveries.gradeTitle')}
             onSubmit={handleSaveGrade}
             isSubmitting={savingGrade}
-            submitText="Guardar Calificación"
+            submitText={t('deliveries.saveGrade')}
             size="small"
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nota (0-10)</label>
+                <label className={styles.label}>{t('deliveries.gradeLabel')}</label>
                 <input 
                     type="number" 
                     className={styles.input}
@@ -628,12 +630,12 @@ const Entregas = () => {
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Feedback</label>
+                <label className={styles.label}>{t('deliveries.feedbackLabel')}</label>
                 <textarea 
                     className={styles.textarea}
                     value={gradeFormData.feedback}
                     onChange={e => setGradeFormData({...gradeFormData, feedback: e.target.value})}
-                    placeholder="Comentarios para el alumno..."
+                    placeholder={t('deliveries.feedbackPlaceholder')}
                 />
             </div>
         </ModalView>

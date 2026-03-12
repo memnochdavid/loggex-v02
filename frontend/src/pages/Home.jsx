@@ -17,9 +17,11 @@ import EventCard from '../components/EventCard';
 import { MessageSquare, CalendarClock, ClipboardList, Megaphone, Clock, MapPin, Users, User, CheckSquare, Save } from 'lucide-react';
 import Lottie from 'lottie-react';
 import helloAnimation from '../../public/hello.json';
+import { useTranslation } from 'react-i18next';
 
 const Home = () => {
-  const [backendMessage, setBackendMessage] = useState('Cargando...');
+  const { t } = useTranslation();
+  const [backendMessage, setBackendMessage] = useState(t('common.loading'));
   const { user } = useAuth();
   const tablonRef = useRef(null);
 
@@ -45,7 +47,7 @@ const Home = () => {
           return response.json();
       })
       .then(data => setBackendMessage(data.message))
-      .catch(error => setBackendMessage('Error conectando al backend: ' + error));
+      .catch(error => setBackendMessage(t('home.errorBackend') + error));
 
     // Cargar tareas para el modal de eventos (si es necesario)
     fetch(getApiUrl('/api/tareas?pagination=false'), {
@@ -146,11 +148,11 @@ const Home = () => {
           if (response.ok) {
               handleCloseModal();
           } else {
-              alert("Error al guardar asistencia");
+              alert(t('home.errorSavingAttendance'));
           }
       } catch (error) {
           console.error(error);
-          alert("Error de conexión");
+          alert(t('home.errorConnection'));
       } finally {
           setSavingAttendance(false);
       }
@@ -169,7 +171,7 @@ const Home = () => {
       return `${year}-${month}-${day}`;
   };
 
-  const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const days = [t('days.monday'), t('days.tuesday'), t('days.wednesday'), t('days.thursday'), t('days.friday'), t('days.saturday'), t('days.sunday')];
 
   // --- Fin Lógica Modal ---
 
@@ -179,7 +181,7 @@ const Home = () => {
   // 0. Tablón de Anuncios
   widgets.push({
       id: 'tablon',
-      title: 'Tablón de Anuncios',
+      title: t('home.bulletinBoard'),
       icon: <Megaphone size={20} />,
       component: <TablonWidget ref={tablonRef} hideHeader={true} />,
       canAdd: isAdmin || isSuperAdmin,
@@ -193,7 +195,7 @@ const Home = () => {
   // 1. Mensajes Recientes
   widgets.push({
       id: 'notifications',
-      title: 'Mensajes Recientes',
+      title: t('home.recentMessages'),
       icon: <MessageSquare size={20} />,
       component: <NotificationList limit={5} showViewAllButton={true} hideHeader={true} onlyUnread={false} />
   });
@@ -202,7 +204,7 @@ const Home = () => {
   if (isAlumno) {
       widgets.push({
           id: 'tasks',
-          title: 'Tareas Pendientes',
+          title: t('home.pendingTasks'),
           icon: <ClipboardList size={20} />,
           component: <PendingTasksWidget hideHeader={true} />
       });
@@ -211,7 +213,7 @@ const Home = () => {
   // 3. Horario de Hoy
   widgets.push({
       id: 'events',
-      title: 'Horario de Hoy',
+      title: t('home.todaySchedule'),
       icon: <CalendarClock size={20} />,
       component: <UpcomingEventsWidget hideHeader={true} onEventClick={handleEventClick} />
   });
@@ -234,7 +236,7 @@ const Home = () => {
     <Layout>
       <div className={styles.container}>
           <CrudHeader 
-              title={`Hola, ${user?.nombre || 'Usuario'}, que tengas un buen día.`}
+              title={t('home.greeting', { name: user?.nombre || 'Usuario' })}
               logo={<Lottie animationData={helloAnimation} loop={true} style={{ width: 60, height: 60 }} />}
           >
           </CrudHeader>
@@ -258,15 +260,15 @@ const Home = () => {
           <ModalView
                 isOpen={!!selectedEvent}
                 onClose={handleCloseModal}
-                title={selectedEvent ? (isTakingAttendance ? `Pasar Lista: ${selectedEvent.modulo}` : selectedEvent.modulo) : ''}
+                title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.modulo }) : selectedEvent.modulo) : ''}
                 size={isTakingAttendance ? "large" : "small"}
-                cancelText={isTakingAttendance ? "Cancelar" : "Cerrar"}
+                cancelText={isTakingAttendance ? t('common.cancel') : t('common.close')}
                 footer={isTakingAttendance ? (
                     <>
-                        <Button variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
+                        <Button variant="secondary" onClick={handleCloseModal}>{t('common.cancel')}</Button>
                         <Button onClick={handleSaveAttendance} disabled={savingAttendance}>
                             <Save size={18} style={{ marginRight: '8px' }} />
-                            {savingAttendance ? 'Guardando...' : 'Guardar'}
+                            {savingAttendance ? t('common.saving') : t('common.save')}
                         </Button>
                     </>
                 ) : undefined}
@@ -285,7 +287,7 @@ const Home = () => {
                             <div className={styles.detailRow}>
                                 <Clock size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Horario:</span>
+                                    <span className={styles.label}>{t('home.scheduleLabel')}</span>
                                     <span className={styles.value}>
                                         {/* Como es "Horario de Hoy", el día es hoy */}
                                         {selectedEvent.horaInicio} - {selectedEvent.horaFin}
@@ -295,7 +297,7 @@ const Home = () => {
                             <div className={styles.detailRow}>
                                 <Users size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Grupo:</span>
+                                    <span className={styles.label}>{t('home.groupLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.grupo}</span>
                                     {selectedEvent.grupoAbreviatura && (
                                         <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
@@ -305,14 +307,14 @@ const Home = () => {
                             <div className={styles.detailRow}>
                                 <MapPin size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Aula:</span>
+                                    <span className={styles.label}>{t('home.classroomLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.aula}</span>
                                 </div>
                             </div>
                             <div className={styles.detailRow}>
                                 <User size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Profesor:</span>
+                                    <span className={styles.label}>{t('home.teacherLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.profesor}</span>
                                 </div>
                             </div>
@@ -320,7 +322,7 @@ const Home = () => {
                             {/* Mostrar Tareas/Eventos del día */}
                             {tasksForSelectedEvent.length > 0 && (
                                 <div className={styles.eventsSection}>
-                                    <h4 className={styles.eventsTitle}>Eventos del día:</h4>
+                                    <h4 className={styles.eventsTitle}>{t('home.dayEvents')}</h4>
                                     <div className={styles.eventsList}>
                                         {tasksForSelectedEvent.map(task => (
                                             <EventCard 
@@ -337,7 +339,7 @@ const Home = () => {
                                 <div className={styles.attendanceButtonContainer}>
                                     <Button onClick={() => setIsTakingAttendance(true)} className={styles.attendanceButton}>
                                         <CheckSquare size={18} style={{ marginRight: '8px' }} />
-                                        Pasar Lista
+                                        {t('home.rollCall')}
                                     </Button>
                                 </div>
                             )}

@@ -12,8 +12,10 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 const Modulos = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -49,9 +51,9 @@ const Modulos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' },
-      { value: 'codigoOficial', label: 'Código' },
-      { value: 'ciclo.nombre', label: 'Ciclo' }
+      { value: 'nombre', label: t('modules.name') },
+      { value: 'codigoOficial', label: t('modules.code') },
+      { value: 'ciclo.nombre', label: t('modules.cycle') }
   ];
 
   // Estado para el modal
@@ -206,7 +208,7 @@ const Modulos = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
-      selectedCiclo,
+      selectedCiclo, 
       selectedCentro, 
       sortColumn, 
       sortDirection, 
@@ -308,7 +310,7 @@ const Modulos = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -328,14 +330,14 @@ const Modulos = () => {
 
     } catch (err) {
       console.error("Error saving modulo:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (modulo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este módulo?')) {
+    if (!window.confirm(t('modules.confirmDelete'))) {
       return;
     }
 
@@ -349,7 +351,7 @@ const Modulos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el módulo');
+        throw new Error(t('modules.errorDelete'));
       }
 
       fetchModulosData({
@@ -366,35 +368,35 @@ const Modulos = () => {
 
     } catch (err) {
       console.error("Error deleting modulo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData]);
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
-    { header: 'Código', accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
-    { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
+    { header: t('modules.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('modules.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
+    { header: t('modules.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
     { 
-        header: 'Ciclo', 
+        header: t('modules.cycle'), 
         accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
         sortable: true, 
         sortKey: 'ciclo.nombre' 
     },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -407,7 +409,7 @@ const Modulos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Módulos Formativos"
+        <CrudHeader title={t('modules.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -420,7 +422,7 @@ const Modulos = () => {
                     }}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -433,7 +435,7 @@ const Modulos = () => {
                 onChange={(e) => setSelectedCiclo(e.target.value)}
                 style={{ width: '200px' }}
             >
-                <option value="">Todos los ciclos</option>
+                <option value="">{t('common.allCycles')}</option>
                 {ciclos.map(c => (
                     <option key={c.id || c['@id']} value={c.id || c['@id'].split('/').pop()}>{c.nombre}</option>
                 ))}
@@ -442,7 +444,7 @@ const Modulos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar módulo..." 
+                placeholder={t('modules.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -450,14 +452,14 @@ const Modulos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -480,12 +482,12 @@ const Modulos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentModulo ? 'Editar Módulo' : 'Nuevo Módulo'}
+            title={currentModulo ? t('modules.editTitle') : t('modules.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre del Módulo</label>
+                <label className={styles.label}>{t('modules.nameLabel')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -493,24 +495,24 @@ const Modulos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: Bases de Datos"
+                    placeholder={t('modules.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Código Oficial</label>
+                <label className={styles.label}>{t('modules.codeLabel')}</label>
                 <input
                     type="text"
                     name="codigoOficial"
                     value={formData.codigoOficial}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder="Ej: 0484"
+                    placeholder={t('modules.codePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Ciclo Formativo</label>
+                <label className={styles.label}>{t('modules.cycleLabel')}</label>
                 <select
                     name="ciclo"
                     value={formData.ciclo}
@@ -518,7 +520,7 @@ const Modulos = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar ciclo...</option>
+                    <option value="">{t('common.selectCycle')}</option>
                     {ciclos.map(c => (
                         <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
                     ))}
@@ -526,20 +528,20 @@ const Modulos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Curso</label>
+                <label className={styles.label}>{t('modules.course')}</label>
                 <select
                     name="curso"
                     value={formData.curso}
                     onChange={handleInputChange}
                     className={styles.select}
                 >
-                    <option value="1">1º</option>
-                    <option value="2">2º</option>
+                    <option value="1">{t('modules.course1')}</option>
+                    <option value="2">{t('modules.course2')}</option>
                 </select>
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Horas Semanales</label>
+                <label className={styles.label}>{t('modules.weeklyHours')}</label>
                 <input
                     type="number"
                     name="horasSemanales"

@@ -4,8 +4,10 @@ import Lottie from 'lottie-react';
 import styles from './NotFound.module.css';
 import Button from '../components/Button';
 import { getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const NotFound = () => {
+  const { t } = useTranslation();
   const [animationData, setAnimationData] = useState(null);
 
   useEffect(() => {
@@ -25,14 +27,14 @@ const NotFound = () => {
         )}
       </div>
 
-      <h2 className={styles.title}>Página no encontrada</h2>
+      <h2 className={styles.title}>{t('notFound.title')}</h2>
       <p className={styles.message}>
-        Lo sentimos, la página que estás buscando no existe o ha sido movida.
+        {t('notFound.message')}
       </p>
       
       <Link to="/" style={{ textDecoration: 'none' }}>
         <Button>
-          Volver al Inicio
+          {t('notFound.goHome')}
         </Button>
       </Link>
     </div>

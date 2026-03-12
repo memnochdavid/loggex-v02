@@ -8,8 +8,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from "../../public/book.json";
+import { useTranslation } from 'react-i18next';
 
 const MaterialesAlumno = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -193,7 +195,7 @@ const MaterialesAlumno = () => {
 
       } catch (err) {
         console.error("Error cargando materiales:", err);
-        setError("No se pudieron cargar los apuntes.");
+        setError(t('studentMaterials.errorLoading'));
       } finally {
         setLoading(false);
       }
@@ -204,7 +206,7 @@ const MaterialesAlumno = () => {
 
   const renderMateriales = (asignatura) => {
     if (asignatura.materiales.length === 0) {
-      return <div className={styles.emptyState}>No hay apuntes disponibles.</div>;
+      return <div className={styles.emptyState}>{t('studentMaterials.noMaterialsAvailable')}</div>;
     }
 
     return (
@@ -238,7 +240,7 @@ const MaterialesAlumno = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Mis Apuntes"
+        <CrudHeader title={t('studentMaterials.title')}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -249,7 +251,7 @@ const MaterialesAlumno = () => {
                         onChange={(e) => setSelectedCentro(e.target.value)}
                         style={{ minWidth: '200px' }}
                     >
-                        <option value="">Todos los Centros</option>
+                        <option value="">{t('common.allCenters')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
@@ -262,7 +264,7 @@ const MaterialesAlumno = () => {
                         disabled={!selectedCentro}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Grupos</option>
+                        <option value="">{t('common.allGroups')}</option>
                         {grupos.map(g => (
                             <option key={g.id} value={g.id}>{g.nombre}</option>
                         ))}
@@ -275,7 +277,7 @@ const MaterialesAlumno = () => {
                         disabled={!selectedGrupo}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Módulos</option>
+                        <option value="">{t('common.allModules')}</option>
                         {modulos.map(m => (
                             <option key={m.id} value={m.id}>{m.nombre}</option>
                         ))}
@@ -285,14 +287,14 @@ const MaterialesAlumno = () => {
         </CrudHeader>
 
         {loading ? (
-          <div className={styles.loadingContainer}>Cargando...</div>
+          <div className={styles.loadingContainer}>{t('common.loading')}</div>
         ) : error ? (
           <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
             <div className={styles.emptyState}>
                 {isSuperAdmin && !selectedCentro 
-                    ? "Selecciona un centro para ver los materiales." 
-                    : "No se encontraron apuntes."}
+                    ? t('studentMaterials.selectCenter')
+                    : t('studentMaterials.noMaterials')}
             </div>
         ) : (
           <AccordionView 

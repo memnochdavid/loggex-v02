@@ -12,9 +12,11 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 
 const CiclosFormativos = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -48,8 +50,8 @@ const CiclosFormativos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' },
-      { value: 'nivel', label: 'Nivel' }
+      { value: 'nombre', label: t('cycles.name') },
+      { value: 'nivel', label: t('cycles.level') }
   ];
 
   // Estado para el modal
@@ -270,7 +272,7 @@ const CiclosFormativos = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -289,14 +291,14 @@ const CiclosFormativos = () => {
 
     } catch (err) {
       console.error("Error saving ciclo:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (ciclo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este ciclo?')) {
+    if (!window.confirm(t('cycles.confirmDelete'))) {
       return;
     }
 
@@ -310,7 +312,7 @@ const CiclosFormativos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el ciclo');
+        throw new Error(t('cycles.errorDelete'));
       }
 
       fetchCiclosData({
@@ -326,28 +328,28 @@ const CiclosFormativos = () => {
 
     } catch (err) {
       console.error("Error deleting ciclo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData]);
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
-    { header: 'Nivel', accessor: 'nivel', sortable: true, sortKey: 'nivel' },
+    { header: t('cycles.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('cycles.level'), accessor: 'nivel', sortable: true, sortKey: 'nivel' },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -360,7 +362,7 @@ const CiclosFormativos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Ciclos Formativos"
+        <CrudHeader title={t('cycles.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -370,7 +372,7 @@ const CiclosFormativos = () => {
                     onChange={(e) => setSelectedCentro(e.target.value)}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -380,7 +382,7 @@ const CiclosFormativos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar ciclo..." 
+                placeholder={t('cycles.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -388,14 +390,14 @@ const CiclosFormativos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchCiclosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchCiclosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -418,12 +420,12 @@ const CiclosFormativos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentCiclo ? 'Editar Ciclo' : 'Nuevo Ciclo'}
+            title={currentCiclo ? t('cycles.editTitle') : t('cycles.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre del Ciclo</label>
+                <label className={styles.label}>{t('cycles.nameLabel')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -431,28 +433,28 @@ const CiclosFormativos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: Desarrollo de Aplicaciones Web"
+                    placeholder={t('cycles.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nivel</label>
+                <label className={styles.label}>{t('cycles.level')}</label>
                 <select
                     name="nivel"
                     value={formData.nivel}
                     onChange={handleInputChange}
                     className={styles.select}
                 >
-                    <option value="Básico">Básico</option>
-                    <option value="Medio">Medio</option>
-                    <option value="Superior">Superior</option>
-                    <option value="Curso de Especialización">Curso de Especialización</option>
+                    <option value="Básico">{t('cycles.levelBasic')}</option>
+                    <option value="Medio">{t('cycles.levelMiddle')}</option>
+                    <option value="Superior">{t('cycles.levelHigher')}</option>
+                    <option value="Curso de Especialización">{t('cycles.levelSpecialization')}</option>
                 </select>
             </div>
 
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Centro</label>
+                    <label className={styles.label}>{t('cycles.centerLabel')}</label>
                     <select
                         name="centro"
                         value={formData.centro}
@@ -460,7 +462,7 @@ const CiclosFormativos = () => {
                         className={styles.select}
                         required
                     >
-                        <option value="">Seleccionar centro...</option>
+                        <option value="">{t('common.selectCenter')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
