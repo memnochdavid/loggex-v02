@@ -1,0 +1,111 @@
+/* ========================================
+   Animated Background - Global Views
+   Réplica exacta del efecto Login.brandPanel
+   ======================================== */
+
+.wrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Gradiente base — idéntico a Login .brandPanel */
+.gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, #0c1222 0%, #162040 40%, #1a1a4e 70%, #0c1222 100%);
+    background-size: 300% 300%;
+    animation: gradientShift 20s ease infinite;
+}
+
+/* Glows radiales — idéntico a Login .brandOverlay */
+.glows {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(ellipse 600px 400px at 25% 40%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 350px at 75% 25%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.14) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 50% 85%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Grid perspectiva — idéntico a Login .brandPanel::before */
+.grid {
+    position: absolute;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 50px 50px;
+    transform: perspective(600px) rotateX(25deg);
+    animation: gridFloat 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Glow inferior — idéntico a Login .brandPanel::after */
+.bottomGlow {
+    position: absolute;
+    bottom: -20%;
+    left: 10%;
+    width: 80%;
+    height: 50%;
+    background: radial-gradient(ellipse at center, rgba(var(--color-primary-rgb, 99, 102, 241), 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    animation: glowPulse 6s ease-in-out infinite alternate;
+}
+
+/* Iconos flotantes — idéntico a Login */
+.floatingIcons {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.floatingIcon {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.06);
+    animation: floatIcon 12s ease-in-out infinite;
+}
+
+.fi1 { top: 10%; left: 12%; animation-delay: 0s; animation-duration: 14s; }
+.fi2 { top: 22%; right: 15%; animation-delay: -3s; animation-duration: 11s; }
+.fi3 { bottom: 28%; left: 18%; animation-delay: -6s; animation-duration: 13s; }
+.fi4 { bottom: 12%; right: 20%; animation-delay: -2s; animation-duration: 15s; }
+.fi5 { top: 55%; left: 8%; animation-delay: -8s; animation-duration: 12s; }
+.fi6 { top: 40%; right: 8%; animation-delay: -4s; animation-duration: 13s; }
+.fi7 { bottom: 45%; left: 35%; animation-delay: -7s; animation-duration: 16s; }
+.fi8 { top: 5%; left: 50%; animation-delay: -1s; animation-duration: 12s; }
+.fi9 { bottom: 8%; left: 45%; animation-delay: -5s; animation-duration: 14s; }
+.fi10 { top: 65%; right: 30%; animation-delay: -9s; animation-duration: 11s; }
+
+/* ========================================
+   Animations — idénticas a Login
+   ======================================== */
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes gridFloat {
+    0%, 100% { transform: perspective(600px) rotateX(25deg) translateY(0); }
+    50% { transform: perspective(600px) rotateX(25deg) translateY(25px); }
+}
+
+@keyframes floatIcon {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+    25% { transform: translateY(-18px) rotate(5deg); opacity: 1; }
+    50% { transform: translateY(-8px) rotate(-3deg); opacity: 0.7; }
+    75% { transform: translateY(-22px) rotate(2deg); opacity: 0.9; }
+}
+
+@keyframes glowPulse {
+    0% { opacity: 0.4; }
+    100% { opacity: 0.8; }
+}

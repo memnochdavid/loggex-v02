@@ -759,6 +759,7 @@
       "borderXXLarge": "Extra Grande (24px)",
       "showLottie": "Mostrar animaciones Lottie en cabeceras",
       "enableDraggable": "Habilitar arrastre de modales (Draggable)",
+      "showAnimatedBackground": "Mostrar fondo animado en las vistas",
       "centerLogo": "Logo del Centro",
       "changeLogo": "Cambiar"
     },

@@ -759,6 +759,7 @@
       "borderXXLarge": "Extra Large (24px)",
       "showLottie": "Show Lottie animations in headers",
       "enableDraggable": "Enable modal dragging (Draggable)",
+      "showAnimatedBackground": "Show animated background on views",
       "centerLogo": "Center Logo",
       "changeLogo": "Change"
     },

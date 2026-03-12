@@ -35,6 +35,7 @@ export const applyTheme = (colors) => {
         borderRadius: '0.5rem',
         showLottie: true,
         enableDraggableModal: true,
+        showAnimatedBackground: false,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -151,9 +152,17 @@ export const applyTheme = (colors) => {
     // Guardar configuración global
     window.themeConfig = {
         showLottie: theme.showLottie,
-        enableDraggableModal: theme.enableDraggableModal
+        enableDraggableModal: theme.enableDraggableModal,
+        showAnimatedBackground: theme.showAnimatedBackground
     };
     window.dispatchEvent(new Event('themeConfigChanged'));
+
+    // Fondo semi-transparente para cuando el fondo animado está activo
+    if (theme.showAnimatedBackground) {
+        root.style.setProperty('--bg-view-alpha', `color-mix(in srgb, ${theme.viewBackgroundColor} 88%, transparent)`);
+    } else {
+        root.style.removeProperty('--bg-view-alpha');
+    }
 
     // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
     // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra
@@ -183,6 +192,8 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-300', mixColors(p, '#ffffff', 0.45));
         root.style.setProperty('--color-primary-400', mixColors(p, '#ffffff', 0.75));
         root.style.setProperty('--color-primary-500', p);
+        const pRgb = hexToRgb(p);
+        if (pRgb) root.style.setProperty('--color-primary-rgb', `${pRgb.r}, ${pRgb.g}, ${pRgb.b}`);
         root.style.setProperty('--color-primary-600', mixColors(p, '#000000', 0.9));
         root.style.setProperty('--color-primary-700', mixColors(p, '#000000', 0.75));
         root.style.setProperty('--color-primary-800', mixColors(p, '#000000', 0.6));

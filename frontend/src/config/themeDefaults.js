@@ -5,6 +5,7 @@ export const DEFAULT_THEME = {
     borderRadius: '0.5rem', // NUEVO
     showLottie: true, // NUEVO
     enableDraggableModal: true, // NUEVO
+    showAnimatedBackground: false,
     sidebarColor: '#1e293b',
     sidebarActiveColor: '#334155',
     sidebarActiveTextColor: '#ffffff',

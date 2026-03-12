@@ -64,6 +64,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private bool $enableDraggableModal = true; // NUEVO
 
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private bool $showAnimatedBackground = false;
+
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -520,6 +524,9 @@ class Personalizacion
 
     public function isEnableDraggableModal(): bool { return $this->enableDraggableModal; }
     public function setEnableDraggableModal(bool $enable): static { $this->enableDraggableModal = $enable; return $this; }
+
+    public function isShowAnimatedBackground(): bool { return $this->showAnimatedBackground; }
+    public function setShowAnimatedBackground(bool $show): static { $this->showAnimatedBackground = $show; return $this; }
 
     public function getSidebarColor(): ?string { return $this->sidebarColor; }
     public function setSidebarColor(string $color): static { $this->sidebarColor = $color; return $this; }

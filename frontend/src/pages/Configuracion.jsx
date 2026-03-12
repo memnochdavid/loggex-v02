@@ -1228,6 +1228,20 @@ const Configuracion = () => {
                                         </label>
                                     </div>
 
+                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
+                                        <input
+                                            type="checkbox"
+                                            name="showAnimatedBackground"
+                                            checked={!!settings.showAnimatedBackground}
+                                            onChange={handleChange}
+                                            id="showAnimatedBackground"
+                                            style={{width: '20px', height: '20px'}}
+                                        />
+                                        <label htmlFor="showAnimatedBackground" className={styles.label} style={{cursor: 'pointer'}}>
+                                            {t('config.general.showAnimatedBackground')}
+                                        </label>
+                                    </div>
+
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
                                             <label className={styles.label}>{t('config.general.centerLogo')}</label>

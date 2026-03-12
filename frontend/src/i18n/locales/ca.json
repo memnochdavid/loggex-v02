@@ -759,6 +759,7 @@
       "borderXXLarge": "Extra Gran (24px)",
       "showLottie": "Mostrar animacions Lottie a les capçaleres",
       "enableDraggable": "Habilitar arrossegament de modals (Draggable)",
+      "showAnimatedBackground": "Mostrar fons animat a les vistes",
       "centerLogo": "Logotip del Centre",
       "changeLogo": "Canviar"
     },

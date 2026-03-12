@@ -30,6 +30,7 @@ import MisProfesores from './pages/MisProfesores';
 import MisAlumnos from './pages/MisAlumnos'; // Nuevo
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
+import AnimatedBackground from './components/AnimatedBackground';
 import usePageTitle from './hooks/usePageTitle';
 import './App.css';
 
@@ -56,6 +57,7 @@ function App() {
           <div className="app-layout">
             <Header />
             <main className="app-main">
+              <AnimatedBackground />
               <Routes>
                 <Route path="/login" element={<Login />} />
                 
