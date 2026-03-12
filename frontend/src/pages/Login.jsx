@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import ModalView from '../components/ModalView';
 import styles from './Login.module.css';
+import { useTranslation } from 'react-i18next';
 
 const Login = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,14 +40,14 @@ const Login = () => {
       <ModalView
         isOpen={true}
         onClose={() => {}} // No hace nada
-        title="Iniciar Sesión"
+        title={t('login.title')}
         showCloseButton={false}
         closeOnOverlayClick={false}
         overlayClassName={styles.loginOverlay}
         className={styles.loginCard}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
-        submitText="Entrar"
+        submitText={t('login.submit')}
         cancelText={null} // No mostrar botón cancelar
         footer={
             <Button 
@@ -55,14 +57,14 @@ const Login = () => {
                 disabled={isSubmitting}
                 onClick={handleSubmit}
             >
-                {isSubmitting ? 'Entrando...' : 'Entrar'}
+                {isSubmitting ? t('login.submitting') : t('login.submit')}
             </Button>
         }
       >
         {error && <div className={styles.error}>{error}</div>}
         
         <div className={styles.formGroup}>
-            <label htmlFor="email" className={styles.label}>Email</label>
+            <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
             <input
                 type="email"
                 id="email"
@@ -70,12 +72,12 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="ejemplo@correo.com"
+                placeholder={t('login.emailPlaceholder')}
             />
         </div>
         
         <div className={styles.formGroup}>
-            <label htmlFor="password" className={styles.label}>Contraseña</label>
+            <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
             <input
                 type="password"
                 id="password"
@@ -83,7 +85,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder={t('login.passwordPlaceholder')}
             />
         </div>
       </ModalView>

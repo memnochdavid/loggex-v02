@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import styles from './AccordionView.module.css';
 import stylesButton from '../pages/Crud.module.css';
 import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen }) => {
+  const { t } = useTranslation();
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
   // Inicializamos el estado local con defaultOpen si está presente
   const [localIsOpen, setLocalIsOpen] = useState(defaultOpen || false);
@@ -35,7 +37,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
                 onAdd(item.id);
               }}
             >
-              Añadir
+              {t('accordion.add')}
             </button>
           )}
           <ChevronDown

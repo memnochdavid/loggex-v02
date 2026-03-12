@@ -12,8 +12,10 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 const Grupos = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -49,8 +51,8 @@ const Grupos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' },
-      { value: 'anioEscolar', label: 'Año Escolar' }
+      { value: 'nombre', label: t('groups.name') },
+      { value: 'anioEscolar', label: t('groups.schoolYear') }
   ];
 
   // Estado para el modal
@@ -334,7 +336,7 @@ const Grupos = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -354,14 +356,14 @@ const Grupos = () => {
 
     } catch (err) {
       console.error("Error saving grupo:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (grupo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este grupo?')) {
+    if (!window.confirm(t('groups.confirmDelete'))) {
       return;
     }
 
@@ -375,7 +377,7 @@ const Grupos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el grupo');
+        throw new Error(t('groups.errorDelete'));
       }
 
       fetchGruposData({
@@ -392,46 +394,46 @@ const Grupos = () => {
 
     } catch (err) {
       console.error("Error deleting grupo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData]);
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
-    { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
-    { header: 'Año Escolar', accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
+    { header: t('groups.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('groups.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
+    { header: t('groups.schoolYear'), accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
     { 
-        header: 'Inicio', 
+        header: t('groups.startDate'), 
         accessor: (row) => row.fechaInicio ? new Date(row.fechaInicio).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaInicio' 
     },
     { 
-        header: 'Fin', 
+        header: t('groups.endDate'), 
         accessor: (row) => row.fechaFin ? new Date(row.fechaFin).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaFin' 
     },
     { 
-        header: 'Ciclo', 
+        header: t('groups.cycle'), 
         accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
         sortable: false 
     },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -444,7 +446,7 @@ const Grupos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Grupos"
+        <CrudHeader title={t('groups.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -457,7 +459,7 @@ const Grupos = () => {
                     }}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -470,7 +472,7 @@ const Grupos = () => {
                 onChange={(e) => setSelectedCiclo(e.target.value)}
                 style={{ width: '200px' }}
             >
-                <option value="">Todos los ciclos</option>
+                <option value="">{t('common.allCycles')}</option>
                 {ciclos.map(c => (
                     <option key={c.id || c['@id']} value={c.id || c['@id'].split('/').pop()}>{c.nombre}</option>
                 ))}
@@ -479,7 +481,7 @@ const Grupos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar grupo..." 
+                placeholder={t('groups.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -487,14 +489,14 @@ const Grupos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -516,12 +518,12 @@ const Grupos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentGrupo ? 'Editar Grupo' : 'Nuevo Grupo'}
+            title={currentGrupo ? t('groups.editTitle') : t('groups.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre del Grupo</label>
+                <label className={styles.label}>{t('groups.nameLabel')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -529,24 +531,24 @@ const Grupos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: 1º DAW A"
+                    placeholder={t('groups.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Abreviatura</label>
+                <label className={styles.label}>{t('groups.abbreviation')}</label>
                 <input
                     type="text"
                     name="abreviatura"
                     value={formData.abreviatura}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder="Ej: 1DAWA"
+                    placeholder={t('groups.abbreviationPlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Año Escolar</label>
+                <label className={styles.label}>{t('groups.schoolYear')}</label>
                 <input
                     type="text"
                     name="anioEscolar"
@@ -554,12 +556,12 @@ const Grupos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: 2023-2024"
+                    placeholder={t('groups.schoolYearPlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Inicio Curso</label>
+                <label className={styles.label}>{t('groups.courseStartDate')}</label>
                 <input
                     type="date"
                     name="fechaInicio"
@@ -570,7 +572,7 @@ const Grupos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Fin Curso</label>
+                <label className={styles.label}>{t('groups.courseEndDate')}</label>
                 <input
                     type="date"
                     name="fechaFin"
@@ -581,7 +583,7 @@ const Grupos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Ciclo Formativo</label>
+                <label className={styles.label}>{t('groups.cycleLabel')}</label>
                 <select
                     name="ciclo"
                     value={formData.ciclo}
@@ -589,7 +591,7 @@ const Grupos = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar ciclo...</option>
+                    <option value="">{t('common.selectCycle')}</option>
                     {ciclos.map(c => (
                         <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
                     ))}
@@ -597,21 +599,21 @@ const Grupos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Curso</label>
+                <label className={styles.label}>{t('groups.course')}</label>
                 <select
                     name="curso"
                     value={formData.curso}
                     onChange={handleInputChange}
                     className={styles.select}
                 >
-                    <option value="1">1º</option>
-                    <option value="2">2º</option>
+                    <option value="1">{t('groups.course1')}</option>
+                    <option value="2">{t('groups.course2')}</option>
                 </select>
             </div>
 
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Centro</label>
+                    <label className={styles.label}>{t('groups.centerLabel')}</label>
                     <select
                         name="centro"
                         value={formData.centro}
@@ -619,7 +621,7 @@ const Grupos = () => {
                         className={styles.select}
                         required
                     >
-                        <option value="">Seleccionar centro...</option>
+                        <option value="">{t('common.selectCenter')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}

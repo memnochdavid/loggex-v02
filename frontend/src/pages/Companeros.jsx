@@ -9,8 +9,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
+import { useTranslation } from 'react-i18next';
 
 const Companeros = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [companeros, setCompaneros] = useState([]);
@@ -27,8 +29,8 @@ const Companeros = () => {
     const [selectedGrupo, setSelectedGrupo] = useState('');
 
     const searchFields = [
-        { value: 'nombre', label: 'Nombre' },
-        { value: 'apellidos', label: 'Apellidos' }
+        { value: 'nombre', label: t('users.firstName') },
+        { value: 'apellidos', label: t('users.lastName') }
     ];
 
     // Cargar centros para SuperAdmin
@@ -134,7 +136,7 @@ const Companeros = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Compañeros"
+                <CrudHeader title={t('classmates.title')}
                             logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
@@ -145,7 +147,7 @@ const Companeros = () => {
                                 onChange={(e) => setSelectedCentro(e.target.value)}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Todos los Centros</option>
+                                <option value="">{t('common.allCenters')}</option>
                                 {centros.map(c => (
                                     <option key={c.id} value={c.id}>{c.nombre}</option>
                                 ))}
@@ -158,7 +160,7 @@ const Companeros = () => {
                                 disabled={!selectedCentro}
                                 style={{ minWidth: '150px' }}
                             >
-                                <option value="">Todos los Grupos</option>
+                                <option value="">{t('common.allGroups')}</option>
                                 {grupos.map(g => (
                                     <option key={g.id} value={g.id}>{g.nombre}</option>
                                 ))}
@@ -168,7 +170,7 @@ const Companeros = () => {
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar compañero..." 
+                        placeholder={t('classmates.searchPlaceholder')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
@@ -176,7 +178,7 @@ const Companeros = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredCompaneros.map(comp => (
@@ -189,8 +191,8 @@ const Companeros = () => {
                         {filteredCompaneros.length === 0 && (
                             <div className={styles.emptyState}>
                                 {isSuperAdmin && !selectedGrupo 
-                                    ? "Selecciona un grupo para ver los alumnos." 
-                                    : "No se encontraron compañeros."}
+                                    ? t('classmates.selectGroup')
+                                    : t('classmates.noClassmates')}
                             </div>
                         )}
                     </div>

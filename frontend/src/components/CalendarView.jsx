@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import styles from './CalendarView.module.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
+    const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -70,11 +72,13 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
     };
 
     const monthNames = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        t('months.january'), t('months.february'), t('months.march'), t('months.april'), t('months.may'), t('months.june'),
+        t('months.july'), t('months.august'), t('months.september'), t('months.october'), t('months.november'), t('months.december')
     ];
 
-    const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    const weekDays = [
+        t('days.shortMon'), t('days.shortTue'), t('days.shortWed'), t('days.shortThu'), t('days.shortFri'), t('days.shortSat'), t('days.shortSun')
+    ];
 
     const renderDays = () => {
         const days = [];
@@ -104,7 +108,7 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
                         ${festivo ? styles.festivo : ''}
                     `}
                     onClick={() => handleDayClick(day)}
-                    title={festivo ? 'Festivo' : ''}
+                    title={festivo ? t('calendar.holiday') : ''}
                 >
                     {day}
                 </button>

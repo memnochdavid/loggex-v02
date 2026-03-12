@@ -5,8 +5,10 @@ import Button from './Button'; // Importar componente Button
 import { getAssetUrl } from '../config/api';
 import ModalView from './ModalView';
 import UserProfileView from './UserProfileView';
+import { useTranslation } from 'react-i18next';
 
 const UserCard = ({ user, onMessage }) => {
+    const { t } = useTranslation();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     const getAvatarUrl = (path) => {
@@ -66,7 +68,7 @@ const UserCard = ({ user, onMessage }) => {
                         style={{ width: '100%', justifyContent: 'center' }}
                     >
                         <MessageSquare size={16} style={{ marginRight: '8px' }} />
-                        Enviar Mensaje
+                        {t('userCard.sendMessage')}
                     </Button>
                 </div>
             </div>
@@ -75,9 +77,9 @@ const UserCard = ({ user, onMessage }) => {
                 <ModalView
                     isOpen={isProfileOpen}
                     onClose={() => setIsProfileOpen(false)}
-                    title="Perfil de Usuario"
+                    title={t('userCard.profileTitle')}
                     size="large"
-                    footer={<Button variant="secondary" onClick={() => setIsProfileOpen(false)}>Cerrar</Button>}
+                    footer={<Button variant="secondary" onClick={() => setIsProfileOpen(false)}>{t('userCard.close')}</Button>}
                     bodyClassName={styles.noPaddingBody} // Quitar padding del cuerpo
                 >
                     <UserProfileView user={user} />

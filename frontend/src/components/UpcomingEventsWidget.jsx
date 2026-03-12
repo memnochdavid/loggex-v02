@@ -3,8 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './UpcomingEventsWidget.module.css';
 import { CalendarClock, Sun } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -89,22 +91,22 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
 
     const renderContent = () => {
         if (loading) {
-            return <p className={styles.loading}>Cargando horario...</p>;
+            return <p className={styles.loading}>{t('todaySchedule.loading')}</p>;
         }
         
         if (isHoliday && events.length === 0) {
-            return <p className={styles.empty}>Hoy es festivo. ¡Disfruta del día!</p>;
+            return <p className={styles.empty}>{t('todaySchedule.holiday')}</p>;
         }
         
         if (!isHoliday && events.length === 0) {
-            return <p className={styles.empty}>No tienes más clases hoy.</p>;
+            return <p className={styles.empty}>{t('todaySchedule.empty')}</p>;
         }
 
         return (
             <>
                 {isHoliday && (
                     <div className={styles.holidayBanner}>
-                        <Sun size={16} /> Hoy es festivo
+                        <Sun size={16} /> {t('todaySchedule.holidayBanner')}
                     </div>
                 )}
                 <ul className={styles.eventList}>
@@ -132,7 +134,7 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
             {!hideHeader && (
                 <div className={styles.widgetHeader}>
                     <CalendarClock size={20} className={styles.headerIcon} />
-                    <h3 className={styles.widgetTitle}>Horario de Hoy</h3>
+                    <h3 className={styles.widgetTitle}>{t('todaySchedule.title')}</h3>
                 </div>
             )}
             <div className={styles.widgetContent}>

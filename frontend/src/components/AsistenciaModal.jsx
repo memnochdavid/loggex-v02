@@ -3,8 +3,10 @@ import { Check, X, Clock, AlertCircle } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import styles from './AsistenciaModal.module.css';
 import AccordionView from './AccordionView';
+import { useTranslation } from 'react-i18next';
 
 const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) => {
+    const { t } = useTranslation();
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -71,7 +73,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
         setExpandedId(prevId => (prevId === id ? null : id));
     };
 
-    if (loading) return <div className={styles.loading}>Cargando lista...</div>;
+    if (loading) return <div className={styles.loading}>{t('attendance.loading')}</div>;
 
     const renderMobileItem = (alumno) => (
         <div className={styles.mobileItemContent}>
@@ -82,7 +84,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'P' ? styles.mobileActionButtonActiveP : ''}`}
                 >
                     <Check size={20} />
-                    <span className={styles.mobileActionLabel}>Presente</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.present')}</span>
                 </button>
                 <button
                     type="button"
@@ -90,7 +92,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'F' ? styles.mobileActionButtonActiveF : ''}`}
                 >
                     <X size={20} />
-                    <span className={styles.mobileActionLabel}>Falta</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.absent')}</span>
                 </button>
                 <button
                     type="button"
@@ -98,7 +100,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'R' ? styles.mobileActionButtonActiveR : ''}`}
                 >
                     <Clock size={20} />
-                    <span className={styles.mobileActionLabel}>Retraso</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.late')}</span>
                 </button>
                 <button
                     type="button"
@@ -106,14 +108,14 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'J' ? styles.mobileActionButtonActiveJ : ''}`}
                 >
                     <AlertCircle size={20} />
-                    <span className={styles.mobileActionLabel}>Justif.</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.justifiedShort')}</span>
                 </button>
             </div>
             <input
                 type="text"
                 value={alumno.comentario || ''}
                 onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
-                placeholder="Añadir comentario..."
+                placeholder={t('attendance.commentPlaceholder')}
                 className={styles.inputComentario}
             />
         </div>
@@ -149,9 +151,9 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     <table className={styles.table}>
                         <thead>
                         <tr className={styles.tr}>
-                            <th className={styles.th}>Alumno</th>
-                            <th className={styles.thCenter}>Estado</th>
-                            <th className={styles.th}>Comentario</th>
+                            <th className={styles.th}>{t('attendance.studentCol')}</th>
+                            <th className={styles.thCenter}>{t('attendance.statusCol')}</th>
+                            <th className={styles.th}>{t('attendance.commentCol')}</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -176,7 +178,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'P')}
-                                            title="Presente"
+                                            title={t('attendance.present')}
                                             className={alumno.estado === 'P' ? styles.btnPresenteActive : styles.btnPresente}
                                         >
                                             <Check size={16} />
@@ -184,7 +186,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'F')}
-                                            title="Falta"
+                                            title={t('attendance.absent')}
                                             className={alumno.estado === 'F' ? styles.btnFaltaActive : styles.btnFalta}
                                         >
                                             <X size={16} />
@@ -192,7 +194,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'R')}
-                                            title="Retraso"
+                                            title={t('attendance.late')}
                                             className={alumno.estado === 'R' ? styles.btnRetrasoActive : styles.btnRetraso}
                                         >
                                             <Clock size={16} />
@@ -200,7 +202,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'J')}
-                                            title="Justificada"
+                                            title={t('attendance.justified')}
                                             className={alumno.estado === 'J' ? styles.btnJustificadaActive : styles.btnJustificada}
                                         >
                                             <AlertCircle size={16} />
@@ -212,7 +214,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         type="text"
                                         value={alumno.comentario || ''}
                                         onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
-                                        placeholder="..."
+                                        placeholder={t('attendance.commentPlaceholderShort')}
                                         className={styles.inputComentario}
                                     />
                                 </td>

@@ -9,9 +9,11 @@ import { getApiUrl } from '../config/api';
 import ShowProgress from '../components/ShowProgress'; // Importar el nuevo componente
 import Lottie from 'lottie-react';
 import checkAnimation from '../../public/check.json';
+import { useTranslation } from 'react-i18next';
 
 
 const MisFaltas = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [asignaturasConFaltas, setAsignaturasConFaltas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -122,11 +124,11 @@ const MisFaltas = () => {
                 setAsignaturasConFaltas(data);
             } else {
                 console.error("Error fetching summary:", response.status);
-                setError("No se pudieron cargar las faltas. Inténtalo más tarde.");
+                setError(t('myAbsences.errorLoading'));
             }
         } catch (err) {
             console.error("Error de conexión:", err);
-            setError("Error de conexión con el servidor.");
+            setError(t('myAbsences.errorConnection'));
         } finally {
             setLoading(false);
         }
@@ -143,9 +145,9 @@ const MisFaltas = () => {
 
     const getStatusLabel = (estado) => {
         switch (estado) {
-            case 'F': return 'Falta Injustificada';
-            case 'R': return 'Retraso';
-            case 'J': return 'Falta Justificada';
+            case 'F': return t('myAbsences.unjustified');
+            case 'R': return t('myAbsences.late');
+            case 'J': return t('myAbsences.justified');
             default: return estado;
         }
     };
@@ -179,17 +181,17 @@ const MisFaltas = () => {
 
     const renderDetalles = (item) => {
         if (!item.detalles || item.detalles.length === 0) {
-            return <div className={styles.emptyState}>No hay faltas registradas.</div>;
+            return <div className={styles.emptyState}>{t('myAbsences.noAbsencesAny')}</div>;
         }
 
         return (
             <div style={{ padding: '0 1rem 1rem 1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
-                    <span>Faltas: <b>{item.faltas}</b></span>
-                    <span>Retrasos: <b>{item.retrasos}</b></span>
-                    <span>Justificadas: <b>{item.justificadas}</b></span>
+                    <span>{t('myAbsences.absencesCount')} <b>{item.faltas}</b></span>
+                    <span>{t('myAbsences.lateCount')} <b>{item.retrasos}</b></span>
+                    <span>{t('myAbsences.justifiedCount')} <b>{item.justificadas}</b></span>
                     {item.totalHoras > 0 && (
-                        <span>Total Horas Impartidas: <b>{item.totalHoras}</b></span>
+                        <span>{t('myAbsences.totalHours')} <b>{item.totalHoras}</b></span>
                     )}
                 </div>
                 <ul className={styles.list}>
@@ -219,7 +221,7 @@ const MisFaltas = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Faltas de Asistencia"
+                <CrudHeader title={t('myAbsences.title')}
                             logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
@@ -230,7 +232,7 @@ const MisFaltas = () => {
                                 onChange={(e) => setSelectedCentro(e.target.value)}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Todos los Centros</option>
+                                <option value="">{t('common.allCenters')}</option>
                                 {centros.map(c => (
                                     <option key={c.id} value={c.id}>{c.nombre}</option>
                                 ))}
@@ -243,7 +245,7 @@ const MisFaltas = () => {
                                 disabled={!selectedCentro}
                                 style={{ minWidth: '150px' }}
                             >
-                                <option value="">Todos los Grupos</option>
+                                <option value="">{t('common.allGroups')}</option>
                                 {grupos.map(g => (
                                     <option key={g.id} value={g.id}>{g.nombre}</option>
                                 ))}
@@ -256,7 +258,7 @@ const MisFaltas = () => {
                                 disabled={!selectedGrupo}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Seleccionar Alumno</option>
+                                <option value="">{t('myAbsences.selectStudent')}</option>
                                 {alumnos.map(a => (
                                     <option key={a.id} value={a.id}>{a.nombre} {a.apellidos}</option>
                                 ))}
@@ -266,14 +268,14 @@ const MisFaltas = () => {
                 </CrudHeader>
                 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : error ? (
                     <div className={styles.errorContainer}>{error}</div>
                 ) : asignaturasConFaltas.length === 0 ? (
                     <div className={styles.emptyState}>
                         {isSuperAdmin && !selectedAlumno 
-                            ? "Selecciona un alumno para ver sus faltas."
-                            : "No hay faltas registradas con los filtros actuales."}
+                            ? t('myAbsences.selectStudentMsg')
+                            : t('myAbsences.noAbsences')}
                     </div>
                 ) : (
                     <AccordionView 

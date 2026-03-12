@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd D:/WORKSPACE/loggex-v02/frontend && npm install i18next react-i18next)"
+    ]
+  }
+}

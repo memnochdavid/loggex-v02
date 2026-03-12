@@ -1,0 +1,16 @@
+# Forzar saltos de línea LF para scripts de shell (crítico para Docker en Windows)
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Forzar saltos de línea LF para archivos de Docker
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+compose.yaml text eol=lf
+
+# Archivos de Windows mantienen CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# El resto usa la configuración del sistema
+* text=auto

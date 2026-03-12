@@ -1,10 +1,12 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { applyTheme } from '../utils/theme';
 import { getApiUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,10 +68,10 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       } else {
         const errorData = await response.json();
-        return { success: false, message: errorData.message || 'Error al iniciar sesión' };
+        return { success: false, message: errorData.message || t('login.error') };
       }
     } catch (error) {
-      return { success: false, message: 'Error de conexión con el servidor' };
+      return { success: false, message: t('common.errorConnection') };
     }
   };
 

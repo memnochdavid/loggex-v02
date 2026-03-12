@@ -3,6 +3,7 @@ import styles from './DataTable.module.css';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import useMediaQuery from '../hooks/useMediaQuery';
+import { useTranslation } from 'react-i18next';
 
 /**
  * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string }
@@ -36,6 +37,7 @@ const DataTable = ({
     mobileBreakpoint = '768px',
     mobileHeaderColumns = 1
 }) => {
+    const { t } = useTranslation();
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
     const [expandedId, setExpandedId] = useState(null);
 
@@ -81,7 +83,7 @@ const DataTable = ({
             <div className={`${styles.pagination} ${position === 'top' ? styles.paginationTop : styles.paginationBottom}`}>
                 <div className={styles.paginationControls}>
                     <div className={styles.itemsPerPage}>
-                        <span>Filas:</span>
+                        <span>{t('dataTable.rows')}</span>
                         <select 
                             value={itemsPerPage} 
                             onChange={handleItemsPerPageChange}
@@ -94,7 +96,7 @@ const DataTable = ({
                         </select>
                     </div>
                     <div className={styles.pageInfo}>
-                        {totalItems > 0 ? `${startItem}-${endItem} de ${totalItems}` : '0 de 0'}
+                        {totalItems > 0 ? `${startItem}-${endItem} ${t('common.of')} ${totalItems}` : '0 de 0'}
                     </div>
                 </div>
                 
@@ -115,7 +117,7 @@ const DataTable = ({
                     </button>
                     
                     <span className={styles.pageNumber}>
-                        Página {currentPage} {totalPages > 0 ? `de ${totalPages}` : ''}
+                        {t('dataTable.page')} {currentPage} {totalPages > 0 ? `${t('common.of')} ${totalPages}` : ''}
                     </span>
 
                     <button 
@@ -199,7 +201,7 @@ const DataTable = ({
                                         <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                                                 <Loader2 className="animate-spin" size={24} />
-                                                <span>Cargando datos...</span>
+                                                <span>{t('dataTable.loading')}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -207,7 +209,7 @@ const DataTable = ({
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
                                         <td colSpan={columns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            No hay datos disponibles.
+                                            {t('dataTable.noData')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -239,11 +241,11 @@ const DataTable = ({
                         {loading && (!data || data.length === 0) ? (
                             <div className={styles.emptyState} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem' }}>
                                 <Loader2 className="animate-spin" size={24} />
-                                <span>Cargando datos...</span>
+                                <span>{t('dataTable.loading')}</span>
                             </div>
                         ) : noDataAvailable ? (
                             <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
-                                No hay datos disponibles.
+                                {t('dataTable.noData')}
                             </div>
                         ) : (
                             <AccordionView 
@@ -253,7 +255,7 @@ const DataTable = ({
                                 renderHeader={(row) => {
                                     const headerCols = columns.slice(0, mobileHeaderColumns);
                                     // Buscar la columna de acciones (asumiendo que es la última o tiene header 'Acciones')
-                                    const actionsCol = columns.find(col => col.header === 'Acciones' || col.accessor === 'actions');
+                                    const actionsCol = columns.find(col => col.header === 'Acciones' || col.accessor === 'actions' || col.header === t('common.actions'));
                                     
                                     return (
                                         <div className={styles.mobileHeaderContent}>
@@ -274,7 +276,7 @@ const DataTable = ({
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {columns.slice(mobileHeaderColumns).filter(col => col.header !== 'Acciones' && col.accessor !== 'actions').map((col, index) => (
+                                        {columns.slice(mobileHeaderColumns).filter(col => col.header !== 'Acciones' && col.accessor !== 'actions' && col.header !== t('common.actions')).map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>
                                                 <span className={styles.mobileValue}>

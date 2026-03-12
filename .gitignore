@@ -8,6 +8,8 @@
 caddy_data/
 caddy_config/
 db_data/
+# minio_backup/
+minio_data/
 
 # Logs
 *.log

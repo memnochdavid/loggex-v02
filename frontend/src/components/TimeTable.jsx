@@ -8,14 +8,16 @@ import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
+import { useTranslation } from 'react-i18next';
 
 const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
     const canTakeAttendance = isProfesor || isAdmin;
 
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    const days = [t('days.monday'), t('days.tuesday'), t('days.wednesday'), t('days.thursday'), t('days.friday')];
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
     const [savingAttendance, setSavingAttendance] = useState(false);
@@ -249,7 +251,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
             <div className={styles.tableContainer}>
                 <div className={styles.grid} style={{ gridTemplateColumns: `80px repeat(5, minmax(85px, 1fr))` }}>
                     {/* Header Días */}
-                    <div className={styles.headerCell}>Hora</div>
+                    <div className={styles.headerCell}>{t('timetable.hour')}</div>
                     {days.map((day, index) => (
                         <div
                             key={day}
@@ -301,7 +303,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                             <div
                                                 className={styles.eventCard}
                                                 onClick={() => handleEventClick(cellData.event)}
-                                                title="Ver detalles"
+                                                title={t('timetable.viewDetails')}
                                             >
                                                 <div className={styles.eventModulo}>{cellData.event.modulo}</div>
                                                 <div className={styles.eventGroupSmall}>
@@ -326,7 +328,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
     if (hasMorning) {
         shiftsData.push({
             id: 'morning',
-            title: 'Turno de Mañana',
+            title: t('timetable.morningShift'),
             slots: morningSlots,
             grid: morningGrid
         });
@@ -334,7 +336,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
     if (hasAfternoon) {
         shiftsData.push({
             id: 'afternoon',
-            title: 'Turno de Tarde',
+            title: t('timetable.afternoonShift'),
             slots: afternoonSlots,
             grid: afternoonGrid
         });
@@ -390,7 +392,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                 ))
             ) : (
                 <div className={styles.empty} style={{ padding: '1rem' }}>
-                    No hay clases
+                    {t('timetable.noClasses')}
                 </div>
             )}
         </div>
@@ -425,11 +427,11 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
             if (response.ok) {
                 handleCloseModal();
             } else {
-                alert("Error al guardar asistencia");
+                alert(t('home.errorSavingAttendance'));
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión");
+            alert(t('home.errorConnection'));
         } finally {
             setSavingAttendance(false);
         }
@@ -453,7 +455,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                         onToggle={(id) => setActiveShift(activeShift === id ? null : id)}
                     />
                 ) : (
-                    <p className={styles.empty}>No hay clases programadas.</p>
+                    <p className={styles.empty}>{t('timetable.noScheduledClasses')}</p>
                 )}
             </div>
 
@@ -472,16 +474,16 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
             <ModalView
                 isOpen={!!selectedEvent}
                 onClose={handleCloseModal}
-                title={selectedEvent ? (isTakingAttendance ? `Pasar Lista: ${selectedEvent.modulo}` : selectedEvent.modulo) : ''}
+                title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.modulo }) : selectedEvent.modulo) : ''}
                 size={isTakingAttendance ? "large" : "small"}
-                cancelText={isTakingAttendance ? "Cancelar" : "Cerrar"}
+                cancelText={isTakingAttendance ? t('common.cancel') : t('common.close')}
                 // Footer personalizado para el modo de asistencia
                 footer={isTakingAttendance ? (
                     <>
-                        <Button variant="secondary" onClick={handleCloseModal}>Cancelar</Button>
+                        <Button variant="secondary" onClick={handleCloseModal}>{t('common.cancel')}</Button>
                         <Button onClick={handleSaveAttendance} disabled={savingAttendance}>
                             <Save size={18} style={{ marginRight: '8px' }} />
-                            {savingAttendance ? 'Guardando...' : 'Guardar'}
+                            {savingAttendance ? t('common.saving') : t('common.save')}
                         </Button>
                     </>
                 ) : undefined}
@@ -500,7 +502,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             <div className={styles.detailRow}>
                                 <Clock size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Horario:</span>
+                                    <span className={styles.label}>{t('timetable.scheduleLabel')}</span>
                                     <span className={styles.value}>
                                         {days[selectedEvent.diaSemana - 1]}, {selectedEvent.horaInicio} - {selectedEvent.horaFin}
                                     </span>
@@ -509,7 +511,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             <div className={styles.detailRow}>
                                 <Users size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Grupo:</span>
+                                    <span className={styles.label}>{t('timetable.groupLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.grupo}</span>
                                     {selectedEvent.grupoAbreviatura && (
                                         <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
@@ -519,14 +521,14 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             <div className={styles.detailRow}>
                                 <MapPin size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Aula:</span>
+                                    <span className={styles.label}>{t('timetable.classroomLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.aula}</span>
                                 </div>
                             </div>
                             <div className={styles.detailRow}>
                                 <User size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>Profesor:</span>
+                                    <span className={styles.label}>{t('timetable.teacherLabel')}</span>
                                     <span className={styles.value}>{selectedEvent.profesor}</span>
                                 </div>
                             </div>
@@ -534,7 +536,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             {/* Mostrar Tareas/Eventos del día */}
                             {tasksForSelectedEvent.length > 0 && (
                                 <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>Eventos del día:</h4>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>{t('timetable.dayEvents')}</h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         {tasksForSelectedEvent.map(task => (
                                             <EventCard 
@@ -553,7 +555,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                 <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
                                     <Button onClick={() => setIsTakingAttendance(true)} style={{ width: '100%' }}>
                                         <CheckSquare size={18} style={{ marginRight: '8px' }} />
-                                        Pasar Lista
+                                        {t('timetable.rollCall')}
                                     </Button>
                                 </div>
                             )}

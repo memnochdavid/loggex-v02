@@ -12,9 +12,11 @@ import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 
 const Imparticiones = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -30,10 +32,6 @@ const Imparticiones = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedGrupo, setSelectedGrupo] = useState('');
-  const [selectedModulo, setSelectedModulo] = useState('');
-  const [grupos, setGrupos] = useState([]); // Grupos filtrados para el selector
-  const [modulos, setModulos] = useState([]); // Módulos filtrados para el selector
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,9 +50,9 @@ const Imparticiones = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'profesor.nombre', label: 'Profesor' },
-      { value: 'modulo.nombre', label: 'Módulo' },
-      { value: 'grupo.nombre', label: 'Grupo' }
+      { value: 'profesor.nombre', label: t('teaching.teacher') },
+      { value: 'modulo.nombre', label: t('teaching.module') },
+      { value: 'grupo.nombre', label: t('teaching.group') }
   ];
 
   // Estado para el modal
@@ -67,18 +65,18 @@ const Imparticiones = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Listas filtradas para el modal (lógica interna del modal)
-  const filteredModulosForModal = useMemo(() => {
+  // Listas filtradas para el modal
+  const filteredModulos = useMemo(() => {
       if (!formData.grupo) return [];
       
-      const selectedGrupoObj = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
-      if (!selectedGrupoObj) return [];
+      const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
+      if (!selectedGrupo) return [];
 
       return allModulos.filter(m => {
-          if (m.curso !== selectedGrupoObj.curso) return false;
+          if (m.curso !== selectedGrupo.curso) return false;
           
           const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
-          const grupCicloId = typeof selectedGrupoObj.ciclo === 'object' ? (selectedGrupoObj.ciclo.id || selectedGrupoObj.ciclo['@id']) : selectedGrupoObj.ciclo;
+          const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
           
           const modCicloIdStr = String(modCicloId).split('/').pop();
           const grupCicloIdStr = String(grupCicloId).split('/').pop();
@@ -103,62 +101,7 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar grupos cuando cambia el centro seleccionado (para el filtro)
-  useEffect(() => {
-      if (isSuperAdmin && selectedCentro) {
-          fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
-              headers: { 'Accept': 'application/ld+json' },
-              credentials: 'include'
-          })
-          .then(res => res.json())
-          .then(data => {
-              const items = data['hydra:member'] || data.member || [];
-              setGrupos(items);
-              setSelectedGrupo('');
-              setModulos([]);
-              setSelectedModulo('');
-          })
-          .catch(err => console.error("Error cargando grupos:", err));
-      } else {
-          setGrupos([]);
-          setSelectedGrupo('');
-          setModulos([]);
-          setSelectedModulo('');
-      }
-  }, [selectedCentro, isSuperAdmin]);
-
-  // Cargar módulos cuando cambia el grupo seleccionado (para el filtro)
-  useEffect(() => {
-      if (isSuperAdmin && selectedGrupo) {
-          // Obtener imparticiones del grupo para sacar los módulos (o módulos del ciclo del grupo si queremos todos los posibles)
-          // Para filtrar lo que YA existe, usamos imparticiones.
-          fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false`), {
-              headers: { 'Accept': 'application/ld+json' },
-              credentials: 'include'
-          })
-          .then(res => res.json())
-          .then(data => {
-              const items = data['hydra:member'] || data.member || [];
-              const uniqueModulos = [];
-              const map = new Map();
-              for (const item of items) {
-                  if (item.modulo && !map.has(item.modulo.id)) {
-                      map.set(item.modulo.id, true);
-                      uniqueModulos.push(item.modulo);
-                  }
-              }
-              setModulos(uniqueModulos);
-              setSelectedModulo('');
-          })
-          .catch(err => console.error("Error cargando módulos:", err));
-      } else {
-          setModulos([]);
-          setSelectedModulo('');
-      }
-  }, [selectedGrupo, isSuperAdmin]);
-
-
-  // Cargar datos auxiliares para el MODAL (filtrados por centro si hay uno seleccionado)
+  // Cargar datos auxiliares (filtrados por centro)
   useEffect(() => {
     let urlProfesores = getApiUrl('/api/users?itemsPerPage=100&rol_app=profesor');
     let urlModulos = getApiUrl('/api/modulos?itemsPerPage=100');
@@ -218,16 +161,6 @@ const Imparticiones = () => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      // Aplicar filtros jerárquicos
-      if (params.selectedModulo) {
-          url += `&modulo=${params.selectedModulo}`;
-          if (params.selectedGrupo) url += `&grupo=${params.selectedGrupo}`;
-      } else if (params.selectedGrupo) {
-          url += `&grupo=${params.selectedGrupo}`;
-      } else if (isSuperAdmin && params.selectedCentro) {
-          url += `&grupo.centro=${params.selectedCentro}`;
-      }
-      
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -261,7 +194,7 @@ const Imparticiones = () => {
           setLoading(false);
       }
     }
-  }, [isSuperAdmin]); 
+  }, []); 
 
   // Efecto ÚNICO para cambios
   useEffect(() => {
@@ -275,9 +208,6 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCentro,
-          selectedGrupo,
-          selectedModulo,
           sortColumn,
           sortDirection
       };
@@ -300,9 +230,6 @@ const Imparticiones = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
-      selectedCentro,
-      selectedGrupo,
-      selectedModulo,
       sortColumn, 
       sortDirection, 
       fetchImparticionesData
@@ -406,7 +333,7 @@ const Imparticiones = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -416,9 +343,6 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCentro,
-          selectedGrupo,
-          selectedModulo,
           sortColumn,
           sortDirection
       });
@@ -426,14 +350,14 @@ const Imparticiones = () => {
 
     } catch (err) {
       console.error("Error saving imparticion:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (imparticion) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta asignación?')) {
+    if (!window.confirm(t('teaching.confirmDelete'))) {
       return;
     }
 
@@ -447,7 +371,7 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar la asignación');
+        throw new Error(t('teaching.errorDelete'));
       }
 
       fetchImparticionesData({
@@ -455,53 +379,50 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCentro,
-          selectedGrupo,
-          selectedModulo,
           sortColumn,
           sortDirection
       });
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedModulo, sortColumn, sortDirection, fetchImparticionesData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
 
   const columns = useMemo(() => [
     { 
-        header: 'Profesor', 
+        header: t('teaching.teacher'), 
         accessor: (row) => row.profesor ? `${row.profesor.nombre} ${row.profesor.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'profesor.nombre' 
     },
     { 
-        header: 'Módulo', 
+        header: t('teaching.module'), 
         accessor: (row) => row.modulo ? row.modulo.nombre : '-', 
         sortable: true, 
         sortKey: 'modulo.nombre' 
     },
     { 
-        header: 'Grupo', 
+        header: t('teaching.group'), 
         accessor: (row) => row.grupo ? (row.grupo.abreviatura || row.grupo.nombre) : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
     },
     { 
-        header: 'Acciones', 
+        header: t('common.actions'), 
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -514,66 +435,27 @@ const Imparticiones = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Asignación de Docencia"
+        <CrudHeader title={t('teaching.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <select 
-                        className={styles.select} 
-                        value={selectedCentro} 
-                        onChange={(e) => {
-                            setSelectedCentro(e.target.value);
-                            setSelectedGrupo('');
-                            setSelectedModulo('');
-                        }}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los centros</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-
-                    <select 
-                        className={styles.select} 
-                        value={selectedGrupo} 
-                        onChange={(e) => {
-                            setSelectedGrupo(e.target.value);
-                            setSelectedModulo('');
-                        }}
-                        disabled={!selectedCentro}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los grupos</option>
-                        {grupos.map(g => (
-                            <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                                {g.curso}º {g.nombre}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select 
-                        className={styles.select} 
-                        value={selectedModulo} 
-                        onChange={(e) => setSelectedModulo(e.target.value)}
-                        disabled={!selectedGrupo}
-                        style={{ width: '200px' }}
-                    >
-                        <option value="">Todos los módulos</option>
-                        {modulos.map(m => (
-                            <option key={m.id || m['@id']} value={m.id || m['@id'].split('/').pop()}>
-                                {m.nombre}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                <select 
+                    className={styles.select} 
+                    value={selectedCentro} 
+                    onChange={(e) => setSelectedCentro(e.target.value)}
+                    style={{ width: '200px' }}
+                >
+                    <option value="">{t('common.allCenters')}</option>
+                    {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                </select>
             )}
             
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar..." 
+                placeholder={t('common.search')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -581,14 +463,14 @@ const Imparticiones = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, selectedModulo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -610,12 +492,12 @@ const Imparticiones = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentImparticion ? 'Editar Asignación' : 'Nueva Asignación'}
+            title={currentImparticion ? t('teaching.editTitle') : t('teaching.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Profesor ({profesores.length})</label>
+                <label className={styles.label}>{t('teaching.teacherCount', { count: profesores.length })}</label>
                 <select
                     name="profesor"
                     value={formData.profesor}
@@ -623,7 +505,7 @@ const Imparticiones = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar profesor...</option>
+                    <option value="">{t('common.selectTeacher')}</option>
                     {profesores.map(p => (
                         <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
                             {p.nombre} {p.apellidos}
@@ -633,7 +515,7 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Grupo ({allGrupos.length})</label>
+                <label className={styles.label}>{t('teaching.groupCount', { count: allGrupos.length })}</label>
                 <select
                     name="grupo"
                     value={formData.grupo}
@@ -641,7 +523,7 @@ const Imparticiones = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar grupo...</option>
+                    <option value="">{t('common.selectGroup')}</option>
                     {allGrupos.map(g => (
                         <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
                             {g.abreviatura || g.nombre}
@@ -651,7 +533,7 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Módulo ({filteredModulosForModal.length})</label>
+                <label className={styles.label}>{t('teaching.moduleCount', { count: filteredModulos.length })}</label>
                 <select
                     name="modulo"
                     value={formData.modulo}
@@ -661,9 +543,9 @@ const Imparticiones = () => {
                     disabled={!formData.grupo} // Deshabilitar si no hay grupo
                 >
                     <option value="">
-                        {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
+                        {formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
                     </option>
-                    {filteredModulosForModal.map(m => (
+                    {filteredModulos.map(m => (
                         <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
                             {m.nombre} ({m.codigoOficial}) - {m.curso}º
                         </option>

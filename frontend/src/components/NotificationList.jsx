@@ -4,6 +4,7 @@ import { User } from 'lucide-react';
 import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import styles from './NotificationList.module.css';
+import { useTranslation } from 'react-i18next';
 
 const NotificationList = ({ 
     title, 
@@ -16,6 +17,7 @@ const NotificationList = ({
     hideHeader = false,
     onlyUnread = true // Nueva prop para controlar el filtro
 }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
@@ -120,7 +122,7 @@ const NotificationList = ({
         return (
             <div className={styles.listContainer}>
                 {!hideHeader && title && <div className={styles.widgetHeader}><h3 className={styles.widgetTitle}>{title}</h3></div>}
-                <div className={styles.loading}>Cargando mensajes...</div>
+                <div className={styles.loading}>{t('notifications.loading')}</div>
             </div>
         );
     }
@@ -132,7 +134,7 @@ const NotificationList = ({
                     <h3 className={styles.widgetTitle}>{title}</h3>
                     {showUnreadCountInHeader && totalUnreadCount > 0 && (
                         <span className={styles.unreadCountBadge}>
-                            {totalUnreadCount} no leídos
+                            {totalUnreadCount} {t('notifications.unread')}
                         </span>
                     )}
                 </div>
@@ -140,7 +142,7 @@ const NotificationList = ({
 
             {messages.length === 0 ? (
                 <div className={styles.emptyState}>
-                    {onlyUnread ? 'No tienes mensajes nuevos' : 'No hay mensajes recientes'}
+                    {onlyUnread ? t('notifications.noNewMessages') : t('notifications.noRecentMessages')}
                 </div>
             ) : (
                 <ul className={styles.list}>
@@ -192,7 +194,7 @@ const NotificationList = ({
                         className={styles.viewAllLink}
                         onClick={handleViewAllClick}
                     >
-                        Ver todos los mensajes
+                        {t('notifications.viewAll')}
                     </button>
                 </div>
             )}
