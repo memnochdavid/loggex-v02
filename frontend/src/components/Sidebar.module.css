@@ -1,7 +1,7 @@
 .sidebar {
     width: 250px;
     height: 100%;
-    background-color: var(--bg-sidebar, var(--color-gray-800));
+    background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
     color: var(--text-light);
     display: flex;
     flex-direction: column;
@@ -140,14 +140,14 @@
        Esto fuerza al componente AccordionView (que usa estas variables)
        a usar los valores específicos del Sidebar cuando está dentro de este wrapper.
     */
-    --accordion-header-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-bg: color-mix(in srgb, var(--sidebar-accordion-header-bg, transparent) 25%, transparent);
     --accordion-header-text: var(--sidebar-accordion-header-text, inherit);
 
     /* Para el estado activo, usamos el mismo que el header normal del sidebar si no hay uno específico */
-    --accordion-header-active-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-active-bg: color-mix(in srgb, var(--sidebar-accordion-header-bg, transparent) 25%, transparent);
     --accordion-header-active-text: var(--sidebar-accordion-header-text, inherit);
 
-    --accordion-content-bg: var(--sidebar-accordion-content-bg, rgba(0,0,0,0.2));
+    --accordion-content-bg: color-mix(in srgb, var(--sidebar-accordion-content-bg, rgba(0,0,0,0.2)) 70%, transparent);
     --accordion-content-text: var(--sidebar-accordion-content-text, inherit);
 
     /* Eliminamos bordes y sombras por defecto del acordeón */
@@ -206,6 +206,7 @@
         height: 100vh;
         animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        background-color: var(--bg-sidebar, var(--color-gray-800)); /* Siempre opaco en mobile */
     }
 
     .mobileToggle {

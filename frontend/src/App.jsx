@@ -55,9 +55,9 @@ function App() {
         <Router>
           <PageTitleUpdater />
           <div className="app-layout">
+            <AnimatedBackground />
             <Header />
             <main className="app-main">
-              <AnimatedBackground />
               <Routes>
                 <Route path="/login" element={<Login />} />
                 

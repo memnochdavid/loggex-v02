@@ -158,7 +158,7 @@ const Header = () => {
                 <NameTitle name={getCentroName()} className={styles.nombrecentro} />
             </div>
 
-            <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+            <nav className={styles.nav}>
                 <div className={styles.desktopNav}>
                     {(!user || isSuperAdmin) && (
                         <Link to="/about" className={styles.navLink}>{t('header.about')}</Link>
@@ -192,7 +192,7 @@ const Header = () => {
                 <LanguageSelector />
 
                 {user ? (
-                    <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem'}}>
+                    <div className={styles.userActions}>
                         <div className={styles.notificationContainer} ref={notifRef}>
                             <button 
                                 className={styles.notificationButton}

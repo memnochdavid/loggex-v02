@@ -3,7 +3,7 @@
     flex-direction: column;
     height: 100%; /* Se adapta a la altura del 'main' de App.jsx */
     overflow: hidden; /* Evita el scroll global en el body */
-    background-color: var(--bg-body);
+    background-color: var(--bg-body-alpha, var(--bg-body));
     position: relative;
     z-index: 1; /* Por encima del AnimatedBackground (z-index: 0) */
 }

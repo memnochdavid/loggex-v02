@@ -700,6 +700,7 @@
       "sidebar": "Barra Lateral",
       "text": "Textos",
       "buttons": "Botóns",
+      "inputs": "Inputs",
       "chat": "Mensaxería",
       "usercard": "Tarxetas",
       "eventos": "Eventos",
@@ -760,8 +761,16 @@
       "showLottie": "Mostrar animacións Lottie nas cabeceiras",
       "enableDraggable": "Habilitar arrastre de modais (Draggable)",
       "showAnimatedBackground": "Mostrar fondo animado nas vistas",
+      "headerFooterOpacity": "Transparencia Header/Footer",
       "centerLogo": "Logotipo do Centro",
       "changeLogo": "Cambiar"
+    },
+    "inputsTab": {
+      "bg": "Fondo",
+      "text": "Texto",
+      "border": "Bordo",
+      "focusBorder": "Bordo ao enfocar",
+      "focusShadow": "Sombra ao enfocar"
     },
     "titleTab": {
       "wordSpacing": "Espazamento entre palabras",
@@ -783,6 +792,7 @@
       "activeText": "Texto Elemento Activo",
       "hoverBg": "Fondo Hover",
       "hoverText": "Texto Hover",
+      "opacity": "Transparencia",
       "accordionSection": "Acordeón Sidebar",
       "accordionHeaderBg": "Fondo Cabeceira Acordeón",
       "accordionHeaderText": "Texto Cabeceira Acordeón",

@@ -1,15 +1,17 @@
 .app-layout {
   display: grid;
-    grid-template-rows:  min-content 1fr;
+  grid-template-rows: min-content 1fr;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden; /* Evita scroll en la ventana principal */
+  overflow: hidden;
+  position: relative; /* Para que AnimatedBackground se posicione aquí */
 }
 
 .app-main {
-  flex: 1; /* Ocupa el espacio restante (100vh - Header - Footer) */
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* El scroll lo manejarán los hijos (Sidebar/Content) */
+  overflow: hidden;
   position: relative;
+  z-index: 1; /* Encima de AnimatedBackground */
 }

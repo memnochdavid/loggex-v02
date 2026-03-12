@@ -217,13 +217,13 @@
     transition: border-color 0.2s;
     box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
 }
 
 .input:focus, .select:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
+    border-color: var(--input-focus-border, var(--color-primary-500));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100));
 }
 
 .select {

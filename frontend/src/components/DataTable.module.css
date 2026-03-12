@@ -129,7 +129,7 @@
 
 .select:focus {
     outline: none;
-    border-color: var(--color-primary-500);
+    border-color: var(--input-focus-border, var(--color-primary-500));
 }
 
 .pageInfo {

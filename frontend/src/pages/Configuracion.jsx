@@ -26,7 +26,8 @@ import {
     MessageSquare,
     User,
     Bell,
-    Grid
+    Grid,
+    TextCursorInput
 } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import {getApiUrl, getAssetUrl} from '../config/api';
@@ -138,7 +139,7 @@ const Configuracion = () => {
         const {name, value, type, checked} = e.target;
         setSettings(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (type === 'number' ? parseInt(value) : value)
+            [name]: type === 'checkbox' ? checked : ((type === 'number' || type === 'range') ? parseInt(value) : value)
         }));
     };
 
@@ -1114,6 +1115,7 @@ const Configuracion = () => {
         {id: 'sidebar', label: t('config.tabs.sidebar'), icon: <LayoutIcon size={18}/>},
         {id: 'text', label: t('config.tabs.text'), icon: <Type size={18}/>},
         {id: 'buttons', label: t('config.tabs.buttons'), icon: <MousePointer size={18}/>},
+        {id: 'inputs', label: t('config.tabs.inputs'), icon: <TextCursorInput size={18}/>},
         {id: 'chat', label: t('config.tabs.chat'), icon: <MessageSquare size={18}/>},
         {id: 'usercard', label: t('config.tabs.usercard'), icon: <User size={18}/>},
         {id: 'eventos', label: t('config.tabs.eventos'), icon: <Bell size={18}/>},
@@ -1181,6 +1183,22 @@ const Configuracion = () => {
                                     {renderColorInput(t('config.general.secondaryColor'), 'secondaryColor')}
                                     {renderColorInput(t('config.general.headerFooterBg'), 'headerFooterColor')}
                                     {renderColorInput(t('config.general.headerFooterText'), 'headerFooterTextColor')}
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>
+                                            {t('config.general.headerFooterOpacity')} ({settings.headerFooterOpacity ?? 100}%)
+                                        </label>
+                                        <input
+                                            type="range"
+                                            name="headerFooterOpacity"
+                                            min="20"
+                                            max="100"
+                                            value={settings.headerFooterOpacity ?? 100}
+                                            onChange={handleChange}
+                                            style={{width: '100%', cursor: 'pointer'}}
+                                        />
+                                    </div>
+
                                     {renderColorInput(t('config.general.viewBg'), 'viewBackgroundColor')}
 
                                     <div className={styles.colorItem}>
@@ -1374,6 +1392,16 @@ const Configuracion = () => {
                                     {renderColorInput(t('config.buttonsTab.primaryText'), 'buttonPrimaryTextColor')}
                                     {renderColorInput(t('config.buttonsTab.secondaryBg'), 'buttonSecondaryColor')}
                                     {renderColorInput(t('config.buttonsTab.secondaryText'), 'buttonSecondaryTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'inputs' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput(t('config.inputsTab.bg'), 'inputBgColor')}
+                                    {renderColorInput(t('config.inputsTab.text'), 'inputTextColor')}
+                                    {renderColorInput(t('config.inputsTab.border'), 'inputBorderColor')}
+                                    {renderColorInput(t('config.inputsTab.focusBorder'), 'inputFocusBorderColor')}
+                                    {renderColorInput(t('config.inputsTab.focusShadow'), 'inputFocusShadowColor')}
                                 </div>
                             )}
 

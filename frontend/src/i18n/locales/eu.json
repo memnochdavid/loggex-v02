@@ -700,6 +700,7 @@
       "sidebar": "Alboko Barra",
       "text": "Testuak",
       "buttons": "Botoiak",
+      "inputs": "Sarrerak",
       "chat": "Mezularitza",
       "usercard": "Txartelak",
       "eventos": "Gertaerak",
@@ -760,8 +761,16 @@
       "showLottie": "Erakutsi Lottie animazioak goiburuetan",
       "enableDraggable": "Gaitu modalen arrastatzea (Draggable)",
       "showAnimatedBackground": "Ikuspegietan atzeko plano animatua erakutsi",
+      "headerFooterOpacity": "Goiburu/Oinaren Gardentasuna",
       "centerLogo": "Ikastetxearen Logoa",
       "changeLogo": "Aldatu"
+    },
+    "inputsTab": {
+      "bg": "Atzeko Planoa",
+      "text": "Testua",
+      "border": "Ertza",
+      "focusBorder": "Fokatu Ertza",
+      "focusShadow": "Fokatu Itzala"
     },
     "titleTab": {
       "wordSpacing": "Hitzen arteko tartea",
@@ -783,6 +792,7 @@
       "activeText": "Elementu Aktiboaren Testua",
       "hoverBg": "Hover Atzeko Planoa",
       "hoverText": "Hover Testua",
+      "opacity": "Gardentasuna",
       "accordionSection": "Sidebar Akordeoia",
       "accordionHeaderBg": "Akordeoi Goiburuaren Atzeko Planoa",
       "accordionHeaderText": "Akordeoi Goiburuaren Testua",

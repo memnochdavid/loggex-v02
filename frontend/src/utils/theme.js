@@ -41,7 +41,8 @@ export const applyTheme = (colors) => {
         sidebarActiveTextColor: '#ffffff',
         sidebarHoverColor: '#334155',
         sidebarHoverTextColor: '#ffffff',
-        
+        sidebarOpacity: 100,
+
         // Sidebar Accordion
         sidebarAccordionHeaderBgColor: '#1e293b',
         sidebarAccordionHeaderTextColor: '#ffffff',
@@ -57,6 +58,12 @@ export const applyTheme = (colors) => {
         buttonSecondaryTextColor: '#334155',
         headerFooterColor: '#1e293b',
         headerFooterTextColor: '#ffffff',
+        headerFooterOpacity: 100,
+        inputBgColor: '#ffffff',
+        inputTextColor: '#334155',
+        inputBorderColor: '#e2e8f0',
+        inputFocusBorderColor: '#6366f1',
+        inputFocusShadowColor: '#e0e7ff',
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
@@ -157,11 +164,29 @@ export const applyTheme = (colors) => {
     };
     window.dispatchEvent(new Event('themeConfigChanged'));
 
-    // Fondo semi-transparente para cuando el fondo animado está activo
+    // Fondo animado: gradiente derivado de viewBackgroundColor + primaryColor
     if (theme.showAnimatedBackground) {
-        root.style.setProperty('--bg-view-alpha', `color-mix(in srgb, ${theme.viewBackgroundColor} 88%, transparent)`);
+        const pRgbAnim = hexToRgb(theme.primaryColor) || {r: 99, g: 102, b: 241};
+        const vRgbAnim = hexToRgb(theme.viewBackgroundColor) || {r: 255, g: 255, b: 255};
+        // Mezclar viewBg (70%) con primary (30%) para obtener el tono base
+        const base = {
+            r: Math.round(vRgbAnim.r * 0.7 + pRgbAnim.r * 0.3),
+            g: Math.round(vRgbAnim.g * 0.7 + pRgbAnim.g * 0.3),
+            b: Math.round(vRgbAnim.b * 0.7 + pRgbAnim.b * 0.3)
+        };
+        // Oscurecer a distintos niveles para crear el gradiente
+        const dark = (rgb, w) => `rgb(${Math.round(rgb.r * w)}, ${Math.round(rgb.g * w)}, ${Math.round(rgb.b * w)})`;
+        root.style.setProperty('--bg-anim-1', dark(base, 0.14));  // más oscuro
+        root.style.setProperty('--bg-anim-2', dark(base, 0.24));  // medio
+        root.style.setProperty('--bg-anim-3', dark(base, 0.30));  // con más color
+        root.style.setProperty('--bg-view-alpha', 'transparent');
+        root.style.setProperty('--bg-body-alpha', 'transparent');
     } else {
         root.style.removeProperty('--bg-view-alpha');
+        root.style.removeProperty('--bg-body-alpha');
+        root.style.removeProperty('--bg-anim-1');
+        root.style.removeProperty('--bg-anim-2');
+        root.style.removeProperty('--bg-anim-3');
     }
 
     // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
@@ -173,13 +198,12 @@ export const applyTheme = (colors) => {
     root.style.setProperty('--border-color', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`);
     root.style.setProperty('--color-border', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`); // Mantener alias por si acaso
     
-    // Inputs: Si el fondo de la vista es oscuro, el input debe ser un poco más claro u oscuro
-    // Usamos color-mix con valores directos
-    root.style.setProperty('--bg-input', `color-mix(in srgb, ${theme.viewBackgroundColor}, ${theme.textMainColor} 5%)`);
-    root.style.setProperty('--text-input', theme.textMainColor);
-    
-    // Borde de input derivado
-    root.style.setProperty('--border-input', `color-mix(in srgb, ${theme.viewBackgroundColor}, ${theme.textMainColor} 20%)`);
+    // Inputs
+    root.style.setProperty('--bg-input', theme.inputBgColor);
+    root.style.setProperty('--text-input', theme.inputTextColor);
+    root.style.setProperty('--border-input', theme.inputBorderColor);
+    root.style.setProperty('--input-focus-border', theme.inputFocusBorderColor);
+    root.style.setProperty('--input-focus-shadow', theme.inputFocusShadowColor);
 
     // --- FIN VARIABLES MAESTRAS ---
 
@@ -244,6 +268,14 @@ export const applyTheme = (colors) => {
     // 5. Header y Footer
     if (theme.headerFooterColor) root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
     if (theme.headerFooterTextColor) root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
+    const hfOpacity = theme.headerFooterOpacity != null ? theme.headerFooterOpacity : 100;
+    if (hfOpacity < 100) {
+        root.style.setProperty('--bg-header-footer-alpha', `color-mix(in srgb, ${theme.headerFooterColor || '#1e293b'} ${hfOpacity}%, transparent)`);
+        root.style.setProperty('--bg-sidebar-alpha', `color-mix(in srgb, ${theme.sidebarColor || '#1e293b'} ${hfOpacity}%, transparent)`);
+    } else {
+        root.style.removeProperty('--bg-header-footer-alpha');
+        root.style.removeProperty('--bg-sidebar-alpha');
+    }
 
     // 6. Calendario y Horario
     if (theme.calendarSelectedBgColor) root.style.setProperty('--calendar-selected-bg', theme.calendarSelectedBgColor);

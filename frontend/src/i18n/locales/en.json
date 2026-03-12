@@ -700,6 +700,7 @@
       "sidebar": "Sidebar",
       "text": "Text",
       "buttons": "Buttons",
+      "inputs": "Inputs",
       "chat": "Messaging",
       "usercard": "Cards",
       "eventos": "Events",
@@ -760,8 +761,16 @@
       "showLottie": "Show Lottie animations in headers",
       "enableDraggable": "Enable modal dragging (Draggable)",
       "showAnimatedBackground": "Show animated background on views",
+      "headerFooterOpacity": "Header/Footer Transparency",
       "centerLogo": "Center Logo",
       "changeLogo": "Change"
+    },
+    "inputsTab": {
+      "bg": "Background",
+      "text": "Text",
+      "border": "Border",
+      "focusBorder": "Focus Border",
+      "focusShadow": "Focus Shadow"
     },
     "titleTab": {
       "wordSpacing": "Word Spacing",
@@ -783,6 +792,7 @@
       "activeText": "Active Item Text",
       "hoverBg": "Hover Background",
       "hoverText": "Hover Text",
+      "opacity": "Transparency",
       "accordionSection": "Sidebar Accordion",
       "accordionHeaderBg": "Accordion Header Background",
       "accordionHeaderText": "Accordion Header Text",

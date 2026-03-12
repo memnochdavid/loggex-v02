@@ -700,6 +700,7 @@
       "sidebar": "Barra Lateral",
       "text": "Textos",
       "buttons": "Botons",
+      "inputs": "Inputs",
       "chat": "Missatgeria",
       "usercard": "Targetes",
       "eventos": "Esdeveniments",
@@ -760,8 +761,16 @@
       "showLottie": "Mostrar animacions Lottie a les capçaleres",
       "enableDraggable": "Habilitar arrossegament de modals (Draggable)",
       "showAnimatedBackground": "Mostrar fons animat a les vistes",
+      "headerFooterOpacity": "Transparència Header/Footer",
       "centerLogo": "Logotip del Centre",
       "changeLogo": "Canviar"
+    },
+    "inputsTab": {
+      "bg": "Fons",
+      "text": "Text",
+      "border": "Vora",
+      "focusBorder": "Vora en enfocar",
+      "focusShadow": "Ombra en enfocar"
     },
     "titleTab": {
       "wordSpacing": "Espaiat entre paraules",
@@ -783,6 +792,7 @@
       "activeText": "Text Element Actiu",
       "hoverBg": "Fons Hover",
       "hoverText": "Text Hover",
+      "opacity": "Transparència",
       "accordionSection": "Acordió Sidebar",
       "accordionHeaderBg": "Fons Capçalera Acordió",
       "accordionHeaderText": "Text Capçalera Acordió",

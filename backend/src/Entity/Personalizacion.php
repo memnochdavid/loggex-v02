@@ -89,6 +89,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $sidebarHoverTextColor = '#ffffff';
 
+    #[ORM\Column(type: 'integer')]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $sidebarOpacity = 100;
+
     // --- Sidebar Accordion ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -144,6 +148,10 @@ class Personalizacion
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $headerFooterTextColor = '#ffffff';
+
+    #[ORM\Column(type: 'integer')]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $headerFooterOpacity = 100;
 
     // --- Scrollbar ---
     #[ORM\Column(length: 7)]
@@ -406,6 +414,27 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $chatBubbleReceivedTextColor = '#334155';
 
+    // --- Inputs ---
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $inputBgColor = '#ffffff';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $inputTextColor = '#334155';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $inputBorderColor = '#e2e8f0';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $inputFocusBorderColor = '#6366f1';
+
+    #[ORM\Column(length: 7)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $inputFocusShadowColor = '#e0e7ff';
+
     // --- EventCard & EventsSidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -543,6 +572,9 @@ class Personalizacion
     public function getSidebarHoverTextColor(): ?string { return $this->sidebarHoverTextColor; }
     public function setSidebarHoverTextColor(string $color): static { $this->sidebarHoverTextColor = $color; return $this; }
 
+    public function getSidebarOpacity(): int { return $this->sidebarOpacity; }
+    public function setSidebarOpacity(int $opacity): static { $this->sidebarOpacity = $opacity; return $this; }
+
     public function getSidebarAccordionHeaderBgColor(): ?string { return $this->sidebarAccordionHeaderBgColor; }
     public function setSidebarAccordionHeaderBgColor(string $color): static { $this->sidebarAccordionHeaderBgColor = $color; return $this; }
 
@@ -581,6 +613,9 @@ class Personalizacion
 
     public function getHeaderFooterTextColor(): ?string { return $this->headerFooterTextColor; }
     public function setHeaderFooterTextColor(string $color): static { $this->headerFooterTextColor = $color; return $this; }
+
+    public function getHeaderFooterOpacity(): int { return $this->headerFooterOpacity; }
+    public function setHeaderFooterOpacity(int $opacity): static { $this->headerFooterOpacity = $opacity; return $this; }
 
     public function getScrollbarThumbColor(): ?string { return $this->scrollbarThumbColor; }
     public function setScrollbarThumbColor(string $color): static { $this->scrollbarThumbColor = $color; return $this; }
@@ -770,6 +805,21 @@ class Personalizacion
 
     public function getChatBubbleReceivedTextColor(): ?string { return $this->chatBubbleReceivedTextColor; }
     public function setChatBubbleReceivedTextColor(string $color): static { $this->chatBubbleReceivedTextColor = $color; return $this; }
+
+    public function getInputBgColor(): ?string { return $this->inputBgColor; }
+    public function setInputBgColor(string $color): static { $this->inputBgColor = $color; return $this; }
+
+    public function getInputTextColor(): ?string { return $this->inputTextColor; }
+    public function setInputTextColor(string $color): static { $this->inputTextColor = $color; return $this; }
+
+    public function getInputBorderColor(): ?string { return $this->inputBorderColor; }
+    public function setInputBorderColor(string $color): static { $this->inputBorderColor = $color; return $this; }
+
+    public function getInputFocusBorderColor(): ?string { return $this->inputFocusBorderColor; }
+    public function setInputFocusBorderColor(string $color): static { $this->inputFocusBorderColor = $color; return $this; }
+
+    public function getInputFocusShadowColor(): ?string { return $this->inputFocusShadowColor; }
+    public function setInputFocusShadowColor(string $color): static { $this->inputFocusShadowColor = $color; return $this; }
 
     public function getEventCardBgColor(): ?string { return $this->eventCardBgColor; }
     public function setEventCardBgColor(string $color): static { $this->eventCardBgColor = $color; return $this; }

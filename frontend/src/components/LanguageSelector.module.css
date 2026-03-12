@@ -30,6 +30,13 @@
     }
 }
 
+@media (max-width: 768px) {
+    .button {
+        padding: 0.35rem;
+        gap: 0;
+    }
+}
+
 .button:hover, .button.open {
     background: rgba(255, 255, 255, 0.25);
     border-color: var(--primary-color, rgba(255, 255, 255, 0.8));

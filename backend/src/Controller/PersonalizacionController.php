@@ -63,6 +63,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['sidebarActiveTextColor'])) $personalizacion->setSidebarActiveTextColor($data['sidebarActiveTextColor']);
         if (isset($data['sidebarHoverColor'])) $personalizacion->setSidebarHoverColor($data['sidebarHoverColor']);
         if (isset($data['sidebarHoverTextColor'])) $personalizacion->setSidebarHoverTextColor($data['sidebarHoverTextColor']);
+        if (isset($data['sidebarOpacity'])) $personalizacion->setSidebarOpacity((int)$data['sidebarOpacity']);
 
         // Sidebar Accordion
         if (isset($data['sidebarAccordionHeaderBgColor'])) $personalizacion->setSidebarAccordionHeaderBgColor($data['sidebarAccordionHeaderBgColor']);
@@ -84,6 +85,7 @@ class PersonalizacionController extends AbstractController
         // Header/Footer
         if (isset($data['headerFooterColor'])) $personalizacion->setHeaderFooterColor($data['headerFooterColor']);
         if (isset($data['headerFooterTextColor'])) $personalizacion->setHeaderFooterTextColor($data['headerFooterTextColor']);
+        if (isset($data['headerFooterOpacity'])) $personalizacion->setHeaderFooterOpacity((int)$data['headerFooterOpacity']);
 
         // Scrollbar
         if (isset($data['scrollbarThumbColor'])) $personalizacion->setScrollbarThumbColor($data['scrollbarThumbColor']);
@@ -167,6 +169,13 @@ class PersonalizacionController extends AbstractController
         if (isset($data['chatBubbleSentTextColor'])) $personalizacion->setChatBubbleSentTextColor($data['chatBubbleSentTextColor']);
         if (isset($data['chatBubbleReceivedBgColor'])) $personalizacion->setChatBubbleReceivedBgColor($data['chatBubbleReceivedBgColor']);
         if (isset($data['chatBubbleReceivedTextColor'])) $personalizacion->setChatBubbleReceivedTextColor($data['chatBubbleReceivedTextColor']);
+
+        // Inputs
+        if (isset($data['inputBgColor'])) $personalizacion->setInputBgColor($data['inputBgColor']);
+        if (isset($data['inputTextColor'])) $personalizacion->setInputTextColor($data['inputTextColor']);
+        if (isset($data['inputBorderColor'])) $personalizacion->setInputBorderColor($data['inputBorderColor']);
+        if (isset($data['inputFocusBorderColor'])) $personalizacion->setInputFocusBorderColor($data['inputFocusBorderColor']);
+        if (isset($data['inputFocusShadowColor'])) $personalizacion->setInputFocusShadowColor($data['inputFocusShadowColor']);
 
         // EventCard & EventsSidebar
         if (isset($data['eventCardBgColor'])) $personalizacion->setEventCardBgColor($data['eventCardBgColor']);

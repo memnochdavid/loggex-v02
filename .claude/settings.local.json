@@ -3,7 +3,10 @@
     "allow": [
       "Bash(cd D:/WORKSPACE/loggex-v02/frontend && npm install i18next react-i18next)",
       "Bash(docker compose:*)",
-      "Bash(ls D:/WORKSPACE/loggex-v02/backup_tfg*.sql D:/WORKSPACE/loggex-v02/restore* 2>/dev/null)"
+      "Bash(ls D:/WORKSPACE/loggex-v02/backup_tfg*.sql D:/WORKSPACE/loggex-v02/restore* 2>/dev/null)",
+      "Bash(cd /home/david/Escritorio/loggex-v02/frontend && npx vite build --mode development 2>&1 | tail -20)",
+      "Bash(for f:*)",
+      "Bash(sudo docker:*)"
     ]
   }
 }

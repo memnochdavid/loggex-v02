@@ -11,11 +11,15 @@
     overflow: hidden;
 }
 
-/* Gradiente base — idéntico a Login .brandPanel */
+/* Gradiente base — colores derivados del tema (--bg-anim-*) */
 .gradient {
     position: absolute;
     inset: 0;
-    background: linear-gradient(160deg, #0c1222 0%, #162040 40%, #1a1a4e 70%, #0c1222 100%);
+    background: linear-gradient(160deg,
+        var(--bg-anim-1, #0c1222) 0%,
+        var(--bg-anim-2, #162040) 40%,
+        var(--bg-anim-3, #1a1a4e) 70%,
+        var(--bg-anim-1, #0c1222) 100%);
     background-size: 300% 300%;
     animation: gradientShift 20s ease infinite;
 }

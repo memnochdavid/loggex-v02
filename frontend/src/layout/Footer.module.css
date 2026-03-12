@@ -3,7 +3,7 @@
     justify-content: center;
     align-items: center;
     padding: var(--space-1);
-    background-color: var(--bg-header-footer, var(--bg-dark));
+    background-color: var(--bg-header-footer-alpha, var(--bg-header-footer, var(--bg-dark)));
     color: var(--text-header-footer, var(--color-gray-400));
     text-align: center;
     margin-top: auto;
@@ -11,5 +11,4 @@
     font-weight: var(--font-medium);
     border-top: 1px solid var(--color-gray-700);
     height: 3vh;
-    opacity: 0.9;
 }
