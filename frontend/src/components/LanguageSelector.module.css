@@ -1,134 +1,133 @@
 .container {
-  position: relative;
-  display: inline-block;
+    position: relative;
+    display: inline-block;
 }
 
 .button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.15); /* Fondo semitransparente para adaptarse ao header */
-  color: inherit; /* Herda a cor do texto do header */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  /* Usar variable de tema para el radio del borde, con fallback */
-  border-radius: var(--border-radius, 6px);
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.2s ease;
-  /* Eliminamos min-width fixo para permitir que se encolla en móbil */
-  min-width: auto;
-  justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.15); /* Fondo semitransparente para adaptarse ao header */
+    color: inherit; /* Herda a cor do texto do header */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* Usar variable de tema para el radio del borde, con fallback */
+    border-radius: var(--border-radius, 6px);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    /* Eliminamos min-width fixo para permitir que se encolla en móbil */
+    min-width: auto;
+    justify-content: space-between;
 }
 
 /* En escritorio mantemos un ancho mínimo para consistencia */
 @media (min-width: 769px) {
-  .button {
-    min-width: 120px;
-  }
+    .button {
+        min-width: 120px;
+    }
 }
 
 .button:hover, .button.open {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: var(--primary-color, rgba(255, 255, 255, 0.8));
+    background: rgba(255, 255, 255, 0.25);
+    border-color: var(--primary-color, rgba(255, 255, 255, 0.8));
 }
 
 .currentSelection {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 0.5rem;
-  /* Aplicar variables de tema al contenedor del menú */
-  background: var(--view-bg, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: var(--border-radius, 8px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  min-width: 180px; /* Un pouco máis ancho para acomodar nomes longos */
-  overflow: hidden;
-  animation: slideDown 0.2s ease-out;
-  padding: 0.25rem; /* Espazo interior para que os items non toquen o bordo se teñen radius */
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background-color: var(--bg-view, var(--color-gray-50));
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 180px; /* Un pouco máis ancho para acomodar nomes longos */
+    overflow: hidden;
+    animation: slideDown 0.2s ease-out;
+    padding: 0.25rem; /* Espazo interior para que os items non toquen o bordo se teñen radius */
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: none;
-  background: transparent;
-  /* Usar variable de tema para o texto */
-  color: var(--text-main, #334155);
-  font-size: 0.9rem;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  /* Bordes redondeados internos para os items */
-  border-radius: calc(var(--border-radius, 8px) - 2px);
-  position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: none;
+    background: transparent;
+    /* Usar variable de tema para o texto */
+    color: var(--text-main, #334155);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    /* Bordes redondeados internos para os items */
+    border-radius: calc(var(--border-radius, 8px) - 2px);
+    position: relative;
 }
 
 /* Hover: Fondo sutil e texto da cor primaria do tema */
 .item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-  color: var(--primary-color, #4f46e5);
+    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+    color: var(--datatable-header-hover-text, var(--color-gray-900));
 }
 
 /* Activo: Fondo sutil, texto primario e indicador visual (borde esquerdo) */
 .item.active {
-  background-color: rgba(0, 0, 0, 0.06);
-  color: var(--primary-color, #4f46e5);
-  font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.06);
+    color: var(--primary-color, #4f46e5);
+    font-weight: 600;
 }
 
 /* Indicador visual opcional para o item activo */
 .item.active::before {
-  content: '';
-  position: absolute;
-  left: 0.25rem;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 60%;
-  width: 3px;
-  background-color: var(--primary-color, #4f46e5);
-  border-radius: 2px;
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 3px;
+    background-color: var(--primary-color, #4f46e5);
+    border-radius: 2px;
 }
 
 .flag {
-  width: 24px; /* Lixeiramente máis grande */
-  height: 16px;
-  border-radius: 2px;
-  object-fit: cover;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-  display: block;
-  flex-shrink: 0; /* Evitar que a bandeira se aplaste */
+    width: 24px; /* Lixeiramente máis grande */
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    display: block;
+    flex-shrink: 0; /* Evitar que a bandeira se aplaste */
 }
 
 .chevron {
-  transition: transform 0.2s;
-  opacity: 0.8;
+    transition: transform 0.2s;
+    opacity: 0.8;
 }
 
 .open .chevron {
-  transform: rotate(180deg);
+    transform: rotate(180deg);
 }
