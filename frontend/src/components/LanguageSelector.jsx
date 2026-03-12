@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../i18n/i18n';
 import styles from './LanguageSelector.module.css';
 import { ChevronDown } from 'lucide-react';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 const FLAGS = {
   es: (
@@ -68,6 +69,9 @@ const LanguageSelector = () => {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  
+  // Usamos el hook para detectar móvil (breakpoint similar a DataTable)
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const languages = [
     { code: 'es', label: t('lang.es'), flag: FLAGS.es },
@@ -105,7 +109,8 @@ const LanguageSelector = () => {
       >
         <div className={styles.currentSelection}>
           {currentLang.flag}
-          <span>{currentLang.label}</span>
+          {/* En móvil mostramos el código (ES, EN...), en escritorio el nombre completo */}
+          <span>{isMobile ? currentLang.code.toUpperCase() : currentLang.label}</span>
         </div>
         <ChevronDown size={14} className={styles.chevron} />
       </button>
@@ -119,6 +124,7 @@ const LanguageSelector = () => {
               onClick={() => handleSelect(lang.code)}
             >
               {lang.flag}
+              {/* En el menú desplegable mantenemos el nombre completo para claridad, o podríamos usar la misma lógica si quisiéramos */}
               <span>{lang.label}</span>
             </button>
           ))}
