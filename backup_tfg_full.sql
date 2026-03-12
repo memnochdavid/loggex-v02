@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -350,7 +350,9 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260203081929',NULL,NULL),
 ('DoctrineMigrations\\Version20260203085719',NULL,NULL),
 ('DoctrineMigrations\\Version20260203131603',NULL,NULL),
-('DoctrineMigrations\\Version20260205050601','2026-02-05 05:10:54',86);
+('DoctrineMigrations\\Version20260205050601','2026-02-05 05:10:54',86),
+('DoctrineMigrations\\Version20260205100000',NULL,NULL),
+('DoctrineMigrations\\Version20260312174017','2026-03-12 17:46:11',80);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1047,6 +1049,7 @@ CREATE TABLE `personalizacion` (
   `border_radius` varchar(20) NOT NULL,
   `show_lottie` tinyint(4) NOT NULL,
   `enable_draggable_modal` tinyint(4) NOT NULL,
+  `show_animated_background` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_A6EC3EF3298137A7` (`centro_id`),
   CONSTRAINT `FK_A6EC3EF3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
@@ -1060,8 +1063,8 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#6366f1','#1e293b',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#ffffff','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-08 10:08:24',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#2d3b52','#cbd5e1','#172131','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','0.75rem',0,0),
-(4,'#6366f1','#1e293b',NULL,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#818cf8','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-03-07 15:52:21','2026-03-08 08:17:54',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#1e293b','#cbd5e1','#0f172a','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','1rem',1,0);
+(1,'#6366f1','#1e293b',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#ffffff','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-12 18:03:54',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#2d3b52','#cbd5e1','#172131','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','0.75rem',1,0,1),
+(4,'#6366f1','#1e293b',NULL,'#f1f5f9','#94a3b8','#6366f1','#334155','#1e293b','#f8fafc','#312e81','#818cf8','#334155','#ffffff','#ffffff','#f8fafc','#1e293b','2026-03-07 15:52:21','2026-03-08 08:17:54',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#312e81','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#4338ca','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#1e293b','#cbd5e1','#0f172a','#94a3b8','#1e293b','#312e81','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#0f172a','1rem',1,0,0);
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1217,6 +1220,10 @@ INSERT INTO `usuario` VALUES
 (77,'pepe@iestech.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$7OivdXwRW2aOHtTiLw96wO8/p7hY4BATQTpAp0Ve/o/BRYAd0G.ni','Theodore','Robert Bundy','admin',4,'/uploads/avatar/f0dc3678d4d52bf22d2ebcdfd9cd28e4f1b99cb6.jpg','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,'+34 900-59-7119','48507053F');
 /*!40000 ALTER TABLE `usuario` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping routines for database 'app_db'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1227,4 +1234,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-08 10:23:27
+-- Dump completed on 2026-03-12 18:18:56
