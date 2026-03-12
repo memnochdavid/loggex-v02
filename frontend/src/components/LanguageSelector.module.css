@@ -1,0 +1,21 @@
+.selector {
+  background: var(--btn-bg, #f0f0f0);
+  color: var(--btn-text, #333);
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.selector:hover {
+  border-color: var(--primary-color, #4a90d9);
+}
+
+.selector:focus {
+  border-color: var(--primary-color, #4a90d9);
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
