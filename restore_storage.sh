@@ -18,11 +18,11 @@ fi
 # Usar un contenedor de MinIO Client (mc) para hacer la restauracion
 # - Montamos el directorio de backup en /backup
 # - Nos conectamos a la red del proyecto para ver el servicio 'minio'
-docker run --rm \
+docker run --rm --entrypoint=/bin/sh \
   -v "$(pwd)/$BACKUP_DIR:/backup" \
   --network loggex-v02_default \
   minio/mc:latest \
-  sh -c " \
+  -c " \
     mc alias set myminio http://$MINIO_SERVICE:9000 $MINIO_USER $MINIO_PASSWORD && \
     mc mb myminio/$MINIO_BUCKET --ignore-existing && \
     mc mirror --overwrite /backup myminio/$MINIO_BUCKET \
