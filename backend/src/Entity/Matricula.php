@@ -36,9 +36,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'alumno' => 'exact',
     'alumno.nombre' => 'partial',
     'grupo' => 'exact',
-    'grupo.nombre' => 'partial'
+    'grupo.nombre' => 'partial',
+    'grupo.centro' => 'exact'
 ])]
-#[ApiFilter(OrderFilter::class, properties: ['id', 'alumno.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'alumno.nombre', 'grupo.nombre', 'grupo.anioEscolar'], arguments: ['orderParameterName' => 'order'])]
 class Matricula
 {
     use TimestampableTrait;

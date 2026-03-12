@@ -306,7 +306,8 @@
     "confirmDelete": "¿Estás seguro de que quieres eliminar esta matrícula?",
     "errorDelete": "No se pudo eliminar la matrícula",
     "editTitle": "Editar Matrícula",
-    "newTitle": "Nueva Matrícula"
+    "newTitle": "Nueva Matrícula",
+    "schoolYear": "Año Escolar"
   },
   "teaching": {
     "title": "Asignación de Docencia",

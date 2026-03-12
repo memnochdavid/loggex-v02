@@ -306,7 +306,8 @@
     "confirmDelete": "Ziur zaude matrikula hau ezabatu nahi duzula?",
     "errorDelete": "Ezin izan da matrikula ezabatu",
     "editTitle": "Matrikula Editatu",
-    "newTitle": "Matrikula Berria"
+    "newTitle": "Matrikula Berria",
+    "schoolYear": "Ikasturtea"
   },
   "teaching": {
     "title": "Irakaskuntza Esleipena",

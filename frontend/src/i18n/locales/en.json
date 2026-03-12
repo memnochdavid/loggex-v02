@@ -306,7 +306,8 @@
     "confirmDelete": "Are you sure you want to delete this enrollment?",
     "errorDelete": "Could not delete enrollment",
     "editTitle": "Edit Enrollment",
-    "newTitle": "New Enrollment"
+    "newTitle": "New Enrollment",
+    "schoolYear": "School Year"
   },
   "teaching": {
     "title": "Teaching Assignment",
