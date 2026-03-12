@@ -10,6 +10,7 @@ import NameTitle from '../components/NameTitle';
 import NotificationList from '../components/NotificationList';
 import { Bell, MessageCircleQuestion } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import LanguageSelector from '../components/LanguageSelector';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -185,6 +186,8 @@ const Header = () => {
                         API Docs
                     </a>
                 )}
+
+                <LanguageSelector />
 
                 {user ? (
                     <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem'}}>
