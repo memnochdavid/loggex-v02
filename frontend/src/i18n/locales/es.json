@@ -947,6 +947,9 @@
   "lang": {
     "es": "Español",
     "en": "English",
+    "ca": "Català",
+    "gl": "Galego",
+    "eu": "Euskara",
     "label": "Idioma"
   }
 }
