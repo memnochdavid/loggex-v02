@@ -178,8 +178,11 @@
     "subtitle": "Enter your credentials to access",
     "tagline": "Comprehensive academic management",
     "feature1": "Attendance tracking",
+    "feature1desc": "Daily session-based recording",
     "feature2": "Schedule management",
-    "feature3": "Integrated communication"
+    "feature2desc": "Visual weekly planning",
+    "feature3": "Integrated communication",
+    "feature3desc": "Messaging and announcements"
   },
   "home": {
     "greeting": "Hello, {{name}}, have a great day.",

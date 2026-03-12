@@ -15,12 +15,12 @@
 
 .brandPanel {
   position: relative;
-  flex: 1;
+  flex: 1.15;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
-  background-size: 400% 400%;
+  background: linear-gradient(160deg, #0c1222 0%, #162040 40%, #1a1a4e 70%, #0c1222 100%);
+  background-size: 300% 300%;
   animation: gradientShift 20s ease infinite;
   overflow: hidden;
 }
@@ -29,12 +29,13 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+    radial-gradient(ellipse 600px 400px at 25% 40%, rgba(99, 102, 241, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 350px at 75% 25%, rgba(59, 130, 246, 0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 50% 85%, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 
+/* Grid perspectiva */
 .brandPanel::before {
   content: "";
   position: absolute;
@@ -42,13 +43,53 @@
   width: 200%;
   height: 200%;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 50px 50px;
   transform: perspective(600px) rotateX(25deg);
   animation: gridFloat 8s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* Glow decorativo inferior */
+.brandPanel::after {
+  content: "";
+  position: absolute;
+  bottom: -20%;
+  left: 10%;
+  width: 80%;
+  height: 50%;
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowPulse 6s ease-in-out infinite alternate;
+}
+
+/* ========================================
+   Iconos Flotantes Decorativos
+   ======================================== */
+
+.floatingIcons {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.floatingIcon {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.06);
+  animation: floatIcon 12s ease-in-out infinite;
+}
+
+.fi1 { top: 10%; left: 12%; animation-delay: 0s; animation-duration: 14s; }
+.fi2 { top: 22%; right: 15%; animation-delay: -3s; animation-duration: 11s; }
+.fi3 { bottom: 28%; left: 18%; animation-delay: -6s; animation-duration: 13s; }
+.fi4 { bottom: 12%; right: 20%; animation-delay: -2s; animation-duration: 15s; }
+.fi5 { top: 55%; left: 8%; animation-delay: -8s; animation-duration: 12s; }
+
+/* ========================================
+   Brand Content
+   ======================================== */
 
 .brandContent {
   position: relative;
@@ -56,57 +97,93 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 3rem;
-  max-width: 420px;
+  padding: 2.5rem;
+  max-width: 440px;
+  width: 100%;
   text-align: center;
 }
 
 .lottieContainer {
-  width: 200px;
-  height: 200px;
-  margin-bottom: 1.5rem;
-  filter: drop-shadow(0 0 40px rgba(99, 102, 241, 0.3));
+  width: 180px;
+  height: 180px;
+  margin-bottom: 1.25rem;
+  filter: drop-shadow(0 0 50px rgba(99, 102, 241, 0.25));
 }
 
 .brandLogo {
-  height: 48px;
+  height: 44px;
   object-fit: contain;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   filter: brightness(0) invert(1);
-  opacity: 0.95;
+  opacity: 0.92;
 }
 
 .brandTagline {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1rem;
   font-weight: 400;
-  margin: 0 0 2.5rem;
-  letter-spacing: 0.02em;
+  margin: 0 0 2rem;
+  letter-spacing: 0.03em;
 }
 
-.brandFeatures {
+/* ========================================
+   Feature Cards
+   ======================================== */
+
+.featureCards {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.75rem;
   align-self: stretch;
 }
 
-.featureItem {
+.featureCard {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 0.9rem;
-  font-weight: 400;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(8px);
+  transition: background 0.3s, border-color 0.3s;
 }
 
-.featureDot {
-  width: 6px;
-  height: 6px;
-  min-width: 6px;
-  border-radius: 50%;
-  background: rgba(99, 102, 241, 0.8);
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+.featureCard:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.featureIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%);
+  color: rgba(199, 196, 255, 0.9);
+}
+
+.featureText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  text-align: left;
+}
+
+.featureText strong {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.featureText span {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.76rem;
+  font-weight: 400;
 }
 
 /* ========================================
@@ -352,6 +429,18 @@
 @keyframes gridFloat {
   0%, 100% { transform: perspective(600px) rotateX(25deg) translateY(0); }
   50% { transform: perspective(600px) rotateX(25deg) translateY(25px); }
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+  25% { transform: translateY(-18px) rotate(5deg); opacity: 1; }
+  50% { transform: translateY(-8px) rotate(-3deg); opacity: 0.7; }
+  75% { transform: translateY(-22px) rotate(2deg); opacity: 0.9; }
+}
+
+@keyframes glowPulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 0.8; }
 }
 
 @keyframes spin {

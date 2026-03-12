@@ -3,7 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
-import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import {
+  Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
+  CalendarCheck, Clock, MessageSquare, Users, GraduationCap, BookOpen, ClipboardList, BarChart3
+} from 'lucide-react';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 
@@ -42,28 +45,55 @@ const Login = () => {
       {/* Panel izquierdo - Branding */}
       <div className={styles.brandPanel}>
         <div className={styles.brandOverlay} />
+
+        {/* Iconos flotantes decorativos */}
+        <div className={styles.floatingIcons}>
+          <div className={`${styles.floatingIcon} ${styles.fi1}`}><GraduationCap size={28} /></div>
+          <div className={`${styles.floatingIcon} ${styles.fi2}`}><BookOpen size={22} /></div>
+          <div className={`${styles.floatingIcon} ${styles.fi3}`}><ClipboardList size={24} /></div>
+          <div className={`${styles.floatingIcon} ${styles.fi4}`}><BarChart3 size={20} /></div>
+          <div className={`${styles.floatingIcon} ${styles.fi5}`}><Users size={26} /></div>
+        </div>
+
         <div className={styles.brandContent}>
           <div className={styles.lottieContainer}>
             <Lottie animationData={bookAnimation} loop={true} />
           </div>
+
           <img
             src="/logo_texto_horizontal.png"
             alt="Loggex"
             className={styles.brandLogo}
           />
           <p className={styles.brandTagline}>{t('login.tagline', 'Gestión académica integral')}</p>
-          <div className={styles.brandFeatures}>
-            <div className={styles.featureItem}>
-              <div className={styles.featureDot} />
-              <span>{t('login.feature1', 'Control de asistencia')}</span>
+
+          <div className={styles.featureCards}>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <CalendarCheck size={20} />
+              </div>
+              <div className={styles.featureText}>
+                <strong>{t('login.feature1', 'Control de asistencia')}</strong>
+                <span>{t('login.feature1desc', 'Registro diario por sesión')}</span>
+              </div>
             </div>
-            <div className={styles.featureItem}>
-              <div className={styles.featureDot} />
-              <span>{t('login.feature2', 'Gestión de horarios')}</span>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <Clock size={20} />
+              </div>
+              <div className={styles.featureText}>
+                <strong>{t('login.feature2', 'Gestión de horarios')}</strong>
+                <span>{t('login.feature2desc', 'Planificación visual semanal')}</span>
+              </div>
             </div>
-            <div className={styles.featureItem}>
-              <div className={styles.featureDot} />
-              <span>{t('login.feature3', 'Comunicación integrada')}</span>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <MessageSquare size={20} />
+              </div>
+              <div className={styles.featureText}>
+                <strong>{t('login.feature3', 'Comunicación integrada')}</strong>
+                <span>{t('login.feature3desc', 'Mensajería y comunicados')}</span>
+              </div>
             </div>
           </div>
         </div>

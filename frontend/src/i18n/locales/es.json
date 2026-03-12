@@ -178,8 +178,11 @@
     "subtitle": "Introduce tus credenciales para acceder",
     "tagline": "Gestión académica integral",
     "feature1": "Control de asistencia",
+    "feature1desc": "Registro diario por sesión",
     "feature2": "Gestión de horarios",
-    "feature3": "Comunicación integrada"
+    "feature2desc": "Planificación visual semanal",
+    "feature3": "Comunicación integrada",
+    "feature3desc": "Mensajería y comunicados"
   },
   "home": {
     "greeting": "Hola, {{name}}, que tengas un buen día.",

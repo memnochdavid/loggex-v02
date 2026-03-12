@@ -178,8 +178,11 @@
     "subtitle": "Introduce as túas credenciais para acceder",
     "tagline": "Xestión académica integral",
     "feature1": "Control de asistencia",
+    "feature1desc": "Rexistro diario por sesión",
     "feature2": "Xestión de horarios",
-    "feature3": "Comunicación integrada"
+    "feature2desc": "Planificación visual semanal",
+    "feature3": "Comunicación integrada",
+    "feature3desc": "Mensaxería e comunicados"
   },
   "home": {
     "greeting": "Ola, {{name}}, que teñas un bo día.",

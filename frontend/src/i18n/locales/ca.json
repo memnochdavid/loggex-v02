@@ -178,8 +178,11 @@
     "subtitle": "Introdueix les teves credencials per accedir",
     "tagline": "Gestió acadèmica integral",
     "feature1": "Control d'assistència",
+    "feature1desc": "Registre diari per sessió",
     "feature2": "Gestió d'horaris",
-    "feature3": "Comunicació integrada"
+    "feature2desc": "Planificació visual setmanal",
+    "feature3": "Comunicació integrada",
+    "feature3desc": "Missatgeria i comunicats"
   },
   "home": {
     "greeting": "Hola, {{name}}, que tinguis un bon dia.",

@@ -178,8 +178,11 @@
     "subtitle": "Sartu zure kredentzialak atzitzeko",
     "tagline": "Kudeaketa akademiko integrala",
     "feature1": "Asistentzia kontrola",
+    "feature1desc": "Eguneko saio-erregistroa",
     "feature2": "Ordutegien kudeaketa",
-    "feature3": "Komunikazio integratua"
+    "feature2desc": "Asteko planifikazio bisuala",
+    "feature3": "Komunikazio integratua",
+    "feature3desc": "Mezularitza eta komunikatuak"
   },
   "home": {
     "greeting": "Kaixo, {{name}}, egun on.",
