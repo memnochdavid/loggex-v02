@@ -5,7 +5,8 @@ import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
 import {
   Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
-  CalendarCheck, Clock, MessageSquare, Users, GraduationCap, BookOpen, ClipboardList, BarChart3
+  CalendarCheck, Clock, MessageSquare, Users, GraduationCap,
+  BookOpen, ClipboardList, Palette, FileText, Shield
 } from 'lucide-react';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -51,7 +52,7 @@ const Login = () => {
           <div className={`${styles.floatingIcon} ${styles.fi1}`}><GraduationCap size={28} /></div>
           <div className={`${styles.floatingIcon} ${styles.fi2}`}><BookOpen size={22} /></div>
           <div className={`${styles.floatingIcon} ${styles.fi3}`}><ClipboardList size={24} /></div>
-          <div className={`${styles.floatingIcon} ${styles.fi4}`}><BarChart3 size={20} /></div>
+          <div className={`${styles.floatingIcon} ${styles.fi4}`}><Shield size={20} /></div>
           <div className={`${styles.floatingIcon} ${styles.fi5}`}><Users size={26} /></div>
         </div>
 
@@ -67,33 +68,38 @@ const Login = () => {
           />
           <p className={styles.brandTagline}>{t('login.tagline', 'Gestión académica integral')}</p>
 
-          <div className={styles.featureCards}>
+          <div className={styles.featureGrid}>
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <CalendarCheck size={20} />
-              </div>
-              <div className={styles.featureText}>
-                <strong>{t('login.feature1', 'Control de asistencia')}</strong>
-                <span>{t('login.feature1desc', 'Registro diario por sesión')}</span>
-              </div>
+              <CalendarCheck size={18} className={styles.featureIcon} />
+              <span>{t('login.feature1', 'Control de asistencia')}</span>
             </div>
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <Clock size={20} />
-              </div>
-              <div className={styles.featureText}>
-                <strong>{t('login.feature2', 'Gestión de horarios')}</strong>
-                <span>{t('login.feature2desc', 'Planificación visual semanal')}</span>
-              </div>
+              <Clock size={18} className={styles.featureIcon} />
+              <span>{t('login.feature2', 'Gestión de horarios')}</span>
             </div>
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <MessageSquare size={20} />
-              </div>
-              <div className={styles.featureText}>
-                <strong>{t('login.feature3', 'Comunicación integrada')}</strong>
-                <span>{t('login.feature3desc', 'Mensajería y comunicados')}</span>
-              </div>
+              <MessageSquare size={18} className={styles.featureIcon} />
+              <span>{t('login.feature3', 'Comunicación integrada')}</span>
+            </div>
+            <div className={styles.featureCard}>
+              <Users size={18} className={styles.featureIcon} />
+              <span>{t('login.feature4', 'Gestión de usuarios')}</span>
+            </div>
+            <div className={styles.featureCard}>
+              <FileText size={18} className={styles.featureIcon} />
+              <span>{t('login.feature5', 'Tareas y entregas')}</span>
+            </div>
+            <div className={styles.featureCard}>
+              <Palette size={18} className={styles.featureIcon} />
+              <span>{t('login.feature6', 'Temas personalizables')}</span>
+            </div>
+            <div className={styles.featureCard}>
+              <BookOpen size={18} className={styles.featureIcon} />
+              <span>{t('login.feature7', 'Materiales y temarios')}</span>
+            </div>
+            <div className={styles.featureCard}>
+              <Shield size={18} className={styles.featureIcon} />
+              <span>{t('login.feature8', 'Roles y permisos')}</span>
             </div>
           </div>
         </div>

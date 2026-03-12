@@ -182,7 +182,12 @@
     "feature2": "Gestió d'horaris",
     "feature2desc": "Planificació visual setmanal",
     "feature3": "Comunicació integrada",
-    "feature3desc": "Missatgeria i comunicats"
+    "feature3desc": "Missatgeria i comunicats",
+    "feature4": "Gestió d'usuaris",
+    "feature5": "Tasques i lliuraments",
+    "feature6": "Temes personalitzables",
+    "feature7": "Materials i temaris",
+    "feature8": "Rols i permisos"
   },
   "home": {
     "greeting": "Hola, {{name}}, que tinguis un bon dia.",

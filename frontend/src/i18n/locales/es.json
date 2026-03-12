@@ -182,7 +182,12 @@
     "feature2": "Gestión de horarios",
     "feature2desc": "Planificación visual semanal",
     "feature3": "Comunicación integrada",
-    "feature3desc": "Mensajería y comunicados"
+    "feature3desc": "Mensajería y comunicados",
+    "feature4": "Gestión de usuarios",
+    "feature5": "Tareas y entregas",
+    "feature6": "Temas personalizables",
+    "feature7": "Materiales y temarios",
+    "feature8": "Roles y permisos"
   },
   "home": {
     "greeting": "Hola, {{name}}, que tengas un buen día.",

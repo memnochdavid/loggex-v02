@@ -182,7 +182,12 @@
     "feature2": "Ordutegien kudeaketa",
     "feature2desc": "Asteko planifikazio bisuala",
     "feature3": "Komunikazio integratua",
-    "feature3desc": "Mezularitza eta komunikatuak"
+    "feature3desc": "Mezularitza eta komunikatuak",
+    "feature4": "Erabiltzaileen kudeaketa",
+    "feature5": "Atazak eta entregak",
+    "feature6": "Gai pertsonalizagarriak",
+    "feature7": "Materialak eta gaiak",
+    "feature8": "Rolak eta baimenak"
   },
   "home": {
     "greeting": "Kaixo, {{name}}, egun on.",
