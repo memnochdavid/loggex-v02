@@ -11,6 +11,7 @@ import NotificationList from '../components/NotificationList';
 import { Bell, MessageCircleQuestion } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import LanguageSelector from '../components/LanguageSelector';
+import { useTranslation } from 'react-i18next';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -30,6 +31,7 @@ const useMediaQuery = (query) => {
 };
 
 const Header = () => {
+    const { t } = useTranslation();
     const {user} = useAuth();
     const {toggleSidebar} = useUI();
     const isMobile = useMediaQuery('(max-width: 1220px)');
@@ -116,12 +118,12 @@ const Header = () => {
             if (targetUser) {
                 navigate('/mensajes', { state: { chatWith: targetUser } });
             } else {
-                alert('No se ha encontrado personal de soporte disponible en este momento.');
+                alert(t('header.noSupportFound'));
             }
 
         } catch (error) {
             console.error("Error buscando soporte:", error);
-            alert('Error al conectar con soporte.');
+            alert(t('header.errorSupport'));
         } finally {
             setSupportLoading(false);
         }
@@ -159,7 +161,7 @@ const Header = () => {
             <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
                 <div className={styles.desktopNav}>
                     {(!user || isSuperAdmin) && (
-                        <Link to="/about" className={styles.navLink}>About</Link>
+                        <Link to="/about" className={styles.navLink}>{t('header.about')}</Link>
                     )}
                     
                     {user && !isSuperAdmin && (
@@ -170,7 +172,7 @@ const Header = () => {
                             style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: supportLoading ? 'wait' : 'pointer' }}
                         >
                             <MessageCircleQuestion size={18} />
-                            Soporte
+                            {t('header.support')}
                         </a>
                     )}
                 </div>
@@ -181,9 +183,9 @@ const Header = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}
-                        title="Documentación API Platform"
+                        title={t('header.apiDocsTooltip')}
                     >
-                        API Docs
+                        {t('header.apiDocs')}
                     </a>
                 )}
 
@@ -195,7 +197,7 @@ const Header = () => {
                             <button 
                                 className={styles.notificationButton}
                                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                                title="Notificaciones"
+                                title={t('header.notifications')}
                             >
                                 <Bell size={24} />
                             </button>
@@ -209,7 +211,7 @@ const Header = () => {
                             {isNotifOpen && (
                                 <div className={styles.dropdown}>
                                     <NotificationList 
-                                        title="Notificaciones"
+                                        title={t('header.notifications')}
                                         showUnreadCountInHeader={true}
                                         onUnreadCountChange={setUnreadCount}
                                         onItemClick={handleNotificationClick}
@@ -234,7 +236,7 @@ const Header = () => {
                 ) : (
                     <Link to="/login" style={{textDecoration: 'none'}}>
                         <Button variant="primary" style={{padding: '0.25rem 0.75rem', fontSize: '0.875rem'}}>
-                            Login
+                            {t('header.login')}
                         </Button>
                     </Link>
                 )}

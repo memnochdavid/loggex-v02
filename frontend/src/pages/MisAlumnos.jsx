@@ -9,8 +9,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import pupilsAnimation from '../../public/pupils.json';
+import { useTranslation } from 'react-i18next';
 
 const MisAlumnos = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [grupos, setGrupos] = useState([]);
@@ -204,7 +206,7 @@ const MisAlumnos = () => {
                     title += ` (${item.moduloNombre})`;
                 }
                 
-                title += ` - ${item.alumnos ? item.alumnos.length : 0} alumnos`;
+                title += ` - ${t('myStudents.studentCount', { count: item.alumnos ? item.alumnos.length : 0 })}`;
 
                 return {
                     ...item,
@@ -227,7 +229,7 @@ const MisAlumnos = () => {
 
     const renderGrupoContent = (grupo) => {
         if (!grupo.alumnos || grupo.alumnos.length === 0) {
-            return <p className={styles.emptyState}>No hay alumnos en este grupo.</p>;
+            return <p className={styles.emptyState}>{t('myStudents.noStudentsInGroup')}</p>;
         }
 
         return (
@@ -246,7 +248,7 @@ const MisAlumnos = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Mis Alumnos"
+                <CrudHeader title={t('myStudents.title')}
                             logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
@@ -257,7 +259,7 @@ const MisAlumnos = () => {
                                 onChange={(e) => setSelectedCentro(e.target.value)}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Todos los Centros</option>
+                                <option value="">{t('common.allCenters')}</option>
                                 {centros.map(c => (
                                     <option key={c.id} value={c.id}>{c.nombre}</option>
                                 ))}
@@ -270,7 +272,7 @@ const MisAlumnos = () => {
                                 disabled={!selectedCentro}
                                 style={{ minWidth: '200px' }}
                             >
-                                <option value="">Todos los Profesores</option>
+                                <option value="">{t('common.allTeachers')}</option>
                                 {profesores.map(p => (
                                     <option key={p.id} value={p.id}>{p.nombre} {p.apellidos}</option>
                                 ))}
@@ -280,12 +282,12 @@ const MisAlumnos = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : grupos.length === 0 ? (
                     <div className={styles.emptyState}>
                         {isSuperAdmin && !selectedCentro 
-                            ? "Selecciona un centro para ver los alumnos." 
-                            : "No se encontraron alumnos."}
+                            ? t('myStudents.selectCenter')
+                            : t('myStudents.noStudents')}
                     </div>
                 ) : (
                     <AccordionView 

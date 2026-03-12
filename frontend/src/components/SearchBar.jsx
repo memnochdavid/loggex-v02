@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import styles from './SearchBar.module.css';
+import { useTranslation } from 'react-i18next';
 
 /**
  * @param {string} value - Valor actual del input
@@ -13,11 +14,12 @@ import styles from './SearchBar.module.css';
 const SearchBar = ({ 
     value, 
     onChange, 
-    placeholder = "Buscar...", 
+    placeholder, 
     fields = [], 
     selectedField, 
     onFieldChange 
 }) => {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
 
   const handleClear = () => {
@@ -51,13 +53,13 @@ const SearchBar = ({
             className={styles.input}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
+            placeholder={placeholder || t('searchBar.placeholder')}
         />
         {value && (
           <button 
             className={styles.clearButton} 
             onClick={handleClear}
-            aria-label="Limpiar búsqueda"
+            aria-label={t('searchBar.clearLabel')}
           >
             <X size={16} />
           </button>

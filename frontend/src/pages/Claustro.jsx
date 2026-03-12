@@ -9,8 +9,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import teacherAnimation from '../../public/teacher.json';
+import { useTranslation } from 'react-i18next';
 
 const Claustro = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profesores, setProfesores] = useState([]);
@@ -25,9 +27,9 @@ const Claustro = () => {
     const [selectedCentro, setSelectedCentro] = useState('');
 
     const searchFields = [
-        { value: 'nombre', label: 'Nombre' },
-        { value: 'apellidos', label: 'Apellidos' },
-        { value: 'email', label: 'Email' }
+        { value: 'nombre', label: t('users.firstName') },
+        { value: 'apellidos', label: t('users.lastName') },
+        { value: 'email', label: t('users.email') }
     ];
 
     // Cargar centros para SuperAdmin
@@ -101,7 +103,7 @@ const Claustro = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Claustro de Profesores"
+                <CrudHeader title={t('faculty.title')}
                             logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
@@ -111,7 +113,7 @@ const Claustro = () => {
                             onChange={(e) => setSelectedCentro(e.target.value)}
                             style={{ minWidth: '200px', marginRight: '1rem' }}
                         >
-                            <option value="">Todos los Centros</option>
+                            <option value="">{t('common.allCenters')}</option>
                             {centros.map(c => (
                                 <option key={c.id} value={c.id}>{c.nombre}</option>
                             ))}
@@ -120,7 +122,7 @@ const Claustro = () => {
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar profesor..." 
+                        placeholder={t('faculty.searchPlaceholder')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
@@ -128,7 +130,7 @@ const Claustro = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -141,8 +143,8 @@ const Claustro = () => {
                         {filteredProfesores.length === 0 && (
                             <div className={styles.emptyState}>
                                 {isSuperAdmin && !selectedCentro 
-                                    ? "Selecciona un centro para ver el claustro." 
-                                    : "No se encontraron profesores."}
+                                    ? t('faculty.selectCenter') 
+                                    : t('faculty.noTeachers')}
                             </div>
                         )}
                     </div>

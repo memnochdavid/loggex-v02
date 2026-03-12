@@ -15,8 +15,10 @@ import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
 import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
+import { useTranslation } from 'react-i18next';
 
 const Horarios = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -58,19 +60,28 @@ const Horarios = () => {
   const abortController = useRef(null);
 
   const searchFields = [
-      { value: 'aula', label: 'Aula' },
-      { value: 'imparticion.modulo.nombre', label: 'Asignatura' },
-      { value: 'imparticion.profesor.nombre', label: 'Profesor' },
-      { value: 'diaSemana', label: 'Día' }
+      { value: 'aula', label: t('schedules.classroom') },
+      { value: 'imparticion.modulo.nombre', label: t('schedules.subject') },
+      { value: 'imparticion.profesor.nombre', label: t('schedules.teacher') },
+      { value: 'diaSemana', label: t('schedules.day') }
   ];
 
   const diasSemana = {
-      1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+      1: t('days.monday'), 2: t('days.tuesday'), 3: t('days.wednesday'), 4: t('days.thursday'), 5: t('days.friday'), 6: t('days.saturday'), 7: t('days.sunday')
   };
 
+  // Necesitamos mapeo inverso para búsqueda si se usa texto
+  // Pero como los días están traducidos, la búsqueda por texto exacto puede ser compleja si el backend espera números.
+  // Asumiremos que la búsqueda por 'diaSemana' espera números o el usuario busca por otros campos.
+  // Si queremos mapeo inverso:
   const diasSemanaInverso = {
-      'lunes': 1, 'martes': 2, 'miércoles': 3, 'miercoles': 3, 
-      'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6, 'domingo': 7
+      [t('days.monday').toLowerCase()]: 1, 
+      [t('days.tuesday').toLowerCase()]: 2, 
+      [t('days.wednesday').toLowerCase()]: 3, 
+      [t('days.thursday').toLowerCase()]: 4, 
+      [t('days.friday').toLowerCase()]: 5, 
+      [t('days.saturday').toLowerCase()]: 6, 
+      [t('days.sunday').toLowerCase()]: 7
   };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -159,7 +170,7 @@ const Horarios = () => {
           })
           .catch(err => {
               console.error(err);
-              setError("No se pudo cargar el horario o eventos.");
+              setError(t('schedules.errorLoadSchedule'));
               setLoading(false);
           });
       }
@@ -354,7 +365,7 @@ const Horarios = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -371,14 +382,14 @@ const Horarios = () => {
 
     } catch (err) {
       console.error("Error saving horario:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (horario) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este horario?')) return;
+    if (!window.confirm(t('schedules.confirmDelete'))) return;
 
     const id = getHorarioId(horario);
     if (!id) return;
@@ -389,7 +400,7 @@ const Horarios = () => {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('No se pudo eliminar el horario');
+      if (!response.ok) throw new Error(t('schedules.errorDelete'));
       fetchHorariosData({
           page: currentPage,
           itemsPerPage,
@@ -400,18 +411,18 @@ const Horarios = () => {
       });
     } catch (err) {
       console.error("Error deleting horario:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData]);
 
   const columns = useMemo(() => [
     { 
-        header: 'Día', 
+        header: t('schedules.day'), 
         accessor: (row) => diasSemana[row.diaSemana] || row.diaSemana, 
         sortable: true, sortKey: 'diaSemana' 
     },
     { 
-        header: 'Hora', 
+        header: t('schedules.time'), 
         accessor: (row) => {
             const start = new Date(row.horaInicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const end = new Date(row.horaFin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -419,23 +430,23 @@ const Horarios = () => {
         }, 
         sortable: true, sortKey: 'horaInicio' 
     },
-    { header: 'Aula', accessor: 'aula', sortable: true, sortKey: 'aula' },
+    { header: t('schedules.classroom'), accessor: 'aula', sortable: true, sortKey: 'aula' },
     { 
-        header: 'Asignatura', 
+        header: t('schedules.subject'), 
         accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-', 
         sortable: true, sortKey: 'imparticion.modulo.nombre'
     },
     { 
-        header: 'Profesor', 
+        header: t('schedules.teacher'), 
         accessor: (row) => row.imparticion && row.imparticion.profesor ? `${row.imparticion.profesor.nombre} ${row.imparticion.profesor.apellidos}` : '-', 
         sortable: true, sortKey: 'imparticion.profesor.nombre'
     },
     { 
-        header: 'Acciones', 
+        header: t('common.actions'), 
         accessor: (row) => (
             <div className={styles.actions}>
-                <button className={styles.iconButton} onClick={() => handleOpenModal(row)} title="Editar"><Edit2 size={18} /></button>
-                <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(row)} title="Eliminar"><Trash2 size={18} /></button>
+                <button className={styles.iconButton} onClick={() => handleOpenModal(row)} title={t('common.edit')}><Edit2 size={18} /></button>
+                <button className={`${styles.iconButton} ${styles.danger}`} onClick={() => handleDelete(row)} title={t('common.delete')}><Trash2 size={18} /></button>
             </div>
         ),
         sortable: false
@@ -445,14 +456,14 @@ const Horarios = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Horarios"
+        <CrudHeader title={t('schedules.title')}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
                 <Button 
                     variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
                     onClick={() => setViewMode('calendar')}
-                    title="Vista Calendario"
+                    title={t('schedules.calendarView')}
                 >
                     <CalendarIcon size={18} />
                 </Button>
@@ -460,7 +471,7 @@ const Horarios = () => {
                     <Button 
                         variant={viewMode === 'list' ? 'primary' : 'secondary'}
                         onClick={() => setViewMode('list')}
-                        title="Vista Lista (Gestión)"
+                        title={t('schedules.listView')}
                     >
                         <List size={18} />
                     </Button>
@@ -470,7 +481,7 @@ const Horarios = () => {
                     <Button 
                         variant="secondary"
                         onClick={() => setIsSidebarOpen(true)}
-                        title="Ver Calendario y Eventos"
+                        title={t('schedules.showCalendar')}
                     >
                         <PanelRightOpen size={18} />
                     </Button>
@@ -484,7 +495,7 @@ const Horarios = () => {
                     onChange={(e) => setSelectedCentro(e.target.value)}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -496,13 +507,13 @@ const Horarios = () => {
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar..." 
+                        placeholder={t('common.search')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
                     />
                     <Button onClick={() => handleOpenModal()}>
-                        <Plus size={18} style={{ marginRight: '8px' }} /> Nuevo
+                        <Plus size={18} style={{ marginRight: '8px' }} /> {t('common.new')}
                     </Button>
                 </>
             )}
@@ -511,7 +522,7 @@ const Horarios = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => window.location.reload()} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => window.location.reload()} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -563,7 +574,7 @@ const Horarios = () => {
             <div className={styles.mobileSidebarOverlay} onClick={() => setIsSidebarOpen(false)}>
                 <div className={styles.mobileSidebar} onClick={e => e.stopPropagation()}>
                     <div className={styles.mobileSidebarHeader}>
-                        <h3 className={styles.sectionTitle}>Calendario y Eventos</h3>
+                        <h3 className={styles.sectionTitle}>{t('schedules.calendarAndEvents')}</h3>
                         <button onClick={() => setIsSidebarOpen(false)} className={styles.closeButton}>
                             <PanelRightClose size={20} />
                         </button>
@@ -589,38 +600,38 @@ const Horarios = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentHorario ? 'Editar Horario' : 'Nuevo Horario'}
+            title={currentHorario ? t('schedules.editTitle') : t('schedules.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Día de la Semana</label>
+                <label className={styles.label}>{t('schedules.dayOfWeek')}</label>
                 <select name="diaSemana" value={formData.diaSemana} onChange={handleInputChange} className={styles.select}>
-                    <option value="1">Lunes</option>
-                    <option value="2">Martes</option>
-                    <option value="3">Miércoles</option>
-                    <option value="4">Jueves</option>
-                    <option value="5">Viernes</option>
-                    <option value="6">Sábado</option>
-                    <option value="7">Domingo</option>
+                    <option value="1">{t('days.monday')}</option>
+                    <option value="2">{t('days.tuesday')}</option>
+                    <option value="3">{t('days.wednesday')}</option>
+                    <option value="4">{t('days.thursday')}</option>
+                    <option value="5">{t('days.friday')}</option>
+                    <option value="6">{t('days.saturday')}</option>
+                    <option value="7">{t('days.sunday')}</option>
                 </select>
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Hora Inicio</label>
+                <label className={styles.label}>{t('schedules.startTime')}</label>
                 <input type="time" name="horaInicio" value={formData.horaInicio} onChange={handleInputChange} className={styles.input} required />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Hora Fin</label>
+                <label className={styles.label}>{t('schedules.endTime')}</label>
                 <input type="time" name="horaFin" value={formData.horaFin} onChange={handleInputChange} className={styles.input} required />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Aula</label>
-                <input type="text" name="aula" value={formData.aula} onChange={handleInputChange} className={styles.input} required placeholder="Ej: Aula 101" />
+                <label className={styles.label}>{t('schedules.classroomLabel')}</label>
+                <input type="text" name="aula" value={formData.aula} onChange={handleInputChange} className={styles.input} required placeholder={t('schedules.classroomPlaceholder')} />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Asignatura (Impartición)</label>
+                <label className={styles.label}>{t('schedules.subjectLabel')}</label>
                 <select name="imparticion" value={formData.imparticion} onChange={handleInputChange} className={styles.select} required>
-                    <option value="">Seleccionar asignatura...</option>
+                    <option value="">{t('schedules.selectSubject')}</option>
                     {imparticiones.map(i => (
                         <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
                             {i.modulo?.nombre} - {i.grupo?.nombre} ({i.profesor?.nombre})

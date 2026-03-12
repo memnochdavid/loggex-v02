@@ -11,8 +11,10 @@ import {getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT} from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import messageAnimation from '../../public/message.json';
+import { useTranslation } from 'react-i18next';
 
 const Mensajes = () => {
+    const { t } = useTranslation();
     const {user} = useAuth();
     const location = useLocation();
     const [conversaciones, setConversaciones] = useState([]);
@@ -68,8 +70,7 @@ const Mensajes = () => {
                 const newChat = {
                     usuario: targetUser,
                     mensajes: [],
-                    ultimoMensaje: {fechaEnvio: new Date(), texto: 'Nueva conversación'},
-                    noLeidos: 0,
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: t('messages.startConversation')},
                     isTemp: true
                 };
                 setConversaciones(prev => [newChat, ...prev]);
@@ -261,7 +262,7 @@ const Mensajes = () => {
                     textareaRef.current.focus();
                 }
             } else {
-                alert("Error al enviar mensaje");
+                alert(t('messages.errorSending'));
             }
         } catch (error) {
             console.error(error);
@@ -300,7 +301,7 @@ const Mensajes = () => {
 
         // Ayer: ayer - hora
         if (date.toDateString() === yesterday.toDateString()) {
-            return `Ayer - ${timeStr}`;
+            return `${t('messages.yesterday')} - ${timeStr}`;
         }
 
         // Esta semana / más antiguo: fecha - hora
@@ -316,7 +317,7 @@ const Mensajes = () => {
         <Layout fullHeight={true}>
             <div className={styles.container}>
                 <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
-                    <CrudHeader title="Mensajería"
+                    <CrudHeader title={t('messages.title')}
                                 logo={<Lottie animationData={messageAnimation} loop={true}
                                               style={{width: 60, height: 60}}/>}
                     />
@@ -328,7 +329,7 @@ const Mensajes = () => {
                             <SearchBar
                                 value={searchTerm}
                                 onChange={setSearchTerm}
-                                placeholder="Buscar conversación..."
+                                placeholder={t('messages.searchPlaceholder')}
                                 fields={[]}
                             />
                         </div>
@@ -353,9 +354,9 @@ const Mensajes = () => {
                                                 className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
                                         </div>
                                         <div className={styles.lastMessage}>
-                                            {chat.isTemp ? 'Inicia la conversación' : (
+                                            {chat.isTemp ? t('messages.startConversation') : (
                                                 <>
-                                                    {chat.ultimoMensaje.remitente.id === user.id ? 'Tú: ' : ''}
+                                                    {chat.ultimoMensaje.remitente.id === user.id ? t('messages.you') : ''}
                                                     {chat.ultimoMensaje.texto}
                                                 </>
                                             )}
@@ -394,7 +395,7 @@ const Mensajes = () => {
                                 >
                                     {mensajesChat.length === 0 ? (
                                         <div className={styles.emptyChat}>
-                                            <p>No hay mensajes. ¡Saluda!</p>
+                                            <p>{t('messages.noMessages')}</p>
                                         </div>
                                     ) : (
                                         [...mensajesChat].reverse().map(msg => {
@@ -423,7 +424,7 @@ const Mensajes = () => {
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder="Escribe un mensaje..."
+                                        placeholder={t('messages.inputPlaceholder')}
                                         className={styles.messageInput}
                                         disabled={sending}
                                         rows={1}
@@ -435,7 +436,7 @@ const Mensajes = () => {
                             </>
                         ) : (
                             <div className={styles.emptyChat}>
-                                <p>Selecciona una conversación para empezar a chatear</p>
+                                <p>{t('messages.startConversation')}</p>
                             </div>
                         )}
                     </div>

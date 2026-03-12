@@ -12,8 +12,10 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import helloAnimation from "../../public/hello.json";
+import { useTranslation } from 'react-i18next';
 
 const Centros = () => {
+    const { t } = useTranslation();
     const [centros, setCentros] = useState([]);
     
     // Estado de carga único
@@ -40,9 +42,9 @@ const Centros = () => {
 
     // Campos buscables
     const searchFields = [
-        {value: 'nombre', label: 'Nombre'},
-        {value: 'cif', label: 'CIF'},
-        {value: 'direccion', label: 'Dirección'}
+        {value: 'nombre', label: t('centers.name')},
+        {value: 'cif', label: t('centers.cif')},
+        {value: 'direccion', label: t('centers.address')}
     ];
 
     // Estado para el modal
@@ -262,7 +264,7 @@ const Centros = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                const errorMessage = errorData.message || errorData.detail || 'Error al guardar';
+                const errorMessage = errorData.message || errorData.detail || t('common.errorSaving', { message: 'Error desconocido' });
                 throw new Error(errorMessage);
             }
 
@@ -279,14 +281,14 @@ const Centros = () => {
 
         } catch (err) {
             console.error("Error saving centro:", err);
-            alert(`Error: ${err.message}`);
+            alert(t('common.errorSaving', { message: err.message }));
         } finally {
             setSaving(false);
         }
     };
 
     const handleDelete = useCallback(async (centro) => {
-        if (!window.confirm('¿Estás seguro de que quieres eliminar este centro? Esta acción no se puede deshacer.')) {
+        if (!window.confirm(t('centers.confirmDelete'))) {
             return;
         }
 
@@ -300,7 +302,7 @@ const Centros = () => {
             });
 
             if (!response.ok) {
-                throw new Error('No se pudo eliminar el centro');
+                throw new Error(t('centers.errorDelete'));
             }
 
             fetchCentrosData({
@@ -314,13 +316,13 @@ const Centros = () => {
 
         } catch (err) {
             console.error("Error deleting centro:", err);
-            alert(`Error al eliminar: ${err.message}`);
+            alert(t('common.errorDeletingMsg', { message: err.message }));
         }
     }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchCentrosData]);
 
     const columns = useMemo(() => [
         {
-            header: 'Logo',
+            header: t('centers.logo'),
             accessor: (row) => (
                 <div className={styles.logoCell}>
                     {row.logo ? (
@@ -345,35 +347,35 @@ const Centros = () => {
             className: styles.colLogo,
             sortable: false
         },
-        {header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre'},
-        {header: 'CIF', accessor: 'cif', sortable: true, sortKey: 'cif'},
-        {header: 'Dirección', accessor: 'direccion', sortable: true, sortKey: 'direccion'},
-        {header: 'Teléfono', accessor: 'telefono', sortable: false},
+        {header: t('centers.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre'},
+        {header: t('centers.cif'), accessor: 'cif', sortable: true, sortKey: 'cif'},
+        {header: t('centers.address'), accessor: 'direccion', sortable: true, sortKey: 'direccion'},
+        {header: t('centers.phone'), accessor: 'telefono', sortable: false},
         {
-            header: 'Estado',
+            header: t('centers.status'),
             accessor: (row) => (
                 <span className={`${styles.badge} ${row.activo ? styles.badgeActive : styles.badgeInactive}`}>
-                {row.activo ? 'Activo' : 'Inactivo'}
+                {row.activo ? t('centers.active') : t('centers.inactive')}
             </span>
             ),
             sortable: true,
             sortKey: 'activo'
         },
         {
-            header: 'Acciones',
+            header: t('common.actions'),
             accessor: (row) => (
                 <div className={styles.actions}>
                     <button
                         className={styles.iconButton}
                         onClick={() => handleOpenModal(row)}
-                        title="Editar"
+                        title={t('common.edit')}
                     >
                         <Edit2 size={18}/>
                     </button>
                     <button
                         className={`${styles.iconButton} ${styles.danger}`}
                         onClick={() => handleDelete(row)}
-                        title="Eliminar"
+                        title={t('common.delete')}
                     >
                         <Trash2 size={18}/>
                     </button>
@@ -386,20 +388,20 @@ const Centros = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Centros Educativos"
+                <CrudHeader title={t('centers.title')}
                             logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     <SearchBar
                         value={searchTerm}
                         onChange={setSearchTerm}
-                        placeholder="Buscar..."
+                        placeholder={t('common.search')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
                     />
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={18} style={{marginRight: '8px'}}/>
-                        Nuevo
+                        {t('common.new')}
                     </Button>
                 </CrudHeader>
 
@@ -407,7 +409,7 @@ const Centros = () => {
                     <div className={styles.errorContainer}>
                         <p>{error}</p>
                         <Button onClick={() => fetchCentrosData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary"
-                                style={{marginTop: '1rem'}}>Reintentar</Button>
+                                style={{marginTop: '1rem'}}>{t('common.retry')}</Button>
                     </div>
                 )}
 
@@ -428,13 +430,13 @@ const Centros = () => {
                 <ModalView
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
-                    title={currentCentro ? 'Editar Centro' : 'Nuevo Centro'}
+                    title={currentCentro ? t('centers.editTitle') : t('centers.newTitle')}
                     onSubmit={handleSubmit}
                     isSubmitting={saving}
                 >
                     {/* Campo de Logo */}
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Logo del Centro</label>
+                        <label className={styles.label}>{t('centers.logoLabel')}</label>
                         <div className={styles.logoPreviewContainer}>
                             {logoPreview ? (
                                 <img src={logoPreview} alt="Previsualización" className={styles.logoPreview}/>
@@ -454,7 +456,7 @@ const Centros = () => {
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Nombre del Centro</label>
+                        <label className={styles.label}>{t('centers.nameLabel')}</label>
                         <input
                             type="text"
                             name="nombre"
@@ -462,12 +464,12 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
-                            placeholder="Ej: IES Tecnológico"
+                            placeholder={t('centers.namePlaceholder')}
                         />
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>CIF</label>
+                        <label className={styles.label}>{t('centers.cif')}</label>
                         <input
                             type="text"
                             name="cif"
@@ -475,12 +477,12 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
-                            placeholder="Ej: Q1234567A"
+                            placeholder={t('centers.cifPlaceholder')}
                         />
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Dirección</label>
+                        <label className={styles.label}>{t('centers.address')}</label>
                         <input
                             type="text"
                             name="direccion"
@@ -488,19 +490,19 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
-                            placeholder="Calle Principal, 123"
+                            placeholder={t('centers.addressPlaceholder')}
                         />
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Teléfono</label>
+                        <label className={styles.label}>{t('centers.phone')}</label>
                         <input
                             type="tel"
                             name="telefono"
                             value={formData.telefono}
                             onChange={handleInputChange}
                             className={styles.input}
-                            placeholder="912 345 678"
+                            placeholder={t('centers.phonePlaceholder')}
                         />
                     </div>
 
@@ -512,7 +514,7 @@ const Centros = () => {
                                 checked={formData.activo}
                                 onChange={handleInputChange}
                             />
-                            Centro Activo
+                            {t('centers.activeCheckbox')}
                         </label>
                     </div>
                 </ModalView>

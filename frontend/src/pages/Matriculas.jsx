@@ -12,8 +12,10 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 const Matriculas = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -50,8 +52,8 @@ const Matriculas = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'alumno.nombre', label: 'Alumno' },
-      { value: 'grupo.nombre', label: 'Grupo' }
+      { value: 'alumno.nombre', label: t('enrollments.student') },
+      { value: 'grupo.nombre', label: t('enrollments.group') }
   ];
 
   // Estado para el modal
@@ -308,7 +310,7 @@ const Matriculas = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -326,14 +328,14 @@ const Matriculas = () => {
 
     } catch (err) {
       console.error("Error saving matricula:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (matricula) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta matrícula?')) {
+    if (!window.confirm(t('enrollments.confirmDelete'))) {
       return;
     }
 
@@ -347,7 +349,7 @@ const Matriculas = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar la matrícula');
+        throw new Error(t('enrollments.errorDelete'));
       }
 
       fetchMatriculasData({
@@ -362,38 +364,38 @@ const Matriculas = () => {
 
     } catch (err) {
       console.error("Error deleting matricula:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
 
   const columns = useMemo(() => [
     { 
-        header: 'Alumno', 
+        header: t('enrollments.student'), 
         accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'alumno.nombre' 
     },
     { 
-        header: 'Grupo', 
+        header: t('enrollments.group'), 
         accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
     },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -406,7 +408,7 @@ const Matriculas = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Matrículas"
+        <CrudHeader title={t('enrollments.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -419,7 +421,7 @@ const Matriculas = () => {
                     }}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -432,7 +434,7 @@ const Matriculas = () => {
                 onChange={(e) => setSelectedGrupo(e.target.value)}
                 style={{ width: '200px' }}
             >
-                <option value="">Todos los grupos</option>
+                <option value="">{t('common.allGroups')}</option>
                 {grupos.map(g => (
                     <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
                         {g.curso}º {g.nombre}
@@ -443,7 +445,7 @@ const Matriculas = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar matrícula..." 
+                placeholder={t('enrollments.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -451,14 +453,14 @@ const Matriculas = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -480,12 +482,12 @@ const Matriculas = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentMatricula ? 'Editar Matrícula' : 'Nueva Matrícula'}
+            title={currentMatricula ? t('enrollments.editTitle') : t('enrollments.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Alumno</label>
+                <label className={styles.label}>{t('enrollments.student')}</label>
                 <select
                     name="alumno"
                     value={formData.alumno}
@@ -493,7 +495,7 @@ const Matriculas = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar alumno...</option>
+                    <option value="">{t('common.selectStudent')}</option>
                     {alumnos.map(a => (
                         <option key={a.id || a['@id']} value={a.id || a['@id'].split('/').pop()}>
                             {a.nombre} {a.apellidos} ({a.email})
@@ -503,7 +505,7 @@ const Matriculas = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Grupo</label>
+                <label className={styles.label}>{t('enrollments.group')}</label>
                 <select
                     name="grupo"
                     value={formData.grupo}
@@ -511,7 +513,7 @@ const Matriculas = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar grupo...</option>
+                    <option value="">{t('common.selectGroup')}</option>
                     {grupos.map(g => (
                         <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
                             {g.curso}º {g.nombre}

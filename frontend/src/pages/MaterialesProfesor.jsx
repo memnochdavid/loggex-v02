@@ -10,8 +10,10 @@ import styles from './Academic.module.css'; // Usar estilos académicos unificad
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
+import { useTranslation } from 'react-i18next';
 
 const MaterialesProfesor = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,7 @@ const MaterialesProfesor = () => {
 
     } catch (err) {
       console.error("Error cargando materiales:", err);
-      setError("No se pudieron cargar los temarios.");
+      setError(t('studentMaterials.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -162,7 +164,7 @@ const MaterialesProfesor = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.archivo || !formData.titulo) {
-        alert("Por favor completa todos los campos");
+        alert(t('teacherMaterials.fillAllFields'));
         return;
     }
 
@@ -182,7 +184,7 @@ const MaterialesProfesor = () => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Error al subir el archivo');
+            throw new Error(errorData.message || t('teacherMaterials.errorUpload'));
         }
 
         await fetchData();
@@ -190,14 +192,14 @@ const MaterialesProfesor = () => {
 
     } catch (err) {
         console.error("Error subiendo material:", err);
-        alert(`Error al subir el material: ${err.message}`);
+        alert(t('teacherMaterials.errorUploadMsg', { message: err.message }));
     } finally {
         setUploading(false);
     }
   };
 
   const handleDelete = async (materialId) => {
-      if (!window.confirm("¿Seguro que quieres eliminar este material?")) return;
+      if (!window.confirm(t('teacherMaterials.confirmDelete'))) return;
 
       try {
           const response = await fetch(getApiUrl(`/api/materials/${materialId}`), {
@@ -205,18 +207,18 @@ const MaterialesProfesor = () => {
               credentials: 'include'
           });
 
-          if (!response.ok) throw new Error("Error al eliminar");
+          if (!response.ok) throw new Error(t('teacherMaterials.errorDelete'));
           
           fetchData();
       } catch (err) {
           console.error(err);
-          alert("No se pudo eliminar el material");
+          alert(t('teacherMaterials.errorDelete'));
       }
   };
 
   const renderMateriales = (asignatura) => {
     if (asignatura.materiales.length === 0) {
-      return <div className={styles.emptyState}>No has subido temarios aún.</div>;
+      return <div className={styles.emptyState}>{t('teacherMaterials.noMaterials')}</div>;
     }
 
     return (
@@ -243,7 +245,7 @@ const MaterialesProfesor = () => {
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(mat.id)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -257,7 +259,7 @@ const MaterialesProfesor = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader title="Mis Temarios"
+        <CrudHeader title={t('teacherMaterials.title')}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -268,7 +270,7 @@ const MaterialesProfesor = () => {
                         onChange={(e) => setSelectedCentro(e.target.value)}
                         style={{ minWidth: '200px' }}
                     >
-                        <option value="">Todos los Centros</option>
+                        <option value="">{t('common.allCenters')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
@@ -281,7 +283,7 @@ const MaterialesProfesor = () => {
                         disabled={!selectedCentro}
                         style={{ minWidth: '150px' }}
                     >
-                        <option value="">Todos los Grupos</option>
+                        <option value="">{t('common.allGroups')}</option>
                         {grupos.map(g => (
                             <option key={g.id} value={g.id}>{g.nombre}</option>
                         ))}
@@ -291,14 +293,14 @@ const MaterialesProfesor = () => {
         </CrudHeader>
 
         {loading ? (
-          <div className={styles.loadingContainer}>Cargando...</div>
+          <div className={styles.loadingContainer}>{t('common.loading')}</div>
         ) : error ? (
           <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (
             <div className={styles.emptyState}>
                 {isSuperAdmin && !selectedCentro 
-                    ? "Selecciona un centro para ver los materiales." 
-                    : "No se encontraron asignaturas con los filtros actuales."}
+                    ? t('teacherMaterials.selectCenter')
+                    : t('teacherMaterials.noSubjects')}
             </div>
         ) : (
           <AccordionView 
@@ -312,13 +314,13 @@ const MaterialesProfesor = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title="Subir Nuevo Temario"
+            title={t('teacherMaterials.uploadTitle')}
             onSubmit={handleSubmit}
             isSubmitting={uploading}
-            submitText="Subir"
+            submitText={t('teacherMaterials.uploadBtn')}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Título</label>
+                <label className={styles.label}>{t('teacherMaterials.titleLabel')}</label>
                 <input 
                     type="text" 
                     name="titulo" 
@@ -326,11 +328,11 @@ const MaterialesProfesor = () => {
                     onChange={handleInputChange} 
                     className={styles.input} 
                     required 
-                    placeholder="Ej: Tema 1 - Introducción"
+                    placeholder={t('teacherMaterials.titlePlaceholder')}
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label}>Archivo (PDF, DOCX...)</label>
+                <label className={styles.label}>{t('teacherMaterials.fileLabel')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <input 
                         type="file" 
@@ -347,7 +349,7 @@ const MaterialesProfesor = () => {
                         onClick={() => fileInputRef.current.click()}
                     >
                         <Upload size={16} style={{ marginRight: '8px' }} />
-                        {formData.archivo ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                        {formData.archivo ? t('common.changeFile') : t('common.selectFile')}
                     </Button>
                     {formData.archivo && (
                         <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>

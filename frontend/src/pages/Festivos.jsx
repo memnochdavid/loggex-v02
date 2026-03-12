@@ -12,8 +12,10 @@ import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 const Festivos = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -49,7 +51,7 @@ const Festivos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' }
+      { value: 'nombre', label: t('holidays.name') }
   ];
 
   // Estado para el modal
@@ -280,7 +282,7 @@ const Festivos = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -298,14 +300,14 @@ const Festivos = () => {
 
     } catch (err) {
       console.error("Error saving festivo:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (festivo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este festivo?')) {
+    if (!window.confirm(t('holidays.confirmDelete'))) {
       return;
     }
 
@@ -319,7 +321,7 @@ const Festivos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el festivo');
+        throw new Error(t('holidays.errorDelete'));
       }
 
       fetchFestivosData({
@@ -334,31 +336,31 @@ const Festivos = () => {
 
     } catch (err) {
       console.error("Error deleting festivo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData]);
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('holidays.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { 
-        header: 'Fecha Inicio', 
+        header: t('holidays.startDate'), 
         accessor: (row) => new Date(row.fechaInicio).toLocaleDateString(), 
         sortable: true, 
         sortKey: 'fechaInicio' 
     },
     { 
-        header: 'Fecha Fin', 
+        header: t('holidays.endDate'), 
         accessor: (row) => row.fechaFin ? new Date(row.fechaFin).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaFin' 
     },
     { 
-        header: 'Centro', 
-        accessor: (row) => row.centro ? (row.centro.nombre || 'Cargando...') : 'Global', 
+        header: t('holidays.center'), 
+        accessor: (row) => row.centro ? (row.centro.nombre || t('common.loading')) : t('holidays.global'), 
         sortable: false 
     },
     { 
-        header: 'Acciones', 
+        header: t('common.actions'), 
         accessor: (row) => {
             const isGlobal = !row.centro;
             const canEditRow = isSuperAdmin || (!isGlobal && isAdmin);
@@ -370,20 +372,20 @@ const Festivos = () => {
                             <button 
                                 className={styles.iconButton} 
                                 onClick={() => handleOpenModal(row)}
-                                title="Editar"
+                                title={t('common.edit')}
                             >
                                 <Edit2 size={18} />
                             </button>
                             <button 
                                 className={`${styles.iconButton} ${styles.danger}`} 
                                 onClick={() => handleDelete(row)}
-                                title="Eliminar"
+                                title={t('common.delete')}
                             >
                                 <Trash2 size={18} />
                             </button>
                         </>
                     ) : (
-                        <span title="Festivo Global (Solo lectura)" style={{ color: 'var(--text-muted)', padding: '4px' }}>
+                        <span title={t('holidays.readOnly')} style={{ color: 'var(--text-muted)', padding: '4px' }}>
                             <Lock size={16} />
                         </span>
                     )}
@@ -397,7 +399,7 @@ const Festivos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Festivos"
+        <CrudHeader title={t('holidays.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -406,7 +408,7 @@ const Festivos = () => {
                     value={selectedCentro} 
                     onChange={(e) => setSelectedCentro(e.target.value)}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -416,7 +418,7 @@ const Festivos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar festivo..." 
+                placeholder={t('holidays.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -425,7 +427,7 @@ const Festivos = () => {
             {canCreate && (
                 <Button onClick={() => handleOpenModal()}>
                     <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nuevo
+                    {t('common.new')}
                 </Button>
             )}
         </CrudHeader>
@@ -433,7 +435,7 @@ const Festivos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchFestivosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchFestivosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -455,12 +457,12 @@ const Festivos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentFestivo ? 'Editar Festivo' : 'Nuevo Festivo'}
+            title={currentFestivo ? t('holidays.editTitle') : t('holidays.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre</label>
+                <label className={styles.label}>{t('holidays.name')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -468,12 +470,12 @@ const Festivos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: Navidad"
+                    placeholder={t('holidays.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Inicio</label>
+                <label className={styles.label}>{t('holidays.startDate')}</label>
                 <input
                     type="date"
                     name="fechaInicio"
@@ -485,7 +487,7 @@ const Festivos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Fin (Opcional)</label>
+                <label className={styles.label}>{t('holidays.endDateOptional')}</label>
                 <input
                     type="date"
                     name="fechaFin"
@@ -497,7 +499,7 @@ const Festivos = () => {
 
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Centro (Opcional - Global si vacío)</label>
+                    <label className={styles.label}>{t('holidays.centerOptional')}</label>
                     <select
                         name="centro"
                         value={formData.centro}
@@ -505,7 +507,7 @@ const Festivos = () => {
                         className={styles.select}
                         style={{ width: '100%' }}
                     >
-                        <option value="">Global (Todos los centros)</option>
+                        <option value="">{t('holidays.globalOption')}</option>
                         {centros.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}

@@ -12,9 +12,11 @@ import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
 
 
 const Imparticiones = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -48,9 +50,9 @@ const Imparticiones = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'profesor.nombre', label: 'Profesor' },
-      { value: 'modulo.nombre', label: 'Módulo' },
-      { value: 'grupo.nombre', label: 'Grupo' }
+      { value: 'profesor.nombre', label: t('teaching.teacher') },
+      { value: 'modulo.nombre', label: t('teaching.module') },
+      { value: 'grupo.nombre', label: t('teaching.group') }
   ];
 
   // Estado para el modal
@@ -331,7 +333,7 @@ const Imparticiones = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
+        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
         throw new Error(errorMessage);
       }
 
@@ -348,14 +350,14 @@ const Imparticiones = () => {
 
     } catch (err) {
       console.error("Error saving imparticion:", err);
-      alert(`Error: ${err.message}`);
+      alert(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (imparticion) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta asignación?')) {
+    if (!window.confirm(t('teaching.confirmDelete'))) {
       return;
     }
 
@@ -369,7 +371,7 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar la asignación');
+        throw new Error(t('teaching.errorDelete'));
       }
 
       fetchImparticionesData({
@@ -383,44 +385,44 @@ const Imparticiones = () => {
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      alert(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
 
   const columns = useMemo(() => [
     { 
-        header: 'Profesor', 
+        header: t('teaching.teacher'), 
         accessor: (row) => row.profesor ? `${row.profesor.nombre} ${row.profesor.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'profesor.nombre' 
     },
     { 
-        header: 'Módulo', 
+        header: t('teaching.module'), 
         accessor: (row) => row.modulo ? row.modulo.nombre : '-', 
         sortable: true, 
         sortKey: 'modulo.nombre' 
     },
     { 
-        header: 'Grupo', 
+        header: t('teaching.group'), 
         accessor: (row) => row.grupo ? (row.grupo.abreviatura || row.grupo.nombre) : '-', 
         sortable: true, 
         sortKey: 'grupo.nombre' 
     },
     { 
-        header: 'Acciones', 
+        header: t('common.actions'), 
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -433,7 +435,7 @@ const Imparticiones = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Asignación de Docencia"
+        <CrudHeader title={t('teaching.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
@@ -443,7 +445,7 @@ const Imparticiones = () => {
                     onChange={(e) => setSelectedCentro(e.target.value)}
                     style={{ width: '200px' }}
                 >
-                    <option value="">Todos los centros</option>
+                    <option value="">{t('common.allCenters')}</option>
                     {centros.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
@@ -453,7 +455,7 @@ const Imparticiones = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar..." 
+                placeholder={t('common.search')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -461,14 +463,14 @@ const Imparticiones = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -490,12 +492,12 @@ const Imparticiones = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentImparticion ? 'Editar Asignación' : 'Nueva Asignación'}
+            title={currentImparticion ? t('teaching.editTitle') : t('teaching.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Profesor ({profesores.length})</label>
+                <label className={styles.label}>{t('teaching.teacherCount', { count: profesores.length })}</label>
                 <select
                     name="profesor"
                     value={formData.profesor}
@@ -503,7 +505,7 @@ const Imparticiones = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar profesor...</option>
+                    <option value="">{t('common.selectTeacher')}</option>
                     {profesores.map(p => (
                         <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
                             {p.nombre} {p.apellidos}
@@ -513,7 +515,7 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Grupo ({allGrupos.length})</label>
+                <label className={styles.label}>{t('teaching.groupCount', { count: allGrupos.length })}</label>
                 <select
                     name="grupo"
                     value={formData.grupo}
@@ -521,7 +523,7 @@ const Imparticiones = () => {
                     className={styles.select}
                     required
                 >
-                    <option value="">Seleccionar grupo...</option>
+                    <option value="">{t('common.selectGroup')}</option>
                     {allGrupos.map(g => (
                         <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
                             {g.abreviatura || g.nombre}
@@ -531,7 +533,7 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Módulo ({filteredModulos.length})</label>
+                <label className={styles.label}>{t('teaching.moduleCount', { count: filteredModulos.length })}</label>
                 <select
                     name="modulo"
                     value={formData.modulo}
@@ -541,7 +543,7 @@ const Imparticiones = () => {
                     disabled={!formData.grupo} // Deshabilitar si no hay grupo
                 >
                     <option value="">
-                        {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
+                        {formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
                     </option>
                     {filteredModulos.map(m => (
                         <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>

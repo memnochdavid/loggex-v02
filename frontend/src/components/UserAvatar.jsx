@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import styles from './UserAvatar.module.css';
 import { User, LogOut, Settings } from 'lucide-react';
 import { getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const UserAvatar = ({ size = 40, className = '' }) => {
+    const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
@@ -58,7 +60,7 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                 className={styles.avatarButton} 
                 onClick={() => setIsOpen(!isOpen)}
                 style={{ width: size, height: size }}
-                aria-label="Menú de usuario"
+                aria-label={t('userAvatar.menuLabel')}
                 aria-expanded={isOpen}
             >
                 {avatarUrl ? (
@@ -89,7 +91,7 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                         <li>
                             <button className={styles.menuItem} onClick={handleProfile}>
                                 <User size={16} />
-                                Perfil
+                                {t('userAvatar.profile')}
                             </button>
                         </li>
                         {/* Podríamos añadir Configuración aquí si fuera diferente de Perfil */}
@@ -102,7 +104,7 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                         <li>
                             <button className={`${styles.menuItem} ${styles.danger}`} onClick={handleLogout}>
                                 <LogOut size={16} />
-                                Cerrar Sesión
+                                {t('userAvatar.logout')}
                             </button>
                         </li>
                     </ul>

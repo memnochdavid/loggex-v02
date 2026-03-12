@@ -4,13 +4,15 @@ import Lottie from 'lottie-react';
 import styles from './NotFound.module.css'; // Reutilizamos estilos
 import Button from '../components/Button';
 import { getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const ErrorPage = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [animationData, setAnimationData] = useState(null);
   
   // Obtener datos del error del estado de la navegación o valores por defecto
-  const { errorCode = '403', title = 'Acceso Denegado', message = 'No tienes permiso para ver este recurso.' } = location.state || {};
+  const { errorCode = '403', title = t('errorPage.title'), message = t('errorPage.message') } = location.state || {};
 
   useEffect(() => {
     // Intentar cargar una animación de error (puedes añadir error.json en public)
@@ -41,7 +43,7 @@ const ErrorPage = () => {
       
       <Link to="/" style={{ textDecoration: 'none' }}>
         <Button>
-          Volver al Inicio
+          {t('errorPage.goHome')}
         </Button>
       </Link>
     </div>
