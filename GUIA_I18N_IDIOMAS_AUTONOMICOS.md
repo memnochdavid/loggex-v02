@@ -1,8 +1,8 @@
-# GUÍA i18n — Añadir idiomas autonómicos (Català, Galego, Euskara)
+# GUÍA i18n — Añadir idiomas autonómicos (Català, Galego, Euskera)
 
 ## RESUMEN DE LA TAREA
 
-Añadir 3 idiomas nuevos al sistema i18n existente: **Català (ca)**, **Galego (gl)** y **Euskara (eu)**.
+Añadir 3 idiomas nuevos al sistema i18n existente: **Català (ca)**, **Galego (gl)** y **Euskera (eu)**.
 
 Hay que hacer exactamente 5 cosas:
 1. Crear `ca.json` (traducción completa al catalán)
@@ -35,7 +35,7 @@ Hay que hacer exactamente 5 cosas:
 ```
 frontend/src/i18n/locales/ca.json   ← Català
 frontend/src/i18n/locales/gl.json   ← Galego
-frontend/src/i18n/locales/eu.json   ← Euskara
+frontend/src/i18n/locales/eu.json   ← Euskera
 ```
 
 ### Proceso
@@ -110,7 +110,7 @@ frontend/src/i18n/locales/eu.json   ← Euskara
 - "Contraseña" → "Contrasinal", "Buscar" → "Buscar" o "Procurar", "Guardar" → "Gardar".
 - "Configuración" → "Configuración", "Información" → "Información" (comparten muchos términos).
 
-#### Euskara (eu)
+#### Euskera (eu)
 - Usa euskera batúa (unificado/estándar).
 - El euskera es una lengua aglutinante — las frases pueden ser muy diferentes en estructura.
 - "Contraseña" → "Pasahitza", "Buscar" → "Bilatu", "Guardar" → "Gorde".
@@ -129,7 +129,7 @@ Estos valores se mantienen idénticos en los 3 idiomas:
   "en": "English",        ← siempre así
   "ca": "Català",         ← siempre así
   "gl": "Galego",         ← siempre así
-  "eu": "Euskara",        ← siempre así
+  "eu": "Euskera",        ← siempre así
   "label": "..."          ← este SÍ se traduce ("Idioma"/"Hizkuntza"/etc.)
 }
 ```
@@ -384,7 +384,7 @@ import eu from './locales/eu.json';
 
 ## REFERENCIA RÁPIDA DE TÉRMINOS CLAVE
 
-| Español | Català | Galego | Euskara |
+| Español | Català | Galego | Euskera |
 |---------|--------|--------|---------|
 | Guardar | Desar | Gardar | Gorde |
 | Cancelar | Cancel·lar | Cancelar | Utzi |
