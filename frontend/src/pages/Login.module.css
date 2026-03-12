@@ -1,126 +1,347 @@
-.container {
+/* ========================================
+   Login Page - Split Layout
+   ======================================== */
+
+.page {
   display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  padding: var(--space-4);
+  min-height: 100dvh;
+  background: #f8fafc;
+}
+
+/* ========================================
+   Panel Izquierdo - Branding
+   ======================================== */
+
+.brandPanel {
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
   background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  animation: gradientShift 20s ease infinite;
+  overflow: hidden;
 }
 
-/* Grid Animado */
-.container::before {
-  content: "";
+.brandOverlay {
   position: absolute;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
+  inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridMove 4s linear infinite;
-  z-index: 0;
+    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
   pointer-events: none;
-  transform: perspective(500px) rotateX(20deg);
-  opacity: 0.6;
 }
 
-.container::after {
+.brandPanel::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, transparent 20%, #020617 90%);
-  z-index: 1;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(600px) rotateX(25deg);
+  animation: gridFloat 8s ease-in-out infinite;
   pointer-events: none;
-  animation: pulseVignette 6s ease-in-out infinite alternate;
 }
 
-/* Clase para el overlay del ModalView en Login (transparente) */
-.loginOverlay {
-    background-color: transparent !important;
-    pointer-events: none; /* Permitir clicks en el fondo si fuera necesario, pero el modal debe capturarlos */
-}
-/* Reactivar pointer-events para el contenido del modal */
-.loginOverlay > * {
-    pointer-events: auto;
-}
-
-/* Clase para el contenido del ModalView (Glassmorphism) */
-.loginCard {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+.brandContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem;
+  max-width: 420px;
+  text-align: center;
 }
 
-.formGroup {
-  margin-bottom: var(--space-5);
+.lottieContainer {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 40px rgba(99, 102, 241, 0.3));
+}
+
+.brandLogo {
+  height: 48px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+
+.brandTagline {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin: 0 0 2.5rem;
+  letter-spacing: 0.02em;
+}
+
+.brandFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-self: stretch;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.featureDot {
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.8);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+/* ========================================
+   Panel Derecho - Formulario
+   ======================================== */
+
+.formPanel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #ffffff;
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formHeader {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formLogo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-bottom: 0.25rem;
+}
+
+.formTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.formSubtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ========================================
+   Formulario
+   ======================================== */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: var(--font-bold);
-  color: var(--color-gray-700);
-  font-size: var(--text-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+
+.inputGroup.focused .label {
+  color: #4f46e5;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 0.85rem;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.inputGroup.focused .inputIcon {
+  color: #4f46e5;
+}
+
+.inputGroup.filled .inputIcon {
+  color: #64748b;
 }
 
 .input {
   width: 100%;
-  padding: var(--space-3);
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  padding: 0.75rem 0.85rem 0.75rem 2.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #0f172a;
+  background: #f8fafc;
   transition: all 0.2s;
   box-sizing: border-box;
-  background-color: rgba(241, 245, 249, 0.8);
-  color: var(--color-gray-900);
-  font-weight: 500;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary-500);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
 }
 
-.error {
-  color: #b91c1c;
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
-  text-align: center;
-  background-color: rgba(254, 242, 242, 0.9);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid #fecaca;
+.togglePassword {
+  position: absolute;
+  right: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  font-weight: 500;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: color 0.2s;
+  border-radius: 6px;
 }
 
-@keyframes gridMove {
-  0% {
-    transform: perspective(500px) rotateX(20deg) translateY(0) translateX(0);
-  }
-  100% {
-    transform: perspective(500px) rotateX(20deg) translateY(60px) translateX(60px);
-  }
+.togglePassword:hover {
+  color: #475569;
 }
+
+/* ========================================
+   Botón Submit
+   ======================================== */
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Spinner
+   ======================================== */
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ========================================
+   Error
+   ======================================== */
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 500;
+  animation: shakeError 0.4s ease;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+.footer {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.footerText {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* ========================================
+   Animaciones
+   ======================================== */
 
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
@@ -128,7 +349,51 @@
   100% { background-position: 0% 50%; }
 }
 
-@keyframes pulseVignette {
-  0% { opacity: 0.4; transform: scale(1); }
-  100% { opacity: 0.7; transform: scale(1.05); }
+@keyframes gridFloat {
+  0%, 100% { transform: perspective(600px) rotateX(25deg) translateY(0); }
+  50% { transform: perspective(600px) rotateX(25deg) translateY(25px); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 900px) {
+  .brandPanel {
+    display: none;
+  }
+
+  .formPanel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  }
+
+  .page {
+    background: #f8fafc;
+  }
+}
+
+@media (max-width: 480px) {
+  .formPanel {
+    padding: 1.25rem;
+  }
+
+  .formContainer {
+    gap: 1.5rem;
+  }
+
+  .formTitle {
+    font-size: 1.3rem;
+  }
 }

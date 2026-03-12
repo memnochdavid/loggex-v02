@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
-import ModalView from '../components/ModalView';
 import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
+import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Lottie from 'lottie-react';
+import bookAnimation from '../../public/book.json';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -12,12 +13,13 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirigir a la página que intentaba visitar o a /horarios por defecto
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
@@ -36,59 +38,120 @@ const Login = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <ModalView
-        isOpen={true}
-        onClose={() => {}} // No hace nada
-        title={t('login.title')}
-        showCloseButton={false}
-        closeOnOverlayClick={false}
-        overlayClassName={styles.loginOverlay}
-        className={styles.loginCard}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        submitText={t('login.submit')}
-        cancelText={null} // No mostrar botón cancelar
-        footer={
-            <Button 
-                type="submit" 
-                className="w-full" 
-                style={{ width: '100%' }}
-                disabled={isSubmitting}
-                onClick={handleSubmit}
+    <div className={styles.page}>
+      {/* Panel izquierdo - Branding */}
+      <div className={styles.brandPanel}>
+        <div className={styles.brandOverlay} />
+        <div className={styles.brandContent}>
+          <div className={styles.lottieContainer}>
+            <Lottie animationData={bookAnimation} loop={true} />
+          </div>
+          <img
+            src="/logo_texto_horizontal.png"
+            alt="Loggex"
+            className={styles.brandLogo}
+          />
+          <p className={styles.brandTagline}>{t('login.tagline', 'Gestión académica integral')}</p>
+          <div className={styles.brandFeatures}>
+            <div className={styles.featureItem}>
+              <div className={styles.featureDot} />
+              <span>{t('login.feature1', 'Control de asistencia')}</span>
+            </div>
+            <div className={styles.featureItem}>
+              <div className={styles.featureDot} />
+              <span>{t('login.feature2', 'Gestión de horarios')}</span>
+            </div>
+            <div className={styles.featureItem}>
+              <div className={styles.featureDot} />
+              <span>{t('login.feature3', 'Comunicación integrada')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Panel derecho - Formulario */}
+      <div className={styles.formPanel}>
+        <div className={styles.formContainer}>
+          <div className={styles.formHeader}>
+            <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
+            <h1 className={styles.formTitle}>{t('login.title')}</h1>
+            <p className={styles.formSubtitle}>{t('login.subtitle', 'Introduce tus credenciales para acceder')}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {error && (
+              <div className={styles.error}>
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className={`${styles.inputGroup} ${focusedField === 'email' ? styles.focused : ''} ${email ? styles.filled : ''}`}>
+              <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
+              <div className={styles.inputWrapper}>
+                <Mail size={18} className={styles.inputIcon} />
+                <input
+                  type="email"
+                  id="email"
+                  className={styles.input}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  required
+                  placeholder={t('login.emailPlaceholder')}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className={`${styles.inputGroup} ${focusedField === 'password' ? styles.focused : ''} ${password ? styles.filled : ''}`}>
+              <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
+              <div className={styles.inputWrapper}>
+                <Lock size={18} className={styles.inputIcon} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  className={styles.input}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  required
+                  placeholder={t('login.passwordPlaceholder')}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={isSubmitting}
             >
-                {isSubmitting ? t('login.submitting') : t('login.submit')}
-            </Button>
-        }
-      >
-        {error && <div className={styles.error}>{error}</div>}
-        
-        <div className={styles.formGroup}>
-            <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
-            <input
-                type="email"
-                id="email"
-                className={styles.input}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder={t('login.emailPlaceholder')}
-            />
+              {isSubmitting ? (
+                <span className={styles.spinner} />
+              ) : (
+                <LogIn size={18} />
+              )}
+              <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
+            </button>
+          </form>
+
+          <div className={styles.footer}>
+            <span className={styles.footerText}>Loggex &copy; {new Date().getFullYear()}</span>
+          </div>
         </div>
-        
-        <div className={styles.formGroup}>
-            <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
-            <input
-                type="password"
-                id="password"
-                className={styles.input}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder={t('login.passwordPlaceholder')}
-            />
-        </div>
-      </ModalView>
+      </div>
     </div>
   );
 };
