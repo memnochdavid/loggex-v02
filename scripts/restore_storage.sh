@@ -1,6 +1,6 @@
 #!/bin/bash
+cd "$(dirname "$0")/.."
 
-# Configuracion
 MINIO_SERVICE="minio"
 MINIO_USER="minio_admin"
 MINIO_PASSWORD="minio_password"
@@ -9,15 +9,11 @@ BACKUP_DIR="./minio_backup"
 
 echo "--- Iniciando restauracion del bucket de MinIO ---"
 
-# Verificar si el directorio existe
 if [ ! -d "$BACKUP_DIR" ]; then
     echo "❌ Error: No existe el directorio '$BACKUP_DIR'."
     exit 1
 fi
 
-# Usar un contenedor de MinIO Client (mc) para hacer la restauracion
-# - Montamos el directorio de backup en /backup
-# - Nos conectamos a la red del proyecto para ver el servicio 'minio'
 docker run --rm --entrypoint=/bin/sh \
   -v "$(pwd)/$BACKUP_DIR:/backup" \
   --network loggex-v02_default \

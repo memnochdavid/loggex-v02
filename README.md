@@ -7,8 +7,8 @@ Este proyecto es un esqueleto base para aplicaciones web modernas utilizando **S
 Si estás creando el proyecto desde cero:
 
 ```bash
-chmod +x setup.sh
-./setup.sh
+chmod +x scripts/setup.sh
+./scripts/setup.sh
 ```
 
 ## 🔄 Inicio Rápido (Clonar Proyecto Existente)
@@ -17,12 +17,12 @@ Si acabas de clonar este repositorio desde Git en un equipo nuevo:
 
 1. Dale permisos al script de inicialización:
    ```bash
-   chmod +x init.sh
+   chmod +x scripts/init.sh
    ```
 
 2. Ejecuta el script para instalar dependencias y levantar todo:
    ```bash
-   ./init.sh
+   ./scripts/init.sh
    ```
    *Este script se encarga de levantar Docker, instalar dependencias (Composer/NPM), generar claves JWT y ejecutar migraciones.*
 
@@ -34,7 +34,7 @@ Si ya tienes el proyecto y has bajado cambios recientes (`git pull`), sigue esto
 
 1. **Arreglar permisos y entorno**:
    ```bash
-   ./fix_env.sh
+   ./scripts/fix_env.sh
    ```
 
 2. **Reconstruir contenedores** (para aplicar cambios en Caddy/PHP):
@@ -100,7 +100,7 @@ docker compose exec backend php bin/console [comando]
 - **Limpiar Caché**: `cache:clear`
 
 **Autenticación JWT**:
-El proyecto incluye `lexik/jwt-authentication-bundle`. Las claves RSA se generan automáticamente en `config/jwt/` al ejecutar `./init.sh`.
+El proyecto incluye `lexik/jwt-authentication-bundle`. Las claves RSA se generan automáticamente en `config/jwt/` al ejecutar `./scripts/init.sh`.
 
 ### Comandos Frontend (React)
 ```bash
@@ -132,9 +132,9 @@ Se recomienda usar CSS Modules.
 ### Infraestructura
 - `docker-compose.yml`: Orquestación de servicios.
 - `Caddyfile`: Configuración del Proxy HTTPS.
-- `setup.sh`: Script para crear el proyecto desde cero (scaffolding).
-- `init.sh`: Script para instalar dependencias tras clonar (bootstrapping).
-- `fix_env.sh`: Script para corregir permisos y claves JWT.
+- `scripts/setup.sh`: Script para crear el proyecto desde cero (scaffolding).
+- `scripts/init.sh`: Script para instalar dependencias tras clonar (bootstrapping).
+- `scripts/fix_env.sh`: Script para corregir permisos y claves JWT.
 
 ## 🔧 Solución de Problemas
 

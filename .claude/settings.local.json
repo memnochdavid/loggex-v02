@@ -6,7 +6,10 @@
       "Bash(ls D:/WORKSPACE/loggex-v02/backup_tfg*.sql D:/WORKSPACE/loggex-v02/restore* 2>/dev/null)",
       "Bash(cd /home/david/Escritorio/loggex-v02/frontend && npx vite build --mode development 2>&1 | tail -20)",
       "Bash(for f:*)",
-      "Bash(sudo docker:*)"
+      "Bash(sudo docker:*)",
+      "Bash(ls /home/david/projects/loggex-v02/*.sh /home/david/projects/loggex-v02/*.bat 2>/dev/null)",
+      "Bash(chmod +x /home/david/projects/loggex-v02/scripts/*.sh)",
+      "Bash(file /home/david/projects/loggex-v02/scripts/*.sh)"
     ]
   }
 }

@@ -1,4 +1,6 @@
 #!/bin/bash
+cd "$(dirname "$0")/.."
+
 echo "🧹 Limpiando caché a fondo..."
 docker compose exec backend rm -rf var/cache/dev
 docker compose exec backend rm -rf var/cache/prod

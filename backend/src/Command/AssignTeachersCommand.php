@@ -28,8 +28,7 @@ class AssignTeachersCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        // Datos extraídos de backup_tfg_old.sql (tabla imparticion)
-        // id, profesor_id, modulo_id, grupo_id
+        // Datos de imparticiones: id, profesor_id, modulo_id, grupo_id
         $imparticionesData = [
             [23, 50, 35, 5],
             [24, 51, 36, 5],

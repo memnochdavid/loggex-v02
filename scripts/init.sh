@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")/.."
 
 # Script robusto para inicializar/actualizar el proyecto
 # Úsalo después de git clone o git pull
@@ -64,4 +65,4 @@ echo "✅ ¡Proyecto desplegado y actualizado correctamente!"
 echo "Frontend: https://localhost:8443"
 echo "Backend API: https://localhost:9443/api"
 echo ""
-echo "💡 Si tienes problemas de datos, puedes restaurar el backup inicial con: ./restore_db.sh"
+echo "💡 Si tienes problemas de datos, puedes restaurar el backup inicial con: ./scripts/restore_db.sh"

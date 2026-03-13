@@ -1,5 +1,6 @@
 @echo off
 setlocal
+cd /d "%~dp0\.."
 
 set MINIO_SERVICE=minio
 set MINIO_USER=minio_admin
@@ -9,14 +10,11 @@ set BACKUP_DIR=minio_backup
 
 echo --- Iniciando restauracion del bucket de MinIO ---
 
-REM 1. Crear directorio de backup si no existe
 if not exist "%BACKUP_DIR%" (
     echo [ERROR] No existe el directorio '%BACKUP_DIR%'.
     exit /b 1
 )
 
-REM 2. Usar un contenedor de MinIO Client (mc) para hacer la restauracion
-REM    - Sobrescribimos el ENTRYPOINT para poder ejecutar comandos de shell
 docker run --rm --entrypoint=/bin/sh ^
   -v "%cd%\%BACKUP_DIR%:/backup" ^
   --network loggex-v02_default ^

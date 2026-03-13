@@ -1,4 +1,6 @@
 @echo off
+cd /d "%~dp0\.."
+
 echo === Inicializando Loggex v02 ===
 
 REM 1. Levantar contenedores

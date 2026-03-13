@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")/.."
 
 # Detener el script si hay errores
 set -e
@@ -663,7 +664,7 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./backup_tfg.sql:/docker-entrypoint-initdb.d/init.sql:z
+      - ./backup_tfg_full.sql:/docker-entrypoint-initdb.d/init.sql:z
     security_opt:
       - apparmor:unconfined
 
