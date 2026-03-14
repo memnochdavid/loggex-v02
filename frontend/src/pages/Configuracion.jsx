@@ -50,64 +50,54 @@ const Configuracion = () => {
 
     const defaultSettings = DEFAULT_THEME;
 
-    const [settings, setSettings] = useState(defaultSettings);
-    const [themes, setThemes] = useState([]); // Lista unificada de temas
+    const computeInitialSettings = () => {
+        let initial = {...defaultSettings};
+        if (user) {
+            const mergeSettings = (source) => {
+                Object.keys(source).forEach(key => {
+                    if (source[key] !== null && source[key] !== undefined) {
+                        initial[key] = source[key];
+                    }
+                });
+            };
+            if (user.centro && user.centro.personalizacion) {
+                mergeSettings(user.centro.personalizacion);
+            } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
+                mergeSettings(user.centro.personalizacion);
+            }
+        }
+        return initial;
+    };
+
+    const computeInitialTitleConfig = () => {
+        if (user?.centro?.personalizacion?.nameTitleConfig) {
+            return user.centro.personalizacion.nameTitleConfig;
+        }
+        if (user?.centro?.nombre) {
+            return {
+                words: user.centro.nombre.split(' ').map(word => ({ text: word, color: '#000000' })),
+                spacing: '0.5rem',
+                casing: 'original',
+                alignment: 'center'
+            };
+        }
+        return { words: [], spacing: '0.5rem', casing: 'original', alignment: 'center' };
+    };
+
+    const [settings, setSettings] = useState(computeInitialSettings);
+    const [themes, setThemes] = useState([]);
     const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
     const [logoFile, setLogoFile] = useState(null);
-    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(() =>
+        user?.centro?.logo ? getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`) : null
+    );
     const fileInputRef = useRef(null);
 
-    const [titleConfig, setTitleConfig] = useState({
-        words: [],
-        spacing: '0.5rem',
-        casing: 'original',
-        alignment: 'center'
-    });
-
-    // Cargar configuración inicial
-    useEffect(() => {
-        if (user) {
-            let initialSettings = {...defaultSettings};
-
-            const mergeSettings = (source) => {
-                Object.keys(source).forEach(key => {
-                    if (source[key] !== null && source[key] !== undefined) {
-                        initialSettings[key] = source[key];
-                    }
-                });
-            };
-
-            if (user.centro && user.centro.personalizacion) {
-                mergeSettings(user.centro.personalizacion);
-
-                if (user.centro.logo) {
-                    setLogoPreview(getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`));
-                }
-                if (user.centro.personalizacion.nameTitleConfig) {
-                    setTitleConfig(user.centro.personalizacion.nameTitleConfig);
-                } else if (user.centro.nombre) {
-                    const words = user.centro.nombre.split(' ').map(word => ({
-                        text: word,
-                        color: '#000000'
-                    }));
-                    setTitleConfig({
-                        words: words,
-                        spacing: '0.5rem',
-                        casing: 'original',
-                        alignment: 'center'
-                    });
-                }
-            } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
-                mergeSettings(user.centro.personalizacion);
-            }
-
-            setSettings(initialSettings);
-        }
-    }, [user, isSuperAdmin]);
+    const [titleConfig, setTitleConfig] = useState(computeInitialTitleConfig);
 
     // Cargar temas desde API
     const fetchThemes = async () => {
