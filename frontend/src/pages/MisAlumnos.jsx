@@ -10,6 +10,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import pupilsAnimation from '../../public/pupils.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const MisAlumnos = () => {
     const { t } = useTranslation();
@@ -282,7 +283,7 @@ const MisAlumnos = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                    <LoadingView />
                 ) : grupos.length === 0 ? (
                     <div className={styles.emptyState}>
                         {isSuperAdmin && !selectedCentro 

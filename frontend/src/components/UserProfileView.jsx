@@ -228,7 +228,7 @@ const UserProfileView = ({ user: initialUser }) => {
                                     </div>
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.group')}</span>
-                                        <span className={styles.value}>{imp.grupo?.nombre}</span>
+                                        <span className={styles.value}>{imp.grupo?.abreviatura || imp.grupo?.nombre}</span>
                                     </div>
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.course')}</span>

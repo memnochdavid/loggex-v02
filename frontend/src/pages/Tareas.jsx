@@ -11,6 +11,7 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const Tareas = () => {
   const { t } = useTranslation();
@@ -183,7 +184,7 @@ const Tareas = () => {
             
             const asignaturasConTareas = items.map(imp => {
                 const nombreModulo = imp.modulo?.nombre || t('common.unknownModule');
-                const nombreGrupo = imp.grupo?.nombre || t('common.unknownGroup');
+                const nombreGrupo = imp.grupo?.abreviatura || imp.grupo?.nombre || t('common.unknownGroup');
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
@@ -420,7 +421,7 @@ const Tareas = () => {
         </CrudHeader>
 
         {loading ? (
-            <div className={styles.loadingContainer}>{t('tasks.loadingSubjects')}</div>
+            <LoadingView text={t('tasks.loadingSubjects')} />
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (

@@ -431,14 +431,19 @@ const Horarios = () => {
         sortable: true, sortKey: 'horaInicio' 
     },
     { header: t('schedules.classroom'), accessor: 'aula', sortable: true, sortKey: 'aula' },
-    { 
-        header: t('schedules.subject'), 
-        accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-', 
+    {
+        header: t('schedules.subject'),
+        accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-',
         sortable: true, sortKey: 'imparticion.modulo.nombre'
     },
-    { 
-        header: t('schedules.teacher'), 
-        accessor: (row) => row.imparticion && row.imparticion.profesor ? `${row.imparticion.profesor.nombre} ${row.imparticion.profesor.apellidos}` : '-', 
+    {
+        header: t('schedules.group'),
+        accessor: (row) => row.imparticion && row.imparticion.grupo ? (row.imparticion.grupo.abreviatura || row.imparticion.grupo.nombre) : '-',
+        sortable: true, sortKey: 'imparticion.grupo.nombre'
+    },
+    {
+        header: t('schedules.teacher'),
+        accessor: (row) => row.imparticion && row.imparticion.profesor ? `${row.imparticion.profesor.nombre} ${row.imparticion.profesor.apellidos}` : '-',
         sortable: true, sortKey: 'imparticion.profesor.nombre'
     },
     { 
@@ -634,7 +639,7 @@ const Horarios = () => {
                     <option value="">{t('schedules.selectSubject')}</option>
                     {imparticiones.map(i => (
                         <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
-                            {i.modulo?.nombre} - {i.grupo?.nombre} ({i.profesor?.nombre})
+                            {i.modulo?.nombre} - {i.grupo?.abreviatura || i.grupo?.nombre} ({i.profesor?.nombre})
                         </option>
                     ))}
                 </select>

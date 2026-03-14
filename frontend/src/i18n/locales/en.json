@@ -345,6 +345,7 @@
     "time": "Time",
     "classroom": "Classroom",
     "subject": "Subject",
+    "group": "Group",
     "teacher": "Teacher",
     "confirmDelete": "Are you sure you want to delete this schedule?",
     "errorDelete": "Could not delete schedule",

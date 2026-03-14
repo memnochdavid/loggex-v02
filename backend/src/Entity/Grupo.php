@@ -59,7 +59,7 @@ class Grupo
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?string $abreviatura = null;
 
     #[ORM\Column]

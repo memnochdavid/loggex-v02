@@ -10,6 +10,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import teacherAnimation from '../../public/teacher.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const MisProfesores = () => {
     const { t } = useTranslation();
@@ -196,7 +197,7 @@ const MisProfesores = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                    <LoadingView />
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (

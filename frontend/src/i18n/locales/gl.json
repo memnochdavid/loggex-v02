@@ -345,6 +345,7 @@
     "time": "Hora",
     "classroom": "Aula",
     "subject": "Asignatura",
+    "group": "Grupo",
     "teacher": "Profesor",
     "confirmDelete": "Estás seguro de que queres eliminar este horario?",
     "errorDelete": "Non se puido eliminar o horario",

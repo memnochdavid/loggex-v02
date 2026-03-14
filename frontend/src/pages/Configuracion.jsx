@@ -40,6 +40,51 @@ import { useTranslation } from 'react-i18next';
 import {DEFAULT_THEME} from '../config/themeDefaults';
 import helloAnimation from "../../public/hello.json";
 
+// Componentes reales para previews
+import DataTable from '../components/DataTable';
+import AccordionView from '../components/AccordionView';
+import TimeTable from '../components/TimeTable';
+import CalendarView from '../components/CalendarView';
+import UserCard from '../components/UserCard';
+import EventCard from '../components/EventCard';
+
+// Datos mock para previews
+const MOCK_DT_COLUMNS = [
+    { header: 'Lorem', accessor: 'col1' },
+    { header: 'Ipsum', accessor: 'col2' },
+    { header: 'Dolor', accessor: 'col3' },
+];
+const MOCK_DT_DATA = [
+    { id: 1, col1: 'Lorem ipsum', col2: 'dolor sit', col3: 'amet' },
+    { id: 2, col1: 'Consectetur', col2: 'adipiscing', col3: 'elit' },
+    { id: 3, col1: 'Sed do', col2: 'eiusmod', col3: 'tempor' },
+];
+const MOCK_ACCORDION_DATA = [
+    { id: 1, title: 'Lorem ipsum dolor sit amet' },
+    { id: 2, title: 'Consectetur adipiscing elit' },
+    { id: 3, title: 'Sed do eiusmod tempor' },
+];
+const MOCK_TIMETABLE_EVENTS = [
+    { diaSemana: 1, horaInicio: '08:30', horaFin: '09:30', modulo: 'Lorem Ipsum', grupo: 'A1', aula: '101' },
+    { diaSemana: 1, horaInicio: '09:30', horaFin: '10:30', modulo: 'Lorem Ipsum', grupo: 'A1', aula: '101' },
+    { diaSemana: 2, horaInicio: '08:30', horaFin: '09:30', modulo: 'Dolor Sit', grupo: 'B2', aula: '203' },
+    { diaSemana: 3, horaInicio: '10:30', horaFin: '11:30', modulo: 'Amet Consectetur', grupo: 'A1', aula: '105' },
+    { diaSemana: 4, horaInicio: '08:30', horaFin: '09:30', modulo: 'Adipiscing Elit', grupo: 'C1', aula: '302' },
+    { diaSemana: 5, horaInicio: '09:30', horaFin: '10:30', modulo: 'Tempor Incididunt', grupo: 'A1', aula: '101' },
+];
+const MOCK_USER = {
+    id: 1,
+    nombre: 'Lorem',
+    apellidos: 'Ipsum Dolor',
+    email: 'lorem@ipsum.dolor',
+    telefono: '600 000 000',
+    foto: null,
+    grupos: ['A1', 'B2'],
+};
+const MOCK_FESTIVOS = [
+    { nombre: 'Lorem Festum', fechaInicio: '2026-03-19', fechaFin: '2026-03-19' }
+];
+
 const Configuracion = () => {
     const { t } = useTranslation();
     const {user, checkAuth} = useAuth();
@@ -557,41 +602,7 @@ const Configuracion = () => {
             case 'usercard':
                 return (
                     <div className={styles.previewBox}>
-                        <div style={{
-                            width: '200px',
-                            backgroundColor: settings.userCardBgColor,
-                            color: settings.userCardTextColor,
-                            borderRadius: '8px',
-                            padding: '20px',
-                            textAlign: 'center',
-                            margin: '0 auto'
-                        }}>
-                            <div style={{
-                                width: '60px',
-                                height: '60px',
-                                borderRadius: '50%',
-                                backgroundColor: 'rgba(255,255,255,0.2)',
-                                margin: '0 auto 10px auto'
-                            }}></div>
-                            <div style={{fontWeight: 'bold', marginBottom: '5px'}}>{t('config.previewTexts.userName')}</div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: settings.userCardTextSecondaryColor,
-                                marginBottom: '15px'
-                            }}>{t('config.previewTexts.emailExample')}
-                            </div>
-                            <button style={{
-                                width: '100%',
-                                padding: '8px',
-                                borderRadius: '4px',
-                                border: 'none',
-                                backgroundColor: settings.buttonPrimaryColor,
-                                color: settings.buttonPrimaryTextColor,
-                                fontSize: '12px'
-                            }}>
-                                {t('config.previewTexts.sendMessage')}
-                            </button>
-                        </div>
+                        <UserCard user={MOCK_USER} onMessage={() => {}} />
                     </div>
                 );
             case 'text':
@@ -663,143 +674,48 @@ const Configuracion = () => {
             case 'calendar':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewCalendarContainer}>
-                            <div className={styles.previewCalendarGrid}>
-                                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-
-                                <span className={styles.previewCalendarDay}>1</span>
-                                <span className={styles.previewCalendarDay}>2</span>
-                                <span className={styles.previewCalendarDay}>3</span>
-                                <span className={styles.previewCalendarDay}>4</span>
-                                <span className={styles.previewCalendarDay}>5</span>
-                                <span className={styles.previewCalendarWeekend} style={{
-                                    backgroundColor: settings.calendarWeekendBgColor,
-                                    color: settings.calendarWeekendTextColor
-                                }}>6</span>
-                                <span className={styles.previewCalendarWeekend} style={{
-                                    backgroundColor: settings.calendarWeekendBgColor,
-                                    color: settings.calendarWeekendTextColor
-                                }}>7</span>
-
-                                <span className={styles.previewCalendarDay}>8</span>
-                                <span className={styles.previewCalendarSelected} style={{
-                                    backgroundColor: settings.calendarSelectedBgColor,
-                                    color: settings.calendarSelectedTextColor
-                                }}>9</span>
-                                <span className={styles.previewCalendarDay}>10</span>
-                            </div>
-                        </div>
+                        <CalendarView
+                            selectedDate={new Date()}
+                            onDateSelect={() => {}}
+                            festivos={MOCK_FESTIVOS}
+                        />
                     </div>
                 );
 
             case 'timetable':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewTimetableContainer}>
-                            {/* Header */}
-                            <div className={styles.previewTimetableHeader} style={{backgroundColor: '#f8fafc'}}>{t('config.previewTexts.hour')}
-                            </div>
-                            <div className={styles.previewTimetableHeader} style={{
-                                backgroundColor: settings.timetableHeaderBgColor,
-                                color: settings.timetableHeaderTextColor
-                            }}>{t('config.previewTexts.monday')}
-                            </div>
-                            <div className={styles.previewTimetableHeader} style={{
-                                backgroundColor: settings.timetableSelectedHeaderBg,
-                                color: settings.timetableSelectedHeaderText
-                            }}>{t('config.previewTexts.tuesdayActive')}
-                            </div>
-
-                            {/* Row 1 */}
-                            <div className={styles.previewTimetableCell} style={{
-                                backgroundColor: settings.timetableHoursBgColor,
-                                color: settings.timetableHoursTextColor,
-                                textAlign: 'center'
-                            }}>08:00
-                            </div>
-                            <div className={styles.previewTimetableCell} style={{backgroundColor: '#fff'}}>{t('config.previewTexts.classA')}</div>
-                            <div className={styles.previewTimetableCell}
-                                 style={{backgroundColor: settings.timetableSelectedCellBg}}>{t('config.previewTexts.classB')}
-                            </div>
-                        </div>
+                        <TimeTable
+                            events={MOCK_TIMETABLE_EVENTS}
+                            selectedDate={new Date()}
+                        />
                     </div>
                 );
 
             case 'datatable':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewDatatableHeader} style={{
-                            backgroundColor: settings.datatableHeaderBgColor,
-                            color: settings.datatableHeaderTextColor
-                        }}>
-                            <span>{t('config.previewTexts.nameCol')}</span>
-                            <span style={{
-                                backgroundColor: settings.datatableHeaderHoverBgColor,
-                                color: settings.datatableHeaderHoverTextColor,
-                                padding: '2px 5px',
-                                borderRadius: '2px'
-                            }}>{t('config.previewTexts.surnameHover')}</span>
-                            <span style={{
-                                backgroundColor: settings.datatableHeaderActiveBgColor,
-                                color: settings.datatableHeaderActiveTextColor,
-                                padding: '2px 5px',
-                                borderRadius: '2px'
-                            }}>{t('config.previewTexts.ageActive')}</span>
-                        </div>
-
-                        <div className={styles.previewDatatablePagination} style={{
-                            backgroundColor: settings.datatablePaginationBgColor,
-                            color: settings.datatablePaginationTextColor
-                        }}>
-                            <span>{t('config.previewTexts.rows')} {settings.itemsPerPageUsuarios || 20}</span>
-                            <div style={{display: 'flex', gap: '5px'}}>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonBgColor,
-                                    color: settings.datatablePaginationButtonTextColor
-                                }}>1
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor,
-                                    color: settings.datatablePaginationButtonHoverTextColor
-                                }}>2
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor,
-                                    color: settings.datatablePaginationButtonActiveTextColor
-                                }}>3
-                                </div>
-                            </div>
-                        </div>
+                        <DataTable
+                            columns={MOCK_DT_COLUMNS}
+                            data={MOCK_DT_DATA}
+                            totalItems={3}
+                            itemsPerPage={10}
+                            currentPage={1}
+                            onPageChange={() => {}}
+                            loading={false}
+                        />
                     </div>
                 );
 
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewAccordionContainer}>
-                            {/* Ejemplo de ítem inactivo */}
-                            <div className={styles.previewAccordionHeader} style={{
-                                backgroundColor: settings.accordionHeaderBgColor,
-                                color: settings.accordionHeaderTextColor,
-                                borderBottom: '1px solid #e2e8f0'
-                            }}>
-                                {t('config.previewTexts.inactiveHeader')}
-                            </div>
-                            
-                            {/* Ejemplo de ítem activo */}
-                            <div className={styles.previewAccordionHeader} style={{
-                                backgroundColor: settings.accordionHeaderActiveBgColor,
-                                color: settings.accordionHeaderActiveTextColor
-                            }}>
-                                {t('config.previewTexts.activeHeader')}
-                            </div>
-                            <div className={styles.previewAccordionContent} style={{
-                                backgroundColor: settings.accordionContentBgColor,
-                                color: settings.accordionContentTextColor
-                            }}>
-                                {t('config.previewTexts.accordionContent')}
-                            </div>
-                        </div>
+                        <AccordionView
+                            data={MOCK_ACCORDION_DATA}
+                            renderHeader={(item) => <span>{item.title}</span>}
+                            renderItem={(item) => <div style={{padding: '0.5rem'}}>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>}
+                            defaultOpenAll={false}
+                        />
                     </div>
                 );
 
@@ -880,70 +796,36 @@ const Configuracion = () => {
             case 'pagination':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewDatatablePagination} style={{
-                            backgroundColor: settings.datatablePaginationBgColor,
-                            color: settings.datatablePaginationTextColor
-                        }}>
-                            <span>{t('config.previewTexts.rows')} {settings.itemsPerPageUsuarios || 20}</span>
-                            <div style={{display: 'flex', gap: '5px'}}>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonBgColor,
-                                    color: settings.datatablePaginationButtonTextColor
-                                }}>1
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor,
-                                    color: settings.datatablePaginationButtonHoverTextColor
-                                }}>2
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor,
-                                    color: settings.datatablePaginationButtonActiveTextColor
-                                }}>3
-                                </div>
-                            </div>
-                        </div>
+                        <DataTable
+                            columns={MOCK_DT_COLUMNS}
+                            data={MOCK_DT_DATA}
+                            totalItems={50}
+                            itemsPerPage={settings.itemsPerPageUsuarios || 20}
+                            currentPage={1}
+                            onPageChange={() => {}}
+                            loading={false}
+                        />
                     </div>
                 );
 
             case 'eventos':
                 return (
                     <div className={styles.previewBox}>
-                        <div style={{
-                            padding: '1rem',
-                            backgroundColor: settings.eventCardBgColor,
-                            border: `1px solid ${settings.eventCardBorderColor}`,
-                            borderLeft: `4px solid ${settings.primaryColor}`,
-                            borderRadius: '6px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}>
-                            <div style={{
-                                fontWeight: '600',
-                                color: settings.eventCardTitleColor,
-                                marginBottom: '0.25rem'
-                            }}>
-                                {t('config.previewTexts.eventTitle')}
-                            </div>
-                            <div style={{
-                                fontSize: '0.8rem',
-                                color: settings.eventCardMetaColor,
-                                display: 'flex',
-                                gap: '0.5rem'
-                            }}>
-                                <span>📅 {t('config.previewTexts.eventDate')}</span>
-                                <span>⏰ {t('config.previewTexts.eventTime')}</span>
-                            </div>
-                        </div>
-                        <div style={{marginTop: '1rem'}}>
-                            <h3 style={{
-                                fontSize: '1.1rem',
-                                fontWeight: '600',
-                                color: settings.eventsSidebarTitleColor,
-                                borderBottom: '1px solid #e2e8f0',
-                                paddingBottom: '0.5rem'
-                            }}>
-                                {t('config.previewTexts.sidebarTitle')}
-                            </h3>
+                        <EventCard
+                            title="Lorem ipsum dolor"
+                            subject="Amet consectetur"
+                            date="2026-03-14"
+                            time="08:30 - 09:30"
+                            type="Lectio"
+                        />
+                        <div style={{marginTop: '0.5rem'}}>
+                            <EventCard
+                                title="Sed do eiusmod"
+                                subject="Adipiscing elit"
+                                date="2026-03-15"
+                                time="10:00 - 11:00"
+                                type="Praxis"
+                            />
                         </div>
                     </div>
                 );

@@ -385,7 +385,7 @@ const Matriculas = () => {
     },
     {
         header: t('enrollments.group'),
-        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-',
+        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.abreviatura || row.grupo.nombre}` : '-',
         sortable: true,
         sortKey: 'grupo.nombre'
     },

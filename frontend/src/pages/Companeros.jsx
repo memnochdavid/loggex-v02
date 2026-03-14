@@ -10,6 +10,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const Companeros = () => {
     const { t } = useTranslation();
@@ -178,7 +179,7 @@ const Companeros = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                    <LoadingView />
                 ) : (
                     <div className={styles.grid}>
                         {filteredCompaneros.map(comp => (

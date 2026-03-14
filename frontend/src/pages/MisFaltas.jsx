@@ -10,6 +10,7 @@ import ShowProgress from '../components/ShowProgress'; // Importar el nuevo comp
 import Lottie from 'lottie-react';
 import checkAnimation from '../../public/check.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 
 const MisFaltas = () => {
@@ -268,7 +269,7 @@ const MisFaltas = () => {
                 </CrudHeader>
                 
                 {loading ? (
-                    <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                    <LoadingView />
                 ) : error ? (
                     <div className={styles.errorContainer}>{error}</div>
                 ) : asignaturasConFaltas.length === 0 ? (
