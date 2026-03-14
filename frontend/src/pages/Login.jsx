@@ -5,9 +5,10 @@ import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
 import {
   Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
-  CalendarCheck, Clock, MessageSquare, Users, GraduationCap,
-  BookOpen, ClipboardList, Palette, FileText, Shield
+  CalendarCheck, Clock, MessageSquare, Users,
+  BookOpen, Palette, FileText, Shield
 } from 'lucide-react';
+import AnimatedBackground from '../components/AnimatedBackground';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 
@@ -45,16 +46,7 @@ const Login = () => {
     <div className={styles.page}>
       {/* Panel izquierdo - Branding */}
       <div className={styles.brandPanel}>
-        <div className={styles.brandOverlay} />
-
-        {/* Iconos flotantes decorativos */}
-        <div className={styles.floatingIcons}>
-          <div className={`${styles.floatingIcon} ${styles.fi1}`}><GraduationCap size={28} /></div>
-          <div className={`${styles.floatingIcon} ${styles.fi2}`}><BookOpen size={22} /></div>
-          <div className={`${styles.floatingIcon} ${styles.fi3}`}><ClipboardList size={24} /></div>
-          <div className={`${styles.floatingIcon} ${styles.fi4}`}><Shield size={20} /></div>
-          <div className={`${styles.floatingIcon} ${styles.fi5}`}><Users size={26} /></div>
-        </div>
+        <AnimatedBackground forceDefault />
 
         <div className={styles.brandContent}>
           <div className={styles.lottieContainer}>

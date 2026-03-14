@@ -16,7 +16,7 @@
 
 .content {
     flex: 1;
-    padding: var(--space-4);
+    /*padding: var(--space-4);*/
     /* Usamos --bg-view-alpha (semi-transparente cuando fondo animado activo), con fallback a --bg-view */
     background-color: var(--bg-view-alpha, var(--bg-view, var(--color-gray-50)));
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */

@@ -409,7 +409,7 @@ if not exist "frontend\package.json" (
 
     (
     echo import React, { useState, useEffect } from 'react';
-    echo import reactLogo from '../assets/react.svg';
+@REM     echo import reactLogo from '../assets/react.svg';
     echo import styles from './Home.module.css';
     echo import Button from '../components/Button';
     echo.

@@ -427,7 +427,7 @@ EOF
 
     cat <<EOF > src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
-import reactLogo from '../assets/react.svg';
+#import reactLogo from '../assets/react.svg';
 import styles from './Home.module.css';
 import Button from '../components/Button';
 

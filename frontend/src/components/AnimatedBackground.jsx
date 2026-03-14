@@ -5,24 +5,33 @@ import {
     CalendarCheck, Clock, MessageSquare, Palette, FileText
 } from 'lucide-react';
 
-const AnimatedBackground = () => {
+const DEFAULT_STYLE = {
+    '--bg-anim-1': '#0c1222',
+    '--bg-anim-2': '#162040',
+    '--bg-anim-3': '#1a1a4e',
+    '--color-primary-rgb': '99, 102, 241',
+};
+
+const AnimatedBackground = ({ forceDefault = false }) => {
     const [enabled, setEnabled] = useState(() => {
-        return window.themeConfig?.showAnimatedBackground || false;
+        return forceDefault || window.themeConfig?.showAnimatedBackground || false;
     });
 
     useEffect(() => {
+        if (forceDefault) return;
+
         const handleConfigChange = () => {
             setEnabled(window.themeConfig?.showAnimatedBackground || false);
         };
 
         window.addEventListener('themeConfigChanged', handleConfigChange);
         return () => window.removeEventListener('themeConfigChanged', handleConfigChange);
-    }, []);
+    }, [forceDefault]);
 
     if (!enabled) return null;
 
     return (
-        <div className={styles.wrapper} aria-hidden="true">
+        <div className={styles.wrapper} style={forceDefault ? DEFAULT_STYLE : undefined} aria-hidden="true">
             <div className={styles.gradient} />
             <div className={styles.glows} />
             <div className={styles.grid} />

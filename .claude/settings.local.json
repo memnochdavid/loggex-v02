@@ -9,7 +9,8 @@
       "Bash(sudo docker:*)",
       "Bash(ls /home/david/projects/loggex-v02/*.sh /home/david/projects/loggex-v02/*.bat 2>/dev/null)",
       "Bash(chmod +x /home/david/projects/loggex-v02/scripts/*.sh)",
-      "Bash(file /home/david/projects/loggex-v02/scripts/*.sh)"
+      "Bash(file /home/david/projects/loggex-v02/scripts/*.sh)",
+      "Bash(cat /home/david/.claude/projects/-home-david-projects-loggex-v02/c1e42aca-76c6-4e4d-922f-6a724d8c286f/tool-results/bpou06ttz.txt | grep -A 50 \"CREATE TABLE \\\\`tema\\\\`\")"
     ]
   }
 }
