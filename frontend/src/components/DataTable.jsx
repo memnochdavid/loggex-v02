@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 import AccordionView from './AccordionView';
+import Lottie from 'lottie-react';
+import loadingAnimation from '../../public/loading.json';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
@@ -199,8 +201,8 @@ const DataTable = ({
                                 {loading && (!data || data.length === 0) ? (
                                     <tr>
                                         <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                                <Loader2 className="animate-spin" size={24} />
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div className={styles.lottieThemed}><Lottie animationData={loadingAnimation} loop style={{ width: 80, height: 80 }} /></div>
                                                 <span>{t('dataTable.loading')}</span>
                                             </div>
                                         </td>
@@ -239,8 +241,8 @@ const DataTable = ({
                         </div>
 
                         {loading && (!data || data.length === 0) ? (
-                            <div className={styles.emptyState} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem' }}>
-                                <Loader2 className="animate-spin" size={24} />
+                            <div className={styles.emptyState} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '2rem' }}>
+                                <div className={styles.lottieThemed}><Lottie animationData={loadingAnimation} loop style={{ width: 80, height: 80 }} /></div>
                                 <span>{t('dataTable.loading')}</span>
                             </div>
                         ) : noDataAvailable ? (

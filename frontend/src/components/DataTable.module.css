@@ -178,6 +178,14 @@
     white-space: nowrap;
 }
 
+.lottieThemed svg [fill]:not([fill="none"]):not([fill="transparent"]) {
+    fill: var(--color-primary-500, #4f46e5) !important;
+}
+
+.lottieThemed svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
+    stroke: var(--color-primary-500, #4f46e5) !important;
+}
+
 .emptyState {
     padding: var(--space-8);
     text-align: center;
