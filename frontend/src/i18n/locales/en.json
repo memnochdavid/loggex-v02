@@ -761,7 +761,11 @@
       "borderXXLarge": "Extra Large (24px)",
       "showLottie": "Show Lottie animations in headers",
       "enableDraggable": "Enable modal dragging (Draggable)",
-      "showAnimatedBackground": "Show animated background on views",
+      "animatedBackground": "Animated background",
+      "bgNone": "None",
+      "bgGrid": "Grid",
+      "bgParticles": "Particles",
+      "bgWaves": "Waves",
       "headerFooterOpacity": "Header/Footer Transparency",
       "centerLogo": "Center Logo",
       "changeLogo": "Change"

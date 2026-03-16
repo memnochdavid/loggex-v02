@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.16-MariaDB-ubu2204
+-- Server version	10.11.15-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -1070,7 +1070,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-03-13 23:36:08',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f5f5f5','#5c94f0','#ffffff','#e2e8f0','#334155','#f1f5f9','#ff0000','#f6f6f4','1.5rem',1,0,0,100,100,'#ffffff','#334155','#e2e8f0','#6366f1','#e0e7ff'),
+(1,'#6366f1','#623c9a',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#603e93','#f8fafc','#38316d','#ffffff','#433e70','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-15 20:54:55',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#221d49','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#2d275d','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#52406d','#ffffff','#221d49','#94a3b8','#232037','#221d49','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#30234d','0.75rem',1,1,1,0,25,'#314059','#ffffff','#919191','#676565','#948f8f'),
 (4,'#5c94f0','#1e293b',NULL,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-03-07 15:52:21','2026-03-13 22:39:38',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f5f5f5','#5c94f0','#ffffff','#e2e8f0','#334155','#f1f5f9','#ff0000','#f6f6f4','1.5rem',1,0,0,100,100,'#ffffff','#334155','#e2e8f0','#6366f1','#e0e7ff');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -1237,4 +1237,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-13 23:37:19
+-- Dump completed on 2026-03-16 11:22:11

@@ -1118,18 +1118,33 @@ const Configuracion = () => {
                                         </label>
                                     </div>
 
-                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
-                                        <input
-                                            type="checkbox"
-                                            name="showAnimatedBackground"
-                                            checked={!!settings.showAnimatedBackground}
-                                            onChange={handleChange}
-                                            id="showAnimatedBackground"
-                                            style={{width: '20px', height: '20px'}}
-                                        />
-                                        <label htmlFor="showAnimatedBackground" className={styles.label} style={{cursor: 'pointer'}}>
-                                            {t('config.general.showAnimatedBackground')}
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>
+                                            {t('config.general.animatedBackground')}
                                         </label>
+                                        <select
+                                            name="animatedBackground"
+                                            value={settings.animatedBackground || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value || null;
+                                                setSettings(prev => ({ ...prev, animatedBackground: val }));
+                                            }}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: 'var(--border-radius, 0.5rem)',
+                                                border: '1px solid var(--border-input, #e2e8f0)',
+                                                backgroundColor: 'var(--bg-input, #fff)',
+                                                color: 'var(--text-input, #334155)',
+                                                fontSize: '0.9rem',
+                                                cursor: 'pointer',
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            <option value="">{t('config.general.bgNone')}</option>
+                                            <option value="grid">{t('config.general.bgGrid')}</option>
+                                            <option value="particles">{t('config.general.bgParticles')}</option>
+                                            <option value="waves">{t('config.general.bgWaves')}</option>
+                                        </select>
                                     </div>
 
                                     {canChangeLogo && (

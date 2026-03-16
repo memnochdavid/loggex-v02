@@ -35,7 +35,7 @@ export const applyTheme = (colors) => {
         borderRadius: '0.5rem',
         showLottie: true,
         enableDraggableModal: true,
-        showAnimatedBackground: false,
+        animatedBackground: null,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -160,12 +160,12 @@ export const applyTheme = (colors) => {
     window.themeConfig = {
         showLottie: theme.showLottie,
         enableDraggableModal: theme.enableDraggableModal,
-        showAnimatedBackground: theme.showAnimatedBackground
+        animatedBackground: theme.animatedBackground
     };
     window.dispatchEvent(new Event('themeConfigChanged'));
 
     // Fondo animado: gradiente derivado de viewBackgroundColor + primaryColor
-    if (theme.showAnimatedBackground) {
+    if (theme.animatedBackground) {
         const pRgbAnim = hexToRgb(theme.primaryColor) || {r: 99, g: 102, b: 241};
         const vRgbAnim = hexToRgb(theme.viewBackgroundColor) || {r: 255, g: 255, b: 255};
         // Mezclar viewBg (70%) con primary (30%) para obtener el tono base

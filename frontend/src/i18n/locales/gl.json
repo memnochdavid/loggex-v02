@@ -761,7 +761,11 @@
       "borderXXLarge": "Extra Grande (24px)",
       "showLottie": "Mostrar animacións Lottie nas cabeceiras",
       "enableDraggable": "Habilitar arrastre de modais (Draggable)",
-      "showAnimatedBackground": "Mostrar fondo animado nas vistas",
+      "animatedBackground": "Fondo animado",
+      "bgNone": "Ningún",
+      "bgGrid": "Cuadrícula",
+      "bgParticles": "Partículas",
+      "bgWaves": "Ondas",
       "headerFooterOpacity": "Transparencia Header/Footer",
       "centerLogo": "Logotipo do Centro",
       "changeLogo": "Cambiar"

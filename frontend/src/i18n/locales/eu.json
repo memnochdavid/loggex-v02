@@ -761,7 +761,11 @@
       "borderXXLarge": "Extra Handia (24px)",
       "showLottie": "Erakutsi Lottie animazioak goiburuetan",
       "enableDraggable": "Gaitu modalen arrastatzea (Draggable)",
-      "showAnimatedBackground": "Ikuspegietan atzeko plano animatua erakutsi",
+      "animatedBackground": "Atzeko plano animatua",
+      "bgNone": "Bat ere ez",
+      "bgGrid": "Sareta",
+      "bgParticles": "Partikulak",
+      "bgWaves": "Olatuak",
       "headerFooterOpacity": "Goiburu/Oinaren Gardentasuna",
       "centerLogo": "Ikastetxearen Logoa",
       "changeLogo": "Aldatu"

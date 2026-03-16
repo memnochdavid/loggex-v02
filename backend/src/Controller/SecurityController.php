@@ -112,7 +112,7 @@ class SecurityController extends AbstractController
             'borderRadius' => $v($p->getBorderRadius(), '0.5rem'), // NUEVO
             'showLottie' => $p->isShowLottie(), // NUEVO
             'enableDraggableModal' => $p->isEnableDraggableModal(), // NUEVO
-            'showAnimatedBackground' => $p->isShowAnimatedBackground(),
+            'animatedBackground' => $p->getAnimatedBackground(),
 
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
             'sidebarActiveColor' => $v($p->getSidebarActiveColor(), '#334155'),
