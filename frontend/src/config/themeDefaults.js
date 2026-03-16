@@ -6,6 +6,7 @@ export const DEFAULT_THEME = {
     showLottie: true, // NUEVO
     enableDraggableModal: true, // NUEVO
     animatedBackground: null,
+    elementsOpacity: 100,
     sidebarColor: '#1e293b',
     sidebarActiveColor: '#334155',
     sidebarActiveTextColor: '#ffffff',

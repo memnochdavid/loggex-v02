@@ -334,7 +334,20 @@ const Configuracion = () => {
             }
 
             setMessage({type: 'success', text: t('config.saved')});
-            await checkAuth();
+            const updatedUser = await checkAuth();
+            // Re-sincronizar settings con los datos reales del servidor
+            if (updatedUser?.centro?.personalizacion) {
+                const serverSettings = updatedUser.centro.personalizacion;
+                setSettings(prev => {
+                    const merged = {...prev};
+                    Object.keys(serverSettings).forEach(key => {
+                        if (serverSettings[key] !== null && serverSettings[key] !== undefined) {
+                            merged[key] = serverSettings[key];
+                        }
+                    });
+                    return merged;
+                });
+            }
 
         } catch (error) {
             setMessage({type: 'error', text: error.message || t('config.errorConnection')});
@@ -1146,6 +1159,23 @@ const Configuracion = () => {
                                             <option value="waves">{t('config.general.bgWaves')}</option>
                                         </select>
                                     </div>
+
+                                    {settings.animatedBackground && (
+                                        <div className={styles.colorItem}>
+                                            <label className={styles.label}>
+                                                {t('config.general.elementsOpacity')} ({settings.elementsOpacity ?? 100}%)
+                                            </label>
+                                            <input
+                                                type="range"
+                                                name="elementsOpacity"
+                                                min="20"
+                                                max="100"
+                                                value={settings.elementsOpacity ?? 100}
+                                                onChange={handleChange}
+                                                style={{width: '100%', cursor: 'pointer'}}
+                                            />
+                                        </div>
+                                    )}
 
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>

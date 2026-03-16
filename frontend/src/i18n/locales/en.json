@@ -766,6 +766,7 @@
       "bgGrid": "Grid",
       "bgParticles": "Particles",
       "bgWaves": "Waves",
+      "elementsOpacity": "Elements transparency",
       "headerFooterOpacity": "Header/Footer Transparency",
       "centerLogo": "Center Logo",
       "changeLogo": "Change"

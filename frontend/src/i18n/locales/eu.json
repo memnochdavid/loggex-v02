@@ -766,6 +766,7 @@
       "bgGrid": "Sareta",
       "bgParticles": "Partikulak",
       "bgWaves": "Olatuak",
+      "elementsOpacity": "Elementuen gardentasuna",
       "headerFooterOpacity": "Goiburu/Oinaren Gardentasuna",
       "centerLogo": "Ikastetxearen Logoa",
       "changeLogo": "Aldatu"

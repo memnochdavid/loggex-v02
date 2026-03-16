@@ -766,6 +766,7 @@
       "bgGrid": "Quadrícula",
       "bgParticles": "Partícules",
       "bgWaves": "Ones",
+      "elementsOpacity": "Transparència dels elements",
       "headerFooterOpacity": "Transparència Header/Footer",
       "centerLogo": "Logotip del Centre",
       "changeLogo": "Canviar"

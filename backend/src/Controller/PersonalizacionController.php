@@ -56,6 +56,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['showLottie'])) $personalizacion->setShowLottie($data['showLottie']); // NUEVO
         if (isset($data['enableDraggableModal'])) $personalizacion->setEnableDraggableModal($data['enableDraggableModal']); // NUEVO
         if (array_key_exists('animatedBackground', $data)) $personalizacion->setAnimatedBackground($data['animatedBackground']);
+        if (isset($data['elementsOpacity'])) $personalizacion->setElementsOpacity((int)$data['elementsOpacity']);
 
         // Sidebar
         if (isset($data['sidebarColor'])) $personalizacion->setSidebarColor($data['sidebarColor']);
