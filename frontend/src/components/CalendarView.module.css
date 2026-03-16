@@ -5,8 +5,8 @@
     backdrop-filter: var(--elements-blur, none);
     -webkit-backdrop-filter: var(--elements-blur, none);
     /*padding: var(--space-4);*/
-    width: min-content;
-    max-width: 350px; /* Tamaño compacto por defecto */
+    width: 100%;
+    max-width: 350px;
     box-shadow: var(--shadow-sm); /* Restaurada sombra para dar profundidad sin borde */
     margin: 0 auto; /* Centrar si es más pequeño que el contenedor */
 }
