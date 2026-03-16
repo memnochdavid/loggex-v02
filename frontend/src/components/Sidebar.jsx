@@ -268,19 +268,6 @@ const Sidebar = () => {
             )}
 
             <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
-                <div className={styles.header}>
-                    {!isCollapsed && (
-                        <div className={styles.userInfo}>
-                            <div className={styles.roles}>
-                                {user?.roles
-                                    .filter(role => role !== "ROLE_USER")
-                                    .map(role => role.replace("ROLE_", ""))
-                                    .join(", ")}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
                 <nav className={styles.nav}>
 
 

@@ -53,9 +53,9 @@
     top: calc(100% + 8px); /* Un poco separado del avatar */
     right: 0;
     width: 220px; /* Un poco más ancho */
-    background-color: var(--bg-card); /* Usar variable maestra */
-    border: 1px solid var(--border-color); /* Usar variable maestra */
-    border-radius: var(--radius-lg); /* Usar variable maestra */
+    background-color: var(--bg-card-solid, var(--bg-card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     z-index: 100;
     overflow: hidden;
@@ -81,12 +81,20 @@
 
 .userEmail {
     display: block;
-    color: var(--widget-header-text, var(--text-muted)); /* Usar color de texto de cabecera de widget (con opacidad si se pudiera, pero directo es seguro) */
-    opacity: 0.8; /* Darle un poco de transparencia para diferenciar del nombre */
+    color: var(--widget-header-text, var(--text-muted));
+    opacity: 0.8;
     font-size: var(--text-xs);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.userRoles {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    color: var(--color-primary-400);
+    margin-top: var(--space-1);
 }
 
 .menuList {

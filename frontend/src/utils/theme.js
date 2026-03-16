@@ -206,6 +206,7 @@ export const applyTheme = (colors) => {
     // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
     // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra
     root.style.setProperty('--bg-card', applyAlpha(theme.widgetBgColor));
+    root.style.setProperty('--bg-card-solid', theme.widgetBgColor);
     
     // Usamos color-mix con valores directos para evitar problemas de orden de variables
     // CORRECCIÓN: Usar --border-color en lugar de --color-border para coincidir con CSS modules
