@@ -23,7 +23,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   };
 
   return (
-    <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''}`}>
+    <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''} accordionItem ${isExpanded ? 'accordionItemOpen' : ''}`}>
       <div className={styles.accordionHeader} onClick={handleToggle}>
         <div className={styles.headerContent}>
             {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}
@@ -46,9 +46,9 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
           />
         </div>
       </div>
-      <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''}`}>
-        <div className={styles.accordionContent}>
-            <div className={styles.accordionInner}>
+      <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''} accordionContentWrapper`}>
+        <div className={`${styles.accordionContent} accordionContent`}>
+            <div className={`${styles.accordionInner} accordionInner`}>
                 {children}
             </div>
         </div>
@@ -59,7 +59,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
 
 const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll }) => {
   return (
-    <div className={`${styles.accordionContainer} ${className || ''}`}>
+    <div className={`${styles.accordionContainer} ${className || ''} accordionContainer`}>
       {data.map((item, index) => (
         <AccordionItem 
           key={item.id || index} 
