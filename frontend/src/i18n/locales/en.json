@@ -766,6 +766,7 @@
       "bgGrid": "Grid",
       "bgParticles": "Particles",
       "bgWaves": "Waves",
+      "bgAurora": "Aurora",
       "elementsOpacity": "Elements transparency",
       "elementsBlur": "Elements blur",
       "headerFooterOpacity": "Header/Footer Transparency",

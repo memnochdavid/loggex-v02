@@ -766,6 +766,7 @@
       "bgGrid": "Cuadrícula",
       "bgParticles": "Partículas",
       "bgWaves": "Ondas",
+      "bgAurora": "Aurora",
       "elementsOpacity": "Transparencia dos elementos",
       "elementsBlur": "Desenfoque dos elementos",
       "headerFooterOpacity": "Transparencia Header/Footer",

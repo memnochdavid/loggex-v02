@@ -1157,6 +1157,7 @@ const Configuracion = () => {
                                             <option value="grid">{t('config.general.bgGrid')}</option>
                                             <option value="particles">{t('config.general.bgParticles')}</option>
                                             <option value="waves">{t('config.general.bgWaves')}</option>
+                                            <option value="aurora">{t('config.general.bgAurora')}</option>
                                         </select>
                                     </div>
 

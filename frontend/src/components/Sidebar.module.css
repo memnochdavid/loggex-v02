@@ -209,7 +209,7 @@
         z-index: 110; /* Por encima del header (z-index: 100) */
         animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
-        background-color: var(--bg-sidebar, var(--color-gray-800)); /* Siempre opaco en mobile */
+        background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
     }
 
     .mobileToggle {
