@@ -7,6 +7,7 @@ export const DEFAULT_THEME = {
     enableDraggableModal: true, // NUEVO
     animatedBackground: null,
     elementsOpacity: 100,
+    elementsBlur: 0,
     sidebarColor: '#1e293b',
     sidebarActiveColor: '#334155',
     sidebarActiveTextColor: '#ffffff',

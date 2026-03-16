@@ -2,6 +2,8 @@
     background-color: var(--bg-card); /* Restaurado fondo */
     border: none; /* Quitado borde */
     border-radius: var(--radius-lg);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     /*padding: var(--space-4);*/
     width: min-content;
     max-width: 350px; /* Tamaño compacto por defecto */

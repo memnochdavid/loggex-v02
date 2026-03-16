@@ -4,6 +4,8 @@
     flex-direction: column;
     height: 100%;
     background-color: var(--widget-bg, var(--bg-card));
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
 }
 
 .widgetHeader {

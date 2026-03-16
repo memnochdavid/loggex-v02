@@ -72,6 +72,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private int $elementsOpacity = 100;
 
+    #[ORM\Column]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private int $elementsBlur = 0;
+
     // --- Sidebar ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -563,6 +567,9 @@ class Personalizacion
 
     public function getElementsOpacity(): int { return $this->elementsOpacity; }
     public function setElementsOpacity(int $opacity): static { $this->elementsOpacity = $opacity; return $this; }
+
+    public function getElementsBlur(): int { return $this->elementsBlur; }
+    public function setElementsBlur(int $blur): static { $this->elementsBlur = $blur; return $this; }
 
     public function getSidebarColor(): ?string { return $this->sidebarColor; }
     public function setSidebarColor(string $color): static { $this->sidebarColor = $color; return $this; }

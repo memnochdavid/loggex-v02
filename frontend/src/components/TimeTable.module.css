@@ -13,6 +13,8 @@
     overflow: hidden;
     background-color: var(--bg-card); /* Usar variable maestra */
     box-shadow: var(--shadow-sm);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     display: flex;
     flex-direction: column;
     /* max-height gestionado por estado open/close */

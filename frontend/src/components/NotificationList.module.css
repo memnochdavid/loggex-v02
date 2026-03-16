@@ -5,6 +5,8 @@
     background-color: var(--widget-bg, var(--bg-card));
     border-radius: var(--radius-lg); /* Aplicar border radius configurado */
     overflow: hidden; /* Recortar esquinas */
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
 }
 
 .widgetHeader {

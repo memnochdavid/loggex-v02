@@ -37,6 +37,7 @@ export const applyTheme = (colors) => {
         enableDraggableModal: true,
         animatedBackground: null,
         elementsOpacity: 100,
+        elementsBlur: 0,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
@@ -190,9 +191,17 @@ export const applyTheme = (colors) => {
         root.style.removeProperty('--bg-anim-3');
     }
 
-    // --- Transparencia de elementos (solo con fondo animado activo) ---
+    // --- Transparencia y blur de elementos (solo con fondo animado activo) ---
     const elOp = theme.animatedBackground ? (theme.elementsOpacity != null ? theme.elementsOpacity : 100) : 100;
+    const elBlur = theme.animatedBackground ? (theme.elementsBlur != null ? theme.elementsBlur : 0) : 0;
     const applyAlpha = (color) => elOp < 100 ? `color-mix(in srgb, ${color} ${elOp}%, transparent)` : color;
+
+    // Backdrop blur para efecto glassmorphism
+    if (elBlur > 0) {
+        root.style.setProperty('--elements-blur', `blur(${elBlur}px)`);
+    } else {
+        root.style.removeProperty('--elements-blur');
+    }
 
     // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
     // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra

@@ -767,6 +767,7 @@
       "bgParticles": "Particles",
       "bgWaves": "Waves",
       "elementsOpacity": "Elements transparency",
+      "elementsBlur": "Elements blur",
       "headerFooterOpacity": "Header/Footer Transparency",
       "centerLogo": "Center Logo",
       "changeLogo": "Change"

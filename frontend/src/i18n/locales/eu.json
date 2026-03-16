@@ -767,6 +767,7 @@
       "bgParticles": "Partikulak",
       "bgWaves": "Olatuak",
       "elementsOpacity": "Elementuen gardentasuna",
+      "elementsBlur": "Elementuen lausotzea",
       "headerFooterOpacity": "Goiburu/Oinaren Gardentasuna",
       "centerLogo": "Ikastetxearen Logoa",
       "changeLogo": "Aldatu"

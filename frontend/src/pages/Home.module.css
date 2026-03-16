@@ -73,6 +73,8 @@
     padding: var(--space-6);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     transition: var(--transition-base);
     text-align: left;
     display: flex;

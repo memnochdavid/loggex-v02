@@ -1177,6 +1177,23 @@ const Configuracion = () => {
                                         </div>
                                     )}
 
+                                    {settings.animatedBackground && (
+                                        <div className={styles.colorItem}>
+                                            <label className={styles.label}>
+                                                {t('config.general.elementsBlur')} ({settings.elementsBlur ?? 0}px)
+                                            </label>
+                                            <input
+                                                type="range"
+                                                name="elementsBlur"
+                                                min="0"
+                                                max="20"
+                                                value={settings.elementsBlur ?? 0}
+                                                onChange={handleChange}
+                                                style={{width: '100%', cursor: 'pointer'}}
+                                            />
+                                        </div>
+                                    )}
+
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
                                             <label className={styles.label}>{t('config.general.centerLogo')}</label>

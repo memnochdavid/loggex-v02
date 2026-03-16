@@ -114,6 +114,7 @@ class SecurityController extends AbstractController
             'enableDraggableModal' => $p->isEnableDraggableModal(), // NUEVO
             'animatedBackground' => $p->getAnimatedBackground(),
             'elementsOpacity' => $p->getElementsOpacity(),
+            'elementsBlur' => $p->getElementsBlur(),
 
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
             'sidebarActiveColor' => $v($p->getSidebarActiveColor(), '#334155'),

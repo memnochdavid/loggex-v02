@@ -151,6 +151,8 @@
     background-color: var(--bg-card);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     width: 100%;
     max-width: 600px;
     max-height: 90vh;
