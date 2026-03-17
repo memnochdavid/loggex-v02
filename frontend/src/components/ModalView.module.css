@@ -39,6 +39,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Para que el contenido no se salga de los bordes redondeados */
+    min-height: 0; /* Permitir que flexbox encoja y active scroll en hijos */
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
 
     /* Animación de escala por defecto (Desktop) */
     transform: scale(0.95);

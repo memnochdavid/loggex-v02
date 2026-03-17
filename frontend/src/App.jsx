@@ -30,6 +30,7 @@ import MisProfesores from './pages/MisProfesores';
 import MisAlumnos from './pages/MisAlumnos'; // Nuevo
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
+import AnimatedBackground from './components/AnimatedBackground';
 import usePageTitle from './hooks/usePageTitle';
 import './App.css';
 
@@ -54,6 +55,7 @@ function App() {
         <Router>
           <PageTitleUpdater />
           <div className="app-layout">
+            <AnimatedBackground />
             <Header />
             <main className="app-main">
               <Routes>

@@ -86,6 +86,12 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                     <div className={styles.menuHeader}>
                         <span className={styles.userName}>{user.nombre || 'Usuario'}</span>
                         <span className={styles.userEmail}>{user.email}</span>
+                        <span className={styles.userRoles}>
+                            {user.roles
+                                ?.filter(role => role !== "ROLE_USER")
+                                .map(role => role.replace("ROLE_", ""))
+                                .join(", ")}
+                        </span>
                     </div>
                     <ul className={styles.menuList}>
                         <li>

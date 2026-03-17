@@ -9,6 +9,7 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from "../../public/book.json";
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const MaterialesAlumno = () => {
   const { t } = useTranslation();
@@ -181,7 +182,7 @@ const MaterialesAlumno = () => {
             const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
             
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
-            const title = `${imp.modulo.nombre} (${imp.grupo.nombre}) - ${nombreProfesor}`;
+            const title = `${imp.modulo.nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
 
             asignaturasData.push({
                 id: impId,
@@ -287,7 +288,7 @@ const MaterialesAlumno = () => {
         </CrudHeader>
 
         {loading ? (
-          <div className={styles.loadingContainer}>{t('common.loading')}</div>
+          <LoadingView />
         ) : error ? (
           <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (

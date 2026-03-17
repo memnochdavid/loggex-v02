@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd D:/WORKSPACE/loggex-v02/frontend && npm install i18next react-i18next)"
+      "Bash(cd D:/WORKSPACE/loggex-v02/frontend && npm install i18next react-i18next)",
+      "Bash(docker compose:*)",
+      "Bash(ls D:/WORKSPACE/loggex-v02/backup_tfg*.sql D:/WORKSPACE/loggex-v02/restore* 2>/dev/null)",
+      "Bash(cd /home/david/Escritorio/loggex-v02/frontend && npx vite build --mode development 2>&1 | tail -20)",
+      "Bash(for f:*)",
+      "Bash(sudo docker:*)",
+      "Bash(ls /home/david/projects/loggex-v02/*.sh /home/david/projects/loggex-v02/*.bat 2>/dev/null)",
+      "Bash(chmod +x /home/david/projects/loggex-v02/scripts/*.sh)",
+      "Bash(file /home/david/projects/loggex-v02/scripts/*.sh)",
+      "Bash(cat /home/david/.claude/projects/-home-david-projects-loggex-v02/c1e42aca-76c6-4e4d-922f-6a724d8c286f/tool-results/bpou06ttz.txt | grep -A 50 \"CREATE TABLE \\\\`tema\\\\`\")",
+      "Bash(grep:*)"
     ]
   }
 }

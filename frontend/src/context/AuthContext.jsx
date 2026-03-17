@@ -31,17 +31,20 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Accept': 'application/json',
         },
-        credentials: 'include', 
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        return data.user;
       } else {
         setUser(null);
+        return null;
       }
     } catch (error) {
       console.error("Error checking auth:", error);
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }

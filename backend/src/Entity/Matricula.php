@@ -37,8 +37,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'alumno.nombre' => 'partial',
     'grupo' => 'exact',
     'grupo.nombre' => 'partial',
-    'grupo.centro' => 'exact',
-    'grupo.anioEscolar' => 'exact' // AÑADIDO: Permite filtrar matrículas por año escolar del grupo
+    'grupo.centro' => 'exact'
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['id', 'alumno.nombre', 'grupo.nombre', 'grupo.anioEscolar'], arguments: ['orderParameterName' => 'order'])]
 class Matricula

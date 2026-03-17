@@ -106,14 +106,14 @@ Se utiliza `Doctrine Migrations` para versionar y desplegar cambios en el esquem
 *   Docker y Docker Compose.
 
 ### Comandos Útiles
-*   **Iniciar**: `./init.sh` (Levanta todo, instala dependencias, migra BD).
+*   **Iniciar**: `./scripts/init.sh` (Levanta todo, instala dependencias, migra BD).
 *   **Limpiar Caché Backend**: `docker compose exec backend php bin/console cache:clear`
 *   **Crear Migración**: `docker compose exec backend php bin/console make:migration`
 *   **Ejecutar Migración**: `docker compose exec backend php bin/console doctrine:migrations:migrate`
 *   **Cargar Fixtures**: `docker compose exec backend php bin/console doctrine:fixtures:load`
 
 ### Scripts de Utilidad
-*   `init.sh`: Script maestro de inicialización.
+*   `scripts/init.sh`: Script maestro de inicialización.
 *   `fix_api_platform_docker.sh`: Repara configuración de API Platform si se corrompe.
 *   `fix_composer.sh`: Reinstala dependencias críticas del backend.
 *   `fix_dates.sh`: Rellena fechas nulas en la BD.

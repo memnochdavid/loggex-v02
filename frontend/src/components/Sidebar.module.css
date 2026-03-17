@@ -1,13 +1,15 @@
 .sidebar {
     width: 250px;
     height: 100%;
-    background-color: var(--bg-sidebar, var(--color-gray-800));
+    background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
     color: var(--text-light);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     display: flex;
     flex-direction: column;
     padding: var(--space-4);
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow: hidden;
     flex-shrink: 0;
     border-right: 1px solid var(--color-gray-900);
     transition: width 0.3s ease;
@@ -92,6 +94,7 @@
     flex-direction: column;
     gap: var(--space-1);
     flex: 1;
+    min-height: 0;
 }
 
 .navItem {
@@ -134,20 +137,23 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 
     /*
        REDEFINICIÓN DE VARIABLES CSS LOCALES
        Esto fuerza al componente AccordionView (que usa estas variables)
        a usar los valores específicos del Sidebar cuando está dentro de este wrapper.
     */
-    --accordion-header-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-bg: color-mix(in srgb, var(--sidebar-accordion-header-bg, transparent) 25%, transparent);
     --accordion-header-text: var(--sidebar-accordion-header-text, inherit);
 
     /* Para el estado activo, usamos el mismo que el header normal del sidebar si no hay uno específico */
-    --accordion-header-active-bg: var(--sidebar-accordion-header-bg, transparent);
+    --accordion-header-active-bg: color-mix(in srgb, var(--sidebar-accordion-header-bg, transparent) 25%, transparent);
     --accordion-header-active-text: var(--sidebar-accordion-header-text, inherit);
 
-    --accordion-content-bg: var(--sidebar-accordion-content-bg, rgba(0,0,0,0.2));
+    --accordion-content-bg: color-mix(in srgb, var(--sidebar-accordion-content-bg, rgba(0,0,0,0.2)) 70%, transparent);
     --accordion-content-text: var(--sidebar-accordion-content-text, inherit);
 
     /* Eliminamos bordes y sombras por defecto del acordeón */
@@ -155,9 +161,35 @@
     --shadow-elevation-low: none;
 }
 
-/* Ajustes adicionales para asegurar que el contenido se vea bien */
+/* Cadena flex para que el accordion abierto ocupe el espacio disponible */
+.accordionWrapper :global(.accordionContainer) {
+    flex: 1;
+    min-height: 0;
+}
+
+.accordionWrapper :global(.accordionItem) {
+    flex: 0 0 auto;
+}
+
+.accordionWrapper :global(.accordionItemOpen) {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+}
+
+.accordionWrapper :global(.accordionItemOpen) :global(.accordionContentWrapper) {
+    flex: 1;
+    min-height: 0;
+}
+
+.accordionWrapper :global(.accordionItemOpen) :global(.accordionContent) {
+    overflow-y: auto;
+}
+
 .accordionWrapper :global(.accordionInner) {
-    padding: 0.5rem 0 0.5rem 0.5rem; /* Indent content */
+    padding: 0.5rem 0 0.5rem 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -204,8 +236,10 @@
         left: 0;
         bottom: 0;
         height: 100vh;
+        z-index: 110; /* Por encima del header (z-index: 100) */
         animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
     }
 
     .mobileToggle {
@@ -214,6 +248,7 @@
 
     .overlay {
         display: block;
+        z-index: 105; /* Por encima del header (z-index: 100), por debajo del sidebar (110) */
     }
 
     .collapseBtn {

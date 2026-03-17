@@ -30,6 +30,13 @@
     }
 }
 
+@media (max-width: 768px) {
+    .button {
+        padding: 0.35rem;
+        gap: 0;
+    }
+}
+
 .button:hover, .button.open {
     background: rgba(255, 255, 255, 0.25);
     border-color: var(--primary-color, rgba(255, 255, 255, 0.8));
@@ -46,15 +53,15 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background-color: var(--bg-view, var(--color-gray-50));
+    background-color: var(--bg-card-solid, var(--bg-card));
     border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: var(--border-radius, 8px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-lg, 8px);
+    box-shadow: var(--shadow-lg);
     z-index: 1000;
-    min-width: 180px; /* Un pouco máis ancho para acomodar nomes longos */
+    min-width: 180px;
     overflow: hidden;
     animation: slideDown 0.2s ease-out;
-    padding: 0.25rem; /* Espazo interior para que os items non toquen o bordo se teñen radius */
+    padding: 0.25rem;
 }
 
 @keyframes slideDown {

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 import AccordionView from './AccordionView';
+import Lottie from 'lottie-react';
+import loadingAnimation from '../../public/loading.json';
+import loadingStyles from './LoadingView.module.css';
+import LoadingView from './LoadingView';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
@@ -159,7 +163,9 @@ const DataTable = ({
                     justifyContent: 'center',
                     pointerEvents: 'none'
                 }}>
-                    <Loader2 className="animate-spin" size={32} color="#4f46e5" />
+                    <div className={loadingStyles.lottieThemed}>
+                        <Lottie animationData={loadingAnimation} loop style={{ width: 60, height: 60 }} />
+                    </div>
                 </div>
             )}
 
@@ -199,10 +205,7 @@ const DataTable = ({
                                 {loading && (!data || data.length === 0) ? (
                                     <tr>
                                         <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                                <Loader2 className="animate-spin" size={24} />
-                                                <span>{t('dataTable.loading')}</span>
-                                            </div>
+                                            <LoadingView />
                                         </td>
                                     </tr>
                                 ) : noDataAvailable ? (
@@ -239,10 +242,7 @@ const DataTable = ({
                         </div>
 
                         {loading && (!data || data.length === 0) ? (
-                            <div className={styles.emptyState} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem' }}>
-                                <Loader2 className="animate-spin" size={24} />
-                                <span>{t('dataTable.loading')}</span>
-                            </div>
+                            <LoadingView />
                         ) : noDataAvailable ? (
                             <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
                                 {t('dataTable.noData')}

@@ -157,10 +157,14 @@ const Imparticiones = () => {
     try {
       let url = getApiUrl(`/api/imparticions?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (params.searchTerm) {
-          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
+      if (params.selectedCentro) {
+          url += `&grupo.centro=${params.selectedCentro}`;
       }
-      
+
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`;
+      }
+
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -208,6 +212,7 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           sortColumn,
           sortDirection
       };
@@ -226,12 +231,13 @@ const Imparticiones = () => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
       fetchImparticionesData
   ]);
 
@@ -343,6 +349,7 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           sortColumn,
           sortDirection
       });
@@ -379,6 +386,7 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           sortColumn,
           sortDirection
       });
@@ -387,7 +395,7 @@ const Imparticiones = () => {
       console.error("Error deleting imparticion:", err);
       alert(t('common.errorDeletingMsg', { message: err.message }));
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData]);
 
   const columns = useMemo(() => [
     { 
@@ -470,7 +478,7 @@ const Imparticiones = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 

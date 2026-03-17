@@ -109,10 +109,10 @@ const LanguageSelector = () => {
       >
         <div className={styles.currentSelection}>
           {currentLang.flag}
-          {/* En móvil mostramos el código (ES, EN...), en escritorio el nombre completo */}
-          <span>{isMobile ? currentLang.code.toUpperCase() : currentLang.label}</span>
+          {/* En móvil solo bandera, en escritorio el nombre completo */}
+          {!isMobile && <span>{currentLang.label}</span>}
         </div>
-        <ChevronDown size={14} className={styles.chevron} />
+        {!isMobile && <ChevronDown size={14} className={styles.chevron} />}
       </button>
 
       {isOpen && (

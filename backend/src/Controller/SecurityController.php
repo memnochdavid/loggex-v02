@@ -112,12 +112,16 @@ class SecurityController extends AbstractController
             'borderRadius' => $v($p->getBorderRadius(), '0.5rem'), // NUEVO
             'showLottie' => $p->isShowLottie(), // NUEVO
             'enableDraggableModal' => $p->isEnableDraggableModal(), // NUEVO
+            'animatedBackground' => $p->getAnimatedBackground(),
+            'elementsOpacity' => $p->getElementsOpacity(),
+            'elementsBlur' => $p->getElementsBlur(),
 
             'sidebarColor' => $v($p->getSidebarColor(), '#1e293b'),
             'sidebarActiveColor' => $v($p->getSidebarActiveColor(), '#334155'),
             'sidebarActiveTextColor' => $v($p->getSidebarActiveTextColor(), '#ffffff'),
             'sidebarHoverColor' => $v($p->getSidebarHoverColor(), '#334155'),
             'sidebarHoverTextColor' => $v($p->getSidebarHoverTextColor(), '#ffffff'),
+            'sidebarOpacity' => $p->getSidebarOpacity(),
 
             'sidebarAccordionHeaderBgColor' => $v($p->getSidebarAccordionHeaderBgColor(), '#1e293b'),
             'sidebarAccordionHeaderTextColor' => $v($p->getSidebarAccordionHeaderTextColor(), '#ffffff'),
@@ -133,6 +137,7 @@ class SecurityController extends AbstractController
             'buttonSecondaryTextColor' => $v($p->getButtonSecondaryTextColor(), '#334155'),
             'headerFooterColor' => $v($p->getHeaderFooterColor(), '#1e293b'),
             'headerFooterTextColor' => $v($p->getHeaderFooterTextColor(), '#ffffff'),
+            'headerFooterOpacity' => $p->getHeaderFooterOpacity(),
             'scrollbarThumbColor' => $v($p->getScrollbarThumbColor(), '#cbd5e1'),
             'scrollbarTrackColor' => $v($p->getScrollbarTrackColor(), '#f1f5f9'),
             'scrollbarHoverColor' => $v($p->getScrollbarHoverColor(), '#94a3b8'),
@@ -201,6 +206,12 @@ class SecurityController extends AbstractController
             'chatBubbleSentTextColor' => $v($p->getChatBubbleSentTextColor(), '#ffffff'),
             'chatBubbleReceivedBgColor' => $v($p->getChatBubbleReceivedBgColor(), '#ffffff'),
             'chatBubbleReceivedTextColor' => $v($p->getChatBubbleReceivedTextColor(), '#334155'),
+
+            'inputBgColor' => $v($p->getInputBgColor(), '#ffffff'),
+            'inputTextColor' => $v($p->getInputTextColor(), '#334155'),
+            'inputBorderColor' => $v($p->getInputBorderColor(), '#e2e8f0'),
+            'inputFocusBorderColor' => $v($p->getInputFocusBorderColor(), '#6366f1'),
+            'inputFocusShadowColor' => $v($p->getInputFocusShadowColor(), '#e0e7ff'),
 
             'eventCardBgColor' => $v($p->getEventCardBgColor(), '#ffffff'),
             'eventCardBorderColor' => $v($p->getEventCardBorderColor(), '#e2e8f0'),

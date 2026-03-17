@@ -1,6 +1,8 @@
 .card {
     background-color: var(--event-card-bg, var(--bg-card));
     border: 1px solid var(--event-card-border, var(--border-color));
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     border-left-width: 4px;
     border-left-style: solid;
     /* border-left-color se aplica inline */

@@ -50,7 +50,7 @@ User, Centro, CicloFormativo, Modulo, Grupo, Matricula, Imparticion, Horario, Fe
 ## Comandos Útiles
 ```bash
 # Levantar proyecto
-./init.sh  # (o init.bat en Windows)
+./scripts/init.sh  # (o scripts\init.bat en Windows)
 
 # Backend (dentro del contenedor)
 docker compose exec backend php bin/console cache:clear
@@ -67,7 +67,7 @@ docker compose exec frontend npm install [paquete]
 - No trabajar directamente en `main`/`master`
 
 ## Notas
-- El proyecto tiene scripts `.sh` y `.bat` duplicados para Linux/Windows
+- Los scripts `.sh` y `.bat` están en `scripts/` (duplicados Linux/Windows)
 - Los backups de BD están en la raíz (`backup_tfg*.sql`)
 - MinIO backup en `minio_backup/`
 - Idioma del proyecto: español (commits, docs, variables de negocio)

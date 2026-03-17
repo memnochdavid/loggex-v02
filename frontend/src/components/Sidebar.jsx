@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
@@ -259,7 +260,7 @@ const Sidebar = () => {
 
 
 
-    return (
+    const sidebarContent = (
         <>
             {/* Overlay para cerrar el menú en móvil al hacer click fuera */}
             {isSidebarOpen && (
@@ -267,25 +268,12 @@ const Sidebar = () => {
             )}
 
             <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
-                <div className={styles.header}>
-                    {!isCollapsed && (
-                        <div className={styles.userInfo}>
-                            <div className={styles.roles}>
-                                {user?.roles
-                                    .filter(role => role !== "ROLE_USER")
-                                    .map(role => role.replace("ROLE_", ""))
-                                    .join(", ")}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
                 <nav className={styles.nav}>
 
 
                     {/* Usamos AccordionView para las secciones */}
                     <div className={styles.accordionWrapper}>
-                        <AccordionView 
+                        <AccordionView
                             data={accordionData}
                             renderItem={(item) => item.content}
                             renderHeader={(item) => !isCollapsed ? <span>{item.title}</span> : null}
@@ -304,6 +292,13 @@ const Sidebar = () => {
             </aside>
         </>
     );
+
+    // En móvil, renderizar vía portal para escapar del stacking context de app-main
+    if (isSidebarOpen) {
+        return createPortal(sidebarContent, document.body);
+    }
+
+    return sidebarContent;
 };
 
 export default Sidebar;

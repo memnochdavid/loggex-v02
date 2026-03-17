@@ -1,134 +1,381 @@
-.container {
+/* ========================================
+   Login Page - Split Layout
+   ======================================== */
+
+.page {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: var(--space-4);
-  position: relative;
+  height: calc(100vh - 60px);
+  height: calc(100dvh - 60px);
+  background: #f8fafc;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
 }
 
-/* Grid Animado */
-.container::before {
-  content: "";
-  position: absolute;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridMove 4s linear infinite;
-  z-index: 0;
-  pointer-events: none;
-  transform: perspective(500px) rotateX(20deg);
-  opacity: 0.6;
+/* ========================================
+   Panel Izquierdo - Branding
+   ======================================== */
+
+.brandPanel {
+  position: relative;
+  flex: 1.15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c1222;
+  overflow: hidden;
 }
 
-.container::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, transparent 20%, #020617 90%);
+/* ========================================
+   Brand Content
+   ======================================== */
+
+.brandContent {
+  position: relative;
   z-index: 1;
-  pointer-events: none;
-  animation: pulseVignette 6s ease-in-out infinite alternate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
 }
 
-/* Clase para el overlay del ModalView en Login (transparente) */
-.loginOverlay {
-    background-color: transparent !important;
-    pointer-events: none; /* Permitir clicks en el fondo si fuera necesario, pero el modal debe capturarlos */
-}
-/* Reactivar pointer-events para el contenido del modal */
-.loginOverlay > * {
-    pointer-events: auto;
+.lottieContainer {
+  width: clamp(100px, 18vh, 160px);
+  height: clamp(100px, 18vh, 160px);
+  margin-bottom: clamp(0.5rem, 1.5vh, 1rem);
+  filter: drop-shadow(0 0 50px rgba(99, 102, 241, 0.25));
 }
 
-/* Clase para el contenido del ModalView (Glassmorphism) */
-.loginCard {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+.brandLogo {
+  height: clamp(28px, 5vh, 40px);
+  object-fit: contain;
+  margin-bottom: 0.35rem;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
 }
 
-.formGroup {
-  margin-bottom: var(--space-5);
+.brandTagline {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: clamp(0.8rem, 1.4vh, 1rem);
+  font-weight: 400;
+  margin: 0 0 clamp(0.75rem, 2vh, 1.5rem);
+  letter-spacing: 0.03em;
+}
+
+/* ========================================
+   Feature Grid
+   ======================================== */
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(0.35rem, 0.8vh, 0.55rem);
+  align-self: stretch;
+}
+
+.featureCard {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: clamp(0.45rem, 1vh, 0.65rem) 0.7rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.featureCard:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.featureIcon {
+  color: rgba(160, 155, 255, 0.8);
+  min-width: 18px;
+}
+
+.featureCard span {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: clamp(0.68rem, 1.1vh, 0.78rem);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+/* ========================================
+   Panel Derecho - Formulario
+   ======================================== */
+
+.formPanel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 2rem;
+  background: #ffffff;
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vh, 1.75rem);
+}
+
+.formHeader {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.formLogo {
+  width: clamp(40px, 7vh, 52px);
+  height: clamp(40px, 7vh, 52px);
+  object-fit: contain;
+  margin-bottom: 0.15rem;
+}
+
+.formTitle {
+  font-size: clamp(1.2rem, 2.5vh, 1.5rem);
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.formSubtitle {
+  font-size: clamp(0.8rem, 1.4vh, 0.9rem);
+  color: #64748b;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ========================================
+   Formulario
+   ======================================== */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.8vh, 1.15rem);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: var(--font-bold);
-  color: var(--color-gray-700);
-  font-size: var(--text-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+
+.inputGroup.focused .label {
+  color: #4f46e5;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 0.85rem;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.inputGroup.focused .inputIcon {
+  color: #4f46e5;
+}
+
+.inputGroup.filled .inputIcon {
+  color: #64748b;
 }
 
 .input {
   width: 100%;
-  padding: var(--space-3);
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
+  padding: clamp(0.6rem, 1.2vh, 0.75rem) 0.85rem clamp(0.6rem, 1.2vh, 0.75rem) 2.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  color: #0f172a;
+  background: #f8fafc;
   transition: all 0.2s;
   box-sizing: border-box;
-  background-color: rgba(241, 245, 249, 0.8);
-  color: var(--color-gray-900);
-  font-weight: 500;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary-500);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
 }
 
-.error {
-  color: #b91c1c;
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
-  text-align: center;
-  background-color: rgba(254, 242, 242, 0.9);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid #fecaca;
+.togglePassword {
+  position: absolute;
+  right: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: color 0.2s;
+  border-radius: 6px;
+}
+
+.togglePassword:hover {
+  color: #475569;
+}
+
+/* ========================================
+   Botón Submit
+   ======================================== */
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: clamp(0.65rem, 1.3vh, 0.85rem) 1.5rem;
+  margin-top: 0.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Spinner
+   ======================================== */
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ========================================
+   Error
+   ======================================== */
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.82rem;
   font-weight: 500;
+  animation: shakeError 0.4s ease;
 }
 
-@keyframes gridMove {
-  0% {
-    transform: perspective(500px) rotateX(20deg) translateY(0) translateX(0);
+/* ========================================
+   Footer
+   ======================================== */
+
+.footer {
+  text-align: center;
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* ========================================
+   Animaciones
+   ======================================== */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 900px) {
+  .brandPanel {
+    display: none;
   }
-  100% {
-    transform: perspective(500px) rotateX(20deg) translateY(60px) translateX(60px);
+
+  .formPanel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  }
+
+  .page {
+    background: #f8fafc;
   }
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+@media (max-width: 480px) {
+  .formPanel {
+    padding: 1.25rem;
+  }
 
-@keyframes pulseVignette {
-  0% { opacity: 0.4; transform: scale(1); }
-  100% { opacity: 0.7; transform: scale(1.05); }
+  .formContainer {
+    gap: 1.5rem;
+  }
+
+  .formTitle {
+    font-size: 1.3rem;
+  }
 }

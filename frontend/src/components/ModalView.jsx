@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import Draggable from 'react-draggable';
 import Button from './Button';
@@ -198,7 +199,7 @@ const ModalView = ({
                     )}
                 </div>
                 
-                <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0 }}>
                     <div className={`${styles.modalBody} ${bodyClassName}`}>
                         {children}
                     </div>
@@ -224,7 +225,7 @@ const ModalView = ({
         </div>
     );
 
-    return (
+    return createPortal(
         <div className={overlayClass} onClick={handleOverlayClick}>
             {isMobile || !enableDraggable ? (
                 // En móvil o si draggable está desactivado, renderizamos directamente
@@ -235,7 +236,8 @@ const ModalView = ({
                     {modalContent}
                 </Draggable>
             )}
-        </div>
+        </div>,
+        document.body
     );
 };
 

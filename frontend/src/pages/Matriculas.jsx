@@ -138,10 +138,14 @@ const Matriculas = () => {
     try {
       let url = getApiUrl(`/api/matriculas?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (params.searchTerm) {
-          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
+      if (params.selectedCentro) {
+          url += `&grupo.centro=${params.selectedCentro}`;
       }
-      
+
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`;
+      }
+
       if (params.selectedGrupo) {
           url += `&grupo=${params.selectedGrupo}`;
       }
@@ -193,6 +197,7 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
@@ -212,13 +217,14 @@ const Matriculas = () => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      selectedGrupo, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedGrupo,
+      sortColumn,
+      sortDirection,
       fetchMatriculasData
   ]);
 
@@ -320,6 +326,7 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
@@ -357,6 +364,7 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
@@ -366,7 +374,7 @@ const Matriculas = () => {
       console.error("Error deleting matricula:", err);
       alert(t('common.errorDeletingMsg', { message: err.message }));
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
 
   const columns = useMemo(() => [
     { 
@@ -375,11 +383,17 @@ const Matriculas = () => {
         sortable: true, 
         sortKey: 'alumno.nombre' 
     },
-    { 
-        header: t('enrollments.group'), 
-        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-', 
-        sortable: true, 
-        sortKey: 'grupo.nombre' 
+    {
+        header: t('enrollments.group'),
+        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.abreviatura || row.grupo.nombre}` : '-',
+        sortable: true,
+        sortKey: 'grupo.nombre'
+    },
+    {
+        header: t('enrollments.schoolYear'),
+        accessor: (row) => row.grupo?.anioEscolar || '-',
+        sortable: true,
+        sortKey: 'grupo.anioEscolar'
     },
     { 
         header: t('common.actions'),
@@ -460,7 +474,7 @@ const Matriculas = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 

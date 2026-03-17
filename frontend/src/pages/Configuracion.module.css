@@ -73,6 +73,8 @@
     background-color: var(--bg-card); /* Usar variable maestra */
     border: 1px solid var(--color-border); /* Usar variable maestra */
     border-radius: var(--radius-lg);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     padding: var(--space-6);
     box-shadow: var(--shadow-sm);
     flex: 1;

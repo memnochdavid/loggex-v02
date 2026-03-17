@@ -12,6 +12,7 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const Entregas = () => {
   const { t } = useTranslation();
@@ -178,7 +179,7 @@ const Entregas = () => {
             
             const asignaturasConTareas = items.map(imp => {
                 const nombreModulo = imp.modulo?.nombre || t('common.unknownModule');
-                const nombreGrupo = imp.grupo?.nombre || t('common.unknownGroup');
+                const nombreGrupo = imp.grupo?.abreviatura || imp.grupo?.nombre || t('common.unknownGroup');
                 const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
                 
                 let title = `${nombreModulo} - ${nombreGrupo}`;
@@ -533,7 +534,7 @@ const Entregas = () => {
         </CrudHeader>
 
         {loading ? (
-            <div className={styles.loadingContainer}>{t('common.loading')}</div>
+            <LoadingView />
         ) : error ? (
             <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (

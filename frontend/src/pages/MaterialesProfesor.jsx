@@ -11,6 +11,7 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const MaterialesProfesor = () => {
   const { t } = useTranslation();
@@ -115,7 +116,7 @@ const MaterialesProfesor = () => {
           const materiales = matData['hydra:member'] || matData.member || [];
 
           const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
-          let title = `${imp.modulo.nombre} - ${imp.grupo.nombre}`;
+          let title = `${imp.modulo.nombre} - ${imp.grupo.abreviatura || imp.grupo.nombre}`;
           if (isSuperAdmin && nombreProfesor) {
               title += ` (${nombreProfesor})`;
           }
@@ -293,7 +294,7 @@ const MaterialesProfesor = () => {
         </CrudHeader>
 
         {loading ? (
-          <div className={styles.loadingContainer}>{t('common.loading')}</div>
+          <LoadingView />
         ) : error ? (
           <div className={styles.errorContainer}>{error}</div>
         ) : asignaturas.length === 0 ? (

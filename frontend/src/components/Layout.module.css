@@ -3,7 +3,9 @@
     flex-direction: column;
     height: 100%; /* Se adapta a la altura del 'main' de App.jsx */
     overflow: hidden; /* Evita el scroll global en el body */
-    background-color: var(--bg-body);
+    background-color: var(--bg-body-alpha, var(--bg-body));
+    position: relative;
+    z-index: 1; /* Por encima del AnimatedBackground (z-index: 0) */
 }
 
 .mainBody {
@@ -15,8 +17,8 @@
 .content {
     flex: 1;
     padding: var(--space-4);
-    /* Usamos la variable --bg-view definida en theme.js, con fallback al gris original */
-    background-color: var(--bg-view, var(--color-gray-50));
+    /* Usamos --bg-view-alpha (semi-transparente cuando fondo animado activo), con fallback a --bg-view */
+    background-color: var(--bg-view-alpha, var(--bg-view, var(--color-gray-50)));
     overflow-y: auto; /* El scroll aparece SOLO aquí si el contenido es largo */
 }
 
@@ -25,8 +27,8 @@
     flex: 1;
     overflow: hidden; /* Sin scroll ni padding */
     padding: 0;
-    /* También aplicamos el fondo aquí por consistencia, aunque a veces estas vistas tienen su propio fondo */
-    background-color: var(--bg-view, var(--color-gray-50));
+    /* También aplicamos el fondo aquí por consistencia */
+    background-color: var(--bg-view-alpha, var(--bg-view, var(--color-gray-50)));
 }
 @media (max-width: 1200px) {
     .content{
