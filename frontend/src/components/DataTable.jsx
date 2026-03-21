@@ -5,8 +5,8 @@ import AccordionView from './AccordionView';
 import Lottie from 'lottie-react';
 import loadingAnimation from '../../public/loading.json';
 import loadingStyles from './LoadingView.module.css';
-import LoadingView from './LoadingView';
 import EmptyState from './EmptyState';
+import { SkeletonRow, SkeletonCard } from './SkeletonRow';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
@@ -211,13 +211,9 @@ const DataTable = ({
                                 </tr>
                             </thead>
                             <tbody className={styles.tbody}>
-                                {/* Caso 1: Cargando y sin datos previos */}
+                                {/* Caso 1: Cargando y sin datos previos — skeleton */}
                                 {loading && (!data || data.length === 0) ? (
-                                    <tr>
-                                        <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            <LoadingView />
-                                        </td>
-                                    </tr>
+                                    <SkeletonRow columns={columns.length} rows={Math.min(itemsPerPage, 8)} />
                                 ) : noDataAvailable ? (
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
@@ -258,7 +254,7 @@ const DataTable = ({
                         </div>
 
                         {loading && (!data || data.length === 0) ? (
-                            <LoadingView />
+                            <SkeletonCard count={Math.min(itemsPerPage, 6)} />
                         ) : noDataAvailable ? (
                             <EmptyState
                                 title={emptyTitle}
