@@ -44,6 +44,8 @@
     "selectFile": "Aukeratu fitxategia",
     "changeFile": "Aldatu fitxategia",
     "confirmation": "Ziur zaude?",
+    "savedSuccessfully": "Ondo gordeta",
+    "deletedSuccessfully": "Ondo ezabatuta",
     "errorDeleting": "Ezin izan da ezabatu",
     "errorDeletingMsg": "Errorea ezabatzean: {{message}}",
     "errorSaving": "Errorea gordetzean: {{message}}",

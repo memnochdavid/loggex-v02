@@ -5,10 +5,12 @@ import styles from './Perfil.module.css';
 import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const Perfil = () => {
     const { t } = useTranslation();
     const { user, checkAuth } = useAuth();
+    const { toast } = useToast();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
     
@@ -91,12 +93,13 @@ const Perfil = () => {
 
             if (response.ok) {
                 await checkAuth(); // Recargar usuario
+                toast.success(t('common.savedSuccessfully'));
             } else {
-                alert("Error al actualizar avatar");
+                toast.error("Error al actualizar avatar");
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión");
+            toast.error("Error de conexión");
         } finally {
             setUploading(false);
         }

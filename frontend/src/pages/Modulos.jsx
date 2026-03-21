@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 const Modulos = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [modulos, setModulos] = useState([]);
@@ -327,10 +329,11 @@ const Modulos = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(t('common.savedSuccessfully'));
 
     } catch (err) {
       console.error("Error saving modulo:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -365,10 +368,11 @@ const Modulos = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('common.deletedSuccessfully'));
 
     } catch (err) {
       console.error("Error deleting modulo:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData]);
 

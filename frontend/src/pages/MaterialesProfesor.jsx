@@ -12,10 +12,12 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { useToast } from '../context/ToastContext';
 
 const MaterialesProfesor = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +167,7 @@ const MaterialesProfesor = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.archivo || !formData.titulo) {
-        alert(t('teacherMaterials.fillAllFields'));
+        toast.error(t('teacherMaterials.fillAllFields'));
         return;
     }
 
@@ -190,10 +192,11 @@ const MaterialesProfesor = () => {
 
         await fetchData();
         handleCloseModal();
+        toast.success(t('common.savedSuccessfully'));
 
     } catch (err) {
         console.error("Error subiendo material:", err);
-        alert(t('teacherMaterials.errorUploadMsg', { message: err.message }));
+        toast.error(t('teacherMaterials.errorUploadMsg', { message: err.message }));
     } finally {
         setUploading(false);
     }
@@ -209,11 +212,12 @@ const MaterialesProfesor = () => {
           });
 
           if (!response.ok) throw new Error(t('teacherMaterials.errorDelete'));
-          
+
+          toast.success(t('common.deletedSuccessfully'));
           fetchData();
       } catch (err) {
           console.error(err);
-          alert(t('teacherMaterials.errorDelete'));
+          toast.error(t('teacherMaterials.errorDelete'));
       }
   };
 

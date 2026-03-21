@@ -9,6 +9,7 @@ import EventsSidebar from '../components/EventsSidebar';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
@@ -20,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 const Horarios = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canEdit = isSuperAdmin || isAdmin;
@@ -379,10 +381,11 @@ const Horarios = () => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(t('common.savedSuccessfully'));
 
     } catch (err) {
       console.error("Error saving horario:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -409,9 +412,10 @@ const Horarios = () => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('common.deletedSuccessfully'));
     } catch (err) {
       console.error("Error deleting horario:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData]);
 

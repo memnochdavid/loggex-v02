@@ -44,6 +44,8 @@
     "selectFile": "Seleccionar arquivo",
     "changeFile": "Cambiar arquivo",
     "confirmation": "Estás seguro?",
+    "savedSuccessfully": "Gardado correctamente",
+    "deletedSuccessfully": "Eliminado correctamente",
     "errorDeleting": "Non se puido eliminar",
     "errorDeletingMsg": "Erro ao eliminar: {{message}}",
     "errorSaving": "Erro ao gardar: {{message}}",

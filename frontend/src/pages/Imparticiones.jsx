@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
@@ -18,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 const Imparticiones = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [imparticiones, setImparticiones] = useState([]);
@@ -354,10 +356,11 @@ const Imparticiones = () => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(t('common.savedSuccessfully'));
 
     } catch (err) {
       console.error("Error saving imparticion:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -390,10 +393,11 @@ const Imparticiones = () => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('common.deletedSuccessfully'));
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData]);
 

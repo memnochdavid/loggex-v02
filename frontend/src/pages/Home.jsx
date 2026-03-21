@@ -18,11 +18,13 @@ import { MessageSquare, CalendarClock, ClipboardList, Megaphone, Clock, MapPin, 
 import Lottie from 'lottie-react';
 import helloAnimation from '../../public/hello.json';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const Home = () => {
   const { t } = useTranslation();
   const [backendMessage, setBackendMessage] = useState(t('common.loading'));
   const { user } = useAuth();
+  const { toast } = useToast();
   const tablonRef = useRef(null);
 
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
@@ -148,11 +150,11 @@ const Home = () => {
           if (response.ok) {
               handleCloseModal();
           } else {
-              alert(t('home.errorSavingAttendance'));
+              toast.error(t('home.errorSavingAttendance'));
           }
       } catch (error) {
           console.error(error);
-          alert(t('home.errorConnection'));
+          toast.error(t('home.errorConnection'));
       } finally {
           setSavingAttendance(false);
       }

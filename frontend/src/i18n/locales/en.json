@@ -44,6 +44,8 @@
     "selectFile": "Select file",
     "changeFile": "Change file",
     "confirmation": "Are you sure?",
+    "savedSuccessfully": "Saved successfully",
+    "deletedSuccessfully": "Deleted successfully",
     "errorDeleting": "Could not delete",
     "errorDeletingMsg": "Error deleting: {{message}}",
     "errorSaving": "Error saving: {{message}}",

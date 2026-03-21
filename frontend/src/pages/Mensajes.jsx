@@ -12,10 +12,12 @@ import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import messageAnimation from '../../public/message.json';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const Mensajes = () => {
     const { t } = useTranslation();
     const {user} = useAuth();
+    const { toast } = useToast();
     const location = useLocation();
     const [conversaciones, setConversaciones] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -253,6 +255,7 @@ const Mensajes = () => {
 
             if (response.ok) {
                 setNewMessage('');
+                toast.success(t('common.savedSuccessfully'));
                 fetchMensajes();
                 isUserNearBottom.current = true;
                 scrollToBottom();
@@ -262,7 +265,7 @@ const Mensajes = () => {
                     textareaRef.current.focus();
                 }
             } else {
-                alert(t('messages.errorSending'));
+                toast.error(t('messages.errorSending'));
             }
         } catch (error) {
             console.error(error);

@@ -13,10 +13,12 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { useToast } from '../context/ToastContext';
 
 const Entregas = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -267,8 +269,9 @@ const Entregas = () => {
 
         await fetchData();
         setIsUploadModalOpen(false);
+        toast.success(t('common.savedSuccessfully'));
     } catch (err) {
-        alert(err.message);
+        toast.error(err.message);
     } finally {
         setUploading(false);
     }
@@ -293,7 +296,7 @@ const Entregas = () => {
           setEntregasTarea(items);
       } catch (err) {
           console.error(err);
-          alert(t('deliveries.errorLoadDeliveries'));
+          toast.error(t('deliveries.errorLoadDeliveries'));
       } finally {
           setLoadingEntregas(false);
       }
@@ -349,9 +352,10 @@ const Entregas = () => {
           }));
 
           setIsGradeModalOpen(false);
+          toast.success(t('common.savedSuccessfully'));
 
       } catch (err) {
-          alert(err.message);
+          toast.error(err.message);
       } finally {
           setSavingGrade(false);
       }

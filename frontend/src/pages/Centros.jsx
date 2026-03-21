@@ -13,9 +13,11 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import helloAnimation from "../../public/hello.json";
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const Centros = () => {
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [centros, setCentros] = useState([]);
     
     // Estado de carga único
@@ -278,10 +280,11 @@ const Centros = () => {
                 sortDirection
             });
             handleCloseModal();
+            toast.success(t('common.savedSuccessfully'));
 
         } catch (err) {
             console.error("Error saving centro:", err);
-            alert(t('common.errorSaving', { message: err.message }));
+            toast.error(t('common.errorSaving', { message: err.message }));
         } finally {
             setSaving(false);
         }
@@ -313,10 +316,11 @@ const Centros = () => {
                 sortColumn,
                 sortDirection
             });
+            toast.success(t('common.deletedSuccessfully'));
 
         } catch (err) {
             console.error("Error deleting centro:", err);
-            alert(t('common.errorDeletingMsg', { message: err.message }));
+            toast.error(t('common.errorDeletingMsg', { message: err.message }));
         }
     }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchCentrosData]);
 

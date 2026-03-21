@@ -128,13 +128,27 @@ Cambios aplicados:
 
 - **Pendiente**: extraer servicio de upload compartido (refactoring de baja prioridad)
 
-### Fase 3 - Frontend
+### Fase 3 - Frontend -- COMPLETADA
 
-- Crear servicio/hook de API centralizado (`useApi`)
-- Reemplazar `alert()` por sistema de toasts
-- Anadir Error Boundaries
-- Crear constantes para roles y endpoints
-- Memoizar contextos
+Cambios aplicados:
+
+- **Sistema de toasts** (reemplazo de `alert()`)
+  - Creado `components/Toast.jsx` + `Toast.module.css`: componente de notificacion con tipos error/success/warning/info, auto-cierre y animacion
+  - Creado `context/ToastContext.jsx`: contexto con API `toast.error()`, `toast.success()`, etc.
+  - Reemplazados los 36 `alert()` en 18 archivos (9 pages CRUD, Tareas, Entregas, Mensajes, Perfil, Home, MaterialesProfesor, Header, TimeTable, TablonWidget)
+
+- **Error Boundary**
+  - Creado `components/ErrorBoundary.jsx`: captura errores de renderizado y muestra pagina de recuperacion
+  - Integrado en `App.jsx` envolviendo toda la aplicacion
+
+- **Constantes de roles**
+  - Creado `constants/roles.js`: constantes `ROLES.SUPERADMIN`, `ROLES.ADMIN`, `ROLES.PROFESOR`, `ROLES.ALUMNO` + helpers `hasRole()` y `hasAnyRole()`
+
+- **Contextos memoizados**
+  - `AuthContext.jsx`: funciones envueltas en `useCallback`, valor del provider en `useMemo`
+  - `UIContext.jsx`: idem
+
+- **Pendiente**: hook centralizado de API (`useApi`) - refactoring progresivo de baja prioridad
 
 ### Fase 4 - Mejoras progresivas
 

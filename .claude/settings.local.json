@@ -17,7 +17,8 @@
       "Bash(wc -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Entity/*.php)",
       "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -name \"*.jsx\" -exec grep -l \"ErrorBoundary\\\\|error\\\\|Error\" {})",
       "Bash(git:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src/hooks -type f -name *.js -o -name *.jsx)"
     ]
   }
 }

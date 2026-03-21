@@ -44,6 +44,8 @@
     "selectFile": "Seleccionar fitxer",
     "changeFile": "Canviar fitxer",
     "confirmation": "N'estàs segur?",
+    "savedSuccessfully": "Desat correctament",
+    "deletedSuccessfully": "Eliminat correctament",
     "errorDeleting": "No s'ha pogut eliminar",
     "errorDeletingMsg": "Error en eliminar: {{message}}",
     "errorSaving": "Error en desar: {{message}}",

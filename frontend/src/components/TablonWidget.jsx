@@ -7,10 +7,12 @@ import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const { toast } = useToast();
     const [comunicados, setComunicados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -106,7 +108,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
             fetchComunicados();
         } catch (err) {
             if (err.message !== 'Failed to fetch') {
-                alert(t('bulletin.errorSave') + err.message);
+                toast.error(t('bulletin.errorSave') + err.message);
             }
             throw err;
         }
@@ -122,7 +124,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
             if (!response.ok) throw new Error(t('bulletin.errorDelete'));
             fetchComunicados();
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message);
         }
     };
 

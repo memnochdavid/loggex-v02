@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
+import { ToastProvider } from './context/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
@@ -50,8 +52,10 @@ const ConditionalFooter = () => {
 
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <UIProvider>
+        <ToastProvider>
         <Router>
           <PageTitleUpdater />
           <div className="app-layout">
@@ -203,8 +207,10 @@ function App() {
             <ConditionalFooter />
           </div>
         </Router>
+        </ToastProvider>
       </UIProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

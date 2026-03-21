@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
@@ -18,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 const Usuarios = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const avatarInputRef = useRef(null);
 
@@ -337,9 +339,10 @@ const Usuarios = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(t('common.savedSuccessfully'));
     } catch (err) {
       console.error("Error saving usuario:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -367,9 +370,10 @@ const Usuarios = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('common.deletedSuccessfully'));
     } catch (err) {
       console.error("Error deleting usuario:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(t('common.errorDeletingMsg', { message: err.message }));
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchUsuariosData]);
 

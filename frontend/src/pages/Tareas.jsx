@@ -12,10 +12,12 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { useToast } from '../context/ToastContext';
 
 const Tareas = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -291,10 +293,11 @@ const Tareas = () => {
 
       await fetchData();
       handleCloseModal();
+      toast.success(t('common.savedSuccessfully'));
 
     } catch (err) {
       console.error(err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(t('common.errorSaving', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -309,9 +312,10 @@ const Tareas = () => {
             credentials: 'include'
         });
         if (!response.ok) throw new Error(t('tasks.errorDelete'));
+        toast.success(t('common.deletedSuccessfully'));
         fetchData();
     } catch (err) {
-        alert(err.message);
+        toast.error(err.message);
     }
   };
 

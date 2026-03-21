@@ -9,10 +9,12 @@ import EventCard from './EventCard'; // Importar EventCard
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../context/ToastContext';
 
 const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const { toast } = useToast();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
     const canTakeAttendance = isProfesor || isAdmin;
@@ -427,11 +429,11 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
             if (response.ok) {
                 handleCloseModal();
             } else {
-                alert(t('home.errorSavingAttendance'));
+                toast.error(t('home.errorSavingAttendance'));
             }
         } catch (error) {
             console.error(error);
-            alert(t('home.errorConnection'));
+            toast.error(t('home.errorConnection'));
         } finally {
             setSavingAttendance(false);
         }

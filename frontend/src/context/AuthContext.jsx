@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { applyTheme } from '../utils/theme';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       // Usamos getApiUrl para que sea relativo a la raíz (gestionado por Caddy)
       const response = await fetch(getApiUrl('/api/me'), {
@@ -48,9 +48,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       const response = await fetch(getApiUrl('/api/login'), {
         method: 'POST',
@@ -76,9 +76,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { success: false, message: t('common.errorConnection') };
     }
-  };
+  }, [t, checkAuth]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await fetch(getApiUrl('/api/logout'), {
           method: 'POST',
@@ -88,10 +88,12 @@ export const AuthProvider = ({ children }) => {
       console.error("Error logging out:", error);
     }
     setUser(null);
-  };
+  }, []);
+
+  const value = useMemo(() => ({ user, login, logout, loading, checkAuth }), [user, login, logout, loading, checkAuth]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, checkAuth }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
