@@ -432,7 +432,7 @@ export const applyTheme = (colors) => {
         * {
             scrollbar-width: thin;
             scrollbar-color: transparent transparent;
-            transition: scrollbar-color 0.3s;
+            transition: scrollbar-color 0.2s;
         }
 
         .is-scrolling,
@@ -456,7 +456,7 @@ export const applyTheme = (colors) => {
         *::-webkit-scrollbar-thumb {
             background-color: rgba(0, 0, 0, 0) !important;
             border-radius: 3px;
-            transition: background-color 0.4s ease;
+            transition: background-color 0.2s ease;
         }
 
         .is-scrolling::-webkit-scrollbar-thumb,
