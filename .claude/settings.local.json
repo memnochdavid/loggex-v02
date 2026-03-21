@@ -11,7 +11,12 @@
       "Bash(chmod +x /home/david/projects/loggex-v02/scripts/*.sh)",
       "Bash(file /home/david/projects/loggex-v02/scripts/*.sh)",
       "Bash(cat /home/david/.claude/projects/-home-david-projects-loggex-v02/c1e42aca-76c6-4e4d-922f-6a724d8c286f/tool-results/bpou06ttz.txt | grep -A 50 \"CREATE TABLE \\\\`tema\\\\`\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls -lah /home/david/Documentos/CLASE/loggex-v02/backup*)",
+      "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -type f -name \"*.jsx\" -exec wc -l {} +)",
+      "Bash(wc -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Entity/*.php)",
+      "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -name \"*.jsx\" -exec grep -l \"ErrorBoundary\\\\|error\\\\|Error\" {})",
+      "Bash(git:*)"
     ]
   }
 }
