@@ -35,6 +35,8 @@ import CrudHeader from '../components/CrudHeader';
 import Lottie from 'lottie-react';
 import configAnimation from '../../public/config.json';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 // Importar tema por defecto desde la nueva ubicación
 import {DEFAULT_THEME} from '../config/themeDefaults';
@@ -88,6 +90,7 @@ const MOCK_FESTIVOS = [
 const Configuracion = () => {
     const { t } = useTranslation();
     const {user, checkAuth} = useAuth();
+    const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
 
@@ -262,7 +265,7 @@ const Configuracion = () => {
     };
 
     const handleDeleteTheme = async (theme) => {
-        if (!window.confirm(t('config.themeDeleteConfirm', { name: theme.nombre }))) return;
+        if (!(await confirm(t('config.themeDeleteConfirm', { name: theme.nombre })))) return;
 
         try {
             const response = await fetch(getApiUrl(`/api/temas/${theme.id}`), {
@@ -1512,6 +1515,13 @@ const Configuracion = () => {
                     </div>
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={confirmOpen}
+                message={confirmMessage}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
+            />
         </Layout>
     );
 };

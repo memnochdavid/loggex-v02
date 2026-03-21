@@ -14,10 +14,13 @@ import crudAnimation from '../../public/crud.json';
 import helloAnimation from "../../public/hello.json";
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../context/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const Centros = () => {
     const { t } = useTranslation();
     const { toast } = useToast();
+    const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
     const [centros, setCentros] = useState([]);
     
     // Estado de carga único
@@ -291,7 +294,7 @@ const Centros = () => {
     };
 
     const handleDelete = useCallback(async (centro) => {
-        if (!window.confirm(t('centers.confirmDelete'))) {
+        if (!(await confirm(t('centers.confirmDelete')))) {
             return;
         }
 
@@ -522,6 +525,12 @@ const Centros = () => {
                         </label>
                     </div>
                 </ModalView>
+                <ConfirmDialog
+                    isOpen={confirmOpen}
+                    message={confirmMessage}
+                    onConfirm={handleConfirm}
+                    onCancel={handleCancel}
+                />
             </div>
         </Layout>
     );

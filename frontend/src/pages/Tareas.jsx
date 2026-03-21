@@ -13,11 +13,14 @@ import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { useToast } from '../context/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const Tareas = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
   const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -304,7 +307,7 @@ const Tareas = () => {
   };
 
   const handleDelete = async (tareaId) => {
-    if (!window.confirm(t('tasks.confirmDelete'))) return;
+    if (!(await confirm(t('tasks.confirmDelete')))) return;
 
     try {
         const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
@@ -548,6 +551,13 @@ const Tareas = () => {
                 </label>
             </div>
         </ModalView>
+
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
       </div>
     </Layout>
   );

@@ -217,6 +217,11 @@
     font-size: var(--text-sm);
 }
 
+.formGroup:has(input[required], select[required], textarea[required]) > .label::after {
+    content: ' *';
+    color: var(--color-error, #ef4444);
+}
+
 .fileInput {
     font-size: var(--text-sm);
     color: var(--color-gray-600);

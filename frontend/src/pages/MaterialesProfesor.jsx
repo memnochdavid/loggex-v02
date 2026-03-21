@@ -13,11 +13,14 @@ import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { useToast } from '../context/ToastContext';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const MaterialesProfesor = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -203,7 +206,7 @@ const MaterialesProfesor = () => {
   };
 
   const handleDelete = async (materialId) => {
-      if (!window.confirm(t('teacherMaterials.confirmDelete'))) return;
+      if (!(await confirm(t('teacherMaterials.confirmDelete')))) return;
 
       try {
           const response = await fetch(getApiUrl(`/api/materials/${materialId}`), {
@@ -372,6 +375,13 @@ const MaterialesProfesor = () => {
                 </div>
             </div>
         </ModalView>
+
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
       </div>
     </Layout>
   );

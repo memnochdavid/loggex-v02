@@ -14,11 +14,14 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const Festivos = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canCreate = isSuperAdmin || isAdmin;
@@ -310,7 +313,7 @@ const Festivos = () => {
   };
 
   const handleDelete = useCallback(async (festivo) => {
-    if (!window.confirm(t('holidays.confirmDelete'))) {
+    if (!(await confirm(t('holidays.confirmDelete')))) {
       return;
     }
 
@@ -519,6 +522,13 @@ const Festivos = () => {
                 </div>
             )}
         </ModalView>
+
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
         </div>
     </Layout>
   );

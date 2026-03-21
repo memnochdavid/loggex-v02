@@ -14,11 +14,14 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const Modulos = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [modulos, setModulos] = useState([]);
@@ -340,7 +343,7 @@ const Modulos = () => {
   };
 
   const handleDelete = useCallback(async (modulo) => {
-    if (!window.confirm(t('modules.confirmDelete'))) {
+    if (!(await confirm(t('modules.confirmDelete')))) {
       return;
     }
 
@@ -557,6 +560,12 @@ const Modulos = () => {
                 />
             </div>
         </ModalView>
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
         </div>
     </Layout>
   );

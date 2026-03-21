@@ -17,11 +17,14 @@ import { usePagination } from '../hooks/usePagination';
 import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 const Horarios = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canEdit = isSuperAdmin || isAdmin;
@@ -392,7 +395,7 @@ const Horarios = () => {
   };
 
   const handleDelete = useCallback(async (horario) => {
-    if (!window.confirm(t('schedules.confirmDelete'))) return;
+    if (!(await confirm(t('schedules.confirmDelete')))) return;
 
     const id = getHorarioId(horario);
     if (!id) return;
@@ -649,6 +652,13 @@ const Horarios = () => {
                 </select>
             </div>
         </ModalView>
+
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
         </div>
     </Layout>
   );

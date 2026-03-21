@@ -68,6 +68,12 @@ const ModalView = ({
         if (isOpen) {
             setShouldRender(true);
             setIsClosing(false);
+            // Auto-focus en el primer campo del formulario
+            const timer = setTimeout(() => {
+                const firstInput = nodeRef.current?.querySelector('input:not([type="hidden"]):not([type="checkbox"]):not([type="file"]), textarea, select');
+                if (firstInput) firstInput.focus();
+            }, 100);
+            return () => clearTimeout(timer);
         } else {
             setIsClosing(true);
             const timer = setTimeout(() => {
@@ -98,6 +104,16 @@ const ModalView = ({
         if (isOpen) window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
     }, [isOpen, closeOnOverlayClick]);
+
+    // Bloquear scroll del fondo
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     if (!shouldRender) return null;
 

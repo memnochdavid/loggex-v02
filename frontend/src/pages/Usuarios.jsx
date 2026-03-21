@@ -14,12 +14,15 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../components/ConfirmDialog';
+import useConfirm from '../hooks/useConfirm';
 
 
 const Usuarios = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, handleConfirm, handleCancel } = useConfirm();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const avatarInputRef = useRef(null);
 
@@ -349,7 +352,7 @@ const Usuarios = () => {
   };
 
   const handleDelete = useCallback(async (usuario) => {
-    if (!window.confirm(t('users.confirmDelete'))) return;
+    if (!(await confirm(t('users.confirmDelete')))) return;
     const id = getUserId(usuario);
     if (!id) return;
 
@@ -504,6 +507,12 @@ const Usuarios = () => {
                 </div>
             )}
         </ModalView>
+        <ConfirmDialog
+            isOpen={confirmOpen}
+            message={confirmMessage}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
         </div>
     </Layout>
   );
