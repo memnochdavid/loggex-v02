@@ -7,7 +7,7 @@ import DataTable from '../components/DataTable';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader'; // Importar CrudHeader
 import { useAuth } from '../context/AuthContext';
-import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Paperclip } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -445,9 +445,14 @@ const Entregas = () => {
           accessor: (row) => (
               <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                   {row.archivo && (
-                      <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.fileLink}>
-                          <Download size={14}/> {t('deliveries.file')}
-                      </a>
+                      <>
+                          <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" rel="noopener noreferrer" className={styles.fileLink} title={t('common.view')}>
+                              <Eye size={14}/> {t('common.view')}
+                          </a>
+                          <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} className={styles.fileLink} download title={t('common.download')}>
+                              <Download size={14}/> {t('common.download')}
+                          </a>
+                      </>
                   )}
                   {row.enlace && (
                       <a href={row.enlace} target="_blank" className={styles.fileLink}>

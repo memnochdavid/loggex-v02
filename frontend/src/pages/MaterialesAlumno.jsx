@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Eye } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -222,12 +222,20 @@ const MaterialesAlumno = () => {
                 </span>
             </div>
             <div className={styles.itemActions}>
-                <a 
+                <a
                     href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className={styles.downloadLink}
+                    title={t('common.view')}
+                >
+                    <Eye size={18} />
+                </a>
+                <a
+                    href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
+                    className={styles.downloadLink}
                     download
+                    title={t('common.download')}
                 >
                     <Download size={18} />
                 </a>

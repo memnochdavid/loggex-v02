@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, FileText, Calendar, Paperclip, Upload, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Calendar, Eye, Download, Upload, Filter } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -347,15 +347,25 @@ const Tareas = () => {
                       
                       <div className={styles.itemActions}>
                           {tarea.archivo && (
-                              <a 
-                                  href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className={styles.downloadLink}
-                                  title={t('tasks.downloadAttachment')}
-                              >
-                                  <Paperclip size={18} />
-                              </a>
+                              <>
+                                  <a
+                                      href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={styles.downloadLink}
+                                      title={t('common.view')}
+                                  >
+                                      <Eye size={18} />
+                                  </a>
+                                  <a
+                                      href={getAssetUrl(`/uploads/tareas/${tarea.archivo}`)}
+                                      className={styles.downloadLink}
+                                      download
+                                      title={t('common.download')}
+                                  >
+                                      <Download size={18} />
+                                  </a>
+                              </>
                           )}
                           
                           {(isProfesor || isAdmin || isSuperAdmin) && (
