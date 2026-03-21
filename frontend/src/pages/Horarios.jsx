@@ -14,6 +14,8 @@ import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, Pa
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
@@ -99,6 +101,14 @@ const Horarios = () => {
     imparticion: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      horaInicio: { required: true },
+      horaFin: { required: true },
+      aula: { required: true },
+      imparticion: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -331,6 +341,7 @@ const Horarios = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentHorario(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -340,6 +351,7 @@ const Horarios = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -633,21 +645,17 @@ const Horarios = () => {
                     <option value="7">{t('days.sunday')}</option>
                 </select>
             </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('schedules.startTime')}</label>
-                <input type="time" name="horaInicio" value={formData.horaInicio} onChange={handleInputChange} className={styles.input} required />
-            </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('schedules.endTime')}</label>
-                <input type="time" name="horaFin" value={formData.horaFin} onChange={handleInputChange} className={styles.input} required />
-            </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('schedules.classroomLabel')}</label>
-                <input type="text" name="aula" value={formData.aula} onChange={handleInputChange} className={styles.input} required placeholder={t('schedules.classroomPlaceholder')} />
-            </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('schedules.subjectLabel')}</label>
-                <select name="imparticion" value={formData.imparticion} onChange={handleInputChange} className={styles.select} required>
+            <FormField label={t('schedules.startTime')} error={errors.horaInicio} required>
+                <input type="time" name="horaInicio" value={formData.horaInicio} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} required />
+            </FormField>
+            <FormField label={t('schedules.endTime')} error={errors.horaFin} required>
+                <input type="time" name="horaFin" value={formData.horaFin} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} required />
+            </FormField>
+            <FormField label={t('schedules.classroomLabel')} error={errors.aula} required>
+                <input type="text" name="aula" value={formData.aula} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} required placeholder={t('schedules.classroomPlaceholder')} />
+            </FormField>
+            <FormField label={t('schedules.subjectLabel')} error={errors.imparticion} required>
+                <select name="imparticion" value={formData.imparticion} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.select} required>
                     <option value="">{t('schedules.selectSubject')}</option>
                     {imparticiones.map(i => (
                         <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
@@ -655,7 +663,7 @@ const Horarios = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
         </ModalView>
 
         <ConfirmDialog

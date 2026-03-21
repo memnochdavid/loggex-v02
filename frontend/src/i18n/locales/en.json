@@ -1024,5 +1024,15 @@
     "gl": "Galego",
     "eu": "Euskera",
     "label": "Language"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Enter a valid email",
+    "minLength": "Minimum {{min}} characters",
+    "maxLength": "Maximum {{max}} characters",
+    "pattern": "Invalid format",
+    "min": "Minimum value is {{min}}",
+    "max": "Maximum value is {{max}}",
+    "invalid": "Invalid value"
   }
 }

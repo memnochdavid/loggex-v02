@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, ClipboardList } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -69,6 +71,12 @@ const Matriculas = () => {
     grupo: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      alumno: { required: true },
+      grupo: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -279,6 +287,7 @@ const Matriculas = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentMatricula(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -291,6 +300,7 @@ const Matriculas = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -512,14 +522,13 @@ const Matriculas = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('enrollments.student')}</label>
+            <FormField label={t('enrollments.student')} error={errors.alumno} required>
                 <select
                     name="alumno"
                     value={formData.alumno}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
-                    required
                 >
                     <option value="">{t('common.selectStudent')}</option>
                     {alumnos.map(a => (
@@ -528,16 +537,15 @@ const Matriculas = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('enrollments.group')}</label>
+            <FormField label={t('enrollments.group')} error={errors.grupo} required>
                 <select
                     name="grupo"
                     value={formData.grupo}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
-                    required
                 >
                     <option value="">{t('common.selectGroup')}</option>
                     {grupos.map(g => (
@@ -546,7 +554,7 @@ const Matriculas = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
         </ModalView>
         <ConfirmDialog
             isOpen={confirmOpen}

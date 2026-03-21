@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, Lock, CalendarOff } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -69,6 +71,12 @@ const Festivos = () => {
     centro: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      nombre: { required: true, minLength: 2 },
+      fechaInicio: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -232,6 +240,7 @@ const Festivos = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentFestivo(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -244,6 +253,7 @@ const Festivos = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -473,30 +483,30 @@ const Festivos = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('holidays.name')}</label>
+            <FormField label={t('holidays.name')} error={errors.nombre} required>
                 <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     required
                     placeholder={t('holidays.namePlaceholder')}
                 />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('holidays.startDate')}</label>
+            <FormField label={t('holidays.startDate')} error={errors.fechaInicio} required>
                 <input
                     type="date"
                     name="fechaInicio"
                     value={formData.fechaInicio}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     required
                 />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('holidays.endDateOptional')}</label>

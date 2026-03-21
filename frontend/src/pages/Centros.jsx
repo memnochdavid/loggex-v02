@@ -7,6 +7,8 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import {Plus, Edit2, Trash2, Image as ImageIcon, Building} from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -65,6 +67,13 @@ const Centros = () => {
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    const validationRules = useMemo(() => ({
+        nombre: { required: true, minLength: 2 },
+        cif: { required: true },
+        direccion: { required: true },
+    }), []);
+    const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
     const getCentroId = (centro) => {
         if (centro.id) return centro.id;
@@ -216,6 +225,7 @@ const Centros = () => {
         setCurrentCentro(null);
         setLogoFile(null);
         setLogoPreview(null);
+        clearErrors();
     };
 
     const handleInputChange = (e) => {
@@ -240,6 +250,7 @@ const Centros = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateAll(formData)) return;
         setSaving(true);
 
         try {
@@ -467,56 +478,21 @@ const Centros = () => {
                         </div>
                     </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.nameLabel')}</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.namePlaceholder')}
-                        />
-                    </div>
+                    <FormField label={t('centers.nameLabel')} error={errors.nombre} required>
+                        <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} placeholder={t('centers.namePlaceholder')} />
+                    </FormField>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.cif')}</label>
-                        <input
-                            type="text"
-                            name="cif"
-                            value={formData.cif}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.cifPlaceholder')}
-                        />
-                    </div>
+                    <FormField label={t('centers.cif')} error={errors.cif} required>
+                        <input type="text" name="cif" value={formData.cif} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} placeholder={t('centers.cifPlaceholder')} />
+                    </FormField>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.address')}</label>
-                        <input
-                            type="text"
-                            name="direccion"
-                            value={formData.direccion}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.addressPlaceholder')}
-                        />
-                    </div>
+                    <FormField label={t('centers.address')} error={errors.direccion} required>
+                        <input type="text" name="direccion" value={formData.direccion} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} placeholder={t('centers.addressPlaceholder')} />
+                    </FormField>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.phone')}</label>
-                        <input
-                            type="tel"
-                            name="telefono"
-                            value={formData.telefono}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder={t('centers.phonePlaceholder')}
-                        />
-                    </div>
+                    <FormField label={t('centers.phone')}>
+                        <input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} className={styles.input} placeholder={t('centers.phonePlaceholder')} />
+                    </FormField>
 
                     <div className={styles.formGroup}>
                         <label className={styles.checkboxLabel}>

@@ -1,0 +1,47 @@
+.field {
+    margin-bottom: var(--space-4);
+}
+
+/* Sobreescribir el ::after del Crud.module.css para evitar doble asterisco */
+.field > label::after {
+    content: '' !important;
+}
+
+.required {
+    color: var(--color-error, #ef4444);
+}
+
+/* Error en inputs y selects */
+.hasError input,
+.hasError select,
+.hasError textarea {
+    border-color: var(--color-error, #ef4444) !important;
+}
+
+.hasError input:focus,
+.hasError select:focus,
+.hasError textarea:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error, #ef4444) 20%, transparent) !important;
+}
+
+/* Contenedor del error con altura reservada para evitar saltos */
+.errorContainer {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.2s ease, opacity 0.15s ease, margin-top 0.2s ease;
+    margin-top: 0;
+}
+
+.errorVisible {
+    max-height: 40px;
+    opacity: 1;
+    margin-top: var(--space-1);
+}
+
+.errorText {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--color-error, #ef4444);
+    line-height: 1.4;
+}

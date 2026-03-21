@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload, Users } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -77,6 +79,14 @@ const Usuarios = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+    nombre: { required: true, minLength: 2 },
+    apellidos: { required: true, minLength: 2 },
+    email: { required: true, email: true },
+    password: { required: !currentUser, minLength: currentUser ? 0 : 6 },
+  }), [currentUser]);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -264,6 +274,7 @@ const Usuarios = () => {
     setCurrentUser(null);
     setAvatarFile(null);
     setAvatarPreview(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -301,6 +312,7 @@ const Usuarios = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
     try {
       const id = currentUser ? getUserId(currentUser) : null;
@@ -487,12 +499,24 @@ const Usuarios = () => {
                     <Button type="button" variant="secondary" onClick={() => avatarInputRef.current.click()} style={{ marginLeft: '1rem' }}><Upload size={16} style={{ marginRight: '8px' }} /> {t('users.changeAvatar')}</Button>
                 </div>
             </div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.firstName')}</label><input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.lastName')}</label><input type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.email')}</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.phone')}</label><input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} className={styles.input} /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.nif')}</label><input type="text" name="nif" value={formData.nif} onChange={handleInputChange} className={styles.input} /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('common.password')} {currentUser && t('users.passwordHelper')}</label><input type="password" name="password" value={formData.password} onChange={handleInputChange} className={styles.input} required={!currentUser} /></div>
+            <FormField label={t('users.firstName')} error={errors.nombre} required>
+                <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} />
+            </FormField>
+            <FormField label={t('users.lastName')} error={errors.apellidos} required>
+                <input type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} />
+            </FormField>
+            <FormField label={t('users.email')} error={errors.email} required>
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} />
+            </FormField>
+            <FormField label={t('users.phone')}>
+                <input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} className={styles.input} />
+            </FormField>
+            <FormField label={t('users.nif')}>
+                <input type="text" name="nif" value={formData.nif} onChange={handleInputChange} className={styles.input} />
+            </FormField>
+            <FormField label={`${t('common.password')} ${currentUser ? t('users.passwordHelper') : ''}`} error={errors.password} required={!currentUser}>
+                <input type="password" name="password" value={formData.password} onChange={handleInputChange} onBlur={(e) => handleBlur(e, formData)} className={styles.input} />
+            </FormField>
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('users.roles')}</label>
                 <div className={styles.rolesContainer}>

@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, UsersRound } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -74,6 +76,13 @@ const Grupos = () => {
     centro: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      nombre: { required: true, minLength: 2 },
+      anioEscolar: { required: true },
+      ciclo: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -289,6 +298,7 @@ const Grupos = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentGrupo(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -301,6 +311,7 @@ const Grupos = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -534,18 +545,18 @@ const Grupos = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('groups.nameLabel')}</label>
+            <FormField label={t('groups.nameLabel')} error={errors.nombre} required>
                 <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     required
                     placeholder={t('groups.namePlaceholder')}
                 />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('groups.abbreviation')}</label>
@@ -559,18 +570,18 @@ const Grupos = () => {
                 />
             </div>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('groups.schoolYear')}</label>
+            <FormField label={t('groups.schoolYear')} error={errors.anioEscolar} required>
                 <input
                     type="text"
                     name="anioEscolar"
                     value={formData.anioEscolar}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     required
                     placeholder={t('groups.schoolYearPlaceholder')}
                 />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('groups.courseStartDate')}</label>
@@ -594,12 +605,12 @@ const Grupos = () => {
                 />
             </div>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('groups.cycleLabel')}</label>
+            <FormField label={t('groups.cycleLabel')} error={errors.ciclo} required>
                 <select
                     name="ciclo"
                     value={formData.ciclo}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
                     required
                 >
@@ -608,7 +619,7 @@ const Grupos = () => {
                         <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
                     ))}
                 </select>
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('groups.course')}</label>

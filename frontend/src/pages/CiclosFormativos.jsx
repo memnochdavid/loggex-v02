@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, GraduationCap } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -68,6 +70,11 @@ const CiclosFormativos = () => {
     centro: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      nombre: { required: true, minLength: 2 },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros para el selector (solo si es SuperAdmin)
   useEffect(() => {
@@ -238,6 +245,7 @@ const CiclosFormativos = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentCiclo(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -250,6 +258,7 @@ const CiclosFormativos = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -436,18 +445,17 @@ const CiclosFormativos = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('cycles.nameLabel')}</label>
+            <FormField label={t('cycles.name')} error={errors.nombre} required>
                 <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
-                    required
-                    placeholder={t('cycles.namePlaceholder')}
+                    placeholder={t('cycles.searchPlaceholder')}
                 />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('cycles.level')}</label>

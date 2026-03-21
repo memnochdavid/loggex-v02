@@ -1024,5 +1024,15 @@
     "gl": "Galego",
     "eu": "Euskera",
     "label": "Hizkuntza"
+  },
+  "validation": {
+    "required": "Eremu hau derrigorrezkoa da",
+    "email": "Sartu baliozko email bat",
+    "minLength": "Gutxienez {{min}} karaktere",
+    "maxLength": "Gehienez {{max}} karaktere",
+    "pattern": "Formatu baliogabea",
+    "min": "Gutxieneko balioa {{min}} da",
+    "max": "Gehieneko balioa {{max}} da",
+    "invalid": "Balio baliogabea"
   }
 }

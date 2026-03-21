@@ -10,6 +10,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Plus, Edit2, Trash2, BookMarked } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -69,6 +71,13 @@ const Imparticiones = () => {
     grupo: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      profesor: { required: true },
+      grupo: { required: true },
+      modulo: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Listas filtradas para el modal
   const filteredModulos = useMemo(() => {
@@ -294,6 +303,7 @@ const Imparticiones = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentImparticion(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -312,6 +322,7 @@ const Imparticiones = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -516,14 +527,13 @@ const Imparticiones = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.teacherCount', { count: profesores.length })}</label>
+            <FormField label={t('teaching.teacherCount', { count: profesores.length })} error={errors.profesor} required>
                 <select
                     name="profesor"
                     value={formData.profesor}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
-                    required
                 >
                     <option value="">{t('common.selectTeacher')}</option>
                     {profesores.map(p => (
@@ -532,16 +542,15 @@ const Imparticiones = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.groupCount', { count: allGrupos.length })}</label>
+            <FormField label={t('teaching.groupCount', { count: allGrupos.length })} error={errors.grupo} required>
                 <select
                     name="grupo"
                     value={formData.grupo}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
-                    required
                 >
                     <option value="">{t('common.selectGroup')}</option>
                     {allGrupos.map(g => (
@@ -550,17 +559,16 @@ const Imparticiones = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.moduleCount', { count: filteredModulos.length })}</label>
+            <FormField label={t('teaching.moduleCount', { count: filteredModulos.length })} error={errors.modulo} required>
                 <select
                     name="modulo"
                     value={formData.modulo}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
-                    required
-                    disabled={!formData.grupo} // Deshabilitar si no hay grupo
+                    disabled={!formData.grupo}
                 >
                     <option value="">
                         {formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
@@ -571,7 +579,7 @@ const Imparticiones = () => {
                         </option>
                     ))}
                 </select>
-            </div>
+            </FormField>
         </ModalView>
         <ConfirmDialog
             isOpen={confirmOpen}

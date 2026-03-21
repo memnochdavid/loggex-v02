@@ -9,6 +9,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
+import useFormValidation from '../hooks/useFormValidation';
+import FormField from '../components/FormField';
 import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -72,6 +74,13 @@ const Modulos = () => {
     ciclo: ''
   });
   const [saving, setSaving] = useState(false);
+
+  const validationRules = useMemo(() => ({
+      nombre: { required: true, minLength: 2 },
+      horasSemanales: { required: true, min: 1, max: 30 },
+      ciclo: { required: true },
+  }), []);
+  const { errors, handleBlur, validateAll, clearErrors } = useFormValidation(validationRules);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -272,6 +281,7 @@ const Modulos = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentModulo(null);
+    clearErrors();
   };
 
   const handleInputChange = (e) => {
@@ -284,6 +294,7 @@ const Modulos = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll(formData)) return;
     setSaving(true);
 
     try {
@@ -498,18 +509,18 @@ const Modulos = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.nameLabel')}</label>
+            <FormField label={t('modules.nameLabel')} error={errors.nombre} required>
                 <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     required
                     placeholder={t('modules.namePlaceholder')}
                 />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('modules.codeLabel')}</label>
@@ -523,12 +534,12 @@ const Modulos = () => {
                 />
             </div>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.cycleLabel')}</label>
+            <FormField label={t('modules.cycleLabel')} error={errors.ciclo} required>
                 <select
                     name="ciclo"
                     value={formData.ciclo}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.select}
                     required
                 >
@@ -537,7 +548,7 @@ const Modulos = () => {
                         <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
                     ))}
                 </select>
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('modules.course')}</label>
@@ -552,18 +563,18 @@ const Modulos = () => {
                 </select>
             </div>
 
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.weeklyHours')}</label>
+            <FormField label={t('modules.weeklyHours')} error={errors.horasSemanales} required>
                 <input
                     type="number"
                     name="horasSemanales"
                     value={formData.horasSemanales}
                     onChange={handleInputChange}
+                    onBlur={(e) => handleBlur(e, formData)}
                     className={styles.input}
                     min="1"
                     max="30"
                 />
-            </div>
+            </FormField>
         </ModalView>
         <ConfirmDialog
             isOpen={confirmOpen}

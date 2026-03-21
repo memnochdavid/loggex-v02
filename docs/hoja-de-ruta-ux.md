@@ -30,7 +30,7 @@ Cada sección describe el **estado actual**, el **problema** que presenta, la **
 |---|--------|-----------|----------|--------|
 | 1 | Empty States | Alta | Bajo | Completado |
 | 2 | Skeleton Loaders | Alta | Medio | Completado |
-| 3 | Validación inline formularios | Alta | Medio | Pendiente |
+| 3 | Validación inline formularios | Alta | Medio | Completado |
 | 4 | Breadcrumbs | Alta | Bajo | Pendiente |
 | 5 | Accesibilidad (ARIA) | Alta | Bajo | Pendiente |
 | 6 | Transiciones entre páginas | Media | Bajo | Pendiente |

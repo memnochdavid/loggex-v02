@@ -1024,5 +1024,15 @@
     "gl": "Galego",
     "eu": "Euskera",
     "label": "Idioma"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "email": "Introduce un email válido",
+    "minLength": "Mínimo {{min}} caracteres",
+    "maxLength": "Máximo {{max}} caracteres",
+    "pattern": "Formato no válido",
+    "min": "El valor mínimo es {{min}}",
+    "max": "El valor máximo es {{max}}",
+    "invalid": "Valor no válido"
   }
 }
