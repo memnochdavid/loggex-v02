@@ -398,40 +398,79 @@ export const applyTheme = (colors) => {
 
     const width = theme.scrollbarWidth || '12px';
 
+    // Inyectar script de auto-hide con fade si no existe
+    let scrollScript = document.getElementById('theme-scrollbar-script');
+    if (!scrollScript) {
+        scrollScript = document.createElement('script');
+        scrollScript.id = 'theme-scrollbar-script';
+        scrollScript.textContent = `
+            (function() {
+                const timers = new WeakMap();
+                document.addEventListener('scroll', function(e) {
+                    const el = e.target;
+                    if (el === document) {
+                        document.documentElement.classList.add('is-scrolling');
+                        clearTimeout(timers.get(document.documentElement));
+                        timers.set(document.documentElement, setTimeout(function() {
+                            document.documentElement.classList.remove('is-scrolling');
+                        }, 1000));
+                    } else if (el instanceof HTMLElement) {
+                        el.classList.add('is-scrolling');
+                        clearTimeout(timers.get(el));
+                        timers.set(el, setTimeout(function() {
+                            el.classList.remove('is-scrolling');
+                        }, 1000));
+                    }
+                }, true);
+            })();
+        `;
+        document.head.appendChild(scrollScript);
+    }
+
     styleTag.innerHTML = `
-        /* Firefox Scrollbar */
+        /* Firefox Scrollbar - thin y flotante */
         * {
-            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
-            scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+            transition: scrollbar-color 0.3s;
         }
 
-        /* Webkit Scrollbar (Chrome, Safari, Edge) */
-        ::-webkit-scrollbar {
-            width: ${width};
-            height: ${width};
+        .is-scrolling,
+        *:hover {
+            scrollbar-color: ${theme.scrollbarThumbColor} transparent;
         }
-        
+
+        /* Webkit Scrollbar (Chrome, Safari, Edge) - flotante con fade */
+        ::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
         ::-webkit-scrollbar-track,
         *::-webkit-scrollbar-track {
-            background: ${theme.scrollbarTrackColor} !important;
-            border-radius: 4px;
+            background: transparent !important;
         }
-        
+
         ::-webkit-scrollbar-thumb,
         *::-webkit-scrollbar-thumb {
-            background-color: ${theme.scrollbarThumbColor} !important;
-            border-radius: 4px;
-            border: 3px solid ${theme.scrollbarTrackColor};
+            background-color: rgba(0, 0, 0, 0) !important;
+            border-radius: 3px;
+            transition: background-color 0.4s ease;
         }
-        
-        ::-webkit-scrollbar-thumb:hover,
+
+        .is-scrolling::-webkit-scrollbar-thumb,
+        *:hover::-webkit-scrollbar-thumb {
+            background-color: ${theme.scrollbarThumbColor} !important;
+        }
+
         *::-webkit-scrollbar-thumb:hover {
             background-color: ${theme.scrollbarHoverColor} !important;
         }
-        
+
         ::-webkit-scrollbar-corner,
         *::-webkit-scrollbar-corner {
-            background-color: ${theme.scrollbarTrackColor};
+            background-color: transparent;
         }
     `;
 };
