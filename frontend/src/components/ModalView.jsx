@@ -159,9 +159,12 @@ const ModalView = ({
 
     // Contenido del modal (común para draggable y no draggable)
     const modalContent = (
-        <div 
+        <div
             ref={nodeRef}
             className={styles.modalContainer}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
             onClick={e => e.stopPropagation()}
             style={!isMobile ? { maxWidth } : {}} // En móvil, el CSS controla el ancho
         >
@@ -184,15 +187,16 @@ const ModalView = ({
                                 {iconToRender}
                             </div>
                         )}
-                        <h3 className={styles.modalTitle}>{title}</h3>
+                        <h3 id="modal-title" className={styles.modalTitle}>{title}</h3>
                     </div>
                     
                     {/* Botón de cerrar (FUERA del handle) */}
                     {showCloseButton && (
-                        <button 
-                            className={styles.closeButton} 
+                        <button
+                            className={styles.closeButton}
                             onClick={handleClose}
                             type="button"
+                            aria-label={t('common.close')}
                         >
                             <X size={20} />
                         </button>

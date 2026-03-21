@@ -150,9 +150,26 @@ Cambios aplicados:
 
 - **Pendiente**: hook centralizado de API (`useApi`) - refactoring progresivo de baja prioridad
 
-### Fase 4 - Mejoras progresivas
+### Fase 4 - Mejoras progresivas -- COMPLETADA
 
-- Dividir paginas grandes en componentes
-- Implementar code splitting con lazy loading
-- Mejorar accesibilidad (ARIA, alt, focus)
-- Considerar migracion a TypeScript
+Cambios aplicados:
+
+- **Code splitting con lazy loading**
+  - `App.jsx`: todas las paginas convertidas a `React.lazy()` con `Suspense` y fallback a `LoadingView`
+  - Cada pagina se carga bajo demanda, reduciendo el bundle inicial
+  - Login, Header, Footer, AnimatedBackground y PrivateRoute se mantienen en el bundle principal (necesarios al inicio)
+
+- **Accesibilidad (ARIA)**
+  - `ModalView.jsx`: anadido `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-label` en boton de cierre
+  - `DataTable.jsx`: `aria-label` en los 4 botones de paginacion (primera, anterior, siguiente, ultima pagina)
+  - `SearchBar.jsx`: `role="search"` en contenedor, `aria-label` en input
+  - `Sidebar.jsx`: `role="navigation"`, `aria-label="Menu principal"`
+  - `Header.jsx`: `role="banner"`
+  - `Footer.jsx`: `role="contentinfo"`
+  - `App.jsx`: `role="main"` en `<main>`
+  - Traducciones de aria-labels anadidas en los 5 idiomas
+
+- **PrivateRoute mejorado**
+  - Usa `LoadingView` en vez de texto plano "Cargando..."
+
+- **Pendiente**: dividir paginas grandes en componentes (Configuracion.jsx 1519 lineas), migracion a TypeScript

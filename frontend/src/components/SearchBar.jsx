@@ -30,7 +30,7 @@ const SearchBar = ({
   };
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} role="search">
       {fields.length > 0 && (
         <select 
             className={styles.select}
@@ -54,6 +54,7 @@ const SearchBar = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder || t('searchBar.placeholder')}
+            aria-label={placeholder || t('searchBar.placeholder')}
         />
         {value && (
           <button 

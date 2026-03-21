@@ -157,7 +157,11 @@
     "rows": "Lerroak:",
     "page": "Orria",
     "loading": "Datuak kargatzen...",
-    "noData": "Ez dago daturik eskuragarri."
+    "noData": "Ez dago daturik eskuragarri.",
+    "firstPage": "Lehen orrialdea",
+    "previousPage": "Aurreko orrialdea",
+    "nextPage": "Hurrengo orrialdea",
+    "lastPage": "Azken orrialdea"
   },
   "searchBar": {
     "placeholder": "Bilatu...",

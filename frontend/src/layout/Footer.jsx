@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 const Footer = () => {
   const { t } = useTranslation();
   return (
-    <footer className={styles.footer}>
+    <footer className={styles.footer} role="contentinfo">
       <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
     </footer>
   );

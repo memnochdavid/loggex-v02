@@ -145,7 +145,7 @@ const Header = () => {
     );
 
     return (
-        <header className={styles.header}>
+        <header className={styles.header} role="banner">
             <div className={styles.logoContainer} style={user?.centro?.personalizacion?.nameTitleConfig?.alignment ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment } : {}}>
                 {isMobile && user ? (
                     <Link to="#" className={styles.logoLink} onClick={toggleSidebar}>

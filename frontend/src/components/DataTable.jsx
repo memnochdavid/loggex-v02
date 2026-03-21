@@ -105,17 +105,19 @@ const DataTable = ({
                 </div>
                 
                 <div className={styles.pageButtons}>
-                    <button 
-                        className={styles.pageButton} 
+                    <button
+                        className={styles.pageButton}
                         onClick={() => onPageChange(1)}
                         disabled={currentPage === 1 || loading || totalItems === 0}
+                        aria-label={t('dataTable.firstPage')}
                     >
                         <ChevronsLeft size={16} />
                     </button>
-                    <button 
-                        className={styles.pageButton} 
+                    <button
+                        className={styles.pageButton}
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1 || loading || totalItems === 0}
+                        aria-label={t('dataTable.previousPage')}
                     >
                         <ChevronLeft size={16} />
                     </button>
@@ -124,17 +126,19 @@ const DataTable = ({
                         {t('dataTable.page')} {currentPage} {totalPages > 0 ? `${t('common.of')} ${totalPages}` : ''}
                     </span>
 
-                    <button 
-                        className={styles.pageButton} 
+                    <button
+                        className={styles.pageButton}
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage >= totalPages || loading || totalItems === 0}
+                        aria-label={t('dataTable.nextPage')}
                     >
                         <ChevronRight size={16} />
                     </button>
-                    <button 
-                        className={styles.pageButton} 
+                    <button
+                        className={styles.pageButton}
                         onClick={() => onPageChange(totalPages)}
                         disabled={currentPage >= totalPages || loading || totalItems === 0}
+                        aria-label={t('dataTable.lastPage')}
                     >
                         <ChevronsRight size={16} />
                     </button>

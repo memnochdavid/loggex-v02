@@ -267,7 +267,7 @@ const Sidebar = () => {
                 <div className={styles.overlay} onClick={closeSidebar} />
             )}
 
-            <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
+            <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`} role="navigation" aria-label="Menu principal">
                 <nav className={styles.nav}>
 
 

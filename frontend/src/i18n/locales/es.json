@@ -157,7 +157,11 @@
     "rows": "Filas:",
     "page": "Página",
     "loading": "Cargando datos...",
-    "noData": "No hay datos disponibles."
+    "noData": "No hay datos disponibles.",
+    "firstPage": "Primera página",
+    "previousPage": "Página anterior",
+    "nextPage": "Página siguiente",
+    "lastPage": "Última página"
   },
   "searchBar": {
     "placeholder": "Buscar...",
