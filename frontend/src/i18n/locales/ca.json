@@ -164,6 +164,10 @@
     "nextPage": "Pàgina següent",
     "lastPage": "Última pàgina"
   },
+  "emptyState": {
+    "title": "No hi ha dades disponibles",
+    "description": "Encara no s'han creat registres en aquesta secció."
+  },
   "searchBar": {
     "placeholder": "Cercar...",
     "clearLabel": "Netejar cerca"
@@ -232,7 +236,9 @@
     "roleTeacher": "Professor",
     "roleAdmin": "Administrador",
     "roleSuperAdmin": "SuperAdmin",
-    "center": "Centre"
+    "center": "Centre",
+    "emptyTitle": "No hi ha usuaris registrats",
+    "emptyDescription": "Crea el primer usuari per començar a gestionar la plataforma."
   },
   "centers": {
     "title": "Centres educatius",
@@ -254,7 +260,9 @@
     "cifPlaceholder": "Ex: Q1234567A",
     "addressPlaceholder": "Carrer Principal, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Centre actiu"
+    "activeCheckbox": "Centre actiu",
+    "emptyTitle": "No hi ha centres registrats",
+    "emptyDescription": "Crea el primer centre educatiu per començar."
   },
   "cycles": {
     "title": "Cicles formatius",
@@ -271,7 +279,9 @@
     "levelMiddle": "Mitjà",
     "levelHigher": "Superior",
     "levelSpecialization": "Curs d'especialització",
-    "centerLabel": "Centre"
+    "centerLabel": "Centre",
+    "emptyTitle": "No hi ha cicles formatius",
+    "emptyDescription": "Crea el primer cicle formatiu per organitzar l'oferta educativa."
   },
   "groups": {
     "title": "Grups",
@@ -296,7 +306,9 @@
     "cycleLabel": "Cicle formatiu",
     "course1": "1r",
     "course2": "2n",
-    "centerLabel": "Centre"
+    "centerLabel": "Centre",
+    "emptyTitle": "No hi ha grups creats",
+    "emptyDescription": "Crea el primer grup per organitzar els alumnes."
   },
   "modules": {
     "title": "Mòduls formatius",
@@ -316,7 +328,9 @@
     "cycleLabel": "Cicle formatiu",
     "course1": "1r",
     "course2": "2n",
-    "weeklyHours": "Hores setmanals"
+    "weeklyHours": "Hores setmanals",
+    "emptyTitle": "No hi ha mòduls registrats",
+    "emptyDescription": "Crea el primer mòdul formatiu per definir les assignatures."
   },
   "enrollments": {
     "title": "Matrícules",
@@ -327,7 +341,9 @@
     "errorDelete": "No s'ha pogut eliminar la matrícula",
     "editTitle": "Editar matrícula",
     "newTitle": "Nova matrícula",
-    "schoolYear": "Any Escolar"
+    "schoolYear": "Any Escolar",
+    "emptyTitle": "No hi ha matrícules registrades",
+    "emptyDescription": "Crea la primera matrícula per assignar alumnes a grups."
   },
   "teaching": {
     "title": "Assignació de docència",
@@ -341,7 +357,9 @@
     "teacherCount": "Professor ({{count}})",
     "groupCount": "Grup ({{count}})",
     "moduleCount": "Mòdul ({{count}})",
-    "selectGroupFirst": "Selecciona un grup primer"
+    "selectGroupFirst": "Selecciona un grup primer",
+    "emptyTitle": "No hi ha assignacions docents",
+    "emptyDescription": "Crea la primera assignació per vincular professors amb mòduls."
   },
   "schedules": {
     "title": "Horaris",
@@ -366,7 +384,9 @@
     "subjectLabel": "Assignatura (Impartició)",
     "selectSubject": "Seleccionar assignatura...",
     "errorLoadSchedule": "No s'ha pogut carregar l'horari o esdeveniments.",
-    "calendarAndEvents": "Calendari i Esdeveniments"
+    "calendarAndEvents": "Calendari i Esdeveniments",
+    "emptyTitle": "No hi ha horaris definits",
+    "emptyDescription": "Crea el primer horari per organitzar les classes."
   },
   "holidays": {
     "title": "Festius",
@@ -384,7 +404,9 @@
     "namePlaceholder": "Ex: Nadal",
     "endDateOptional": "Data fi (Opcional)",
     "centerOptional": "Centre (Opcional - Global si buit)",
-    "globalOption": "Global (Tots els centres)"
+    "globalOption": "Global (Tots els centres)",
+    "emptyTitle": "No hi ha festius registrats",
+    "emptyDescription": "Afegeix festius perquè es reflecteixin al calendari."
   },
   "tasks": {
     "title": "Tasques i activitats",

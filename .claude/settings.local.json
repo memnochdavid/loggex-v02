@@ -18,7 +18,11 @@
       "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -name \"*.jsx\" -exec grep -l \"ErrorBoundary\\\\|error\\\\|Error\" {})",
       "Bash(git:*)",
       "Bash(chmod:*)",
-      "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src/hooks -type f -name *.js -o -name *.jsx)"
+      "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src/hooks -type f -name *.js -o -name *.jsx)",
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(npx vite:*)",
+      "Bash(node:*)"
     ]
   }
 }

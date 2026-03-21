@@ -9,7 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Lock, CalendarOff } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -459,6 +459,11 @@ const Festivos = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'650px'}
+            emptyIcon={CalendarOff}
+            emptyTitle={t('holidays.emptyTitle')}
+            emptyDescription={t('holidays.emptyDescription')}
+            emptyAction={t('holidays.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         <ModalView

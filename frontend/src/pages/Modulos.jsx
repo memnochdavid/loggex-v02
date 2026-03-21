@@ -9,7 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -483,6 +483,11 @@ const Modulos = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'600px'}
+            emptyIcon={BookOpen}
+            emptyTitle={t('modules.emptyTitle')}
+            emptyDescription={t('modules.emptyDescription')}
+            emptyAction={t('modules.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         {/* Modal */}

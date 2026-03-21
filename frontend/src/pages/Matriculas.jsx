@@ -9,7 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ClipboardList } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -498,6 +498,11 @@ const Matriculas = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'600px'}
+            emptyIcon={ClipboardList}
+            emptyTitle={t('enrollments.emptyTitle')}
+            emptyDescription={t('enrollments.emptyDescription')}
+            emptyAction={t('enrollments.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         <ModalView

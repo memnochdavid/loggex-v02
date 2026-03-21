@@ -7,7 +7,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
-import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
+import {Plus, Edit2, Trash2, Image as ImageIcon, Building} from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -432,6 +432,11 @@ const Centros = () => {
                     sortColumn={sortColumn}
                     sortDirection={sortDirection}
                     onSort={handleSort}
+                    emptyIcon={Building}
+                    emptyTitle={t('centers.emptyTitle')}
+                    emptyDescription={t('centers.emptyDescription')}
+                    emptyAction={t('centers.newTitle')}
+                    onEmptyAction={() => handleOpenModal()}
                 />
 
                 <ModalView

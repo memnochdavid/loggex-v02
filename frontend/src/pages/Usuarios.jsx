@@ -9,7 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Upload, Users } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -458,6 +458,11 @@ const Usuarios = () => {
             onSort={handleSort}
             mobileBreakpoint={'980px'}
             mobileHeaderColumns={3}
+            emptyIcon={Users}
+            emptyTitle={t('users.emptyTitle')}
+            emptyDescription={t('users.emptyDescription')}
+            emptyAction={t('users.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         <ModalView

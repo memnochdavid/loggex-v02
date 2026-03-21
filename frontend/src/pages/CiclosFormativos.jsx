@@ -9,7 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, GraduationCap } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -421,6 +421,11 @@ const CiclosFormativos = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'600px'}
+            emptyIcon={GraduationCap}
+            emptyTitle={t('cycles.emptyTitle')}
+            emptyDescription={t('cycles.emptyDescription')}
+            emptyAction={t('cycles.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         {/* Modal */}

@@ -28,7 +28,7 @@ Cada sección describe el **estado actual**, el **problema** que presenta, la **
 
 | # | Mejora | Prioridad | Esfuerzo | Estado |
 |---|--------|-----------|----------|--------|
-| 1 | Empty States | Alta | Bajo | Pendiente |
+| 1 | Empty States | Alta | Bajo | Completado |
 | 2 | Skeleton Loaders | Alta | Medio | Pendiente |
 | 3 | Validación inline formularios | Alta | Medio | Pendiente |
 | 4 | Breadcrumbs | Alta | Bajo | Pendiente |

@@ -164,6 +164,10 @@
     "nextPage": "Páxina seguinte",
     "lastPage": "Última páxina"
   },
+  "emptyState": {
+    "title": "Non hai datos dispoñibles",
+    "description": "Aínda non se crearon rexistros nesta sección."
+  },
   "searchBar": {
     "placeholder": "Buscar...",
     "clearLabel": "Limpar busca"
@@ -232,7 +236,9 @@
     "roleTeacher": "Profesor",
     "roleAdmin": "Administrador",
     "roleSuperAdmin": "SuperAdmin",
-    "center": "Centro"
+    "center": "Centro",
+    "emptyTitle": "Non hai usuarios rexistrados",
+    "emptyDescription": "Crea o primeiro usuario para comezar a xestionar a plataforma."
   },
   "centers": {
     "title": "Centros Educativos",
@@ -254,7 +260,9 @@
     "cifPlaceholder": "Ex: Q1234567A",
     "addressPlaceholder": "Rúa Principal, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Centro Activo"
+    "activeCheckbox": "Centro Activo",
+    "emptyTitle": "Non hai centros rexistrados",
+    "emptyDescription": "Crea o primeiro centro educativo para comezar."
   },
   "cycles": {
     "title": "Ciclos Formativos",
@@ -271,7 +279,9 @@
     "levelMiddle": "Medio",
     "levelHigher": "Superior",
     "levelSpecialization": "Curso de Especialización",
-    "centerLabel": "Centro"
+    "centerLabel": "Centro",
+    "emptyTitle": "Non hai ciclos formativos",
+    "emptyDescription": "Crea o primeiro ciclo formativo para organizar a oferta educativa."
   },
   "groups": {
     "title": "Grupos",
@@ -296,7 +306,9 @@
     "cycleLabel": "Ciclo Formativo",
     "course1": "1º",
     "course2": "2º",
-    "centerLabel": "Centro"
+    "centerLabel": "Centro",
+    "emptyTitle": "Non hai grupos creados",
+    "emptyDescription": "Crea o primeiro grupo para organizar os alumnos."
   },
   "modules": {
     "title": "Módulos Formativos",
@@ -316,7 +328,9 @@
     "cycleLabel": "Ciclo Formativo",
     "course1": "1º",
     "course2": "2º",
-    "weeklyHours": "Horas Semanais"
+    "weeklyHours": "Horas Semanais",
+    "emptyTitle": "Non hai módulos rexistrados",
+    "emptyDescription": "Crea o primeiro módulo formativo para definir as materias."
   },
   "enrollments": {
     "title": "Matrículas",
@@ -327,7 +341,9 @@
     "errorDelete": "Non se puido eliminar a matrícula",
     "editTitle": "Editar Matrícula",
     "newTitle": "Nova Matrícula",
-    "schoolYear": "Ano Escolar"
+    "schoolYear": "Ano Escolar",
+    "emptyTitle": "Non hai matrículas rexistradas",
+    "emptyDescription": "Crea a primeira matrícula para asignar alumnos a grupos."
   },
   "teaching": {
     "title": "Asignación de Docencia",
@@ -341,7 +357,9 @@
     "teacherCount": "Profesor ({{count}})",
     "groupCount": "Grupo ({{count}})",
     "moduleCount": "Módulo ({{count}})",
-    "selectGroupFirst": "Selecciona un grupo primeiro"
+    "selectGroupFirst": "Selecciona un grupo primeiro",
+    "emptyTitle": "Non hai asignacións docentes",
+    "emptyDescription": "Crea a primeira asignación para vincular profesores con módulos."
   },
   "schedules": {
     "title": "Horarios",
@@ -366,7 +384,9 @@
     "subjectLabel": "Asignatura (Impartición)",
     "selectSubject": "Seleccionar asignatura...",
     "errorLoadSchedule": "Non se puido cargar o horario ou eventos.",
-    "calendarAndEvents": "Calendario e Eventos"
+    "calendarAndEvents": "Calendario e Eventos",
+    "emptyTitle": "Non hai horarios definidos",
+    "emptyDescription": "Crea o primeiro horario para organizar as clases."
   },
   "holidays": {
     "title": "Festivos",
@@ -384,7 +404,9 @@
     "namePlaceholder": "Ex: Nadal",
     "endDateOptional": "Data Fin (Opcional)",
     "centerOptional": "Centro (Opcional - Global se baleiro)",
-    "globalOption": "Global (Todos os centros)"
+    "globalOption": "Global (Todos os centros)",
+    "emptyTitle": "Non hai festivos rexistrados",
+    "emptyDescription": "Engade festivos para que se reflictan no calendario."
   },
   "tasks": {
     "title": "Tarefas e Actividades",

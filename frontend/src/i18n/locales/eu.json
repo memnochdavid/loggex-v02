@@ -164,6 +164,10 @@
     "nextPage": "Hurrengo orrialdea",
     "lastPage": "Azken orrialdea"
   },
+  "emptyState": {
+    "title": "Ez dago daturik eskuragarri",
+    "description": "Oraindik ez da erregistrorik sortu atal honetan."
+  },
   "searchBar": {
     "placeholder": "Bilatu...",
     "clearLabel": "Bilaketa garbitu"
@@ -232,7 +236,9 @@
     "roleTeacher": "Irakaslea",
     "roleAdmin": "Administratzailea",
     "roleSuperAdmin": "SuperAdmin",
-    "center": "Ikastetxea"
+    "center": "Ikastetxea",
+    "emptyTitle": "Ez dago erabiltzailerik erregistratuta",
+    "emptyDescription": "Sortu lehen erabiltzailea plataforma kudeatzen hasteko."
   },
   "centers": {
     "title": "Ikastetxeak",
@@ -254,7 +260,9 @@
     "cifPlaceholder": "Adib: Q1234567A",
     "addressPlaceholder": "Kale Nagusia, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Ikastetxe Aktiboa"
+    "activeCheckbox": "Ikastetxe Aktiboa",
+    "emptyTitle": "Ez dago zentrorik erregistratuta",
+    "emptyDescription": "Sortu lehen hezkuntza-zentroa hasteko."
   },
   "cycles": {
     "title": "Heziketa Zikloak",
@@ -271,7 +279,9 @@
     "levelMiddle": "Erdi Mailakoa",
     "levelHigher": "Goi Mailakoa",
     "levelSpecialization": "Espezializazio Ikastaroa",
-    "centerLabel": "Ikastetxea"
+    "centerLabel": "Ikastetxea",
+    "emptyTitle": "Ez dago heziketa-ziklorik",
+    "emptyDescription": "Sortu lehen heziketa-zikloa hezkuntza-eskaintza antolatzeko."
   },
   "groups": {
     "title": "Taldeak",
@@ -296,7 +306,9 @@
     "cycleLabel": "Heziketa Zikloa",
     "course1": "1.",
     "course2": "2.",
-    "centerLabel": "Ikastetxea"
+    "centerLabel": "Ikastetxea",
+    "emptyTitle": "Ez dago talderik sortuta",
+    "emptyDescription": "Sortu lehen taldea ikasleak antolatzeko."
   },
   "modules": {
     "title": "Modulu Formatuak",
@@ -316,7 +328,9 @@
     "cycleLabel": "Heziketa Zikloa",
     "course1": "1.",
     "course2": "2.",
-    "weeklyHours": "Asteko Orduak"
+    "weeklyHours": "Asteko Orduak",
+    "emptyTitle": "Ez dago modulurik erregistratuta",
+    "emptyDescription": "Sortu lehen heziketa-modulua irakasgaiak zehazteko."
   },
   "enrollments": {
     "title": "Matrikulak",
@@ -327,7 +341,9 @@
     "errorDelete": "Ezin izan da matrikula ezabatu",
     "editTitle": "Matrikula Editatu",
     "newTitle": "Matrikula Berria",
-    "schoolYear": "Ikasturtea"
+    "schoolYear": "Ikasturtea",
+    "emptyTitle": "Ez dago matrikularik erregistratuta",
+    "emptyDescription": "Sortu lehen matrikula ikasleak taldeei esleitzeko."
   },
   "teaching": {
     "title": "Irakaskuntza Esleipena",
@@ -341,7 +357,9 @@
     "teacherCount": "Irakaslea ({{count}})",
     "groupCount": "Taldea ({{count}})",
     "moduleCount": "Modulua ({{count}})",
-    "selectGroupFirst": "Aukeratu talde bat lehenik"
+    "selectGroupFirst": "Aukeratu talde bat lehenik",
+    "emptyTitle": "Ez dago irakaskuntza-esleipenrik",
+    "emptyDescription": "Sortu lehen esleipena irakasleak moduluekin lotzeko."
   },
   "schedules": {
     "title": "Ordutegiak",
@@ -366,7 +384,9 @@
     "subjectLabel": "Ikasgaia (Impartizioa)",
     "selectSubject": "Aukeratu ikasgaia...",
     "errorLoadSchedule": "Ezin izan da ordutegia edo gertaerak kargatu.",
-    "calendarAndEvents": "Egutegia eta Gertaerak"
+    "calendarAndEvents": "Egutegia eta Gertaerak",
+    "emptyTitle": "Ez dago ordutegi definituta",
+    "emptyDescription": "Sortu lehen ordutegi klase-orduak antolatzeko."
   },
   "holidays": {
     "title": "Jaiegunak",
@@ -384,7 +404,9 @@
     "namePlaceholder": "Adib: Gabonak",
     "endDateOptional": "Amaiera Data (Aukerakoa)",
     "centerOptional": "Ikastetxea (Aukerakoa - Globala hutsik badago)",
-    "globalOption": "Globala (Ikastetxe guztiak)"
+    "globalOption": "Globala (Ikastetxe guztiak)",
+    "emptyTitle": "Ez dago jaiegunik erregistratuta",
+    "emptyDescription": "Gehitu jaieguna egutegian islada dadin."
   },
   "tasks": {
     "title": "Zereginak eta Jarduerak",

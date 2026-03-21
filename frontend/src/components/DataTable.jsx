@@ -6,6 +6,7 @@ import Lottie from 'lottie-react';
 import loadingAnimation from '../../public/loading.json';
 import loadingStyles from './LoadingView.module.css';
 import LoadingView from './LoadingView';
+import EmptyState from './EmptyState';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
@@ -39,7 +40,12 @@ const DataTable = ({
     onSort,
     pageSizeOptions = [10, 20, 30, 50, 100],
     mobileBreakpoint = '768px',
-    mobileHeaderColumns = 1
+    mobileHeaderColumns = 1,
+    emptyTitle,
+    emptyDescription,
+    emptyIcon,
+    emptyAction,
+    onEmptyAction
 }) => {
     const { t } = useTranslation();
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
@@ -215,8 +221,14 @@ const DataTable = ({
                                 ) : noDataAvailable ? (
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
-                                        <td colSpan={columns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            {t('dataTable.noData')}
+                                        <td colSpan={columns.length} className={styles.emptyState}>
+                                            <EmptyState
+                                                title={emptyTitle}
+                                                description={emptyDescription}
+                                                icon={emptyIcon}
+                                                actionLabel={emptyAction}
+                                                onAction={onEmptyAction}
+                                            />
                                         </td>
                                     </tr>
                                 ) : (
@@ -248,9 +260,13 @@ const DataTable = ({
                         {loading && (!data || data.length === 0) ? (
                             <LoadingView />
                         ) : noDataAvailable ? (
-                            <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
-                                {t('dataTable.noData')}
-                            </div>
+                            <EmptyState
+                                title={emptyTitle}
+                                description={emptyDescription}
+                                icon={emptyIcon}
+                                actionLabel={emptyAction}
+                                onAction={onEmptyAction}
+                            />
                         ) : (
                             <AccordionView 
                                 data={data}

@@ -164,6 +164,10 @@
     "nextPage": "Next page",
     "lastPage": "Last page"
   },
+  "emptyState": {
+    "title": "No data available",
+    "description": "No records have been created in this section yet."
+  },
   "searchBar": {
     "placeholder": "Search...",
     "clearLabel": "Clear search"
@@ -232,7 +236,9 @@
     "roleTeacher": "Teacher",
     "roleAdmin": "Administrator",
     "roleSuperAdmin": "SuperAdmin",
-    "center": "Center"
+    "center": "Center",
+    "emptyTitle": "No users registered",
+    "emptyDescription": "Create the first user to start managing the platform."
   },
   "centers": {
     "title": "Educational Centers",
@@ -254,7 +260,9 @@
     "cifPlaceholder": "E.g.: Q1234567A",
     "addressPlaceholder": "123 Main Street",
     "phonePlaceholder": "555 123 456",
-    "activeCheckbox": "Active Center"
+    "activeCheckbox": "Active Center",
+    "emptyTitle": "No centers registered",
+    "emptyDescription": "Create the first educational center to get started."
   },
   "cycles": {
     "title": "Training Cycles",
@@ -271,7 +279,9 @@
     "levelMiddle": "Intermediate",
     "levelHigher": "Advanced",
     "levelSpecialization": "Specialization Course",
-    "centerLabel": "Center"
+    "centerLabel": "Center",
+    "emptyTitle": "No training cycles",
+    "emptyDescription": "Create the first training cycle to organize the educational offer."
   },
   "groups": {
     "title": "Groups",
@@ -296,7 +306,9 @@
     "cycleLabel": "Training Cycle",
     "course1": "1st",
     "course2": "2nd",
-    "centerLabel": "Center"
+    "centerLabel": "Center",
+    "emptyTitle": "No groups created",
+    "emptyDescription": "Create the first group to organize students."
   },
   "modules": {
     "title": "Training Modules",
@@ -316,7 +328,9 @@
     "cycleLabel": "Training Cycle",
     "course1": "1st",
     "course2": "2nd",
-    "weeklyHours": "Weekly Hours"
+    "weeklyHours": "Weekly Hours",
+    "emptyTitle": "No modules registered",
+    "emptyDescription": "Create the first training module to define subjects."
   },
   "enrollments": {
     "title": "Enrollments",
@@ -327,7 +341,9 @@
     "errorDelete": "Could not delete enrollment",
     "editTitle": "Edit Enrollment",
     "newTitle": "New Enrollment",
-    "schoolYear": "School Year"
+    "schoolYear": "School Year",
+    "emptyTitle": "No enrollments registered",
+    "emptyDescription": "Create the first enrollment to assign students to groups."
   },
   "teaching": {
     "title": "Teaching Assignment",
@@ -341,7 +357,9 @@
     "teacherCount": "Teacher ({{count}})",
     "groupCount": "Group ({{count}})",
     "moduleCount": "Module ({{count}})",
-    "selectGroupFirst": "Select a group first"
+    "selectGroupFirst": "Select a group first",
+    "emptyTitle": "No teaching assignments",
+    "emptyDescription": "Create the first assignment to link teachers with modules."
   },
   "schedules": {
     "title": "Schedules",
@@ -366,7 +384,9 @@
     "subjectLabel": "Subject (Teaching Assignment)",
     "selectSubject": "Select subject...",
     "errorLoadSchedule": "Could not load schedule or events.",
-    "calendarAndEvents": "Calendar & Events"
+    "calendarAndEvents": "Calendar & Events",
+    "emptyTitle": "No schedules defined",
+    "emptyDescription": "Create the first schedule to organize classes."
   },
   "holidays": {
     "title": "Holidays",
@@ -384,7 +404,9 @@
     "namePlaceholder": "E.g.: Christmas",
     "endDateOptional": "End Date (Optional)",
     "centerOptional": "Center (Optional - Global if empty)",
-    "globalOption": "Global (All centers)"
+    "globalOption": "Global (All centers)",
+    "emptyTitle": "No holidays registered",
+    "emptyDescription": "Add holidays so they are reflected in the calendar."
   },
   "tasks": {
     "title": "Tasks & Activities",

@@ -8,7 +8,7 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, BookMarked } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -502,6 +502,11 @@ const Imparticiones = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             mobileBreakpoint={'600px'}
+            emptyIcon={BookMarked}
+            emptyTitle={t('teaching.emptyTitle')}
+            emptyDescription={t('teaching.emptyDescription')}
+            emptyAction={t('teaching.newTitle')}
+            onEmptyAction={() => handleOpenModal()}
         />
 
         <ModalView

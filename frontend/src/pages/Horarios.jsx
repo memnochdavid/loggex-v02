@@ -10,7 +10,7 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose, Clock } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
@@ -551,6 +551,11 @@ const Horarios = () => {
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                emptyIcon={Clock}
+                emptyTitle={t('schedules.emptyTitle')}
+                emptyDescription={t('schedules.emptyDescription')}
+                emptyAction={t('schedules.newTitle')}
+                onEmptyAction={() => handleOpenModal()}
             />
         ) : (
             <div className={styles.calendarViewModeContainer}>
