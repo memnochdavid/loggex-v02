@@ -229,7 +229,7 @@ class PersonalizacionController extends AbstractController
 
         } catch (\Exception $e) {
             $logger->error('ERROR AL GUARDAR PERSONALIZACION: ' . $e->getMessage());
-            return $this->json(['message' => 'Error al guardar: ' . $e->getMessage()], 500);
+            return $this->json(['message' => 'Error al guardar la personalización'], 500);
         }
 
         return $this->json([

@@ -74,12 +74,33 @@ Revision completa del proyecto (backend, frontend, seguridad y configuracion). H
 
 ## 5. PLAN DE ACCION SUGERIDO
 
-### Fase 1 - Seguridad (urgente)
+### Fase 1 - Seguridad (urgente) -- COMPLETADA
 
-- Limpiar secretos del repositorio
-- Anadir autenticacion a endpoints desprotegidos
-- Unificar roles y corregir `CurrentUserExtension`
-- Implementar rate limiting en login
+Cambios aplicados:
+
+- **Autenticacion en endpoints desprotegidos**
+  - `CentroController.php`: anadido `#[IsGranted('ROLE_ADMIN')]` a nivel de clase
+  - `DebugLogController.php`: anadido `#[IsGranted('ROLE_SUPERADMIN')]` a nivel de clase; eliminada exposicion de rutas internas del servidor en las respuestas JSON
+
+- **Unificacion de roles**
+  - `CurrentUserExtension.php`: eliminado check redundante de `ROLE_SUPER_ADMIN`, unificado a `ROLE_SUPERADMIN`
+  - `ComunicadoProcessor.php`: mismo cambio
+
+- **Clave de cifrado externalizada (Mensaje)**
+  - `Mensaje.php`: eliminada constante `ENCRYPTION_KEY` hardcodeada y los lifecycle callbacks de cifrado
+  - Creado `src/EventListener/MensajeEncryptionListener.php`: EntityListener que recibe la clave desde el parametro `%app.encryption_key%` (variable de entorno)
+  - `config/services.yaml`: anadido parametro `app.encryption_key` vinculado a `env(MESSENGER_ENCRYPTION_KEY)`
+  - `.env`: anadida variable `MESSENGER_ENCRYPTION_KEY`
+
+- **Permisos de directorios de upload**
+  - `CentroController.php`: `mkdir` cambiado de `0777` a `0755`
+  - `UserController.php`: idem
+
+- **Errores internos no expuestos al cliente**
+  - Eliminado `$e->getMessage()` y `$e->getTraceAsString()` de las respuestas JSON en: `CentroController`, `UserController`, `AdminUserController`, `AsistenciaController`, `UploadTareaController`, `UploadMaterialController`, `UploadEntregaController`, `GetMensajesController`, `PersonalizacionController`
+  - Los logs internos con `$logger->error()` se mantienen intactos
+
+- **Pendiente**: rate limiting en `/api/login`, mover secretos de `.env` a `.env.local`, permisos `600` en `private.pem`
 
 ### Fase 2 - Calidad de datos
 

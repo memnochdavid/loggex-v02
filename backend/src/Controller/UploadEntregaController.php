@@ -93,7 +93,7 @@ class UploadEntregaController extends AbstractController
                     $entrega->setArchivo($newFilename);
                 } catch (\Exception $e) {
                     $logger->error('UploadEntrega: Error al subir archivo', ['error' => $e->getMessage()]);
-                    return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
+                    return $this->json(['message' => 'Error al subir el archivo'], 500);
                 }
             }
 
@@ -109,7 +109,7 @@ class UploadEntregaController extends AbstractController
 
         } catch (\Exception $e) {
             $logger->error('UploadEntrega: Excepción no controlada', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return $this->json(['message' => 'Error interno del servidor: ' . $e->getMessage()], 500);
+            return $this->json(['message' => 'Error interno del servidor'], 500);
         }
     }
 }

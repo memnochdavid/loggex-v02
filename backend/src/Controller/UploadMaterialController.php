@@ -67,7 +67,7 @@ class UploadMaterialController extends AbstractController
             $storage->writeStream('materiales/' . $newFilename, $stream);
             fclose($stream);
         } catch (\Exception $e) {
-            return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
+            return $this->json(['message' => 'Error al subir el archivo'], 500);
         }
 
         // Crear entidad Material

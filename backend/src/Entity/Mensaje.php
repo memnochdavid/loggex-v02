@@ -18,7 +18,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: MensajeRepository::class)]
-#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new Get(),
@@ -39,9 +38,6 @@ use Symfony\Component\Serializer\Attribute\Groups;
 ])]
 class Mensaje
 {
-    // Clave de cifrado (En producción debería estar en .env)
-    private const ENCRYPTION_KEY = 'LoggexSecretKeyForMessages2026';
-    private const CIPHER_METHOD = 'AES-256-CBC';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -83,50 +79,15 @@ class Mensaje
         return $this->id;
     }
 
-    #[ORM\PrePersist]
-    #[ORM\PreUpdate]
-    public function encryptContent(): void
+    public function getContenido(): ?string
     {
-        if ($this->texto) {
-            $ivLength = openssl_cipher_iv_length(self::CIPHER_METHOD);
-            $iv = openssl_random_pseudo_bytes($ivLength);
-            $encrypted = openssl_encrypt($this->texto, self::CIPHER_METHOD, self::ENCRYPTION_KEY, 0, $iv);
-            $this->contenido = base64_encode($iv . $encrypted);
-        }
+        return $this->contenido;
     }
 
-    #[ORM\PostLoad]
-    public function decryptContent(): void
+    public function setContenido(?string $contenido): static
     {
-        if ($this->contenido) {
-            // Intentar descifrar
-            try {
-                $data = base64_decode($this->contenido, true);
-                if ($data === false) {
-                    throw new \Exception("No es base64 válido");
-                }
-
-                $ivLength = openssl_cipher_iv_length(self::CIPHER_METHOD);
-                if (strlen($data) < $ivLength) {
-                    throw new \Exception("Datos demasiado cortos");
-                }
-
-                $iv = substr($data, 0, $ivLength);
-                $encrypted = substr($data, $ivLength);
-
-                $decrypted = openssl_decrypt($encrypted, self::CIPHER_METHOD, self::ENCRYPTION_KEY, 0, $iv);
-
-                if ($decrypted === false) {
-                    // Si falla el descifrado, asumimos que es texto plano
-                    $this->texto = $this->contenido;
-                } else {
-                    $this->texto = $decrypted;
-                }
-            } catch (\Exception $e) {
-                // Si hay error, devolvemos el contenido tal cual (texto plano)
-                $this->texto = $this->contenido;
-            }
-        }
+        $this->contenido = $contenido;
+        return $this;
     }
 
     public function getTexto(): ?string

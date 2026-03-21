@@ -8,8 +8,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 
+#[IsGranted('ROLE_ADMIN')]
 class CentroController extends AbstractController
 {
     #[Route('/api/centro/create', name: 'api_centro_create', methods: ['POST'])]
@@ -57,7 +59,7 @@ class CentroController extends AbstractController
 
             // Crear directorio si no existe
             if (!file_exists($destination)) {
-                if (!@mkdir($destination, 0777, true) && !is_dir($destination)) {
+                if (!@mkdir($destination, 0755, true) && !is_dir($destination)) {
                     return $this->json(['message' => 'Error al crear el directorio de destino'], 500);
                 }
             }
@@ -70,7 +72,7 @@ class CentroController extends AbstractController
                 $logoFile->move($destination, $newFilename);
                 $centro->setLogo($newFilename);
             } catch (\Exception $e) {
-                return $this->json(['message' => 'Error al subir el logo: ' . $e->getMessage()], 500);
+                return $this->json(['message' => 'Error al subir el logo'], 500);
             }
         }
 

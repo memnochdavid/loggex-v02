@@ -57,7 +57,7 @@ class GetMensajesController extends AbstractController
 
         } catch (\Exception $e) {
             return $this->json([
-                'error' => $e->getMessage()
+                'error' => 'Error interno del servidor'
             ], 500);
         }
     }

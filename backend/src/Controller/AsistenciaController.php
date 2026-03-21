@@ -219,7 +219,7 @@ class AsistenciaController extends AbstractController
             return $this->json(array_values($summary));
         } catch (\Exception $e) {
             // Loguear el error y devolver 500 con detalles para depuración
-            return $this->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+            return $this->json(['error' => 'Error interno del servidor'], 500);
         }
     }
 

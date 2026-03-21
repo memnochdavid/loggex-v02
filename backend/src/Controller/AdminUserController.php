@@ -134,7 +134,7 @@ class AdminUserController extends AbstractController
 
                 $user->setFoto('/uploads/avatar/' . $newFilename);
             } catch (\Exception $e) {
-                return $this->json(['message' => 'Error al subir avatar: ' . $e->getMessage()], 500);
+                return $this->json(['message' => 'Error al subir avatar'], 500);
             }
         }
 

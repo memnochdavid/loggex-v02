@@ -28,7 +28,7 @@ class ComunicadoProcessor implements ProcessorInterface
 
                 // Si no es superadmin, forzamos que el centro sea el del usuario
                 // Verificamos ambos roles posibles para asegurar compatibilidad
-                if (!$this->security->isGranted('ROLE_SUPER_ADMIN') && !$this->security->isGranted('ROLE_SUPERADMIN')) {
+                if (!$this->security->isGranted('ROLE_SUPERADMIN')) {
                     $data->setCentro($user->getCentro());
                     $data->setGlobal(false); // Un admin normal no puede publicar global
                 }

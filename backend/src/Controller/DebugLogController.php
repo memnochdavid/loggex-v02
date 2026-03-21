@@ -6,7 +6,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[IsGranted('ROLE_SUPERADMIN')]
 class DebugLogController extends AbstractController
 {
     #[Route('/api/debug/logs', name: 'api_debug_logs', methods: ['GET'])]
@@ -17,7 +19,7 @@ class DebugLogController extends AbstractController
         $logFile = $logDir . '/' . $env . '.log';
 
         if (!file_exists($logFile)) {
-            return $this->json(['error' => 'Log file not found: ' . $logFile]);
+            return $this->json(['error' => 'Log file not found']);
         }
 
         // Leer las últimas 200 líneas
@@ -33,7 +35,6 @@ class DebugLogController extends AbstractController
         });
 
         return $this->json([
-            'file' => $logFile,
             'errors' => array_values($errorLogs),
             'tail' => array_slice($lines, -50) // Últimas 50 líneas sin filtrar
         ]);

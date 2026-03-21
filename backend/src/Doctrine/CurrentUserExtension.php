@@ -53,7 +53,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
 
         $user = $this->security->getUser();
 
-        if (!$user instanceof User || in_array('ROLE_SUPER_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+        if (!$user instanceof User || in_array('ROLE_SUPERADMIN', $user->getRoles())) {
             return;
         }
 

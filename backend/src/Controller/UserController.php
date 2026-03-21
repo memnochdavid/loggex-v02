@@ -48,7 +48,7 @@ class UserController extends AbstractController
 
                 // Crear directorio si no existe
                 if (!file_exists($destination)) {
-                    if (!@mkdir($destination, 0777, true) && !is_dir($destination)) {
+                    if (!@mkdir($destination, 0755, true) && !is_dir($destination)) {
                         throw new \RuntimeException(sprintf('No se pudo crear el directorio "%s". Verifique permisos.', $destination));
                     }
                 }
@@ -85,7 +85,7 @@ class UserController extends AbstractController
                 ]
             ]);
         } catch (\Exception $e) {
-            return $this->json(['message' => 'Error interno: ' . $e->getMessage()], 500);
+            return $this->json(['message' => 'Error interno del servidor'], 500);
         }
     }
 }
