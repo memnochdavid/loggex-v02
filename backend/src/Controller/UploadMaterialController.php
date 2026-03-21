@@ -5,14 +5,13 @@ namespace App\Controller;
 use App\Entity\Imparticion;
 use App\Entity\Material;
 use App\Entity\User;
+use App\Service\FileUploadService;
 use Doctrine\ORM\EntityManagerInterface;
-use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\String\Slugger\SluggerInterface;
 
 class UploadMaterialController extends AbstractController
 {
@@ -20,16 +19,14 @@ class UploadMaterialController extends AbstractController
     public function upload(
         Request $request,
         EntityManagerInterface $entityManager,
-        SluggerInterface $slugger,
         #[CurrentUser] ?User $user,
-        FilesystemOperator $storage
+        FileUploadService $fileUpload
     ): JsonResponse
     {
         if (!$user) {
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
-        // Verificar si es profesor (o admin)
         if (!in_array('ROLE_PROFESOR', $user->getRoles()) && !in_array('ROLE_ADMIN', $user->getRoles()) && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
             return $this->json(['message' => 'Acceso denegado'], 403);
         }
@@ -42,35 +39,24 @@ class UploadMaterialController extends AbstractController
             return $this->json(['message' => 'Faltan datos requeridos (file, titulo, imparticionId)'], 400);
         }
 
-        // Buscar impartición
         $imparticion = $entityManager->getRepository(Imparticion::class)->find($imparticionId);
 
         if (!$imparticion) {
             return $this->json(['message' => 'Impartición no encontrada'], 404);
         }
 
-        // Verificar que el profesor imparte esta asignatura (si no es admin)
         if (!in_array('ROLE_ADMIN', $user->getRoles()) && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
             if ($imparticion->getProfesor()->getId() !== $user->getId()) {
                 return $this->json(['message' => 'No tienes permiso para subir material a esta asignatura'], 403);
             }
         }
 
-        // Procesar archivo
-        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = $slugger->slug($originalFilename);
-        $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
-
         try {
-            // Subir a MinIO usando Flysystem
-            $stream = fopen($file->getRealPath(), 'r+');
-            $storage->writeStream('materiales/' . $newFilename, $stream);
-            fclose($stream);
+            $newFilename = $fileUpload->uploadToStorage($file, 'materiales');
         } catch (\Exception $e) {
             return $this->json(['message' => 'Error al subir el archivo'], 500);
         }
 
-        // Crear entidad Material
         $material = new Material();
         $material->setTitulo($titulo);
         $material->setArchivo($newFilename);

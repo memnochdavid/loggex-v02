@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Centro;
 use App\Entity\User;
+use App\Service\FileUploadService;
 use Doctrine\ORM\EntityManagerInterface;
-use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,10 +21,10 @@ class AdminUserController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        FilesystemOperator $storage
+        FileUploadService $fileUpload
     ): JsonResponse {
         $user = new User();
-        return $this->handleForm($user, $request, $entityManager, $passwordHasher, $storage);
+        return $this->handleForm($user, $request, $entityManager, $passwordHasher, $fileUpload);
     }
 
     #[Route('/api/admin/user/{id}/update', name: 'api_admin_user_update', methods: ['POST'])]
@@ -33,9 +33,9 @@ class AdminUserController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        FilesystemOperator $storage
+        FileUploadService $fileUpload
     ): JsonResponse {
-        return $this->handleForm($user, $request, $entityManager, $passwordHasher, $storage);
+        return $this->handleForm($user, $request, $entityManager, $passwordHasher, $fileUpload);
     }
 
     private function handleForm(
@@ -43,7 +43,7 @@ class AdminUserController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        FilesystemOperator $storage
+        FileUploadService $fileUpload
     ): JsonResponse {
         // Obtener datos (multipart/form-data)
         $nombre = $request->request->get('nombre');
@@ -114,24 +114,11 @@ class AdminUserController extends AbstractController
 
         // Avatar
         if ($avatarFile) {
-            $originalFilename = pathinfo($avatarFile->getClientOriginalName(), PATHINFO_FILENAME);
-            $safeFilename = preg_replace('/[^a-zA-Z0-9]/', '_', $originalFilename);
-            $newFilename = $safeFilename.'-'.uniqid().'.'.$avatarFile->guessExtension();
-
             try {
-                // Subir a MinIO usando Flysystem
-                $stream = fopen($avatarFile->getRealPath(), 'r+');
-                $storage->writeStream('avatar/' . $newFilename, $stream);
-                fclose($stream);
-
-                // Borrar avatar antiguo si existe
-                if ($user->getFoto()) {
-                    $oldPath = str_replace('/uploads/', '', $user->getFoto());
-                    if ($storage->has($oldPath)) {
-                        $storage->delete($oldPath);
-                    }
-                }
-
+                $oldAvatar = $user->getFoto() ? str_replace('/uploads/', '', $user->getFoto()) : null;
+                // Extraer solo el nombre del archivo del path completo (avatar/filename.ext -> filename.ext)
+                $oldFilename = $oldAvatar ? basename($oldAvatar) : null;
+                $newFilename = $fileUpload->uploadToStorage($avatarFile, 'avatar', $oldFilename);
                 $user->setFoto('/uploads/avatar/' . $newFilename);
             } catch (\Exception $e) {
                 return $this->json(['message' => 'Error al subir avatar'], 500);

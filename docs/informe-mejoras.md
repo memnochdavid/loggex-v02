@@ -126,7 +126,11 @@ Cambios aplicados:
 - **Jerarquia de roles** (aplicado en Fase 1)
   - `security.yaml`: anadido `role_hierarchy` donde `ROLE_SUPERADMIN` hereda `ROLE_ADMIN` hereda `ROLE_PROFESOR`
 
-- **Pendiente**: extraer servicio de upload compartido (refactoring de baja prioridad)
+- **Servicio de upload compartido**
+  - Creado `src/Service/FileUploadService.php`: servicio centralizado con metodos `uploadToStorage()` (MinIO/Flysystem), `uploadToLocal()` (disco) y `deleteFromStorage()`
+  - Registrado en `config/services.yaml` con inyeccion de `%kernel.project_dir%`
+  - Refactorizados 6 controllers: `UploadMaterialController`, `UploadTareaController`, `UploadEntregaController`, `AdminUserController`, `CentroController`, `UserController`
+  - Eliminada logica duplicada de sanitizacion de nombres, generacion de nombres unicos y subida de archivos
 
 ### Fase 3 - Frontend -- COMPLETADA
 

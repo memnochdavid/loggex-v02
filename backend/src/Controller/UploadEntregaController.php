@@ -5,14 +5,13 @@ namespace App\Controller;
 use App\Entity\Entrega;
 use App\Entity\Tarea;
 use App\Entity\User;
+use App\Service\FileUploadService;
 use Doctrine\ORM\EntityManagerInterface;
-use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Component\String\Slugger\SluggerInterface;
 use Psr\Log\LoggerInterface;
 
 class UploadEntregaController extends AbstractController
@@ -21,10 +20,9 @@ class UploadEntregaController extends AbstractController
     public function upload(
         Request $request,
         EntityManagerInterface $entityManager,
-        SluggerInterface $slugger,
         #[CurrentUser] ?User $user,
         LoggerInterface $logger,
-        FilesystemOperator $storage
+        FileUploadService $fileUpload
     ): JsonResponse
     {
         try {
@@ -32,7 +30,6 @@ class UploadEntregaController extends AbstractController
                 return $this->json(['message' => 'No autenticado'], 401);
             }
 
-            // Verificar permisos (Alumno)
             if (!in_array('ROLE_ALUMNO', $user->getRoles()) && !in_array('ROLE_ADMIN', $user->getRoles()) && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
                 return $this->json(['message' => 'Acceso denegado. Solo alumnos pueden realizar entregas.'], 403);
             }
@@ -46,7 +43,6 @@ class UploadEntregaController extends AbstractController
                 return $this->json(['message' => 'Falta el ID de la tarea'], 400);
             }
 
-            // Buscar tarea
             $tareaIdClean = basename($tareaId);
             $tarea = $entityManager->getRepository(Tarea::class)->find($tareaIdClean);
 
@@ -54,7 +50,6 @@ class UploadEntregaController extends AbstractController
                 return $this->json(['message' => 'Tarea no encontrada'], 404);
             }
 
-            // Verificar si ya existe una entrega para este alumno y tarea
             $entrega = $entityManager->getRepository(Entrega::class)->findOneBy([
                 'tarea' => $tarea,
                 'alumno' => $user
@@ -70,26 +65,9 @@ class UploadEntregaController extends AbstractController
             if ($comentario !== null) $entrega->setComentarioAlumno($comentario);
             if ($enlace !== null) $entrega->setEnlace($enlace);
 
-            // Procesar archivo si existe
             if ($file) {
-                $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeFilename = $slugger->slug($originalFilename);
-                $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
-
                 try {
-                    // Subir a MinIO usando Flysystem
-                    $stream = fopen($file->getRealPath(), 'r+');
-                    $storage->writeStream('entregas/' . $newFilename, $stream);
-                    fclose($stream);
-
-                    // Borrar archivo antiguo si existe
-                    if ($entrega->getArchivo()) {
-                        $oldPath = 'entregas/' . $entrega->getArchivo();
-                        if ($storage->has($oldPath)) {
-                            $storage->delete($oldPath);
-                        }
-                    }
-
+                    $newFilename = $fileUpload->uploadToStorage($file, 'entregas', $entrega->getArchivo());
                     $entrega->setArchivo($newFilename);
                 } catch (\Exception $e) {
                     $logger->error('UploadEntrega: Error al subir archivo', ['error' => $e->getMessage()]);

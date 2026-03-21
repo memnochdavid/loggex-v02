@@ -32,6 +32,10 @@ services:
         tags:
             - { name: 'api_platform.state_processor', priority: 100 }
 
+    App\Service\FileUploadService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     # Configuración del Cliente S3 para MinIO
     app.minio_client:
         class: 'Aws\S3\S3Client'
