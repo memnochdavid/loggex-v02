@@ -156,32 +156,22 @@ const DataTable = ({
     // Determinar si estamos en estado "sin datos" (loading=false y data vacía)
     const noDataAvailable = !loading && (!data || data.length === 0);
 
+    const isRefetching = loading && data && data.length > 0;
+
     return (
         <div className={styles.container} style={{ position: 'relative', minHeight: '200px' }}>
-            {/* Overlay de carga sutil si loading es true Y hay datos previos */}
-            {loading && data && data.length > 0 && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                    zIndex: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none'
-                }}>
+            {/* Spinner flotante sin fondo al re-cargar datos */}
+            {isRefetching && (
+                <div className={styles.refetchOverlay}>
                     <div className={loadingStyles.lottieThemed}>
-                        <Lottie animationData={loadingAnimation} loop style={{ width: 60, height: 60 }} />
+                        <Lottie animationData={loadingAnimation} loop style={{ width: 48, height: 48 }} />
                     </div>
                 </div>
             )}
 
             {!isMobile ? (
                 /* Vista Escritorio */
-                <div className={styles.desktopView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                <div className={`${styles.desktopView} ${isRefetching ? styles.refetching : ''}`}>
                     {renderPagination('top')}
                     
                     <div className={styles.tableWrapper}>
@@ -247,7 +237,7 @@ const DataTable = ({
                 </div>
             ) : (
                 /* Vista Móvil */
-                <div className={styles.mobileView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                <div className={`${styles.mobileView} ${isRefetching ? styles.refetching : ''}`}>
                     <div className={styles.mobileContainer}>
                         <div className={styles.mobilePaginationContainer}>
                             {renderPagination('top')}

@@ -67,26 +67,30 @@ const ModalView = ({
     useEffect(() => {
         if (isOpen) {
             setShouldRender(true);
-            setIsClosing(false);
+            // Forzar reflow antes de quitar isClosing para que la animación de apertura siempre se reproduzca
+            requestAnimationFrame(() => {
+                setIsClosing(false);
+            });
             // Auto-focus en el primer campo del formulario
             const timer = setTimeout(() => {
                 const firstInput = nodeRef.current?.querySelector('input:not([type="hidden"]):not([type="checkbox"]):not([type="file"]), textarea, select');
                 if (firstInput) firstInput.focus();
-            }, 100);
+            }, 150);
             return () => clearTimeout(timer);
-        } else {
+        } else if (shouldRender) {
+            // Solo animar cierre si el modal estaba renderizado
             setIsClosing(true);
             const timer = setTimeout(() => {
                 setShouldRender(false);
                 setIsClosing(false);
-            }, 300); // Duración de la animación
+            }, 250); // Sincronizado con la duración CSS
             return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
     const handleClose = (e) => {
         if (e) e.stopPropagation();
-        setIsClosing(true);
+        if (isClosing) return; // Evitar doble cierre
         onClose();
     };
     

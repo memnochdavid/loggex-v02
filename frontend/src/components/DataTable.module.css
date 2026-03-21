@@ -186,6 +186,33 @@
     color: var(--text-muted); /* Usar variable maestra */
 }
 
+/* Overlay de re-fetch (spinner flotante sin fondo opaco) */
+.refetchOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/* Tabla atenuada durante re-fetch */
+.refetching {
+    opacity: 0.6;
+    transition: opacity 0.15s ease-out;
+    pointer-events: none;
+}
+
+.desktopView,
+.mobileView {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+}
+
 /* --- Mobile View Styles --- */
 
 .mobileContainer {

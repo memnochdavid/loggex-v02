@@ -36,6 +36,29 @@
     }
 }
 
+/* Transición entre páginas */
+.pageTransition {
+    animation: pageFadeIn 0.2s ease-out;
+}
+
+@keyframes pageFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Respetar preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+    .pageTransition {
+        animation: none;
+    }
+}
+
 /*para compensar el grosor de la barra de direcciones del navegador en móviles*/
 @media (max-width: 500px) {
     .content{

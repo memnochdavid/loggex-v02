@@ -33,7 +33,7 @@ Cada sección describe el **estado actual**, el **problema** que presenta, la **
 | 3 | Validación inline formularios | Alta | Medio | Completado |
 | 4 | Breadcrumbs | Alta | Bajo | Pendiente |
 | 5 | Accesibilidad (ARIA) | Alta | Bajo | Pendiente |
-| 6 | Transiciones entre páginas | Media | Bajo | Pendiente |
+| 6 | Transiciones entre páginas | Media | Bajo | Completado |
 | 7 | Búsqueda global | Media | Medio | Pendiente |
 | 8 | Atajos de teclado | Media | Medio | Pendiente |
 | 9 | Modo oscuro / claro | Media | Bajo | Pendiente |
