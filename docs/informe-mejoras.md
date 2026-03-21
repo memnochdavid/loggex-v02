@@ -102,12 +102,31 @@ Cambios aplicados:
 
 - **Pendiente**: rate limiting en `/api/login`, mover secretos de `.env` a `.env.local`, permisos `600` en `private.pem`
 
-### Fase 2 - Calidad de datos
+### Fase 2 - Calidad de datos -- COMPLETADA
 
-- Anadir validaciones `#[Assert\*]` a todas las entidades
-- Crear indices y constraints unicos en BD
-- Extraer servicio de upload compartido
-- No exponer errores internos al cliente
+Cambios aplicados:
+
+- **Validaciones `#[Assert\*]` en entidades**
+  - `User.php`: `NotBlank` + `Email` en email; `NotBlank` + `Length` en nombre y apellidos
+  - `Centro.php`: `NotBlank` + `Length` en nombre, cif y direccion
+  - `Modulo.php`: `NotBlank` + `Length` en nombre; `Range(1-2)` en curso; `Positive` en horasSemanales
+  - `Tarea.php`: `NotBlank` + `Length` en titulo; `NotNull` en fechaLimite; `Choice(tarea, examen, practica)` en tipo
+  - `Calificacion.php`: `NotNull` + `Range(0-10)` en nota
+  - `Asistencia.php`: `NotNull` en fecha y hora; `NotBlank` + `Choice(P, F, R, J)` en estado
+
+- **Constraints unicos en BD (entidades + backup SQL)**
+  - `Matricula`: UniqueConstraint en `(alumno_id, grupo_id)` - evita matriculas duplicadas
+  - `Asistencia`: UniqueConstraint en `(alumno_id, imparticion_id, fecha, hora)` - evita registros de asistencia duplicados
+
+- **Limpieza de datos en `backup_tfg_full.sql`**
+  - Reemplazados comentarios inapropiados de test por texto neutro (6 registros)
+  - Corregidos campos `created_at` con valor NULL (4 registros)
+  - Anadidos los UNIQUE KEY en las sentencias CREATE TABLE correspondientes
+
+- **Jerarquia de roles** (aplicado en Fase 1)
+  - `security.yaml`: anadido `role_hierarchy` donde `ROLE_SUPERADMIN` hereda `ROLE_ADMIN` hereda `ROLE_PROFESOR`
+
+- **Pendiente**: extraer servicio de upload compartido (refactoring de baja prioridad)
 
 ### Fase 3 - Frontend
 

@@ -35,12 +35,13 @@ CREATE TABLE `asistencia` (
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
+  UNIQUE KEY `unique_asistencia` (`alumno_id`,`imparticion_id`,`fecha`,`hora`),
   PRIMARY KEY (`id`),
   KEY `IDX_D8264A8D5396730A` (`imparticion_id`),
   KEY `IDX_D8264A8DFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_D8264A8D5396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`),
   CONSTRAINT `FK_D8264A8DFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=125 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=135 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -50,12 +51,12 @@ CREATE TABLE `asistencia` (
 LOCK TABLES `asistencia` WRITE;
 /*!40000 ALTER TABLE `asistencia` DISABLE KEYS */;
 INSERT INTO `asistencia` VALUES
-(45,'2026-01-15','F',28,57,'12:30:00','caca caca modificado','2026-02-04 11:01:39','2026-03-08 10:03:25',0,NULL),
+(45,'2026-01-15','F',28,57,'12:30:00','Comentario modificado','2026-02-04 11:01:39','2026-03-08 10:03:25',0,NULL),
 (46,'2026-01-16','P',28,61,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
 (47,'2026-01-16','P',28,58,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
 (48,'2026-01-16','P',28,59,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
 (49,'2026-01-16','P',28,60,'13:30:00','','2026-02-04 11:04:22','2026-02-04 11:04:22',0,NULL),
-(50,'2026-01-16','J',28,57,'13:30:00','tonto, has justificado','2026-02-04 11:04:22','2026-02-04 11:06:25',0,NULL),
+(50,'2026-01-16','J',28,57,'13:30:00','Falta justificada por el tutor','2026-02-04 11:04:22','2026-02-04 11:06:25',0,NULL),
 (51,'2026-02-05','P',28,61,'12:30:00','','2026-02-12 11:14:33','2026-02-12 11:14:33',0,NULL),
 (52,'2026-02-05','P',28,58,'12:30:00','','2026-02-12 11:14:33','2026-02-12 11:14:33',0,NULL),
 (53,'2026-02-05','P',28,59,'12:30:00','','2026-02-12 11:14:33','2026-02-12 11:14:33',0,NULL),
@@ -65,7 +66,7 @@ INSERT INTO `asistencia` VALUES
 (57,'2026-02-05','P',28,58,'13:30:00','','2026-02-12 11:15:33','2026-02-12 11:15:33',0,NULL),
 (58,'2026-02-05','P',28,59,'13:30:00','','2026-02-12 11:15:33','2026-02-12 11:15:33',0,NULL),
 (59,'2026-02-05','P',28,60,'13:30:00','','2026-02-12 11:15:33','2026-02-12 11:15:33',0,NULL),
-(60,'2026-02-05','F',28,57,'13:30:00','Eres mongolo','2026-02-12 11:15:33','2026-02-12 11:15:33',0,NULL),
+(60,'2026-02-05','F',28,57,'13:30:00','Ausencia no justificada','2026-02-12 11:15:33','2026-02-12 11:15:33',0,NULL),
 (61,'2026-02-12','F',28,61,'12:30:00','','2026-02-12 16:55:20','2026-02-12 21:42:52',0,NULL),
 (62,'2026-02-12','F',28,58,'12:30:00','','2026-02-12 16:55:20','2026-02-17 08:44:50',0,NULL),
 (63,'2026-02-12','P',28,59,'12:30:00','','2026-02-12 16:55:20','2026-02-12 16:55:20',0,NULL),
@@ -129,7 +130,17 @@ INSERT INTO `asistencia` VALUES
 (121,'2026-03-13','P',28,58,'13:30:00','','2026-03-16 14:28:04','2026-03-16 14:28:04',0,NULL),
 (122,'2026-03-13','P',28,59,'13:30:00','','2026-03-16 14:28:04','2026-03-16 14:28:04',0,NULL),
 (123,'2026-03-13','P',28,60,'13:30:00','','2026-03-16 14:28:04','2026-03-16 14:28:04',0,NULL),
-(124,'2026-03-13','F',28,57,'13:30:00','','2026-03-16 14:28:04','2026-03-16 14:28:04',0,NULL);
+(124,'2026-03-13','F',28,57,'13:30:00','','2026-03-16 14:28:04','2026-03-16 14:28:04',0,NULL),
+(125,'2026-03-18','P',37,67,'17:00:00','','2026-03-21 08:37:07','2026-03-21 08:37:07',0,NULL),
+(126,'2026-03-18','P',37,70,'17:00:00','','2026-03-21 08:37:07','2026-03-21 08:37:07',0,NULL),
+(127,'2026-03-18','P',37,68,'17:00:00','','2026-03-21 08:37:07','2026-03-21 08:37:07',0,NULL),
+(128,'2026-03-18','P',37,71,'17:00:00','','2026-03-21 08:37:07','2026-03-21 08:37:07',0,NULL),
+(129,'2026-03-18','F',37,69,'17:00:00','','2026-03-21 08:37:07','2026-03-21 08:37:07',0,NULL),
+(130,'2026-03-19','P',28,61,'12:30:00','','2026-03-21 08:39:06','2026-03-21 08:39:06',0,NULL),
+(131,'2026-03-19','P',28,58,'12:30:00','','2026-03-21 08:39:06','2026-03-21 08:39:06',0,NULL),
+(132,'2026-03-19','P',28,59,'12:30:00','','2026-03-21 08:39:06','2026-03-21 08:39:06',0,NULL),
+(133,'2026-03-19','P',28,60,'12:30:00','','2026-03-21 08:39:06','2026-03-21 08:39:06',0,NULL),
+(134,'2026-03-19','F',28,57,'12:30:00','','2026-03-21 08:39:06','2026-03-21 08:39:06',0,NULL);
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -163,7 +174,7 @@ LOCK TABLES `calificacion` WRITE;
 /*!40000 ALTER TABLE `calificacion` DISABLE KEYS */;
 INSERT INTO `calificacion` VALUES
 (7,8,'lo has hecho muy bien',7,'2026-02-01 08:05:15',NULL,0,NULL),
-(8,5,'vaya puta mierda',8,'2026-02-05 14:01:55','2026-02-05 14:01:55',0,NULL),
+(8,5,'Necesita mejorar significativamente',8,'2026-02-05 14:01:55','2026-02-05 14:01:55',0,NULL),
 (9,8,'Mola',9,'2026-02-18 10:51:14','2026-02-18 10:51:14',0,NULL);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -200,7 +211,7 @@ LOCK TABLES `centro` WRITE;
 /*!40000 ALTER TABLE `centro` DISABLE KEYS */;
 INSERT INTO `centro` VALUES
 (3,'Escuela Arte Granada','B18000000',1,NULL,'logoEAG-69820676cd526.png','Av. Dr. Oloriz, 6, Beiro, 18012 Granada','958 27 80 60','2026-01-31 22:12:20','2026-02-03 14:30:14',0,NULL),
-(4,'IES Tecnológico TFG','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20',NULL,0,NULL);
+(4,'IES Tecnológico','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20','2026-03-21 08:36:25',0,NULL);
 /*!40000 ALTER TABLE `centro` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -274,7 +285,7 @@ INSERT INTO `comunicado` VALUES
 (8,'Comunicado de Prueba','Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s.',0,'2026-02-15 12:07:05','2026-02-15 12:07:05',0,NULL,55,3),
 (10,'Nuevo comunicado 666','Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 Nuevo comunicado 666 ',0,'2026-02-15 15:02:53','2026-02-15 15:02:53',0,NULL,55,3),
 (11,'Comunicado GLOBAL','Me tenéis que obedecer, porque soy el SUPERADMIN.',0,'2026-02-15 15:13:28','2026-02-18 11:58:51',1,'2026-02-18 11:58:51',49,NULL),
-(12,'echo \"drop table comunicado\"','chúpamela',0,'2026-02-17 09:41:35','2026-02-17 09:43:41',1,'2026-02-17 09:43:41',55,3),
+(12,'Comunicado de prueba','Contenido de prueba',0,'2026-02-17 09:41:35','2026-02-17 09:43:41',1,'2026-02-17 09:43:41',55,3),
 (13,'Comunicado GLOBAL','Me tenéis que obedecer, porque soy el SUPERADMIN.',1,'2026-02-18 11:59:09','2026-02-18 11:59:09',0,NULL,49,NULL);
 /*!40000 ALTER TABLE `comunicado` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -396,7 +407,7 @@ LOCK TABLES `entrega` WRITE;
 /*!40000 ALTER TABLE `entrega` DISABLE KEYS */;
 INSERT INTO `entrega` VALUES
 (7,'2025-12-22 16:04:15','asgsdgbsdfb',10,57,'https://drive.google.com/drive/folders/1w7-lVfgAcYjL3phW6RIEjjWXnfluH09t?usp=sharing','2026-02-01 08:05:15',NULL,0,NULL,NULL),
-(8,'2026-02-05 13:31:55','fuck you',13,57,'https://www.youtube.com/watch?v=dQw4w9WgXcQ','2026-02-05 13:31:55','2026-02-05 13:31:55',0,NULL,NULL),
+(8,'2026-02-05 13:31:55','Entrega realizada',13,57,'https://www.youtube.com/watch?v=dQw4w9WgXcQ','2026-02-05 13:31:55','2026-02-05 13:31:55',0,NULL,NULL),
 (9,'2026-02-18 10:50:18','hecho',15,57,'https://www.youtube.com/watch?v=dQw4w9WgXcQ','2026-02-18 10:50:18','2026-02-18 10:50:18',0,NULL,NULL);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -664,7 +675,7 @@ CREATE TABLE `imparticion` (
 LOCK TABLES `imparticion` WRITE;
 /*!40000 ALTER TABLE `imparticion` DISABLE KEYS */;
 INSERT INTO `imparticion` VALUES
-(23,50,43,6,NULL,'2026-02-01 22:21:52',0,NULL),
+(23,50,43,6,'2026-02-01 08:05:15','2026-02-01 22:21:52',0,NULL),
 (24,51,36,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (25,52,37,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (26,53,38,5,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -711,7 +722,7 @@ CREATE TABLE `material` (
   PRIMARY KEY (`id`),
   KEY `IDX_7CBE75955396730A` (`imparticion_id`),
   CONSTRAINT `FK_7CBE75955396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -722,7 +733,8 @@ LOCK TABLES `material` WRITE;
 /*!40000 ALTER TABLE `material` DISABLE KEYS */;
 INSERT INTO `material` VALUES
 (1,'Tema 1','20251228_entornos-desarrollo-tema-1.pdf','2025-12-28 10:43:11',24,'2026-02-01 08:05:15',NULL,0,NULL),
-(2,'Tema 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28,'2026-02-01 08:05:15',NULL,0,NULL);
+(2,'Tema 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28,'2026-02-01 08:05:15','2026-03-21 08:27:53',1,'2026-03-21 08:27:53'),
+(3,'FOL - Tema 1','Liquid-Web-Hosting-Gestionado-de-Alto-Rendimiento-69be56a773176.pdf','2026-03-21 08:28:23',28,'2026-03-21 08:28:23','2026-03-21 08:28:23',0,NULL);
 /*!40000 ALTER TABLE `material` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -741,6 +753,7 @@ CREATE TABLE `matricula` (
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
+  UNIQUE KEY `unique_matricula` (`alumno_id`,`grupo_id`),
   PRIMARY KEY (`id`),
   KEY `IDX_15DF1885FC28E5EE` (`alumno_id`),
   KEY `IDX_15DF18859C833003` (`grupo_id`),
@@ -756,7 +769,7 @@ CREATE TABLE `matricula` (
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
 INSERT INTO `matricula` VALUES
-(41,57,5,NULL,'2026-02-01 22:34:58',0,NULL),
+(41,57,5,'2026-02-01 08:05:15','2026-02-01 22:34:58',0,NULL),
 (42,58,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (43,59,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (44,60,5,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -798,7 +811,7 @@ CREATE TABLE `mensaje` (
   KEY `IDX_9B631D01B564FBC1` (`destinatario_id`),
   CONSTRAINT `FK_9B631D011C3E945F` FOREIGN KEY (`remitente_id`) REFERENCES `usuario` (`id`),
   CONSTRAINT `FK_9B631D01B564FBC1` FOREIGN KEY (`destinatario_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -842,7 +855,9 @@ INSERT INTO `mensaje` VALUES
 (52,'ifuuao88cNnWWb2nK8RONzc5RSt0eWI1bnZUWTNOc0loODFRYXc9PQ==','2026-02-18 11:36:29',1,55,49),
 (53,'Az+x8Fa4/hvQ+1YUFDyyOWduTVM3YnFqRkV2YkRQY3VsMjlvZmc9PQ==','2026-02-18 11:59:37',1,55,49),
 (54,'BGmGVRsvQgpezJq3Z2DtTXQvWkRQcGRyNmZMVFBPZDRlQjV2ZlE9PQ==','2026-03-07 13:04:31',0,55,52),
-(55,'6lHkNIhq15WhSh6drLKvJDNBZFJsbkNUNm1MQy9HY09JVmtNd1E9PQ==','2026-03-16 14:29:29',1,57,55);
+(55,'6lHkNIhq15WhSh6drLKvJDNBZFJsbkNUNm1MQy9HY09JVmtNd1E9PQ==','2026-03-16 14:29:29',1,57,55),
+(56,'kbY7IZIJIflPRubj8nxM82NWTHQxU2owRS9NVXByM1hDZUdOZFE9PQ==','2026-03-21 08:42:52',1,57,55),
+(57,'QyQiPo5svdYGzj1T4i3jVHY1MC9GRjZFdTZJdjJQY3JJMXgyREE9PQ==','2026-03-21 08:43:03',1,55,57);
 /*!40000 ALTER TABLE `mensaje` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -906,7 +921,7 @@ CREATE TABLE `modulo` (
 LOCK TABLES `modulo` WRITE;
 /*!40000 ALTER TABLE `modulo` DISABLE KEYS */;
 INSERT INTO `modulo` VALUES
-(23,'Bases de datos','0001',4,1,6,NULL,'2026-02-01 22:24:41',0,NULL),
+(23,'Bases de datos','0001',4,1,6,'2026-02-01 08:05:15','2026-02-01 22:24:41',0,NULL),
 (24,'Entornos de desarrollo','0002',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
 (25,'Lenguajes de marcas','0003',4,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
 (26,'Programación','0004',4,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -918,7 +933,7 @@ INSERT INTO `modulo` VALUES
 (32,'Servicios y procesos','0010',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (33,'Sistemas de gestión','0011',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
 (34,'EIE','0012',4,2,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(35,'Bases de datos','0001',3,1,6,NULL,'2026-02-04 08:41:05',0,NULL),
+(35,'Bases de datos','0001',3,1,6,'2026-02-01 08:05:15','2026-02-04 08:41:05',0,NULL),
 (36,'Entornos de desarrollo','0002',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
 (37,'Lenguajes de marcas','0003',3,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
 (38,'Programación','0004',3,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
@@ -1246,4 +1261,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-16 14:58:07
+-- Dump completed on 2026-03-21  8:57:20

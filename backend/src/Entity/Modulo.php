@@ -19,6 +19,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ModuloRepository::class)]
 #[ORM\Table(name: 'modulo')]
@@ -55,6 +56,8 @@ class Modulo
 
     #[ORM\Column(length: 255)]
     #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50, nullable: true)]
@@ -63,10 +66,14 @@ class Modulo
 
     #[ORM\Column]
     #[Groups(['modulo:read', 'modulo:write'])]
+    #[Assert\NotNull]
+    #[Assert\Range(min: 1, max: 2)]
     private ?int $curso = null;
 
     #[ORM\Column]
     #[Groups(['modulo:read', 'modulo:write'])]
+    #[Assert\NotNull]
+    #[Assert\Positive]
     private ?int $horasSemanales = null;
 
     #[ORM\ManyToOne(inversedBy: 'modulos')]

@@ -17,6 +17,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TareaRepository::class)]
 #[ORM\Table(name: 'tarea')]
@@ -45,6 +46,8 @@ class Tarea
 
     #[ORM\Column(length: 255)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $titulo = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -57,6 +60,7 @@ class Tarea
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    #[Assert\NotNull]
     private ?\DateTimeInterface $fechaLimite = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
@@ -69,6 +73,8 @@ class Tarea
 
     #[ORM\Column(length: 20)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    #[Assert\NotBlank]
+    #[Assert\Choice(choices: ['tarea', 'examen', 'practica'])]
     private ?string $tipo = null;
 
     #[ORM\ManyToOne(inversedBy: 'tareas')]

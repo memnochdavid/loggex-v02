@@ -19,6 +19,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CentroRepository::class)]
 #[ORM\Table(name: 'centro')]
@@ -49,10 +50,14 @@ class Centro
 
     #[ORM\Column(length: 255)]
     #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
     #[Groups(['centro:read', 'centro:write'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     private ?string $cif = null;
 
     #[ORM\Column(type: 'boolean')]
@@ -69,6 +74,8 @@ class Centro
 
     #[ORM\Column(length: 255)]
     #[Groups(['centro:read', 'centro:write'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $direccion = null;
 
     #[ORM\Column(length: 25, nullable: true)]

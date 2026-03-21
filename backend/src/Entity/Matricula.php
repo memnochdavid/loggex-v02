@@ -19,7 +19,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: MatriculaRepository::class)]
-#[ORM\Table(name: 'matricula')]
+#[ORM\Table(name: 'matricula', uniqueConstraints: [
+    new ORM\UniqueConstraint(name: 'unique_matricula', columns: ['alumno_id', 'grupo_id'])
+])]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [

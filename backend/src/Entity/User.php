@@ -22,6 +22,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'usuario')]
@@ -60,6 +61,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 180, unique: true)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Assert\NotBlank]
+    #[Assert\Email]
     private ?string $email = null;
 
     #[ORM\Column]
@@ -74,10 +77,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]

@@ -17,9 +17,12 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AsistenciaRepository::class)]
-#[ORM\Table(name: 'asistencia')]
+#[ORM\Table(name: 'asistencia', uniqueConstraints: [
+    new ORM\UniqueConstraint(name: 'unique_asistencia', columns: ['alumno_id', 'imparticion_id', 'fecha', 'hora'])
+])]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -53,14 +56,18 @@ class Asistencia
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     #[Groups(['asistencia:read', 'asistencia:write'])]
+    #[Assert\NotNull]
     private ?\DateTimeInterface $fecha = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
     #[Groups(['asistencia:read', 'asistencia:write'])]
+    #[Assert\NotNull]
     private ?\DateTimeInterface $hora = null;
 
     #[ORM\Column(length: 20)]
     #[Groups(['asistencia:read', 'asistencia:write'])]
+    #[Assert\NotBlank]
+    #[Assert\Choice(choices: ['P', 'F', 'R', 'J'])]
     private ?string $estado = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
