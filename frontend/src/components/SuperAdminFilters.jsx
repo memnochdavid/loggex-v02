@@ -2,19 +2,20 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Filtros en cascada Centro → Grupo → Módulo para SuperAdmin.
- * Renderiza los 3 selects que comparten Tareas y Entregas.
+ * Filtros en cascada Centro → Año escolar → Grupo → Módulo para SuperAdmin.
+ * Renderiza selects sueltos (sin wrapper) para que el padre controle el layout.
  */
 const SuperAdminFilters = ({ filters, selectClassName }) => {
     const { t } = useTranslation();
     const {
         centros, selectedCentro, setSelectedCentro,
+        availableYears, selectedYear, setSelectedYear,
         grupos, selectedGrupo, setSelectedGrupo,
         modulos, selectedModulo, setSelectedModulo,
     } = filters;
 
     return (
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <>
             <select
                 className={selectClassName}
                 value={selectedCentro}
@@ -26,6 +27,21 @@ const SuperAdminFilters = ({ filters, selectClassName }) => {
                     <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
             </select>
+
+            {availableYears?.length > 0 && (
+                <select
+                    className={selectClassName}
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    disabled={!selectedCentro}
+                    style={{ minWidth: '140px' }}
+                >
+                    <option value="">{t('grades.allYears')}</option>
+                    {availableYears.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </select>
+            )}
 
             <select
                 className={selectClassName}
@@ -52,7 +68,7 @@ const SuperAdminFilters = ({ filters, selectClassName }) => {
                     <option key={m.id} value={m.id}>{m.nombre}</option>
                 ))}
             </select>
-        </div>
+        </>
     );
 };
 

@@ -27,7 +27,8 @@ const MaterialesProfesor = () => {
   // Estados para filtros de SuperAdmin
   const [centros, setCentros] = useState([]);
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [grupos, setGrupos] = useState([]);
+  const [allGrupos, setAllGrupos] = useState([]);
+  const [selectedYear, setSelectedYear] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
 
   // Estado Modal
@@ -65,15 +66,20 @@ const MaterialesProfesor = () => {
           .then(res => res.json())
           .then(data => {
               const items = data['hydra:member'] || data.member || [];
-              setGrupos(items);
+              setAllGrupos(items);
+              setSelectedYear('');
               setSelectedGrupo(''); // Resetear grupo al cambiar centro
           })
           .catch(err => console.error("Error cargando grupos:", err));
       } else {
-          setGrupos([]);
+          setAllGrupos([]);
+          setSelectedYear('');
           setSelectedGrupo('');
       }
   }, [selectedCentro, isSuperAdmin]);
+
+  const availableYears = [...new Set(allGrupos.map(g => g.anioEscolar).filter(Boolean))].sort().reverse();
+  const grupos = selectedYear ? allGrupos.filter(g => g.anioEscolar === selectedYear) : allGrupos;
 
   const fetchData = async () => {
     if (!user) return;
@@ -278,7 +284,22 @@ const MaterialesProfesor = () => {
                         ))}
                     </select>
 
-                    <select 
+                    {availableYears.length > 0 && (
+                        <select
+                            className={styles.select}
+                            value={selectedYear}
+                            onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                            disabled={!selectedCentro}
+                            style={{ minWidth: '140px' }}
+                        >
+                            <option value="">{t('grades.allYears')}</option>
+                            {availableYears.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    <select
                         className={styles.select}
                         value={selectedGrupo}
                         onChange={(e) => setSelectedGrupo(e.target.value)}

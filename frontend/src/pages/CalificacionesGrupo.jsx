@@ -37,13 +37,59 @@ const CalificacionesGrupo = () => {
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-    // Cargar imparticiones al montar
+    // Filtros SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+    const [allImparticiones, setAllImparticiones] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
+
+    // Años disponibles (extraídos de los grupos de las imparticiones)
+    const availableYears = [...new Set(
+        allImparticiones.map(i => i.grupo?.anioEscolar || i.grupo?.anio_escolar).filter(Boolean)
+    )].sort().reverse();
+
+    // Filtrar imparticiones por año y actualizar la lista visible
+    useEffect(() => {
+        const filtered = selectedYear
+            ? allImparticiones.filter(i => (i.grupo?.anioEscolar || i.grupo?.anio_escolar) === selectedYear)
+            : allImparticiones;
+        setImparticiones(filtered);
+        if (filtered.length > 0 && !imparticionId) {
+            setSelectedImparticion(String(filtered[0].id ?? filtered[0]['@id']?.split('/').pop()));
+        } else if (filtered.length === 0) {
+            setSelectedImparticion('');
+            setMediasData(null);
+        }
+    }, [selectedYear, allImparticiones]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (!isSuperAdmin) return;
+        fetch(getApiUrl('/api/centros?pagination=false'), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(data => setCentros(data['hydra:member'] || data.member || []))
+        .catch(() => {});
+    }, [isSuperAdmin]);
+
+    // Cargar imparticiones (depende del centro para SuperAdmin)
     useEffect(() => {
         const fetchImparticiones = async () => {
             try {
                 let url = getApiUrl('/api/imparticions?itemsPerPage=100');
                 if (isProfesor && !isAdmin && !isSuperAdmin) {
                     url += `&profesor=${user.id}`;
+                } else if (isSuperAdmin) {
+                    if (!selectedCentro) {
+                        setAllImparticiones([]);
+                        setImparticiones([]);
+                        setSelectedImparticion('');
+                        setMediasData(null);
+                        setLoading(false);
+                        return;
+                    }
+                    url += `&grupo.centro=${selectedCentro}`;
                 }
                 const response = await fetch(url, {
                     headers: { 'Accept': 'application/ld+json' },
@@ -52,18 +98,15 @@ const CalificacionesGrupo = () => {
                 if (!response.ok) throw new Error();
                 const data = await response.json();
                 const items = data['hydra:member'] || data.member || [];
-                setImparticiones(items);
-                if (items.length > 0 && !imparticionId) {
-                    const firstId = String(items[0].id ?? items[0]['@id']?.split('/').pop());
-                    setSelectedImparticion(firstId);
-                }
+                setAllImparticiones(items);
+                setSelectedYear('');
             } catch {
                 setError(t('grades.errorLoading'));
                 setLoading(false);
             }
         };
         fetchImparticiones();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedCentro]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Cuando cambia la impartición seleccionada: cargar periodos, ponderaciones y medias
     useEffect(() => {
@@ -270,6 +313,33 @@ const CalificacionesGrupo = () => {
                         )}
                     </div>
                     <div className={styles.controls}>
+                        {isSuperAdmin && (
+                            <>
+                            <select
+                                className={styles.periodSelect}
+                                value={selectedCentro}
+                                onChange={(e) => { setSelectedCentro(e.target.value); setSelectedImparticion(''); setSelectedPeriodo(''); }}
+                            >
+                                <option value="">{t('common.selectCenter')}</option>
+                                {centros.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+                            {availableYears.length > 0 && (
+                                <select
+                                    className={styles.periodSelect}
+                                    value={selectedYear}
+                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedPeriodo(''); }}
+                                    style={{ minWidth: '140px' }}
+                                >
+                                    <option value="">{t('grades.allYears')}</option>
+                                    {availableYears.map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            )}
+                            </>
+                        )}
                         <select
                             className={styles.periodSelect}
                             value={selectedImparticion}

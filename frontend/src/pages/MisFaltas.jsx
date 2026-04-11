@@ -26,7 +26,8 @@ const MisFaltas = () => {
     // Estados para filtros de SuperAdmin
     const [centros, setCentros] = useState([]);
     const [selectedCentro, setSelectedCentro] = useState('');
-    const [grupos, setGrupos] = useState([]);
+    const [allGrupos, setAllGrupos] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
     const [selectedGrupo, setSelectedGrupo] = useState('');
     const [alumnos, setAlumnos] = useState([]); // CAMBIADO: Alumnos en lugar de módulos
     const [selectedAlumno, setSelectedAlumno] = useState(''); // CAMBIADO
@@ -56,20 +57,25 @@ const MisFaltas = () => {
             })
             .then(res => res.json())
             .then(data => {
-                const items = data['hydra:member'] || data.member || [];
-                setGrupos(items);
+                setAllGrupos(data['hydra:member'] || data.member || []);
+                setSelectedYear('');
                 setSelectedGrupo('');
                 setAlumnos([]);
                 setSelectedAlumno('');
             })
             .catch(err => console.error("Error cargando grupos:", err));
         } else {
-            setGrupos([]);
+            setAllGrupos([]);
+            setSelectedYear('');
             setSelectedGrupo('');
             setAlumnos([]);
             setSelectedAlumno('');
         }
     }, [selectedCentro, isSuperAdmin]);
+
+    // Años disponibles y grupos filtrados por año
+    const availableYears = [...new Set(allGrupos.map(g => g.anioEscolar).filter(Boolean))].sort().reverse();
+    const grupos = selectedYear ? allGrupos.filter(g => g.anioEscolar === selectedYear) : allGrupos;
 
     // Cargar alumnos cuando cambia el grupo seleccionado (CAMBIADO)
     useEffect(() => {
@@ -240,7 +246,22 @@ const MisFaltas = () => {
                                 ))}
                             </select>
 
-                            <select 
+                            {availableYears.length > 0 && (
+                                <select
+                                    className={styles.select}
+                                    value={selectedYear}
+                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                                    disabled={!selectedCentro}
+                                    style={{ minWidth: '140px' }}
+                                >
+                                    <option value="">{t('grades.allYears')}</option>
+                                    {availableYears.map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            )}
+
+                            <select
                                 className={styles.select}
                                 value={selectedGrupo}
                                 onChange={(e) => setSelectedGrupo(e.target.value)}

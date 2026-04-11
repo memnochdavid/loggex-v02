@@ -284,6 +284,12 @@ class CalificacionMediaController extends AbstractController
         }
 
         $centro = $user->getCentro();
+
+        // SuperAdmin puede seleccionar centro via parámetro
+        if ($this->isGranted('ROLE_SUPERADMIN') && $request->query->get('centro')) {
+            $centro = $this->em->getRepository(\App\Entity\Centro::class)->find($request->query->get('centro'));
+        }
+
         if (!$centro && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['message' => 'Sin centro asignado'], 400);
         }
@@ -365,31 +371,39 @@ class CalificacionMediaController extends AbstractController
     }
 
     /**
-     * Calificaciones del alumno autenticado, agrupadas por módulo.
+     * Calificaciones del alumno autenticado (o de otro alumno si SuperAdmin pasa ?alumnoId).
      */
     #[Route('/api/v1/alumno/mis-calificaciones', name: 'api_mis_calificaciones', methods: ['GET'])]
     public function misCalificaciones(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user instanceof User) {
+        $currentUser = $this->getUser();
+        if (!$currentUser instanceof User) {
             return $this->json(['message' => 'No autenticado'], 401);
+        }
+
+        // SuperAdmin puede consultar calificaciones de cualquier alumno
+        $alumnoId = $request->query->get('alumnoId');
+        if ($alumnoId && ($this->isGranted('ROLE_SUPERADMIN') || $this->isGranted('ROLE_SUPER_ADMIN'))) {
+            $alumno = $this->em->getRepository(User::class)->find($alumnoId);
+            if (!$alumno) {
+                return $this->json(['message' => 'Alumno no encontrado'], 404);
+            }
+        } else {
+            $alumno = $currentUser;
         }
 
         $periodo = $this->resolverPeriodo($request);
 
-        // Obtener matrículas del alumno
-        $matriculas = $this->em->getRepository(Matricula::class)->findBy(['alumno' => $user]);
+        $matriculas = $this->em->getRepository(Matricula::class)->findBy(['alumno' => $alumno]);
 
         $modulos = [];
         foreach ($matriculas as $matricula) {
             $grupo = $matricula->getGrupo();
-
-            // Obtener imparticiones del grupo
             $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
 
             foreach ($imparticiones as $imparticion) {
                 $pesos = $this->ponderacionRepo->getPesosParaImparticion($imparticion->getId());
-                $media = $this->calcularMediaAlumno($imparticion->getId(), $user->getId(), $pesos, $periodo);
+                $media = $this->calcularMediaAlumno($imparticion->getId(), $alumno->getId(), $pesos, $periodo);
 
                 $modulos[] = [
                     'imparticion' => [
@@ -405,9 +419,9 @@ class CalificacionMediaController extends AbstractController
 
         return $this->json([
             'alumno' => [
-                'id' => $user->getId(),
-                'nombre' => $user->getNombre(),
-                'apellidos' => $user->getApellidos(),
+                'id' => $alumno->getId(),
+                'nombre' => $alumno->getNombre(),
+                'apellidos' => $alumno->getApellidos(),
             ],
             'modulos' => $modulos,
         ]);

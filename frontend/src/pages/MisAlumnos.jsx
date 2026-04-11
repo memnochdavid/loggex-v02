@@ -25,6 +25,8 @@ const MisAlumnos = () => {
     // Estados para filtros de SuperAdmin
     const [centros, setCentros] = useState([]);
     const [selectedCentro, setSelectedCentro] = useState('');
+    const [allGruposCentro, setAllGruposCentro] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
     const [profesores, setProfesores] = useState([]);
     const [selectedProfesor, setSelectedProfesor] = useState('');
 
@@ -43,6 +45,31 @@ const MisAlumnos = () => {
             .catch(err => console.error("Error cargando centros:", err));
         }
     }, [isSuperAdmin]);
+
+    // Cargar grupos del centro para filtro de año escolar
+    useEffect(() => {
+        if (isSuperAdmin && selectedCentro) {
+            fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setAllGruposCentro(items);
+                setSelectedYear('');
+            })
+            .catch(err => console.error("Error cargando grupos:", err));
+        } else {
+            setAllGruposCentro([]);
+            setSelectedYear('');
+        }
+    }, [selectedCentro, isSuperAdmin]);
+
+    const availableYears = [...new Set(allGruposCentro.map(g => g.anioEscolar).filter(Boolean))].sort().reverse();
+    const filteredGrupoIds = selectedYear
+        ? allGruposCentro.filter(g => g.anioEscolar === selectedYear).map(g => String(g.id))
+        : null;
 
     // Cargar profesores cuando cambia el centro seleccionado
     useEffect(() => {
@@ -71,7 +98,7 @@ const MisAlumnos = () => {
         if (user) {
             fetchAlumnos();
         }
-    }, [user, selectedCentro, selectedProfesor]);
+    }, [user, selectedCentro, selectedProfesor, selectedYear]);
 
     const fetchAlumnos = async () => {
         setLoading(true);
@@ -150,7 +177,12 @@ const MisAlumnos = () => {
                         credentials: 'include'
                     });
                     const gruposData = await gruposRes.json();
-                    const gruposList = gruposData['hydra:member'] || gruposData.member || [];
+                    let gruposList = gruposData['hydra:member'] || gruposData.member || [];
+
+                    // Filtrar por año escolar si está seleccionado
+                    if (selectedYear) {
+                        gruposList = gruposList.filter(g => g.anioEscolar === selectedYear);
+                    }
 
                     // Obtener alumnos de esos grupos
                     const grupoIds = gruposList.map(g => String(g.id));
@@ -267,7 +299,22 @@ const MisAlumnos = () => {
                                 ))}
                             </select>
 
-                            <select 
+                            {availableYears.length > 0 && (
+                                <select
+                                    className={styles.select}
+                                    value={selectedYear}
+                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedProfesor(''); }}
+                                    disabled={!selectedCentro}
+                                    style={{ minWidth: '140px' }}
+                                >
+                                    <option value="">{t('grades.allYears')}</option>
+                                    {availableYears.map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            )}
+
+                            <select
                                 className={styles.select}
                                 value={selectedProfesor}
                                 onChange={(e) => setSelectedProfesor(e.target.value)}

@@ -9,34 +9,102 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 const MisCalificaciones = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
     const [data, setData] = useState(null);
     const [periodos, setPeriodos] = useState([]);
     const [selectedPeriodo, setSelectedPeriodo] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    // Módulos expandidos con sus tareas cargadas
     const [expandedModules, setExpandedModules] = useState({});
-    const [moduleTasks, setModuleTasks] = useState({}); // { impId: [tareas] }
+    const [moduleTasks, setModuleTasks] = useState({});
     const [loadingTasks, setLoadingTasks] = useState({});
+
+    // Filtros SuperAdmin: Centro → Grupo → Alumno
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+    const [allGrupos, setAllGrupos] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
+    const [selectedGrupo, setSelectedGrupo] = useState('');
+    const [alumnos, setAlumnos] = useState([]);
+    const [selectedAlumno, setSelectedAlumno] = useState('');
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (!isSuperAdmin) return;
+        fetch(getApiUrl('/api/centros?pagination=false'), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(d => setCentros(d['hydra:member'] || d.member || []))
+        .catch(() => {});
+    }, [isSuperAdmin]);
+
+    // Cargar grupos cuando cambia el centro
+    useEffect(() => {
+        if (!isSuperAdmin || !selectedCentro) {
+            setAllGrupos([]); setSelectedYear(''); setSelectedGrupo(''); setAlumnos([]); setSelectedAlumno('');
+            return;
+        }
+        fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(d => {
+            setAllGrupos(d['hydra:member'] || d.member || []);
+            setSelectedYear(''); setSelectedGrupo(''); setAlumnos([]); setSelectedAlumno('');
+        })
+        .catch(() => {});
+    }, [selectedCentro, isSuperAdmin]);
+
+    const availableYears = [...new Set(allGrupos.map(g => g.anioEscolar).filter(Boolean))].sort().reverse();
+    const grupos = selectedYear ? allGrupos.filter(g => g.anioEscolar === selectedYear) : allGrupos;
+
+    // Cargar alumnos cuando cambia el grupo
+    useEffect(() => {
+        if (!isSuperAdmin || !selectedGrupo) {
+            setAlumnos([]); setSelectedAlumno('');
+            return;
+        }
+        fetch(getApiUrl(`/api/matriculas?grupo=${selectedGrupo}&pagination=false`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(d => {
+            const items = d['hydra:member'] || d.member || [];
+            const list = items.map(m => m.alumno).filter(Boolean);
+            list.sort((a, b) => `${a.apellidos} ${a.nombre}`.localeCompare(`${b.apellidos} ${b.nombre}`));
+            setAlumnos(list);
+            setSelectedAlumno('');
+        })
+        .catch(() => {});
+    }, [selectedGrupo, isSuperAdmin]);
 
     // Cargar periodos filtrados por los grupos del alumno
     useEffect(() => {
         if (!user) return;
         const fetchPeriodos = async () => {
             try {
-                const matriculasRes = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
-                    headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
-                });
-                if (!matriculasRes.ok) return;
-                const matriculasData = await matriculasRes.json();
-                const matriculas = matriculasData['hydra:member'] || matriculasData.member || [];
-                if (matriculas.length === 0) return;
+                let grupoIds = [];
 
-                const grupoIds = matriculas.map(m => {
-                    if (typeof m.grupo === 'string') return m.grupo.split('/').pop();
-                    return m.grupo?.id || m.grupo?.['@id']?.split('/').pop();
-                }).filter(Boolean);
+                if (isSuperAdmin) {
+                    if (!selectedAlumno) return;
+                    // Usar el grupo seleccionado
+                    if (selectedGrupo) grupoIds = [selectedGrupo];
+                } else {
+                    const matriculasRes = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
+                        headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+                    });
+                    if (!matriculasRes.ok) return;
+                    const matriculasData = await matriculasRes.json();
+                    const matriculas = matriculasData['hydra:member'] || matriculasData.member || [];
+                    grupoIds = matriculas.map(m => {
+                        if (typeof m.grupo === 'string') return m.grupo.split('/').pop();
+                        return m.grupo?.id || m.grupo?.['@id']?.split('/').pop();
+                    }).filter(Boolean);
+                }
+
+                if (grupoIds.length === 0) { setPeriodos([]); return; }
 
                 const allPeriodos = [];
                 const seen = new Set();
@@ -51,15 +119,13 @@ const MisCalificaciones = () => {
                         if (!seen.has(id)) { seen.add(id); allPeriodos.push(p); }
                     });
                 }
-                let result;
-                if (grupoIds.length <= 1) {
-                    result = allPeriodos;
-                } else {
+
+                let result = allPeriodos;
+                if (grupoIds.length > 1) {
                     const byName = new Map();
                     allPeriodos.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                     result = [...byName.values()];
                 }
-                // Extraordinaria siempre al final
                 result.sort((a, b) => {
                     const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
                     const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
@@ -70,20 +136,29 @@ const MisCalificaciones = () => {
             } catch { /* No es crítico */ }
         };
         fetchPeriodos();
-    }, [user]);
+    }, [user, isSuperAdmin, selectedAlumno, selectedGrupo]);
 
     // Cargar calificaciones
     useEffect(() => {
+        if (isSuperAdmin && !selectedAlumno) {
+            setData(null);
+            setLoading(false);
+            return;
+        }
         const fetchCalificaciones = async () => {
             setLoading(true);
             try {
                 let url = getApiUrl('/api/v1/alumno/mis-calificaciones');
-                if (selectedPeriodo) url += `?periodo=${selectedPeriodo}`;
+                const params = new URLSearchParams();
+                if (selectedPeriodo) params.set('periodo', selectedPeriodo);
+                if (isSuperAdmin && selectedAlumno) params.set('alumnoId', selectedAlumno);
+                const qs = params.toString();
+                if (qs) url += `?${qs}`;
+
                 const response = await fetch(url, { credentials: 'include' });
                 if (!response.ok) throw new Error();
                 setData(await response.json());
                 setError(null);
-                // Reset tareas expandidas al cambiar periodo
                 setExpandedModules({});
                 setModuleTasks({});
             } catch {
@@ -93,19 +168,18 @@ const MisCalificaciones = () => {
             }
         };
         fetchCalificaciones();
-    }, [selectedPeriodo, t]);
+    }, [selectedPeriodo, selectedAlumno, isSuperAdmin, t]);
 
     // Toggle módulo y cargar tareas lazy
     const toggleModule = async (impId) => {
         const isExpanded = expandedModules[impId];
         setExpandedModules(prev => ({ ...prev, [impId]: !isExpanded }));
-
-        // Si ya tenemos las tareas o estamos colapsando, no hacer fetch
         if (isExpanded || moduleTasks[impId]) return;
+
+        const targetAlumnoId = isSuperAdmin && selectedAlumno ? selectedAlumno : user.id;
 
         setLoadingTasks(prev => ({ ...prev, [impId]: true }));
         try {
-            // Fetch tareas de la impartición
             const tareasRes = await fetch(
                 getApiUrl(`/api/tareas?imparticion=${impId}&order[fechaLimite]=asc&itemsPerPage=100`),
                 { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
@@ -114,9 +188,8 @@ const MisCalificaciones = () => {
             const tareasData = await tareasRes.json();
             const tareasItems = tareasData['hydra:member'] || tareasData.member || [];
 
-            // Fetch entregas del alumno
             const entregasRes = await fetch(
-                getApiUrl(`/api/entregas?alumno=${user.id}&itemsPerPage=200`),
+                getApiUrl(`/api/entregas?alumno=${targetAlumnoId}&itemsPerPage=200`),
                 { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
             );
             const entregasData = await entregasRes.json();
@@ -132,9 +205,7 @@ const MisCalificaciones = () => {
             });
 
             setModuleTasks(prev => ({ ...prev, [impId]: combined }));
-        } catch {
-            // Si falla, al menos no crashea
-        } finally {
+        } catch { /* silencioso */ } finally {
             setLoadingTasks(prev => ({ ...prev, [impId]: false }));
         }
     };
@@ -173,8 +244,66 @@ const MisCalificaciones = () => {
         <Layout>
             <div className={styles.container}>
                 <div className={styles.sectionHeader}>
-                    <h1 className={styles.title}>{t('grades.myGradesTitle')}</h1>
+                    <div>
+                        <h1 className={styles.title}>{t('grades.myGradesTitle')}</h1>
+                        {isSuperAdmin && data?.alumno && (
+                            <p className={styles.subtitle}>
+                                {data.alumno.apellidos}, {data.alumno.nombre}
+                            </p>
+                        )}
+                    </div>
                     <div className={styles.controls}>
+                        {isSuperAdmin && (
+                            <>
+                                <select
+                                    className={styles.periodSelect}
+                                    value={selectedCentro}
+                                    onChange={(e) => setSelectedCentro(e.target.value)}
+                                    style={{ minWidth: '200px' }}
+                                >
+                                    <option value="">{t('common.selectCenter')}</option>
+                                    {centros.map(c => (
+                                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                                    ))}
+                                </select>
+                                {availableYears.length > 0 && (
+                                    <select
+                                        className={styles.periodSelect}
+                                        value={selectedYear}
+                                        onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                                        disabled={!selectedCentro}
+                                        style={{ minWidth: '140px' }}
+                                    >
+                                        <option value="">{t('grades.allYears')}</option>
+                                        {availableYears.map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
+                                    </select>
+                                )}
+                                <select
+                                    className={styles.periodSelect}
+                                    value={selectedGrupo}
+                                    onChange={(e) => setSelectedGrupo(e.target.value)}
+                                    disabled={!selectedCentro}
+                                >
+                                    <option value="">{t('common.allGroups')}</option>
+                                    {grupos.map(g => (
+                                        <option key={g.id} value={g.id}>{g.nombre}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className={styles.periodSelect}
+                                    value={selectedAlumno}
+                                    onChange={(e) => { setSelectedAlumno(e.target.value); setSelectedPeriodo(''); }}
+                                    disabled={!selectedGrupo}
+                                >
+                                    <option value="">{t('common.selectStudent')}</option>
+                                    {alumnos.map(a => (
+                                        <option key={a.id} value={a.id}>{a.apellidos}, {a.nombre}</option>
+                                    ))}
+                                </select>
+                            </>
+                        )}
                         <select
                             className={styles.periodSelect}
                             value={selectedPeriodo}
@@ -193,6 +322,8 @@ const MisCalificaciones = () => {
 
                 {loading ? (
                     <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                ) : isSuperAdmin && !selectedAlumno ? (
+                    <div className={styles.loadingContainer}>{t('common.selectStudent')}</div>
                 ) : !data?.modulos?.length ? (
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
                 ) : (
@@ -236,13 +367,11 @@ const MisCalificaciones = () => {
                                         </div>
                                     </div>
 
-                                    {/* Botón para expandir/colapsar tareas */}
                                     <button className={styles.moduleToggle} onClick={() => toggleModule(impId)}>
                                         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                         {isExpanded ? t('grades.hideTasks') : t('grades.showTasks')}
                                     </button>
 
-                                    {/* Lista de tareas expandida */}
                                     {isExpanded && (
                                         <div className={styles.moduleTaskList}>
                                             {isLoadingTasks ? (

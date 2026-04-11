@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 
 /**
  * Hook compartido para cargar imparticiones con filtros de SuperAdmin.
- * Usado por Tareas y Entregas para evitar duplicar ~120 líneas de lógica.
+ * Cascada: Centro → Año escolar → Grupo → Módulo
  */
 const useImparticiones = () => {
     const { t } = useTranslation();
@@ -22,10 +22,23 @@ const useImparticiones = () => {
     // Filtros SuperAdmin
     const [centros, setCentros] = useState([]);
     const [selectedCentro, setSelectedCentro] = useState('');
-    const [grupos, setGrupos] = useState([]);
+    const [allGrupos, setAllGrupos] = useState([]); // todos los del centro (para extraer años)
+    const [selectedYear, setSelectedYear] = useState('');
     const [selectedGrupo, setSelectedGrupo] = useState('');
     const [modulos, setModulos] = useState([]);
     const [selectedModulo, setSelectedModulo] = useState('');
+
+    // Años escolares disponibles (extraídos de los grupos del centro)
+    const availableYears = useMemo(() => {
+        const years = [...new Set(allGrupos.map(g => g.anioEscolar || g.anio_escolar).filter(Boolean))];
+        return years.sort().reverse();
+    }, [allGrupos]);
+
+    // Grupos filtrados por año escolar
+    const grupos = useMemo(() => {
+        if (!selectedYear) return allGrupos;
+        return allGrupos.filter(g => (g.anioEscolar || g.anio_escolar) === selectedYear);
+    }, [allGrupos, selectedYear]);
 
     // Cargar centros para SuperAdmin
     useEffect(() => {
@@ -40,7 +53,7 @@ const useImparticiones = () => {
         }
     }, [isSuperAdmin]);
 
-    // Cargar grupos cuando cambia el centro
+    // Cargar TODOS los grupos del centro (para extraer años)
     useEffect(() => {
         if (isSuperAdmin && selectedCentro) {
             fetch(getApiUrl(`/api/grupos?centro=${selectedCentro}&pagination=false`), {
@@ -49,19 +62,28 @@ const useImparticiones = () => {
             })
             .then(res => res.json())
             .then(data => {
-                setGrupos(data['hydra:member'] || data.member || []);
+                setAllGrupos(data['hydra:member'] || data.member || []);
+                setSelectedYear('');
                 setSelectedGrupo('');
                 setModulos([]);
                 setSelectedModulo('');
             })
             .catch(err => console.error('Error cargando grupos:', err));
         } else {
-            setGrupos([]);
+            setAllGrupos([]);
+            setSelectedYear('');
             setSelectedGrupo('');
             setModulos([]);
             setSelectedModulo('');
         }
     }, [selectedCentro, isSuperAdmin]);
+
+    // Reset grupo al cambiar año
+    useEffect(() => {
+        setSelectedGrupo('');
+        setModulos([]);
+        setSelectedModulo('');
+    }, [selectedYear]);
 
     // Cargar módulos cuando cambia el grupo
     useEffect(() => {
@@ -178,14 +200,10 @@ const useImparticiones = () => {
         loading,
         error,
         fetchData,
-        // Roles
-        isProfesor,
-        isAlumno,
-        isAdmin,
-        isSuperAdmin,
-        // Filtros SuperAdmin
+        isProfesor, isAlumno, isAdmin, isSuperAdmin,
         filters: {
             centros, selectedCentro, setSelectedCentro,
+            availableYears, selectedYear, setSelectedYear,
             grupos, selectedGrupo, setSelectedGrupo,
             modulos, selectedModulo, setSelectedModulo,
         },

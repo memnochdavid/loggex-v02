@@ -2,11 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
+import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 
 const CalificacionesAdmin = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
     const [data, setData] = useState(null);
     const [periodos, setPeriodos] = useState([]);
@@ -15,6 +18,21 @@ const CalificacionesAdmin = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+
+    // Filtro de centro para SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (!isSuperAdmin) return;
+        fetch(getApiUrl('/api/centros?pagination=false'), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(d => setCentros(d['hydra:member'] || d.member || []))
+        .catch(() => {});
+    }, [isSuperAdmin]);
 
     // Cargar periodos deduplicados por nombre
     useEffect(() => {
@@ -43,14 +61,21 @@ const CalificacionesAdmin = () => {
         fetchPeriodos();
     }, []);
 
-    // Cargar resumen (filtrado server-side por año y periodo)
+    // Cargar resumen (filtrado server-side por centro, año y periodo)
     useEffect(() => {
+        // SuperAdmin debe seleccionar centro primero
+        if (isSuperAdmin && !selectedCentro) {
+            setData(null);
+            setLoading(false);
+            return;
+        }
         const fetchResumen = async () => {
             setLoading(true);
             try {
                 const params = new URLSearchParams();
                 if (selectedPeriodo) params.set('periodo', selectedPeriodo);
                 if (selectedYear) params.set('anioEscolar', selectedYear);
+                if (selectedCentro) params.set('centro', selectedCentro);
                 const qs = params.toString();
                 const url = getApiUrl(`/api/v1/centro/resumen-calificaciones${qs ? `?${qs}` : ''}`);
                 const response = await fetch(url, { credentials: 'include' });
@@ -64,7 +89,7 @@ const CalificacionesAdmin = () => {
             }
         };
         fetchResumen();
-    }, [selectedPeriodo, selectedYear, t]);
+    }, [selectedPeriodo, selectedYear, selectedCentro, isSuperAdmin, t]);
 
     // Años disponibles vienen del backend
     const availableYears = data?.aniosDisponibles || [];
@@ -174,6 +199,19 @@ const CalificacionesAdmin = () => {
                 <div className={styles.sectionHeader}>
                     <h1 className={styles.title}>{t('grades.adminTitle')}</h1>
                     <div className={styles.controls}>
+                        {isSuperAdmin && (
+                            <select
+                                className={styles.periodSelect}
+                                value={selectedCentro}
+                                onChange={(e) => { setSelectedCentro(e.target.value); setSelectedYear(''); setExpandedId(null); }}
+                                style={{ minWidth: '200px' }}
+                            >
+                                <option value="">{t('common.selectCenter')}</option>
+                                {centros.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+                        )}
                         <select
                             className={styles.periodSelect}
                             value={selectedYear}
@@ -203,6 +241,8 @@ const CalificacionesAdmin = () => {
 
                 {loading ? (
                     <div className={styles.loadingContainer}>{t('common.loading')}</div>
+                ) : isSuperAdmin && !selectedCentro ? (
+                    <div className={styles.loadingContainer}>{t('common.selectCenter')}</div>
                 ) : !data?.grupos?.length ? (
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
                 ) : (
