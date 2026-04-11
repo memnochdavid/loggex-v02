@@ -24,7 +24,10 @@
       "Bash(php -l backend/src/Repository/PonderacionImparticionRepository.php)",
       "Bash(php -l backend/src/Controller/CalificacionMediaController.php)",
       "Bash(php -l backend/src/Entity/PeriodoEvaluativo.php)",
-      "Bash(php -l backend/src/Repository/PeriodoEvaluativoRepository.php)"
+      "Bash(php -l backend/src/Repository/PeriodoEvaluativoRepository.php)",
+      "Bash(python3:*)",
+      "Bash(curl -sk https://localhost:9443/api/v1/imparticion/1/medias -H \"Accept: application/json\" -H \"Cookie: $\\(docker compose exec backend php -r \"echo 'test';\" && echo ''\\)\")",
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost:9443/api/v1/imparticion/1/medias)"
     ]
   }
 }

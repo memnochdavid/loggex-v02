@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck } from 'lucide-react';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { useTranslation } from 'react-i18next';
 
@@ -27,13 +27,15 @@ const Sidebar = () => {
         '/mensajes': 'general',
         '/perfil': 'general',
         
-        '/tareas': (isAlumno || isSuperAdmin) ? 'alumno' : 'profesor', // Priorizar alumno si es ambos o superadmin para ver ambas
-        '/entregas': (isAlumno || isSuperAdmin) ? 'alumno' : 'profesor',
+        '/tareas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
+        '/entregas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
+        '/calificaciones': 'profesor',
         '/mis-temarios': 'profesor',
         '/claustro': 'profesor',
         '/mis-alumnos': 'profesor',
         
         '/apuntes': 'alumno',
+        '/mis-calificaciones': 'alumno',
         '/faltas': 'alumno',
         '/companeros': 'alumno',
         '/mis-profesores': 'alumno',
@@ -45,6 +47,7 @@ const Sidebar = () => {
         '/matriculas': 'administracion',
         '/imparticiones': 'administracion',
         '/festivos': isSuperAdmin ? 'superadmin' : 'administracion',
+        '/admin/calificaciones': 'administracion',
         '/configuracion': 'administracion',
         
         '/centros': 'superadmin',
@@ -132,6 +135,10 @@ const Sidebar = () => {
                         <UploadCloud size={20} />
                         {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
                     </NavLink>
+                    <NavLink to="/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar}>
+                        <BarChart3 size={20} />
+                        {!isCollapsed && <span>{t('sidebar.grades')}</span>}
+                    </NavLink>
                     <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={closeSidebar}>
                         <Book size={20} />
                         {!isCollapsed && <span>{t('sidebar.myMaterials')}</span>}
@@ -164,6 +171,10 @@ const Sidebar = () => {
                         <AlertCircle size={20} />
                         {!isCollapsed && <span>{t('sidebar.myAbsences')}</span>}
                     </NavLink>
+                    <NavLink to="/mis-calificaciones" className={getNavLinkClass} title={t('sidebar.myGrades')} onClick={closeSidebar}>
+                        <BarChart3 size={20} />
+                        {!isCollapsed && <span>{t('sidebar.myGrades')}</span>}
+                    </NavLink>
                     <NavLink to="/companeros" className={getNavLinkClass} title={t('sidebar.myClassmates')} onClick={closeSidebar}>
                         <UsersRound size={20} />
                         {!isCollapsed && <span>{t('sidebar.myClassmates')}</span>}
@@ -172,10 +183,8 @@ const Sidebar = () => {
                         <UserCheck size={20} />
                         {!isCollapsed && <span>{t('sidebar.myTeachers')}</span>}
                     </NavLink>
-                    {/* Tareas y Entregas también para alumnos (duplicado intencional o condicional) */}
-                    {/* Si es Superadmin, ya las ve en Profesor, pero si quiere ver la vista de alumno... */}
-                    {/* Dejamos que el Superadmin acceda a Tareas/Entregas desde Profesor, que es más completo */}
-                    {isAlumno && (
+                    {/* Tareas/Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
+                    {!isProfesor && !isAdmin && !isSuperAdmin && (
                         <>
                             <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
                                 <ClipboardList size={20} />
@@ -229,6 +238,10 @@ const Sidebar = () => {
                             {!isCollapsed && <span>{t('sidebar.holidays')}</span>}
                         </NavLink>
                     )}
+                    <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar}>
+                        <BarChart3 size={20} />
+                        {!isCollapsed && <span>{t('sidebar.grades')}</span>}
+                    </NavLink>
                     <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar}>
                         <Settings size={20} />
                         {!isCollapsed && <span>{t('sidebar.settings')}</span>}

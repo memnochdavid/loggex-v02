@@ -271,6 +271,126 @@ class CalificacionMediaController extends AbstractController
         ];
     }
 
+    /**
+     * Resumen de calificaciones del centro (para admin).
+     * Devuelve estadísticas por ciclo → grupo → módulo.
+     */
+    #[Route('/api/v1/centro/resumen-calificaciones', name: 'api_resumen_calificaciones', methods: ['GET'])]
+    public function resumenCalificaciones(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN'))) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $centro = $user->getCentro();
+        if (!$centro && !$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['message' => 'Sin centro asignado'], 400);
+        }
+
+        $periodo = $this->resolverPeriodo($request);
+
+        // Obtener todos los grupos del centro
+        $grupoRepo = $this->em->getRepository(\App\Entity\Grupo::class);
+        $grupos = $centro
+            ? $grupoRepo->findBy(['centro' => $centro])
+            : $grupoRepo->findAll();
+
+        $resultado = [];
+        foreach ($grupos as $grupo) {
+            $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+            $matriculas = $this->em->getRepository(Matricula::class)->findBy(['grupo' => $grupo]);
+            $alumnos = array_map(fn($m) => $m->getAlumno(), $matriculas);
+
+            $modulosData = [];
+            foreach ($imparticiones as $imp) {
+                $pesos = $this->ponderacionRepo->getPesosParaImparticion($imp->getId());
+                $notas = [];
+                foreach ($alumnos as $alumno) {
+                    $media = $this->calcularMediaAlumno($imp->getId(), $alumno->getId(), $pesos, $periodo);
+                    if ($media['notaFinal'] !== null) {
+                        $notas[] = $media['notaFinal'];
+                    }
+                }
+
+                $aprobados = count(array_filter($notas, fn($n) => $n >= 5));
+                $total = count($notas);
+
+                $modulosData[] = [
+                    'modulo' => $imp->getModulo()->getNombre(),
+                    'profesor' => $imp->getProfesor()->getNombre() . ' ' . $imp->getProfesor()->getApellidos(),
+                    'mediaGrupo' => $total > 0 ? round(array_sum($notas) / $total, 2) : null,
+                    'aprobados' => $aprobados,
+                    'suspensos' => $total - $aprobados,
+                    'totalAlumnos' => $total,
+                    'tasaAprobados' => $total > 0 ? round(($aprobados / $total) * 100, 1) : null,
+                ];
+            }
+
+            $ciclo = $grupo->getCiclo();
+            $resultado[] = [
+                'grupo' => [
+                    'id' => $grupo->getId(),
+                    'nombre' => $grupo->getNombre(),
+                    'ciclo' => $ciclo->getNombre(),
+                    'anioEscolar' => $grupo->getAnioEscolar(),
+                ],
+                'modulos' => $modulosData,
+            ];
+        }
+
+        return $this->json(['grupos' => $resultado]);
+    }
+
+    /**
+     * Calificaciones del alumno autenticado, agrupadas por módulo.
+     */
+    #[Route('/api/v1/alumno/mis-calificaciones', name: 'api_mis_calificaciones', methods: ['GET'])]
+    public function misCalificaciones(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['message' => 'No autenticado'], 401);
+        }
+
+        $periodo = $this->resolverPeriodo($request);
+
+        // Obtener matrículas del alumno
+        $matriculas = $this->em->getRepository(Matricula::class)->findBy(['alumno' => $user]);
+
+        $modulos = [];
+        foreach ($matriculas as $matricula) {
+            $grupo = $matricula->getGrupo();
+
+            // Obtener imparticiones del grupo
+            $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+
+            foreach ($imparticiones as $imparticion) {
+                $pesos = $this->ponderacionRepo->getPesosParaImparticion($imparticion->getId());
+                $media = $this->calcularMediaAlumno($imparticion->getId(), $user->getId(), $pesos, $periodo);
+
+                $modulos[] = [
+                    'imparticion' => [
+                        'id' => $imparticion->getId(),
+                        'modulo' => $imparticion->getModulo()->getNombre(),
+                        'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
+                        'grupo' => $grupo->getNombre(),
+                    ],
+                    ...$media,
+                ];
+            }
+        }
+
+        return $this->json([
+            'alumno' => [
+                'id' => $user->getId(),
+                'nombre' => $user->getNombre(),
+                'apellidos' => $user->getApellidos(),
+            ],
+            'modulos' => $modulos,
+        ]);
+    }
+
     private function resolverPeriodo(Request $request): ?PeriodoEvaluativo
     {
         $periodoId = $request->query->get('periodo');

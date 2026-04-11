@@ -28,6 +28,10 @@ import Claustro from './pages/Claustro';
 import Companeros from './pages/Companeros';
 import MisProfesores from './pages/MisProfesores';
 import MisAlumnos from './pages/MisAlumnos'; // Nuevo
+import CalificacionesGrupo from './pages/CalificacionesGrupo';
+import CalificacionesDetalle from './pages/CalificacionesDetalle';
+import MisCalificaciones from './pages/MisCalificaciones';
+import CalificacionesAdmin from './pages/CalificacionesAdmin';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -196,7 +200,31 @@ function App() {
                     <Configuracion />
                   </PrivateRoute>
                 } />
-                
+
+                <Route path="/calificaciones" element={
+                  <PrivateRoute>
+                    <CalificacionesGrupo />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/calificaciones/detalle" element={
+                  <PrivateRoute>
+                    <CalificacionesDetalle />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/mis-calificaciones" element={
+                  <PrivateRoute>
+                    <MisCalificaciones />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/calificaciones" element={
+                  <PrivateRoute>
+                    <CalificacionesAdmin />
+                  </PrivateRoute>
+                } />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
