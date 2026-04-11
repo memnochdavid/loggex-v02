@@ -1058,9 +1058,16 @@
     "saveFeedback": "Save",
     "feedbackSaved": "Feedback saved",
     "errorSavingFeedback": "Error saving feedback",
-    "showTasks": "Show tasks",
-    "hideTasks": "Hide tasks",
+    "showTasks": "Breakdown",
+    "hideTasks": "Hide breakdown",
     "outOf": "of",
-    "allYears": "All school years"
+    "allYears": "All school years",
+    "downloadReport": "Download report card",
+    "downloadReports": "Generate report cards",
+    "downloadAsPdf": "Single PDF",
+    "downloadAsZip": "ZIP (individual)",
+    "generating": "Generating...",
+    "selectPeriodFirst": "Select an assessment first",
+    "pdfLanguage": "PDF language"
   }
 }

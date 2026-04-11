@@ -4,10 +4,11 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
+import Button from '../components/Button';
 
 const MisCalificaciones = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { user } = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -19,6 +20,29 @@ const MisCalificaciones = () => {
     const [expandedModules, setExpandedModules] = useState({});
     const [moduleTasks, setModuleTasks] = useState({});
     const [loadingTasks, setLoadingTasks] = useState({});
+    const [moduleTab, setModuleTab] = useState({}); // { impId: 'todos'|'examen'|'tarea'|'practica' }
+    const [downloadingReport, setDownloadingReport] = useState(false);
+
+    const handleDownloadBoletin = async () => {
+        if (!selectedPeriodo) { alert(t('grades.selectPeriodFirst')); return; }
+        const alumnoId = isSuperAdmin && selectedAlumno ? selectedAlumno : user.id;
+        setDownloadingReport(true);
+        try {
+            const res = await fetch(
+                getApiUrl(`/api/v1/informes/boletin/${alumnoId}/${selectedPeriodo}?lang=${(i18n.language || 'es').substring(0, 2)}`),
+                { credentials: 'include' }
+            );
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `boletin.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch { alert(t('grades.errorLoading')); }
+        finally { setDownloadingReport(false); }
+    };
 
     // Filtros SuperAdmin: Centro → Grupo → Alumno
     const [centros, setCentros] = useState([]);
@@ -315,6 +339,14 @@ const MisCalificaciones = () => {
                                 return <option key={id} value={id}>{p.nombre}</option>;
                             })}
                         </select>
+                        <Button
+                            size="sm"
+                            onClick={handleDownloadBoletin}
+                            disabled={!selectedPeriodo || downloadingReport}
+                        >
+                            <Download size={14} style={{ marginRight: '4px' }} />
+                            {downloadingReport ? t('grades.generating') : t('grades.downloadReport')}
+                        </Button>
                     </div>
                 </div>
 
@@ -368,11 +400,12 @@ const MisCalificaciones = () => {
                                     </div>
 
                                     <button className={styles.moduleToggle} onClick={() => toggleModule(impId)}>
-                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                        <ChevronDown size={16} className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`} />
                                         {isExpanded ? t('grades.hideTasks') : t('grades.showTasks')}
                                     </button>
 
-                                    {isExpanded && (
+                                    <div className={`${styles.moduleTaskListWrapper} ${isExpanded ? styles.open : ''}`}>
+                                        <div className={styles.moduleTaskListInner}>
                                         <div className={styles.moduleTaskList}>
                                             {isLoadingTasks ? (
                                                 <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
@@ -382,33 +415,64 @@ const MisCalificaciones = () => {
                                                 <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
                                                     {t('grades.noGrades')}
                                                 </div>
-                                            ) : (
-                                                tasks.map(tarea => {
-                                                    const nota = tarea.calificacion?.nota ?? null;
-                                                    const feedback = tarea.calificacion?.feedbackProfesor;
-                                                    return (
-                                                        <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
-                                                            <div className={styles.taskInfo}>
-                                                                <div className={styles.taskName}>
-                                                                    {tarea.titulo}
-                                                                    <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
-                                                                        {getTypeName(tarea.tipo)}
-                                                                    </span>
+                                            ) : (() => {
+                                                const activeTab = moduleTab[impId] || 'todos';
+                                                const filteredTasks = activeTab === 'todos' ? tasks : tasks.filter(t => t.tipo === activeTab);
+                                                const counts = { todos: tasks.length, examen: 0, tarea: 0, practica: 0 };
+                                                tasks.forEach(t => { if (counts[t.tipo] !== undefined) counts[t.tipo]++; });
+
+                                                return (
+                                                    <>
+                                                    <div className={styles.tabBar} style={{ marginTop: 0 }}>
+                                                        {[
+                                                            { key: 'todos', label: t('grades.filterAll') },
+                                                            { key: 'examen', label: t('grades.exam') },
+                                                            { key: 'tarea', label: t('grades.task') },
+                                                            { key: 'practica', label: t('grades.practice') },
+                                                        ].map(tab => (
+                                                            <button
+                                                                key={tab.key}
+                                                                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
+                                                                onClick={() => setModuleTab(prev => ({ ...prev, [impId]: tab.key }))}
+                                                            >
+                                                                {tab.label}
+                                                                <span className={styles.tabCount}>{counts[tab.key]}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {filteredTasks.length === 0 ? (
+                                                        <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
+                                                            {t('grades.noTasksType')}
+                                                        </div>
+                                                    ) : filteredTasks.map(tarea => {
+                                                        const nota = tarea.calificacion?.nota ?? null;
+                                                        const feedback = tarea.calificacion?.feedbackProfesor;
+                                                        return (
+                                                            <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
+                                                                <div className={styles.taskInfo}>
+                                                                    <div className={styles.taskName}>
+                                                                        {tarea.titulo}
+                                                                        <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
+                                                                            {getTypeName(tarea.tipo)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={styles.taskMeta}>
+                                                                        {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}
+                                                                        {feedback && <> — {feedback}</>}
+                                                                    </div>
                                                                 </div>
-                                                                <div className={styles.taskMeta}>
-                                                                    {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}
-                                                                    {feedback && <> — {feedback}</>}
-                                                                </div>
-                                                            </div>
-                                                            <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
-                                                                {nota != null ? nota.toFixed(1) : '—'}
+                                                                <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
+                                                                    {nota != null ? nota.toFixed(1) : '—'}
                                                             </div>
                                                         </div>
                                                     );
-                                                })
-                                            )}
+                                                })}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
-                                    )}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })}

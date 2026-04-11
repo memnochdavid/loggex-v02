@@ -1058,9 +1058,16 @@
     "saveFeedback": "Gorde",
     "feedbackSaved": "Oharrak gordeta",
     "errorSavingFeedback": "Errorea oharrak gordetzean",
-    "showTasks": "Atazak ikusi",
-    "hideTasks": "Atazak ezkutatu",
+    "showTasks": "Xehatu",
+    "hideTasks": "Xehetasuna ezkutatu",
     "outOf": "tik",
-    "allYears": "Ikasturte guztiak"
+    "allYears": "Ikasturte guztiak",
+    "downloadReport": "Buletina deskargatu",
+    "downloadReports": "Buletinak sortu",
+    "downloadAsPdf": "PDF bakarra",
+    "downloadAsZip": "ZIP (banakakoek)",
+    "generating": "Sortzen...",
+    "selectPeriodFirst": "Lehenik ebaluazio bat aukeratu",
+    "pdfLanguage": "PDF hizkuntza"
   }
 }

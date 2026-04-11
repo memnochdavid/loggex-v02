@@ -1058,9 +1058,16 @@
     "saveFeedback": "Gardar",
     "feedbackSaved": "Observacións gardadas",
     "errorSavingFeedback": "Erro ao gardar observacións",
-    "showTasks": "Ver tarefas",
-    "hideTasks": "Ocultar tarefas",
+    "showTasks": "Desglosar",
+    "hideTasks": "Ocultar desgloseamento",
     "outOf": "de",
-    "allYears": "Todos os cursos"
+    "allYears": "Todos os cursos",
+    "downloadReport": "Descargar boletín",
+    "downloadReports": "Xerar boletíns",
+    "downloadAsPdf": "PDF único",
+    "downloadAsZip": "ZIP (individuais)",
+    "generating": "Xerando...",
+    "selectPeriodFirst": "Selecciona unha avaliación primeiro",
+    "pdfLanguage": "Idioma PDF"
   }
 }

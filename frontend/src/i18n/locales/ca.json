@@ -1058,9 +1058,16 @@
     "saveFeedback": "Desar",
     "feedbackSaved": "Observacions desades",
     "errorSavingFeedback": "Error en desar observacions",
-    "showTasks": "Veure tasques",
-    "hideTasks": "Amagar tasques",
+    "showTasks": "Desglossar",
+    "hideTasks": "Ocultar desglossament",
     "outOf": "de",
-    "allYears": "Tots els cursos"
+    "allYears": "Tots els cursos",
+    "downloadReport": "Descarregar butlletí",
+    "downloadReports": "Generar butlletins",
+    "downloadAsPdf": "PDF únic",
+    "downloadAsZip": "ZIP (individuals)",
+    "generating": "Generant...",
+    "selectPeriodFirst": "Selecciona una avaluació primer",
+    "pdfLanguage": "Idioma PDF"
   }
 }

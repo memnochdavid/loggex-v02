@@ -2,12 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
+import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import { Download } from 'lucide-react';
 
 const CalificacionesAdmin = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { user } = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -18,6 +20,35 @@ const CalificacionesAdmin = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+    const [downloading, setDownloading] = useState(null);
+
+    const handleDownloadBoletines = async (grupoId, formato) => {
+        if (!selectedPeriodo) {
+            alert(t('grades.selectPeriodFirst'));
+            return;
+        }
+        setDownloading(`${grupoId}-${formato}`);
+        try {
+            const res = await fetch(
+                getApiUrl(`/api/v1/informes/boletines/${grupoId}/${selectedPeriodo}?formato=${formato}&lang=${(i18n.language || 'es').substring(0, 2)}`),
+                { credentials: 'include' }
+            );
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = formato === 'zip'
+                ? `boletines_${grupoId}.zip`
+                : `boletines_${grupoId}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            alert(t('grades.errorLoading'));
+        } finally {
+            setDownloading(null);
+        }
+    };
 
     // Filtro de centro para SuperAdmin
     const [centros, setCentros] = useState([]);
@@ -152,7 +183,27 @@ const CalificacionesAdmin = () => {
     };
 
     const renderGrupoContent = (item) => (
-        <div style={{ overflowX: 'auto' }}>
+        <div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                <Button
+                    size="sm"
+                    onClick={() => handleDownloadBoletines(item.id, 'pdf-unico')}
+                    disabled={!selectedPeriodo || downloading === `${item.id}-pdf-unico`}
+                >
+                    <Download size={14} style={{ marginRight: '4px' }} />
+                    {downloading === `${item.id}-pdf-unico` ? t('grades.generating') : t('grades.downloadAsPdf')}
+                </Button>
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDownloadBoletines(item.id, 'zip')}
+                    disabled={!selectedPeriodo || downloading === `${item.id}-zip`}
+                >
+                    <Download size={14} style={{ marginRight: '4px' }} />
+                    {downloading === `${item.id}-zip` ? t('grades.generating') : t('grades.downloadAsZip')}
+                </Button>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
             <table className={styles.gradesTable}>
                 <thead>
                     <tr>
@@ -190,6 +241,7 @@ const CalificacionesAdmin = () => {
                     ))}
                 </tbody>
             </table>
+            </div>
         </div>
     );
 
