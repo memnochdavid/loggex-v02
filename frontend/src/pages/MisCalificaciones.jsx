@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const MisCalificaciones = () => {
     const { t } = useTranslation();
@@ -14,62 +15,50 @@ const MisCalificaciones = () => {
     const [selectedPeriodo, setSelectedPeriodo] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    // Módulos expandidos con sus tareas cargadas
+    const [expandedModules, setExpandedModules] = useState({});
+    const [moduleTasks, setModuleTasks] = useState({}); // { impId: [tareas] }
+    const [loadingTasks, setLoadingTasks] = useState({});
 
     // Cargar periodos filtrados por los grupos del alumno
     useEffect(() => {
         if (!user) return;
         const fetchPeriodos = async () => {
             try {
-                // Obtener matrículas del alumno para conocer sus grupos
                 const matriculasRes = await fetch(getApiUrl(`/api/matriculas?alumno=${user.id}&pagination=false`), {
-                    headers: { 'Accept': 'application/ld+json' },
-                    credentials: 'include'
+                    headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
                 });
                 if (!matriculasRes.ok) return;
                 const matriculasData = await matriculasRes.json();
                 const matriculas = matriculasData['hydra:member'] || matriculasData.member || [];
                 if (matriculas.length === 0) return;
 
-                // Obtener IDs de grupos del alumno
                 const grupoIds = matriculas.map(m => {
                     if (typeof m.grupo === 'string') return m.grupo.split('/').pop();
                     return m.grupo?.id || m.grupo?.['@id']?.split('/').pop();
                 }).filter(Boolean);
 
-                // Fetch periodos de cada grupo y deduplicar por nombre
                 const allPeriodos = [];
                 const seen = new Set();
                 for (const grupoId of grupoIds) {
                     const res = await fetch(getApiUrl(`/api/periodo_evaluativos?grupo=${grupoId}&order[fechaInicio]=asc`), {
-                        headers: { 'Accept': 'application/ld+json' },
-                        credentials: 'include'
+                        headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
                     });
                     if (!res.ok) continue;
-                    const data = await res.json();
-                    const items = data['hydra:member'] || data.member || [];
-                    items.forEach(p => {
+                    const d = await res.json();
+                    (d['hydra:member'] || d.member || []).forEach(p => {
                         const id = p.id || p['@id']?.split('/').pop();
-                        if (!seen.has(id)) {
-                            seen.add(id);
-                            allPeriodos.push(p);
-                        }
+                        if (!seen.has(id)) { seen.add(id); allPeriodos.push(p); }
                     });
                 }
-                // Si el alumno está en un solo grupo, los periodos ya son únicos.
-                // Si está en varios, deduplicar por nombre para el selector.
                 if (grupoIds.length <= 1) {
                     setPeriodos(allPeriodos);
                 } else {
-                    // Deduplicar por nombre (ej: "1ª Evaluación" de varios grupos → mostrar una sola vez)
                     const byName = new Map();
-                    allPeriodos.forEach(p => {
-                        if (!byName.has(p.nombre)) byName.set(p.nombre, p);
-                    });
+                    allPeriodos.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                     setPeriodos([...byName.values()]);
                 }
-            } catch {
-                // No es crítico
-            }
+            } catch { /* No es crítico */ }
         };
         fetchPeriodos();
     }, [user]);
@@ -80,14 +69,14 @@ const MisCalificaciones = () => {
             setLoading(true);
             try {
                 let url = getApiUrl('/api/v1/alumno/mis-calificaciones');
-                if (selectedPeriodo) {
-                    url += `?periodo=${selectedPeriodo}`;
-                }
+                if (selectedPeriodo) url += `?periodo=${selectedPeriodo}`;
                 const response = await fetch(url, { credentials: 'include' });
                 if (!response.ok) throw new Error();
-                const result = await response.json();
-                setData(result);
+                setData(await response.json());
                 setError(null);
+                // Reset tareas expandidas al cambiar periodo
+                setExpandedModules({});
+                setModuleTasks({});
             } catch {
                 setError(t('grades.errorLoading'));
             } finally {
@@ -96,6 +85,50 @@ const MisCalificaciones = () => {
         };
         fetchCalificaciones();
     }, [selectedPeriodo, t]);
+
+    // Toggle módulo y cargar tareas lazy
+    const toggleModule = async (impId) => {
+        const isExpanded = expandedModules[impId];
+        setExpandedModules(prev => ({ ...prev, [impId]: !isExpanded }));
+
+        // Si ya tenemos las tareas o estamos colapsando, no hacer fetch
+        if (isExpanded || moduleTasks[impId]) return;
+
+        setLoadingTasks(prev => ({ ...prev, [impId]: true }));
+        try {
+            // Fetch tareas de la impartición
+            const tareasRes = await fetch(
+                getApiUrl(`/api/tareas?imparticion=${impId}&order[fechaLimite]=asc&itemsPerPage=100`),
+                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
+            );
+            if (!tareasRes.ok) throw new Error();
+            const tareasData = await tareasRes.json();
+            const tareasItems = tareasData['hydra:member'] || tareasData.member || [];
+
+            // Fetch entregas del alumno
+            const entregasRes = await fetch(
+                getApiUrl(`/api/entregas?alumno=${user.id}&itemsPerPage=200`),
+                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
+            );
+            const entregasData = await entregasRes.json();
+            const entregas = entregasData['hydra:member'] || entregasData.member || [];
+
+            const combined = tareasItems.map(tarea => {
+                const tareaId = tarea.id || tarea['@id']?.split('/').pop();
+                const entrega = entregas.find(e => {
+                    const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
+                    return String(eTareaId) === String(tareaId);
+                });
+                return { ...tarea, calificacion: entrega?.calificacion || null };
+            });
+
+            setModuleTasks(prev => ({ ...prev, [impId]: combined }));
+        } catch {
+            // Si falla, al menos no crashea
+        } finally {
+            setLoadingTasks(prev => ({ ...prev, [impId]: false }));
+        }
+    };
 
     const getGradeClass = (nota) => {
         if (nota === null || nota === undefined) return styles.gradeNa;
@@ -109,13 +142,29 @@ const MisCalificaciones = () => {
         return nota.toFixed(2);
     };
 
+    const getBadgeClass = (tipo) => {
+        switch (tipo) {
+            case 'examen': return styles.badgeExam;
+            case 'tarea': return styles.badgeTarea;
+            case 'practica': return styles.badgePractica;
+            default: return '';
+        }
+    };
+
+    const getTypeName = (tipo) => {
+        switch (tipo) {
+            case 'examen': return t('grades.exam');
+            case 'tarea': return t('grades.task');
+            case 'practica': return t('grades.practice');
+            default: return tipo;
+        }
+    };
+
     return (
         <Layout>
             <div className={styles.container}>
                 <div className={styles.sectionHeader}>
-                    <div>
-                        <h1 className={styles.title}>{t('grades.myGradesTitle')}</h1>
-                    </div>
+                    <h1 className={styles.title}>{t('grades.myGradesTitle')}</h1>
                     <div className={styles.controls}>
                         <select
                             className={styles.periodSelect}
@@ -139,57 +188,92 @@ const MisCalificaciones = () => {
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                        {data.modulos.map((mod) => (
-                            <div key={mod.imparticion.id} className={styles.moduleCard}>
-                                <div className={styles.moduleHeader}>
-                                    <div>
-                                        <div className={styles.moduleName}>{mod.imparticion.modulo}</div>
-                                        <div className={styles.moduleTeacher}>
-                                            {mod.imparticion.profesor} — {mod.imparticion.grupo}
+                        {data.modulos.map((mod) => {
+                            const impId = mod.imparticion.id;
+                            const isExpanded = expandedModules[impId];
+                            const tasks = moduleTasks[impId];
+                            const isLoadingTasks = loadingTasks[impId];
+
+                            return (
+                                <div key={impId} className={styles.moduleCard}>
+                                    <div className={styles.moduleHeader}>
+                                        <div>
+                                            <div className={styles.moduleName}>{mod.imparticion.modulo}</div>
+                                            <div className={styles.moduleTeacher}>
+                                                {mod.imparticion.profesor} — {mod.imparticion.grupo}
+                                            </div>
+                                        </div>
+                                        <div className={`${styles.moduleGrade} ${getGradeClass(mod.notaFinal)}`}>
+                                            {formatGrade(mod.notaFinal)}
                                         </div>
                                     </div>
-                                    <div className={`${styles.moduleGrade} ${getGradeClass(mod.notaFinal)}`}>
-                                        {formatGrade(mod.notaFinal)}
+                                    <div className={styles.moduleBody}>
+                                        <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
+                                            {[
+                                                { val: mod.mediaExamenes, label: t('grades.avgExams') },
+                                                { val: mod.mediaTareas, label: t('grades.avgTasks') },
+                                                { val: mod.mediaPracticas, label: t('grades.avgPractice') },
+                                                { val: null, label: t('grades.pending'), text: `${mod.entregasPendientes}/${mod.totalTareas}` },
+                                            ].map((item, i) => (
+                                                <div key={i}>
+                                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                                                        {item.label}
+                                                    </span>
+                                                    <div className={item.text ? '' : getGradeClass(item.val)} style={{ fontWeight: 'var(--font-bold)', color: item.text ? 'var(--text-muted)' : undefined }}>
+                                                        {item.text || formatGrade(item.val)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
+
+                                    {/* Botón para expandir/colapsar tareas */}
+                                    <button className={styles.moduleToggle} onClick={() => toggleModule(impId)}>
+                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                        {isExpanded ? t('grades.hideTasks') : t('grades.showTasks')}
+                                    </button>
+
+                                    {/* Lista de tareas expandida */}
+                                    {isExpanded && (
+                                        <div className={styles.moduleTaskList}>
+                                            {isLoadingTasks ? (
+                                                <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+                                                    {t('common.loading')}
+                                                </div>
+                                            ) : !tasks?.length ? (
+                                                <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
+                                                    {t('grades.noGrades')}
+                                                </div>
+                                            ) : (
+                                                tasks.map(tarea => {
+                                                    const nota = tarea.calificacion?.nota ?? null;
+                                                    const feedback = tarea.calificacion?.feedbackProfesor;
+                                                    return (
+                                                        <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
+                                                            <div className={styles.taskInfo}>
+                                                                <div className={styles.taskName}>
+                                                                    {tarea.titulo}
+                                                                    <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
+                                                                        {getTypeName(tarea.tipo)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className={styles.taskMeta}>
+                                                                    {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}
+                                                                    {feedback && <> — {feedback}</>}
+                                                                </div>
+                                                            </div>
+                                                            <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
+                                                                {nota != null ? nota.toFixed(1) : '—'}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className={styles.moduleBody}>
-                                    <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
-                                        <div>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                {t('grades.avgExams')}
-                                            </span>
-                                            <div className={`${getGradeClass(mod.mediaExamenes)}`} style={{ fontWeight: 'var(--font-bold)' }}>
-                                                {formatGrade(mod.mediaExamenes)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                {t('grades.avgTasks')}
-                                            </span>
-                                            <div className={`${getGradeClass(mod.mediaTareas)}`} style={{ fontWeight: 'var(--font-bold)' }}>
-                                                {formatGrade(mod.mediaTareas)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                {t('grades.avgPractice')}
-                                            </span>
-                                            <div className={`${getGradeClass(mod.mediaPracticas)}`} style={{ fontWeight: 'var(--font-bold)' }}>
-                                                {formatGrade(mod.mediaPracticas)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                {t('grades.pending')}
-                                            </span>
-                                            <div style={{ color: 'var(--text-muted)' }}>
-                                                {mod.entregasPendientes}/{mod.totalTareas}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

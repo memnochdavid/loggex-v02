@@ -17,6 +17,7 @@ const MaterialesAlumno = () => {
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -298,10 +299,12 @@ const MaterialesAlumno = () => {
                     : t('studentMaterials.noMaterials')}
             </div>
         ) : (
-          <AccordionView 
-            data={asignaturas} 
-            renderItem={renderMateriales} 
+          <AccordionView
+            data={asignaturas}
+            renderItem={renderMateriales}
             canAdd={false}
+            expandedId={expandedId}
+            onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
           />
         )}
       </div>

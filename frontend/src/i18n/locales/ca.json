@@ -1051,6 +1051,14 @@
     "viewDetail": "Veure detall",
     "backToList": "Tornar al llistat",
     "filterAll": "Tots",
-    "noTasksType": "No hi ha tasques d'aquest tipus"
+    "noTasksType": "No hi ha tasques d'aquest tipus",
+    "gradeChart": "Distribució de notes",
+    "editFeedback": "Editar observacions",
+    "saveFeedback": "Desar",
+    "feedbackSaved": "Observacions desades",
+    "errorSavingFeedback": "Error en desar observacions",
+    "showTasks": "Veure tasques",
+    "hideTasks": "Amagar tasques",
+    "outOf": "de"
   }
 }

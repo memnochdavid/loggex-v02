@@ -1051,6 +1051,14 @@
     "viewDetail": "View detail",
     "backToList": "Back to list",
     "filterAll": "All",
-    "noTasksType": "No tasks of this type"
+    "noTasksType": "No tasks of this type",
+    "gradeChart": "Grade distribution",
+    "editFeedback": "Edit feedback",
+    "saveFeedback": "Save",
+    "feedbackSaved": "Feedback saved",
+    "errorSavingFeedback": "Error saving feedback",
+    "showTasks": "Show tasks",
+    "hideTasks": "Hide tasks",
+    "outOf": "of"
   }
 }

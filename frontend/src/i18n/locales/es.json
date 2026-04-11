@@ -1051,6 +1051,14 @@
     "viewDetail": "Ver detalle",
     "backToList": "Volver al listado",
     "filterAll": "Todos",
-    "noTasksType": "No hay tareas de este tipo"
+    "noTasksType": "No hay tareas de este tipo",
+    "gradeChart": "Distribución de notas",
+    "editFeedback": "Editar observaciones",
+    "saveFeedback": "Guardar",
+    "feedbackSaved": "Observaciones guardadas",
+    "errorSavingFeedback": "Error al guardar observaciones",
+    "showTasks": "Ver tareas",
+    "hideTasks": "Ocultar tareas",
+    "outOf": "de"
   }
 }

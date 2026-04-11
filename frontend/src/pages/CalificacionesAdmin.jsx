@@ -15,17 +15,21 @@ const CalificacionesAdmin = () => {
     const [error, setError] = useState(null);
     const [expandedGroups, setExpandedGroups] = useState({});
 
-    // Cargar periodos
+    // Cargar periodos deduplicados por nombre (el admin ve todos los del centro)
     useEffect(() => {
         const fetchPeriodos = async () => {
             try {
-                const res = await fetch(getApiUrl('/api/periodo_evaluativos?order[fechaInicio]=asc&itemsPerPage=50'), {
+                const res = await fetch(getApiUrl('/api/periodo_evaluativos?order[fechaInicio]=asc&itemsPerPage=100'), {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
                 if (!res.ok) return;
                 const d = await res.json();
-                setPeriodos(d['hydra:member'] || d.member || []);
+                const all = d['hydra:member'] || d.member || [];
+                // Deduplicar por nombre para el selector
+                const byName = new Map();
+                all.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
+                setPeriodos([...byName.values()]);
             } catch {
                 // No crítico
             }

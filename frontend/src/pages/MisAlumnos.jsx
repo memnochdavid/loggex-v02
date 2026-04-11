@@ -18,6 +18,7 @@ const MisAlumnos = () => {
     const navigate = useNavigate();
     const [grupos, setGrupos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [expandedId, setExpandedId] = useState(null);
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -291,10 +292,12 @@ const MisAlumnos = () => {
                             : t('myStudents.noStudents')}
                     </div>
                 ) : (
-                    <AccordionView 
-                        data={grupos} 
-                        renderItem={renderGrupoContent} 
+                    <AccordionView
+                        data={grupos}
+                        renderItem={renderGrupoContent}
                         canAdd={false}
+                        expandedId={expandedId}
+                        onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
                     />
                 )}
             </div>

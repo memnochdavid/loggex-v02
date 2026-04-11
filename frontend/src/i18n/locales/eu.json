@@ -1051,6 +1051,14 @@
     "viewDetail": "Xehetasuna ikusi",
     "backToList": "Zerrendara itzuli",
     "filterAll": "Denak",
-    "noTasksType": "Ez dago mota honetako atazerarik"
+    "noTasksType": "Ez dago mota honetako atazerarik",
+    "gradeChart": "Noten banaketa",
+    "editFeedback": "Oharrak editatu",
+    "saveFeedback": "Gorde",
+    "feedbackSaved": "Oharrak gordeta",
+    "errorSavingFeedback": "Errorea oharrak gordetzean",
+    "showTasks": "Atazak ikusi",
+    "hideTasks": "Atazak ezkutatu",
+    "outOf": "tik"
   }
 }

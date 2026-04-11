@@ -19,6 +19,7 @@ const MaterialesProfesor = () => {
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const fileInputRef = useRef(null);
   
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
@@ -304,11 +305,13 @@ const MaterialesProfesor = () => {
                     : t('teacherMaterials.noSubjects')}
             </div>
         ) : (
-          <AccordionView 
-            data={asignaturas} 
-            renderItem={renderMateriales} 
+          <AccordionView
+            data={asignaturas}
+            renderItem={renderMateriales}
             onAdd={handleAddClick}
             canAdd={true}
+            expandedId={expandedId}
+            onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
           />
         )}
 

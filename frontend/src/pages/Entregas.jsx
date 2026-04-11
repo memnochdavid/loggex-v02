@@ -29,6 +29,7 @@ const Entregas = () => {
   } = useImparticiones();
 
   const [misEntregas, setMisEntregas] = useState({});
+  const [expandedId, setExpandedId] = useState(null);
   const [activeTab, setActiveTab] = useState('todos');
 
   const tabs = [
@@ -325,6 +326,8 @@ const Entregas = () => {
             data={asignaturas}
             renderItem={renderContent}
             canAdd={false}
+            expandedId={expandedId}
+            onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
           />
           </>
         )}
