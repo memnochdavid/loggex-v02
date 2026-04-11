@@ -16,7 +16,10 @@
       "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -type f -name \"*.jsx\" -exec wc -l {} +)",
       "Bash(wc -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Entity/*.php)",
       "Bash(find /home/david/Documentos/CLASE/loggex-v02/frontend/src -name \"*.jsx\" -exec grep -l \"ErrorBoundary\\\\|error\\\\|Error\" {})",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(python3 scripts/generate_seed_sql.py)",
+      "Bash(sed -n '2525,2530p' /home/david/Documentos/CLASE/loggex-v02/backup_tfg_full.sql)",
+      "Bash(sed -n '2665,2670p' /home/david/Documentos/CLASE/loggex-v02/backup_tfg_full.sql)"
     ]
   }
 }
