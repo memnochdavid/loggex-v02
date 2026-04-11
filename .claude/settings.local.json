@@ -22,7 +22,9 @@
       "Bash(sed -n '2665,2670p' /home/david/Documentos/CLASE/loggex-v02/backup_tfg_full.sql)",
       "Bash(php -l backend/src/Entity/PonderacionImparticion.php)",
       "Bash(php -l backend/src/Repository/PonderacionImparticionRepository.php)",
-      "Bash(php -l backend/src/Controller/CalificacionMediaController.php)"
+      "Bash(php -l backend/src/Controller/CalificacionMediaController.php)",
+      "Bash(php -l backend/src/Entity/PeriodoEvaluativo.php)",
+      "Bash(php -l backend/src/Repository/PeriodoEvaluativoRepository.php)"
     ]
   }
 }

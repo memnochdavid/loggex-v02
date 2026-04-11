@@ -2330,6 +2330,86 @@ INSERT INTO `modulo` VALUES
 UNLOCK TABLES;
 
 --
+-- Table structure for table `ponderacion_imparticion`
+--
+
+DROP TABLE IF EXISTS `ponderacion_imparticion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ponderacion_imparticion` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `imparticion_id` int(11) NOT NULL,
+  `tipo_tarea` varchar(20) NOT NULL,
+  `peso` double NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL,
+  `deleted` tinyint(4) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_imparticion_tipo` (`imparticion_id`,`tipo_tarea`),
+  CONSTRAINT `FK_POND_IMPARTICION` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ponderacion_imparticion`
+--
+
+LOCK TABLES `ponderacion_imparticion` WRITE;
+/*!40000 ALTER TABLE `ponderacion_imparticion` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ponderacion_imparticion` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `periodo_evaluativo`
+--
+
+DROP TABLE IF EXISTS `periodo_evaluativo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `periodo_evaluativo` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `tipo` varchar(30) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `grupo_id` int(11) NOT NULL,
+  `peso` double DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL,
+  `deleted` tinyint(4) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_PERIODO_GRUPO` (`grupo_id`),
+  CONSTRAINT `FK_PERIODO_GRUPO` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `periodo_evaluativo`
+--
+
+LOCK TABLES `periodo_evaluativo` WRITE;
+/*!40000 ALTER TABLE `periodo_evaluativo` DISABLE KEYS */;
+INSERT INTO `periodo_evaluativo` VALUES
+(1,'1ª Evaluación','PRIMERA','2025-09-01','2025-12-19',5,0.333,'2026-03-16 15:00:00',NULL,0,NULL),
+(2,'2ª Evaluación','SEGUNDA','2026-01-08','2026-03-27',5,0.333,'2026-03-16 15:00:00',NULL,0,NULL),
+(3,'3ª Evaluación','TERCERA','2026-04-06','2026-06-05',5,0.334,'2026-03-16 15:00:00',NULL,0,NULL),
+(4,'Evaluación Extraordinaria','EXTRAORDINARIA','2026-06-09','2026-06-30',5,NULL,'2026-03-16 15:00:00',NULL,0,NULL),
+(5,'1ª Evaluación','PRIMERA','2025-09-01','2025-12-19',7,0.333,'2026-03-16 15:00:00',NULL,0,NULL),
+(6,'2ª Evaluación','SEGUNDA','2026-01-08','2026-03-27',7,0.333,'2026-03-16 15:00:00',NULL,0,NULL),
+(7,'3ª Evaluación','TERCERA','2026-04-06','2026-06-05',7,0.334,'2026-03-16 15:00:00',NULL,0,NULL),
+(8,'Evaluación Extraordinaria','EXTRAORDINARIA','2026-06-09','2026-06-30',7,NULL,'2026-03-16 15:00:00',NULL,0,NULL),
+(9,'1ª Evaluación','PRIMERA','2025-09-01','2025-12-19',6,0.5,'2026-03-16 15:00:00',NULL,0,NULL),
+(10,'2ª Evaluación','SEGUNDA','2026-01-08','2026-03-04',6,0.5,'2026-03-16 15:00:00',NULL,0,NULL),
+(11,'Evaluación Extraordinaria','EXTRAORDINARIA','2026-03-05','2026-03-31',6,NULL,'2026-03-16 15:00:00',NULL,0,NULL),
+(12,'1ª Evaluación','PRIMERA','2025-09-01','2025-12-19',8,0.5,'2026-03-16 15:00:00',NULL,0,NULL),
+(13,'2ª Evaluación','SEGUNDA','2026-01-08','2026-03-04',8,0.5,'2026-03-16 15:00:00',NULL,0,NULL),
+(14,'Evaluación Extraordinaria','EXTRAORDINARIA','2026-03-05','2026-03-31',8,NULL,'2026-03-16 15:00:00',NULL,0,NULL);
+/*!40000 ALTER TABLE `periodo_evaluativo` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `personalizacion`
 --
 
