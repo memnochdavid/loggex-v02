@@ -444,3 +444,33 @@ Fase D (Vistas)   Fase E (PDF)
 - La Fase A es requisito previo imprescindible: sin datos no se puede desarrollar ni validar nada.
 - Este documento complementa la Fase 6 de `docs/hoja-de-ruta-mejoras-tecnicas.md`, que menciona periodos evaluativos y calificaciones avanzadas de forma mas generica. Esta hoja de ruta concreta y detalla esa vision.
 - El script de poblado de datos (Fase A) debe conservarse para futuras reinstalaciones del entorno de desarrollo.
+
+---
+
+## Fuera de alcance — FCT (Formacion en Centros de Trabajo)
+
+El modulo de FCT (practicas en empresa) es obligatorio en todos los ciclos de FP pero **no se incluye en esta hoja de ruta** porque tiene requisitos muy diferentes al resto de modulos:
+
+### Por que se excluye
+
+- **Calificacion APTO/NO APTO**, no numerica (0-10). No encaja en el sistema de medias ponderadas.
+- **No tiene examenes, tareas ni practicas** convencionales. El alumno realiza horas en una empresa.
+- **Requiere entidades propias**: convenio con empresa, tutor de empresa, seguimiento de horas/jornadas, informes periodicos del tutor, evaluacion por competencias.
+- **Tiene su propio calendario**: en 2o curso, tipicamente de marzo a junio, tras finalizar las clases ordinarias.
+- **Implicaciones administrativas**: documentacion oficial (convenios, anexos, seguros), que excede el ambito de calificaciones.
+
+### Impacto en el modelo actual
+
+- Los modulos de 2o curso en los datos de prueba **no incluyen FCT**. Esto es intencionado.
+- Los boletines de notas (Fase E) mostraran solo modulos con calificacion numerica. Si en el futuro se anade FCT, aparecera como fila separada con "APTO" o "NO APTO" en vez de nota.
+- La entidad `PeriodoEvaluativo` no cubre el periodo de FCT. Los grupos de 2o curso tienen sus evaluaciones hasta marzo; FCT ocurriria despues.
+
+### Recomendacion para fase futura
+
+Cuando se aborde FCT, se recomienda una fase dedicada que incluya:
+
+1. **Entidad `ConvenioFCT`**: empresa, tutor empresa, tutor centro, alumno, fechas, estado
+2. **Entidad `SeguimientoFCT`**: jornadas/horas realizadas, observaciones del tutor, valoracion por competencias
+3. **Tipo de calificacion en Modulo**: campo `tipoCalificacion` (`numerico` | `apto_no_apto`) para que el sistema de medias sepa que modulos ignorar
+4. **Vista especifica**: panel de seguimiento de FCT diferente al de calificaciones ordinarias
+5. **Generacion de documentos**: anexos oficiales del convenio (formatos regulados por la comunidad autonoma)
