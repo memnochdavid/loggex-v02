@@ -146,6 +146,7 @@
     "globalHolidays": "Global Holidays",
     "grades": "Grades",
     "myGrades": "My Grades",
+    "stats": "Statistics",
     "logout": "Log Out"
   },
   "userAvatar": {
@@ -1013,8 +1014,8 @@
     "weightSumError": "Weights must add up to 100%",
     "weightDefaults": "Restore default values",
     "weightSaved": "Weights saved successfully",
-    "period": "Period",
-    "allPeriods": "All periods",
+    "period": "Assessment",
+    "allPeriods": "All assessments",
     "avgExams": "Exam average",
     "avgTasks": "Assignment average",
     "avgPractice": "Practical average",
@@ -1059,6 +1060,7 @@
     "errorSavingFeedback": "Error saving feedback",
     "showTasks": "Show tasks",
     "hideTasks": "Hide tasks",
-    "outOf": "of"
+    "outOf": "of",
+    "allYears": "All school years"
   }
 }

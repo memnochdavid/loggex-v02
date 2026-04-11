@@ -144,8 +144,9 @@
     "superadmin": "Superadmin",
     "centers": "Ikastetxeak",
     "globalHolidays": "Jaiegun Globalak",
-    "grades": "Kalifikazioak",
+    "grades": "Notak",
     "myGrades": "Nire Notak",
+    "stats": "Estatistikak",
     "logout": "Saioa itxi"
   },
   "userAvatar": {
@@ -1013,8 +1014,8 @@
     "weightSumError": "Pisuek %100 batu behar dute",
     "weightDefaults": "Balio lehenetsiak berrezarri",
     "weightSaved": "Ponderazioak ondo gorde dira",
-    "period": "Aldia",
-    "allPeriods": "Aldi guztiak",
+    "period": "Ebaluazioa",
+    "allPeriods": "Ebaluazio guztiak",
     "avgExams": "Azterketen batez bestekoa",
     "avgTasks": "Lanen batez bestekoa",
     "avgPractice": "Praktiken batez bestekoa",
@@ -1059,6 +1060,7 @@
     "errorSavingFeedback": "Errorea oharrak gordetzean",
     "showTasks": "Atazak ikusi",
     "hideTasks": "Atazak ezkutatu",
-    "outOf": "tik"
+    "outOf": "tik",
+    "allYears": "Ikasturte guztiak"
   }
 }

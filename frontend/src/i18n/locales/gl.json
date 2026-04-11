@@ -144,8 +144,9 @@
     "superadmin": "Superadmin",
     "centers": "Centros",
     "globalHolidays": "Festivos Globais",
-    "grades": "Cualificacións",
+    "grades": "Notas",
     "myGrades": "As Miñas Notas",
+    "stats": "Estatísticas",
     "logout": "Pechar Sesión"
   },
   "userAvatar": {
@@ -1013,8 +1014,8 @@
     "weightSumError": "Os pesos deben sumar 100%",
     "weightDefaults": "Restaurar valores por defecto",
     "weightSaved": "Ponderacións gardadas correctamente",
-    "period": "Período",
-    "allPeriods": "Todos os períodos",
+    "period": "Avaliación",
+    "allPeriods": "Todas as avaliacións",
     "avgExams": "Media exames",
     "avgTasks": "Media tarefas",
     "avgPractice": "Media prácticas",
@@ -1059,6 +1060,7 @@
     "errorSavingFeedback": "Erro ao gardar observacións",
     "showTasks": "Ver tarefas",
     "hideTasks": "Ocultar tarefas",
-    "outOf": "de"
+    "outOf": "de",
+    "allYears": "Todos os cursos"
   }
 }

@@ -238,9 +238,9 @@ const Sidebar = () => {
                             {!isCollapsed && <span>{t('sidebar.holidays')}</span>}
                         </NavLink>
                     )}
-                    <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar}>
+                    <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.stats')} onClick={closeSidebar}>
                         <BarChart3 size={20} />
-                        {!isCollapsed && <span>{t('sidebar.grades')}</span>}
+                        {!isCollapsed && <span>{t('sidebar.stats')}</span>}
                     </NavLink>
                     <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar}>
                         <Settings size={20} />

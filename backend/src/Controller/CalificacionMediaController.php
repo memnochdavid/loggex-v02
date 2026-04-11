@@ -290,10 +290,20 @@ class CalificacionMediaController extends AbstractController
 
         $periodo = $this->resolverPeriodo($request);
 
-        // Obtener todos los grupos del centro
+        // Obtener grupos del centro, opcionalmente filtrados por año escolar
         $grupoRepo = $this->em->getRepository(\App\Entity\Grupo::class);
-        $grupos = $centro
-            ? $grupoRepo->findBy(['centro' => $centro])
+        $anioEscolar = $request->query->get('anioEscolar');
+
+        $criteria = [];
+        if ($centro) {
+            $criteria['centro'] = $centro;
+        }
+        if ($anioEscolar) {
+            $criteria['anioEscolar'] = $anioEscolar;
+        }
+
+        $grupos = !empty($criteria)
+            ? $grupoRepo->findBy($criteria)
             : $grupoRepo->findAll();
 
         $resultado = [];
@@ -339,7 +349,19 @@ class CalificacionMediaController extends AbstractController
             ];
         }
 
-        return $this->json(['grupos' => $resultado]);
+        // Obtener todos los años escolares disponibles del centro (para el selector)
+        $allGrupos = $centro
+            ? $grupoRepo->findBy(['centro' => $centro])
+            : $grupoRepo->findAll();
+        $aniosDisponibles = array_values(array_unique(
+            array_map(fn($g) => $g->getAnioEscolar(), $allGrupos)
+        ));
+        rsort($aniosDisponibles);
+
+        return $this->json([
+            'grupos' => $resultado,
+            'aniosDisponibles' => $aniosDisponibles,
+        ]);
     }
 
     /**

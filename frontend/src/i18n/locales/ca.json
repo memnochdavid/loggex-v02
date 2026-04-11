@@ -144,8 +144,9 @@
     "superadmin": "Superadmin",
     "centers": "Centres",
     "globalHolidays": "Festius Globals",
-    "grades": "Qualificacions",
+    "grades": "Notes",
     "myGrades": "Les Meves Notes",
+    "stats": "Estadístiques",
     "logout": "Tancar sessió"
   },
   "userAvatar": {
@@ -1013,8 +1014,8 @@
     "weightSumError": "Els pesos han de sumar 100%",
     "weightDefaults": "Restaurar valors per defecte",
     "weightSaved": "Ponderacions desades correctament",
-    "period": "Període",
-    "allPeriods": "Tots els períodes",
+    "period": "Avaluació",
+    "allPeriods": "Totes les avaluacions",
     "avgExams": "Mitjana exàmens",
     "avgTasks": "Mitjana tasques",
     "avgPractice": "Mitjana pràctiques",
@@ -1059,6 +1060,7 @@
     "errorSavingFeedback": "Error en desar observacions",
     "showTasks": "Veure tasques",
     "hideTasks": "Amagar tasques",
-    "outOf": "de"
+    "outOf": "de",
+    "allYears": "Tots els cursos"
   }
 }

@@ -51,13 +51,22 @@ const MisCalificaciones = () => {
                         if (!seen.has(id)) { seen.add(id); allPeriodos.push(p); }
                     });
                 }
+                let result;
                 if (grupoIds.length <= 1) {
-                    setPeriodos(allPeriodos);
+                    result = allPeriodos;
                 } else {
                     const byName = new Map();
                     allPeriodos.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
-                    setPeriodos([...byName.values()]);
+                    result = [...byName.values()];
                 }
+                // Extraordinaria siempre al final
+                result.sort((a, b) => {
+                    const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                    const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                    if (aExtra !== bExtra) return aExtra - bExtra;
+                    return (a.fechaInicio || '').localeCompare(b.fechaInicio || '');
+                });
+                setPeriodos(result);
             } catch { /* No es crítico */ }
         };
         fetchPeriodos();

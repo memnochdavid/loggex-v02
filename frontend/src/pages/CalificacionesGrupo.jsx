@@ -89,7 +89,14 @@ const CalificacionesGrupo = () => {
                     });
                     if (pRes.ok) {
                         const pData = await pRes.json();
-                        setPeriodos(pData['hydra:member'] || pData.member || []);
+                        const items = pData['hydra:member'] || pData.member || [];
+                        items.sort((a, b) => {
+                            const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                            const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                            if (aExtra !== bExtra) return aExtra - bExtra;
+                            return (a.fechaInicio || '').localeCompare(b.fechaInicio || '');
+                        });
+                        setPeriodos(items);
                     }
                 }
             } catch { /* no crítico */ }
