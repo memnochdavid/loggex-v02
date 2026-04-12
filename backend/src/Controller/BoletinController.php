@@ -165,33 +165,112 @@ class BoletinController extends AbstractController
             'modulos' => $modulos,
         ];
     }
+    private function calcularHorasLectivas(Imparticion $imparticion, \DateTimeInterface $inicio, \DateTimeInterface $fin, array $festivos): int
+    {
+        $totalHoras = 0;
+        $horarios = $imparticion->getHorarios();
+
+        $horariosPorDia = [];
+        foreach ($horarios as $h) {
+            $dia = $h->getDiaSemana();
+            if (!isset($horariosPorDia[$dia])) {
+                $horariosPorDia[$dia] = 0;
+            }
+
+            $hInicio = $h->getHoraInicio();
+            $hFin = $h->getHoraFin();
+
+            if ($hInicio && $hFin) {
+                $diff = $hFin->diff($hInicio);
+                $horas = $diff->h + ($diff->i / 60);
+                $horariosPorDia[$dia] += $horas;
+            }
+        }
+
+        $diasFestivos = [];
+        foreach ($festivos as $f) {
+            $fInicio = $f->getFechaInicio();
+            if (!$fInicio) continue;
+
+            $fFin = $f->getFechaFin() ?? $fInicio;
+
+            $fCurrent = clone $fInicio;
+            $fCurrent->setTime(0,0,0);
+            $fEnd = clone $fFin;
+            $fEnd->setTime(0,0,0);
+
+            $count = 0;
+            while ($fCurrent <= $fEnd && $count < 30) {
+                $diasFestivos[$fCurrent->format('Y-m-d')] = true;
+                $fCurrent->modify('+1 day');
+                $count++;
+            }
+        }
+
+        $current = clone $inicio;
+        $current->setTime(0, 0, 0);
+
+        $hoy = new \DateTime();
+        $hoy->setTime(0, 0, 0);
+
+        $finClone = clone $fin;
+        $finClone->setTime(0, 0, 0);
+
+        $limite = ($finClone < $hoy) ? $finClone : $hoy;
+
+        $maxDays = 730;
+        $count = 0;
+
+        while ($current <= $limite && $count < $maxDays) {
+            $count++;
+            $currentStr = $current->format('Y-m-d');
+
+            if (!isset($diasFestivos[$currentStr])) {
+                $diaSemana = (int)$current->format('N');
+
+                $totalHoras += ($horariosPorDia[$diaSemana] ?? 0);
+            }
+
+            $current->modify('+1 day');
+        }
+
+        return (int)round($totalHoras);
+    }
 
     private function calcularPorcentajeFaltas(Imparticion $imp, User $alumno): ?float
     {
-        // Contar sesiones totales de la impartición (horarios) y faltas del alumno
-        $totalSesiones = $this->em->createQueryBuilder()
-            ->select('COUNT(a.id)')
-            ->from('App\Entity\Asistencia', 'a')
-            ->where('a.imparticion = :imp')
-            ->setParameter('imp', $imp)
-            ->getQuery()
-            ->getSingleScalarResult();
+        $grupo = $imp->getGrupo();
+        $fechaInicio = $grupo->getFechaInicio();
+        $fechaFin = $grupo->getFechaFin();
 
-        if ($totalSesiones == 0) return null;
+        if (!$fechaInicio || !$fechaFin) {
+            return null;
+        }
 
+        // ⚠️ Igual que en tu summary
+        $festivos = $this->em->getRepository(\App\Entity\Festivo::class)->findAll();
+
+        $totalHoras = $this->calcularHorasLectivas($imp, $fechaInicio, $fechaFin, $festivos);
+
+        if ($totalHoras == 0) {
+            return null;
+        }
+
+        // ✔ Horas faltadas reales
         $faltas = $this->em->createQueryBuilder()
             ->select('COUNT(a.id)')
             ->from('App\Entity\Asistencia', 'a')
             ->where('a.imparticion = :imp')
             ->andWhere('a.alumno = :alumno')
             ->andWhere('a.estado != :presente')
+            ->andWhere('a.deleted = false')
             ->setParameter('imp', $imp)
             ->setParameter('alumno', $alumno)
-            ->setParameter('presente', 'presente')
+            ->setParameter('presente', 'P')
             ->getQuery()
             ->getSingleScalarResult();
 
-        return round(($faltas / $totalSesiones) * 100, 2);
+        return round(($faltas / $totalHoras) * 100, 2);
     }
 
     private function calcularMediaAlumno(int $imparticionId, int $alumnoId, array $pesos, ?PeriodoEvaluativo $periodo = null): array
