@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { useTranslation } from 'react-i18next';
 
@@ -27,7 +27,6 @@ const Sidebar = () => {
         '/mensajes': 'general',
         '/perfil': 'general',
         
-        '/tareas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
         '/entregas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
         '/calificaciones': 'profesor',
         '/mis-temarios': 'profesor',
@@ -127,10 +126,6 @@ const Sidebar = () => {
             title: t('sidebar.teacher'),
             content: (
                 <>
-                    <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
-                        <ClipboardList size={20} />
-                        {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
-                    </NavLink>
                     <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                         <UploadCloud size={20} />
                         {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
@@ -183,18 +178,12 @@ const Sidebar = () => {
                         <UserCheck size={20} />
                         {!isCollapsed && <span>{t('sidebar.myTeachers')}</span>}
                     </NavLink>
-                    {/* Tareas/Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
+                    {/* Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
                     {!isProfesor && !isAdmin && !isSuperAdmin && (
-                        <>
-                            <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
-                                <ClipboardList size={20} />
-                                {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
-                            </NavLink>
-                            <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
-                                <UploadCloud size={20} />
-                                {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
-                            </NavLink>
-                        </>
+                        <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
+                            <UploadCloud size={20} />
+                            {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
+                        </NavLink>
                     )}
                 </>
             )

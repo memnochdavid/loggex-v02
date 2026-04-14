@@ -16,7 +16,6 @@ import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
 import Festivos from './pages/Festivos';
-import Tareas from './pages/Tareas';
 import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
 import Perfil from './pages/Perfil';
@@ -126,12 +125,6 @@ function App() {
                 <Route path="/festivos" element={
                   <PrivateRoute>
                     <Festivos />
-                  </PrivateRoute>
-                } />
-
-                <Route path="/tareas" element={
-                  <PrivateRoute>
-                    <Tareas />
                   </PrivateRoute>
                 } />
 
