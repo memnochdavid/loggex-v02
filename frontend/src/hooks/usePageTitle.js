@@ -21,7 +21,7 @@ const usePageTitle = (baseTitle = 'Loggex-Machina') => {
       '/matriculas': t('enrollments.title'),
       '/imparticiones': t('teaching.title'),
       '/horarios': t('schedules.title'),
-      '/festivos': t('holidays.title'),
+      '/fechas': 'Fechas',
       '/entregas': t('deliveries.title'),
       '/faltas': t('myAbsences.title'),
       '/apuntes': t('studentMaterials.title'),

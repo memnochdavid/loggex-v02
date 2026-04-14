@@ -29,7 +29,9 @@
       "Bash(curl -sk https://localhost:9443/api/v1/imparticion/1/medias -H \"Accept: application/json\" -H \"Cookie: $\\(docker compose exec backend php -r \"echo 'test';\" && echo ''\\)\")",
       "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost:9443/api/v1/imparticion/1/medias)",
       "Bash(ls -la /home/david/Documentos/CLASE/loggex-v02/frontend/src/pages/Calificacion* /home/david/Documentos/CLASE/loggex-v02/frontend/src/pages/MisCalificaciones*)",
-      "Bash(ls -lh /home/david/Documentos/CLASE/loggex-v02/backup_tfg*.sql)"
+      "Bash(ls -lh /home/david/Documentos/CLASE/loggex-v02/backup_tfg*.sql)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)"
     ]
   }
 }

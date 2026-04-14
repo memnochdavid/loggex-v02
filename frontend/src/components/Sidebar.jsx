@@ -45,7 +45,7 @@ const Sidebar = () => {
         '/modulos': 'administracion',
         '/matriculas': 'administracion',
         '/imparticiones': 'administracion',
-        '/festivos': isSuperAdmin ? 'superadmin' : 'administracion',
+        '/fechas': isSuperAdmin ? 'superadmin' : 'administracion',
         '/admin/calificaciones': 'administracion',
         '/configuracion': 'administracion',
         
@@ -221,10 +221,10 @@ const Sidebar = () => {
                         <Briefcase size={20} />
                         {!isCollapsed && <span>{t('sidebar.teaching')}</span>}
                     </NavLink>
-                    {!isSuperAdmin && ( // Superadmin ya tiene festivos globales arriba
-                        <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.holidays')} onClick={closeSidebar}>
+                    {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
+                        <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                             <CalendarDays size={20} />
-                            {!isCollapsed && <span>{t('sidebar.holidays')}</span>}
+                            {!isCollapsed && <span>Fechas</span>}
                         </NavLink>
                     )}
                     <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.stats')} onClick={closeSidebar}>
@@ -251,9 +251,9 @@ const Sidebar = () => {
                         <Building size={20} />
                         {!isCollapsed && <span>{t('sidebar.centers')}</span>}
                     </NavLink>
-                    <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.globalHolidays')} onClick={closeSidebar}>
+                    <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                         <CalendarDays size={20} />
-                        {!isCollapsed && <span>{t('sidebar.globalHolidays')}</span>}
+                        {!isCollapsed && <span>Fechas</span>}
                     </NavLink>
                 </>
             )

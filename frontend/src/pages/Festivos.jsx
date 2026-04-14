@@ -14,7 +14,7 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 
-const Festivos = () => {
+const Festivos = ({ embedded = false }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -396,41 +396,50 @@ const Festivos = () => {
     }
   ], [isSuperAdmin, isAdmin, handleOpenModal, handleDelete]);
 
-  return (
-    <Layout>
-        <div className={styles.container}>
-        <CrudHeader title={t('holidays.title')}
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        >
-            {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                >
-                    <option value="">{t('common.allCenters')}</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
-            )}
-            
-            <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-                placeholder={t('holidays.searchPlaceholder')}
-                fields={searchFields}
-                selectedField={searchField}
-                onFieldChange={setSearchField}
-            />
-            
-            {canCreate && (
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus size={18} style={{ marginRight: '8px' }} />
-                    {t('common.new')}
-                </Button>
-            )}
-        </CrudHeader>
+  const toolbar = (
+    <>
+        {isSuperAdmin && (
+            <select
+                className={styles.select}
+                value={selectedCentro}
+                onChange={(e) => setSelectedCentro(e.target.value)}
+            >
+                <option value="">{t('common.allCenters')}</option>
+                {centros.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+            </select>
+        )}
+        <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder={t('holidays.searchPlaceholder')}
+            fields={searchFields}
+            selectedField={searchField}
+            onFieldChange={setSearchField}
+        />
+        {canCreate && (
+            <Button onClick={() => handleOpenModal()}>
+                <Plus size={18} style={{ marginRight: '8px' }} />
+                {t('common.new')}
+            </Button>
+        )}
+    </>
+  );
+
+  const body = (
+    <>
+        {embedded ? (
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+                {toolbar}
+            </div>
+        ) : (
+            <CrudHeader title={t('holidays.title')}
+                        logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+            >
+                {toolbar}
+            </CrudHeader>
+        )}
 
         {error && (
             <div className={styles.errorContainer}>
@@ -515,6 +524,14 @@ const Festivos = () => {
                 </div>
             )}
         </ModalView>
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <Layout>
+        <div className={styles.container}>
+            {body}
         </div>
     </Layout>
   );

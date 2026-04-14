@@ -15,7 +15,7 @@ import Modulos from './pages/Modulos';
 import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
-import Festivos from './pages/Festivos';
+import Fechas from './pages/Fechas';
 import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
 import Perfil from './pages/Perfil';
@@ -122,9 +122,9 @@ function App() {
                   </PrivateRoute>
                 } />
 
-                <Route path="/festivos" element={
+                <Route path="/fechas" element={
                   <PrivateRoute>
-                    <Festivos />
+                    <Fechas />
                   </PrivateRoute>
                 } />
 
