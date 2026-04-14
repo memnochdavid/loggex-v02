@@ -414,6 +414,26 @@ const Entregas = () => {
                 </div>
               </div>
               <div className={styles.itemActions}>
+                {isAlumno && entrega?.archivo && (
+                  <a
+                    href={getAssetUrl(`/uploads/entregas/${entrega.id}/${entrega.archivo}`)}
+                    target="_blank" rel="noopener noreferrer"
+                    className={styles.downloadLink}
+                    title={t('deliveries.downloadMine', { defaultValue: 'Descargar mi entrega' })}
+                  >
+                    <Download size={18} />
+                  </a>
+                )}
+                {isAlumno && entrega?.enlace && (
+                  <a
+                    href={entrega.enlace}
+                    target="_blank" rel="noopener noreferrer"
+                    className={styles.downloadLink}
+                    title={t('deliveries.link')}
+                  >
+                    <FileText size={18} />
+                  </a>
+                )}
                 {isAlumno && !isLate && (
                   <Button size="sm" onClick={() => handleOpenUploadModal(tarea)}>
                     <Upload size={16} style={{ marginRight: '4px' }} />
@@ -495,7 +515,7 @@ const Entregas = () => {
           logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
           {isSuperAdmin && <SuperAdminFilters filters={filters} selectClassName={styles.select} />}
-          {(isProfesor || isAdmin || isSuperAdmin) && periodos.length > 0 && (
+          {periodos.length > 0 && (
             <select
               className={styles.select}
               value={selectedPeriodo}
