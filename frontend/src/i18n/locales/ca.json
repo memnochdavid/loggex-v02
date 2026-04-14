@@ -1069,7 +1069,17 @@
     "downloadAsZip": "ZIP (individuals)",
     "generating": "Generant...",
     "selectPeriodFirst": "Selecciona una avaluació primer",
-    "pdfLanguage": "Idioma PDF"
+    "pdfLanguage": "Idioma PDF",
+    "weightTabGlobal": "Ponderació global",
+    "weightTabItems": "Pes per ítem",
+    "itemsHint": "Pes de cada ítem dins de la seva categoria. Buit = repartiment equitatiu. La suma per categoria hauria de ser 100%.",
+    "noItemsForImp": "No hi ha tasques, exàmens ni pràctiques creats per a aquesta impartició.",
+    "weightSumLabel": "Suma",
+    "weightSumWarn": "(ha de ser 100%)",
+    "auto": "auto",
+    "weightRange": "El pes ha d'estar entre 0 i 100",
+    "itemWeight": "Pes a la nota",
+    "confirmResetWeights": "Segur que vols restaurar els pesos per defecte? Tots els ítems tornaran al repartiment equitatiu."
   },
   "scheduleEditor": {
     "title": "Editor d'horaris",

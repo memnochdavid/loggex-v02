@@ -1069,7 +1069,17 @@
     "downloadAsZip": "ZIP (banakakoek)",
     "generating": "Sortzen...",
     "selectPeriodFirst": "Lehenik ebaluazio bat aukeratu",
-    "pdfLanguage": "PDF hizkuntza"
+    "pdfLanguage": "PDF hizkuntza",
+    "weightTabGlobal": "Haztapen globala",
+    "weightTabItems": "Elementuaren pisua",
+    "itemsHint": "Kategoriako elementu bakoitzaren pisua. Hutsik = banaketa berdin. Kategoriako batura 100% izan beharko litzateke.",
+    "noItemsForImp": "Irakasmaila honetan ez dago zereginik, azterketarik edo praktikarik sortuta.",
+    "weightSumLabel": "Batura",
+    "weightSumWarn": "(100% izan behar du)",
+    "auto": "auto",
+    "weightRange": "Pisuak 0 eta 100 artean egon behar du",
+    "itemWeight": "Pisua notan",
+    "confirmResetWeights": "Pisuak lehenetsira itzuli? Elementu guztiak banaketa berdinetara itzuliko dira."
   },
   "scheduleEditor": {
     "title": "Ordutegi editorea",

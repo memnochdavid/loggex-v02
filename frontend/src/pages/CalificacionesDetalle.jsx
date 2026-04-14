@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import ThemedSelect from '../components/ThemedSelect';
+import ThemedNumberInput from '../components/ThemedNumberInput';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Edit2, Check, X } from 'lucide-react';
@@ -25,8 +26,6 @@ const CalificacionesDetalle = () => {
     const [feedbackValue, setFeedbackValue] = useState('');
     const [editingNota, setEditingNota] = useState(null);
     const [notaValue, setNotaValue] = useState('');
-    const [editingPeso, setEditingPeso] = useState(null);
-    const [pesoValue, setPesoValue] = useState('');
     const [saving, setSaving] = useState(false);
 
     // Cargar periodos del grupo al cargar la impartición
@@ -145,17 +144,6 @@ const CalificacionesDetalle = () => {
         const c = { todos: tareasEnPeriodo.length, examen: 0, tarea: 0, practica: 0 };
         tareasEnPeriodo.forEach(tr => { if (c[tr.tipo] !== undefined) c[tr.tipo]++; });
         return c;
-    }, [tareasEnPeriodo]);
-
-    // Suma de pesos por tipo (debería ser 100)
-    const pesosSum = useMemo(() => {
-        const s = { examen: 0, tarea: 0, practica: 0 };
-        const anySet = { examen: false, tarea: false, practica: false };
-        tareasEnPeriodo.forEach(tr => {
-            if (s[tr.tipo] === undefined) return;
-            if (tr.peso != null) { s[tr.tipo] += tr.peso; anySet[tr.tipo] = true; }
-        });
-        return { s, anySet };
     }, [tareasEnPeriodo]);
 
     const getGradeClass = (nota) => {
@@ -285,32 +273,6 @@ const CalificacionesDetalle = () => {
         }
     };
 
-    const handleSavePeso = async (tarea) => {
-        const raw = pesoValue.trim();
-        const parsed = raw === '' ? null : parseFloat(raw);
-        if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
-            alert('El peso debe estar entre 0 y 100');
-            return;
-        }
-        setSaving(true);
-        try {
-            const tareaId = tarea.id || tarea['@id']?.split('/').pop();
-            const res = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-                body: JSON.stringify({ peso: parsed }),
-                credentials: 'include',
-            });
-            if (!res.ok) throw new Error();
-            setEditingPeso(null);
-            await fetchData();
-        } catch {
-            alert('Error al guardar el peso');
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const chartBars = mediaData ? [
         { label: t('grades.avgExams'), value: mediaData.mediaExamenes, fillClass: styles.barFillExam },
         { label: t('grades.avgTasks'), value: mediaData.mediaTareas, fillClass: styles.barFillTask },
@@ -403,27 +365,6 @@ const CalificacionesDetalle = () => {
                     ))}
                 </div>
 
-                {/* Resumen pesos por tipo */}
-                {(activeTab === 'todos' || pesosSum.anySet[activeTab]) && (
-                    <div className={styles.taskMeta} style={{ padding: 'var(--space-2) var(--space-3)', display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-                        {['examen', 'tarea', 'practica']
-                            .filter(tipo => activeTab === 'todos' ? pesosSum.anySet[tipo] : tipo === activeTab)
-                            .map(tipo => {
-                                const sum = Math.round(pesosSum.s[tipo] * 100) / 100;
-                                const ok = Math.abs(sum - 100) < 0.01;
-                                return (
-                                    <span key={tipo}>
-                                        Suma {getTypeName(tipo)}:{' '}
-                                        <strong style={{ color: ok ? 'var(--color-success)' : 'var(--color-error)' }}>
-                                            {sum}%
-                                        </strong>
-                                        {!ok && <em> (debe ser 100%)</em>}
-                                    </span>
-                                );
-                            })}
-                    </div>
-                )}
-
                 {/* Lista de tareas */}
                 <div className={styles.taskList}>
                     {filteredTareas.length === 0 ? (
@@ -435,7 +376,6 @@ const CalificacionesDetalle = () => {
                             const tareaKey = tarea.id || tarea['@id'];
                             const isEditingFb = editingFeedback === tareaKey;
                             const isEditingNt = editingNota === tareaKey;
-                            const isEditingPs = editingPeso === tareaKey;
 
                             return (
                                 <div key={tareaKey} className={styles.taskItem}>
@@ -449,44 +389,6 @@ const CalificacionesDetalle = () => {
                                         <div className={styles.taskMeta}>
                                             {t('grades.deadline')}: {tarea.fechaLimite ? new Date(tarea.fechaLimite).toLocaleDateString() : ''}
                                             {!tarea.entrega && <> — <em>{t('grades.noDelivery')}</em></>}
-                                        </div>
-
-                                        {/* Peso editable */}
-                                        <div className={styles.feedbackInline}>
-                                            {isEditingPs ? (
-                                                <>
-                                                    <span className={styles.taskMeta} style={{ margin: 0 }}>Peso:</span>
-                                                    <input
-                                                        type="number"
-                                                        step="0.1"
-                                                        min="0"
-                                                        max="100"
-                                                        className={styles.feedbackInput}
-                                                        style={{ width: '80px', flex: 'none' }}
-                                                        value={pesoValue}
-                                                        onChange={(e) => setPesoValue(e.target.value)}
-                                                        placeholder="%"
-                                                        autoFocus
-                                                    />
-                                                    <span className={styles.taskMeta} style={{ margin: 0 }}>%</span>
-                                                    <button className={styles.feedbackSaveBtn} onClick={() => handleSavePeso(tarea)} disabled={saving}>
-                                                        <Check size={14} />
-                                                    </button>
-                                                    <button className={styles.feedbackEditBtn} onClick={() => setEditingPeso(null)}>
-                                                        <X size={14} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    className={styles.editableChip}
-                                                    onClick={() => { setEditingPeso(tareaKey); setPesoValue(tarea.peso != null ? String(tarea.peso) : ''); }}
-                                                    title="Editar peso"
-                                                >
-                                                    <Edit2 size={14} />
-                                                    <span>Peso: <strong>{tarea.peso != null ? `${tarea.peso}%` : 'auto'}</strong></span>
-                                                </button>
-                                            )}
                                         </div>
 
                                         {/* Feedback editable inline */}
@@ -527,16 +429,14 @@ const CalificacionesDetalle = () => {
                                     {/* Nota editable */}
                                     {isEditingNt ? (
                                         <div className={styles.feedbackInline} style={{ alignItems: 'center' }}>
-                                            <input
-                                                type="number"
-                                                step="0.1"
-                                                min="0"
-                                                max="10"
-                                                className={styles.feedbackInput}
-                                                style={{ width: '80px', flex: 'none' }}
+                                            <ThemedNumberInput
+                                                min={0}
+                                                max={10}
+                                                step={0.1}
                                                 value={notaValue}
-                                                onChange={(e) => setNotaValue(e.target.value)}
-                                                autoFocus
+                                                onChange={setNotaValue}
+                                                width={110}
+                                                ariaLabel={t('grades.gradeLabel', { defaultValue: 'Nota' })}
                                             />
                                             <button className={styles.feedbackSaveBtn} onClick={() => handleSaveNota(tarea)} disabled={saving}>
                                                 <Check size={14} />

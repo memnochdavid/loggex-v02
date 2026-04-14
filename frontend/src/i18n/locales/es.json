@@ -1069,7 +1069,17 @@
     "downloadAsZip": "ZIP (individuales)",
     "generating": "Generando...",
     "selectPeriodFirst": "Selecciona una evaluación primero",
-    "pdfLanguage": "Idioma PDF"
+    "pdfLanguage": "Idioma PDF",
+    "weightTabGlobal": "Ponderación global",
+    "weightTabItems": "Peso por item",
+    "itemsHint": "Peso de cada item dentro de su categoría. Dejar vacío = reparto automático equitativo. La suma por categoría debería ser 100%.",
+    "noItemsForImp": "No hay tareas, exámenes ni prácticas creadas para esta impartición.",
+    "weightSumLabel": "Suma",
+    "weightSumWarn": "(debe ser 100%)",
+    "auto": "auto",
+    "weightRange": "El peso debe estar entre 0 y 100",
+    "itemWeight": "Peso en la nota",
+    "confirmResetWeights": "¿Seguro que quieres restaurar los pesos por defecto? Todos los items volverán a reparto equitativo."
   },
   "scheduleEditor": {
     "title": "Editor de horarios",

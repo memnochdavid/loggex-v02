@@ -1069,7 +1069,17 @@
     "downloadAsZip": "ZIP (individual)",
     "generating": "Generating...",
     "selectPeriodFirst": "Select an assessment first",
-    "pdfLanguage": "PDF language"
+    "pdfLanguage": "PDF language",
+    "weightTabGlobal": "Global weights",
+    "weightTabItems": "Per-item weight",
+    "itemsHint": "Weight of each item within its category. Empty = equal split. The sum per category should be 100%.",
+    "noItemsForImp": "No tasks, exams or practicals exist for this subject yet.",
+    "weightSumLabel": "Sum",
+    "weightSumWarn": "(should be 100%)",
+    "auto": "auto",
+    "weightRange": "Weight must be between 0 and 100",
+    "itemWeight": "Weight in grade",
+    "confirmResetWeights": "Restore default weights? All items will go back to equal distribution."
   },
   "scheduleEditor": {
     "title": "Schedule editor",
