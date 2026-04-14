@@ -3471,3 +3471,153 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-04-14 13:41:41
+
+-- ============================================================
+-- CONSISTENCIA Y REALISMO DE FIXTURES
+-- Bloque añadido automáticamente tras el dump de mysqldump.
+-- Mantenerlo siempre al final del archivo.
+-- ============================================================
+
+-- ============================================================
+-- fixtures_consistency.sql
+-- Aplicar DESPUÉS de restaurar backup_tfg_full.sql
+-- Rellena huecos, limpia inconsistencias y añade realismo.
+-- ============================================================
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- -----------------------------------------------------------
+-- 1) Ponderaciones por impartición (60% examen / 20% tarea / 20% práctica)
+-- -----------------------------------------------------------
+DELETE FROM ponderacion_imparticion;
+INSERT INTO ponderacion_imparticion (imparticion_id, tipo_tarea, peso, created_at, updated_at, deleted, deleted_at) VALUES
+(23,'examen',0.6,NOW(),NULL,0,NULL),
+(23,'tarea',0.2,NOW(),NULL,0,NULL),
+(23,'practica',0.2,NOW(),NULL,0,NULL),
+(24,'examen',0.6,NOW(),NULL,0,NULL),
+(24,'tarea',0.2,NOW(),NULL,0,NULL),
+(24,'practica',0.2,NOW(),NULL,0,NULL),
+(25,'examen',0.6,NOW(),NULL,0,NULL),
+(25,'tarea',0.2,NOW(),NULL,0,NULL),
+(25,'practica',0.2,NOW(),NULL,0,NULL),
+(26,'examen',0.6,NOW(),NULL,0,NULL),
+(26,'tarea',0.2,NOW(),NULL,0,NULL),
+(26,'practica',0.2,NOW(),NULL,0,NULL),
+(27,'examen',0.6,NOW(),NULL,0,NULL),
+(27,'tarea',0.2,NOW(),NULL,0,NULL),
+(27,'practica',0.2,NOW(),NULL,0,NULL),
+(28,'examen',0.6,NOW(),NULL,0,NULL),
+(28,'tarea',0.2,NOW(),NULL,0,NULL),
+(28,'practica',0.2,NOW(),NULL,0,NULL),
+(29,'examen',0.6,NOW(),NULL,0,NULL),
+(29,'tarea',0.2,NOW(),NULL,0,NULL),
+(29,'practica',0.2,NOW(),NULL,0,NULL),
+(30,'examen',0.6,NOW(),NULL,0,NULL),
+(30,'tarea',0.2,NOW(),NULL,0,NULL),
+(30,'practica',0.2,NOW(),NULL,0,NULL),
+(31,'examen',0.6,NOW(),NULL,0,NULL),
+(31,'tarea',0.2,NOW(),NULL,0,NULL),
+(31,'practica',0.2,NOW(),NULL,0,NULL),
+(32,'examen',0.6,NOW(),NULL,0,NULL),
+(32,'tarea',0.2,NOW(),NULL,0,NULL),
+(32,'practica',0.2,NOW(),NULL,0,NULL),
+(33,'examen',0.6,NOW(),NULL,0,NULL),
+(33,'tarea',0.2,NOW(),NULL,0,NULL),
+(33,'practica',0.2,NOW(),NULL,0,NULL),
+(34,'examen',0.6,NOW(),NULL,0,NULL),
+(34,'tarea',0.2,NOW(),NULL,0,NULL),
+(34,'practica',0.2,NOW(),NULL,0,NULL),
+(35,'examen',0.6,NOW(),NULL,0,NULL),
+(35,'tarea',0.2,NOW(),NULL,0,NULL),
+(35,'practica',0.2,NOW(),NULL,0,NULL),
+(36,'examen',0.6,NOW(),NULL,0,NULL),
+(36,'tarea',0.2,NOW(),NULL,0,NULL),
+(36,'practica',0.2,NOW(),NULL,0,NULL),
+(37,'examen',0.6,NOW(),NULL,0,NULL),
+(37,'tarea',0.2,NOW(),NULL,0,NULL),
+(37,'practica',0.2,NOW(),NULL,0,NULL),
+(38,'examen',0.6,NOW(),NULL,0,NULL),
+(38,'tarea',0.2,NOW(),NULL,0,NULL),
+(38,'practica',0.2,NOW(),NULL,0,NULL),
+(39,'examen',0.6,NOW(),NULL,0,NULL),
+(39,'tarea',0.2,NOW(),NULL,0,NULL),
+(39,'practica',0.2,NOW(),NULL,0,NULL),
+(40,'examen',0.6,NOW(),NULL,0,NULL),
+(40,'tarea',0.2,NOW(),NULL,0,NULL),
+(40,'practica',0.2,NOW(),NULL,0,NULL),
+(41,'examen',0.6,NOW(),NULL,0,NULL),
+(41,'tarea',0.2,NOW(),NULL,0,NULL),
+(41,'practica',0.2,NOW(),NULL,0,NULL),
+(42,'examen',0.6,NOW(),NULL,0,NULL),
+(42,'tarea',0.2,NOW(),NULL,0,NULL),
+(42,'practica',0.2,NOW(),NULL,0,NULL),
+(43,'examen',0.6,NOW(),NULL,0,NULL),
+(43,'tarea',0.2,NOW(),NULL,0,NULL),
+(43,'practica',0.2,NOW(),NULL,0,NULL),
+(44,'examen',0.6,NOW(),NULL,0,NULL),
+(44,'tarea',0.2,NOW(),NULL,0,NULL),
+(44,'practica',0.2,NOW(),NULL,0,NULL),
+(45,'examen',0.6,NOW(),NULL,0,NULL),
+(45,'tarea',0.2,NOW(),NULL,0,NULL),
+(45,'practica',0.2,NOW(),NULL,0,NULL),
+(46,'examen',0.6,NOW(),NULL,0,NULL),
+(46,'tarea',0.2,NOW(),NULL,0,NULL),
+(46,'practica',0.2,NOW(),NULL,0,NULL);
+
+-- -----------------------------------------------------------
+-- 2) Arreglar calificaciones suspensas con feedback positivo
+-- -----------------------------------------------------------
+UPDATE calificacion SET feedback_profesor='Necesitas mejorar. Repasa los conceptos principales del tema.' WHERE id=20;
+UPDATE calificacion SET feedback_profesor='No has alcanzado los objetivos mínimos. Trabajo incompleto.' WHERE id=41;
+UPDATE calificacion SET feedback_profesor='Faltan desarrollar varios puntos clave. Revisa el enunciado.' WHERE id=56;
+UPDATE calificacion SET feedback_profesor='Comprensión insuficiente del material. Te recomiendo tutoría.' WHERE id=70;
+UPDATE calificacion SET feedback_profesor='Entregado fuera de criterios. Vuelve a repasar la teoría.' WHERE id=79;
+UPDATE calificacion SET feedback_profesor='Necesitas mejorar. Repasa los conceptos principales del tema.' WHERE id=145;
+UPDATE calificacion SET feedback_profesor='No has alcanzado los objetivos mínimos. Trabajo incompleto.' WHERE id=292;
+UPDATE calificacion SET feedback_profesor='Faltan desarrollar varios puntos clave. Revisa el enunciado.' WHERE id=490;
+UPDATE calificacion SET feedback_profesor='Comprensión insuficiente del material. Te recomiendo tutoría.' WHERE id=522;
+UPDATE calificacion SET feedback_profesor='Entregado fuera de criterios. Vuelve a repasar la teoría.' WHERE id=622;
+UPDATE calificacion SET feedback_profesor='Necesitas mejorar. Repasa los conceptos principales del tema.' WHERE id=630;
+UPDATE calificacion SET feedback_profesor='No has alcanzado los objetivos mínimos. Trabajo incompleto.' WHERE id=636;
+UPDATE calificacion SET feedback_profesor='Faltan desarrollar varios puntos clave. Revisa el enunciado.' WHERE id=642;
+UPDATE calificacion SET feedback_profesor='Comprensión insuficiente del material. Te recomiendo tutoría.' WHERE id=655;
+UPDATE calificacion SET feedback_profesor='Entregado fuera de criterios. Vuelve a repasar la teoría.' WHERE id=681;
+
+-- -----------------------------------------------------------
+-- 3) Realismo en asistencia (ahora ~97% P): pasar parte a F/R/J
+--    Resultado objetivo: ~82% P, ~10% F, ~5% R (retraso), ~3% J (justificada)
+-- -----------------------------------------------------------
+UPDATE asistencia SET estado='F' WHERE id IN (56,74,93,121,132,157,165,170,175,183,196,208,212,219,221,229,242,255,257,261,264,278,282,283,298,310,318,327,331,332,333,344,353,358,391,406,411,418,419,429,440,452,463,471,472,476,479,486,498,499,500,532,552,586,593);
+UPDATE asistencia SET estado='R' WHERE id IN (98,161,176,227,263,266,295,300,306,314,345,354,405,427,435,455,475,478,487,490,514,527,550,551,578,592,603);
+UPDATE asistencia SET estado='J', comentario='Ausencia justificada con documentación' WHERE id IN (75,144,151,185,205,211,220,312,377,387,421,450,529,558,596,614);
+
+-- -----------------------------------------------------------
+-- 4) Realismo en entregas: no todos los alumnos entregan todas las tareas
+--    2 alumnos 'malos' (~60% sin entregar), 3 'regulares' (~20% sin entregar)
+-- -----------------------------------------------------------
+-- 65 entregas a eliminar (con sus calificaciones)
+DELETE FROM calificacion WHERE entrega_id IN (52,76,77,106,122,161,167,177,181,182,218,248,273,278,283,298,338,353,358,383,393,398,403,408,413,418,423,428,438,443,453,458,468,478,488,493,498,513,520,525,530,540,545,550,565,575,580,585,610,620,630,635,640,650,660,675,685,690,695,716,726,731,749,750,755);
+DELETE FROM entrega WHERE id IN (52,76,77,106,122,161,167,177,181,182,218,248,273,278,283,298,338,353,358,383,393,398,403,408,413,418,423,428,438,443,453,458,468,478,488,493,498,513,520,525,530,540,545,550,565,575,580,585,610,620,630,635,640,650,660,675,685,690,695,716,726,731,749,750,755);
+
+-- -----------------------------------------------------------
+-- 5) Pesos individuales en algunas tareas (demo del feature)
+--    Para 6 imparticiones escogidas, asignar pesos explícitos a sus exámenes
+--    (suma 100% dentro del tipo 'examen')
+-- -----------------------------------------------------------
+UPDATE tarea SET peso=50 WHERE id=17;
+UPDATE tarea SET peso=50 WHERE id=18;
+UPDATE tarea SET peso=34 WHERE id=9;
+UPDATE tarea SET peso=33 WHERE id=23;
+UPDATE tarea SET peso=33 WHERE id=24;
+UPDATE tarea SET peso=50 WHERE id=29;
+UPDATE tarea SET peso=50 WHERE id=30;
+UPDATE tarea SET peso=50 WHERE id=35;
+UPDATE tarea SET peso=50 WHERE id=36;
+UPDATE tarea SET peso=50 WHERE id=41;
+UPDATE tarea SET peso=50 WHERE id=42;
+UPDATE tarea SET peso=50 WHERE id=47;
+UPDATE tarea SET peso=50 WHERE id=48;
+
+SET FOREIGN_KEY_CHECKS=1;
+
+-- Fin del script de consistencia
