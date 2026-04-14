@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
@@ -15,62 +15,101 @@ const CalificacionesDetalle = () => {
 
     const [mediaData, setMediaData] = useState(null);
     const [tareas, setTareas] = useState([]);
+    const [periodos, setPeriodos] = useState([]);
+    const [selectedPeriodo, setSelectedPeriodo] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('todos');
-    const [editingFeedback, setEditingFeedback] = useState(null); // tareaId being edited
+    const [editingFeedback, setEditingFeedback] = useState(null);
     const [feedbackValue, setFeedbackValue] = useState('');
-    const [savingFeedback, setSavingFeedback] = useState(false);
+    const [editingNota, setEditingNota] = useState(null);
+    const [notaValue, setNotaValue] = useState('');
+    const [editingPeso, setEditingPeso] = useState(null);
+    const [pesoValue, setPesoValue] = useState('');
+    const [saving, setSaving] = useState(false);
 
+    // Cargar periodos del grupo al cargar la impartición
     useEffect(() => {
-        if (!imparticionId || !alumnoId) return;
-
-        const fetchData = async () => {
-            setLoading(true);
+        if (!imparticionId) return;
+        const fetchPeriodos = async () => {
             try {
-                const mediaRes = await fetch(
-                    getApiUrl(`/api/v1/imparticion/${imparticionId}/media/${alumnoId}`),
-                    { credentials: 'include' }
-                );
-                if (!mediaRes.ok) throw new Error();
-                const media = await mediaRes.json();
-                setMediaData(media);
-
-                const tareasRes = await fetch(
-                    getApiUrl(`/api/tareas?imparticion=${imparticionId}&order[fechaLimite]=asc&itemsPerPage=100`),
+                const impRes = await fetch(
+                    getApiUrl(`/api/imparticions/${imparticionId}`),
                     { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
                 );
-                if (!tareasRes.ok) throw new Error();
-                const tareasData = await tareasRes.json();
-                const tareasItems = tareasData['hydra:member'] || tareasData.member || [];
+                if (!impRes.ok) return;
+                const imp = await impRes.json();
+                const grupoRef = imp.grupo;
+                const grupoId = typeof grupoRef === 'string'
+                    ? grupoRef.split('/').pop()
+                    : (grupoRef?.id || grupoRef?.['@id']?.split('/').pop());
+                if (!grupoId) return;
 
-                const entregasRes = await fetch(
-                    getApiUrl(`/api/entregas?alumno=${alumnoId}&itemsPerPage=200`),
+                const pRes = await fetch(
+                    getApiUrl(`/api/periodo_evaluativos?grupo=${grupoId}&order[fechaInicio]=asc`),
                     { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
                 );
-                if (!entregasRes.ok) throw new Error();
-                const entregasData = await entregasRes.json();
-                const entregas = entregasData['hydra:member'] || entregasData.member || [];
-
-                const tareasConNotas = tareasItems.map(tarea => {
-                    const tareaId = tarea.id || tarea['@id']?.split('/').pop();
-                    const entrega = entregas.find(e => {
-                        const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
-                        return String(eTareaId) === String(tareaId);
-                    });
-                    return { ...tarea, entrega, calificacion: entrega?.calificacion || null };
+                if (!pRes.ok) return;
+                const pData = await pRes.json();
+                const items = pData['hydra:member'] || pData.member || [];
+                items.sort((a, b) => {
+                    const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                    const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+                    if (aExtra !== bExtra) return aExtra - bExtra;
+                    return (a.fechaInicio || '').localeCompare(b.fechaInicio || '');
                 });
-
-                setTareas(tareasConNotas);
-                setError(null);
-            } catch {
-                setError(t('grades.errorLoading'));
-            } finally {
-                setLoading(false);
-            }
+                setPeriodos(items);
+            } catch { /* no crítico */ }
         };
-        fetchData();
-    }, [imparticionId, alumnoId, t]);
+        fetchPeriodos();
+    }, [imparticionId]);
+
+    const fetchData = useCallback(async () => {
+        if (!imparticionId || !alumnoId) return;
+        setLoading(true);
+        try {
+            const mediaUrl = selectedPeriodo
+                ? `/api/v1/imparticion/${imparticionId}/media/${alumnoId}?periodo=${selectedPeriodo}`
+                : `/api/v1/imparticion/${imparticionId}/media/${alumnoId}`;
+            const mediaRes = await fetch(getApiUrl(mediaUrl), { credentials: 'include' });
+            if (!mediaRes.ok) throw new Error();
+            setMediaData(await mediaRes.json());
+
+            const tareasRes = await fetch(
+                getApiUrl(`/api/tareas?imparticion=${imparticionId}&order[fechaLimite]=asc&itemsPerPage=100`),
+                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
+            );
+            if (!tareasRes.ok) throw new Error();
+            const tareasData = await tareasRes.json();
+            const tareasItems = tareasData['hydra:member'] || tareasData.member || [];
+
+            const entregasRes = await fetch(
+                getApiUrl(`/api/entregas?alumno=${alumnoId}&itemsPerPage=200`),
+                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
+            );
+            if (!entregasRes.ok) throw new Error();
+            const entregasData = await entregasRes.json();
+            const entregas = entregasData['hydra:member'] || entregasData.member || [];
+
+            const tareasConNotas = tareasItems.map(tarea => {
+                const tareaId = tarea.id || tarea['@id']?.split('/').pop();
+                const entrega = entregas.find(e => {
+                    const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
+                    return String(eTareaId) === String(tareaId);
+                });
+                return { ...tarea, entrega, calificacion: entrega?.calificacion || null };
+            });
+
+            setTareas(tareasConNotas);
+            setError(null);
+        } catch {
+            setError(t('grades.errorLoading'));
+        } finally {
+            setLoading(false);
+        }
+    }, [imparticionId, alumnoId, selectedPeriodo, t]);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const tabs = [
         { key: 'todos', label: t('grades.filterAll') },
@@ -79,16 +118,42 @@ const CalificacionesDetalle = () => {
         { key: 'practica', label: t('grades.practice') },
     ];
 
+    // Filtrar por periodo en cliente (por fechaLimite)
+    const tareasEnPeriodo = useMemo(() => {
+        if (!selectedPeriodo) return tareas;
+        const p = periodos.find(pp => String(pp.id || pp['@id']?.split('/').pop()) === String(selectedPeriodo));
+        if (!p) return tareas;
+        const ini = new Date(p.fechaInicio);
+        const fin = new Date(p.fechaFin);
+        fin.setHours(23, 59, 59, 999);
+        return tareas.filter(tr => {
+            if (!tr.fechaLimite) return false;
+            const d = new Date(tr.fechaLimite);
+            return d >= ini && d <= fin;
+        });
+    }, [tareas, periodos, selectedPeriodo]);
+
     const filteredTareas = useMemo(() => {
-        if (activeTab === 'todos') return tareas;
-        return tareas.filter(t => t.tipo === activeTab);
-    }, [tareas, activeTab]);
+        if (activeTab === 'todos') return tareasEnPeriodo;
+        return tareasEnPeriodo.filter(tr => tr.tipo === activeTab);
+    }, [tareasEnPeriodo, activeTab]);
 
     const counts = useMemo(() => {
-        const c = { todos: tareas.length, examen: 0, tarea: 0, practica: 0 };
-        tareas.forEach(t => { if (c[t.tipo] !== undefined) c[t.tipo]++; });
+        const c = { todos: tareasEnPeriodo.length, examen: 0, tarea: 0, practica: 0 };
+        tareasEnPeriodo.forEach(tr => { if (c[tr.tipo] !== undefined) c[tr.tipo]++; });
         return c;
-    }, [tareas]);
+    }, [tareasEnPeriodo]);
+
+    // Suma de pesos por tipo (debería ser 100)
+    const pesosSum = useMemo(() => {
+        const s = { examen: 0, tarea: 0, practica: 0 };
+        const anySet = { examen: false, tarea: false, practica: false };
+        tareasEnPeriodo.forEach(tr => {
+            if (s[tr.tipo] === undefined) return;
+            if (tr.peso != null) { s[tr.tipo] += tr.peso; anySet[tr.tipo] = true; }
+        });
+        return { s, anySet };
+    }, [tareasEnPeriodo]);
 
     const getGradeClass = (nota) => {
         if (nota === null || nota === undefined) return styles.gradeNa;
@@ -120,35 +185,129 @@ const CalificacionesDetalle = () => {
         }
     };
 
-    // Guardar feedback inline
-    const handleSaveFeedback = async (tarea) => {
-        if (!tarea.calificacion) return;
-        setSavingFeedback(true);
-        try {
-            const calId = tarea.calificacion.id || tarea.calificacion['@id']?.split('/').pop();
-            const res = await fetch(getApiUrl(`/api/calificacions/${calId}`), {
-                method: 'PUT',
+    // Asegurar que existe una entrega+calificacion para poder guardar nota/feedback
+    const ensureCalificacion = async (tarea) => {
+        let calId = tarea.calificacion?.id || tarea.calificacion?.['@id']?.split('/').pop();
+        if (calId) return { calId, entregaId: tarea.entrega?.id || tarea.entrega?.['@id']?.split('/').pop() };
+
+        let entregaId = tarea.entrega?.id || tarea.entrega?.['@id']?.split('/').pop();
+        if (!entregaId) {
+            const tareaId = tarea.id || tarea['@id']?.split('/').pop();
+            const res = await fetch(getApiUrl('/api/entregas'), {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-                body: JSON.stringify({ feedbackProfesor: feedbackValue }),
-                credentials: 'include'
+                body: JSON.stringify({
+                    tarea: `/api/tareas/${tareaId}`,
+                    alumno: `/api/users/${alumnoId}`,
+                    fechaEntrega: new Date().toISOString(),
+                }),
+                credentials: 'include',
             });
-            if (!res.ok) throw new Error();
-            // Actualizar en local
-            setTareas(prev => prev.map(t => {
-                if ((t.id || t['@id']) === (tarea.id || tarea['@id'])) {
-                    return { ...t, calificacion: { ...t.calificacion, feedbackProfesor: feedbackValue } };
-                }
-                return t;
-            }));
+            if (!res.ok) throw new Error('entrega');
+            const eData = await res.json();
+            entregaId = eData.id || eData['@id']?.split('/').pop();
+        }
+        return { calId: null, entregaId };
+    };
+
+    const handleSaveFeedback = async (tarea) => {
+        setSaving(true);
+        try {
+            const { calId, entregaId } = await ensureCalificacion(tarea);
+            if (calId) {
+                const res = await fetch(getApiUrl(`/api/calificacions/${calId}`), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    body: JSON.stringify({ feedbackProfesor: feedbackValue }),
+                    credentials: 'include',
+                });
+                if (!res.ok) throw new Error();
+            } else {
+                const res = await fetch(getApiUrl('/api/calificacions'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    body: JSON.stringify({
+                        entrega: `/api/entregas/${entregaId}`,
+                        nota: 0,
+                        feedbackProfesor: feedbackValue,
+                    }),
+                    credentials: 'include',
+                });
+                if (!res.ok) throw new Error();
+            }
             setEditingFeedback(null);
+            await fetchData();
         } catch {
             alert(t('grades.errorSavingFeedback'));
         } finally {
-            setSavingFeedback(false);
+            setSaving(false);
         }
     };
 
-    // Barras del gráfico
+    const handleSaveNota = async (tarea) => {
+        const parsed = parseFloat(notaValue);
+        if (isNaN(parsed) || parsed < 0 || parsed > 10) {
+            alert('La nota debe estar entre 0 y 10');
+            return;
+        }
+        setSaving(true);
+        try {
+            const { calId, entregaId } = await ensureCalificacion(tarea);
+            if (calId) {
+                const res = await fetch(getApiUrl(`/api/calificacions/${calId}`), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    body: JSON.stringify({ nota: parsed }),
+                    credentials: 'include',
+                });
+                if (!res.ok) throw new Error();
+            } else {
+                const res = await fetch(getApiUrl('/api/calificacions'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    body: JSON.stringify({
+                        entrega: `/api/entregas/${entregaId}`,
+                        nota: parsed,
+                    }),
+                    credentials: 'include',
+                });
+                if (!res.ok) throw new Error();
+            }
+            setEditingNota(null);
+            await fetchData();
+        } catch {
+            alert('Error al guardar la nota');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSavePeso = async (tarea) => {
+        const raw = pesoValue.trim();
+        const parsed = raw === '' ? null : parseFloat(raw);
+        if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
+            alert('El peso debe estar entre 0 y 100');
+            return;
+        }
+        setSaving(true);
+        try {
+            const tareaId = tarea.id || tarea['@id']?.split('/').pop();
+            const res = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                body: JSON.stringify({ peso: parsed }),
+                credentials: 'include',
+            });
+            if (!res.ok) throw new Error();
+            setEditingPeso(null);
+            await fetchData();
+        } catch {
+            alert('Error al guardar el peso');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const chartBars = mediaData ? [
         { label: t('grades.avgExams'), value: mediaData.mediaExamenes, fillClass: styles.barFillExam },
         { label: t('grades.avgTasks'), value: mediaData.mediaTareas, fillClass: styles.barFillTask },
@@ -156,7 +315,7 @@ const CalificacionesDetalle = () => {
         { label: t('grades.finalGrade'), value: mediaData.notaFinal, fillClass: styles.barFillFinal },
     ] : [];
 
-    if (loading) {
+    if (loading && !mediaData) {
         return <Layout><div className={styles.container}><div className={styles.loadingContainer}>{t('common.loading')}</div></div></Layout>;
     }
     if (error) {
@@ -174,6 +333,19 @@ const CalificacionesDetalle = () => {
                     <h1 className={styles.title}>
                         {mediaData?.alumno?.apellidos}, {mediaData?.alumno?.nombre}
                     </h1>
+                    <div className={styles.controls}>
+                        <select
+                            className={styles.periodSelect}
+                            value={selectedPeriodo}
+                            onChange={(e) => setSelectedPeriodo(e.target.value)}
+                        >
+                            <option value="">{t('grades.allPeriods')}</option>
+                            {periodos.map(p => {
+                                const id = p.id || p['@id']?.split('/').pop();
+                                return <option key={id} value={id}>{p.nombre}</option>;
+                            })}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Resumen cards */}
@@ -226,6 +398,27 @@ const CalificacionesDetalle = () => {
                     ))}
                 </div>
 
+                {/* Resumen pesos por tipo */}
+                {(activeTab === 'todos' || pesosSum.anySet[activeTab]) && (
+                    <div className={styles.taskMeta} style={{ padding: 'var(--space-2) var(--space-3)', display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+                        {['examen', 'tarea', 'practica']
+                            .filter(tipo => activeTab === 'todos' ? pesosSum.anySet[tipo] : tipo === activeTab)
+                            .map(tipo => {
+                                const sum = Math.round(pesosSum.s[tipo] * 100) / 100;
+                                const ok = Math.abs(sum - 100) < 0.01;
+                                return (
+                                    <span key={tipo}>
+                                        Suma {getTypeName(tipo)}:{' '}
+                                        <strong style={{ color: ok ? 'var(--color-success)' : 'var(--color-error)' }}>
+                                            {sum}%
+                                        </strong>
+                                        {!ok && <em> (debe ser 100%)</em>}
+                                    </span>
+                                );
+                            })}
+                    </div>
+                )}
+
                 {/* Lista de tareas */}
                 <div className={styles.taskList}>
                     {filteredTareas.length === 0 ? (
@@ -235,7 +428,9 @@ const CalificacionesDetalle = () => {
                             const nota = tarea.calificacion?.nota ?? null;
                             const feedback = tarea.calificacion?.feedbackProfesor ?? null;
                             const tareaKey = tarea.id || tarea['@id'];
-                            const isEditing = editingFeedback === tareaKey;
+                            const isEditingFb = editingFeedback === tareaKey;
+                            const isEditingNt = editingNota === tareaKey;
+                            const isEditingPs = editingPeso === tareaKey;
 
                             return (
                                 <div key={tareaKey} className={styles.taskItem}>
@@ -250,52 +445,114 @@ const CalificacionesDetalle = () => {
                                             {t('grades.deadline')}: {tarea.fechaLimite ? new Date(tarea.fechaLimite).toLocaleDateString() : ''}
                                             {!tarea.entrega && <> — <em>{t('grades.noDelivery')}</em></>}
                                         </div>
+
+                                        {/* Peso editable */}
+                                        <div className={styles.feedbackInline}>
+                                            {isEditingPs ? (
+                                                <>
+                                                    <span className={styles.taskMeta} style={{ margin: 0 }}>Peso:</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.1"
+                                                        min="0"
+                                                        max="100"
+                                                        className={styles.feedbackInput}
+                                                        style={{ width: '80px', flex: 'none' }}
+                                                        value={pesoValue}
+                                                        onChange={(e) => setPesoValue(e.target.value)}
+                                                        placeholder="%"
+                                                        autoFocus
+                                                    />
+                                                    <span className={styles.taskMeta} style={{ margin: 0 }}>%</span>
+                                                    <button className={styles.feedbackSaveBtn} onClick={() => handleSavePeso(tarea)} disabled={saving}>
+                                                        <Check size={14} />
+                                                    </button>
+                                                    <button className={styles.feedbackEditBtn} onClick={() => setEditingPeso(null)}>
+                                                        <X size={14} />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className={styles.editableChip}
+                                                    onClick={() => { setEditingPeso(tareaKey); setPesoValue(tarea.peso != null ? String(tarea.peso) : ''); }}
+                                                    title="Editar peso"
+                                                >
+                                                    <Edit2 size={14} />
+                                                    <span>Peso: <strong>{tarea.peso != null ? `${tarea.peso}%` : 'auto'}</strong></span>
+                                                </button>
+                                            )}
+                                        </div>
+
                                         {/* Feedback editable inline */}
-                                        {tarea.calificacion && (
-                                            <div className={styles.feedbackInline}>
-                                                {isEditing ? (
-                                                    <>
-                                                        <input
-                                                            className={styles.feedbackInput}
-                                                            value={feedbackValue}
-                                                            onChange={(e) => setFeedbackValue(e.target.value)}
-                                                            placeholder={t('grades.feedback')}
-                                                            autoFocus
-                                                        />
-                                                        <button
-                                                            className={styles.feedbackSaveBtn}
-                                                            onClick={() => handleSaveFeedback(tarea)}
-                                                            disabled={savingFeedback}
-                                                        >
-                                                            <Check size={14} />
-                                                        </button>
-                                                        <button
-                                                            className={styles.feedbackEditBtn}
-                                                            onClick={() => setEditingFeedback(null)}
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className={styles.taskMeta} style={{ margin: 0 }}>
-                                                            {feedback ? `${t('grades.feedback')}: ${feedback}` : t('grades.noFeedback')}
-                                                        </span>
-                                                        <button
-                                                            className={styles.feedbackEditBtn}
-                                                            onClick={() => { setEditingFeedback(tareaKey); setFeedbackValue(feedback || ''); }}
-                                                            title={t('grades.editFeedback')}
-                                                        >
-                                                            <Edit2 size={12} />
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
+                                        <div className={styles.feedbackInline}>
+                                            {isEditingFb ? (
+                                                <>
+                                                    <input
+                                                        className={styles.feedbackInput}
+                                                        value={feedbackValue}
+                                                        onChange={(e) => setFeedbackValue(e.target.value)}
+                                                        placeholder={t('grades.feedback')}
+                                                        autoFocus
+                                                    />
+                                                    <button className={styles.feedbackSaveBtn} onClick={() => handleSaveFeedback(tarea)} disabled={saving}>
+                                                        <Check size={14} />
+                                                    </button>
+                                                    <button className={styles.feedbackEditBtn} onClick={() => setEditingFeedback(null)}>
+                                                        <X size={14} />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className={styles.editableChip}
+                                                    style={{ maxWidth: '100%' }}
+                                                    onClick={() => { setEditingFeedback(tareaKey); setFeedbackValue(feedback || ''); }}
+                                                    title={t('grades.editFeedback')}
+                                                >
+                                                    <Edit2 size={14} />
+                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {feedback ? `${t('grades.feedback')}: ${feedback}` : t('grades.noFeedback')}
+                                                    </span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
-                                        {formatGrade(nota)}
-                                    </div>
+
+                                    {/* Nota editable */}
+                                    {isEditingNt ? (
+                                        <div className={styles.feedbackInline} style={{ alignItems: 'center' }}>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                max="10"
+                                                className={styles.feedbackInput}
+                                                style={{ width: '80px', flex: 'none' }}
+                                                value={notaValue}
+                                                onChange={(e) => setNotaValue(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <button className={styles.feedbackSaveBtn} onClick={() => handleSaveNota(tarea)} disabled={saving}>
+                                                <Check size={14} />
+                                            </button>
+                                            <button className={styles.feedbackEditBtn} onClick={() => setEditingNota(null)}>
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={`${styles.gradeEditable} ${nota == null ? styles.gradeEmpty : ''}`}
+                                            onClick={() => { setEditingNota(tareaKey); setNotaValue(nota != null ? String(nota) : ''); }}
+                                            title="Editar nota"
+                                        >
+                                            <Edit2 size={14} className={styles.editHint} />
+                                            <span className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
+                                                {nota == null ? '+ Poner nota' : formatGrade(nota)}
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })

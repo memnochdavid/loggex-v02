@@ -79,6 +79,10 @@ class Tarea
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $tipo = null;
 
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?float $peso = null;
+
     #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
@@ -172,6 +176,17 @@ class Tarea
     public function setTipo(string $tipo): static
     {
         $this->tipo = $tipo;
+        return $this;
+    }
+
+    public function getPeso(): ?float
+    {
+        return $this->peso;
+    }
+
+    public function setPeso(?float $peso): static
+    {
+        $this->peso = $peso;
         return $this;
     }
 
