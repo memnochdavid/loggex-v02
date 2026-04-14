@@ -9,7 +9,8 @@ import EventsSidebar from '../components/EventsSidebar';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose, LayoutGrid } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
@@ -19,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 const Horarios = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -132,9 +134,10 @@ const Horarios = () => {
       if (viewMode === 'calendar') {
           setLoading(true);
           
-          const fetchSchedule = fetch(getApiUrl('/api/my-schedule'), {
-              headers: { 'Accept': 'application/json' },
-              credentials: 'include'
+          const fetchSchedule = fetch(getApiUrl(`/api/my-schedule?_=${Date.now()}`), {
+              headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+              credentials: 'include',
+              cache: 'no-store',
           }).then(res => res.json());
 
           let urlFestivos = getApiUrl('/api/festivos?pagination=false');
@@ -473,12 +476,21 @@ const Horarios = () => {
                     <CalendarIcon size={18} />
                 </Button>
                 {canEdit && (
-                    <Button 
+                    <Button
                         variant={viewMode === 'list' ? 'primary' : 'secondary'}
                         onClick={() => setViewMode('list')}
                         title={t('schedules.listView')}
                     >
                         <List size={18} />
+                    </Button>
+                )}
+                {canEdit && (
+                    <Button
+                        variant="secondary"
+                        onClick={() => navigate('/horarios/editor')}
+                        title="Editor gráfico"
+                    >
+                        <LayoutGrid size={18} />
                     </Button>
                 )}
                 

@@ -621,7 +621,8 @@ festivo_sql = build_insert('festivo',
 horario_sql = build_insert('horario',
     ['dia_semana','hora_inicio','hora_fin','aula','imparticion_id','created_at','updated_at','deleted','deleted_at'],
     horario_rows,
-    lambda r: [sql_int(r[0]), sql_str(r[1]), sql_str(r[2]), sql_str(r[3]), sql_int(r[4]),
+    # Convención del sistema: dia_semana 1=Lunes … 5=Viernes (usada por TimeTable)
+    lambda r: [sql_int(int(r[0]) + 1), sql_str(r[1]), sql_str(r[2]), sql_str(r[3]), sql_int(r[4]),
                'NOW()', 'NULL', '0', 'NULL'])
 
 # material: (titulo, archivo, fecha_subida, imp_id)
