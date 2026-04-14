@@ -343,6 +343,41 @@ class BoletinController extends AbstractController
             }
         }
 
+        // Firma del admin/coordinador del centro (no del usuario actual):
+        // así el boletín aparece firmado tanto si lo descarga un admin, un profesor o el propio alumno.
+        // Se elige el primer admin del centro que tenga firma registrada.
+        $firmaSvg = null;
+        $firmante = null;
+        $coordinador = null;
+        if ($centro) {
+            $userRepo = $this->em->getRepository(User::class);
+            $candidatos = $userRepo->createQueryBuilder('u')
+                ->andWhere('u.centro = :centro')
+                ->andWhere('u.firma IS NOT NULL')
+                ->andWhere('u.deleted = false')
+                ->andWhere('u.roles LIKE :roleAdmin')
+                ->setParameter('centro', $centro)
+                ->setParameter('roleAdmin', '%ROLE_ADMIN%')
+                ->orderBy('u.id', 'ASC')
+                ->getQuery()
+                ->getResult();
+            $coordinador = $candidatos[0] ?? null;
+        }
+
+        if ($coordinador instanceof User && $coordinador->getFirma()) {
+            $minioFirma = 'firmas/' . $coordinador->getFirma();
+            try {
+                if ($this->storage->has($minioFirma)) {
+                    $binary = $this->storage->read($minioFirma);
+                    // PNG → data URI base64 (Dompdf renderiza PNG data URIs nativamente y fiable)
+                    $firmaSvg = 'data:image/png;base64,' . base64_encode($binary);
+                }
+            } catch (\Throwable $e) {
+                // sin firma si falla
+            }
+            $firmante = trim($coordinador->getNombre() . ' ' . $coordinador->getApellidos());
+        }
+
         // Configuración del título del centro (palabras coloreadas)
         $nameTitleConfig = $personalizacion ? $personalizacion->getNameTitleConfig() : null;
 
@@ -377,6 +412,8 @@ class BoletinController extends AbstractController
             ],
             'periodos' => $periodosData,
             'logoUrl' => $logoPath,
+            'firmaSvg' => $firmaSvg,
+            'firmante' => $firmante,
             'nameTitleConfig' => $nameTitleConfig,
             'boletines' => $boletines,
             'fechaEmision' => (new \DateTime())->format('d/m/Y'),

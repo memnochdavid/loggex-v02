@@ -22,7 +22,7 @@ class FileProxyController extends AbstractController
      * Recursos protegidos: la URL incluye el id de la entidad para autorizar de forma exacta.
      * Formato: /uploads/{type}/{id}/{filename}
      */
-    #[Route('/uploads/{type}/{id}/{filename}', name: 'api_file_proxy_protected', requirements: ['type' => 'tareas|materiales|entregas', 'id' => '\d+'])]
+    #[Route('/uploads/{type}/{id}/{filename}', name: 'api_file_proxy_protected', requirements: ['type' => 'tareas|materiales|entregas|firmas', 'id' => '\d+'])]
     #[IsGranted('ROLE_USER')]
     public function serveProtected(
         string $type,
@@ -59,6 +59,14 @@ class FileProxyController extends AbstractController
                 throw $this->createAccessDeniedException('No tienes permiso para acceder a esta tarea.');
             }
             $storedFilename = $tarea->getArchivo();
+        } elseif ($type === 'firmas') {
+            /** @var User|null $owner */
+            $owner = $em->getRepository(User::class)->find($id);
+            if (!$owner) {
+                throw $this->createNotFoundException();
+            }
+            // Cualquier usuario autenticado puede ver la firma (aparece incrustada en boletines).
+            $storedFilename = $owner->getFirma();
         } elseif ($type === 'entregas') {
             /** @var Entrega|null $entrega */
             $entrega = $em->getRepository(Entrega::class)->find($id);

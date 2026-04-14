@@ -114,17 +114,28 @@
         .observations b {
             font-weight: bold;
         }
-        .signature-block {
-            text-align: right;
+        /* Bloque firma — stack simple, ancho fijo 180px. Nada se desborda. */
+        .signature-box {
+            width: 180px;
+            margin: 0 0 0 auto;
+            text-align: center;
         }
-        .signature-block .date-line {
+        .signature-box .sig-date {
             font-size: 10px;
-            margin-bottom: 40px;
+            margin-bottom: 4px;
         }
-        .signature-block .signer {
+        .signature-box .sig-img {
+            width: 160px;
+            height: 57px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .signature-box .sig-name {
             font-size: 9px;
             color: #333;
+            margin-top: 2px;
         }
+        .signature-box .sig-name b { font-weight: bold; }
     </style>
 </head>
 <body>
@@ -218,10 +229,18 @@
                             {{ i18n.ne }}
                         </div>
                     </td>
-                    <td style="width: 40%;" class="signature-block">
-                        <div class="date-line">{{ i18n.date }}: &nbsp; <b>{{ fechaEmision }}</b></div>
-                        <div class="signer">
-                            {{ i18n.coordinator }}
+                    <td style="width: 40%; vertical-align: top;">
+                        <div class="signature-box">
+                            <div class="sig-date">{{ i18n.date }}: &nbsp; <b>{{ fechaEmision }}</b></div>
+                            {% if firmaSvg %}
+                                <div class="sig-img">
+                                    <img src="{{ firmaSvg }}" alt="Firma" width="180" height="77" />
+                                </div>
+                            {% endif %}
+                            <div class="sig-name">
+                                {% if firmante %}<b>{{ firmante }}</b><br>{% endif %}
+                                {{ i18n.coordinator }}
+                            </div>
                         </div>
                     </td>
                 </tr>

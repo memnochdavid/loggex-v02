@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
-import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
+import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen, PenLine, Trash2 } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import ModalView from '../components/ModalView';
+import LiquidSignaturePad from '../components/LiquidSignaturePad';
+import Button from '../components/Button';
 
 const Perfil = () => {
     const { t } = useTranslation();
     const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+    const [draftSvg, setDraftSvg] = useState(null);
+    const [savingFirma, setSavingFirma] = useState(false);
     
     // Estados para información académica
     const [matriculas, setMatriculas] = useState([]);
@@ -102,7 +108,45 @@ const Perfil = () => {
         }
     };
 
+    const handleSaveFirma = async () => {
+        if (!draftSvg || !draftSvg.png) { alert('Dibuja la firma primero'); return; }
+        setSavingFirma(true);
+        try {
+            const res = await fetch(getApiUrl('/api/user/firma'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ png: draftSvg.png, svg: draftSvg.svg }),
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'Error al guardar la firma');
+            }
+            await checkAuth();
+            setIsSignModalOpen(false);
+            setDraftSvg(null);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setSavingFirma(false);
+        }
+    };
+
+    const handleDeleteFirma = async () => {
+        if (!window.confirm('¿Eliminar tu firma registrada?')) return;
+        try {
+            const res = await fetch(getApiUrl('/api/user/firma'), { method: 'DELETE', credentials: 'include' });
+            if (!res.ok) throw new Error('Error al eliminar');
+            await checkAuth();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
     if (!user) return null;
+
+    const isAdminLike = user.roles?.includes('ROLE_ADMIN') || user.roles?.includes('ROLE_SUPERADMIN');
+    const firmaUrl = user.firma && user.id ? getAssetUrl(`/uploads/firmas/${user.id}/${user.firma}`) : null;
 
     const fullName = `${user.nombre} ${user.apellidos || ''}`.trim();
     const roles = user.roles 
@@ -247,9 +291,54 @@ const Perfil = () => {
                                 </div>
                             )}
                         </div>
+
+                        {isAdminLike && (
+                            <div className={styles.section}>
+                                <h3 className={styles.sectionTitle}>
+                                    <PenLine size={20} /> Firma para boletines
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
+                                    {firmaUrl ? (
+                                        <img
+                                            src={firmaUrl}
+                                            alt="Tu firma"
+                                            style={{ maxHeight: '80px', maxWidth: '260px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', background: '#fff' }}
+                                        />
+                                    ) : (
+                                        <span className={styles.emptyValue}>Aún no tienes firma registrada.</span>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <Button onClick={() => { setDraftSvg(null); setIsSignModalOpen(true); }}>
+                                            <PenLine size={16} style={{ marginRight: '6px' }} />
+                                            {firmaUrl ? 'Reemplazar firma' : 'Registrar firma'}
+                                        </Button>
+                                        {firmaUrl && (
+                                            <Button variant="danger" onClick={handleDeleteFirma}>
+                                                <Trash2 size={16} style={{ marginRight: '6px' }} />
+                                                Eliminar
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            <ModalView
+                isOpen={isSignModalOpen}
+                onClose={() => { setIsSignModalOpen(false); setDraftSvg(null); }}
+                title="Dibuja tu firma"
+                onSubmit={(e) => { e.preventDefault(); handleSaveFirma(); }}
+                isSubmitting={savingFirma}
+                submitText="Guardar firma"
+            >
+                <p style={{ marginBottom: '12px', color: 'var(--text-muted)' }}>
+                    Dibuja dentro del recuadro con el ratón, dedo o stylus. Se guardará como SVG y aparecerá en los boletines que emitas.
+                </p>
+                <LiquidSignaturePad onChange={setDraftSvg} />
+            </ModalView>
         </Layout>
     );
 };
