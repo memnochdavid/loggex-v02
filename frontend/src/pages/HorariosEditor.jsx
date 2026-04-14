@@ -14,9 +14,10 @@ import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
+import ProfLoadPanel from '../components/ProfLoadPanel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
@@ -118,24 +119,28 @@ const SlotBlock = ({ slotId, imparticion, color }) => {
 };
 
 // ─── Celda droppable ───────────────────────────────────────────────────
-const SlotCell = ({ dia, slot, content }) => {
+const SlotCell = ({ dia, slot, content, dragActive, valid }) => {
   const id = `cell:${dia}:${slot}`;
   const { isOver, setNodeRef } = useDroppable({
     id,
     data: { type: 'cell', dia, slot },
   });
+  let cls = styles.slot;
+  if (!content) cls += ` ${styles.slotEmpty}`;
+  if (dragActive) {
+    if (valid === false) cls += ` ${styles.slotDropInvalid}`;
+    else if (valid === true) cls += ` ${styles.slotDropValid}`;
+  }
+  if (isOver) cls += ` ${styles.slotDropActive}`;
   return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.slot} ${!content ? styles.slotEmpty : ''} ${isOver ? styles.slotDropActive : ''}`}
-    >
+    <div ref={setNodeRef} className={cls}>
       {content}
     </div>
   );
 };
 
 // ─── Componente principal ──────────────────────────────────────────────
-const HorariosEditor = () => {
+const HorariosEditor = ({ embedded = false }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -144,6 +149,11 @@ const HorariosEditor = () => {
   const [selectedGrupo, setSelectedGrupo] = useState('');
   // imparticiones indexadas por grupo para conservar entre cambios de selector
   const [imparticiones, setImparticiones] = useState({});
+  // Mapa de ocupación de profesores en grupos paralelos: "dia_hora" → Set<profesorId>
+  const [parallelBusy, setParallelBusy] = useState({});
+  // Horas semanales de cada profe en otros grupos (no el actual): { profId: N }
+  const [otherGroupsHours, setOtherGroupsHours] = useState({});
+  const [dragError, setDragError] = useState(null);
   // Estado por grupo: { [gid]: { placements: { "dia_slot": {imparticionId, aula, hid?} }, dirty: bool } }
   const [state, setState] = useState({});
   const [saving, setSaving] = useState(false);
@@ -218,6 +228,74 @@ const HorariosEditor = () => {
     });
   }, [selectedGrupo, state]);
 
+  // Cargar ocupación de profes en grupos paralelos (mismo turno, mismo centro)
+  useEffect(() => {
+    if (!selectedGrupo || grupos.length === 0) return;
+    const gActual = grupos.find(g => String(g.id) === String(selectedGrupo));
+    if (!gActual) return;
+    const cicloNombre = (gActual.ciclo?.nombre || '').toUpperCase();
+    const mismoTurno = (g) => {
+      if (String(g.id) === String(selectedGrupo)) return false;
+      const cn = (g.ciclo?.nombre || '').toUpperCase();
+      if (cicloNombre.includes('WEB')) return cn.includes('WEB');
+      if (cicloNombre.includes('MULTIPLATAFORMA')) return cn.includes('MULTIPLATAFORMA');
+      return false;
+    };
+    const paralelos = grupos.filter(mismoTurno).map(g => g.id);
+    if (paralelos.length === 0) { setParallelBusy({}); return; }
+    const bust = Date.now();
+    const noCache = { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache' };
+    Promise.all(paralelos.map(gid =>
+      fetch(getApiUrl(`/api/horarios?imparticion.grupo=${gid}&itemsPerPage=500&_=${bust}`),
+        { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json())
+    )).then(results => {
+      const normHora = (v) => {
+        if (!v) return null;
+        const m = String(v).match(/(\d{2}):(\d{2})(?::(\d{2}))?/);
+        return m ? `${m[1]}:${m[2]}:${m[3] || '00'}` : null;
+      };
+      const busy = {};
+      results.forEach(d => {
+        const items = d['hydra:member'] || d.member || [];
+        items.forEach(h => {
+          const hi = normHora(h.horaInicio);
+          if (!hi) return;
+          const profId = h.imparticion?.profesor?.id
+            ?? h.imparticion?.profesor?.['@id']?.split('/').pop()
+            ?? (typeof h.imparticion?.profesor === 'string' ? h.imparticion.profesor.split('/').pop() : null);
+          if (!profId) return;
+          const key = `${h.diaSemana}_${hi}`;
+          if (!busy[key]) busy[key] = new Set();
+          busy[key].add(Number(profId));
+        });
+      });
+      setParallelBusy(busy);
+    });
+
+    // Horas semanales de cada profe en OTROS grupos (no el actual)
+    const paralelosYRestoIds = grupos.filter(g => String(g.id) !== String(selectedGrupo)).map(g => g.id);
+    if (paralelosYRestoIds.length === 0) { setOtherGroupsHours({}); return; }
+    const bust2 = Date.now();
+    Promise.all(paralelosYRestoIds.map(gid =>
+      fetch(getApiUrl(`/api/horarios?imparticion.grupo=${gid}&itemsPerPage=500&_=${bust2}`),
+        { headers: { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache' },
+          credentials: 'include', cache: 'no-store' }).then(r => r.json())
+    )).then(results => {
+      const hours = {};
+      results.forEach(d => {
+        const items = d['hydra:member'] || d.member || [];
+        items.forEach(h => {
+          const pid = h.imparticion?.profesor?.id
+            ?? h.imparticion?.profesor?.['@id']?.split('/').pop();
+          if (!pid) return;
+          const key = String(pid);
+          hours[key] = (hours[key] || 0) + 1;
+        });
+      });
+      setOtherGroupsHours(hours);
+    });
+  }, [selectedGrupo, grupos]);
+
   const grupo = useMemo(() => grupos.find(g => String(g.id) === String(selectedGrupo)), [grupos, selectedGrupo]);
   const imps = imparticiones[selectedGrupo] || [];
   const grupoState = state[selectedGrupo];
@@ -257,9 +335,78 @@ const HorariosEditor = () => {
     incomplete: { cls: styles.statusIncomplete, icon: <XCircle size={16} />,      label: `Incompleto · ${colocadasTotal}/${totalHoras}h` },
   }[estado];
 
+  // Mapa de imparticion por id (acceso rápido para validación)
+  const impById = useMemo(() => {
+    const m = {};
+    imps.forEach(i => { m[i.id] = i; });
+    return m;
+  }, [imps]);
+
+  // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales)
+  const profeCarga = useMemo(() => {
+    // Horas del grupo actual desde placements
+    const currentHoursPerProf = {};
+    Object.values(placements).forEach(p => {
+      const imp = impById[p.imparticionId];
+      const pid = imp?.profesor?.id;
+      if (pid) currentHoursPerProf[pid] = (currentHoursPerProf[pid] || 0) + 1;
+    });
+    // Unificar profes (los del grupo actual)
+    const profesUnicos = new Map();
+    imps.forEach(i => {
+      if (i.profesor?.id && !profesUnicos.has(i.profesor.id)) {
+        profesUnicos.set(i.profesor.id, i.profesor);
+      }
+    });
+    const result = [];
+    profesUnicos.forEach((profe, pid) => {
+      const enOtros = otherGroupsHours[pid] || 0;
+      const enActual = currentHoursPerProf[pid] || 0;
+      result.push({
+        profe,
+        enOtros,
+        enActual,
+        total: enOtros + enActual,
+      });
+    });
+    result.sort((a, b) => b.total - a.total);
+    return result;
+  }, [placements, impById, imps, otherGroupsHours]);
+
+  // Validación de drop: devuelve {ok, reason}
+  const validateDrop = useCallback((drag, diaIdx, slotIdx) => {
+    if (!drag) return { ok: true };
+    const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
+    const impId = drag.imparticionId;
+    const imp = impById[impId];
+    if (!imp) return { ok: false, reason: 'Imparticion desconocida' };
+
+    // Regla 1: horas restantes > 0 (solo para panel → celda; en swap las horas no cambian globalmente)
+    if (drag.type === 'module') {
+      const total = imp.modulo?.horasSemanales || 0;
+      if ((horasColocadas[impId] || 0) >= total) {
+        return { ok: false, reason: `Ya has colocado las ${total}h de ${imp.modulo?.nombre}` };
+      }
+      // Regla extra: la celda debe estar vacía
+      if (placements[key]) {
+        return { ok: false, reason: 'Celda ocupada' };
+      }
+    }
+
+    // Regla 2: profesor ocupado en grupo paralelo
+    const profId = imp.profesor?.id;
+    if (profId && parallelBusy[key]?.has(Number(profId))) {
+      const paraleloNombre = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
+      return { ok: false, reason: `${paraleloNombre} ya imparte en un grupo paralelo a esa hora` };
+    }
+
+    return { ok: true };
+  }, [slotsDia, impById, horasColocadas, placements, parallelBusy]);
+
   // Drag handlers
   const onDragStart = useCallback((e) => {
     setActiveDrag(e.active?.data?.current || null);
+    setDragError(null);
   }, []);
 
   const onDragEnd = useCallback((e) => {
@@ -270,12 +417,13 @@ const HorariosEditor = () => {
 
     // Caso: de panel a celda
     if (a.type === 'module' && o?.type === 'cell') {
+      const validation = validateDrop(a, o.dia, o.slot);
+      if (!validation.ok) {
+        setDragError(validation.reason);
+        window.setTimeout(() => setDragError(null), 4000);
+        return;
+      }
       const key = `${o.dia}_${slotsDia[o.slot][0]}`;
-      // Si la celda está ocupada, no hacemos nada (la celda no acepta double)
-      if (placements[key]) return;
-      // Horas restantes del módulo
-      const total = imps.find(i => i.id === a.imparticionId)?.modulo?.horasSemanales || 0;
-      if ((horasColocadas[a.imparticionId] || 0) >= total) return;
       setState(prev => ({
         ...prev,
         [selectedGrupo]: {
@@ -310,6 +458,26 @@ const HorariosEditor = () => {
       const dstHoraFin = slotsDia[o.slot][1];
       const dstKey = `${o.dia}_${dstHoraIni}`;
       if (srcKey === dstKey) return;
+      // Validar que el profe del item movido no colisione en el destino con grupos paralelos
+      const validation = validateDrop(a, o.dia, o.slot);
+      if (!validation.ok) {
+        setDragError(validation.reason);
+        window.setTimeout(() => setDragError(null), 4000);
+        return;
+      }
+      // Si hay un bloque en destino, validar también ese (va a ir a srcKey)
+      const dstPlacement = placements[dstKey];
+      if (dstPlacement) {
+        const [srcDia, srcHoraIniKey] = srcKey.split('_');
+        const srcSlotIdx = slotsDia.findIndex(s => s[0] === srcHoraIniKey);
+        const dstDragLike = { type: 'placed', imparticionId: dstPlacement.imparticionId, slotId: dstKey };
+        const v2 = validateDrop(dstDragLike, parseInt(srcDia, 10), srcSlotIdx);
+        if (!v2.ok) {
+          setDragError(v2.reason);
+          window.setTimeout(() => setDragError(null), 4000);
+          return;
+        }
+      }
       const [srcDia, srcHoraIni] = srcKey.split('_');
       const srcSlot = slotsDia.find(s => s[0] === srcHoraIni);
       const srcHoraFin = srcSlot ? srcSlot[1] : null;
@@ -431,12 +599,13 @@ const HorariosEditor = () => {
 
   const activeImp = activeDrag?.imparticionId ? imps.find(i => i.id === activeDrag.imparticionId) : null;
 
+  const Wrapper = embedded ? React.Fragment : Layout;
   return (
-    <Layout>
+    <Wrapper>
       <div className={styles.container}>
         <CrudHeader
-          title="Editor de horarios"
-          logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
+          title={embedded ? 'Editor gráfico' : 'Editor de horarios'}
+          logo={embedded ? undefined : <Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
         >
           <ThemedSelect
             value={selectedGrupo}
@@ -492,14 +661,19 @@ const HorariosEditor = () => {
                     <div className={styles.timeLabel}>
                       {fmtHora(slotRange[0])}–{fmtHora(slotRange[1])}
                     </div>
-                    {DIAS.map((d) => (
-                      <SlotCell
-                        key={`${d.idx}_${slotIdx}`}
-                        dia={d.idx}
-                        slot={slotIdx}
-                        content={renderSlotContent(d.idx, slotIdx)}
-                      />
-                    ))}
+                    {DIAS.map((d) => {
+                      const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
+                      return (
+                        <SlotCell
+                          key={`${d.idx}_${slotIdx}`}
+                          dia={d.idx}
+                          slot={slotIdx}
+                          content={renderSlotContent(d.idx, slotIdx)}
+                          dragActive={!!activeDrag}
+                          valid={validation ? validation.ok : null}
+                        />
+                      );
+                    })}
                   </div>
                 ))}
                 <div className={styles.infoBar}>
@@ -510,6 +684,8 @@ const HorariosEditor = () => {
               </div>
             </div>
 
+            <ProfLoadPanel profeCarga={profeCarga} max={40} />
+
             <DragOverlay>
               {activeImp ? (
                 <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.modulo?.id || activeImp.id) }}>
@@ -519,8 +695,15 @@ const HorariosEditor = () => {
             </DragOverlay>
           </DndContext>
         )}
+
+        {dragError && (
+          <div className={styles.errorToast} role="alert">
+            <Ban size={18} />
+            <span>{dragError}</span>
+          </div>
+        )}
       </div>
-    </Layout>
+    </Wrapper>
   );
 };
 

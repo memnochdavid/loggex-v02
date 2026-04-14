@@ -16,6 +16,7 @@ import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
 import HorariosEditor from './pages/HorariosEditor';
+import HorariosAdmin from './pages/HorariosAdmin';
 import Fechas from './pages/Fechas';
 import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
@@ -126,6 +127,12 @@ function App() {
                 <Route path="/horarios/editor" element={
                   <PrivateRoute>
                     <HorariosEditor />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/horarios" element={
+                  <PrivateRoute>
+                    <HorariosAdmin />
                   </PrivateRoute>
                 } />
 

@@ -18,7 +18,7 @@ import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 
-const Horarios = () => {
+const Horarios = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -28,7 +28,7 @@ const Horarios = () => {
   
   const isMobile = useMediaQuery('(max-width: 1200px)');
 
-  const [viewMode, setViewMode] = useState('calendar');
+  const [viewMode, setViewMode] = useState(embedded ? 'list' : 'calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -461,36 +461,21 @@ const Horarios = () => {
     }
   ], [handleOpenModal, handleDelete]);
 
+  const Wrapper = embedded ? React.Fragment : Layout;
   return (
-    <Layout>
+    <Wrapper>
         <div className={styles.container}>
-        <CrudHeader title={t('schedules.title')}
-                    logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        <CrudHeader title={embedded ? 'Lista de horarios' : t('schedules.title')}
+                    logo={embedded ? undefined : <Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
-                <Button 
-                    variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                    onClick={() => setViewMode('calendar')}
-                    title={t('schedules.calendarView')}
-                >
-                    <CalendarIcon size={18} />
-                </Button>
-                {canEdit && (
+                {!embedded && (
                     <Button
-                        variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                        onClick={() => setViewMode('list')}
-                        title={t('schedules.listView')}
+                        variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
+                        onClick={() => setViewMode('calendar')}
+                        title={t('schedules.calendarView')}
                     >
-                        <List size={18} />
-                    </Button>
-                )}
-                {canEdit && (
-                    <Button
-                        variant="secondary"
-                        onClick={() => navigate('/horarios/editor')}
-                        title="Editor gráfico"
-                    >
-                        <LayoutGrid size={18} />
+                        <CalendarIcon size={18} />
                     </Button>
                 )}
                 
@@ -658,7 +643,7 @@ const Horarios = () => {
             </div>
         </ModalView>
         </div>
-    </Layout>
+    </Wrapper>
   );
 };
 
