@@ -13,6 +13,7 @@ import {
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import Button from '../components/Button';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
@@ -271,11 +272,7 @@ const HorariosEditor = () => {
     if (a.type === 'module' && o?.type === 'cell') {
       const key = `${o.dia}_${slotsDia[o.slot][0]}`;
       // Si la celda está ocupada, no hacemos nada (la celda no acepta double)
-      if (placements[key]) {
-        console.log('🚫 Celda ocupada, ignorado:', key);
-        return;
-      }
-      console.log('➕ Panel → celda:', { imparticionId: a.imparticionId, key });
+      if (placements[key]) return;
       // Horas restantes del módulo
       const total = imps.find(i => i.id === a.imparticionId)?.modulo?.horasSemanales || 0;
       if ((horasColocadas[a.imparticionId] || 0) >= total) return;
@@ -299,7 +296,6 @@ const HorariosEditor = () => {
 
     // Caso: de celda a panel (fuera de toda celda, o arrastrado y soltado sin over)
     if (a.type === 'placed' && !o) {
-      console.log('🗑️  Celda → panel (eliminar):', a.slotId);
       setState(prev => {
         const p = { ...prev[selectedGrupo].placements };
         delete p[a.slotId];
@@ -313,8 +309,7 @@ const HorariosEditor = () => {
       const dstHoraIni = slotsDia[o.slot][0];
       const dstHoraFin = slotsDia[o.slot][1];
       const dstKey = `${o.dia}_${dstHoraIni}`;
-      if (srcKey === dstKey) { console.log('🚫 Misma celda, ignorado:', srcKey); return; }
-      console.log('↔️  Mover/swap:', srcKey, '→', dstKey);
+      if (srcKey === dstKey) return;
       const [srcDia, srcHoraIni] = srcKey.split('_');
       const srcSlot = slotsDia.find(s => s[0] === srcHoraIni);
       const srcHoraFin = srcSlot ? srcSlot[1] : null;
@@ -338,8 +333,6 @@ const HorariosEditor = () => {
     try {
       const baseline = grupoState.baseline || {};
       const current = grupoState.placements || {};
-      console.log('📊 baseline en save:', Object.fromEntries(Object.entries(baseline).map(([k,v]) => [k, {imp: v.imparticionId, hid: v.hid}])));
-      console.log('📊 current  en save:', Object.fromEntries(Object.entries(current).map(([k,v]) => [k, {imp: v.imparticionId, hid: v.hid}])));
       const toCreate = [];
       const toDelete = [];
       // Creates + updates
@@ -359,11 +352,8 @@ const HorariosEditor = () => {
 
       // Apply deletes
       const errors = [];
-      console.log('🗑️  toDelete:', toDelete);
-      console.log('➕ toCreate:', toCreate);
       for (const hid of toDelete) {
         const res = await fetch(getApiUrl(`/api/horarios/${hid}`), { method: 'DELETE', credentials: 'include' });
-        console.log(`🗑️  DELETE /api/horarios/${hid} → ${res.status}`);
         if (!res.ok) {
           errors.push(`DELETE ${hid} → ${res.status}`);
         }
@@ -391,12 +381,10 @@ const HorariosEditor = () => {
         });
         if (res.ok) {
           const data = await res.json();
-          console.log('✅ POST horario OK:', body, '→ id', data.id || data['@id']);
           nuevos.push({ key, hid: data.id || getId(data['@id']) });
         } else {
           const txt = await res.text().catch(() => '');
           errors.push(`POST ${key} → ${res.status}: ${txt.slice(0, 200)}`);
-          console.error('POST horario fallido:', body, '→', res.status, txt);
         }
       }
       if (errors.length) {
@@ -450,17 +438,16 @@ const HorariosEditor = () => {
           title="Editor de horarios"
           logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
         >
-          <select
-            className=""
+          <ThemedSelect
             value={selectedGrupo}
-            onChange={(e) => setSelectedGrupo(e.target.value)}
-          >
-            {grupos.map(g => (
-              <option key={g.id} value={g.id}>
-                {g.nombre} — {g.anioEscolar}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedGrupo}
+            minWidth={240}
+            ariaLabel="Seleccionar grupo"
+            options={grupos.map(g => ({
+              value: String(g.id),
+              label: `${g.nombre} — ${g.anioEscolar}`,
+            }))}
+          />
           {estadoBadge && (
             <span className={`${styles.statusBadge} ${estadoBadge.cls}`}>
               {estadoBadge.icon}
