@@ -230,7 +230,7 @@ const MaterialesAlumno = () => {
             </div>
             <div className={styles.itemActions}>
                 <a 
-                    href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
+                    href={getAssetUrl(`/uploads/materiales/${mat.id}/${mat.archivo}`)}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className={styles.downloadLink}

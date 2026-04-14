@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styles from './Academic.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
@@ -21,6 +21,7 @@ const Entregas = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     asignaturas, loading, error, fetchData,
@@ -31,6 +32,8 @@ const Entregas = () => {
   const [misEntregas, setMisEntregas] = useState({});
   const [expandedId, setExpandedId] = useState(null);
   const [activeTab, setActiveTab] = useState('todos');
+  const [periodos, setPeriodos] = useState([]);
+  const [selectedPeriodo, setSelectedPeriodo] = useState('');
 
   const tabs = [
     { key: 'todos', label: t('grades.filterAll') },
@@ -39,11 +42,76 @@ const Entregas = () => {
     { key: 'practica', label: t('grades.practice') },
   ];
 
+  // Cargar períodos evaluativos de todos los grupos implicados
+  useEffect(() => {
+    if (!asignaturas || asignaturas.length === 0) { setPeriodos([]); return; }
+    const grupoIds = [...new Set(asignaturas.map(a => {
+      const g = a.grupo;
+      if (!g) return null;
+      if (typeof g === 'string') return g.split('/').pop();
+      return g.id || g['@id']?.split('/').pop();
+    }).filter(Boolean))];
+    if (grupoIds.length === 0) { setPeriodos([]); return; }
+
+    const fetchAll = async () => {
+      try {
+        const results = await Promise.all(grupoIds.map(gid =>
+          fetch(getApiUrl(`/api/periodo_evaluativos?grupo=${gid}&order[fechaInicio]=asc`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+          }).then(r => r.ok ? r.json() : null)
+        ));
+        // Deduplicar por nombre+tipo (distintos grupos generan registros distintos con el mismo nombre)
+        const byKey = new Map();
+        results.forEach(r => {
+          if (!r) return;
+          const items = r['hydra:member'] || r.member || [];
+          items.forEach(p => {
+            const key = `${p.tipo || ''}::${p.nombre || ''}`;
+            if (!byKey.has(key)) {
+              byKey.set(key, { key, nombre: p.nombre, tipo: p.tipo, rangos: [] });
+            }
+            byKey.get(key).rangos.push({ fechaInicio: p.fechaInicio, fechaFin: p.fechaFin });
+          });
+        });
+        const merged = Array.from(byKey.values()).sort((a, b) => {
+          const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+          const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+          if (aExtra !== bExtra) return aExtra - bExtra;
+          const aMin = a.rangos.map(r => r.fechaInicio).sort()[0] || '';
+          const bMin = b.rangos.map(r => r.fechaInicio).sort()[0] || '';
+          return aMin.localeCompare(bMin);
+        });
+        setPeriodos(merged);
+      } catch { /* no crítico */ }
+    };
+    fetchAll();
+  }, [asignaturas]);
+
+  // Filtro de tareas por periodo (por fechaLimite). Un periodo puede venir de varios grupos → varios rangos.
+  const periodoRanges = useMemo(() => {
+    if (!selectedPeriodo) return null;
+    const p = periodos.find(pp => pp.key === selectedPeriodo);
+    if (!p) return null;
+    return p.rangos.map(r => {
+      const ini = new Date(r.fechaInicio);
+      const fin = new Date(r.fechaFin);
+      fin.setHours(23, 59, 59, 999);
+      return { ini, fin };
+    });
+  }, [selectedPeriodo, periodos]);
+
+  const enPeriodo = (tarea) => {
+    if (!periodoRanges) return true;
+    if (!tarea.fechaLimite) return false;
+    const d = new Date(tarea.fechaLimite);
+    return periodoRanges.some(r => d >= r.ini && d <= r.fin);
+  };
+
   const globalCounts = useMemo(() => {
     const c = { todos: 0, examen: 0, tarea: 0, practica: 0 };
-    asignaturas.forEach(a => (a.tareas || []).forEach(t => { c.todos++; if (c[t.tipo] !== undefined) c[t.tipo]++; }));
+    asignaturas.forEach(a => (a.tareas || []).filter(enPeriodo).forEach(t => { c.todos++; if (c[t.tipo] !== undefined) c[t.tipo]++; }));
     return c;
-  }, [asignaturas]);
+  }, [asignaturas, periodoRanges]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Modal Alumno (Subir Entrega)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -125,6 +193,28 @@ const Entregas = () => {
     }
   };
 
+  // Deep-link desde /tareas: ?imparticion=X&tarea=Y → abrir accordion + modal de entregas
+  useEffect(() => {
+    const impParam = searchParams.get('imparticion');
+    const tareaParam = searchParams.get('tarea');
+    if (!impParam || !tareaParam || asignaturas.length === 0) return;
+
+    const imp = asignaturas.find(a => String(a.id) === String(impParam));
+    if (!imp) return;
+    const tarea = (imp.tareas || []).find(tr => String(tr.id) === String(tareaParam));
+    if (!tarea) return;
+
+    setExpandedId(imp.id);
+    handleViewEntregas(tarea);
+
+    // Limpiar los params para que no se vuelva a disparar
+    const next = new URLSearchParams(searchParams);
+    next.delete('imparticion');
+    next.delete('tarea');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asignaturas]);
+
   const handleViewEntregas = async (tarea) => {
     setCurrentTarea(tarea);
     setIsViewModalOpen(true);
@@ -190,7 +280,7 @@ const Entregas = () => {
   };
 
   const renderContent = (imparticion) => {
-    const allTareas = imparticion.tareas || [];
+    const allTareas = (imparticion.tareas || []).filter(enPeriodo);
     const tareas = activeTab === 'todos' ? allTareas : allTareas.filter(t => t.tipo === activeTab);
     if (allTareas.length === 0) return <div className={styles.emptyState}>{t('deliveries.noTasks')}</div>;
     if (tareas.length === 0) return <div className={styles.emptyState}>{t('grades.noTasksType')}</div>;
@@ -269,7 +359,7 @@ const Entregas = () => {
       header: t('deliveries.filesCol'),
       accessor: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {row.archivo && <a href={getAssetUrl(`/uploads/entregas/${row.archivo}`)} target="_blank" className={styles.fileLink}><Download size={14} /> {t('deliveries.file')}</a>}
+          {row.archivo && <a href={getAssetUrl(`/uploads/entregas/${row.id}/${row.archivo}`)} target="_blank" className={styles.fileLink}><Download size={14} /> {t('deliveries.file')}</a>}
           {row.enlace && <a href={row.enlace} target="_blank" className={styles.fileLink}><FileText size={14} /> {t('deliveries.link')}</a>}
         </div>
       )
@@ -298,6 +388,18 @@ const Entregas = () => {
           logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
           {isSuperAdmin && <SuperAdminFilters filters={filters} selectClassName={styles.select} />}
+          {(isProfesor || isAdmin || isSuperAdmin) && periodos.length > 0 && (
+            <select
+              className={styles.select}
+              value={selectedPeriodo}
+              onChange={(e) => setSelectedPeriodo(e.target.value)}
+            >
+              <option value="">{t('grades.allPeriods')}</option>
+              {periodos.map(p => (
+                <option key={p.key} value={p.key}>{p.nombre}</option>
+              ))}
+            </select>
+          )}
         </CrudHeader>
 
         {loading ? (
