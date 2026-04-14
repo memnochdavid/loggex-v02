@@ -292,7 +292,11 @@ const Entregas = () => {
     if (!tarea) return;
 
     setExpandedId(imp.id);
-    handleViewEntregas(tarea);
+    if (isAlumno) {
+      handleOpenUploadModal(tarea);
+    } else {
+      handleViewEntregas(tarea);
+    }
 
     // Limpiar los params para que no se vuelva a disparar
     const next = new URLSearchParams(searchParams);
@@ -308,12 +312,12 @@ const Entregas = () => {
     setLoadingEntregas(true);
     try {
       const tareaId = tarea.id || tarea['@id'].split('/').pop();
-      const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
+      const response = await fetch(getApiUrl(`/api/entregas?tarea=${tareaId}&pagination=false`), {
         headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
       });
       if (!response.ok) throw new Error(`Error ${response.status}`);
       const data = await response.json();
-      setEntregasTarea(data.entregas || []);
+      setEntregasTarea(data['hydra:member'] || data.member || []);
     } catch (err) {
       console.error(err);
       alert(t('deliveries.errorLoadDeliveries'));

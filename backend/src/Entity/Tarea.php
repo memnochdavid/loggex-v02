@@ -89,7 +89,8 @@ class Tarea
     private ?Imparticion $imparticion = null;
 
     #[ORM\OneToMany(mappedBy: 'tarea', targetEntity: Entrega::class)]
-    #[Groups(['tarea:read'])] // Añadido para que el profesor pueda ver las entregas
+    // NO serializar aquí: filtraría las entregas de todos los alumnos a cualquiera con acceso a la tarea.
+    // El profesor obtiene la lista vía GET /api/entregas?tarea={id}.
     private Collection $entregas;
 
     public function __construct()
