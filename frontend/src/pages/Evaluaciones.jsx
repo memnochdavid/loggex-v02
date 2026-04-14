@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 
 const TIPOS = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'ORDINARIA_FINAL', 'EXTRAORDINARIA'];
 
-const Evaluaciones = ({ embedded = false }) => {
+const Evaluaciones = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -249,16 +249,11 @@ const Evaluaciones = ({ embedded = false }) => {
 
   const body = (
     <>
-      {embedded ? (
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-          {toolbar}
-        </div>
-      ) : (
-        <CrudHeader title="Evaluaciones"
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}>
-          {toolbar}
-        </CrudHeader>
-      )}
+      <CrudHeader title={embedded ? t('dates.title') : t('dates.tabEvaluations')}
+                  logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                  middle={tabs}>
+        {toolbar}
+      </CrudHeader>
 
       {error && <div className={styles.errorContainer}><p>{error}</p></div>}
 

@@ -1106,5 +1106,10 @@
   },
   "themedSelect": {
     "placeholder": "Aukeratu…"
+  },
+  "dates": {
+    "title": "Datak",
+    "tabHolidays": "Jaiegunak",
+    "tabEvaluations": "Ebaluazioak"
   }
 }

@@ -610,9 +610,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const activeImp = activeDrag?.imparticionId ? imps.find(i => i.id === activeDrag.imparticionId) : null;
 
   const Wrapper = embedded ? React.Fragment : Layout;
+  const Container = embedded ? React.Fragment : ({ children }) => <div className={styles.container}>{children}</div>;
   return (
     <Wrapper>
-      <div className={styles.container}>
+      <Container>
         <CrudHeader
           title={embedded ? t('schedules.title') : t('scheduleEditor.title')}
           logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
@@ -729,7 +730,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             <span>{dragError}</span>
           </div>
         )}
-      </div>
+      </Container>
     </Wrapper>
   );
 };

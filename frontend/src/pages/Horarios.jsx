@@ -462,9 +462,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   ], [handleOpenModal, handleDelete]);
 
   const Wrapper = embedded ? React.Fragment : Layout;
+  const Container = embedded ? React.Fragment : ({ children }) => <div className={styles.container}>{children}</div>;
   return (
     <Wrapper>
-        <div className={styles.container}>
+        <Container>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                     middle={tabs}
@@ -643,7 +644,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 </select>
             </div>
         </ModalView>
-        </div>
+        </Container>
     </Wrapper>
   );
 };

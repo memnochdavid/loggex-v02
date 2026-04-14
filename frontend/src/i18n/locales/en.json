@@ -1106,5 +1106,10 @@
   },
   "themedSelect": {
     "placeholder": "Select…"
+  },
+  "dates": {
+    "title": "Dates",
+    "tabHolidays": "Holidays",
+    "tabEvaluations": "Evaluations"
   }
 }

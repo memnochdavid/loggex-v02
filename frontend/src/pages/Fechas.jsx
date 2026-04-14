@@ -1,41 +1,39 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/Layout';
-import CrudHeader from '../components/CrudHeader';
-import Lottie from 'lottie-react';
-import crudAnimation from '../../public/crud.json';
 import styles from './Crud.module.css';
 import calStyles from './Calificaciones.module.css';
 import Festivos from './Festivos';
 import Evaluaciones from './Evaluaciones';
 
 const Fechas = () => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState('festivos');
+
+  const tabs = (
+    <div className={calStyles.tabBar} style={{ margin: 0 }}>
+      <button
+        type="button"
+        className={`${calStyles.tab} ${tab === 'festivos' ? calStyles.tabActive : ''}`}
+        onClick={() => setTab('festivos')}
+      >
+        {t('dates.tabHolidays')}
+      </button>
+      <button
+        type="button"
+        className={`${calStyles.tab} ${tab === 'evaluaciones' ? calStyles.tabActive : ''}`}
+        onClick={() => setTab('evaluaciones')}
+      >
+        {t('dates.tabEvaluations')}
+      </button>
+    </div>
+  );
 
   return (
     <Layout>
       <div className={styles.container}>
-        <CrudHeader
-          title="Fechas"
-          logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        />
-
-        <div className={calStyles.tabBar} style={{ marginBottom: 'var(--space-4)' }}>
-          <button
-            className={`${calStyles.tab} ${tab === 'festivos' ? calStyles.tabActive : ''}`}
-            onClick={() => setTab('festivos')}
-          >
-            Festivos
-          </button>
-          <button
-            className={`${calStyles.tab} ${tab === 'evaluaciones' ? calStyles.tabActive : ''}`}
-            onClick={() => setTab('evaluaciones')}
-          >
-            Evaluaciones
-          </button>
-        </div>
-
-        {tab === 'festivos' && <Festivos embedded />}
-        {tab === 'evaluaciones' && <Evaluaciones embedded />}
+        {tab === 'festivos'     && <Festivos     embedded tabs={tabs} />}
+        {tab === 'evaluaciones' && <Evaluaciones embedded tabs={tabs} />}
       </div>
     </Layout>
   );

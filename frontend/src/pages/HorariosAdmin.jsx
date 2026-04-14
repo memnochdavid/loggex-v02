@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/Layout';
+import styles from './Crud.module.css';
 import calStyles from './Calificaciones.module.css';
 import Horarios from './Horarios';
 import HorariosEditor from './HorariosEditor';
@@ -30,8 +31,10 @@ const HorariosAdmin = () => {
 
     return (
         <Layout>
-            {tab === 'editor' && <HorariosEditor embedded tabs={tabs} />}
-            {tab === 'lista'  && <Horarios       embedded tabs={tabs} />}
+            <div className={styles.container}>
+                {tab === 'editor' && <HorariosEditor embedded tabs={tabs} />}
+                {tab === 'lista'  && <Horarios       embedded tabs={tabs} />}
+            </div>
         </Layout>
     );
 };
