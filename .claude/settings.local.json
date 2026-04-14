@@ -31,7 +31,8 @@
       "Bash(ls -la /home/david/Documentos/CLASE/loggex-v02/frontend/src/pages/Calificacion* /home/david/Documentos/CLASE/loggex-v02/frontend/src/pages/MisCalificaciones*)",
       "Bash(ls -lh /home/david/Documentos/CLASE/loggex-v02/backup_tfg*.sql)",
       "Bash(gh repo:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(xargs '-I{}' bash -c 'n=$\\(grep -c \"className={styles.select}\" \"{}\"\\); echo \"{}: $n\"')"
     ]
   }
 }

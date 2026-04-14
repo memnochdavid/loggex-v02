@@ -3,6 +3,7 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
@@ -413,33 +414,31 @@ const Modulos = () => {
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => {
-                        setSelectedCentro(e.target.value);
-                        setSelectedCiclo(''); // Resetear ciclo al cambiar centro
-                    }}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">{t('common.allCenters')}</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedCiclo(''); }}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
 
-            <select 
-                className={styles.select} 
-                value={selectedCiclo} 
-                onChange={(e) => setSelectedCiclo(e.target.value)}
-                style={{ width: '200px' }}
-            >
-                <option value="">{t('common.allCycles')}</option>
-                {ciclos.map(c => (
-                    <option key={c.id || c['@id']} value={c.id || c['@id'].split('/').pop()}>{c.nombre}</option>
-                ))}
-            </select>
+            <ThemedSelect
+                value={selectedCiclo}
+                onChange={setSelectedCiclo}
+                minWidth={200}
+                ariaLabel={t('common.allCycles')}
+                options={[
+                    { value: '', label: t('common.allCycles') },
+                    ...ciclos.map(c => ({
+                        value: String(c.id || c['@id']?.split('/').pop()),
+                        label: c.nombre,
+                    })),
+                ]}
+            />
             
             <SearchBar 
                 value={searchTerm} 

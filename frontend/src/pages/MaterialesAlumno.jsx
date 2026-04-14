@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
@@ -319,72 +320,64 @@ const MaterialesAlumno = () => {
         >
             {isSuperAdmin && (
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <select 
-                        className={styles.select}
+                    <ThemedSelect
                         value={selectedCentro}
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                        style={{ minWidth: '200px' }}
-                    >
-                        <option value="">{t('common.allCenters')}</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-
+                        onChange={setSelectedCentro}
+                        minWidth={200}
+                        ariaLabel={t('common.allCenters')}
+                        options={[
+                            { value: '', label: t('common.allCenters') },
+                            ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                        ]}
+                    />
                     {availableYears.length > 0 && (
-                        <select
-                            className={styles.select}
+                        <ThemedSelect
                             value={selectedYear}
-                            onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                            onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); }}
                             disabled={!selectedCentro}
-                            style={{ minWidth: '140px' }}
-                        >
-                            <option value="">{t('grades.allYears')}</option>
-                            {availableYears.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
+                            minWidth={140}
+                            ariaLabel={t('grades.allYears')}
+                            options={[
+                                { value: '', label: t('grades.allYears') },
+                                ...availableYears.map(y => ({ value: y, label: y })),
+                            ]}
+                        />
                     )}
-
-                    <select
-                        className={styles.select}
+                    <ThemedSelect
                         value={selectedGrupo}
-                        onChange={(e) => setSelectedGrupo(e.target.value)}
+                        onChange={setSelectedGrupo}
                         disabled={!selectedCentro}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="">{t('common.allGroups')}</option>
-                        {grupos.map(g => (
-                            <option key={g.id} value={g.id}>{g.nombre}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        className={styles.select}
+                        minWidth={150}
+                        ariaLabel={t('common.allGroups')}
+                        options={[
+                            { value: '', label: t('common.allGroups') },
+                            ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                        ]}
+                    />
+                    <ThemedSelect
                         value={selectedModulo}
-                        onChange={(e) => setSelectedModulo(e.target.value)}
+                        onChange={setSelectedModulo}
                         disabled={!selectedGrupo}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="">{t('common.allModules')}</option>
-                        {modulos.map(m => (
-                            <option key={m.id} value={m.id}>{m.nombre}</option>
-                        ))}
-                    </select>
+                        minWidth={150}
+                        ariaLabel={t('common.allModules')}
+                        options={[
+                            { value: '', label: t('common.allModules') },
+                            ...modulos.map(m => ({ value: String(m.id), label: m.nombre })),
+                        ]}
+                    />
                 </div>
             )}
             {periodos.length > 0 && (
-                <select
-                    className={styles.select}
+                <ThemedSelect
                     value={selectedPeriodo}
-                    onChange={(e) => setSelectedPeriodo(e.target.value)}
-                    style={{ minWidth: '150px' }}
-                >
-                    <option value="">{t('grades.allPeriods')}</option>
-                    {periodos.map(p => (
-                        <option key={p.key} value={p.key}>{p.nombre}</option>
-                    ))}
-                </select>
+                    onChange={setSelectedPeriodo}
+                    minWidth={180}
+                    ariaLabel={t('grades.allPeriods')}
+                    options={[
+                        { value: '', label: t('grades.allPeriods') },
+                        ...periodos.map(p => ({ value: p.key, label: p.nombre })),
+                    ]}
+                />
             )}
         </CrudHeader>
 

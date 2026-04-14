@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
@@ -142,30 +143,27 @@ const Companeros = () => {
                 >
                     {isSuperAdmin && (
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginRight: '1rem' }}>
-                            <select 
-                                className={styles.select}
+                            <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(e) => setSelectedCentro(e.target.value)}
-                                style={{ minWidth: '200px' }}
-                            >
-                                <option value="">{t('common.allCenters')}</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
-
-                            <select 
-                                className={styles.select}
+                                onChange={setSelectedCentro}
+                                minWidth={200}
+                                ariaLabel={t('common.allCenters')}
+                                options={[
+                                    { value: '', label: t('common.allCenters') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
+                            <ThemedSelect
                                 value={selectedGrupo}
-                                onChange={(e) => setSelectedGrupo(e.target.value)}
+                                onChange={setSelectedGrupo}
                                 disabled={!selectedCentro}
-                                style={{ minWidth: '150px' }}
-                            >
-                                <option value="">{t('common.allGroups')}</option>
-                                {grupos.map(g => (
-                                    <option key={g.id} value={g.id}>{g.nombre}</option>
-                                ))}
-                            </select>
+                                minWidth={150}
+                                ariaLabel={t('common.allGroups')}
+                                options={[
+                                    { value: '', label: t('common.allGroups') },
+                                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                ]}
+                            />
                         </div>
                     )}
                     <SearchBar 

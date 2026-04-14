@@ -3,6 +3,7 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
@@ -447,17 +448,16 @@ const Imparticiones = () => {
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">{t('common.allCenters')}</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={setSelectedCentro}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
             
             <SearchBar 

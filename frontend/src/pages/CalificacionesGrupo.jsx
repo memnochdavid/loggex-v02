@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import Button from '../components/Button';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
@@ -318,56 +319,52 @@ const CalificacionesGrupo = () => {
                     <div className={styles.controls}>
                         {isSuperAdmin && (
                             <>
-                            <select
-                                className={styles.periodSelect}
+                            <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(e) => { setSelectedCentro(e.target.value); setSelectedImparticion(''); setSelectedPeriodo(''); }}
-                            >
-                                <option value="">{t('common.selectCenter')}</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
+                                onChange={(v) => { setSelectedCentro(v); setSelectedImparticion(''); setSelectedPeriodo(''); }}
+                                minWidth={180}
+                                ariaLabel={t('common.selectCenter')}
+                                options={[
+                                    { value: '', label: t('common.selectCenter') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
                             {availableYears.length > 0 && (
-                                <select
-                                    className={styles.periodSelect}
+                                <ThemedSelect
                                     value={selectedYear}
-                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedPeriodo(''); }}
-                                    style={{ minWidth: '140px' }}
-                                >
-                                    <option value="">{t('grades.allYears')}</option>
-                                    {availableYears.map(y => (
-                                        <option key={y} value={y}>{y}</option>
-                                    ))}
-                                </select>
+                                    onChange={(v) => { setSelectedYear(v); setSelectedPeriodo(''); }}
+                                    minWidth={140}
+                                    ariaLabel={t('grades.allYears')}
+                                    options={[
+                                        { value: '', label: t('grades.allYears') },
+                                        ...availableYears.map(y => ({ value: y, label: y })),
+                                    ]}
+                                />
                             )}
                             </>
                         )}
-                        <select
-                            className={styles.periodSelect}
+                        <ThemedSelect
                             value={selectedImparticion}
-                            onChange={(e) => { setSelectedImparticion(e.target.value); setSelectedPeriodo(''); }}
-                        >
-                            {imparticiones.map(imp => {
+                            onChange={(v) => { setSelectedImparticion(v); setSelectedPeriodo(''); }}
+                            minWidth={220}
+                            options={imparticiones.map(imp => {
                                 const id = imp.id || imp['@id']?.split('/').pop();
-                                return (
-                                    <option key={id} value={id}>
-                                        {getImparticionLabel(imp)}
-                                    </option>
-                                );
+                                return { value: String(id), label: getImparticionLabel(imp) };
                             })}
-                        </select>
-                        <select
-                            className={styles.periodSelect}
+                        />
+                        <ThemedSelect
                             value={selectedPeriodo}
-                            onChange={(e) => setSelectedPeriodo(e.target.value)}
-                        >
-                            <option value="">{t('grades.allPeriods')}</option>
-                            {periodos.map(p => {
-                                const id = p.id || p['@id']?.split('/').pop();
-                                return <option key={id} value={id}>{p.nombre}</option>;
-                            })}
-                        </select>
+                            onChange={setSelectedPeriodo}
+                            minWidth={180}
+                            ariaLabel={t('grades.allPeriods')}
+                            options={[
+                                { value: '', label: t('grades.allPeriods') },
+                                ...periodos.map(p => {
+                                    const id = p.id || p['@id']?.split('/').pop();
+                                    return { value: String(id), label: p.nombre };
+                                }),
+                            ]}
+                        />
                         {isProfesor && (
                             <Button onClick={() => setShowWeights(!showWeights)}>
                                 <Settings size={16} />

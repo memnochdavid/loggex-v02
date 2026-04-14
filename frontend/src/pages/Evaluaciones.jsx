@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import ThemedSelect from '../components/ThemedSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
@@ -219,25 +220,27 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
   const toolbar = (
     <>
       {isSuperAdmin && (
-        <select
-          className={styles.select}
+        <ThemedSelect
           value={selectedCentro}
-          onChange={e => { setSelectedCentro(e.target.value); setSelectedGrupo(''); }}
-          style={{ minWidth: '180px', maxWidth: '240px' }}
-        >
-          <option value="">{t('common.allCenters')}</option>
-          {centros.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-        </select>
+          onChange={(v) => { setSelectedCentro(v); setSelectedGrupo(''); }}
+          minWidth={200}
+          ariaLabel={t('common.allCenters')}
+          options={[
+            { value: '', label: t('common.allCenters') },
+            ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+          ]}
+        />
       )}
-      <select
-        className={styles.select}
+      <ThemedSelect
         value={selectedGrupo}
-        onChange={e => setSelectedGrupo(e.target.value)}
-        style={{ minWidth: '180px', maxWidth: '240px' }}
-      >
-        <option value="">Todos los grupos</option>
-        {gruposFiltrados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-      </select>
+        onChange={setSelectedGrupo}
+        minWidth={200}
+        ariaLabel={t('common.allGroups')}
+        options={[
+          { value: '', label: t('common.allGroups') },
+          ...gruposFiltrados.map(g => ({ value: String(g.id), label: g.nombre })),
+        ]}
+      />
       {canCreate && (
         <Button onClick={() => handleOpen()}>
           <Plus size={18} style={{ marginRight: '8px' }} />

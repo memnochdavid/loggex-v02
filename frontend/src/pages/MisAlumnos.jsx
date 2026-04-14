@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import AccordionView from '../components/AccordionView';
 import UserCard from '../components/UserCard';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
@@ -287,45 +288,40 @@ const MisAlumnos = () => {
                 >
                     {isSuperAdmin && (
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <select 
-                                className={styles.select}
+                            <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(e) => setSelectedCentro(e.target.value)}
-                                style={{ minWidth: '200px' }}
-                            >
-                                <option value="">{t('common.allCenters')}</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
-
+                                onChange={setSelectedCentro}
+                                minWidth={200}
+                                ariaLabel={t('common.allCenters')}
+                                options={[
+                                    { value: '', label: t('common.allCenters') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
                             {availableYears.length > 0 && (
-                                <select
-                                    className={styles.select}
+                                <ThemedSelect
                                     value={selectedYear}
-                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedProfesor(''); }}
+                                    onChange={(v) => { setSelectedYear(v); setSelectedProfesor(''); }}
                                     disabled={!selectedCentro}
-                                    style={{ minWidth: '140px' }}
-                                >
-                                    <option value="">{t('grades.allYears')}</option>
-                                    {availableYears.map(y => (
-                                        <option key={y} value={y}>{y}</option>
-                                    ))}
-                                </select>
+                                    minWidth={140}
+                                    ariaLabel={t('grades.allYears')}
+                                    options={[
+                                        { value: '', label: t('grades.allYears') },
+                                        ...availableYears.map(y => ({ value: y, label: y })),
+                                    ]}
+                                />
                             )}
-
-                            <select
-                                className={styles.select}
+                            <ThemedSelect
                                 value={selectedProfesor}
-                                onChange={(e) => setSelectedProfesor(e.target.value)}
+                                onChange={setSelectedProfesor}
                                 disabled={!selectedCentro}
-                                style={{ minWidth: '200px' }}
-                            >
-                                <option value="">{t('common.allTeachers')}</option>
-                                {profesores.map(p => (
-                                    <option key={p.id} value={p.id}>{p.nombre} {p.apellidos}</option>
-                                ))}
-                            </select>
+                                minWidth={200}
+                                ariaLabel={t('common.allTeachers')}
+                                options={[
+                                    { value: '', label: t('common.allTeachers') },
+                                    ...profesores.map(p => ({ value: String(p.id), label: `${p.nombre} ${p.apellidos}` })),
+                                ]}
+                            />
                         </div>
                     )}
                 </CrudHeader>

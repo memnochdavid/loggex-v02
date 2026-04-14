@@ -8,6 +8,7 @@ import DataTable from '../components/DataTable';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import SuperAdminFilters from '../components/SuperAdminFilters';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import useImparticiones from '../hooks/useImparticiones';
 import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip } from 'lucide-react';
@@ -518,16 +519,16 @@ const Entregas = () => {
         >
           {isSuperAdmin && <SuperAdminFilters filters={filters} selectClassName={styles.select} />}
           {periodos.length > 0 && (
-            <select
-              className={styles.select}
+            <ThemedSelect
               value={selectedPeriodo}
-              onChange={(e) => setSelectedPeriodo(e.target.value)}
-            >
-              <option value="">{t('grades.allPeriods')}</option>
-              {periodos.map(p => (
-                <option key={p.key} value={p.key}>{p.nombre}</option>
-              ))}
-            </select>
+              onChange={setSelectedPeriodo}
+              minWidth={180}
+              ariaLabel={t('grades.allPeriods')}
+              options={[
+                { value: '', label: t('grades.allPeriods') },
+                ...periodos.map(p => ({ value: p.key, label: p.nombre })),
+              ]}
+            />
           )}
         </CrudHeader>
 

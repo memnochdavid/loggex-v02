@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
@@ -108,17 +109,16 @@ const Claustro = () => {
                             logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                 >
                     {isSuperAdmin && (
-                        <select 
-                            className={styles.select} // Usar clase de Academic.module.css (o importarla si no está disponible globalmente, pero styles apunta a Academic)
+                        <ThemedSelect
                             value={selectedCentro}
-                            onChange={(e) => setSelectedCentro(e.target.value)}
-                            style={{ minWidth: '200px', marginRight: '1rem' }}
-                        >
-                            <option value="">{t('common.allCenters')}</option>
-                            {centros.map(c => (
-                                <option key={c.id} value={c.id}>{c.nombre}</option>
-                            ))}
-                        </select>
+                            onChange={setSelectedCentro}
+                            minWidth={200}
+                            ariaLabel={t('common.allCenters')}
+                            options={[
+                                { value: '', label: t('common.allCenters') },
+                                ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                            ]}
+                        />
                     )}
                     <SearchBar 
                         value={searchTerm} 

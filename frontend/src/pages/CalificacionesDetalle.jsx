@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
+import ThemedSelect from '../components/ThemedSelect';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Edit2, Check, X } from 'lucide-react';
@@ -336,17 +337,19 @@ const CalificacionesDetalle = () => {
                         {mediaData?.alumno?.apellidos}, {mediaData?.alumno?.nombre}
                     </h1>
                     <div className={styles.controls}>
-                        <select
-                            className={styles.periodSelect}
+                        <ThemedSelect
                             value={selectedPeriodo}
-                            onChange={(e) => setSelectedPeriodo(e.target.value)}
-                        >
-                            <option value="">{t('grades.allPeriods')}</option>
-                            {periodos.map(p => {
-                                const id = p.id || p['@id']?.split('/').pop();
-                                return <option key={id} value={id}>{p.nombre}</option>;
-                            })}
-                        </select>
+                            onChange={setSelectedPeriodo}
+                            minWidth={180}
+                            ariaLabel={t('grades.allPeriods')}
+                            options={[
+                                { value: '', label: t('grades.allPeriods') },
+                                ...periodos.map(p => {
+                                    const id = p.id || p['@id']?.split('/').pop();
+                                    return { value: String(id), label: p.nombre };
+                                }),
+                            ]}
+                        />
                     </div>
                 </div>
 

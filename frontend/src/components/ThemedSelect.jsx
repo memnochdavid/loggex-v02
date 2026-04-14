@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './ThemedSelect.module.css';
-import crudStyles from '../pages/Crud.module.css';
 
 /**
  * Select estilizado con el mismo patrón visual que el LanguageSelector del header
@@ -34,7 +33,7 @@ const ThemedSelect = ({ value, onChange, options = [], placeholder, minWidth = 2
         <div className={styles.container} ref={ref}>
             <button
                 type="button"
-                className={`${crudStyles.input} ${crudStyles.select} ${styles.triggerExtras}`}
+                className={`${styles.triggerExtras} ${open ? styles.open : ''}`}
                 onClick={() => !disabled && setOpen(v => !v)}
                 disabled={disabled}
                 style={{ minWidth }}
