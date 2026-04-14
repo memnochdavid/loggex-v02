@@ -147,7 +147,8 @@
     "grades": "Grades",
     "myGrades": "My Grades",
     "stats": "Statistics",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "scheduleAdmin": "Schedules (admin)"
   },
   "userAvatar": {
     "menuLabel": "User menu",
@@ -1069,5 +1070,41 @@
     "generating": "Generating...",
     "selectPeriodFirst": "Select an assessment first",
     "pdfLanguage": "PDF language"
+  },
+  "scheduleEditor": {
+    "title": "Schedule editor",
+    "tabEditor": "Graphic editor",
+    "tabList": "List",
+    "selectYear": "Select school year",
+    "selectGroup": "Select group",
+    "emptyState": "Select a group to start.",
+    "panelModules": "Modules ({{count}})",
+    "panelHint": "Drag a module onto the timetable. Drag a class onto the panel to remove it.",
+    "statusComplete": "Complete · {{done}}/{{total}}h",
+    "statusDraft": "Draft · {{done}}/{{total}}h",
+    "statusIncomplete": "Incomplete · {{done}}/{{total}}h",
+    "saveChanges": "Save changes",
+    "saved": "Saved",
+    "saving": "Saving…",
+    "saveError": "Save failed: {{message}}",
+    "turno": "Shift",
+    "turnoMorning": "Morning",
+    "turnoAfternoon": "Afternoon",
+    "classroom": "Room",
+    "slotsPlaced": "Slots",
+    "slotsPlacedValue": "{{done}}/{{total}} placed",
+    "reasonUnknownImp": "Unknown imparticion",
+    "reasonModuleFull": "You already placed all {{total}}h of {{module}}",
+    "reasonCellOccupied": "Slot occupied",
+    "reasonTeacherBusy": "{{teacher}} is already teaching a parallel group at that time"
+  },
+  "profLoad": {
+    "title": "Weekly teacher workload",
+    "subtitle": "Max. {{max}} h/week · Overtime allowed up to 80 h/year",
+    "tooltip": "In this group: {{actual}}h · In other groups: {{other}}h",
+    "overflow": "+{{hours}}h overtime"
+  },
+  "themedSelect": {
+    "placeholder": "Select…"
   }
 }

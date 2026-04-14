@@ -25,11 +25,11 @@ import styles from './HorariosEditor.module.css';
 
 // Convención del sistema: diaSemana 1=Lunes … 5=Viernes
 const DIAS = [
-  { idx: 1, label: 'Lunes' },
-  { idx: 2, label: 'Martes' },
-  { idx: 3, label: 'Miércoles' },
-  { idx: 4, label: 'Jueves' },
-  { idx: 5, label: 'Viernes' },
+  { idx: 1, i18n: 'days.monday' },
+  { idx: 2, i18n: 'days.tuesday' },
+  { idx: 3, i18n: 'days.wednesday' },
+  { idx: 4, i18n: 'days.thursday' },
+  { idx: 5, i18n: 'days.friday' },
 ];
 
 const SLOTS_MANANA = [
@@ -140,12 +140,13 @@ const SlotCell = ({ dia, slot, content, dragActive, valid }) => {
 };
 
 // ─── Componente principal ──────────────────────────────────────────────
-const HorariosEditor = ({ embedded = false }) => {
+const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [grupos, setGrupos] = useState([]);
+  const [selectedYear, setSelectedYear] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
   // imparticiones indexadas por grupo para conservar entre cambios de selector
   const [imparticiones, setImparticiones] = useState({});
@@ -175,7 +176,16 @@ const HorariosEditor = ({ embedded = false }) => {
       .then(d => {
         const items = d['hydra:member'] || d.member || [];
         setGrupos(items);
-        if (items.length > 0 && !selectedGrupo) setSelectedGrupo(String(items[0].id));
+        if (items.length === 0) return;
+        // Año escolar inicial: el más reciente presente
+        const years = [...new Set(items.map(g => g.anioEscolar).filter(Boolean))].sort().reverse();
+        if (!selectedYear && years.length > 0) {
+          setSelectedYear(years[0]);
+          const primero = items.find(g => g.anioEscolar === years[0]);
+          if (primero) setSelectedGrupo(String(primero.id));
+        } else if (!selectedGrupo) {
+          setSelectedGrupo(String(items[0].id));
+        }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, user?.centro?.id]);
@@ -330,9 +340,9 @@ const HorariosEditor = ({ embedded = false }) => {
     completitud >= 80 ? 'draft' : 'incomplete';
 
   const estadoBadge = {
-    complete:   { cls: styles.statusComplete,   icon: <CheckCircle2 size={16} />, label: `Completo · ${colocadasTotal}/${totalHoras}h` },
-    draft:      { cls: styles.statusDraft,      icon: <AlertTriangle size={16} />, label: `Borrador · ${colocadasTotal}/${totalHoras}h` },
-    incomplete: { cls: styles.statusIncomplete, icon: <XCircle size={16} />,      label: `Incompleto · ${colocadasTotal}/${totalHoras}h` },
+    complete:   { cls: styles.statusComplete,   icon: <CheckCircle2 size={16} />, label: t('scheduleEditor.statusComplete',   { done: colocadasTotal, total: totalHoras }) },
+    draft:      { cls: styles.statusDraft,      icon: <AlertTriangle size={16} />, label: t('scheduleEditor.statusDraft',      { done: colocadasTotal, total: totalHoras }) },
+    incomplete: { cls: styles.statusIncomplete, icon: <XCircle size={16} />,      label: t('scheduleEditor.statusIncomplete', { done: colocadasTotal, total: totalHoras }) },
   }[estado];
 
   // Mapa de imparticion por id (acceso rápido para validación)
@@ -379,25 +389,25 @@ const HorariosEditor = ({ embedded = false }) => {
     const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
     const impId = drag.imparticionId;
     const imp = impById[impId];
-    if (!imp) return { ok: false, reason: 'Imparticion desconocida' };
+    if (!imp) return { ok: false, reason: t('scheduleEditor.reasonUnknownImp') };
 
     // Regla 1: horas restantes > 0 (solo para panel → celda; en swap las horas no cambian globalmente)
     if (drag.type === 'module') {
       const total = imp.modulo?.horasSemanales || 0;
       if ((horasColocadas[impId] || 0) >= total) {
-        return { ok: false, reason: `Ya has colocado las ${total}h de ${imp.modulo?.nombre}` };
+        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total, module: imp.modulo?.nombre }) };
       }
       // Regla extra: la celda debe estar vacía
       if (placements[key]) {
-        return { ok: false, reason: 'Celda ocupada' };
+        return { ok: false, reason: t('scheduleEditor.reasonCellOccupied') };
       }
     }
 
     // Regla 2: profesor ocupado en grupo paralelo
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) {
-      const paraleloNombre = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
-      return { ok: false, reason: `${paraleloNombre} ya imparte en un grupo paralelo a esa hora` };
+      const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
+      return { ok: false, reason: t('scheduleEditor.reasonTeacherBusy', { teacher }) };
     }
 
     return { ok: true };
@@ -567,7 +577,7 @@ const HorariosEditor = ({ embedded = false }) => {
         [selectedGrupo]: { ...prev[selectedGrupo], placements: newBaseline, baseline: newBaseline, dirty: false },
       }));
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      alert(t('scheduleEditor.saveError', { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -604,18 +614,35 @@ const HorariosEditor = ({ embedded = false }) => {
     <Wrapper>
       <div className={styles.container}>
         <CrudHeader
-          title={embedded ? 'Editor gráfico' : 'Editor de horarios'}
-          logo={embedded ? undefined : <Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
+          title={embedded ? t('schedules.title') : t('scheduleEditor.title')}
+          logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
+          middle={tabs}
         >
+          <ThemedSelect
+            value={selectedYear}
+            onChange={(y) => {
+              setSelectedYear(y);
+              // Primer grupo del año elegido queda seleccionado
+              const primero = grupos.find(g => g.anioEscolar === y);
+              setSelectedGrupo(primero ? String(primero.id) : '');
+            }}
+            minWidth={160}
+            ariaLabel={t('scheduleEditor.selectYear')}
+            options={[...new Set(grupos.map(g => g.anioEscolar).filter(Boolean))]
+              .sort().reverse()
+              .map(y => ({ value: y, label: y }))}
+          />
           <ThemedSelect
             value={selectedGrupo}
             onChange={setSelectedGrupo}
-            minWidth={240}
-            ariaLabel="Seleccionar grupo"
-            options={grupos.map(g => ({
-              value: String(g.id),
-              label: `${g.nombre} — ${g.anioEscolar}`,
-            }))}
+            minWidth={220}
+            ariaLabel={t('scheduleEditor.selectGroup')}
+            options={grupos
+              .filter(g => !selectedYear || g.anioEscolar === selectedYear)
+              .map(g => ({
+                value: String(g.id),
+                label: g.nombre,
+              }))}
           />
           {estadoBadge && (
             <span className={`${styles.statusBadge} ${estadoBadge.cls}`}>
@@ -626,17 +653,17 @@ const HorariosEditor = ({ embedded = false }) => {
           <div className={styles.spacer} />
           <Button onClick={handleSave} disabled={!grupoState?.dirty || saving}>
             <Save size={16} style={{ marginRight: 6 }} />
-            {saving ? 'Guardando…' : (grupoState?.dirty ? 'Guardar cambios' : 'Guardado')}
+            {saving ? t('scheduleEditor.saving') : (grupoState?.dirty ? t('scheduleEditor.saveChanges') : t('scheduleEditor.saved'))}
           </Button>
         </CrudHeader>
 
         {!selectedGrupo || !grupoState ? (
-          <div className={styles.emptyState}>Selecciona un grupo para empezar.</div>
+          <div className={styles.emptyState}>{t('scheduleEditor.emptyState')}</div>
         ) : (
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             <div className={styles.editorLayout}>
               <aside className={styles.modulesPanel}>
-                <h3 className={styles.panelTitle}>Módulos ({imps.length})</h3>
+                <h3 className={styles.panelTitle}>{t('scheduleEditor.panelModules', { count: imps.length })}</h3>
                 {imps.map(imp => (
                   <ModuleChip
                     key={imp.id}
@@ -647,14 +674,14 @@ const HorariosEditor = ({ embedded = false }) => {
                   />
                 ))}
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
-                  Arrastra un módulo al horario. Arrastra una clase del horario al panel para quitarla.
+                  {t('scheduleEditor.panelHint')}
                 </p>
               </aside>
 
               <div className={styles.grid}>
                 <div className={styles.gridHeader}>
                   <div>Hora</div>
-                  {DIAS.map(d => <div key={d.idx}>{d.label}</div>)}
+                  {DIAS.map(d => <div key={d.idx}>{t(d.i18n)}</div>)}
                 </div>
                 {slotsDia.map((slotRange, slotIdx) => (
                   <div key={slotIdx} className={styles.gridRow}>
@@ -677,9 +704,9 @@ const HorariosEditor = ({ embedded = false }) => {
                   </div>
                 ))}
                 <div className={styles.infoBar}>
-                  <span><b>Turno:</b> {turnoGrupo === 'M' ? 'Mañana' : 'Tarde'}</span>
-                  <span><b>Aula:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>
-                  <span><b>Franjas:</b> {colocadasTotal}/{totalHoras} colocadas</span>
+                  <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
+                  <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>
+                  <span><b>{t('scheduleEditor.slotsPlaced')}:</b> {t('scheduleEditor.slotsPlacedValue', { done: colocadasTotal, total: totalHoras })}</span>
                 </div>
               </div>
             </div>

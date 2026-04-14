@@ -147,7 +147,8 @@
     "grades": "Notas",
     "myGrades": "Mis Notas",
     "stats": "Estadísticas",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "scheduleAdmin": "Horarios (administración)"
   },
   "userAvatar": {
     "menuLabel": "Menú de usuario",
@@ -1069,5 +1070,41 @@
     "generating": "Generando...",
     "selectPeriodFirst": "Selecciona una evaluación primero",
     "pdfLanguage": "Idioma PDF"
+  },
+  "scheduleEditor": {
+    "title": "Editor de horarios",
+    "tabEditor": "Editor gráfico",
+    "tabList": "Lista",
+    "selectYear": "Seleccionar año escolar",
+    "selectGroup": "Seleccionar grupo",
+    "emptyState": "Selecciona un grupo para empezar.",
+    "panelModules": "Módulos ({{count}})",
+    "panelHint": "Arrastra un módulo al horario. Arrastra una clase del horario al panel para quitarla.",
+    "statusComplete": "Completo · {{done}}/{{total}}h",
+    "statusDraft": "Borrador · {{done}}/{{total}}h",
+    "statusIncomplete": "Incompleto · {{done}}/{{total}}h",
+    "saveChanges": "Guardar cambios",
+    "saved": "Guardado",
+    "saving": "Guardando…",
+    "saveError": "Error al guardar: {{message}}",
+    "turno": "Turno",
+    "turnoMorning": "Mañana",
+    "turnoAfternoon": "Tarde",
+    "classroom": "Aula",
+    "slotsPlaced": "Franjas",
+    "slotsPlacedValue": "{{done}}/{{total}} colocadas",
+    "reasonUnknownImp": "Imparticion desconocida",
+    "reasonModuleFull": "Ya has colocado las {{total}}h de {{module}}",
+    "reasonCellOccupied": "Celda ocupada",
+    "reasonTeacherBusy": "{{teacher}} ya imparte en un grupo paralelo a esa hora"
+  },
+  "profLoad": {
+    "title": "Carga semanal del profesorado",
+    "subtitle": "Máx. {{max}} h/sem. · Horas extra permitidas hasta 80 h anuales",
+    "tooltip": "En este grupo: {{actual}}h · En otros: {{other}}h",
+    "overflow": "+{{hours}}h extra"
+  },
+  "themedSelect": {
+    "placeholder": "Seleccionar…"
   }
 }

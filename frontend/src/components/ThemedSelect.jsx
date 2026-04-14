@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import styles from './ThemedSelect.module.css';
+import crudStyles from '../pages/Crud.module.css';
 
 /**
  * Select estilizado con el mismo patrón visual que el LanguageSelector del header
@@ -13,7 +14,9 @@ import styles from './ThemedSelect.module.css';
  *   placeholder: texto cuando no hay valor
  *   minWidth: ancho mínimo del botón (px, default 200)
  */
-const ThemedSelect = ({ value, onChange, options = [], placeholder = 'Seleccionar…', minWidth = 200, ariaLabel }) => {
+const ThemedSelect = ({ value, onChange, options = [], placeholder, minWidth = 200, ariaLabel, disabled = false }) => {
+    const { t } = useTranslation();
+    const finalPlaceholder = placeholder ?? t('themedSelect.placeholder');
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
@@ -31,17 +34,15 @@ const ThemedSelect = ({ value, onChange, options = [], placeholder = 'Selecciona
         <div className={styles.container} ref={ref}>
             <button
                 type="button"
-                className={`${styles.button} ${open ? styles.open : ''}`}
-                onClick={() => setOpen(v => !v)}
+                className={`${crudStyles.input} ${crudStyles.select} ${styles.triggerExtras}`}
+                onClick={() => !disabled && setOpen(v => !v)}
+                disabled={disabled}
                 style={{ minWidth }}
                 aria-expanded={open}
                 aria-label={ariaLabel}
             >
-                <span className={styles.currentSelection}>
-                    {current?.icon}
-                    <span className={styles.label}>{current?.label ?? placeholder}</span>
-                </span>
-                <ChevronDown size={14} className={styles.chevron} />
+                {current?.icon}
+                <span className={styles.label}>{current?.label ?? finalPlaceholder}</span>
             </button>
 
             {open && (

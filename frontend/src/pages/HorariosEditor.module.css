@@ -1,7 +1,10 @@
 /* Editor gráfico de horarios — estilos 100% derivados del tema del centro */
 
 .container {
-    padding: var(--space-6);
+    padding: var(--space-8);
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
     color: var(--text-main);
 }
 

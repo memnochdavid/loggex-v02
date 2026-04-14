@@ -157,6 +157,25 @@ visible permite al admin saber si el horario está listo o no.
   `{ grupoId: parrilla }`). Al cambiar el selector, se lee de memoria y,
   si no existe, se carga desde el backend.
 
+### 4.1.0 Internacionalización (NO negociable)
+
+Todo el texto visible por el usuario debe pasar por `react-i18next` (`useTranslation` + `t()`).
+Nada de strings hardcodeados en JSX ni en mensajes de error.
+
+Reglas:
+
+- Cada componente nuevo añade sus claves a los JSON de `frontend/src/i18n/locales/*.json`
+  (al menos `es.json` y `en.json`).
+- Las claves se agrupan por dominio: `scheduleEditor.*`, `profLoad.*`, `themedSelect.*`, etc.
+- Para contadores y plurales se usa interpolación: `t('panelModules', { count })`.
+- Los días de la semana y comunes viven en `days.*`, `common.*` — NO duplicar.
+- Para `title` / `aria-label` / `alert()` también se usa `t()`.
+- Los mensajes de error (ej. motivos de rechazo de un drop) son claves separadas
+  con `{{placeholder}}` para interpolar el contexto dinámico.
+
+Verificación: cambiar `i18n.language` en runtime y comprobar que el editor se
+traduce completamente sin fragmentos sueltos.
+
 ### 4.1.1 Coherencia visual (NO negociable)
 
 Todo el editor debe usar **exclusivamente las variables CSS del tema
@@ -371,6 +390,13 @@ Transversal a todas las fases (coherencia visual):
       siguen siendo legibles tanto en tema claro como oscuro.
 - [ ] Los componentes comparten look & feel con `DataTable`,
       `Sidebar`, `CrudHeader` y demás partes ya existentes.
+
+Transversal a todas las fases (i18n):
+- [ ] Ningún texto visible está hardcodeado: todo pasa por `useTranslation()` + `t()`.
+- [ ] Las claves nuevas están añadidas en `es.json` y `en.json` (mínimo) y agrupadas
+      por dominio (`scheduleEditor.*`, `profLoad.*`, …).
+- [ ] Al cambiar de idioma en runtime, el editor se traduce completamente sin
+      fragmentos en castellano/inglés embebidos.
 
 ---
 

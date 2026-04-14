@@ -222,9 +222,9 @@ const Sidebar = () => {
                         <Briefcase size={20} />
                         {!isCollapsed && <span>{t('sidebar.teaching')}</span>}
                     </NavLink>
-                    <NavLink to="/admin/horarios" className={getNavLinkClass} title="Horarios (administración)" onClick={closeSidebar}>
+                    <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={closeSidebar}>
                         <Calendar size={20} />
-                        {!isCollapsed && <span>Horarios</span>}
+                        {!isCollapsed && <span>{t('sidebar.schedule')}</span>}
                     </NavLink>
                     {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
                         <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>

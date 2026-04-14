@@ -1,10 +1,15 @@
 .container {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     margin-bottom: var(--space-3);
-    flex-wrap: wrap;
     gap: var(--space-4);
+}
+/* Cuando NO hay slot middle, usamos flex clásico */
+.container:not(:has(.middle)) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .titleGroup {
@@ -44,6 +49,16 @@
     color: var(--text-muted); /* Usar variable maestra */
     margin: 0;
     margin-top: 0.25rem;
+}
+
+/* Slot central (p. ej. tabs): ocupa su columna propia en la cuadrícula,
+   alineado a la izquierda. Los tabs no se desplazan cuando cambie el ancho
+   de los filtros de la derecha (cada columna vive en su propia track). */
+.middle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    justify-self: start;
 }
 
 .actions {

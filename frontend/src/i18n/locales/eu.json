@@ -147,7 +147,8 @@
     "grades": "Notak",
     "myGrades": "Nire Notak",
     "stats": "Estatistikak",
-    "logout": "Saioa itxi"
+    "logout": "Saioa itxi",
+    "scheduleAdmin": "Ordutegiak (administrazioa)"
   },
   "userAvatar": {
     "menuLabel": "Erabiltzaile menua",
@@ -1069,5 +1070,41 @@
     "generating": "Sortzen...",
     "selectPeriodFirst": "Lehenik ebaluazio bat aukeratu",
     "pdfLanguage": "PDF hizkuntza"
+  },
+  "scheduleEditor": {
+    "title": "Ordutegi editorea",
+    "tabEditor": "Editore grafikoa",
+    "tabList": "Zerrenda",
+    "selectYear": "Ikasturtea aukeratu",
+    "selectGroup": "Taldea aukeratu",
+    "emptyState": "Hautatu talde bat hasteko.",
+    "panelModules": "Moduluak ({{count}})",
+    "panelHint": "Arrastatu modulu bat ordutegira. Arrastatu klase bat panelera kentzeko.",
+    "statusComplete": "Osatuta · {{done}}/{{total}}h",
+    "statusDraft": "Zirriborroa · {{done}}/{{total}}h",
+    "statusIncomplete": "Osatu gabe · {{done}}/{{total}}h",
+    "saveChanges": "Aldaketak gorde",
+    "saved": "Gordeta",
+    "saving": "Gordetzen…",
+    "saveError": "Errorea gordetzean: {{message}}",
+    "turno": "Txanda",
+    "turnoMorning": "Goiza",
+    "turnoAfternoon": "Arratsaldea",
+    "classroom": "Gela",
+    "slotsPlaced": "Tarteak",
+    "slotsPlacedValue": "{{done}}/{{total}} kokatuta",
+    "reasonUnknownImp": "Irakasmailako sail ezezaguna",
+    "reasonModuleFull": "Jada kokatu dituzu {{module}}-ren {{total}} ordu",
+    "reasonCellOccupied": "Gelaxka okupatuta",
+    "reasonTeacherBusy": "{{teacher}} irakasle paraleloan ari da ordu horretan"
+  },
+  "profLoad": {
+    "title": "Irakasleen asteko karga",
+    "subtitle": "Geh. {{max}} ordu/aste · Aparteko orduak onartzen dira urtean 80 ordu arte",
+    "tooltip": "Talde honetan: {{actual}}h · Besteetan: {{other}}h",
+    "overflow": "+{{hours}}h aparteko"
+  },
+  "themedSelect": {
+    "placeholder": "Aukeratu…"
   }
 }

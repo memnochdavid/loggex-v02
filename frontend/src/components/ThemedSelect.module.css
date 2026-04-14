@@ -5,46 +5,25 @@
     display: inline-block;
 }
 
-.button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: var(--bg-input, var(--bg-card));
-    color: var(--text-input, var(--text-main));
-    border: 1px solid var(--border-input, var(--border-color));
-    border-radius: var(--border-radius, var(--radius-sm, 6px));
-    padding: 0.4rem 0.75rem;
-    font-size: 0.85rem;
-    font-weight: 500;
-    font-family: inherit;
+/* El trigger hereda exactamente las clases del <select> nativo de CRUD.
+   Así es imposible que haya diferencias visuales entre ambos. */
+/* Solo añadidos necesarios sobre lo que herede de Crud.module.css .input + .select */
+.triggerExtras {
     cursor: pointer;
-    outline: none;
-    transition: all 0.2s ease;
-    justify-content: space-between;
+    text-align: left;
+    font-family: inherit;
+    padding-right: 2.25rem;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
-.button:hover, .button.open {
-    border-color: var(--color-primary, var(--primary-color));
-    box-shadow: 0 0 0 3px var(--color-primary-100, rgba(99, 102, 241, 0.12));
-}
-
-.button:focus {
-    border-color: var(--input-focus-border, var(--color-primary));
-    box-shadow: 0 0 0 3px var(--color-primary-100, rgba(99, 102, 241, 0.15));
-}
-
-.currentSelection {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-    flex: 1;
-}
+.triggerExtras::-moz-focus-inner { border: 0; }
 
 .label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
 }
 
 .dropdown {
@@ -109,13 +88,3 @@
     border-radius: 2px;
 }
 
-.chevron {
-    transition: transform 0.2s;
-    opacity: 0.7;
-    flex-shrink: 0;
-}
-
-.open .chevron {
-    transform: rotate(180deg);
-    opacity: 1;
-}

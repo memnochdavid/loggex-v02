@@ -18,7 +18,7 @@ import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 
-const Horarios = ({ embedded = false }) => {
+const Horarios = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -465,8 +465,9 @@ const Horarios = ({ embedded = false }) => {
   return (
     <Wrapper>
         <div className={styles.container}>
-        <CrudHeader title={embedded ? 'Lista de horarios' : t('schedules.title')}
-                    logo={embedded ? undefined : <Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
+                    logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    middle={tabs}
         >
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
                 {!embedded && (
