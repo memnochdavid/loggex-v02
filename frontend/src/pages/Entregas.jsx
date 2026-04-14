@@ -60,12 +60,14 @@ const Entregas = () => {
             headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
           }).then(r => r.ok ? r.json() : null)
         ));
-        // Deduplicar por nombre+tipo (distintos grupos generan registros distintos con el mismo nombre)
+        // Deduplicar por nombre+tipo, solo evaluaciones finalizadas (fechaFin < hoy)
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
         const byKey = new Map();
         results.forEach(r => {
           if (!r) return;
           const items = r['hydra:member'] || r.member || [];
           items.forEach(p => {
+            if (!p.fechaFin || new Date(p.fechaFin) >= hoy) return;
             const key = `${p.tipo || ''}::${p.nombre || ''}`;
             if (!byKey.has(key)) {
               byKey.set(key, { key, nombre: p.nombre, tipo: p.tipo, rangos: [] });

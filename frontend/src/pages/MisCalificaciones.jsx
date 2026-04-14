@@ -144,10 +144,12 @@ const MisCalificaciones = () => {
                     });
                 }
 
-                let result = allPeriodos;
+                // Solo evaluaciones ya finalizadas
+                const hoy = new Date(); hoy.setHours(0,0,0,0);
+                let result = allPeriodos.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                 if (grupoIds.length > 1) {
                     const byName = new Map();
-                    allPeriodos.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
+                    result.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                     result = [...byName.values()];
                 }
                 result.sort((a, b) => {
@@ -219,7 +221,7 @@ const MisCalificaciones = () => {
             const entregasData = await entregasRes.json();
             const entregas = entregasData['hydra:member'] || entregasData.member || [];
 
-            const combined = tareasItems.map(tarea => {
+            let combined = tareasItems.map(tarea => {
                 const tareaId = tarea.id || tarea['@id']?.split('/').pop();
                 const entrega = entregas.find(e => {
                     const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
@@ -227,6 +229,21 @@ const MisCalificaciones = () => {
                 });
                 return { ...tarea, calificacion: entrega?.calificacion || null };
             });
+
+            // Filtrar por período seleccionado (fechaLimite dentro del rango)
+            if (selectedPeriodo) {
+                const p = periodos.find(pp => String(pp.id || pp['@id']?.split('/').pop()) === String(selectedPeriodo));
+                if (p) {
+                    const ini = new Date(p.fechaInicio);
+                    const fin = new Date(p.fechaFin);
+                    fin.setHours(23, 59, 59, 999);
+                    combined = combined.filter(tr => {
+                        if (!tr.fechaLimite) return false;
+                        const d = new Date(tr.fechaLimite);
+                        return d >= ini && d <= fin;
+                    });
+                }
+            }
 
             setModuleTasks(prev => ({ ...prev, [impId]: combined }));
         } catch { /* silencioso */ } finally {

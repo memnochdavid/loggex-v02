@@ -185,6 +185,11 @@
                 <td style="width: 25%;" class="header-right">
                     {{ i18n.title }}
                     <div class="subtitle">{{ grupo.anioEscolar }}</div>
+                    {% if evaluacionNombre %}
+                        <div class="subtitle" style="margin-top:2px;">
+                            {{ evaluacionNombre }} &middot; {{ evaluacionFecha }}
+                        </div>
+                    {% endif %}
                 </td>
             </tr>
         </table>

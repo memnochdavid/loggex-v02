@@ -50,11 +50,12 @@ class BoletinController extends AbstractController
 
         $grupo = $periodo->getGrupo();
         $centro = $grupo->getCiclo()->getCentro();
-        $periodos = $this->getPeriodosOrdenados($grupo);
+        // Acumulativo: solo periodos cuya fecha_fin <= fecha_fin del seleccionado
+        $periodos = $this->getPeriodosOrdenados($grupo, $periodo->getFechaFin());
 
         $lang = $request->query->get('lang', 'es');
-        $boletinData = $this->generarDatosBoletin($alumno, $grupo, $periodos);
-        $context = $this->buildTemplateContext($centro, $grupo, $periodos, [$boletinData], $lang);
+        $boletinData = $this->generarDatosBoletin($alumno, $grupo, $periodos, $periodo->getFechaFin());
+        $context = $this->buildTemplateContext($centro, $grupo, $periodos, [$boletinData], $lang, $periodo);
 
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/boletin.html.twig', $context);
         $filename = sprintf('boletin_%s_%s.pdf',
@@ -83,7 +84,11 @@ class BoletinController extends AbstractController
             return $this->json(['message' => 'Grupo no encontrado'], 404);
         }
 
-        $periodos = $this->getPeriodosOrdenados($grupo);
+        $periodoSel = $this->em->getRepository(PeriodoEvaluativo::class)->find($periodoId);
+        if (!$periodoSel) {
+            return $this->json(['message' => 'Periodo no encontrado'], 404);
+        }
+        $periodos = $this->getPeriodosOrdenados($grupo, $periodoSel->getFechaFin());
         $centro = $grupo->getCiclo()->getCentro();
 
         $matriculas = $this->em->getRepository(Matricula::class)->findBy(['grupo' => $grupo]);
@@ -94,16 +99,16 @@ class BoletinController extends AbstractController
         $lang = $request->query->get('lang', 'es');
 
         if ($formato === 'zip') {
-            return $this->generarZip($alumnos, $grupo, $periodos, $centro, $lang);
+            return $this->generarZip($alumnos, $grupo, $periodos, $centro, $lang, $periodoSel);
         }
 
         // PDF único con todos los boletines
         $boletines = [];
         foreach ($alumnos as $alumno) {
-            $boletines[] = $this->generarDatosBoletin($alumno, $grupo, $periodos);
+            $boletines[] = $this->generarDatosBoletin($alumno, $grupo, $periodos, $periodoSel->getFechaFin());
         }
 
-        $context = $this->buildTemplateContext($centro, $grupo, $periodos, $boletines, $lang);
+        $context = $this->buildTemplateContext($centro, $grupo, $periodos, $boletines, $lang, $periodoSel);
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/boletin.html.twig', $context);
 
         $filename = sprintf('boletines_%s.pdf', $this->slugify($grupo->getNombre()));
@@ -114,7 +119,7 @@ class BoletinController extends AbstractController
         ]);
     }
 
-    private function getPeriodosOrdenados(Grupo $grupo): array
+    private function getPeriodosOrdenados(Grupo $grupo, ?\DateTimeInterface $hasta = null): array
     {
         $periodos = $this->em->getRepository(PeriodoEvaluativo::class)->findBy(
             ['grupo' => $grupo],
@@ -127,10 +132,17 @@ class BoletinController extends AbstractController
             if ($aExtra !== $bExtra) return $aExtra - $bExtra;
             return $a->getFechaInicio() <=> $b->getFechaInicio();
         });
+        // Acumulativo: si se indica "hasta", solo evaluaciones cuya fecha_fin <= hasta
+        if ($hasta !== null) {
+            $periodos = array_values(array_filter(
+                $periodos,
+                fn($p) => $p->getFechaFin() <= $hasta
+            ));
+        }
         return $periodos;
     }
 
-    private function generarDatosBoletin(User $alumno, Grupo $grupo, array $periodos): array
+    private function generarDatosBoletin(User $alumno, Grupo $grupo, array $periodos, ?\DateTimeInterface $hasta = null): array
     {
         $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
 
@@ -145,8 +157,8 @@ class BoletinController extends AbstractController
                 $notasPorPeriodo[$periodo->getId()] = $media['notaFinal'];
             }
 
-            // Porcentaje de faltas del alumno en esta impartición
-            $faltasPct = $this->calcularPorcentajeFaltas($imp, $alumno);
+            // Porcentaje de faltas del alumno en esta impartición (recorte acumulativo si hay fecha tope)
+            $faltasPct = $this->calcularPorcentajeFaltas($imp, $alumno, $hasta);
 
             $modulos[] = [
                 'modulo' => $imp->getModulo()->getNombre(),
@@ -237,27 +249,25 @@ class BoletinController extends AbstractController
         return (int)round($totalHoras);
     }
 
-    private function calcularPorcentajeFaltas(Imparticion $imp, User $alumno): ?float
+    private function calcularPorcentajeFaltas(Imparticion $imp, User $alumno, ?\DateTimeInterface $hasta = null): ?float
     {
         $grupo = $imp->getGrupo();
         $fechaInicio = $grupo->getFechaInicio();
-        $fechaFin = $grupo->getFechaFin();
+        // Acumulativo: recorte por fecha de la evaluación seleccionada
+        $fechaFin = $hasta ?: $grupo->getFechaFin();
 
         if (!$fechaInicio || !$fechaFin) {
             return null;
         }
 
-        // ⚠️ Igual que en tu summary
         $festivos = $this->em->getRepository(\App\Entity\Festivo::class)->findAll();
-
         $totalHoras = $this->calcularHorasLectivas($imp, $fechaInicio, $fechaFin, $festivos);
 
         if ($totalHoras == 0) {
             return null;
         }
 
-        // ✔ Horas faltadas reales
-        $faltas = $this->em->createQueryBuilder()
+        $qb = $this->em->createQueryBuilder()
             ->select('COUNT(a.id)')
             ->from('App\Entity\Asistencia', 'a')
             ->where('a.imparticion = :imp')
@@ -266,9 +276,11 @@ class BoletinController extends AbstractController
             ->andWhere('a.deleted = false')
             ->setParameter('imp', $imp)
             ->setParameter('alumno', $alumno)
-            ->setParameter('presente', 'P')
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('presente', 'P');
+        if ($hasta !== null) {
+            $qb->andWhere('a.fecha <= :hasta')->setParameter('hasta', $hasta);
+        }
+        $faltas = $qb->getQuery()->getSingleScalarResult();
 
         return round(($faltas / $totalHoras) * 100, 2);
     }
@@ -323,7 +335,7 @@ class BoletinController extends AbstractController
         return ['notaFinal' => $notaFinal];
     }
 
-    private function buildTemplateContext($centro, Grupo $grupo, array $periodos, array $boletines, string $lang = 'es'): array
+    private function buildTemplateContext($centro, Grupo $grupo, array $periodos, array $boletines, string $lang = 'es', ?PeriodoEvaluativo $periodoSel = null): array
     {
         $personalizacion = $centro->getPersonalizacion();
 
@@ -417,6 +429,8 @@ class BoletinController extends AbstractController
             'nameTitleConfig' => $nameTitleConfig,
             'boletines' => $boletines,
             'fechaEmision' => (new \DateTime())->format('d/m/Y'),
+            'evaluacionNombre' => $periodoSel ? $periodoSel->getNombre() : null,
+            'evaluacionFecha' => $periodoSel ? $periodoSel->getFechaFin()->format('d/m/Y') : null,
             'i18n' => [
                 'title' => $t('boletin.title'),
                 'student' => $t('boletin.student'),
@@ -448,16 +462,16 @@ class BoletinController extends AbstractController
         };
     }
 
-    private function generarZip(array $alumnos, Grupo $grupo, array $periodos, $centro, string $lang = 'es'): StreamedResponse
+    private function generarZip(array $alumnos, Grupo $grupo, array $periodos, $centro, string $lang = 'es', ?PeriodoEvaluativo $periodoSel = null): StreamedResponse
     {
-        return new StreamedResponse(function () use ($alumnos, $grupo, $periodos, $centro, $lang) {
+        return new StreamedResponse(function () use ($alumnos, $grupo, $periodos, $centro, $lang, $periodoSel) {
             $zipPath = tempnam(sys_get_temp_dir(), 'boletines_') . '.zip';
             $zip = new \ZipArchive();
             $zip->open($zipPath, \ZipArchive::CREATE);
 
             foreach ($alumnos as $alumno) {
-                $boletinData = $this->generarDatosBoletin($alumno, $grupo, $periodos);
-                $ctx = $this->buildTemplateContext($centro, $grupo, $periodos, [$boletinData], $lang);
+                $boletinData = $this->generarDatosBoletin($alumno, $grupo, $periodos, $periodoSel ? $periodoSel->getFechaFin() : null);
+                $ctx = $this->buildTemplateContext($centro, $grupo, $periodos, [$boletinData], $lang, $periodoSel);
                 $pdf = $this->pdfGenerator->generateFromTwig('pdf/boletin.html.twig', $ctx);
 
                 $filename = sprintf('boletin_%s_%s.pdf',
