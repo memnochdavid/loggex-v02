@@ -157,6 +157,35 @@ visible permite al admin saber si el horario está listo o no.
   `{ grupoId: parrilla }`). Al cambiar el selector, se lee de memoria y,
   si no existe, se carga desde el backend.
 
+### 4.1.1 Coherencia visual (NO negociable)
+
+Todo el editor debe usar **exclusivamente las variables CSS del tema
+activo** (definidas en `personalizacion` y propagadas por `utils/theme.js`).
+Nada de colores, radios, sombras ni tipografías hardcodeados.
+
+Reglas:
+
+- Colores: `var(--color-primary)`, `var(--color-success)`,
+  `var(--color-error)`, `var(--bg-card)`, `var(--text-main)`,
+  `var(--border-color)`, etc. — los mismos tokens que ya usan el resto
+  de vistas (`Calificaciones.module.css`, `DataTable`, `Sidebar`…).
+- Radios: `var(--radius-sm)`, `var(--radius-md)`.
+- Espaciado: `var(--space-1..12)`.
+- Tipografía: `var(--text-xs..lg)`, `var(--font-medium..bold)`.
+- Los **bloques de módulo** en el panel deben derivar su color de
+  acento del tema (no una paleta fija ajena). La paleta "por módulo"
+  (§3.4) se calcula como variaciones de hue partiendo de
+  `--color-primary` (HSL shifts deterministas por `modulo.id`).
+- En **modo oscuro** (si el tema lo tiene), todos los estados
+  (válido/inválido/hover/selección) deben seguir siendo legibles.
+- La **barra de completitud** (Completo/Borrador/Incompleto) usa
+  `--color-success / --color-warning / --color-error` ya existentes.
+- **CSS Modules** consistente con el resto: `HorariosEditor.module.css`.
+
+Se verifica manualmente cambiando el tema del centro (p. ej. EAG con su
+paleta violeta) y comprobando que el editor sigue viéndose coherente
+con el Sidebar, Header y DataTables.
+
 ### 4.2 Backend
 
 Reutiliza lo que ya existe. Cambios mínimos:
@@ -309,6 +338,7 @@ Se aprovecha el esquema existente:
 
 ## 9. Criterios de aceptación del MVP
 
+Fase 1-2 (básico + validaciones):
 - [ ] Un admin puede abrir `/horarios`, cambiar a editor gráfico, elegir
       un grupo y ver su horario actual.
 - [ ] Puede arrastrar módulos del panel a la parrilla y viceversa.
@@ -318,6 +348,29 @@ Se aprovecha el esquema existente:
 - [ ] Al pulsar Guardar, los cambios se reflejan en BD y la vista
       tabular (`/horarios`) coincide.
 - [ ] Cambiar de grupo en el selector no pierde los cambios sin guardar.
+- [ ] El indicador de estado (Completo / Borrador / Incompleto) refleja
+      el % de horas colocadas.
+
+Fase 3 (solver):
+- [ ] El botón "Sugerir horario" genera una propuesta válida (o parcial)
+      en ≤ 2 s.
+- [ ] La propuesta respeta las 4 reglas de validación.
+- [ ] El admin puede ajustar la propuesta a mano antes de guardarla.
+
+Fase 4 (tap-to-place):
+- [ ] En táctil funciona seleccionar un módulo y colocarlo con tap sin
+      perder scroll.
+- [ ] En desktop funciona tanto drag como tap.
+
+Transversal a todas las fases (coherencia visual):
+- [ ] Ningún color, radio, sombra o tamaño está hardcodeado en el CSS:
+      todos vienen de variables del tema.
+- [ ] Al cambiar el tema del centro, el editor se reestiliza
+      automáticamente sin cambios en código.
+- [ ] Los estados (válido/inválido/seleccionado/completo/borrador)
+      siguen siendo legibles tanto en tema claro como oscuro.
+- [ ] Los componentes comparten look & feel con `DataTable`,
+      `Sidebar`, `CrudHeader` y demás partes ya existentes.
 
 ---
 
