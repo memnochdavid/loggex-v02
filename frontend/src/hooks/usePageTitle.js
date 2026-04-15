@@ -32,6 +32,10 @@ const usePageTitle = (baseTitle = 'Loggex-Machina') => {
       '/companeros': t('classmates.title'),
       '/mis-profesores': t('myTeachers.title'),
       '/mis-alumnos': t('myStudents.title'),
+      '/calificaciones': t('grades.title'),
+      '/calificaciones/detalle': t('grades.title'),
+      '/mis-calificaciones': t('grades.myGradesTitle'),
+      '/admin/calificaciones': t('grades.adminTitle'),
       '/perfil': t('sidebar.profile'),
       '/configuracion': t('config.title'),
     };
