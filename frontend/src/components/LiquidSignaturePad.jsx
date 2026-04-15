@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { getStroke } from 'perfect-freehand';
+import Button from './Button';
 
 /**
  * Captura una firma a mano alzada con trazo tipo tinta (presión/velocidad simulada)
@@ -152,14 +153,12 @@ const LiquidSignaturePad = ({
                 {currentPath && <path d={currentPath} fill={strokeColor} />}
             </svg>
             <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="button" onClick={undo} disabled={strokes.length === 0}
-                    style={{ padding: '4px 10px' }}>
+                <Button type="button" variant="secondary" onClick={undo} disabled={strokes.length === 0}>
                     Deshacer último trazo
-                </button>
-                <button type="button" onClick={clear} disabled={strokes.length === 0 && !currentPath}
-                    style={{ padding: '4px 10px' }}>
+                </Button>
+                <Button type="button" variant="danger" onClick={clear} disabled={strokes.length === 0 && !currentPath}>
                     Limpiar
-                </button>
+                </Button>
             </div>
         </div>
     );
