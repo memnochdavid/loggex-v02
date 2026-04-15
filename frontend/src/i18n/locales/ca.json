@@ -1113,7 +1113,12 @@
     "solving": "Calculant…",
     "solverConfirmOverwrite": "Hi ha un horari en curs. Sobreescriure amb la proposta del solver?",
     "solverPartial": "Proposta parcial. Sense col·locar: {{items}}",
-    "solverError": "Error del solver: {{message}}"
+    "solverError": "Error del solver: {{message}}",
+    "unsavedTitle": "Canvis sense desar",
+    "unsavedBody": "Tens canvis a l'horari que encara no has desat. Què vols fer?",
+    "unsavedStay": "Quedar-me",
+    "unsavedDiscard": "Descartar",
+    "unsavedSaveAndLeave": "Desar i sortir"
   },
   "profLoad": {
     "title": "Càrrega setmanal del professorat",

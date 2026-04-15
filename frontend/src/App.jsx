@@ -1,5 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+  RouterProvider,
+  Outlet,
+  useLocation,
+} from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
 import Header from './layout/Header';
@@ -53,17 +60,23 @@ const ConditionalFooter = () => {
   return showFooter ? <Footer /> : null;
 };
 
-function App() {
-  return (
-    <AuthProvider>
-      <UIProvider>
-        <Router>
-          <PageTitleUpdater />
-          <div className="app-layout">
-            <AnimatedBackground />
-            <Header />
-            <main className="app-main">
-              <Routes>
+const RootLayout = () => (
+  <>
+    <PageTitleUpdater />
+    <div className="app-layout">
+      <AnimatedBackground />
+      <Header />
+      <main className="app-main">
+        <Outlet />
+      </main>
+      <ConditionalFooter />
+    </div>
+  </>
+);
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
                 <Route path="/login" element={<Login />} />
                 
                 {/* Rutas Públicas */}
@@ -233,11 +246,15 @@ function App() {
                 } />
 
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-            <ConditionalFooter />
-          </div>
-        </Router>
+    </Route>
+  )
+);
+
+function App() {
+  return (
+    <AuthProvider>
+      <UIProvider>
+        <RouterProvider router={router} />
       </UIProvider>
     </AuthProvider>
   );

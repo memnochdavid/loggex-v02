@@ -83,7 +83,7 @@
     display: grid;
     grid-template-columns: 280px 1fr;
     gap: var(--space-4);
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 @media (max-width: 900px) {
@@ -96,10 +96,27 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
     position: sticky;
     top: var(--space-4);
-    max-height: calc(100vh - var(--space-8));
-    overflow-y: auto;
+}
+
+/* Badge de estado al pie del panel — se queda anclado abajo gracias a auto */
+.panelStatus {
+    margin-top: auto;
+    align-self: stretch;
+    justify-content: center;
+}
+
+/* En móvil: sin sticky para que no se quede flotando mientras el timetable
+   scrollea por debajo y aparente solapamiento. */
+@media (max-width: 900px) {
+    .modulesPanel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
 }
 
 .panelTitle {
@@ -204,14 +221,19 @@
     grid-template-columns: 90px repeat(5, minmax(0, 1fr));
 }
 
+.dayShort { display: none; }
+
 @media (max-width: 600px) {
     .gridHeader, .gridRow {
-        grid-template-columns: 70px repeat(5, minmax(0, 1fr));
+        grid-template-columns: 50px repeat(5, minmax(0, 1fr));
         font-size: 10px;
     }
     .gridHeader > div, .gridRow > div {
         padding: var(--space-1);
     }
+    .dayFull { display: none; }
+    .dayShort { display: inline; }
+    .slotBlockProfe { display: none; }
 }
 
 .gridHeader {
@@ -229,6 +251,8 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+.gridHeader > div { text-align: center; }
+
 .gridHeader > div:last-child, .gridRow > div:last-child { border-right: none; }
 
 .timeLabel {
@@ -238,7 +262,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     white-space: nowrap;
+    text-align: center;
+}
+
+/* En pantallas estrechas, apilar inicio / – / fin en dos líneas
+   para reducir el ancho de la columna de horas. */
+@media (max-width: 600px) {
+    .timeLabel {
+        flex-direction: column;
+        gap: 0;
+        line-height: 1.1;
+    }
+    .timeLabelSep { display: none; }
 }
 
 .slot {

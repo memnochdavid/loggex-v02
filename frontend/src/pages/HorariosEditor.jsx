@@ -10,11 +10,13 @@ import {
   useDroppable,
   DragOverlay,
 } from '@dnd-kit/core';
+import { useBlocker } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import ProfLoadPanel from '../components/ProfLoadPanel';
+import ModalView from '../components/ModalView';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle } from 'lucide-react';
@@ -758,14 +760,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
-  // Aviso al salir sin guardar
-  useEffect(() => {
-    const dirtyAny = Object.values(state).some(s => s?.dirty);
-    if (!dirtyAny) return;
-    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [state]);
+  const dirtyAny = Object.values(state).some(s => s?.dirty);
+
+  // Bloquea navegación SPA (sidebar, atrás…) si hay cambios sin guardar.
+  // El modal custom sustituye al beforeunload nativo (que mostraba un alert feo
+  // y redundante con el modal).
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    dirtyAny && currentLocation.pathname !== nextLocation.pathname
+  );
 
   const renderSlotContent = (dia, slotIdx) => {
     const key = `${dia}_${slotsDia[slotIdx][0]}`;
@@ -849,17 +851,33 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
                   {t('scheduleEditor.panelHint')}
                 </p>
+                {estadoBadge && (
+                  <span className={`${styles.statusBadge} ${estadoBadge.cls} ${styles.panelStatus}`}>
+                    {estadoBadge.icon}
+                    {estadoBadge.label}
+                  </span>
+                )}
               </aside>
 
               <div className={styles.grid}>
                 <div className={styles.gridHeader}>
                   <div>Hora</div>
-                  {DIAS.map(d => <div key={d.idx}>{t(d.i18n)}</div>)}
+                  {DIAS.map(d => {
+                    const full = t(d.i18n);
+                    return (
+                      <div key={d.idx}>
+                        <span className={styles.dayFull}>{full}</span>
+                        <span className={styles.dayShort}>{full.charAt(0).toUpperCase()}</span>
+                      </div>
+                    );
+                  })}
                 </div>
                 {slotsDia.map((slotRange, slotIdx) => (
                   <div key={slotIdx} className={styles.gridRow}>
                     <div className={styles.timeLabel}>
-                      {fmtHora(slotRange[0])}–{fmtHora(slotRange[1])}
+                      <span>{fmtHora(slotRange[0])}</span>
+                      <span className={styles.timeLabelSep}>–</span>
+                      <span>{fmtHora(slotRange[1])}</span>
                     </div>
                     {DIAS.map((d) => {
                       const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
@@ -884,12 +902,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>
                   <div className={styles.infoBarActions}>
-                    {estadoBadge && (
-                      <span className={`${styles.statusBadge} ${estadoBadge.cls}`}>
-                        {estadoBadge.icon}
-                        {estadoBadge.label}
-                      </span>
-                    )}
                     <Button
                       onClick={() => runSolver(null)}
                       disabled={!selectedGrupo || !grupoState || solving || saving}
@@ -930,6 +942,36 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             <span>{dragError}</span>
           </div>
         )}
+
+        <ModalView
+          isOpen={blocker?.state === 'blocked'}
+          onClose={() => blocker.reset?.()}
+          title={t('scheduleEditor.unsavedTitle')}
+          size="small"
+          cancelText={t('scheduleEditor.unsavedStay')}
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => blocker.reset?.()}>
+                {t('scheduleEditor.unsavedStay')}
+              </Button>
+              <Button type="button" variant="danger" onClick={() => blocker.proceed?.()}>
+                {t('scheduleEditor.unsavedDiscard')}
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  await handleSave();
+                  blocker.proceed?.();
+                }}
+                disabled={saving}
+              >
+                {saving ? t('scheduleEditor.saving') : t('scheduleEditor.unsavedSaveAndLeave')}
+              </Button>
+            </>
+          }
+        >
+          <p>{t('scheduleEditor.unsavedBody')}</p>
+        </ModalView>
       </Container>
     </Wrapper>
   );

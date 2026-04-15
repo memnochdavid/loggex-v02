@@ -1113,7 +1113,12 @@
     "solving": "Calculando…",
     "solverConfirmOverwrite": "Hai un horario en curso. Sobrescribir coa proposta do solver?",
     "solverPartial": "Proposta parcial. Sen colocar: {{items}}",
-    "solverError": "Erro do solver: {{message}}"
+    "solverError": "Erro do solver: {{message}}",
+    "unsavedTitle": "Cambios sen gardar",
+    "unsavedBody": "Tes cambios no horario sen gardar. Que queres facer?",
+    "unsavedStay": "Quedar",
+    "unsavedDiscard": "Descartar",
+    "unsavedSaveAndLeave": "Gardar e saír"
   },
   "profLoad": {
     "title": "Carga semanal do profesorado",

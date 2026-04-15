@@ -1113,7 +1113,12 @@
     "solving": "Computing…",
     "solverConfirmOverwrite": "There is a schedule in progress. Overwrite with the solver's proposal?",
     "solverPartial": "Partial proposal. Unplaced: {{items}}",
-    "solverError": "Solver error: {{message}}"
+    "solverError": "Solver error: {{message}}",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedBody": "You have unsaved changes in the schedule. What do you want to do?",
+    "unsavedStay": "Stay",
+    "unsavedDiscard": "Discard",
+    "unsavedSaveAndLeave": "Save and leave"
   },
   "profLoad": {
     "title": "Weekly teacher workload",

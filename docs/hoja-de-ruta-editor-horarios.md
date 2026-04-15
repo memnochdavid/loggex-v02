@@ -85,11 +85,16 @@
 
 ### ⏳ Pendiente
 
-**Fase 4 — Tap-to-place (móvil) restante**
-- [ ] Modo click/tap en paralelo al drag (selección previa + click en celda).
-- [ ] Tooltip rico en hover (más allá del `title` nativo actual).
-- [ ] Advertencia explícita al salir sin guardar (modal custom, no solo
-      `beforeunload`).
+**Fase 4 — Tap-to-place (móvil) restante** ✅
+- [x] Tap en módulo del panel → queda seleccionado (highlight). Tap en celda
+      válida → coloca. Tap en otra celda ocupada → reemplaza. Tap sin selección
+      sobre una celda ocupada → la libera. ESC deselecciona.
+- [x] Tooltip rico en hover sobre los bloques (módulo + profe completo + aula),
+      tematizado, sin clipping (se quitó `overflow:hidden` del contenedor).
+- [x] Modal custom al salir sin guardar (vía `useBlocker` de RR v7 +
+      `ModalView` reutilizado): cubre navegación SPA con tres opciones
+      (Quedarme / Descartar / Guardar y salir). Migrado `App.jsx` a
+      `createBrowserRouter` + `createRoutesFromElements` para habilitarlo.
 
 **Fase 5 — Batch endpoint y concurrencia**
 - [ ] `POST /api/v1/horarios/batch` (transaccional).

@@ -1113,7 +1113,12 @@
     "solving": "Kalkulatzen…",
     "solverConfirmOverwrite": "Ordutegi bat lantzen ari da. Solverraren proposamenarekin gainidatzi?",
     "solverPartial": "Proposamen partziala. Kokatu gabe: {{items}}",
-    "solverError": "Solver errorea: {{message}}"
+    "solverError": "Solver errorea: {{message}}",
+    "unsavedTitle": "Gorde gabeko aldaketak",
+    "unsavedBody": "Ordutegian oraindik gorde ez dituzun aldaketak dituzu. Zer egin nahi duzu?",
+    "unsavedStay": "Geratu",
+    "unsavedDiscard": "Baztertu",
+    "unsavedSaveAndLeave": "Gorde eta irten"
   },
   "profLoad": {
     "title": "Irakasleen asteko karga",
