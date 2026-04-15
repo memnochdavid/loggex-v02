@@ -96,18 +96,47 @@
       (Quedarme / Descartar / Guardar y salir). Migrado `App.jsx` a
       `createBrowserRouter` + `createRoutesFromElements` para habilitarlo.
 
-**Fase 5 — Batch endpoint y concurrencia**
-- [ ] `POST /api/v1/horarios/batch` (transaccional).
-- [ ] Cliente usa batch en lugar de N peticiones individuales.
-- [ ] Detección de cambios ajenos vía `updated_at` al guardar.
-- [ ] Confirmación explícita al publicar horario en estado Borrador/Incompleto
-      listando módulos/horas sin colocar.
+**Fase 5 — Batch endpoint y concurrencia** ✅
+- [x] `POST /api/v1/horarios/batch` transaccional (`HorarioBatchController`):
+      acepta `[{op:'create'|'delete', ...}]`, todo dentro de `beginTransaction`
+      con rollback ante cualquier fallo. Devuelve mapping `clientKey → id` y
+      el `maxUpdatedAt` resultante.
+- [x] Cliente reescrito: `handleSave` construye operaciones desde el diff
+      baseline→current y dispara una sola petición. Sin más bucles de
+      DELETE/POST individuales.
+- [x] Detección de concurrencia: el cliente captura `baselineMaxUpdatedAt` al
+      cargar; el backend compara contra `MAX(updatedAt)` actual. Si difiere
+      → 409 + modal "alguien editó este horario, ¿recargar?".
+- [x] Confirmación al publicar horario incompleto: si `estado !== 'complete'`
+      al pulsar Guardar, modal con la lista de módulos/horas sin colocar y
+      botones "Cancelar" / "Publicar igualmente".
 
 **Fase 6 — Nice-to-have**
 - [ ] Vista multi-grupo en una pantalla.
 - [ ] Exportar horario del grupo a PDF.
 - [ ] Plantillas (guardar y replicar).
 - [ ] Histórico de cambios (auditoría).
+
+**Fase 7 — Excepciones puntuales (sustituciones / cancelaciones)**
+
+Hoy `Horario` es una plantilla semanal recurrente: cualquier cambio
+afecta a TODOS los lunes (etc.). Falta poder registrar cambios para un
+día concreto sin tocar la plantilla.
+
+- [ ] Backend: entidad `HorarioOverride` con `fecha` (DATE), `horaInicio`,
+      `horaFin`, `imparticion` (nullable → cancelado), `motivo`, `creadoPor`,
+      timestamps + soft delete. Migración Doctrine.
+- [ ] Endpoints CRUD (`/api/horario_overrides`) + filtros por fecha/grupo.
+- [ ] `GET /api/my-schedule` y vistas de calendario: mezclar template +
+      overrides para la fecha pedida (override gana sobre el template).
+- [ ] UI: en `/horarios` (calendario), click en un slot de un día concreto →
+      modal "esta instancia": sustituir profesor/módulo, cancelar clase,
+      restaurar plantilla. Sin ruta nueva.
+- [ ] Indicador visual en los slots con override (badge "modificado").
+- [ ] Permisos: solo admin/coordinador puede crear/editar overrides.
+- [ ] El editor gráfico de `/admin/horarios` sigue editando SOLO la
+      plantilla; mostrar aviso si hay overrides futuros que se verían
+      afectados al cambiar la plantilla base.
 
 ### 🐛 Bugs conocidos / deuda técnica
 

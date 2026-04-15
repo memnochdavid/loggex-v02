@@ -1118,7 +1118,16 @@
     "unsavedBody": "Ordutegian oraindik gorde ez dituzun aldaketak dituzu. Zer egin nahi duzu?",
     "unsavedStay": "Geratu",
     "unsavedDiscard": "Baztertu",
-    "unsavedSaveAndLeave": "Gorde eta irten"
+    "unsavedSaveAndLeave": "Gorde eta irten",
+    "conflictTitle": "Aldaketa aldiberekoa atzemana",
+    "conflictBody": "Beste erabiltzaile batek ordutegi hau aldatu du kargatu zenuenetik. Gordez gero, haren aldaketak gainidatziko zenituzke. Oraingo ordutegia berriro kargatu eta zure aldaketak eskuz birrezarri?",
+    "conflictKeep": "Nire aldaketak mantendu",
+    "conflictReload": "Berriro kargatu",
+    "publishIncompleteTitle": "Ordutegi osatugabea argitaratu",
+    "publishIncompleteBody": "Ordutegia ez dago oraindik osatuta. Orain gordetzen baduzu, ikasleek bertsio partziala ikusiko dute. Kokatzeke:",
+    "publishIncompleteItem": "{{total}}h-tik {{faltan}} kokatzeke",
+    "publishIncompleteCancel": "Utzi",
+    "publishIncompleteConfirm": "Argitaratu hala ere"
   },
   "profLoad": {
     "title": "Irakasleen asteko karga",

@@ -1118,7 +1118,16 @@
     "unsavedBody": "Tienes cambios en el horario que aún no has guardado. ¿Qué quieres hacer?",
     "unsavedStay": "Quedarme",
     "unsavedDiscard": "Descartar",
-    "unsavedSaveAndLeave": "Guardar y salir"
+    "unsavedSaveAndLeave": "Guardar y salir",
+    "conflictTitle": "Edición concurrente detectada",
+    "conflictBody": "Otro usuario ha modificado este horario desde que lo cargaste. Si guardas tus cambios sobreescribirías los suyos. ¿Recargar el horario actual y reaplicar tus cambios manualmente?",
+    "conflictKeep": "Mantener mis cambios",
+    "conflictReload": "Recargar",
+    "publishIncompleteTitle": "Publicar horario incompleto",
+    "publishIncompleteBody": "El horario aún no está completo. Si guardas ahora, los alumnos verán la versión parcial. Faltan por colocar:",
+    "publishIncompleteItem": "{{faltan}} de {{total}}h sin colocar",
+    "publishIncompleteCancel": "Cancelar",
+    "publishIncompleteConfirm": "Publicar igualmente"
   },
   "profLoad": {
     "title": "Carga semanal del profesorado",

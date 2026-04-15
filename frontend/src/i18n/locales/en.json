@@ -1118,7 +1118,16 @@
     "unsavedBody": "You have unsaved changes in the schedule. What do you want to do?",
     "unsavedStay": "Stay",
     "unsavedDiscard": "Discard",
-    "unsavedSaveAndLeave": "Save and leave"
+    "unsavedSaveAndLeave": "Save and leave",
+    "conflictTitle": "Concurrent edit detected",
+    "conflictBody": "Another user has modified this schedule since you loaded it. Saving would overwrite their changes. Reload the current schedule and reapply your changes manually?",
+    "conflictKeep": "Keep my changes",
+    "conflictReload": "Reload",
+    "publishIncompleteTitle": "Publish incomplete schedule",
+    "publishIncompleteBody": "The schedule is not complete yet. If you save now, students will see the partial version. Still unplaced:",
+    "publishIncompleteItem": "{{faltan}} of {{total}}h unplaced",
+    "publishIncompleteCancel": "Cancel",
+    "publishIncompleteConfirm": "Publish anyway"
   },
   "profLoad": {
     "title": "Weekly teacher workload",

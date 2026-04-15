@@ -253,8 +253,22 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           horaFin: hf,
         };
       });
+      // Captura del max(updatedAt) para detectar concurrencia al guardar
+      const baselineMaxUpdatedAt = horarios.reduce((acc, h) => {
+        const u = h.updatedAt || null;
+        if (!u) return acc;
+        return (!acc || u > acc) ? u : acc;
+      }, null);
       setImparticiones(prev => ({ ...prev, [selectedGrupo]: imps }));
-      setState(prev => ({ ...prev, [selectedGrupo]: { placements, dirty: false, baseline: { ...placements } } }));
+      setState(prev => ({
+        ...prev,
+        [selectedGrupo]: {
+          placements,
+          dirty: false,
+          baseline: { ...placements },
+          baselineMaxUpdatedAt,
+        },
+      }));
     });
   }, [selectedGrupo, state]);
 
@@ -524,83 +538,133 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   }, [selectedGrupo, placements, imps, horasColocadas, slotsDia, grupo]);
 
-  // Guardar cambios
-  const handleSave = async () => {
-    if (!grupoState?.dirty) return;
+  // Estado para el modal de conflicto y el de confirmación de publicación incompleta
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+
+  // Construye las operaciones de batch desde el diff baseline→current
+  const buildBatchOps = () => {
+    const baseline = grupoState?.baseline || {};
+    const current = grupoState?.placements || {};
+    const operations = [];
+    // Crear / reemplazar
+    Object.entries(current).forEach(([key, v]) => {
+      const old = baseline[key];
+      if (!old) {
+        operations.push(opCreate(key, v));
+        return;
+      }
+      if (old.imparticionId !== v.imparticionId) {
+        if (old.hid) operations.push({ op: 'delete', id: old.hid });
+        operations.push(opCreate(key, v));
+      }
+    });
+    // Borrar puros
+    Object.entries(baseline).forEach(([key, v]) => {
+      if (!current[key] && v.hid) operations.push({ op: 'delete', id: v.hid });
+    });
+    return operations;
+  };
+
+  const opCreate = (key, v) => {
+    const [diaStr, hiFromKey] = key.split('_');
+    const slot = slotsDia.find(s => s[0] === hiFromKey);
+    const hi = (hiFromKey || '').slice(0, 5);
+    const hf = slot ? slot[1].slice(0, 5) : (v.horaFin || '').slice(0, 5);
+    return {
+      op: 'create',
+      clientKey: key,
+      diaSemana: parseInt(diaStr, 10),
+      horaInicio: hi,
+      horaFin: hf,
+      aula: v.aula,
+      imparticion: v.imparticionId,
+    };
+  };
+
+  // Lista de imparticiones con horas pendientes (para el modal de publicar incompleto)
+  const unplacedSummary = useMemo(() => {
+    return imps
+      .map(imp => {
+        const total = imp.modulo?.horasSemanales || 0;
+        const placed = horasColocadas[imp.id] || 0;
+        return placed < total
+          ? { nombre: imp.modulo?.nombre || '—', faltan: total - placed, total }
+          : null;
+      })
+      .filter(Boolean);
+  }, [imps, horasColocadas]);
+
+  // Ejecuta el guardado real (batch). Devuelve true si OK.
+  const performBatchSave = async () => {
     setSaving(true);
     try {
-      const baseline = grupoState.baseline || {};
+      const operations = buildBatchOps();
+      if (operations.length === 0) return true;
+      const res = await fetch(getApiUrl('/api/v1/horarios/batch'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          grupoId: Number(selectedGrupo),
+          baselineMaxUpdatedAt: grupoState?.baselineMaxUpdatedAt || null,
+          operations,
+        }),
+      });
+      if (res.status === 409) {
+        setConflictOpen(true);
+        return false;
+      }
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      // Mapear ids creados → baseline nuevo
       const current = grupoState.placements || {};
-      const toCreate = [];
-      const toDelete = [];
-      // Creates + updates
-      Object.entries(current).forEach(([key, v]) => {
-        const old = baseline[key];
-        if (!old) { toCreate.push({ key, v }); return; }
-        if (old.imparticionId !== v.imparticionId) {
-          // eliminamos el viejo y creamos el nuevo (simpler que hacer PUT cruzado)
-          toDelete.push(old.hid);
-          toCreate.push({ key, v });
-        }
-      });
-      // Pure deletes
-      Object.entries(baseline).forEach(([key, v]) => {
-        if (!current[key] && v.hid) toDelete.push(v.hid);
-      });
-
-      // Apply deletes
-      const errors = [];
-      for (const hid of toDelete) {
-        const res = await fetch(getApiUrl(`/api/horarios/${hid}`), { method: 'DELETE', credentials: 'include' });
-        if (!res.ok) {
-          errors.push(`DELETE ${hid} → ${res.status}`);
-        }
-      }
-      // Apply creates
-      const nuevos = [];
-      for (const { key, v } of toCreate) {
-        const [diaStr, hiFromKey] = key.split('_');
-        // Hora derivada del KEY, no de v (v conserva horaInicio antigua tras swaps)
-        const slot = slotsDia.find(s => s[0] === hiFromKey);
-        const hi = (hiFromKey || '').slice(0, 5);
-        const hf = slot ? slot[1].slice(0, 5) : (v.horaFin || '').slice(0, 5);
-        const body = {
-          diaSemana: parseInt(diaStr, 10),
-          horaInicio: hi,
-          horaFin: hf,
-          aula: v.aula,
-          imparticion: `/api/imparticions/${v.imparticionId}`,
-        };
-        const res = await fetch(getApiUrl('/api/horarios'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify(body),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          nuevos.push({ key, hid: data.id || getId(data['@id']) });
-        } else {
-          const txt = await res.text().catch(() => '');
-          errors.push(`POST ${key} → ${res.status}: ${txt.slice(0, 200)}`);
-        }
-      }
-      if (errors.length) {
-        alert(`Algunos cambios no se guardaron:\n\n${errors.join('\n')}`);
-      }
-
-      // Actualizar baseline
       const newBaseline = { ...current };
-      nuevos.forEach(({ key, hid }) => { newBaseline[key] = { ...newBaseline[key], hid }; });
+      (data.created || []).forEach(({ clientKey, id }) => {
+        if (clientKey && newBaseline[clientKey]) {
+          newBaseline[clientKey] = { ...newBaseline[clientKey], hid: id };
+        }
+      });
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: { ...prev[selectedGrupo], placements: newBaseline, baseline: newBaseline, dirty: false },
+        [selectedGrupo]: {
+          ...prev[selectedGrupo],
+          placements: newBaseline,
+          baseline: newBaseline,
+          baselineMaxUpdatedAt: data.maxUpdatedAt || null,
+          dirty: false,
+        },
       }));
+      return true;
     } catch (err) {
       alert(t('scheduleEditor.saveError', { message: err.message }));
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  // Fuerza recarga del grupo actual descartando estado local (tras conflicto)
+  const reloadCurrentGroup = () => {
+    setState(prev => {
+      const cp = { ...prev };
+      delete cp[selectedGrupo];
+      return cp;
+    });
+    setConflictOpen(false);
+  };
+
+  // Entry point del botón Guardar: si está incompleto, pedir confirmación primero
+  const handleSave = async () => {
+    if (!grupoState?.dirty) return;
+    if (estado !== 'complete') {
+      setPublishConfirmOpen(true);
+      return;
+    }
+    return performBatchSave();
   };
 
   // Tap-to-place: toggle selección del módulo en el panel
@@ -971,6 +1035,62 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           }
         >
           <p>{t('scheduleEditor.unsavedBody')}</p>
+        </ModalView>
+
+        {/* Modal de conflicto por edición concurrente */}
+        <ModalView
+          isOpen={conflictOpen}
+          onClose={() => setConflictOpen(false)}
+          title={t('scheduleEditor.conflictTitle')}
+          size="small"
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setConflictOpen(false)}>
+                {t('scheduleEditor.conflictKeep')}
+              </Button>
+              <Button type="button" variant="danger" onClick={reloadCurrentGroup}>
+                {t('scheduleEditor.conflictReload')}
+              </Button>
+            </>
+          }
+        >
+          <p>{t('scheduleEditor.conflictBody')}</p>
+        </ModalView>
+
+        {/* Modal de confirmación al publicar horario incompleto */}
+        <ModalView
+          isOpen={publishConfirmOpen}
+          onClose={() => setPublishConfirmOpen(false)}
+          title={t('scheduleEditor.publishIncompleteTitle')}
+          size="medium"
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setPublishConfirmOpen(false)}>
+                {t('scheduleEditor.publishIncompleteCancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  setPublishConfirmOpen(false);
+                  await performBatchSave();
+                }}
+                disabled={saving}
+              >
+                {saving ? t('scheduleEditor.saving') : t('scheduleEditor.publishIncompleteConfirm')}
+              </Button>
+            </>
+          }
+        >
+          <p>{t('scheduleEditor.publishIncompleteBody')}</p>
+          {unplacedSummary.length > 0 && (
+            <ul style={{ marginTop: 'var(--space-2)', paddingLeft: 'var(--space-5)' }}>
+              {unplacedSummary.map((u, i) => (
+                <li key={i}>
+                  <strong>{u.nombre}</strong>: {t('scheduleEditor.publishIncompleteItem', { faltan: u.faltan, total: u.total })}
+                </li>
+              ))}
+            </ul>
+          )}
         </ModalView>
       </Container>
     </Wrapper>

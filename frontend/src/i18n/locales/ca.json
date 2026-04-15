@@ -1118,7 +1118,16 @@
     "unsavedBody": "Tens canvis a l'horari que encara no has desat. Què vols fer?",
     "unsavedStay": "Quedar-me",
     "unsavedDiscard": "Descartar",
-    "unsavedSaveAndLeave": "Desar i sortir"
+    "unsavedSaveAndLeave": "Desar i sortir",
+    "conflictTitle": "Edició concurrent detectada",
+    "conflictBody": "Un altre usuari ha modificat aquest horari des que el vas carregar. Si el desas, sobreescriuràs els seus canvis. Vols recarregar l'horari actual i reaplicar els teus canvis manualment?",
+    "conflictKeep": "Mantenir els meus canvis",
+    "conflictReload": "Recarregar",
+    "publishIncompleteTitle": "Publicar horari incomplet",
+    "publishIncompleteBody": "L'horari encara no està complet. Si el deses ara, els alumnes veuran la versió parcial. Falta col·locar:",
+    "publishIncompleteItem": "{{faltan}} de {{total}}h sense col·locar",
+    "publishIncompleteCancel": "Cancel·lar",
+    "publishIncompleteConfirm": "Publicar igualment"
   },
   "profLoad": {
     "title": "Càrrega setmanal del professorat",
