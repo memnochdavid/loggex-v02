@@ -62,11 +62,11 @@ class Modulo
     private ?string $codigoOficial = null;
 
     #[ORM\Column]
-    #[Groups(['modulo:read', 'modulo:write'])]
+    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read'])]
     private ?int $curso = null;
 
     #[ORM\Column]
-    #[Groups(['modulo:read', 'modulo:write'])]
+    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read'])]
     private ?int $horasSemanales = null;
 
     #[ORM\ManyToOne(inversedBy: 'modulos')]

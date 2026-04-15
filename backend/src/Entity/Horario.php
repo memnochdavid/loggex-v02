@@ -35,6 +35,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'imparticion' => 'exact',
+    'imparticion.grupo' => 'exact',
+    'imparticion.profesor' => 'exact',
     'aula' => 'partial',
     'diaSemana' => 'exact',
     'imparticion.modulo.nombre' => 'partial',

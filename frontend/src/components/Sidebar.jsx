@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, ClipboardList, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
+import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { useTranslation } from 'react-i18next';
 
@@ -24,10 +24,10 @@ const Sidebar = () => {
     const routeToAccordionMap = {
         // Rutas más específicas primero
         '/horarios': 'general',
+        '/admin/horarios': 'administracion',
         '/mensajes': 'general',
         '/perfil': 'general',
         
-        '/tareas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
         '/entregas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
         '/calificaciones': 'profesor',
         '/mis-temarios': 'profesor',
@@ -46,7 +46,7 @@ const Sidebar = () => {
         '/modulos': 'administracion',
         '/matriculas': 'administracion',
         '/imparticiones': 'administracion',
-        '/festivos': isSuperAdmin ? 'superadmin' : 'administracion',
+        '/fechas': isSuperAdmin ? 'superadmin' : 'administracion',
         '/admin/calificaciones': 'administracion',
         '/configuracion': 'administracion',
         
@@ -127,10 +127,6 @@ const Sidebar = () => {
             title: t('sidebar.teacher'),
             content: (
                 <>
-                    <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
-                        <ClipboardList size={20} />
-                        {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
-                    </NavLink>
                     <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                         <UploadCloud size={20} />
                         {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
@@ -183,18 +179,12 @@ const Sidebar = () => {
                         <UserCheck size={20} />
                         {!isCollapsed && <span>{t('sidebar.myTeachers')}</span>}
                     </NavLink>
-                    {/* Tareas/Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
+                    {/* Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
                     {!isProfesor && !isAdmin && !isSuperAdmin && (
-                        <>
-                            <NavLink to="/tareas" className={getNavLinkClass} title={t('sidebar.tasks')} onClick={closeSidebar}>
-                                <ClipboardList size={20} />
-                                {!isCollapsed && <span>{t('sidebar.tasks')}</span>}
-                            </NavLink>
-                            <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
-                                <UploadCloud size={20} />
-                                {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
-                            </NavLink>
-                        </>
+                        <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
+                            <UploadCloud size={20} />
+                            {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
+                        </NavLink>
                     )}
                 </>
             )
@@ -232,10 +222,14 @@ const Sidebar = () => {
                         <Briefcase size={20} />
                         {!isCollapsed && <span>{t('sidebar.teaching')}</span>}
                     </NavLink>
-                    {!isSuperAdmin && ( // Superadmin ya tiene festivos globales arriba
-                        <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.holidays')} onClick={closeSidebar}>
+                    <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={closeSidebar}>
+                        <Calendar size={20} />
+                        {!isCollapsed && <span>{t('sidebar.schedule')}</span>}
+                    </NavLink>
+                    {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
+                        <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                             <CalendarDays size={20} />
-                            {!isCollapsed && <span>{t('sidebar.holidays')}</span>}
+                            {!isCollapsed && <span>Fechas</span>}
                         </NavLink>
                     )}
                     <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.stats')} onClick={closeSidebar}>
@@ -262,9 +256,9 @@ const Sidebar = () => {
                         <Building size={20} />
                         {!isCollapsed && <span>{t('sidebar.centers')}</span>}
                     </NavLink>
-                    <NavLink to="/festivos" className={getNavLinkClass} title={t('sidebar.globalHolidays')} onClick={closeSidebar}>
+                    <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                         <CalendarDays size={20} />
-                        {!isCollapsed && <span>{t('sidebar.globalHolidays')}</span>}
+                        {!isCollapsed && <span>Fechas</span>}
                     </NavLink>
                 </>
             )

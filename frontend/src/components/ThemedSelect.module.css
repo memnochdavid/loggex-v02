@@ -1,0 +1,128 @@
+/* Select estilo LanguageSelector pero con tokens del tema — sirve en cualquier contexto */
+
+.container {
+    position: relative;
+    display: inline-block;
+}
+
+/* El trigger hereda exactamente las clases del <select> nativo de CRUD.
+   Así es imposible que haya diferencias visuales entre ambos. */
+/* Trigger: mismo look que el resto de filtros (bg-input sin borde).
+   El chevron se coloca como un pseudo-elemento usando mask-image para que
+   herede el color del texto. */
+.triggerExtras {
+    position: relative;
+    border: none;
+    outline: none;
+    padding: var(--space-2) var(--space-3);
+    padding-right: 2.25rem;
+    background-color: var(--bg-input);
+    color: var(--text-input, var(--text-main));
+    font-size: var(--text-sm);
+    font-family: inherit;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    white-space: nowrap;
+    height: 38px;
+    box-sizing: border-box;
+    transition: background-color 0.2s;
+}
+
+.triggerExtras::after {
+    content: '';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat center / contain;
+    mask: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat center / contain;
+    pointer-events: none;
+    transition: transform 0.15s ease;
+}
+
+.triggerExtras.open::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.triggerExtras:hover,
+.triggerExtras.open,
+.triggerExtras:focus-visible {
+    background-color: color-mix(in srgb, var(--bg-input), var(--text-input) 5%);
+}
+
+.triggerExtras::-moz-focus-inner { border: 0; }
+
+.label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background-color: var(--bg-card-solid, var(--bg-card));
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1));
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideDown 0.15s ease-out;
+    padding: 0.25rem;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.9rem;
+    border: none;
+    background: transparent;
+    color: var(--text-main, #334155);
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+    border-radius: calc(var(--radius-sm, 4px));
+    position: relative;
+}
+
+.item:hover {
+    background-color: var(--datatable-header-hover-bg, rgba(0, 0, 0, 0.04));
+    color: var(--datatable-header-hover-text, var(--text-main));
+}
+
+.item.active {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: var(--text-main, #334155);
+    font-weight: 700;
+}
+
+.item.active::before {
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 3px;
+    background-color: var(--color-primary, var(--primary-color, #6366f1));
+    border-radius: 2px;
+}
+

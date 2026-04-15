@@ -147,7 +147,8 @@
     "grades": "Notas",
     "myGrades": "Mis Notas",
     "stats": "Estadísticas",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "scheduleAdmin": "Horarios (administración)"
   },
   "userAvatar": {
     "menuLabel": "Menú de usuario",
@@ -1068,6 +1069,64 @@
     "downloadAsZip": "ZIP (individuales)",
     "generating": "Generando...",
     "selectPeriodFirst": "Selecciona una evaluación primero",
-    "pdfLanguage": "Idioma PDF"
+    "pdfLanguage": "Idioma PDF",
+    "weightTabGlobal": "Ponderación global",
+    "weightTabItems": "Peso por item",
+    "itemsHint": "Peso de cada item dentro de su categoría. Dejar vacío = reparto automático equitativo. La suma por categoría debería ser 100%.",
+    "noItemsForImp": "No hay tareas, exámenes ni prácticas creadas para esta impartición.",
+    "weightSumLabel": "Suma",
+    "weightSumWarn": "(debe ser 100%)",
+    "auto": "auto",
+    "weightRange": "El peso debe estar entre 0 y 100",
+    "itemWeight": "Peso en la nota",
+    "confirmResetWeights": "¿Seguro que quieres restaurar los pesos por defecto? Todos los items volverán a reparto equitativo."
+  },
+  "scheduleEditor": {
+    "title": "Editor de horarios",
+    "tabEditor": "Editor gráfico",
+    "tabList": "Lista",
+    "selectYear": "Seleccionar año escolar",
+    "selectGroup": "Seleccionar grupo",
+    "emptyState": "Selecciona un grupo para empezar.",
+    "panelModules": "Módulos ({{count}})",
+    "panelHint": "Arrastra un módulo al horario. Arrastra una clase del horario al panel para quitarla.",
+    "statusComplete": "Completo · {{done}}/{{total}}h",
+    "statusDraft": "Borrador · {{done}}/{{total}}h",
+    "statusIncomplete": "Incompleto · {{done}}/{{total}}h",
+    "saveChanges": "Guardar cambios",
+    "saved": "Guardado",
+    "saving": "Guardando…",
+    "saveError": "Error al guardar: {{message}}",
+    "turno": "Turno",
+    "turnoMorning": "Mañana",
+    "turnoAfternoon": "Tarde",
+    "classroom": "Aula",
+    "slotsPlaced": "Franjas",
+    "slotsPlacedValue": "{{done}}/{{total}} colocadas",
+    "reasonUnknownImp": "Imparticion desconocida",
+    "reasonModuleFull": "Ya has colocado las {{total}}h de {{module}}",
+    "reasonCellOccupied": "Celda ocupada",
+    "reasonTeacherBusy": "{{teacher}} ya imparte en un grupo paralelo a esa hora",
+    "solverSuggest": "Sugerir horario",
+    "solverSuggestAnother": "Sugerir otra",
+    "solverSuggestAnotherHint": "Genera una propuesta alternativa",
+    "solving": "Calculando…",
+    "solverConfirmOverwrite": "Hay un horario en curso. ¿Sobrescribir con la propuesta del solver?",
+    "solverPartial": "Propuesta parcial. Sin colocar: {{items}}",
+    "solverError": "Error del solver: {{message}}"
+  },
+  "profLoad": {
+    "title": "Carga semanal del profesorado",
+    "subtitle": "Máx. {{max}} h/sem. · Horas extra permitidas hasta 80 h anuales",
+    "tooltip": "En este grupo: {{actual}}h · En otros: {{other}}h",
+    "overflow": "+{{hours}}h extra"
+  },
+  "themedSelect": {
+    "placeholder": "Seleccionar…"
+  },
+  "dates": {
+    "title": "Fechas",
+    "tabHolidays": "Festivos",
+    "tabEvaluations": "Evaluaciones"
   }
 }

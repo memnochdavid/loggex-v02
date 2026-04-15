@@ -3,6 +3,7 @@ import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
@@ -76,8 +77,10 @@ const CalificacionesAdmin = () => {
                 if (!res.ok) return;
                 const d = await res.json();
                 const all = d['hydra:member'] || d.member || [];
+                const hoy = new Date(); hoy.setHours(0,0,0,0);
+                const all_fin = all.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                 const byName = new Map();
-                all.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
+                all_fin.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                 const unique = [...byName.values()];
                 // Ordinarias primero por fecha, extraordinaria siempre al final
                 unique.sort((a, b) => {
@@ -252,40 +255,40 @@ const CalificacionesAdmin = () => {
                     <h1 className={styles.title}>{t('grades.adminTitle')}</h1>
                     <div className={styles.controls}>
                         {isSuperAdmin && (
-                            <select
-                                className={styles.periodSelect}
+                            <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(e) => { setSelectedCentro(e.target.value); setSelectedYear(''); setExpandedId(null); }}
-                                style={{ minWidth: '200px' }}
-                            >
-                                <option value="">{t('common.selectCenter')}</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
+                                onChange={(v) => { setSelectedCentro(v); setSelectedYear(''); setExpandedId(null); }}
+                                minWidth={200}
+                                ariaLabel={t('common.selectCenter')}
+                                options={[
+                                    { value: '', label: t('common.selectCenter') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
                         )}
-                        <select
-                            className={styles.periodSelect}
+                        <ThemedSelect
                             value={selectedYear}
-                            onChange={(e) => { setSelectedYear(e.target.value); setExpandedId(null); }}
-                            style={{ minWidth: '160px' }}
-                        >
-                            <option value="">{t('grades.allYears')}</option>
-                            {availableYears.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
-                        <select
-                            className={styles.periodSelect}
+                            onChange={(v) => { setSelectedYear(v); setExpandedId(null); }}
+                            minWidth={160}
+                            ariaLabel={t('grades.allYears')}
+                            options={[
+                                { value: '', label: t('grades.allYears') },
+                                ...availableYears.map(y => ({ value: y, label: y })),
+                            ]}
+                        />
+                        <ThemedSelect
                             value={selectedPeriodo}
-                            onChange={(e) => setSelectedPeriodo(e.target.value)}
-                        >
-                            <option value="">{t('grades.allPeriods')}</option>
-                            {periodos.map(p => {
-                                const id = p.id || p['@id']?.split('/').pop();
-                                return <option key={id} value={id}>{p.nombre}</option>;
-                            })}
-                        </select>
+                            onChange={setSelectedPeriodo}
+                            minWidth={180}
+                            ariaLabel={t('grades.allPeriods')}
+                            options={[
+                                { value: '', label: t('grades.allPeriods') },
+                                ...periodos.map(p => {
+                                    const id = p.id || p['@id']?.split('/').pop();
+                                    return { value: String(id), label: p.nombre };
+                                }),
+                            ]}
+                        />
                     </div>
                 </div>
 

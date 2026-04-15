@@ -3,6 +3,7 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
@@ -14,7 +15,7 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 
-const Festivos = () => {
+const Festivos = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -396,40 +397,44 @@ const Festivos = () => {
     }
   ], [isSuperAdmin, isAdmin, handleOpenModal, handleDelete]);
 
-  return (
-    <Layout>
-        <div className={styles.container}>
-        <CrudHeader title={t('holidays.title')}
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        >
-            {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                >
-                    <option value="">{t('common.allCenters')}</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
-            )}
-            
-            <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-                placeholder={t('holidays.searchPlaceholder')}
-                fields={searchFields}
-                selectedField={searchField}
-                onFieldChange={setSearchField}
+  const toolbar = (
+    <>
+        {isSuperAdmin && (
+            <ThemedSelect
+                value={selectedCentro}
+                onChange={setSelectedCentro}
+                minWidth={200}
+                ariaLabel={t('common.allCenters')}
+                options={[
+                    { value: '', label: t('common.allCenters') },
+                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                ]}
             />
-            
-            {canCreate && (
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus size={18} style={{ marginRight: '8px' }} />
-                    {t('common.new')}
-                </Button>
-            )}
+        )}
+        <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder={t('holidays.searchPlaceholder')}
+            fields={searchFields}
+            selectedField={searchField}
+            onFieldChange={setSearchField}
+        />
+        {canCreate && (
+            <Button onClick={() => handleOpenModal()}>
+                <Plus size={18} style={{ marginRight: '8px' }} />
+                {t('common.new')}
+            </Button>
+        )}
+    </>
+  );
+
+  const body = (
+    <>
+        <CrudHeader title={embedded ? t('dates.title') : t('holidays.title')}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    middle={tabs}
+        >
+            {toolbar}
         </CrudHeader>
 
         {error && (
@@ -515,6 +520,14 @@ const Festivos = () => {
                 </div>
             )}
         </ModalView>
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <Layout>
+        <div className={styles.container}>
+            {body}
         </div>
     </Layout>
   );

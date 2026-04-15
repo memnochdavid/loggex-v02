@@ -3,13 +3,15 @@ import styles from './Horarios.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import EventsSidebar from '../components/EventsSidebar';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose, LayoutGrid } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
@@ -17,8 +19,9 @@ import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 
-const Horarios = () => {
+const Horarios = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -26,7 +29,7 @@ const Horarios = () => {
   
   const isMobile = useMediaQuery('(max-width: 1200px)');
 
-  const [viewMode, setViewMode] = useState('calendar');
+  const [viewMode, setViewMode] = useState(embedded ? 'list' : 'calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -132,9 +135,10 @@ const Horarios = () => {
       if (viewMode === 'calendar') {
           setLoading(true);
           
-          const fetchSchedule = fetch(getApiUrl('/api/my-schedule'), {
-              headers: { 'Accept': 'application/json' },
-              credentials: 'include'
+          const fetchSchedule = fetch(getApiUrl(`/api/my-schedule?_=${Date.now()}`), {
+              headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+              credentials: 'include',
+              cache: 'no-store',
           }).then(res => res.json());
 
           let urlFestivos = getApiUrl('/api/festivos?pagination=false');
@@ -458,27 +462,23 @@ const Horarios = () => {
     }
   ], [handleOpenModal, handleDelete]);
 
+  const Wrapper = embedded ? React.Fragment : Layout;
+  const Container = embedded ? React.Fragment : ({ children }) => <div className={styles.container}>{children}</div>;
   return (
-    <Layout>
-        <div className={styles.container}>
-        <CrudHeader title={t('schedules.title')}
+    <Wrapper>
+        <Container>
+        <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    middle={tabs}
         >
             <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
-                <Button 
-                    variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                    onClick={() => setViewMode('calendar')}
-                    title={t('schedules.calendarView')}
-                >
-                    <CalendarIcon size={18} />
-                </Button>
-                {canEdit && (
-                    <Button 
-                        variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                        onClick={() => setViewMode('list')}
-                        title={t('schedules.listView')}
+                {!embedded && (
+                    <Button
+                        variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
+                        onClick={() => setViewMode('calendar')}
+                        title={t('schedules.calendarView')}
                     >
-                        <List size={18} />
+                        <CalendarIcon size={18} />
                     </Button>
                 )}
                 
@@ -494,17 +494,16 @@ const Horarios = () => {
             </div>
 
             {viewMode === 'list' && isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">{t('common.allCenters')}</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={setSelectedCentro}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
             
             {viewMode === 'list' && (
@@ -645,8 +644,8 @@ const Horarios = () => {
                 </select>
             </div>
         </ModalView>
-        </div>
-    </Layout>
+        </Container>
+    </Wrapper>
   );
 };
 

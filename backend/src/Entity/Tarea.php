@@ -79,13 +79,18 @@ class Tarea
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $tipo = null;
 
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?float $peso = null;
+
     #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?Imparticion $imparticion = null;
 
     #[ORM\OneToMany(mappedBy: 'tarea', targetEntity: Entrega::class)]
-    #[Groups(['tarea:read'])] // Añadido para que el profesor pueda ver las entregas
+    // NO serializar aquí: filtraría las entregas de todos los alumnos a cualquiera con acceso a la tarea.
+    // El profesor obtiene la lista vía GET /api/entregas?tarea={id}.
     private Collection $entregas;
 
     public function __construct()
@@ -172,6 +177,17 @@ class Tarea
     public function setTipo(string $tipo): static
     {
         $this->tipo = $tipo;
+        return $this;
+    }
+
+    public function getPeso(): ?float
+    {
+        return $this->peso;
+    }
+
+    public function setPeso(?float $peso): static
+    {
+        $this->peso = $peso;
         return $this;
     }
 

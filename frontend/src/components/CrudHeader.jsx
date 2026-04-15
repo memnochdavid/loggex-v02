@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './CrudHeader.module.css';
 
-const CrudHeader = ({ title, subtitle, logo, children }) => {
+const CrudHeader = ({ title, subtitle, logo, middle, children }) => {
     const [showLottie, setShowLottie] = useState(true);
 
     useEffect(() => {
@@ -47,6 +47,7 @@ const CrudHeader = ({ title, subtitle, logo, children }) => {
                     {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
                 </div>
             </div>
+            {middle && <div className={styles.middle}>{middle}</div>}
             <div className={styles.actions}>
                 {children}
             </div>

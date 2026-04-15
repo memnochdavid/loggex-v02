@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
+import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Download } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
@@ -18,6 +19,8 @@ const MaterialesAlumno = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [periodos, setPeriodos] = useState([]);
+  const [selectedPeriodo, setSelectedPeriodo] = useState('');
 
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -191,11 +194,16 @@ const MaterialesAlumno = () => {
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
             const title = `${imp.modulo.nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
 
+            const grupoId = typeof imp.grupo === 'string'
+                ? imp.grupo.split('/').pop()
+                : (imp.grupo?.id || imp.grupo?.['@id']?.split('/').pop());
+
             asignaturasData.push({
                 id: impId,
                 title: title,
                 profesor: nombreProfesor,
-                materiales: materiales
+                materiales: materiales,
+                grupoId,
             });
         }
 
@@ -212,14 +220,73 @@ const MaterialesAlumno = () => {
     fetchData();
   }, [user, selectedCentro, selectedGrupo, selectedModulo]);
 
+  // Cargar períodos evaluativos de todos los grupos implicados
+  useEffect(() => {
+    if (!asignaturas || asignaturas.length === 0) { setPeriodos([]); return; }
+    const grupoIds = [...new Set(asignaturas.map(a => a.grupoId).filter(Boolean))];
+    if (grupoIds.length === 0) { setPeriodos([]); return; }
+
+    const fetchAll = async () => {
+      try {
+        const results = await Promise.all(grupoIds.map(gid =>
+          fetch(getApiUrl(`/api/periodo_evaluativos?grupo=${gid}&order[fechaInicio]=asc`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+          }).then(r => r.ok ? r.json() : null)
+        ));
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
+        const byKey = new Map();
+        results.forEach(r => {
+          if (!r) return;
+          const items = r['hydra:member'] || r.member || [];
+          items.forEach(p => {
+            if (!p.fechaFin || new Date(p.fechaFin) >= hoy) return;
+            const key = `${p.tipo || ''}::${p.nombre || ''}`;
+            if (!byKey.has(key)) byKey.set(key, { key, nombre: p.nombre, tipo: p.tipo, rangos: [] });
+            byKey.get(key).rangos.push({ fechaInicio: p.fechaInicio, fechaFin: p.fechaFin });
+          });
+        });
+        const merged = Array.from(byKey.values()).sort((a, b) => {
+          const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+          const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
+          if (aExtra !== bExtra) return aExtra - bExtra;
+          const aMin = a.rangos.map(r => r.fechaInicio).sort()[0] || '';
+          const bMin = b.rangos.map(r => r.fechaInicio).sort()[0] || '';
+          return aMin.localeCompare(bMin);
+        });
+        setPeriodos(merged);
+      } catch { /* no crítico */ }
+    };
+    fetchAll();
+  }, [asignaturas]);
+
+  const periodoRanges = useMemo(() => {
+    if (!selectedPeriodo) return null;
+    const p = periodos.find(pp => pp.key === selectedPeriodo);
+    if (!p) return null;
+    return p.rangos.map(r => {
+      const ini = new Date(r.fechaInicio);
+      const fin = new Date(r.fechaFin);
+      fin.setHours(23, 59, 59, 999);
+      return { ini, fin };
+    });
+  }, [selectedPeriodo, periodos]);
+
+  const enPeriodo = (mat) => {
+    if (!periodoRanges) return true;
+    if (!mat.fechaSubida) return false;
+    const d = new Date(mat.fechaSubida);
+    return periodoRanges.some(r => d >= r.ini && d <= r.fin);
+  };
+
   const renderMateriales = (asignatura) => {
-    if (asignatura.materiales.length === 0) {
+    const filtrados = asignatura.materiales.filter(enPeriodo);
+    if (filtrados.length === 0) {
       return <div className={styles.emptyState}>{t('studentMaterials.noMaterialsAvailable')}</div>;
     }
 
     return (
       <ul className={styles.list}>
-        {asignatura.materiales.map(mat => (
+        {filtrados.map(mat => (
           <li key={mat.id} className={styles.listItem}>
             <div className={styles.itemInfo}>
                 <FileText size={20} className={styles.icon} />
@@ -230,7 +297,7 @@ const MaterialesAlumno = () => {
             </div>
             <div className={styles.itemActions}>
                 <a 
-                    href={getAssetUrl(`/uploads/materiales/${mat.archivo}`)}
+                    href={getAssetUrl(`/uploads/materiales/${mat.id}/${mat.archivo}`)}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className={styles.downloadLink}
@@ -253,59 +320,64 @@ const MaterialesAlumno = () => {
         >
             {isSuperAdmin && (
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <select 
-                        className={styles.select}
+                    <ThemedSelect
                         value={selectedCentro}
-                        onChange={(e) => setSelectedCentro(e.target.value)}
-                        style={{ minWidth: '200px' }}
-                    >
-                        <option value="">{t('common.allCenters')}</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
-
+                        onChange={setSelectedCentro}
+                        minWidth={200}
+                        ariaLabel={t('common.allCenters')}
+                        options={[
+                            { value: '', label: t('common.allCenters') },
+                            ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                        ]}
+                    />
                     {availableYears.length > 0 && (
-                        <select
-                            className={styles.select}
+                        <ThemedSelect
                             value={selectedYear}
-                            onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                            onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); }}
                             disabled={!selectedCentro}
-                            style={{ minWidth: '140px' }}
-                        >
-                            <option value="">{t('grades.allYears')}</option>
-                            {availableYears.map(y => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                        </select>
+                            minWidth={140}
+                            ariaLabel={t('grades.allYears')}
+                            options={[
+                                { value: '', label: t('grades.allYears') },
+                                ...availableYears.map(y => ({ value: y, label: y })),
+                            ]}
+                        />
                     )}
-
-                    <select
-                        className={styles.select}
+                    <ThemedSelect
                         value={selectedGrupo}
-                        onChange={(e) => setSelectedGrupo(e.target.value)}
+                        onChange={setSelectedGrupo}
                         disabled={!selectedCentro}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="">{t('common.allGroups')}</option>
-                        {grupos.map(g => (
-                            <option key={g.id} value={g.id}>{g.nombre}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        className={styles.select}
+                        minWidth={150}
+                        ariaLabel={t('common.allGroups')}
+                        options={[
+                            { value: '', label: t('common.allGroups') },
+                            ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                        ]}
+                    />
+                    <ThemedSelect
                         value={selectedModulo}
-                        onChange={(e) => setSelectedModulo(e.target.value)}
+                        onChange={setSelectedModulo}
                         disabled={!selectedGrupo}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="">{t('common.allModules')}</option>
-                        {modulos.map(m => (
-                            <option key={m.id} value={m.id}>{m.nombre}</option>
-                        ))}
-                    </select>
+                        minWidth={150}
+                        ariaLabel={t('common.allModules')}
+                        options={[
+                            { value: '', label: t('common.allModules') },
+                            ...modulos.map(m => ({ value: String(m.id), label: m.nombre })),
+                        ]}
+                    />
                 </div>
+            )}
+            {periodos.length > 0 && (
+                <ThemedSelect
+                    value={selectedPeriodo}
+                    onChange={setSelectedPeriodo}
+                    minWidth={180}
+                    ariaLabel={t('grades.allPeriods')}
+                    options={[
+                        { value: '', label: t('grades.allPeriods') },
+                        ...periodos.map(p => ({ value: p.key, label: p.nombre })),
+                    ]}
+                />
             )}
         </CrudHeader>
 

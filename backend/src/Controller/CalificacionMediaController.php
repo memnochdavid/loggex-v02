@@ -208,7 +208,7 @@ class CalificacionMediaController extends AbstractController
         ?PeriodoEvaluativo $periodo = null
     ): array {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('t.tipo', 'c.nota')
+        $qb->select('t.tipo', 't.peso AS tareaPeso', 'c.nota')
             ->from('App\Entity\Tarea', 't')
             ->leftJoin('App\Entity\Entrega', 'e', 'WITH', 'e.tarea = t AND e.alumno = :alumnoId AND e.deleted = false')
             ->leftJoin('App\Entity\Calificacion', 'c', 'WITH', 'c.entrega = e AND c.deleted = false')
@@ -235,15 +235,31 @@ class CalificacionMediaController extends AbstractController
             $totalTareas++;
 
             if ($row['nota'] !== null) {
-                $notasPorTipo[$tipo][] = $row['nota'];
+                $notasPorTipo[$tipo][] = [
+                    'nota' => $row['nota'],
+                    'peso' => $row['tareaPeso'] !== null ? (float)$row['tareaPeso'] : 1.0,
+                ];
             } else {
                 $entregasPendientes++;
             }
         }
 
         $mediaPorTipo = [];
-        foreach ($notasPorTipo as $tipo => $notas) {
-            $mediaPorTipo[$tipo] = count($notas) > 0 ? round(array_sum($notas) / count($notas), 2) : null;
+        foreach ($notasPorTipo as $tipo => $items) {
+            if (count($items) === 0) {
+                $mediaPorTipo[$tipo] = null;
+                continue;
+            }
+            $sumaPesos = array_sum(array_column($items, 'peso'));
+            if ($sumaPesos <= 0) {
+                $mediaPorTipo[$tipo] = round(array_sum(array_column($items, 'nota')) / count($items), 2);
+                continue;
+            }
+            $suma = 0;
+            foreach ($items as $it) {
+                $suma += $it['nota'] * $it['peso'];
+            }
+            $mediaPorTipo[$tipo] = round($suma / $sumaPesos, 2);
         }
 
         $notaFinal = null;

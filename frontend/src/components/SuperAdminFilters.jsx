@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import ThemedSelect from './ThemedSelect';
 
 /**
  * Filtros en cascada Centro → Año escolar → Grupo → Módulo para SuperAdmin.
- * Renderiza selects sueltos (sin wrapper) para que el padre controle el layout.
+ * Usa ThemedSelect (trigger idéntico al <select> nativo del CRUD, dropdown custom).
+ * La prop `selectClassName` queda por compatibilidad con llamadas antiguas pero se ignora.
  */
-const SuperAdminFilters = ({ filters, selectClassName }) => {
+const SuperAdminFilters = ({ filters }) => {
     const { t } = useTranslation();
     const {
         centros, selectedCentro, setSelectedCentro,
@@ -16,58 +18,58 @@ const SuperAdminFilters = ({ filters, selectClassName }) => {
 
     return (
         <>
-            <select
-                className={selectClassName}
+            <ThemedSelect
                 value={selectedCentro}
-                onChange={(e) => setSelectedCentro(e.target.value)}
-                style={{ minWidth: '200px' }}
-            >
-                <option value="">{t('common.allCenters')}</option>
-                {centros.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-            </select>
+                onChange={setSelectedCentro}
+                minWidth={200}
+                ariaLabel={t('common.allCenters')}
+                placeholder={t('common.allCenters')}
+                options={[
+                    { value: '', label: t('common.allCenters') },
+                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                ]}
+            />
 
             {availableYears?.length > 0 && (
-                <select
-                    className={selectClassName}
+                <ThemedSelect
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
+                    onChange={setSelectedYear}
                     disabled={!selectedCentro}
-                    style={{ minWidth: '140px' }}
-                >
-                    <option value="">{t('grades.allYears')}</option>
-                    {availableYears.map(y => (
-                        <option key={y} value={y}>{y}</option>
-                    ))}
-                </select>
+                    minWidth={140}
+                    ariaLabel={t('grades.allYears')}
+                    placeholder={t('grades.allYears')}
+                    options={[
+                        { value: '', label: t('grades.allYears') },
+                        ...availableYears.map(y => ({ value: y, label: y })),
+                    ]}
+                />
             )}
 
-            <select
-                className={selectClassName}
+            <ThemedSelect
                 value={selectedGrupo}
-                onChange={(e) => setSelectedGrupo(e.target.value)}
+                onChange={setSelectedGrupo}
                 disabled={!selectedCentro}
-                style={{ minWidth: '150px' }}
-            >
-                <option value="">{t('common.allGroups')}</option>
-                {grupos.map(g => (
-                    <option key={g.id} value={g.id}>{g.nombre}</option>
-                ))}
-            </select>
+                minWidth={150}
+                ariaLabel={t('common.allGroups')}
+                placeholder={t('common.allGroups')}
+                options={[
+                    { value: '', label: t('common.allGroups') },
+                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                ]}
+            />
 
-            <select
-                className={selectClassName}
+            <ThemedSelect
                 value={selectedModulo}
-                onChange={(e) => setSelectedModulo(e.target.value)}
+                onChange={setSelectedModulo}
                 disabled={!selectedGrupo}
-                style={{ minWidth: '150px' }}
-            >
-                <option value="">{t('common.allModules')}</option>
-                {modulos.map(m => (
-                    <option key={m.id} value={m.id}>{m.nombre}</option>
-                ))}
-            </select>
+                minWidth={150}
+                ariaLabel={t('common.allModules')}
+                placeholder={t('common.allModules')}
+                options={[
+                    { value: '', label: t('common.allModules') },
+                    ...modulos.map(m => ({ value: String(m.id), label: m.nombre })),
+                ]}
+            />
         </>
     );
 };

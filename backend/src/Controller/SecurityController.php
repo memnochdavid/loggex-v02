@@ -97,6 +97,7 @@ class SecurityController extends AbstractController
             'rol_app' => $user->getRolApp(),
             'roles' => $user->getRoles(),
             'foto' => $user->getFoto(),
+            'firma' => $user->getFirma(),
             'centro' => $centroData,
         ];
     }

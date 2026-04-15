@@ -147,7 +147,8 @@
     "grades": "Notak",
     "myGrades": "Nire Notak",
     "stats": "Estatistikak",
-    "logout": "Saioa itxi"
+    "logout": "Saioa itxi",
+    "scheduleAdmin": "Ordutegiak (administrazioa)"
   },
   "userAvatar": {
     "menuLabel": "Erabiltzaile menua",
@@ -1068,6 +1069,64 @@
     "downloadAsZip": "ZIP (banakakoek)",
     "generating": "Sortzen...",
     "selectPeriodFirst": "Lehenik ebaluazio bat aukeratu",
-    "pdfLanguage": "PDF hizkuntza"
+    "pdfLanguage": "PDF hizkuntza",
+    "weightTabGlobal": "Haztapen globala",
+    "weightTabItems": "Elementuaren pisua",
+    "itemsHint": "Kategoriako elementu bakoitzaren pisua. Hutsik = banaketa berdin. Kategoriako batura 100% izan beharko litzateke.",
+    "noItemsForImp": "Irakasmaila honetan ez dago zereginik, azterketarik edo praktikarik sortuta.",
+    "weightSumLabel": "Batura",
+    "weightSumWarn": "(100% izan behar du)",
+    "auto": "auto",
+    "weightRange": "Pisuak 0 eta 100 artean egon behar du",
+    "itemWeight": "Pisua notan",
+    "confirmResetWeights": "Pisuak lehenetsira itzuli? Elementu guztiak banaketa berdinetara itzuliko dira."
+  },
+  "scheduleEditor": {
+    "title": "Ordutegi editorea",
+    "tabEditor": "Editore grafikoa",
+    "tabList": "Zerrenda",
+    "selectYear": "Ikasturtea aukeratu",
+    "selectGroup": "Taldea aukeratu",
+    "emptyState": "Hautatu talde bat hasteko.",
+    "panelModules": "Moduluak ({{count}})",
+    "panelHint": "Arrastatu modulu bat ordutegira. Arrastatu klase bat panelera kentzeko.",
+    "statusComplete": "Osatuta · {{done}}/{{total}}h",
+    "statusDraft": "Zirriborroa · {{done}}/{{total}}h",
+    "statusIncomplete": "Osatu gabe · {{done}}/{{total}}h",
+    "saveChanges": "Aldaketak gorde",
+    "saved": "Gordeta",
+    "saving": "Gordetzen…",
+    "saveError": "Errorea gordetzean: {{message}}",
+    "turno": "Txanda",
+    "turnoMorning": "Goiza",
+    "turnoAfternoon": "Arratsaldea",
+    "classroom": "Gela",
+    "slotsPlaced": "Tarteak",
+    "slotsPlacedValue": "{{done}}/{{total}} kokatuta",
+    "reasonUnknownImp": "Irakasmailako sail ezezaguna",
+    "reasonModuleFull": "Jada kokatu dituzu {{module}}-ren {{total}} ordu",
+    "reasonCellOccupied": "Gelaxka okupatuta",
+    "reasonTeacherBusy": "{{teacher}} irakasle paraleloan ari da ordu horretan",
+    "solverSuggest": "Ordutegia iradoki",
+    "solverSuggestAnother": "Beste bat iradoki",
+    "solverSuggestAnotherHint": "Proposamen alternatibo bat sortu",
+    "solving": "Kalkulatzen…",
+    "solverConfirmOverwrite": "Ordutegi bat lantzen ari da. Solverraren proposamenarekin gainidatzi?",
+    "solverPartial": "Proposamen partziala. Kokatu gabe: {{items}}",
+    "solverError": "Solver errorea: {{message}}"
+  },
+  "profLoad": {
+    "title": "Irakasleen asteko karga",
+    "subtitle": "Geh. {{max}} ordu/aste · Aparteko orduak onartzen dira urtean 80 ordu arte",
+    "tooltip": "Talde honetan: {{actual}}h · Besteetan: {{other}}h",
+    "overflow": "+{{hours}}h aparteko"
+  },
+  "themedSelect": {
+    "placeholder": "Aukeratu…"
+  },
+  "dates": {
+    "title": "Datak",
+    "tabHolidays": "Jaiegunak",
+    "tabEvaluations": "Ebaluazioak"
   }
 }

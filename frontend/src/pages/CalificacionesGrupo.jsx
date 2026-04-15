@@ -3,10 +3,134 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import Button from '../components/Button';
+import ThemedSelect from '../components/ThemedSelect';
+import ThemedNumberInput from '../components/ThemedNumberInput';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { Settings, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+
+// Editor de peso por item (tarea individual) — agrupado por tipo
+const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeriodo = '', t }) => {
+    const [draft, setDraft] = React.useState({});
+    // Filtrar por evaluación seleccionada (por fechaLimite dentro del rango)
+    const tareasFiltradas = React.useMemo(() => {
+        if (!selectedPeriodo) return tareas;
+        const p = periodos.find(pp => String(pp.id || pp['@id']?.split('/').pop()) === String(selectedPeriodo));
+        if (!p) return tareas;
+        const ini = new Date(p.fechaInicio);
+        const fin = new Date(p.fechaFin);
+        fin.setHours(23, 59, 59, 999);
+        return tareas.filter(tr => {
+            if (!tr.fechaLimite) return false;
+            const d = new Date(tr.fechaLimite);
+            return d >= ini && d <= fin;
+        });
+    }, [tareas, periodos, selectedPeriodo]);
+    const grupos = React.useMemo(() => {
+        const g = { examen: [], tarea: [], practica: [] };
+        tareasFiltradas.forEach(tr => { if (g[tr.tipo]) g[tr.tipo].push(tr); });
+        return g;
+    }, [tareasFiltradas]);
+    const pesoOf = (tr) => {
+        const id = tr.id || tr['@id']?.split('/').pop();
+        return (id in draft) ? draft[id] : (tr.peso != null ? String(tr.peso) : '');
+    };
+    const sumaTipo = (tipo) => {
+        return grupos[tipo].reduce((acc, tr) => {
+            const v = parseFloat(pesoOf(tr));
+            return acc + (isNaN(v) ? 0 : v);
+        }, 0);
+    };
+    const sectionLabels = {
+        examen:   t('grades.weightExam'),
+        tarea:    t('grades.weightTask'),
+        practica: t('grades.weightPractice'),
+    };
+
+    if (tareasFiltradas.length === 0) {
+        return <p style={{ color: 'var(--text-muted)' }}>{t('grades.noItemsForImp')}</p>;
+    }
+
+    // Resetear a "auto" (peso=null) todos los ítems mostrados
+    const handleResetAll = () => {
+        if (!window.confirm(t('grades.confirmResetWeights'))) return;
+        tareasFiltradas.forEach(tr => {
+            const id = tr.id || tr['@id']?.split('/').pop();
+            if (tr.peso != null) onSave(id, '');
+        });
+        setDraft({});
+    };
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-4)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', margin: 0, flex: 1, minWidth: '240px' }}>
+                    {t('grades.itemsHint')}
+                </p>
+                <Button
+                    variant="secondary"
+                    onClick={handleResetAll}
+                    disabled={tareasFiltradas.every(tr => tr.peso == null)}
+                >
+                    {t('grades.weightDefaults')}
+                </Button>
+            </div>
+            {['examen', 'tarea', 'practica'].map(tipo => {
+                if (grupos[tipo].length === 0) return null;
+                const suma = Math.round(sumaTipo(tipo) * 100) / 100;
+                const ok = Math.abs(suma - 100) < 0.01;
+                return (
+                    <div key={tipo} style={{ marginBottom: 'var(--space-5)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-2)' }}>
+                            <h4 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                                {sectionLabels[tipo]} ({grupos[tipo].length})
+                            </h4>
+                            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', color: ok ? 'var(--color-success)' : 'var(--color-error)' }}>
+                                {t('grades.weightSumLabel')}: {suma}%{!ok && ` ${t('grades.weightSumWarn')}`}
+                            </span>
+                        </div>
+                        {grupos[tipo].map(tr => {
+                            const id = tr.id || tr['@id']?.split('/').pop();
+                            const value = pesoOf(tr);
+                            const isDirty = id in draft && String(draft[id] || '') !== String(tr.peso != null ? tr.peso : '');
+                            return (
+                                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--border-color)' }}>
+                                    <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {tr.titulo}
+                                    </span>
+                                    <ThemedNumberInput
+                                        min={0}
+                                        max={100}
+                                        step={0.5}
+                                        placeholder={t('grades.auto')}
+                                        value={value}
+                                        onChange={(v) => setDraft(prev => ({ ...prev, [id]: v }))}
+                                        width={110}
+                                        suffix="%"
+                                        ariaLabel={t('grades.weightTabItems')}
+                                    />
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            onSave(id, draft[id] ?? (tr.peso != null ? String(tr.peso) : ''));
+                                            setDraft(prev => {
+                                                const n = { ...prev }; delete n[id]; return n;
+                                            });
+                                        }}
+                                        disabled={!isDirty || saving[id]}
+                                    >
+                                        {saving[id] ? t('common.saving') : t('common.save')}
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
 
 const CalificacionesGrupo = () => {
     const { t } = useTranslation();
@@ -26,6 +150,9 @@ const CalificacionesGrupo = () => {
     const [pesos, setPesos] = useState({ examen: 50, tarea: 30, practica: 20 });
     const [showWeights, setShowWeights] = useState(false);
     const [savingWeights, setSavingWeights] = useState(false);
+    const [weightTab, setWeightTab] = useState('global');
+    const [tareasImp, setTareasImp] = useState([]);
+    const [savingTareaPeso, setSavingTareaPeso] = useState({});
 
     // Estado
     const [loading, setLoading] = useState(true);
@@ -132,7 +259,10 @@ const CalificacionesGrupo = () => {
                     });
                     if (pRes.ok) {
                         const pData = await pRes.json();
-                        const items = pData['hydra:member'] || pData.member || [];
+                        let items = pData['hydra:member'] || pData.member || [];
+                        // Solo evaluaciones ya finalizadas (fechaFin < hoy)
+                        const hoy = new Date(); hoy.setHours(0,0,0,0);
+                        items = items.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                         items.sort((a, b) => {
                             const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
                             const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;
@@ -198,6 +328,48 @@ const CalificacionesGrupo = () => {
             setError(t('grades.errorLoading'));
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Cargar tareas de la impartición (para edición de peso por item)
+    useEffect(() => {
+        if (!selectedImparticion) { setTareasImp([]); return; }
+        fetch(getApiUrl(`/api/tareas?imparticion=${selectedImparticion}&order[fechaLimite]=asc&itemsPerPage=200`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+        })
+            .then(r => r.json())
+            .then(d => {
+                const items = d['hydra:member'] || d.member || [];
+                setTareasImp(items);
+            })
+            .catch(() => setTareasImp([]));
+    }, [selectedImparticion]);
+
+    // Guardar peso individual de una tarea
+    const handleSaveTareaPeso = async (tareaId, peso) => {
+        const parsed = peso === '' || peso == null ? null : parseFloat(peso);
+        if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
+            alert(t('grades.weightRange'));
+            return;
+        }
+        setSavingTareaPeso(prev => ({ ...prev, [tareaId]: true }));
+        try {
+            const res = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                body: JSON.stringify({ peso: parsed }),
+                credentials: 'include',
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setTareasImp(prev => prev.map(tr => {
+                const id = tr.id || tr['@id']?.split('/').pop();
+                return String(id) === String(tareaId) ? { ...tr, peso: data.peso } : tr;
+            }));
+        } catch {
+            alert(t('grades.errorSavingWeights'));
+        } finally {
+            setSavingTareaPeso(prev => ({ ...prev, [tareaId]: false }));
         }
     };
 
@@ -315,56 +487,52 @@ const CalificacionesGrupo = () => {
                     <div className={styles.controls}>
                         {isSuperAdmin && (
                             <>
-                            <select
-                                className={styles.periodSelect}
+                            <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(e) => { setSelectedCentro(e.target.value); setSelectedImparticion(''); setSelectedPeriodo(''); }}
-                            >
-                                <option value="">{t('common.selectCenter')}</option>
-                                {centros.map(c => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
+                                onChange={(v) => { setSelectedCentro(v); setSelectedImparticion(''); setSelectedPeriodo(''); }}
+                                minWidth={180}
+                                ariaLabel={t('common.selectCenter')}
+                                options={[
+                                    { value: '', label: t('common.selectCenter') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
                             {availableYears.length > 0 && (
-                                <select
-                                    className={styles.periodSelect}
+                                <ThemedSelect
                                     value={selectedYear}
-                                    onChange={(e) => { setSelectedYear(e.target.value); setSelectedPeriodo(''); }}
-                                    style={{ minWidth: '140px' }}
-                                >
-                                    <option value="">{t('grades.allYears')}</option>
-                                    {availableYears.map(y => (
-                                        <option key={y} value={y}>{y}</option>
-                                    ))}
-                                </select>
+                                    onChange={(v) => { setSelectedYear(v); setSelectedPeriodo(''); }}
+                                    minWidth={140}
+                                    ariaLabel={t('grades.allYears')}
+                                    options={[
+                                        { value: '', label: t('grades.allYears') },
+                                        ...availableYears.map(y => ({ value: y, label: y })),
+                                    ]}
+                                />
                             )}
                             </>
                         )}
-                        <select
-                            className={styles.periodSelect}
+                        <ThemedSelect
                             value={selectedImparticion}
-                            onChange={(e) => { setSelectedImparticion(e.target.value); setSelectedPeriodo(''); }}
-                        >
-                            {imparticiones.map(imp => {
+                            onChange={(v) => { setSelectedImparticion(v); setSelectedPeriodo(''); }}
+                            minWidth={220}
+                            options={imparticiones.map(imp => {
                                 const id = imp.id || imp['@id']?.split('/').pop();
-                                return (
-                                    <option key={id} value={id}>
-                                        {getImparticionLabel(imp)}
-                                    </option>
-                                );
+                                return { value: String(id), label: getImparticionLabel(imp) };
                             })}
-                        </select>
-                        <select
-                            className={styles.periodSelect}
+                        />
+                        <ThemedSelect
                             value={selectedPeriodo}
-                            onChange={(e) => setSelectedPeriodo(e.target.value)}
-                        >
-                            <option value="">{t('grades.allPeriods')}</option>
-                            {periodos.map(p => {
-                                const id = p.id || p['@id']?.split('/').pop();
-                                return <option key={id} value={id}>{p.nombre}</option>;
-                            })}
-                        </select>
+                            onChange={setSelectedPeriodo}
+                            minWidth={180}
+                            ariaLabel={t('grades.allPeriods')}
+                            options={[
+                                { value: '', label: t('grades.allPeriods') },
+                                ...periodos.map(p => {
+                                    const id = p.id || p['@id']?.split('/').pop();
+                                    return { value: String(id), label: p.nombre };
+                                }),
+                            ]}
+                        />
                         {isProfesor && (
                             <Button onClick={() => setShowWeights(!showWeights)}>
                                 <Settings size={16} />
@@ -376,6 +544,24 @@ const CalificacionesGrupo = () => {
                 {/* Panel de ponderaciones */}
                 {showWeights && (
                     <div className={`${styles.card}`} style={{ marginBottom: 'var(--space-6)' }}>
+                        <div className={styles.tabBar} style={{ marginBottom: 'var(--space-4)' }}>
+                            <button
+                                type="button"
+                                className={`${styles.tab} ${weightTab === 'global' ? styles.tabActive : ''}`}
+                                onClick={() => setWeightTab('global')}
+                            >
+                                {t('grades.weightTabGlobal')}
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.tab} ${weightTab === 'items' ? styles.tabActive : ''}`}
+                                onClick={() => setWeightTab('items')}
+                            >
+                                {t('grades.weightTabItems')}
+                            </button>
+                        </div>
+
+                        {weightTab === 'global' && (<>
                         <h3 className={styles.cardTitle}>{t('grades.weightConfig')}</h3>
                         <div className={styles.weightsForm}>
                             {[
@@ -385,15 +571,16 @@ const CalificacionesGrupo = () => {
                             ].map(({ key, label, barClass }) => (
                                 <div key={key} className={styles.weightRow}>
                                     <span className={styles.weightLabel}>{label}</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={pesos[key]}
-                                        onChange={(e) => setPesos({ ...pesos, [key]: parseInt(e.target.value) || 0 })}
-                                        className={styles.weightInput}
+                                    <ThemedNumberInput
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        value={String(pesos[key])}
+                                        onChange={(v) => setPesos({ ...pesos, [key]: parseInt(v, 10) || 0 })}
+                                        width={110}
+                                        suffix="%"
+                                        ariaLabel={label}
                                     />
-                                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>%</span>
                                     <div className={styles.weightBar}>
                                         <div className={`${styles.weightBarFill} ${barClass}`} style={{ width: `${pesos[key]}%` }} />
                                     </div>
@@ -431,6 +618,18 @@ const CalificacionesGrupo = () => {
                                 </Button>
                             </div>
                         </div>
+                        </>)}
+
+                        {weightTab === 'items' && (
+                            <ItemsWeightEditor
+                                tareas={tareasImp}
+                                saving={savingTareaPeso}
+                                onSave={handleSaveTareaPeso}
+                                periodos={periodos}
+                                selectedPeriodo={selectedPeriodo}
+                                t={t}
+                            />
+                        )}
                     </div>
                 )}
 

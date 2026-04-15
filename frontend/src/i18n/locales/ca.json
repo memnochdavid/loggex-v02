@@ -147,7 +147,8 @@
     "grades": "Notes",
     "myGrades": "Les Meves Notes",
     "stats": "Estadístiques",
-    "logout": "Tancar sessió"
+    "logout": "Tancar sessió",
+    "scheduleAdmin": "Horaris (administració)"
   },
   "userAvatar": {
     "menuLabel": "Menú d'usuari",
@@ -1068,6 +1069,64 @@
     "downloadAsZip": "ZIP (individuals)",
     "generating": "Generant...",
     "selectPeriodFirst": "Selecciona una avaluació primer",
-    "pdfLanguage": "Idioma PDF"
+    "pdfLanguage": "Idioma PDF",
+    "weightTabGlobal": "Ponderació global",
+    "weightTabItems": "Pes per ítem",
+    "itemsHint": "Pes de cada ítem dins de la seva categoria. Buit = repartiment equitatiu. La suma per categoria hauria de ser 100%.",
+    "noItemsForImp": "No hi ha tasques, exàmens ni pràctiques creats per a aquesta impartició.",
+    "weightSumLabel": "Suma",
+    "weightSumWarn": "(ha de ser 100%)",
+    "auto": "auto",
+    "weightRange": "El pes ha d'estar entre 0 i 100",
+    "itemWeight": "Pes a la nota",
+    "confirmResetWeights": "Segur que vols restaurar els pesos per defecte? Tots els ítems tornaran al repartiment equitatiu."
+  },
+  "scheduleEditor": {
+    "title": "Editor d'horaris",
+    "tabEditor": "Editor gràfic",
+    "tabList": "Llista",
+    "selectYear": "Seleccionar any escolar",
+    "selectGroup": "Seleccionar grup",
+    "emptyState": "Selecciona un grup per començar.",
+    "panelModules": "Mòduls ({{count}})",
+    "panelHint": "Arrossega un mòdul a l'horari. Arrossega una classe al panell per treure-la.",
+    "statusComplete": "Complet · {{done}}/{{total}}h",
+    "statusDraft": "Esborrany · {{done}}/{{total}}h",
+    "statusIncomplete": "Incomplet · {{done}}/{{total}}h",
+    "saveChanges": "Desar canvis",
+    "saved": "Desat",
+    "saving": "Desant…",
+    "saveError": "Error en desar: {{message}}",
+    "turno": "Torn",
+    "turnoMorning": "Matí",
+    "turnoAfternoon": "Tarda",
+    "classroom": "Aula",
+    "slotsPlaced": "Franges",
+    "slotsPlacedValue": "{{done}}/{{total}} col·locades",
+    "reasonUnknownImp": "Impartició desconeguda",
+    "reasonModuleFull": "Ja has col·locat les {{total}}h de {{module}}",
+    "reasonCellOccupied": "Cel·la ocupada",
+    "reasonTeacherBusy": "{{teacher}} ja imparteix en un grup paral·lel a aquesta hora",
+    "solverSuggest": "Suggereix horari",
+    "solverSuggestAnother": "Suggereix un altre",
+    "solverSuggestAnotherHint": "Genera una proposta alternativa",
+    "solving": "Calculant…",
+    "solverConfirmOverwrite": "Hi ha un horari en curs. Sobreescriure amb la proposta del solver?",
+    "solverPartial": "Proposta parcial. Sense col·locar: {{items}}",
+    "solverError": "Error del solver: {{message}}"
+  },
+  "profLoad": {
+    "title": "Càrrega setmanal del professorat",
+    "subtitle": "Màx. {{max}} h/set. · Hores extra permeses fins a 80 h anuals",
+    "tooltip": "En aquest grup: {{actual}}h · En altres: {{other}}h",
+    "overflow": "+{{hours}}h extra"
+  },
+  "themedSelect": {
+    "placeholder": "Seleccionar…"
+  },
+  "dates": {
+    "title": "Dates",
+    "tabHolidays": "Festius",
+    "tabEvaluations": "Avaluacions"
   }
 }

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import styles from './SearchBar.module.css';
+import ThemedSelect from './ThemedSelect';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -32,17 +33,13 @@ const SearchBar = ({
   return (
     <div className={styles.container}>
       {fields.length > 0 && (
-        <select 
-            className={styles.select}
+        <ThemedSelect
             value={selectedField}
-            onChange={(e) => onFieldChange(e.target.value)}
-        >
-            {fields.map(field => (
-                <option key={field.value} value={field.value}>
-                    {field.label}
-                </option>
-            ))}
-        </select>
+            onChange={onFieldChange}
+            minWidth={140}
+            ariaLabel={t('searchBar.fieldLabel', { defaultValue: 'Campo de búsqueda' })}
+            options={fields.map(f => ({ value: f.value, label: f.label }))}
+        />
       )}
       
       <div className={styles.inputWrapper}>

@@ -6,8 +6,10 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use App\Entity\Calificacion;
 use App\Entity\CicloFormativo;
 use App\Entity\Comunicado;
+use App\Entity\Entrega;
 use App\Entity\Festivo;
 use App\Entity\Mensaje;
 use App\Entity\Modulo;
@@ -44,6 +46,8 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             Festivo::class,
             Mensaje::class,
             Tarea::class,
+            Entrega::class,
+            Calificacion::class,
             Comunicado::class
         ];
 
@@ -69,6 +73,18 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         // Lógica específica para Tareas
         if ($resourceClass === Tarea::class) {
             $this->addWhereTarea($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Entregas
+        if ($resourceClass === Entrega::class) {
+            $this->addWhereEntrega($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Calificaciones
+        if ($resourceClass === Calificacion::class) {
+            $this->addWhereCalificacion($queryBuilder, $user, $rootAlias);
             return;
         }
 
@@ -124,6 +140,67 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                 $queryBuilder->andWhere('1 = 0');
             }
         }
+    }
+
+    private function addWhereEntrega(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.tarea', $rootAlias), 'et')
+               ->join('et.imparticion', 'ei')
+               ->join('ei.grupo', 'eg')
+               ->join('eg.ciclo', 'ec')
+               ->andWhere('ec.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.tarea', $rootAlias), 'et')
+               ->join('et.imparticion', 'ei')
+               ->andWhere('ei.profesor = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        if (in_array('ROLE_ALUMNO', $user->getRoles())) {
+            $qb->andWhere(sprintf('%s.alumno = :user', $rootAlias))
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
+    }
+
+    private function addWhereCalificacion(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->join('ce.tarea', 'ct')
+               ->join('ct.imparticion', 'ci')
+               ->join('ci.grupo', 'cg')
+               ->join('cg.ciclo', 'cc')
+               ->andWhere('cc.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->join('ce.tarea', 'ct')
+               ->join('ct.imparticion', 'ci')
+               ->andWhere('ci.profesor = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        if (in_array('ROLE_ALUMNO', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->andWhere('ce.alumno = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
     }
 
     private function addWhereTarea(QueryBuilder $qb, User $user, string $rootAlias): void

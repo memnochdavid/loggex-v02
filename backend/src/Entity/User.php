@@ -96,6 +96,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $foto = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['user:read'])]
+    private ?string $firma = null;
+
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
     #[ORM\JoinColumn(nullable: true)]
     #[Groups(['user:read', 'user:write'])]
@@ -262,6 +266,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getFoto(): ?string
     {
         return $this->foto;
+    }
+
+    public function getFirma(): ?string
+    {
+        return $this->firma;
+    }
+
+    public function setFirma(?string $firma): static
+    {
+        $this->firma = $firma;
+        return $this;
     }
 
     public function setFoto(?string $foto): static

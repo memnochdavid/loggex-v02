@@ -6,6 +6,7 @@ import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Download } from 'lucide-react';
 import Button from '../components/Button';
+import ThemedSelect from '../components/ThemedSelect';
 
 const MisCalificaciones = () => {
     const { t, i18n } = useTranslation();
@@ -144,10 +145,12 @@ const MisCalificaciones = () => {
                     });
                 }
 
-                let result = allPeriodos;
+                // Solo evaluaciones ya finalizadas
+                const hoy = new Date(); hoy.setHours(0,0,0,0);
+                let result = allPeriodos.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                 if (grupoIds.length > 1) {
                     const byName = new Map();
-                    allPeriodos.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
+                    result.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                     result = [...byName.values()];
                 }
                 result.sort((a, b) => {
@@ -219,7 +222,7 @@ const MisCalificaciones = () => {
             const entregasData = await entregasRes.json();
             const entregas = entregasData['hydra:member'] || entregasData.member || [];
 
-            const combined = tareasItems.map(tarea => {
+            let combined = tareasItems.map(tarea => {
                 const tareaId = tarea.id || tarea['@id']?.split('/').pop();
                 const entrega = entregas.find(e => {
                     const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
@@ -227,6 +230,21 @@ const MisCalificaciones = () => {
                 });
                 return { ...tarea, calificacion: entrega?.calificacion || null };
             });
+
+            // Filtrar por período seleccionado (fechaLimite dentro del rango)
+            if (selectedPeriodo) {
+                const p = periodos.find(pp => String(pp.id || pp['@id']?.split('/').pop()) === String(selectedPeriodo));
+                if (p) {
+                    const ini = new Date(p.fechaInicio);
+                    const fin = new Date(p.fechaFin);
+                    fin.setHours(23, 59, 59, 999);
+                    combined = combined.filter(tr => {
+                        if (!tr.fechaLimite) return false;
+                        const d = new Date(tr.fechaLimite);
+                        return d >= ini && d <= fin;
+                    });
+                }
+            }
 
             setModuleTasks(prev => ({ ...prev, [impId]: combined }));
         } catch { /* silencioso */ } finally {
@@ -279,66 +297,66 @@ const MisCalificaciones = () => {
                     <div className={styles.controls}>
                         {isSuperAdmin && (
                             <>
-                                <select
-                                    className={styles.periodSelect}
+                                <ThemedSelect
                                     value={selectedCentro}
-                                    onChange={(e) => setSelectedCentro(e.target.value)}
-                                    style={{ minWidth: '200px' }}
-                                >
-                                    <option value="">{t('common.selectCenter')}</option>
-                                    {centros.map(c => (
-                                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                                    ))}
-                                </select>
+                                    onChange={setSelectedCentro}
+                                    minWidth={200}
+                                    ariaLabel={t('common.selectCenter')}
+                                    options={[
+                                        { value: '', label: t('common.selectCenter') },
+                                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                    ]}
+                                />
                                 {availableYears.length > 0 && (
-                                    <select
-                                        className={styles.periodSelect}
+                                    <ThemedSelect
                                         value={selectedYear}
-                                        onChange={(e) => { setSelectedYear(e.target.value); setSelectedGrupo(''); }}
+                                        onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); }}
                                         disabled={!selectedCentro}
-                                        style={{ minWidth: '140px' }}
-                                    >
-                                        <option value="">{t('grades.allYears')}</option>
-                                        {availableYears.map(y => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
+                                        minWidth={140}
+                                        ariaLabel={t('grades.allYears')}
+                                        options={[
+                                            { value: '', label: t('grades.allYears') },
+                                            ...availableYears.map(y => ({ value: y, label: y })),
+                                        ]}
+                                    />
                                 )}
-                                <select
-                                    className={styles.periodSelect}
+                                <ThemedSelect
                                     value={selectedGrupo}
-                                    onChange={(e) => setSelectedGrupo(e.target.value)}
+                                    onChange={setSelectedGrupo}
                                     disabled={!selectedCentro}
-                                >
-                                    <option value="">{t('common.allGroups')}</option>
-                                    {grupos.map(g => (
-                                        <option key={g.id} value={g.id}>{g.nombre}</option>
-                                    ))}
-                                </select>
-                                <select
-                                    className={styles.periodSelect}
+                                    minWidth={150}
+                                    ariaLabel={t('common.allGroups')}
+                                    options={[
+                                        { value: '', label: t('common.allGroups') },
+                                        ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                    ]}
+                                />
+                                <ThemedSelect
                                     value={selectedAlumno}
-                                    onChange={(e) => { setSelectedAlumno(e.target.value); setSelectedPeriodo(''); }}
+                                    onChange={(v) => { setSelectedAlumno(v); setSelectedPeriodo(''); }}
                                     disabled={!selectedGrupo}
-                                >
-                                    <option value="">{t('common.selectStudent')}</option>
-                                    {alumnos.map(a => (
-                                        <option key={a.id} value={a.id}>{a.apellidos}, {a.nombre}</option>
-                                    ))}
-                                </select>
+                                    minWidth={200}
+                                    ariaLabel={t('common.selectStudent')}
+                                    options={[
+                                        { value: '', label: t('common.selectStudent') },
+                                        ...alumnos.map(a => ({ value: String(a.id), label: `${a.apellidos}, ${a.nombre}` })),
+                                    ]}
+                                />
                             </>
                         )}
-                        <select
-                            className={styles.periodSelect}
+                        <ThemedSelect
                             value={selectedPeriodo}
-                            onChange={(e) => setSelectedPeriodo(e.target.value)}
-                        >
-                            <option value="">{t('grades.allPeriods')}</option>
-                            {periodos.map(p => {
-                                const id = p.id || p['@id']?.split('/').pop();
-                                return <option key={id} value={id}>{p.nombre}</option>;
-                            })}
-                        </select>
+                            onChange={setSelectedPeriodo}
+                            minWidth={180}
+                            ariaLabel={t('grades.allPeriods')}
+                            options={[
+                                { value: '', label: t('grades.allPeriods') },
+                                ...periodos.map(p => {
+                                    const id = p.id || p['@id']?.split('/').pop();
+                                    return { value: String(id), label: p.nombre };
+                                }),
+                            ]}
+                        />
                         <Button
                             size="sm"
                             onClick={handleDownloadBoletin}
