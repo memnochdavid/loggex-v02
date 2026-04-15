@@ -1,7 +1,8 @@
 @echo off
 setlocal
-cd /d "%~dp0\.."
 
+set "PROJECT_DIR=%~dp0.."
+set DC=docker compose --project-directory "%PROJECT_DIR%"
 set MINIO_SERVICE=minio
 set MINIO_USER=minio_admin
 set MINIO_PASSWORD=minio_password
@@ -10,10 +11,10 @@ set BACKUP_DIR=minio_backup
 
 echo --- Iniciando copia de seguridad del bucket de MinIO ---
 
-if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
+if not exist "%PROJECT_DIR%\%BACKUP_DIR%" mkdir "%PROJECT_DIR%\%BACKUP_DIR%"
 
 docker run --rm --entrypoint=/bin/sh ^
-  -v "%cd%\%BACKUP_DIR%:/backup" ^
+  -v "%PROJECT_DIR%\%BACKUP_DIR%:/backup" ^
   --network loggex-v02_default ^
   minio/mc:latest ^
   -c "mc alias set myminio http://minio:9000 minio_admin minio_password && mc mirror myminio/loggex-data /backup"

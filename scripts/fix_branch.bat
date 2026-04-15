@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-cd /d "%~dp0\.."
+pushd "%~dp0\.."
 
 set OLD_BRANCH=feature/mariadb-migration
 set NEW_BRANCH=develop
