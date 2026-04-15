@@ -4,7 +4,7 @@ import CalendarView from './CalendarView';
 import EventCard from './EventCard';
 import { useTranslation } from 'react-i18next';
 
-const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] }) => {
+const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [], onEventClick }) => {
     const { t } = useTranslation();
     
     // Calcular el rango de la semana seleccionada
@@ -52,7 +52,7 @@ const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] 
                         <div className={styles.noEvents}>{t('events.empty')}</div>
                     ) : (
                         weeklyEvents.map((event, index) => (
-                            <EventCard 
+                            <EventCard
                                 key={event.id || index}
                                 title={event.title}
                                 subject={event.subject}
@@ -60,6 +60,7 @@ const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] 
                                 time={event.time}
                                 type={event.type}
                                 color={event.color}
+                                onClick={onEventClick ? () => onEventClick(event) : undefined}
                             />
                         ))
                     )}

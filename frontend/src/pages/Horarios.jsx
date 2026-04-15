@@ -10,7 +10,7 @@ import EventsSidebar from '../components/EventsSidebar';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, List, PanelRightOpen, PanelRightClose, LayoutGrid } from 'lucide-react';
+import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
@@ -332,6 +332,34 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     setCurrentHorario(null);
   };
 
+  // Extrae el id de impartición desde una tarea (acepta IRI string u objeto)
+  const getImparticionId = (tarea) => {
+    const imp = tarea?.imparticion;
+    if (!imp) return null;
+    if (typeof imp === 'string') return imp.split('/').pop();
+    if (imp.id) return imp.id;
+    if (imp['@id']) return imp['@id'].split('/').pop();
+    return null;
+  };
+
+  // Navegar a /entregas (mismo comportamiento que el widget Tareas Pendientes)
+  const handleEventClick = useCallback((event) => {
+    if (event?.imparticionId) {
+      navigate(`/entregas?imparticion=${event.imparticionId}&tarea=${event.id}`);
+    } else {
+      navigate('/entregas');
+    }
+  }, [navigate]);
+
+  // Eventos para EventsSidebar derivados de tareas, enriquecidos con imparticionId
+  const sidebarEvents = useMemo(() => tareas.map(tr => ({
+    id: tr.id,
+    title: tr.titulo,
+    date: tr.fechaLimite,
+    type: tr.tipo,
+    imparticionId: getImparticionId(tr),
+  })), [tareas]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -463,24 +491,12 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   ], [handleOpenModal, handleDelete]);
 
   const Wrapper = embedded ? React.Fragment : Layout;
-  const Container = embedded ? React.Fragment : ({ children }) => <div className={styles.container}>{children}</div>;
-  return (
-    <Wrapper>
-        <Container>
+  const content = (
+    <>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                     middle={tabs}
         >
-            {!embedded && (
-                <Button
-                    variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                    onClick={() => setViewMode('calendar')}
-                    title={t('schedules.calendarView')}
-                >
-                    <CalendarIcon size={18} />
-                </Button>
-            )}
-
             {viewMode === 'calendar' && isMobile && (
                 <Button
                     variant="secondary"
@@ -556,16 +572,12 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 
                 {!isMobile && (
                     <div className={styles.eventsSidebarWrapper}>
-                        <EventsSidebar 
-                            selectedDate={selectedDate} 
+                        <EventsSidebar
+                            selectedDate={selectedDate}
                             onDateSelect={setSelectedDate}
                             festivos={festivos}
-                            events={tareas.map(t => ({ // Formatear tareas para EventsSidebar
-                                id: t.id,
-                                title: t.titulo,
-                                date: t.fechaLimite,
-                                type: t.tipo
-                            }))} 
+                            events={sidebarEvents}
+                            onEventClick={handleEventClick}
                         />
                     </div>
                 )}
@@ -581,19 +593,18 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                             <PanelRightClose size={20} />
                         </button>
                     </div>
-                    <EventsSidebar 
-                        selectedDate={selectedDate} 
+                    <EventsSidebar
+                        selectedDate={selectedDate}
                         onDateSelect={(date) => {
                             setSelectedDate(date);
                             setIsSidebarOpen(false);
                         }}
                         festivos={festivos}
-                        events={tareas.map(t => ({ // Formatear tareas para EventsSidebar
-                            id: t.id,
-                            title: t.titulo,
-                            date: t.fechaLimite,
-                            type: t.tipo
-                        }))}
+                        events={sidebarEvents}
+                        onEventClick={(event) => {
+                            setIsSidebarOpen(false);
+                            handleEventClick(event);
+                        }}
                     />
                 </div>
             </div>
@@ -642,7 +653,11 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 </select>
             </div>
         </ModalView>
-        </Container>
+    </>
+  );
+  return (
+    <Wrapper>
+        {embedded ? content : <div className={styles.container}>{content}</div>}
     </Wrapper>
   );
 };

@@ -124,6 +124,13 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
     const hasAfternoon = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
     const hasMorning = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
 
+    // Si solo hay un turno disponible (caso típico de alumno), forzarlo como activo
+    // para que el acordeón no aparezca cerrado cuando la hora actual no coincide con ese turno.
+    useEffect(() => {
+        if (hasMorning && !hasAfternoon) setActiveShift('morning');
+        else if (hasAfternoon && !hasMorning) setActiveShift('afternoon');
+    }, [hasMorning, hasAfternoon]);
+
     // Función para procesar eventos y calcular rowSpan (pura, sin hooks)
     const processEvents = (slots) => {
         const grid = Array(slots.length).fill(null).map(() => Array(days.length).fill(null));
@@ -452,16 +459,18 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
         <div className={styles.container}>
             {/* Vista Escritorio */}
             <div className={styles.desktopView}>
-                {shiftsData.length > 0 ? (
-                    <AccordionView 
+                {shiftsData.length === 0 ? (
+                    <p className={styles.empty}>{t('timetable.noScheduledClasses')}</p>
+                ) : shiftsData.length === 1 ? (
+                    renderGrid(shiftsData[0].slots, shiftsData[0].grid)
+                ) : (
+                    <AccordionView
                         data={shiftsData}
                         renderItem={(item) => renderGrid(item.slots, item.grid)}
                         canAdd={false}
                         expandedId={activeShift}
                         onToggle={(id) => setActiveShift(activeShift === id ? null : id)}
                     />
-                ) : (
-                    <p className={styles.empty}>{t('timetable.noScheduledClasses')}</p>
                 )}
             </div>
 
