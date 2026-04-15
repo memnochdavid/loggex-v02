@@ -35,6 +35,7 @@ const Entregas = () => {
   const [activeTab, setActiveTab] = useState('todos');
   const [periodos, setPeriodos] = useState([]);
   const [selectedPeriodo, setSelectedPeriodo] = useState('');
+  const [deliveryFilter, setDeliveryFilter] = useState('all'); // all | delivered | pending
 
   const tabs = [
     { key: 'todos', label: t('grades.filterAll') },
@@ -375,7 +376,13 @@ const Entregas = () => {
 
   const renderContent = (imparticion) => {
     const allTareas = (imparticion.tareas || []).filter(enPeriodo);
-    const tareas = activeTab === 'todos' ? allTareas : allTareas.filter(t => t.tipo === activeTab);
+    let tareas = activeTab === 'todos' ? allTareas : allTareas.filter(t => t.tipo === activeTab);
+    if (isAlumno && deliveryFilter !== 'all') {
+      tareas = tareas.filter(tr => {
+        const hasEntrega = Boolean(misEntregas[tr.id]);
+        return deliveryFilter === 'delivered' ? hasEntrega : !hasEntrega;
+      });
+    }
     if (allTareas.length === 0) return <div className={styles.emptyState}>{t('deliveries.noTasks')}</div>;
     if (tareas.length === 0) return <div className={styles.emptyState}>{t('grades.noTasksType')}</div>;
 
@@ -527,6 +534,19 @@ const Entregas = () => {
               options={[
                 { value: '', label: t('grades.allPeriods') },
                 ...periodos.map(p => ({ value: p.key, label: p.nombre })),
+              ]}
+            />
+          )}
+          {isAlumno && (
+            <ThemedSelect
+              value={deliveryFilter}
+              onChange={setDeliveryFilter}
+              minWidth={160}
+              ariaLabel={t('deliveries.statusFilter', { defaultValue: 'Estado de entrega' })}
+              options={[
+                { value: 'all', label: t('grades.filterAll') },
+                { value: 'delivered', label: t('deliveries.delivered') },
+                { value: 'pending', label: t('deliveries.pending') },
               ]}
             />
           )}
