@@ -1106,7 +1106,14 @@
     "reasonUnknownImp": "Impartició desconeguda",
     "reasonModuleFull": "Ja has col·locat les {{total}}h de {{module}}",
     "reasonCellOccupied": "Cel·la ocupada",
-    "reasonTeacherBusy": "{{teacher}} ja imparteix en un grup paral·lel a aquesta hora"
+    "reasonTeacherBusy": "{{teacher}} ja imparteix en un grup paral·lel a aquesta hora",
+    "solverSuggest": "Suggereix horari",
+    "solverSuggestAnother": "Suggereix un altre",
+    "solverSuggestAnotherHint": "Genera una proposta alternativa",
+    "solving": "Calculant…",
+    "solverConfirmOverwrite": "Hi ha un horari en curs. Sobreescriure amb la proposta del solver?",
+    "solverPartial": "Proposta parcial. Sense col·locar: {{items}}",
+    "solverError": "Error del solver: {{message}}"
   },
   "profLoad": {
     "title": "Càrrega setmanal del professorat",

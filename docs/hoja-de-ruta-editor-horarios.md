@@ -3,6 +3,121 @@
 > Documento vivo. Refleja las decisiones acordadas y el orden de ejecución.
 > No es una especificación cerrada: sirve como guía de nuestra conversación.
 
+---
+
+## 0. Estado actual (2026-04-15)
+
+### ✅ Completado
+
+**Fase 1 — MVP drag & drop**
+- [x] `HorariosEditor.jsx` + `HorariosEditor.module.css` creado.
+- [x] Librería `@dnd-kit/core` integrada.
+- [x] Drag módulo → celda vacía, celda → panel (borrar), celda → celda (mover/swap).
+- [x] Swap correcto: el POST usa las horas derivadas del *key* del placement
+      (no del objeto v) para evitar desincronización de posiciones en swaps.
+- [x] Contador de horas pendientes por módulo en el panel.
+- [x] Selector cascada **año escolar** → **grupo** con estado persistente
+      en memoria al cambiar de selección.
+- [x] Botón Guardar con diff vs baseline (DELETE + POST individuales; batch
+      en fase 5).
+- [x] Indicador de estado: Completo / Borrador (≥80%) / Incompleto.
+- [x] Aviso `beforeunload` al salir con cambios sin guardar.
+- [x] Cache-busting en fetches para reflejar cambios en la vista del alumno
+      (`/api/my-schedule?_=ts` + `Cache-Control: no-cache`).
+- [x] i18n completa (`scheduleEditor.*`, `profLoad.*`) en los 5 idiomas.
+- [x] 100% tematizable (tokens CSS, paleta por módulo derivada del hue).
+
+**Fase 2 — Validaciones duras en vivo**
+- [x] `validateDrop()` con reglas: horas restantes, celda vacía (desde panel),
+      profesor libre en grupos paralelos (mismo centro, mismo turno).
+- [x] Highlight visual de celdas durante el drag: verde (válida),
+      rojo (inválida), azul (cursor encima).
+- [x] Rechazo con toast explicativo abajo-derecha; autoelimina a 4 s.
+- [x] Swap valida ambas direcciones (item→destino + item del destino→origen).
+
+**Fase 4 (parcial) — Detalles UX**
+- [x] Swap/drag entre celdas (movido a Fase 1 de facto).
+- [x] Tooltip `title` en bloques con módulo + profe + aula.
+- [x] Paleta por módulo (HSL derivado de `modulo.id`).
+
+**Accesos y arquitectura**
+- [x] Ruta `/admin/horarios` (admins/superadmin) con dos pestañas integradas
+      en el `CrudHeader` central: **Editor gráfico** (por defecto) y **Lista**.
+- [x] `/horarios` queda como vista general read-only para alumnos/profes/admins
+      (calendario personal, sin CRUD).
+- [x] `Horarios.jsx` y `HorariosEditor.jsx` aceptan `embedded` + `tabs` props
+      para convivir en `HorariosAdmin.jsx` sin duplicar Layout/container.
+
+**Trabajo transversal hecho mientras construíamos el editor**
+- [x] `ThemedSelect` — componente unificado de select con trigger idéntico
+      al `<select>` nativo de CRUD (bg-input sin borde) y dropdown custom
+      tematizado. Migrados **todos** los selects de filtro de todas las
+      vistas CRUD (Grupos, Matrículas, Módulos, Usuarios, Ciclos, Imparticiones,
+      Festivos, Evaluaciones, Entregas, Materiales, Compañeros, Claustro,
+      MisAlumnos/Profesores/Faltas, Calificaciones* + SearchBar + SuperAdminFilters).
+- [x] `ThemedNumberInput` — input numérico con spinners `+`/`−` tematizados.
+      Aplicado en: Ponderación global, Peso por item, edición de notas en
+      `/calificaciones/detalle`.
+- [x] `CrudHeader` con slot `middle` (grid `auto 1fr auto`) → tabs fijos
+      al cambiar entre vistas; usado en `/fechas` y `/admin/horarios`.
+- [x] Corrección del fixture: `dia_semana = 1..5` (convención del frontend);
+      el turno de cada grupo se infiere por ciclo (WEB=M, MULTIPLATAFORMA=T);
+      grupo con un aula fija.
+
+**Carga del profesorado (adición al plan original)**
+- [x] `ProfLoadPanel` — componente reutilizable que ocupa el ancho completo
+      bajo el editor. Dos columnas internas con barras 0-40h coloreadas
+      (verde <24h, azul 24-35, amarillo 36-40, rojo >40 con "+Xh extra").
+- [x] Cálculo combinado: horas en otros grupos (fetch estable) + horas del
+      grupo actual (live desde `placements`).
+- [x] Fix del `profesor.id` vía `@id` en respuestas de `/api/horarios` (no
+      serializa `id` por defecto en el grupo `horario:read`).
+
+**Fase 3 — Constraint solver (autogeneración)**
+- [x] Endpoint `POST /api/v1/horarios/solver/{grupoId}` (`HorarioSolverController`).
+- [x] `src/Service/HorarioSolver.php` con backtracking + heurística
+      (mismo módulo compacto por día máx. 2h, prioriza profes más restringidos
+      por paralelos, timeout 2 s).
+- [x] Botón **"✨ Sugerir horario"** + **"🔀 Sugerir otra"** (con seed) en el editor.
+- [x] Solución parcial: devuelve `unplaced` y el cliente muestra toast con
+      módulos/horas sin colocar; el resultado se pinta en el estado (no persiste
+      hasta Guardar, que reutiliza el diff de Fase 1).
+
+### ⏳ Pendiente
+
+**Fase 4 — Tap-to-place (móvil) restante**
+- [ ] Modo click/tap en paralelo al drag (selección previa + click en celda).
+- [ ] Tooltip rico en hover (más allá del `title` nativo actual).
+- [ ] Advertencia explícita al salir sin guardar (modal custom, no solo
+      `beforeunload`).
+
+**Fase 5 — Batch endpoint y concurrencia**
+- [ ] `POST /api/v1/horarios/batch` (transaccional).
+- [ ] Cliente usa batch en lugar de N peticiones individuales.
+- [ ] Detección de cambios ajenos vía `updated_at` al guardar.
+- [ ] Confirmación explícita al publicar horario en estado Borrador/Incompleto
+      listando módulos/horas sin colocar.
+
+**Fase 6 — Nice-to-have**
+- [ ] Vista multi-grupo en una pantalla.
+- [ ] Exportar horario del grupo a PDF.
+- [ ] Plantillas (guardar y replicar).
+- [ ] Histórico de cambios (auditoría).
+
+### 🐛 Bugs conocidos / deuda técnica
+
+- [ ] Al cambiar de pestaña en `/admin/horarios` (Editor ↔ Lista), el estado
+      en memoria del editor se pierde (el componente se desmonta). Fix:
+      elevar `state` y `imparticiones` a `HorariosAdmin` o mantener ambos
+      montados con `display: none`.
+- [ ] Si el admin edita el horario desde otra sesión, la actual no lo detecta
+      hasta recargar (pendiente de Fase 5).
+- [ ] Los horarios preexistentes del dump `backup_tfg_full.sql` usaban
+      `dia_semana = 0..4`. Queda corregido para nuevos; si alguien restaura
+      un dump muy antiguo habrá que re-aplicar el `+1`.
+
+---
+
 ## 1. Objetivo
 
 Sustituir la creación manual de horarios vía CRUD (`/horarios` → botón

@@ -17,7 +17,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import ProfLoadPanel from '../components/ProfLoadPanel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
@@ -158,6 +158,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Estado por grupo: { [gid]: { placements: { "dia_slot": {imparticionId, aula, hid?} }, dirty: bool } }
   const [state, setState] = useState({});
   const [saving, setSaving] = useState(false);
+  const [solving, setSolving] = useState(false);
+  const [solverSeed, setSolverSeed] = useState(null);
   const [activeDrag, setActiveDrag] = useState(null);
 
   const sensors = useSensors(
@@ -583,6 +585,73 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
+  // Solver: pide propuesta al backend y pinta el estado (sin persistir)
+  const runSolver = async (seed = null) => {
+    if (!selectedGrupo) return;
+    const hasContent = Object.keys(placements).length > 0;
+    if (hasContent && !window.confirm(t('scheduleEditor.solverConfirmOverwrite'))) return;
+    setSolving(true);
+    setDragError(null);
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(seed !== null ? { seed } : {}),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      // eslint-disable-next-line no-console
+      console.groupCollapsed(`[Solver] grupo=${selectedGrupo} seed=${seed} complete=${data.complete} placed=${data.placements?.length}/${data.debug?.totalHorasAColocar}`);
+      // eslint-disable-next-line no-console
+      console.log('Respuesta cruda:', data);
+      // eslint-disable-next-line no-console
+      console.log('Debug:', data.debug);
+      // eslint-disable-next-line no-console
+      console.table(data.debug?.imparticiones || []);
+      // eslint-disable-next-line no-console
+      console.log('Parallel busy cells:', data.debug?.parallelBusy);
+      // eslint-disable-next-line no-console
+      console.log('Unplaced:', data.unplaced);
+      // eslint-disable-next-line no-console
+      console.log('Placements:', data.placements);
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+      const newPlacements = {};
+      (data.placements || []).forEach(p => {
+        const hi = String(p.horaInicio).slice(0, 8);
+        const key = `${p.diaSemana}_${hi}`;
+        newPlacements[key] = {
+          imparticionId: p.imparticionId,
+          aula: p.aula,
+          horaInicio: hi,
+          horaFin: String(p.horaFin).slice(0, 8),
+        };
+      });
+      setState(prev => ({
+        ...prev,
+        [selectedGrupo]: {
+          ...prev[selectedGrupo],
+          placements: newPlacements,
+          dirty: true,
+        },
+      }));
+      setSolverSeed(seed);
+      if (!data.complete && data.unplaced?.length) {
+        const faltan = data.unplaced.map(u => `${u.modulo}: ${u.horasRestantes}h`).join(', ');
+        setDragError(t('scheduleEditor.solverPartial', { items: faltan }));
+        window.setTimeout(() => setDragError(null), 6000);
+      }
+    } catch (err) {
+      alert(t('scheduleEditor.solverError', { message: err.message }));
+    } finally {
+      setSolving(false);
+    }
+  };
+
   // Aviso al salir sin guardar
   useEffect(() => {
     const dirtyAny = Object.values(state).some(s => s?.dirty);
@@ -645,12 +714,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 label: g.nombre,
               }))}
           />
-          {estadoBadge && (
-            <span className={`${styles.statusBadge} ${estadoBadge.cls}`}>
-              {estadoBadge.icon}
-              {estadoBadge.label}
-            </span>
-          )}
           <div className={styles.spacer} />
           <Button onClick={handleSave} disabled={!grupoState?.dirty || saving}>
             <Save size={16} style={{ marginRight: 6 }} />
@@ -707,14 +770,38 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 <div className={styles.infoBar}>
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>
-                  <span><b>{t('scheduleEditor.slotsPlaced')}:</b> {t('scheduleEditor.slotsPlacedValue', { done: colocadasTotal, total: totalHoras })}</span>
+                  <div className={styles.infoBarActions}>
+                    {estadoBadge && (
+                      <span className={`${styles.statusBadge} ${estadoBadge.cls}`}>
+                        {estadoBadge.icon}
+                        {estadoBadge.label}
+                      </span>
+                    )}
+                    <Button
+                      onClick={() => runSolver(null)}
+                      disabled={!selectedGrupo || !grupoState || solving || saving}
+                      variant="secondary"
+                    >
+                      <Sparkles size={14} style={{ marginRight: 4 }} />
+                      {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
+                    </Button>
+                    <Button
+                      onClick={() => runSolver(Date.now())}
+                      disabled={!selectedGrupo || !grupoState || solving || saving}
+                      variant="secondary"
+                      title={t('scheduleEditor.solverSuggestAnotherHint')}
+                    >
+                      <Shuffle size={14} style={{ marginRight: 4 }} />
+                      {t('scheduleEditor.solverSuggestAnother')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
 
             <ProfLoadPanel profeCarga={profeCarga} max={40} />
 
-            <DragOverlay>
+            <DragOverlay dropAnimation={null}>
               {activeImp ? (
                 <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.modulo?.id || activeImp.id) }}>
                   {activeImp.modulo?.nombre}

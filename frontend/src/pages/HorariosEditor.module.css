@@ -196,7 +196,17 @@
 
 .gridHeader, .gridRow {
     display: grid;
-    grid-template-columns: 110px repeat(5, 1fr);
+    grid-template-columns: 90px repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+    .gridHeader, .gridRow {
+        grid-template-columns: 70px repeat(5, minmax(0, 1fr));
+        font-size: 10px;
+    }
+    .gridHeader > div, .gridRow > div {
+        padding: var(--space-1);
+    }
 }
 
 .gridHeader {
@@ -258,6 +268,7 @@
 
 .slotBlock {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -267,6 +278,7 @@
     font-size: var(--text-xs);
     user-select: none;
     line-height: 1.2;
+    overflow: hidden;
 }
 
 .slotBlock:active {
@@ -275,20 +287,22 @@
 
 .slotBlockTitle {
     font-weight: var(--font-bold);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .slotBlockProfe {
     opacity: 0.85;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .infoBar {
     display: flex;
+    align-items: center;
     gap: var(--space-4);
     flex-wrap: wrap;
     padding: var(--space-3);
@@ -299,6 +313,13 @@
 }
 
 .infoBar b { color: var(--text-main); }
+
+.infoBarActions {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
 
 .emptyState {
     padding: var(--space-12);

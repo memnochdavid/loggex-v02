@@ -1106,7 +1106,14 @@
     "reasonUnknownImp": "Irakasmailako sail ezezaguna",
     "reasonModuleFull": "Jada kokatu dituzu {{module}}-ren {{total}} ordu",
     "reasonCellOccupied": "Gelaxka okupatuta",
-    "reasonTeacherBusy": "{{teacher}} irakasle paraleloan ari da ordu horretan"
+    "reasonTeacherBusy": "{{teacher}} irakasle paraleloan ari da ordu horretan",
+    "solverSuggest": "Ordutegia iradoki",
+    "solverSuggestAnother": "Beste bat iradoki",
+    "solverSuggestAnotherHint": "Proposamen alternatibo bat sortu",
+    "solving": "Kalkulatzen…",
+    "solverConfirmOverwrite": "Ordutegi bat lantzen ari da. Solverraren proposamenarekin gainidatzi?",
+    "solverPartial": "Proposamen partziala. Kokatu gabe: {{items}}",
+    "solverError": "Solver errorea: {{message}}"
   },
   "profLoad": {
     "title": "Irakasleen asteko karga",

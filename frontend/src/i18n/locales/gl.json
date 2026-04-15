@@ -1106,7 +1106,14 @@
     "reasonUnknownImp": "Impartición descoñecida",
     "reasonModuleFull": "Xa colocaches as {{total}}h de {{module}}",
     "reasonCellOccupied": "Cela ocupada",
-    "reasonTeacherBusy": "{{teacher}} xa imparte nun grupo paralelo a esa hora"
+    "reasonTeacherBusy": "{{teacher}} xa imparte nun grupo paralelo a esa hora",
+    "solverSuggest": "Suxerir horario",
+    "solverSuggestAnother": "Suxerir outra",
+    "solverSuggestAnotherHint": "Xera unha proposta alternativa",
+    "solving": "Calculando…",
+    "solverConfirmOverwrite": "Hai un horario en curso. Sobrescribir coa proposta do solver?",
+    "solverPartial": "Proposta parcial. Sen colocar: {{items}}",
+    "solverError": "Erro do solver: {{message}}"
   },
   "profLoad": {
     "title": "Carga semanal do profesorado",
