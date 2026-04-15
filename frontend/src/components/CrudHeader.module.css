@@ -68,9 +68,9 @@
     /*flex-wrap: wrap;*/
 }
 
-/* Permitir wrap también cuando hay middle slot */
+/* En pantallas anchas, las acciones SIEMPRE en una sola línea */
 .actions {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
 }
 

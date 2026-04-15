@@ -64,7 +64,7 @@ const getId = (obj) => {
 };
 
 // ─── Componente chip de módulo (draggable desde el panel) ──────────────
-const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color }) => {
+const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected, onSelect }) => {
   const id = `mod:${imparticion.id}`;
   const disabled = horasColocadas >= horasTotales;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -78,9 +78,15 @@ const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color }) => {
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.moduleChip} ${isDragging ? styles.moduleChipDragging : ''} ${done ? styles.moduleChipDone : ''}`}
+      className={`${styles.moduleChip} ${isDragging ? styles.moduleChipDragging : ''} ${done ? styles.moduleChipDone : ''} ${selected ? styles.moduleChipSelected : ''}`}
       {...listeners}
       {...attributes}
+      onClick={(e) => {
+        if (disabled) return;
+        // El click no debe disparar si el drag lo interceptó; dnd-kit con distance:4 deja pasar clicks cortos.
+        e.stopPropagation();
+        onSelect?.(imparticion.id);
+      }}
     >
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
@@ -95,12 +101,13 @@ const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color }) => {
 };
 
 // ─── Bloque dentro de un slot (draggable para eliminar al panel) ───────
-const SlotBlock = ({ slotId, imparticion, color }) => {
+const SlotBlock = ({ slotId, imparticion, color, aula }) => {
   const id = `slot:${slotId}`;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: { type: 'placed', slotId, imparticionId: imparticion.id },
   });
+  const profeFull = `${imparticion.profesor?.nombre || ''} ${imparticion.profesor?.apellidos || ''}`.trim() || '—';
   return (
     <div
       ref={setNodeRef}
@@ -108,18 +115,22 @@ const SlotBlock = ({ slotId, imparticion, color }) => {
       style={{ backgroundColor: color, opacity: isDragging ? 0.4 : 1 }}
       {...listeners}
       {...attributes}
-      title={`${imparticion.modulo?.nombre} · ${imparticion.profesor?.nombre || ''} ${imparticion.profesor?.apellidos || ''}`}
     >
       <span className={styles.slotBlockTitle}>{imparticion.modulo?.nombre}</span>
       <span className={styles.slotBlockProfe}>
         {(imparticion.profesor?.apellidos || '').split(' ')[0]}
       </span>
+      <div className={styles.slotTooltip} role="tooltip">
+        <strong>{imparticion.modulo?.nombre || '—'}</strong>
+        <span>{profeFull}</span>
+        {aula && <span className={styles.slotTooltipAula}>{aula}</span>}
+      </div>
     </div>
   );
 };
 
 // ─── Celda droppable ───────────────────────────────────────────────────
-const SlotCell = ({ dia, slot, content, dragActive, valid }) => {
+const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, onTap }) => {
   const id = `cell:${dia}:${slot}`;
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -130,10 +141,13 @@ const SlotCell = ({ dia, slot, content, dragActive, valid }) => {
   if (dragActive) {
     if (valid === false) cls += ` ${styles.slotDropInvalid}`;
     else if (valid === true) cls += ` ${styles.slotDropValid}`;
+  } else if (tapMode) {
+    if (tapValid === false) cls += ` ${styles.slotDropInvalid}`;
+    else if (tapValid === true) cls += ` ${styles.slotDropValid}`;
   }
   if (isOver) cls += ` ${styles.slotDropActive}`;
   return (
-    <div ref={setNodeRef} className={cls}>
+    <div ref={setNodeRef} className={cls} onClick={onTap}>
       {content}
     </div>
   );
@@ -161,6 +175,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [solving, setSolving] = useState(false);
   const [solverSeed, setSolverSeed] = useState(null);
   const [activeDrag, setActiveDrag] = useState(null);
+  // Tap-to-place: id de imparticion seleccionada (o null)
+  const [selectedImpId, setSelectedImpId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -585,6 +601,96 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
+  // Tap-to-place: toggle selección del módulo en el panel
+  const handleSelectModule = useCallback((impId) => {
+    setSelectedImpId(prev => prev === impId ? null : impId);
+  }, []);
+
+  // Tap en celda: si hay módulo seleccionado, intentar colocar; si la celda está
+  // ocupada y no hay selección, quitar el bloque.
+  const handleTapCell = useCallback((diaIdx, slotIdx) => {
+    const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
+    const existing = placements[key];
+
+    if (selectedImpId) {
+      const drag = { type: 'module', imparticionId: selectedImpId };
+      // Si la celda está ocupada con otra imparticion, tratar como "reemplazo":
+      // validamos como si fuese drag desde panel (requiere celda vacía), así que
+      // primero la vaciamos localmente para la validación.
+      const effectivePlacements = existing ? (() => {
+        const clone = { ...placements };
+        delete clone[key];
+        return clone;
+      })() : placements;
+      const imp = impById[selectedImpId];
+      if (!imp) return;
+      const total = imp.modulo?.horasSemanales || 0;
+      const ya = Object.values(effectivePlacements).filter(p => p.imparticionId === selectedImpId).length;
+      if (ya >= total) {
+        setDragError(t('scheduleEditor.reasonModuleFull', { total, module: imp.modulo?.nombre }));
+        window.setTimeout(() => setDragError(null), 4000);
+        return;
+      }
+      const profId = imp.profesor?.id;
+      if (profId && parallelBusy[key]?.has(Number(profId))) {
+        const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
+        setDragError(t('scheduleEditor.reasonTeacherBusy', { teacher }));
+        window.setTimeout(() => setDragError(null), 4000);
+        return;
+      }
+      setState(prev => ({
+        ...prev,
+        [selectedGrupo]: {
+          ...prev[selectedGrupo],
+          placements: {
+            ...effectivePlacements,
+            [key]: {
+              imparticionId: selectedImpId,
+              aula: grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : 'Aula',
+              horaInicio: slotsDia[slotIdx][0],
+              horaFin: slotsDia[slotIdx][1],
+            },
+          },
+          dirty: true,
+        },
+      }));
+      // Si el módulo ya alcanzó sus horas, deseleccionamos
+      if (ya + 1 >= total) setSelectedImpId(null);
+      return;
+    }
+
+    // Sin selección y celda ocupada → quitar
+    if (existing) {
+      setState(prev => {
+        const p = { ...prev[selectedGrupo].placements };
+        delete p[key];
+        return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
+      });
+    }
+  }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, grupo, t]);
+
+  // Validación ligera para pintar tap-mode
+  const validateTap = useCallback((diaIdx, slotIdx) => {
+    if (!selectedImpId) return null;
+    const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
+    if (placements[key]) return false;
+    const imp = impById[selectedImpId];
+    if (!imp) return false;
+    const total = imp.modulo?.horasSemanales || 0;
+    if ((horasColocadas[selectedImpId] || 0) >= total) return false;
+    const profId = imp.profesor?.id;
+    if (profId && parallelBusy[key]?.has(Number(profId))) return false;
+    return true;
+  }, [selectedImpId, slotsDia, placements, impById, horasColocadas, parallelBusy]);
+
+  // ESC deselecciona
+  useEffect(() => {
+    if (!selectedImpId) return;
+    const h = (e) => { if (e.key === 'Escape') setSelectedImpId(null); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [selectedImpId]);
+
   // Solver: pide propuesta al backend y pinta el estado (sin persistir)
   const runSolver = async (seed = null) => {
     if (!selectedGrupo) return;
@@ -672,6 +778,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         slotId={key}
         imparticion={imp}
         color={colorForModule(imp.modulo?.id || p.imparticionId)}
+        aula={p.aula}
       />
     );
   };
@@ -735,6 +842,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     horasTotales={imp.modulo?.horasSemanales || 0}
                     horasColocadas={horasColocadas[imp.id] || 0}
                     color={colorForModule(imp.modulo?.id || imp.id)}
+                    selected={selectedImpId === imp.id}
+                    onSelect={handleSelectModule}
                   />
                 ))}
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
@@ -754,6 +863,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     </div>
                     {DIAS.map((d) => {
                       const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
+                      const tapValid = !activeDrag && selectedImpId ? validateTap(d.idx, slotIdx) : null;
                       return (
                         <SlotCell
                           key={`${d.idx}_${slotIdx}`}
@@ -762,6 +872,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                           content={renderSlotContent(d.idx, slotIdx)}
                           dragActive={!!activeDrag}
                           valid={validation ? validation.ok : null}
+                          tapMode={!!selectedImpId}
+                          tapValid={tapValid}
+                          onTap={() => handleTapCell(d.idx, slotIdx)}
                         />
                       );
                     })}
