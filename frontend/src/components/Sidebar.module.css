@@ -232,11 +232,11 @@
     .sidebar.mobileOpen {
         display: flex; /* Mostrar al abrir */
         position: fixed; /* Superponer */
-        top: 0;
+        top: 84px; /* Respeta el header (height: 84px) */
         left: 0;
         bottom: 0;
-        height: 100vh;
-        z-index: 110; /* Por encima del header (z-index: 100) */
+        height: calc(100vh - 84px);
+        z-index: 90; /* Por debajo del header (z-index: 100) para no taparlo */
         animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
         background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
@@ -248,11 +248,26 @@
 
     .overlay {
         display: block;
-        z-index: 105; /* Por encima del header (z-index: 100), por debajo del sidebar (110) */
+        top: 84px; /* No cubrir el header */
+        height: calc(100vh - 84px);
+        z-index: 85; /* Por debajo del sidebar móvil (90) y del header (100) */
     }
 
     .collapseBtn {
         display: none;
+    }
+}
+
+/* A <=768px el header reduce padding a 0.5rem → altura real 60 + 16 = 76px */
+@media (max-width: 768px) {
+    .sidebar.mobileOpen {
+        top: 76px;
+        height: calc(100vh - 76px);
+    }
+
+    .overlay {
+        top: 76px;
+        height: calc(100vh - 76px);
     }
 }
 
