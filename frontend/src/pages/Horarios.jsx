@@ -471,27 +471,25 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
                     middle={tabs}
         >
-            <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
-                {!embedded && (
-                    <Button
-                        variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                        onClick={() => setViewMode('calendar')}
-                        title={t('schedules.calendarView')}
-                    >
-                        <CalendarIcon size={18} />
-                    </Button>
-                )}
-                
-                {viewMode === 'calendar' && isMobile && (
-                    <Button 
-                        variant="secondary"
-                        onClick={() => setIsSidebarOpen(true)}
-                        title={t('schedules.showCalendar')}
-                    >
-                        <PanelRightOpen size={18} />
-                    </Button>
-                )}
-            </div>
+            {!embedded && (
+                <Button
+                    variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
+                    onClick={() => setViewMode('calendar')}
+                    title={t('schedules.calendarView')}
+                >
+                    <CalendarIcon size={18} />
+                </Button>
+            )}
+
+            {viewMode === 'calendar' && isMobile && (
+                <Button
+                    variant="secondary"
+                    onClick={() => setIsSidebarOpen(true)}
+                    title={t('schedules.showCalendar')}
+                >
+                    <PanelRightOpen size={18} />
+                </Button>
+            )}
 
             {viewMode === 'list' && isSuperAdmin && (
                 <ThemedSelect

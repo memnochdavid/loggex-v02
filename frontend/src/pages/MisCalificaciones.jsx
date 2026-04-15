@@ -458,6 +458,7 @@ const MisCalificaciones = () => {
                                                             </button>
                                                         ))}
                                                     </div>
+                                                    <div key={activeTab} className={styles.tabContent}>
                                                     {filteredTasks.length === 0 ? (
                                                         <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
                                                             {t('grades.noTasksType')}
@@ -485,6 +486,7 @@ const MisCalificaciones = () => {
                                                         </div>
                                                     );
                                                 })}
+                                                    </div>
                                                     </>
                                                 );
                                             })()}

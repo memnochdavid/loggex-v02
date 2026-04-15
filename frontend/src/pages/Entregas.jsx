@@ -554,6 +554,7 @@ const Entregas = () => {
               </button>
             ))}
           </div>
+          <div key={activeTab} className={styles.tabContent}>
           <AccordionView
             data={asignaturas}
             renderItem={renderContent}
@@ -562,6 +563,7 @@ const Entregas = () => {
             expandedId={expandedId}
             onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
           />
+          </div>
           </>
         )}
 

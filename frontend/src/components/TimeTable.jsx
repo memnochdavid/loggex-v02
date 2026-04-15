@@ -10,6 +10,13 @@ import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
 
+// Misma paleta determinista que el editor (HorariosEditor): hue derivado del id
+const colorForModule = (mid) => {
+    const id = Number(mid) || 0;
+    const hue = (id * 47) % 360;
+    return `hsl(${hue}, 55%, 48%)`;
+};
+
 const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
     const { t } = useTranslation();
     const { user } = useAuth();
@@ -304,6 +311,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                                 className={styles.eventCard}
                                                 onClick={() => handleEventClick(cellData.event)}
                                                 title={t('timetable.viewDetails')}
+                                                style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
                                             >
                                                 <div className={styles.eventModulo}>{cellData.event.modulo}</div>
                                                 <div className={styles.eventGroupSmall}>
@@ -354,11 +362,9 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                 .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
             : [];
 
-        const dateStr = date ? date.toLocaleDateString(undefined, {day: '2-digit', month: '2-digit'}) : '';
-
         return {
             id: dayIndex,
-            title: `${dayName} ${dateStr}`, // Título con fecha
+            title: dayName,
             date: date,
             festivo: festivo,
             events: dayEvents

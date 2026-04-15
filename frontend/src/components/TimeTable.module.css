@@ -139,32 +139,25 @@
 }
 
 .eventCard {
-    /* CORRECCIÓN: Usar color-mix con el fondo de la tarjeta en lugar de --color-primary-100 */
-    /* Esto asegura que en modo oscuro sea oscuro y en modo claro sea claro */
-    background-color: color-mix(in srgb, var(--color-primary-500), var(--bg-card) 85%);
-
-    border-left: 3px solid var(--color-primary-500);
-    padding: 0.25rem 0.4rem; /* Reducido */
-    border-radius: var(--radius-sm); /* Usar variable derivada */
+    /* Color por módulo asignado dinámicamente vía style inline (paleta HSL
+       determinista, mismo criterio que HorariosEditor para consistencia). */
+    padding: var(--space-2);
     height: 100%;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
     overflow: hidden;
-    font-size: 0.8rem; /* Reducido */
-
-    /* CORRECCIÓN: Usar texto principal para asegurar contraste en ambos modos */
-    color: var(--text-main);
-
+    font-size: 0.8rem;
+    color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    line-height: 1.2;
 }
 
 .eventCard:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
-    /* Al hacer hover, oscurecemos/aclaramos ligeramente la mezcla */
-    background-color: color-mix(in srgb, var(--color-primary-500), var(--bg-card) 80%);
+    filter: brightness(1.08);
 }
 
 .eventModulo {

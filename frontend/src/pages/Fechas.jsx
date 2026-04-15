@@ -32,8 +32,10 @@ const Fechas = () => {
   return (
     <Layout>
       <div className={styles.container}>
-        {tab === 'festivos'     && <Festivos     embedded tabs={tabs} />}
-        {tab === 'evaluaciones' && <Evaluaciones embedded tabs={tabs} />}
+        <div key={tab} className={calStyles.tabContent}>
+          {tab === 'festivos'     && <Festivos     embedded tabs={tabs} />}
+          {tab === 'evaluaciones' && <Evaluaciones embedded tabs={tabs} />}
+        </div>
       </div>
     </Layout>
   );

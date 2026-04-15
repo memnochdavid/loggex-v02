@@ -32,8 +32,10 @@ const HorariosAdmin = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                {tab === 'editor' && <HorariosEditor embedded tabs={tabs} />}
-                {tab === 'lista'  && <Horarios       embedded tabs={tabs} />}
+                <div key={tab} className={calStyles.tabContent}>
+                    {tab === 'editor' && <HorariosEditor embedded tabs={tabs} />}
+                    {tab === 'lista'  && <Horarios       embedded tabs={tabs} />}
+                </div>
             </div>
         </Layout>
     );

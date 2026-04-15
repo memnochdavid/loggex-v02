@@ -285,6 +285,18 @@
     padding-bottom: 0;
 }
 
+/* Wrapper para el contenido de cada tab — anima la entrada al cambiar.
+   Aplicar como className en el contenedor del contenido y usar `key={tab}`
+   para forzar el remount y disparar la animación. */
+.tabContent {
+    animation: tabFadeIn 0.22s ease-out;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .tab {
     display: flex;
     align-items: center;

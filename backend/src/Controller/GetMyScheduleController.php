@@ -81,6 +81,7 @@ class GetMyScheduleController extends AbstractController
                 'horaFin' => $h->getHoraFin()->format('H:i'),
                 'aula' => $h->getAula(),
                 'modulo' => $h->getImparticion()->getModulo()->getNombre(),
+                'moduloId' => $h->getImparticion()->getModulo()->getId(),
                 'grupo' => $grupo->getNombre(),
                 'grupoAbreviatura' => $grupo->getAbreviatura(),
                 'profesor' => $profesorNombre,

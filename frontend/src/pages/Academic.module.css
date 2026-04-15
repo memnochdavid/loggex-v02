@@ -363,6 +363,15 @@
     border-bottom: 2px solid var(--border-color);
 }
 
+.tabContent {
+    animation: tabFadeIn 0.22s ease-out;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .tab {
     display: flex;
     align-items: center;
