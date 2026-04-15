@@ -472,17 +472,69 @@
 .moduleName {
     font-size: var(--text-base);
     font-weight: var(--font-bold);
-    color: var(--text-main);
+    color: inherit;
 }
 
 .moduleTeacher {
     font-size: var(--text-sm);
-    color: var(--text-muted);
+    color: inherit;
+    opacity: 0.85;
 }
 
 .moduleGrade {
     font-size: var(--text-xl);
     font-weight: var(--font-bold);
+    flex-shrink: 0;
+}
+
+/* ── Header del AccordionView (refactor): fila con título + chips de medias
+   y nota grande a la derecha. Hereda fondo/color del propio AccordionView. */
+.moduleHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.moduleHeaderMain {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.moduleStatsChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.statChip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.18);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+}
+
+.statChipLabel {
+    opacity: 0.85;
+    font-weight: var(--font-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 10px;
+}
+
+.statChipValue {
+    font-weight: var(--font-bold);
+    font-size: var(--text-sm);
 }
 
 .moduleBody {

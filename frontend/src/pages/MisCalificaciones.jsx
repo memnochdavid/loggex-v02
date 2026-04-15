@@ -4,9 +4,47 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
+import AccordionView from '../components/AccordionView';
+
+// Header de cada módulo dentro del AccordionView. Dispara la carga lazy de
+// tareas la primera vez que el item se expande.
+const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, styles, t }) => {
+    React.useEffect(() => {
+        if (isExpanded) onExpand?.();
+    }, [isExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const stats = [
+        { val: mod.mediaExamenes,  label: t('grades.avgExams') },
+        { val: mod.mediaTareas,    label: t('grades.avgTasks') },
+        { val: mod.mediaPracticas, label: t('grades.avgPractice') },
+        { val: null, label: t('grades.pending'), text: `${mod.entregasPendientes}/${mod.totalTareas}` },
+    ];
+
+    return (
+        <div className={styles.moduleHeaderRow}>
+            <div className={styles.moduleHeaderMain}>
+                <div className={styles.moduleName}>{mod.imparticion.modulo}</div>
+                <div className={styles.moduleTeacher}>{mod.imparticion.profesor} — {mod.imparticion.grupo}</div>
+                <div className={styles.moduleStatsChips}>
+                    {stats.map((s, i) => (
+                        <span key={i} className={styles.statChip}>
+                            <span className={styles.statChipLabel}>{s.label}</span>
+                            <span className={styles.statChipValue}>
+                                {s.text || formatGrade(s.val)}
+                            </span>
+                        </span>
+                    ))}
+                </div>
+            </div>
+            <div className={`${styles.moduleGrade} ${getGradeClass(mod.notaFinal)}`}>
+                {formatGrade(mod.notaFinal)}
+            </div>
+        </div>
+    );
+};
 
 const MisCalificaciones = () => {
     const { t, i18n } = useTranslation();
@@ -18,8 +56,8 @@ const MisCalificaciones = () => {
     const [selectedPeriodo, setSelectedPeriodo] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [expandedModules, setExpandedModules] = useState({});
     const [moduleTasks, setModuleTasks] = useState({});
+    const [expandedModuleId, setExpandedModuleId] = useState(null);
     const [loadingTasks, setLoadingTasks] = useState({});
     const [moduleTab, setModuleTab] = useState({}); // { impId: 'todos'|'examen'|'tarea'|'practica' }
     const [downloadingReport, setDownloadingReport] = useState(false);
@@ -186,8 +224,8 @@ const MisCalificaciones = () => {
                 if (!response.ok) throw new Error();
                 setData(await response.json());
                 setError(null);
-                setExpandedModules({});
                 setModuleTasks({});
+                setExpandedModuleId(null);
             } catch {
                 setError(t('grades.errorLoading'));
             } finally {
@@ -197,12 +235,10 @@ const MisCalificaciones = () => {
         fetchCalificaciones();
     }, [selectedPeriodo, selectedAlumno, isSuperAdmin, t]);
 
-    // Toggle módulo y cargar tareas lazy
-    const toggleModule = async (impId) => {
-        const isExpanded = expandedModules[impId];
-        setExpandedModules(prev => ({ ...prev, [impId]: !isExpanded }));
-        if (isExpanded || moduleTasks[impId]) return;
-
+    // Carga las tareas + entregas de un módulo (lazy). Idempotente: no recarga
+    // si ya están en moduleTasks o en proceso de carga.
+    const loadTasksForModule = async (impId) => {
+        if (moduleTasks[impId] || loadingTasks[impId]) return;
         const targetAlumnoId = isSuperAdmin && selectedAlumno ? selectedAlumno : user.id;
 
         setLoadingTasks(prev => ({ ...prev, [impId]: true }));
@@ -377,126 +413,87 @@ const MisCalificaciones = () => {
                 ) : !data?.modulos?.length ? (
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                        {data.modulos.map((mod) => {
+                    <AccordionView
+                        data={data.modulos.map(m => ({ ...m, id: m.imparticion.id }))}
+                        expandedId={expandedModuleId}
+                        onToggle={(id) => setExpandedModuleId(prev => prev === id ? null : id)}
+                        renderHeader={(mod, isExpanded) => (
+                            <ModuleHeader
+                                mod={mod}
+                                isExpanded={isExpanded}
+                                onExpand={() => loadTasksForModule(mod.imparticion.id)}
+                                getGradeClass={getGradeClass}
+                                formatGrade={formatGrade}
+                                styles={styles}
+                                t={t}
+                            />
+                        )}
+                        renderItem={(mod) => {
                             const impId = mod.imparticion.id;
-                            const isExpanded = expandedModules[impId];
                             const tasks = moduleTasks[impId];
                             const isLoadingTasks = loadingTasks[impId];
-
+                            if (isLoadingTasks) {
+                                return <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{t('common.loading')}</div>;
+                            }
+                            if (!tasks?.length) {
+                                return <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>{t('grades.noGrades')}</div>;
+                            }
+                            const activeTab = moduleTab[impId] || 'todos';
+                            const filteredTasks = activeTab === 'todos' ? tasks : tasks.filter(t => t.tipo === activeTab);
+                            const counts = { todos: tasks.length, examen: 0, tarea: 0, practica: 0 };
+                            tasks.forEach(t => { if (counts[t.tipo] !== undefined) counts[t.tipo]++; });
                             return (
-                                <div key={impId} className={styles.moduleCard}>
-                                    <div className={styles.moduleHeader}>
-                                        <div>
-                                            <div className={styles.moduleName}>{mod.imparticion.modulo}</div>
-                                            <div className={styles.moduleTeacher}>
-                                                {mod.imparticion.profesor} — {mod.imparticion.grupo}
+                                <>
+                                    <div className={styles.tabBar} style={{ marginTop: 0 }}>
+                                        {[
+                                            { key: 'todos', label: t('grades.filterAll') },
+                                            { key: 'examen', label: t('grades.exam') },
+                                            { key: 'tarea', label: t('grades.task') },
+                                            { key: 'practica', label: t('grades.practice') },
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.key}
+                                                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
+                                                onClick={() => setModuleTab(prev => ({ ...prev, [impId]: tab.key }))}
+                                            >
+                                                {tab.label}
+                                                <span className={styles.tabCount}>{counts[tab.key]}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div key={activeTab} className={styles.tabContent}>
+                                        {filteredTasks.length === 0 ? (
+                                            <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
+                                                {t('grades.noTasksType')}
                                             </div>
-                                        </div>
-                                        <div className={`${styles.moduleGrade} ${getGradeClass(mod.notaFinal)}`}>
-                                            {formatGrade(mod.notaFinal)}
-                                        </div>
-                                    </div>
-                                    <div className={styles.moduleBody}>
-                                        <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
-                                            {[
-                                                { val: mod.mediaExamenes, label: t('grades.avgExams') },
-                                                { val: mod.mediaTareas, label: t('grades.avgTasks') },
-                                                { val: mod.mediaPracticas, label: t('grades.avgPractice') },
-                                                { val: null, label: t('grades.pending'), text: `${mod.entregasPendientes}/${mod.totalTareas}` },
-                                            ].map((item, i) => (
-                                                <div key={i}>
-                                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                        {item.label}
-                                                    </span>
-                                                    <div className={item.text ? '' : getGradeClass(item.val)} style={{ fontWeight: 'var(--font-bold)', color: item.text ? 'var(--text-muted)' : undefined }}>
-                                                        {item.text || formatGrade(item.val)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <button className={styles.moduleToggle} onClick={() => toggleModule(impId)}>
-                                        <ChevronDown size={16} className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`} />
-                                        {isExpanded ? t('grades.hideTasks') : t('grades.showTasks')}
-                                    </button>
-
-                                    <div className={`${styles.moduleTaskListWrapper} ${isExpanded ? styles.open : ''}`}>
-                                        <div className={styles.moduleTaskListInner}>
-                                        <div className={styles.moduleTaskList}>
-                                            {isLoadingTasks ? (
-                                                <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-                                                    {t('common.loading')}
-                                                </div>
-                                            ) : !tasks?.length ? (
-                                                <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
-                                                    {t('grades.noGrades')}
-                                                </div>
-                                            ) : (() => {
-                                                const activeTab = moduleTab[impId] || 'todos';
-                                                const filteredTasks = activeTab === 'todos' ? tasks : tasks.filter(t => t.tipo === activeTab);
-                                                const counts = { todos: tasks.length, examen: 0, tarea: 0, practica: 0 };
-                                                tasks.forEach(t => { if (counts[t.tipo] !== undefined) counts[t.tipo]++; });
-
-                                                return (
-                                                    <>
-                                                    <div className={styles.tabBar} style={{ marginTop: 0 }}>
-                                                        {[
-                                                            { key: 'todos', label: t('grades.filterAll') },
-                                                            { key: 'examen', label: t('grades.exam') },
-                                                            { key: 'tarea', label: t('grades.task') },
-                                                            { key: 'practica', label: t('grades.practice') },
-                                                        ].map(tab => (
-                                                            <button
-                                                                key={tab.key}
-                                                                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
-                                                                onClick={() => setModuleTab(prev => ({ ...prev, [impId]: tab.key }))}
-                                                            >
-                                                                {tab.label}
-                                                                <span className={styles.tabCount}>{counts[tab.key]}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    <div key={activeTab} className={styles.tabContent}>
-                                                    {filteredTasks.length === 0 ? (
-                                                        <div style={{ padding: 'var(--space-2)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic' }}>
-                                                            {t('grades.noTasksType')}
+                                        ) : filteredTasks.map(tarea => {
+                                            const nota = tarea.calificacion?.nota ?? null;
+                                            const feedback = tarea.calificacion?.feedbackProfesor;
+                                            return (
+                                                <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
+                                                    <div className={styles.taskInfo}>
+                                                        <div className={styles.taskName}>
+                                                            {tarea.titulo}
+                                                            <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
+                                                                {getTypeName(tarea.tipo)}
+                                                            </span>
                                                         </div>
-                                                    ) : filteredTasks.map(tarea => {
-                                                        const nota = tarea.calificacion?.nota ?? null;
-                                                        const feedback = tarea.calificacion?.feedbackProfesor;
-                                                        return (
-                                                            <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
-                                                                <div className={styles.taskInfo}>
-                                                                    <div className={styles.taskName}>
-                                                                        {tarea.titulo}
-                                                                        <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
-                                                                            {getTypeName(tarea.tipo)}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className={styles.taskMeta}>
-                                                                        {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}
-                                                                        {feedback && <> — {feedback}</>}
-                                                                    </div>
-                                                                </div>
-                                                                <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
-                                                                    {nota != null ? nota.toFixed(1) : '—'}
-                                                            </div>
+                                                        <div className={styles.taskMeta}>
+                                                            {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}
+                                                            {feedback && <> — {feedback}</>}
                                                         </div>
-                                                    );
-                                                })}
                                                     </div>
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                        </div>
+                                                    <div className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
+                                                        {nota != null ? nota.toFixed(1) : '—'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                </div>
+                                </>
                             );
-                        })}
-                    </div>
+                        }}
+                    />
                 )}
             </div>
         </Layout>
