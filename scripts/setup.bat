@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-cd /d "%~dp0\.."
+pushd "%~dp0\.."
 
 echo === Iniciando configuracion del proyecto Loggex v02 (con Docker, HTTPS Custom Ports y CORS) ===
 
