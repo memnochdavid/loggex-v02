@@ -664,7 +664,7 @@
     "group": "Group"
   },
   "about": {
-    "title": "Loggex",
+    "title": "Loggex-Machina",
     "subtitle": "Comprehensive Academic Management Platform",
     "descriptionTitle": "Overview",
     "description": "Loggex is a comprehensive academic management platform designed for vocational training centers. It allows managing users, centers, training cycles, modules, groups, enrollments, schedules, attendance, assignments, materials and messaging, providing a modern and customizable experience.",
@@ -701,7 +701,28 @@
     "featureAttendance": "Attendance Tracking",
     "featureAttendanceDesc": "Session-based attendance recording with visual calendar and per-student statistics.",
     "featureMessaging": "Integrated Messaging",
-    "featureMessagingDesc": "Internal messaging and announcements system with file attachment support via MinIO."
+    "featureMessagingDesc": "Internal messaging and announcements system with file attachment support via MinIO.",
+    "featureVisualScheduler": "Visual Schedule Builder",
+    "featureVisualSchedulerDesc": "Drag-and-drop schedule editor built with dnd-kit: place teachings on the weekly grid with real-time validation and visual feedback.",
+    "featurePdfExport": "PDF Export",
+    "featurePdfExportDesc": "Printable report cards and schedules generated via dompdf, signed by the corresponding staff member.",
+    "featureDigitalSignature": "Digital Signature",
+    "featureDigitalSignatureDesc": "Vector signature capture with perfect-freehand for report cards and official documents.",
+    "dragDrop": "Drag & Drop:",
+    "signature": "Signature:",
+    "pdf": "PDF:",
+    "cors": "CORS:",
+    "filesystem": "Filesystem:",
+    "tagline": "A modern, theme-aware, multilingual academic platform",
+    "heroApiDocs": "API Documentation",
+    "architectureTitle": "Architecture",
+    "stackTitle": "Tech Stack",
+    "statLanguages": "Languages",
+    "statEntities": "Entities",
+    "statRoles": "Roles",
+    "statThemeVars": "Theme variables",
+    "creditsLabel": "Developed by",
+    "creditsRole": "System developer and designer"
   },
   "config": {
     "title": "Customization",

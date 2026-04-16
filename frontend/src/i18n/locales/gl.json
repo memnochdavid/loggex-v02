@@ -664,7 +664,7 @@
     "group": "Grupo"
   },
   "about": {
-    "title": "Loggex",
+    "title": "Loggex-Machina",
     "subtitle": "Plataforma de Xestión Académica Integral",
     "descriptionTitle": "Descrición Xeral",
     "description": "Loggex é unha plataforma de xestión académica integral deseñada para centros de Formación Profesional. Permite administrar usuarios, centros, ciclos formativos, módulos, grupos, matrículas, horarios, asistencia, tarefas, materiais e mensaxería, proporcionando unha experiencia moderna e personalizable.",
@@ -701,7 +701,28 @@
     "featureAttendance": "Control de Asistencia",
     "featureAttendanceDesc": "Rexistro de asistencia por sesión con calendario visual e estatísticas por alumno.",
     "featureMessaging": "Mensaxería Integrada",
-    "featureMessagingDesc": "Sistema de mensaxería interna e comunicados con soporte de ficheiros adxuntos vía MinIO."
+    "featureMessagingDesc": "Sistema de mensaxería interna e comunicados con soporte de ficheiros adxuntos vía MinIO.",
+    "featureVisualScheduler": "Creador de Horarios Gráfico",
+    "featureVisualSchedulerDesc": "Editor de horarios por arrastrar-e-soltar con dnd-kit: coloca imparticións na grella semanal con validación de carga e feedback visual.",
+    "featurePdfExport": "Exportación a PDF",
+    "featurePdfExportDesc": "Xeración de boletíns de cualificacións e horarios imprimibles mediante dompdf, asinados polo responsable.",
+    "featureDigitalSignature": "Sinatura Dixital",
+    "featureDigitalSignatureDesc": "Captura de sinaturas vectoriais con perfect-freehand para boletíns e documentos oficiais.",
+    "dragDrop": "Drag & Drop:",
+    "signature": "Sinatura:",
+    "pdf": "PDF:",
+    "cors": "CORS:",
+    "filesystem": "Filesystem:",
+    "tagline": "Unha plataforma académica moderna, tematizable e multilingüe",
+    "heroApiDocs": "Documentación API",
+    "architectureTitle": "Arquitectura",
+    "stackTitle": "Stack Tecnolóxico",
+    "statLanguages": "Idiomas",
+    "statEntities": "Entidades",
+    "statRoles": "Roles",
+    "statThemeVars": "Variables de tema",
+    "creditsLabel": "Desenvolvido por",
+    "creditsRole": "Desenvolvedor e deseñador do sistema"
   },
   "config": {
     "title": "Personalización",

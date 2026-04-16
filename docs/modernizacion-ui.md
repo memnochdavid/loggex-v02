@@ -147,6 +147,56 @@ Patrón obligatorio:
 
 - Fade-in del contenedor + pulse sutil (1.6s) del texto.
 
+### `/about` — rediseño profundo (v2)
+
+Reescritura completa de JSX + CSS para convertir la vista en una presentación "landing" de producto. **Backward-compat con las claves i18n previas**, sólo añade nuevas.
+
+**Nuevo hook `useInView.js`** — wrapper minimal sobre `IntersectionObserver`. Devuelve `[ref, inView]`, con `once` y `rootMargin` configurables. Fallback a `true` si el browser no soporta IO.
+
+**`About.jsx` (nueva estructura):**
+
+1. **Hero** con `<div className="heroBg">` animado: tres radial gradients basados en `--color-primary-*` con `filter: blur(30px)` y animación `meshDrift` (18s alternate) → mesh gradient tematizable. Logo flotante 110×110 dentro de un círculo con `backdrop-filter: blur(10px)` + sombra primary profunda, micro-animación `logoFloat`. Título con `background-clip: text` (gradient primary). Tagline + subtítulo. Chips meta ("v0.2", "React 19 · Symfony 8") + botón link a `/api/docs`.
+2. **Descripción** con párrafo "lead" grande.
+3. **Arquitectura** — diagrama 3 capas (Client / API / Storage) con conectores animados (pseudo-elements `::before` / `::after` formando línea + flecha). Colores por capa (primary / emerald / amber). Responsive: las flechas rotan 90° para apilarse en móvil.
+4. **Stats strip** — tarjeta central con fondo gradient sutil + inset highlight. 4 stats con **contadores animados** (componente `Counter` con `requestAnimationFrame` + `easeOutCubic`, se dispara al entrar en viewport). Icono en círculo tintado, valor grande tabular.
+5. **Stack tecnológico** — grid 4 cards con **tilt 3D** real (`TiltCard`, captura `mousemove`, aplica `rotateX/Y` con `perspective(900px)` + `translateY(-4px)`). `--card-accent` por categoría. Glow radial en `::before` que sigue el cursor via custom props `--px/--py`.
+6. **Features** — 6 tarjetas con barra lateral animada (`scaleY(0.5 → 1)` con spring al hover), icono Lucide + título + descripción. Stagger 50ms al aparecer.
+7. **Créditos** — tarjeta con gradient primary + conic-gradient animado de fondo (ring que rota 14s). Autor (David Duque Díaz) + rol. Sombra profunda tintada primary.
+8. **Footer** copyright.
+
+**Componentes auxiliares definidos en el propio archivo** (pequeños, no merecen archivos propios):
+- `TiltCard` — tilt 3D por mouse tracking.
+- `Counter` — contador animado in-view.
+- `Reveal` — wrapper que aplica `.reveal` + `.revealIn` cuando el elemento entra en viewport (todas las secciones lo usan).
+
+**`About.module.css`:**
+
+- Todas las animaciones con tokens motion (`--dur-*`, `--ease-*`).
+- Bloque `prefers-reduced-motion` que desactiva todas las animaciones/transforms (hero mesh, float, tilt, ring, counters vía opacity inmediato, etc.) pero mantiene gradient y colores.
+- `clamp()` en el tamaño del título y del stat value para escalar entre mobile/desktop.
+- Media query ≤768px que colapsa el diagrama de arquitectura a una columna con flechas rotadas 90°.
+
+**Nuevas claves i18n** (añadidas en los 5 idiomas):
+`about.tagline`, `about.heroApiDocs`, `about.architectureTitle`, `about.stackTitle`, `about.statLanguages`, `about.statEntities`, `about.statRoles`, `about.statThemeVars`, `about.creditsLabel`, `about.creditsRole`.
+
+### `/about` (`About.module.css`) — pasada completa
+
+- **Entrada en cascada**: `headerIn` (fade + translateY) → `fadeUp` de secciones con 80ms de delay → `cardIn` con stagger por `:nth-child` (60ms) → `featureIn` con stagger 40ms.
+- **Tokens motion** aplicados en todas las transiciones (antes `0.2s` ad-hoc). Ease `--ease-out-back` en los hover/scale, `--ease-standard` en cambios de color/shadow.
+- **Header**: logo con `drop-shadow` tintado primary y hover `scale(1.04) rotate(-3deg)` (se dispara al hover del header completo). Títulos con `letter-spacing` negativo.
+- **`.sectionTitle`**: hover amplifica el icono lateral (`scale(1.12) rotate(-4deg)`).
+- **Cards**:
+  - Halo primary radial via `::before` con `z-index: -1` y `color-mix(--color-primary-500, 8%)` — sutil glow al hover.
+  - Borde cambia a `color-mix(--color-primary-500, 40%)` al hover.
+  - Shadow sm → lg, lift `translateY(-4px)` con spring.
+  - `cardIcon` con `scale(1.12)` al hover de la card.
+  - Listas sin `border-dashed`: borde sólido sutil con `color-mix(--border-color, 60%)`.
+- **Features**:
+  - Fondo tintado primary `color-mix(--bg-card, --color-primary-500 5%)` → 10% al hover.
+  - `::before` con barra lateral animada `scaleY(0.6 → 1)` al hover usando `--ease-out-back`.
+  - Hover con `translateX(2px)` + shadow md.
+- **`prefers-reduced-motion`** completo: desactiva animaciones/transforms, mantiene colores.
+
 ### `index.css`
 
 - Bloque de **MOTION TOKENS** añadido en `:root`.

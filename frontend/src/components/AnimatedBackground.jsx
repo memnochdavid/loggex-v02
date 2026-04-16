@@ -9,14 +9,15 @@ const DEFAULT_STYLE = {
     '--color-primary-rgb': '99, 102, 241',
 };
 
-const AnimatedBackground = ({ forceDefault = false }) => {
+const AnimatedBackground = ({ forceDefault = false, type = null }) => {
     const [bgType, setBgType] = useState(() => {
+        if (type) return type;
         if (forceDefault) return 'grid';
         return window.themeConfig?.animatedBackground || null;
     });
 
     useEffect(() => {
-        if (forceDefault) return;
+        if (type || forceDefault) return;
 
         const handleConfigChange = () => {
             setBgType(window.themeConfig?.animatedBackground || null);
@@ -24,7 +25,7 @@ const AnimatedBackground = ({ forceDefault = false }) => {
 
         window.addEventListener('themeConfigChanged', handleConfigChange);
         return () => window.removeEventListener('themeConfigChanged', handleConfigChange);
-    }, [forceDefault]);
+    }, [forceDefault, type]);
 
     if (!bgType) return null;
 

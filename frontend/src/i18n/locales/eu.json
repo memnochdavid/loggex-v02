@@ -664,7 +664,7 @@
     "group": "Taldea"
   },
   "about": {
-    "title": "Loggex",
+    "title": "Loggex-Machina",
     "subtitle": "Kudeaketa Akademikorako Plataforma Integrala",
     "descriptionTitle": "Deskribapen Orokorra",
     "description": "Loggex Lanbide Heziketako ikastetxeetarako diseinatutako kudeaketa akademikoko plataforma integrala da. Erabiltzaileak, ikastetxeak, heziketa-zikloak, moduluak, taldeak, matrikulak, ordutegiak, asistentzia, atazak, materialak eta mezularitza administratzea ahalbidetzen du, esperientzia moderno eta pertsonalizagarria eskainiz.",
@@ -701,7 +701,28 @@
     "featureAttendance": "Asistentzia Kontrola",
     "featureAttendanceDesc": "Saioaren araberako asistentzia-erregistroa, ikusizko egutegiarekin eta ikasle bakoitzeko estatistikekin.",
     "featureMessaging": "Mezularitza Integratua",
-    "featureMessagingDesc": "Barne mezularitza eta komunikatu sistema, MinIO bidezko eranskinentzako laguntzarekin."
+    "featureMessagingDesc": "Barne mezularitza eta komunikatu sistema, MinIO bidezko eranskinentzako laguntzarekin.",
+    "featureVisualScheduler": "Ordutegi Sortzaile Grafikoa",
+    "featureVisualSchedulerDesc": "Arrastatu eta askatu bidezko ordutegi editorea dnd-kit-ekin: jarri emate-unitateak asteko sarean karga-baliozkotzearekin eta erantzun bisualarekin.",
+    "featurePdfExport": "PDF Esportazioa",
+    "featurePdfExportDesc": "Inprima daitezkeen kalifikazio-boletinak eta ordutegiak sortzea dompdf bidez, arduradunak sinatuta.",
+    "featureDigitalSignature": "Sinadura Digitala",
+    "featureDigitalSignatureDesc": "Sinadura bektorialen harrapaketa perfect-freehand-ekin boletin eta dokumentu ofizialentzat.",
+    "dragDrop": "Drag & Drop:",
+    "signature": "Sinadura:",
+    "pdf": "PDF:",
+    "cors": "CORS:",
+    "filesystem": "Filesystem:",
+    "tagline": "Plataforma akademiko moderno, gai-egokigarri eta eleaniztuna",
+    "heroApiDocs": "API Dokumentazioa",
+    "architectureTitle": "Arkitektura",
+    "stackTitle": "Teknologia Pila",
+    "statLanguages": "Hizkuntzak",
+    "statEntities": "Entitateak",
+    "statRoles": "Rolak",
+    "statThemeVars": "Gai aldagaiak",
+    "creditsLabel": "Garatzailea",
+    "creditsRole": "Sistemaren garatzaile eta diseinatzailea"
   },
   "config": {
     "title": "Pertsonalizazioa",
