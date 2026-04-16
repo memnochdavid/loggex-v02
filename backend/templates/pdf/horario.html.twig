@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 10px;
+            color: #1a1a1a;
+            line-height: 1.3;
+        }
+        .page {
+            padding: 18px 28px;
+            position: relative;
+        }
+
+        /* Cabecera (idéntica al boletín) */
+        .header-table {
+            width: 100%;
+            border: none;
+            margin-bottom: 14px;
+        }
+        .header-table td {
+            border: none;
+            vertical-align: middle;
+            padding: 0;
+        }
+        .header-logo img {
+            max-width: 45px;
+            max-height: 45px;
+        }
+        .header-center {
+            text-align: center;
+        }
+        .header-center .subject-line {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .header-center .context-line {
+            font-size: 10px;
+            color: #444;
+        }
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .header-right .subtitle {
+            font-size: 9px;
+            font-weight: normal;
+            color: #666;
+        }
+
+        /* Parrilla */
+        .turno-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            table-layout: fixed;
+        }
+        .schedule-table th,
+        .schedule-table td {
+            border: 1px solid #999;
+            padding: 4px 5px;
+            font-size: 9px;
+            vertical-align: top;
+        }
+        .schedule-table thead th {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+            padding: 5px 4px;
+        }
+        .schedule-table .hour-cell {
+            background-color: #f8f8f8;
+            text-align: center;
+            font-weight: bold;
+            font-size: 8px;
+            color: #555;
+            white-space: nowrap;
+            width: 10%;
+        }
+        .schedule-table .day-cell {
+            width: 18%;
+        }
+        .event {
+            border-radius: 3px;
+            padding: 3px 4px;
+            color: #fff;
+        }
+        .event .ev-mod {
+            font-weight: bold;
+            font-size: 9px;
+            line-height: 1.15;
+            margin-bottom: 1px;
+            word-wrap: break-word;
+        }
+        .event .ev-meta {
+            font-size: 7.5px;
+            line-height: 1.2;
+            opacity: 0.95;
+        }
+        .event .ev-group {
+            font-size: 7.5px;
+            line-height: 1.2;
+            opacity: 0.95;
+            font-style: italic;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-size: 12px;
+            border: 1px dashed #ccc;
+            margin-top: 20px;
+        }
+
+        /* Pie */
+        .footer {
+            margin-top: 14px;
+            text-align: right;
+            font-size: 8px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    {# ─── Cabecera ─────────────────────────────────────────── #}
+    <table class="header-table">
+        <tr>
+            <td style="width: 30%;" class="header-logo">
+                <table style="border: none; width: 100%;">
+                    <tr>
+                        <td style="border: none; padding: 0; vertical-align: middle; width: 50px;">
+                            {% if logoUrl %}
+                                <img src="{{ logoUrl }}" style="max-width: 45px; max-height: 45px;">
+                            {% endif %}
+                        </td>
+                        <td style="border: none; padding: 0 0 0 8px; vertical-align: middle;">
+                            {% if nameTitleConfig and nameTitleConfig.words is defined and nameTitleConfig.words|length > 0 %}
+                                {% set spacing = nameTitleConfig.spacing|default('0.3rem') %}
+                                <div style="font-size: 11px; font-weight: bold; line-height: 1.3; display: inline;">
+                                    {% for word in nameTitleConfig.words %}
+                                        {% set wordColor = word.color|default('#000000') %}
+                                        {% set safeColor = wordColor|upper in ['#FFFFFF', '#FFF', '#F8FAFC', '#F1F5F9', '#E2E8F0', '#FAFAFA', '#F5F5F5'] ? '#1a1a1a' : wordColor %}
+                                        <span style="color: {{ safeColor }};{{ not loop.first ? ' margin-left: ' ~ spacing ~ ';' : '' }}">
+                                            {%- if nameTitleConfig.casing|default('original') == 'uppercase' -%}
+                                                {{ word.text|upper }}
+                                            {%- elseif nameTitleConfig.casing|default('original') == 'lowercase' -%}
+                                                {{ word.text|lower }}
+                                            {%- else -%}
+                                                {{ word.text }}
+                                            {%- endif -%}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div style="font-size: 11px; font-weight: bold;">{{ centro.nombre }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td style="width: 50%;" class="header-center">
+                {% if subjectLine %}
+                    <div class="subject-line">{{ subjectLine }}</div>
+                {% endif %}
+                {% if contextLine %}
+                    <div class="context-line">{{ contextLine }}</div>
+                {% endif %}
+            </td>
+            <td style="width: 25%;" class="header-right">
+                {{ isPersonal ? i18n.titlePersonal : i18n.titleGroup }}
+                {% if anioEscolar %}
+                    <div class="subtitle">{{ anioEscolar }}</div>
+                {% endif %}
+                <div class="subtitle" style="margin-top: 2px;">{{ i18n.date }}: {{ fechaEmision }}</div>
+            </td>
+        </tr>
+    </table>
+
+    {# ─── Parrilla ─────────────────────────────────────────── #}
+    {% set hasAny = slotsManana|length > 0 or slotsTarde|length > 0 %}
+
+    {% if not hasAny %}
+        <div class="empty-state">{{ i18n.noClasses }}</div>
+    {% else %}
+        {% set hasBoth = slotsManana|length > 0 and slotsTarde|length > 0 %}
+
+        {% for bloque in [
+            {'label': i18n.morning, 'slots': slotsManana, 'show': slotsManana|length > 0},
+            {'label': i18n.afternoon, 'slots': slotsTarde, 'show': slotsTarde|length > 0}
+        ] %}
+            {% if bloque.show %}
+                {% if hasBoth %}
+                    <div class="turno-label">{{ bloque.label }}</div>
+                {% endif %}
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="hour-cell">{{ i18n.time }}</th>
+                            {% for d in diasSemana %}
+                                <th>{{ diasLabels[d] }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in bloque.slots %}
+                            {% set slotKey = slot.horaInicio ~ '-' ~ slot.horaFin %}
+                            {% set fila = matriz[slotKey] is defined ? matriz[slotKey] : {} %}
+                            <tr>
+                                <td class="hour-cell">
+                                    {{ slot.horaInicio }}<br>{{ slot.horaFin }}
+                                </td>
+                                {% for d in diasSemana %}
+                                    {% set ev = fila[d] is defined ? fila[d] : null %}
+                                    <td class="day-cell">
+                                        {% if ev %}
+                                            <div class="event" style="background-color: {{ ev.color }};">
+                                                <div class="ev-mod">{{ ev.modulo }}</div>
+                                                {% if ev.profesor %}
+                                                    <div class="ev-meta">{{ ev.profesor }}</div>
+                                                {% endif %}
+                                                {% if ev.aula %}
+                                                    <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
+                                                {% endif %}
+                                                {% if isPersonal and ev.grupoNombre %}
+                                                    <div class="ev-group">{{ ev.grupoAbreviatura ?: ev.grupoNombre }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="footer">{{ centro.nombre }}</div>
+</div>
+</body>
+</html>

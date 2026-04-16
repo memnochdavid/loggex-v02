@@ -19,8 +19,9 @@ import ProfLoadPanel from '../components/ProfLoadPanel';
 import ModalView from '../components/ModalView';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download } from 'lucide-react';
 import { getApiUrl } from '../config/api';
+import { downloadFileFromApi } from '../utils/downloadFile';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
 import styles from './HorariosEditor.module.css';
@@ -157,7 +158,7 @@ const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, on
 
 // ─── Componente principal ──────────────────────────────────────────────
 const HorariosEditor = ({ embedded = false, tabs = null }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -667,6 +668,34 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return performBatchSave();
   };
 
+  // ─── Exportación a PDF ────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false);
+  const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
+
+  const performExport = async () => {
+    if (!selectedGrupo) return;
+    setExporting(true);
+    try {
+      const lang = (i18n.language || 'es').substring(0, 2);
+      const url = getApiUrl(`/api/v1/informes/horario/grupo/${selectedGrupo}?lang=${lang}`);
+      const grupoNombre = grupo?.nombre ? grupo.nombre.replace(/[^a-zA-Z0-9]+/g, '_') : 'grupo';
+      await downloadFileFromApi(url, `horario_${grupoNombre}.pdf`);
+    } catch (err) {
+      alert(t('scheduleEditor.exportError', { message: err.message }));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = () => {
+    if (!selectedGrupo) return;
+    if (grupoState?.dirty) {
+      setExportConfirmOpen(true);
+      return;
+    }
+    performExport();
+  };
+
   // Tap-to-place: toggle selección del módulo en el panel
   const handleSelectModule = useCallback((impId) => {
     setSelectedImpId(prev => prev === impId ? null : impId);
@@ -888,6 +917,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               }))}
           />
           <div className={styles.spacer} />
+          <Button
+            variant="secondary"
+            onClick={handleExportPdf}
+            disabled={!selectedGrupo || exporting}
+            title={t('scheduleEditor.exportPdf')}
+          >
+            <Download size={16} style={{ marginRight: 6 }} />
+            {exporting ? t('scheduleEditor.exporting') : t('scheduleEditor.exportPdf')}
+          </Button>
           <Button onClick={handleSave} disabled={!grupoState?.dirty || saving}>
             <Save size={16} style={{ marginRight: 6 }} />
             {saving ? t('scheduleEditor.saving') : (grupoState?.dirty ? t('scheduleEditor.saveChanges') : t('scheduleEditor.saved'))}
@@ -1091,6 +1129,45 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               ))}
             </ul>
           )}
+        </ModalView>
+
+        {/* Modal de confirmación al exportar con cambios sin guardar */}
+        <ModalView
+          isOpen={exportConfirmOpen}
+          onClose={() => setExportConfirmOpen(false)}
+          title={t('scheduleEditor.exportDirtyTitle')}
+          size="small"
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setExportConfirmOpen(false)}>
+                {t('scheduleEditor.exportDirtyCancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  setExportConfirmOpen(false);
+                  await performExport();
+                }}
+                disabled={exporting}
+              >
+                {t('scheduleEditor.exportDirtyExportSaved')}
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  setExportConfirmOpen(false);
+                  await handleSave();
+                  await performExport();
+                }}
+                disabled={exporting || saving}
+              >
+                {(saving || exporting) ? t('scheduleEditor.exporting') : t('scheduleEditor.exportDirtySaveAndExport')}
+              </Button>
+            </>
+          }
+        >
+          <p>{t('scheduleEditor.exportDirtyBody')}</p>
         </ModalView>
       </Container>
     </Wrapper>

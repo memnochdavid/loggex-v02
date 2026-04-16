@@ -363,7 +363,10 @@
     "subjectLabel": "Assignatura (Impartició)",
     "selectSubject": "Seleccionar assignatura...",
     "errorLoadSchedule": "No s'ha pogut carregar l'horari o esdeveniments.",
-    "calendarAndEvents": "Calendari i Esdeveniments"
+    "calendarAndEvents": "Calendari i Esdeveniments",
+    "exportPdf": "PDF",
+    "exporting": "Generant…",
+    "exportError": "Error en exportar el PDF: {{message}}"
   },
   "holidays": {
     "title": "Festius",
@@ -1127,7 +1130,15 @@
     "publishIncompleteBody": "L'horari encara no està complet. Si el deses ara, els alumnes veuran la versió parcial. Falta col·locar:",
     "publishIncompleteItem": "{{faltan}} de {{total}}h sense col·locar",
     "publishIncompleteCancel": "Cancel·lar",
-    "publishIncompleteConfirm": "Publicar igualment"
+    "publishIncompleteConfirm": "Publicar igualment",
+    "exportPdf": "PDF",
+    "exporting": "Generant…",
+    "exportError": "Error en exportar el PDF: {{message}}",
+    "exportDirtyTitle": "Hi ha canvis sense desar",
+    "exportDirtyBody": "El PDF reflecteix la versió desada a la base de dades. Tens canvis locals sense desar; què vols fer?",
+    "exportDirtyCancel": "Cancel·lar",
+    "exportDirtyExportSaved": "Exportar versió desada",
+    "exportDirtySaveAndExport": "Desar i exportar"
   },
   "profLoad": {
     "title": "Càrrega setmanal del professorat",

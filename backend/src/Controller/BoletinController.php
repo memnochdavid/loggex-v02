@@ -8,6 +8,7 @@ use App\Entity\Matricula;
 use App\Entity\PeriodoEvaluativo;
 use App\Entity\User;
 use App\Repository\PonderacionImparticionRepository;
+use App\Service\PdfBranding;
 use App\Service\PdfGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemOperator;
@@ -25,7 +26,8 @@ class BoletinController extends AbstractController
         private readonly PonderacionImparticionRepository $ponderacionRepo,
         private readonly PdfGenerator $pdfGenerator,
         private readonly TranslatorInterface $translator,
-        private readonly FilesystemOperator $storage
+        private readonly FilesystemOperator $storage,
+        private readonly PdfBranding $branding
     ) {
     }
 
@@ -337,23 +339,8 @@ class BoletinController extends AbstractController
 
     private function buildTemplateContext($centro, Grupo $grupo, array $periodos, array $boletines, string $lang = 'es', ?PeriodoEvaluativo $periodoSel = null): array
     {
-        $personalizacion = $centro->getPersonalizacion();
-
-        // Descargar logo del centro desde MinIO a tmp para dompdf
-        $logoPath = null;
-        if ($centro->getLogo()) {
-            $minioPath = 'logo-centro/' . $centro->getLogo();
-            try {
-                if ($this->storage->has($minioPath)) {
-                    $ext = pathinfo($centro->getLogo(), PATHINFO_EXTENSION) ?: 'png';
-                    $tmpFile = sys_get_temp_dir() . '/boletin_logo_' . $centro->getId() . '.' . $ext;
-                    file_put_contents($tmpFile, $this->storage->read($minioPath));
-                    $logoPath = $tmpFile;
-                }
-            } catch (\Exception $e) {
-                // Si falla, el boletín se genera sin logo
-            }
-        }
+        // Logo del centro descargado de MinIO a tmp local apto para dompdf
+        $logoPath = $this->branding->getLogoTmpPath($centro, 'boletin_logo');
 
         // Firma del admin/coordinador del centro (no del usuario actual):
         // así el boletín aparece firmado tanto si lo descarga un admin, un profesor o el propio alumno.
@@ -391,7 +378,7 @@ class BoletinController extends AbstractController
         }
 
         // Configuración del título del centro (palabras coloreadas)
-        $nameTitleConfig = $personalizacion ? $personalizacion->getNameTitleConfig() : null;
+        $nameTitleConfig = $this->branding->getNameTitleConfig($centro);
 
         // Datos de periodos para la plantilla
         $periodosData = [];

@@ -363,7 +363,10 @@
     "subjectLabel": "Asignatura (Impartición)",
     "selectSubject": "Seleccionar asignatura...",
     "errorLoadSchedule": "No se pudo cargar el horario o eventos.",
-    "calendarAndEvents": "Calendario y Eventos"
+    "calendarAndEvents": "Calendario y Eventos",
+    "exportPdf": "PDF",
+    "exporting": "Generando…",
+    "exportError": "Error al exportar el PDF: {{message}}"
   },
   "holidays": {
     "title": "Festivos",
@@ -1127,7 +1130,15 @@
     "publishIncompleteBody": "El horario aún no está completo. Si guardas ahora, los alumnos verán la versión parcial. Faltan por colocar:",
     "publishIncompleteItem": "{{faltan}} de {{total}}h sin colocar",
     "publishIncompleteCancel": "Cancelar",
-    "publishIncompleteConfirm": "Publicar igualmente"
+    "publishIncompleteConfirm": "Publicar igualmente",
+    "exportPdf": "PDF",
+    "exporting": "Generando…",
+    "exportError": "Error al exportar el PDF: {{message}}",
+    "exportDirtyTitle": "Hay cambios sin guardar",
+    "exportDirtyBody": "El PDF refleja la versión guardada en la base de datos. Tienes cambios locales sin guardar; ¿qué quieres hacer?",
+    "exportDirtyCancel": "Cancelar",
+    "exportDirtyExportSaved": "Exportar versión guardada",
+    "exportDirtySaveAndExport": "Guardar y exportar"
   },
   "profLoad": {
     "title": "Carga semanal del profesorado",

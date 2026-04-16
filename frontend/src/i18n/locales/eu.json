@@ -363,7 +363,10 @@
     "subjectLabel": "Ikasgaia (Impartizioa)",
     "selectSubject": "Aukeratu ikasgaia...",
     "errorLoadSchedule": "Ezin izan da ordutegia edo gertaerak kargatu.",
-    "calendarAndEvents": "Egutegia eta Gertaerak"
+    "calendarAndEvents": "Egutegia eta Gertaerak",
+    "exportPdf": "PDF",
+    "exporting": "Sortzen…",
+    "exportError": "Errorea PDFa esportatzean: {{message}}"
   },
   "holidays": {
     "title": "Jaiegunak",
@@ -1127,7 +1130,15 @@
     "publishIncompleteBody": "Ordutegia ez dago oraindik osatuta. Orain gordetzen baduzu, ikasleek bertsio partziala ikusiko dute. Kokatzeke:",
     "publishIncompleteItem": "{{total}}h-tik {{faltan}} kokatzeke",
     "publishIncompleteCancel": "Utzi",
-    "publishIncompleteConfirm": "Argitaratu hala ere"
+    "publishIncompleteConfirm": "Argitaratu hala ere",
+    "exportPdf": "PDF",
+    "exporting": "Sortzen…",
+    "exportError": "Errorea PDFa esportatzean: {{message}}",
+    "exportDirtyTitle": "Gorde gabeko aldaketak",
+    "exportDirtyBody": "PDFak datu-basean gordetako bertsioa erakusten du. Gorde gabeko aldaketak dituzu; zer egin nahi duzu?",
+    "exportDirtyCancel": "Utzi",
+    "exportDirtyExportSaved": "Esportatu gordetako bertsioa",
+    "exportDirtySaveAndExport": "Gorde eta esportatu"
   },
   "profLoad": {
     "title": "Irakasleen asteko karga",

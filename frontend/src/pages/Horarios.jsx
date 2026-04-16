@@ -10,9 +10,10 @@ import EventsSidebar from '../components/EventsSidebar';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
+import { downloadFileFromApi } from '../utils/downloadFile';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { usePagination } from '../hooks/usePagination';
 import Lottie from 'lottie-react';
@@ -20,7 +21,7 @@ import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 
 const Horarios = ({ embedded = false, tabs = null }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -85,6 +86,20 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       [t('days.friday').toLowerCase()]: 5, 
       [t('days.saturday').toLowerCase()]: 6, 
       [t('days.sunday').toLowerCase()]: 7
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const lang = (i18n.language || 'es').substring(0, 2);
+      const url = getApiUrl(`/api/v1/informes/horario/me?lang=${lang}`);
+      await downloadFileFromApi(url, 'horario.pdf');
+    } catch (err) {
+      alert(t('schedules.exportError', { message: err.message }));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -504,6 +519,18 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     title={t('schedules.showCalendar')}
                 >
                     <PanelRightOpen size={18} />
+                </Button>
+            )}
+
+            {viewMode === 'calendar' && (
+                <Button
+                    variant="secondary"
+                    onClick={handleExportPdf}
+                    disabled={exporting || (mySchedule?.length ?? 0) === 0}
+                    title={t('schedules.exportPdf')}
+                >
+                    <Download size={16} style={{ marginRight: 6 }} />
+                    {exporting ? t('schedules.exporting') : t('schedules.exportPdf')}
                 </Button>
             )}
 

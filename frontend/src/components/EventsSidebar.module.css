@@ -4,7 +4,6 @@
     gap: 1rem;
     height: min-content;
     background-color: var(--events-sidebar-bg, transparent);
-    padding: 1rem;
 }
 
 .eventsSection {

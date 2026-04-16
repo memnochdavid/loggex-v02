@@ -363,7 +363,10 @@
     "subjectLabel": "Subject (Teaching Assignment)",
     "selectSubject": "Select subject...",
     "errorLoadSchedule": "Could not load schedule or events.",
-    "calendarAndEvents": "Calendar & Events"
+    "calendarAndEvents": "Calendar & Events",
+    "exportPdf": "PDF",
+    "exporting": "Generating…",
+    "exportError": "Error exporting PDF: {{message}}"
   },
   "holidays": {
     "title": "Holidays",
@@ -1127,7 +1130,15 @@
     "publishIncompleteBody": "The schedule is not complete yet. If you save now, students will see the partial version. Still unplaced:",
     "publishIncompleteItem": "{{faltan}} of {{total}}h unplaced",
     "publishIncompleteCancel": "Cancel",
-    "publishIncompleteConfirm": "Publish anyway"
+    "publishIncompleteConfirm": "Publish anyway",
+    "exportPdf": "PDF",
+    "exporting": "Generating…",
+    "exportError": "Error exporting PDF: {{message}}",
+    "exportDirtyTitle": "Unsaved changes",
+    "exportDirtyBody": "The PDF reflects the version saved in the database. You have unsaved local changes; what do you want to do?",
+    "exportDirtyCancel": "Cancel",
+    "exportDirtyExportSaved": "Export saved version",
+    "exportDirtySaveAndExport": "Save and export"
   },
   "profLoad": {
     "title": "Weekly teacher workload",
