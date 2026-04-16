@@ -388,7 +388,8 @@ export const applyTheme = (colors) => {
     if (theme.widgetItemHoverBgColor) root.style.setProperty('--widget-item-hover-bg', theme.widgetItemHoverBgColor);
     if (theme.widgetIconColor) root.style.setProperty('--widget-icon-color', theme.widgetIconColor);
 
-    // 11. Scrollbar (Inyección de estilos dinámicos)
+    // 11. Scrollbar — siempre flotante (track transparente, thumb fino con pill y pad).
+    //     El ancho y los colores son tematizables; la "forma" flotante es invariante.
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');
@@ -396,42 +397,39 @@ export const applyTheme = (colors) => {
         document.head.appendChild(styleTag);
     }
 
-    const width = theme.scrollbarWidth || '12px';
+    const width = theme.scrollbarWidth || '10px';
+    const thumb = theme.scrollbarThumbColor || 'color-mix(in srgb, currentColor 22%, transparent)';
+    const hover = theme.scrollbarHoverColor || 'color-mix(in srgb, currentColor 42%, transparent)';
 
     styleTag.innerHTML = `
-        /* Firefox Scrollbar */
+        /* Firefox */
         * {
-            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
-            scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
+            scrollbar-width: thin;
+            scrollbar-color: ${thumb} transparent;
         }
 
-        /* Webkit Scrollbar (Chrome, Safari, Edge) */
-        ::-webkit-scrollbar {
+        /* Webkit */
+        *::-webkit-scrollbar {
             width: ${width};
             height: ${width};
+            background: transparent;
         }
-        
-        ::-webkit-scrollbar-track,
-        *::-webkit-scrollbar-track {
-            background: ${theme.scrollbarTrackColor} !important;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb,
-        *::-webkit-scrollbar-thumb {
-            background-color: ${theme.scrollbarThumbColor} !important;
-            border-radius: 4px;
-            border: 3px solid ${theme.scrollbarTrackColor};
-        }
-        
-        ::-webkit-scrollbar-thumb:hover,
-        *::-webkit-scrollbar-thumb:hover {
-            background-color: ${theme.scrollbarHoverColor} !important;
-        }
-        
-        ::-webkit-scrollbar-corner,
+
+        *::-webkit-scrollbar-track,
         *::-webkit-scrollbar-corner {
-            background-color: ${theme.scrollbarTrackColor};
+            background: transparent !important;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background-color: ${thumb} !important;
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            transition: background-color 0.2s;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background-color: ${hover} !important;
         }
     `;
 };

@@ -1,0 +1,88 @@
+.skeleton {
+    display: inline-block;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, currentColor 8%, transparent) 0%,
+        color-mix(in srgb, currentColor 18%, transparent) 50%,
+        color-mix(in srgb, currentColor 8%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: var(--radius-sm);
+    animation: skeletonShimmer 1.4s linear infinite;
+    color: var(--color-gray-500);
+}
+
+.line {
+    height: 0.9em;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    vertical-align: middle;
+}
+
+.circle {
+    border-radius: 50%;
+}
+
+.rect {
+    display: block;
+}
+
+@keyframes skeletonShimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* Table skeleton: same structure as a real row so widths align */
+.tableRow {
+    animation: skeletonRowIn var(--dur-base) var(--ease-out-quart) both;
+}
+
+.tableRow:nth-child(1) { animation-delay: 0ms; }
+.tableRow:nth-child(2) { animation-delay: 40ms; }
+.tableRow:nth-child(3) { animation-delay: 80ms; }
+.tableRow:nth-child(4) { animation-delay: 120ms; }
+.tableRow:nth-child(5) { animation-delay: 160ms; }
+.tableRow:nth-child(6) { animation-delay: 200ms; }
+.tableRow:nth-child(7) { animation-delay: 240ms; }
+.tableRow:nth-child(8) { animation-delay: 280ms; }
+
+@keyframes skeletonRowIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mobileCard {
+    background-color: var(--bg-card, #fff);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-2);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    animation: skeletonRowIn var(--dur-base) var(--ease-out-quart) both;
+}
+
+.mobileCard:nth-child(1) { animation-delay: 0ms; }
+.mobileCard:nth-child(2) { animation-delay: 50ms; }
+.mobileCard:nth-child(3) { animation-delay: 100ms; }
+.mobileCard:nth-child(4) { animation-delay: 150ms; }
+.mobileCard:nth-child(5) { animation-delay: 200ms; }
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+        background: color-mix(in srgb, currentColor 12%, transparent);
+    }
+
+    .tableRow,
+    .mobileCard {
+        animation: none;
+    }
+}

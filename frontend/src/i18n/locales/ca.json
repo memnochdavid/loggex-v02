@@ -168,7 +168,8 @@
   "modal": {
     "save": "Desar",
     "saving": "Desant...",
-    "cancel": "Cancel·lar"
+    "cancel": "Cancel·lar",
+    "close": "Tancar"
   },
   "login": {
     "title": "Iniciar sessió",
@@ -1096,7 +1097,7 @@
     "statusComplete": "Complet · {{done}}/{{total}}h",
     "statusDraft": "Esborrany · {{done}}/{{total}}h",
     "statusIncomplete": "Incomplet · {{done}}/{{total}}h",
-    "saveChanges": "Desar canvis",
+    "saveChanges": "Desar",
     "saved": "Desat",
     "saving": "Desant…",
     "saveError": "Error en desar: {{message}}",

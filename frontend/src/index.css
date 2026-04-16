@@ -119,6 +119,13 @@
     /* 🎨 VARIABLES DE PERSONALIZACIÓN (DEFAULTS) */
     /* ----------------------------------------- */
 
+    /* Inputs (tokens semánticos consumidos por Crud.module.css, ThemedSelect, etc.) */
+    --text-input: var(--text-main);
+    --border-input: var(--border-color);
+    --input-focus-border: var(--color-primary-500);
+    --input-focus-shadow: color-mix(in srgb, var(--color-primary-500) 22%, transparent);
+    --input-hover-bg: color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%);
+
     /* Sidebar */
     --bg-sidebar: var(--color-gray-800);
     --bg-sidebar-active: #334155;
@@ -262,4 +269,72 @@ h1, h2, h3, h4, h5, h6 {
 
 button {
     font-family: inherit;
+}
+
+/* ------------------------- */
+/* ♿ FOCUS-VISIBLE GLOBAL    */
+/* ------------------------- */
+/* Anillo unificado para controles que no definen su propio :focus-visible.
+   Los CSS Modules locales ganan por especificidad y pueden sobrescribirlo. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+/* Evita el outline azul nativo feo por defecto en Chromium */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ------------------------- */
+/* 🌀 SCROLLBARS FLOTANTES   */
+/* ------------------------- */
+/* Scrollbars finos, translúcidos, sin reservar espacio fijo. El thumb usa
+   currentColor → se adapta a light/dark sin tokens dedicados. */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, currentColor 22%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+    border-radius: 999px;
+    /* Border transparente + background-clip hace el thumb visualmente más estrecho (6px)
+       aunque la pista reserve 10px, creando sensación "flotante". */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, currentColor 42%, transparent);
+}
+
+*::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* El body no debe mostrar scrollbar propio cuando el contenido cabe */
+html,
+body {
+    overscroll-behavior: none;
 }

@@ -16,7 +16,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) both;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) backwards;
 }
 
 .logoContainer {
@@ -63,22 +63,32 @@
 .middle {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
     justify-self: start;
-    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 60ms both;
+    min-width: 0;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 60ms backwards;
 }
 
+.middle > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Los filtros (selects, inputs, etc.): mínimo razonable, encogen antes que desbordar. */
 .actions {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
-    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 120ms both;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2) var(--space-3);
+    min-width: 0;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 120ms backwards;
 }
 
-/* En pantallas anchas, las acciones SIEMPRE en una sola línea */
-.actions {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
+.actions > * {
+    min-width: 0;
+    max-width: 100%;
 }
 
 @keyframes crudHeaderIn {
@@ -101,6 +111,29 @@
     .titleGroup:hover .logoContainer {
         transform: none !important;
     }
+}
+
+/* stackActionsEarly: cuando el header lleva muchos controles (p.ej. editor de
+   horarios), preferimos bajar .actions a su propia fila ANTES de dejar que
+   .middle (tabs) se parta. Actúa en la franja 1101–1600px; por encima caben
+   las 3 columnas, por debajo ya se apila todo por la media query general. */
+@media (min-width: 1101px) and (max-width: 1600px) {
+    .container.stackActionsEarly {
+        grid-template-columns: auto 1fr;
+        row-gap: var(--space-3);
+    }
+    .container.stackActionsEarly .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
+/* Cuando .actions ocupa una fila completa, reparte filtros (divs) a la izquierda
+   y botones (botón nativo) a la derecha: el primer <button> hijo directo toma
+   el espacio libre con margin-left: auto. En viewports anchos donde todo queda
+   compacto a la derecha no tiene efecto visible. */
+.container.stackActionsEarly .actions > button:first-of-type {
+    margin-left: auto;
 }
 
 /* Cuando el header no cabe cómodamente, pasa a columna */

@@ -12,7 +12,9 @@
     overflow: hidden;
     flex-shrink: 0;
     border-right: 1px solid var(--color-gray-900);
-    transition: width 0.3s ease;
+    transition:
+        width var(--dur-slow) var(--ease-out-quart),
+        padding var(--dur-slow) var(--ease-out-quart);
     position: relative;
     z-index: 50;
 }
@@ -36,7 +38,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn var(--dur-slow) var(--ease-out-quart);
 }
 
 .email {
@@ -74,6 +76,25 @@
     transform: translate(50%, -50%);
     z-index: 10;
     box-shadow: var(--shadow-sm);
+    transition:
+        transform var(--dur-fast) var(--ease-standard),
+        background-color var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.collapseBtn:hover {
+    background-color: var(--color-primary-600);
+    box-shadow: var(--shadow-md), 0 0 0 4px color-mix(in srgb, var(--color-primary-500) 22%, transparent);
+    transform: translate(50%, -50%) scale(1.08);
+}
+
+.collapseBtn:active {
+    transform: translate(50%, -50%) scale(0.92);
+}
+
+.collapseBtn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 75%, transparent);
+    outline-offset: 3px;
 }
 
 .sidebar.collapsed .collapseBtn {
@@ -86,7 +107,13 @@
 }
 
 .sidebar.collapsed .collapseBtn:hover {
-    background-color: var(--color-gray-700);
+    background-color: color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+    transform: scale(1);
+    box-shadow: none;
+}
+
+.sidebar.collapsed .collapseBtn:active {
+    transform: scale(0.96);
 }
 
 .nav {
@@ -98,17 +125,50 @@
 }
 
 .navItem {
+    position: relative;
     color: var(--color-gray-200);
     text-decoration: none;
     padding: var(--space-2);
     border-radius: var(--radius-md);
-    transition: background var(--transition-base), color var(--transition-base);
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--space-3);
     white-space: nowrap;
     overflow: hidden;
+    isolation: isolate;
+}
+
+/* Active accent bar (pill) — hidden by default, scales-in on active */
+.navItem::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    width: 3px;
+    height: 60%;
+    border-radius: 0 999px 999px 0;
+    background: var(--color-primary-400);
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    transition: transform var(--dur-base) var(--ease-out-back);
+    pointer-events: none;
+}
+
+/* Icons and labels shift subtly on hover for directional feedback */
+.navItem > :global(svg) {
+    flex-shrink: 0;
+    transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.navItem > span {
+    transition:
+        transform var(--dur-fast) var(--ease-standard),
+        opacity var(--dur-exit) var(--ease-standard);
 }
 
 .sidebar.collapsed .navItem {
@@ -117,19 +177,102 @@
 }
 
 .navItem:hover {
-    background-color: var(--bg-sidebar-hover, var(--color-gray-700));
+    background-color: var(
+        --bg-sidebar-hover,
+        color-mix(in srgb, var(--color-primary-500) 10%, transparent)
+    );
     color: var(--text-sidebar-hover, var(--text-light));
+    transform: translateX(2px);
+}
+
+.sidebar.collapsed .navItem:hover {
+    transform: none;
+}
+
+.navItem:hover > :global(svg) {
+    transform: scale(1.08);
+}
+
+.navItem:active {
+    transform: translateX(2px) scale(0.97);
+}
+
+.sidebar.collapsed .navItem:active {
+    transform: scale(0.94);
+}
+
+.navItem:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 75%, transparent);
+    outline-offset: 2px;
 }
 
 .navItem.active {
-    background-color: var(--bg-sidebar-active, var(--color-gray-700));
+    background-color: var(
+        --bg-sidebar-active,
+        color-mix(in srgb, var(--color-primary-500) 14%, transparent)
+    );
     color: var(--text-sidebar-active, var(--text-light));
+    font-weight: var(--font-medium);
 }
+
+.navItem.active::before {
+    transform: translateY(-50%) scaleY(1);
+}
+
+.navItem.active > :global(svg) {
+    color: var(--color-primary-300);
+}
+
+.sidebar.collapsed .navItem.active::before {
+    left: 4px;
+    height: 50%;
+}
+
+/* Stagger entry within an open accordion section */
+.accordionWrapper :global(.accordionInner) .navItem {
+    opacity: 0;
+    transform: translateX(-8px);
+    animation: navItemIn var(--dur-slow) var(--ease-out-quart) forwards;
+}
+
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(1)  { animation-delay: 20ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(2)  { animation-delay: 60ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(3)  { animation-delay: 100ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(4)  { animation-delay: 140ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(5)  { animation-delay: 180ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(6)  { animation-delay: 220ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(7)  { animation-delay: 260ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(8)  { animation-delay: 300ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(9)  { animation-delay: 340ms; }
+.accordionWrapper :global(.accordionInner) .navItem:nth-child(10) { animation-delay: 380ms; }
 
 .footer {
     margin-top: auto;
     padding-top: var(--space-4);
     border-top: 1px solid var(--color-gray-700);
+}
+
+/* Footer logout — neutral at rest, subtle danger hint on hover */
+.footer .navItem {
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard);
+}
+
+.footer .navItem:hover {
+    background-color: color-mix(in srgb, var(--color-error) 16%, transparent);
+    color: color-mix(in srgb, var(--color-error) 45%, var(--text-light));
+    transform: translateX(2px);
+}
+
+.footer .navItem:hover > :global(svg) {
+    color: color-mix(in srgb, var(--color-error) 75%, var(--text-light));
+    transform: scale(1.08) rotate(-6deg);
+}
+
+.sidebar.collapsed .footer .navItem:hover {
+    transform: none;
 }
 
 /* Accordion Wrapper in Sidebar */
@@ -184,8 +327,23 @@
     min-height: 0;
 }
 
+/* Scroll shadow: fade top/bottom 14px so long sections feel masked */
 .accordionWrapper :global(.accordionItemOpen) :global(.accordionContent) {
     overflow-y: auto;
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 14px),
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 14px),
+        transparent 100%
+    );
 }
 
 .accordionWrapper :global(.accordionInner) {
@@ -218,8 +376,11 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, black 48%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 40;
+    animation: overlayIn var(--dur-base) var(--ease-standard);
 }
 
 /* Breakpoint 1220px */
@@ -237,8 +398,8 @@
         bottom: 0;
         height: calc(100vh - 84px);
         z-index: 90; /* Por debajo del header (z-index: 100) para no taparlo */
-        animation: slideInLeft 0.3s ease forwards; /* Animación de entrada */
-        box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        animation: slideInLeft var(--dur-slow) var(--ease-out-quart) forwards;
+        box-shadow: 4px 0 24px color-mix(in srgb, black 22%, transparent);
         background-color: var(--bg-sidebar-alpha, var(--bg-sidebar, var(--color-gray-800)));
     }
 
@@ -277,6 +438,51 @@
 }
 
 @keyframes slideInLeft {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
+    from { transform: translateX(-100%); opacity: 0.6; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes navItemIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Reduced motion — preserve color feedback, strip transforms & timed entries */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .navItem,
+    .navItem::before,
+    .navItem > :global(svg),
+    .navItem > span,
+    .collapseBtn,
+    .footer .navItem,
+    .footer .navItem:hover > :global(svg) {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+    }
+
+    .navItem:hover,
+    .navItem:active,
+    .navItem:hover > :global(svg),
+    .footer .navItem:hover,
+    .footer .navItem:hover > :global(svg),
+    .collapseBtn:hover,
+    .collapseBtn:active {
+        transform: none !important;
+    }
+
+    .navItem.active::before {
+        transform: translateY(-50%) scaleY(1) !important;
+    }
+
+    .accordionWrapper :global(.accordionInner) .navItem {
+        opacity: 1;
+        transform: none;
+    }
 }

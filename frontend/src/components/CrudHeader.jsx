@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './CrudHeader.module.css';
 
-const CrudHeader = ({ title, subtitle, logo, middle, children }) => {
+const CrudHeader = ({ title, subtitle, logo, middle, children, stackActionsEarly = false }) => {
     const [showLottie, setShowLottie] = useState(true);
 
     useEffect(() => {
@@ -29,7 +29,7 @@ const CrudHeader = ({ title, subtitle, logo, middle, children }) => {
     const shouldShowLogo = logo && (!isLottie || showLottie);
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${stackActionsEarly ? styles.stackActionsEarly : ''}`}>
             <div className={styles.titleGroup}>
                 {shouldShowLogo && (
                     <div className={styles.logoContainer}>

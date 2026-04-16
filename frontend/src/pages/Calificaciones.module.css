@@ -278,27 +278,30 @@
 /* Tabs de filtrado */
 .tabBar {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-1);
     margin-top: var(--space-8);
     margin-bottom: var(--space-4);
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 0;
+    min-width: 0;
 }
 
 /* Wrapper para el contenido de cada tab — anima la entrada al cambiar.
    Aplicar como className en el contenedor del contenido y usar `key={tab}`
    para forzar el remount y disparar la animación. */
 .tabContent {
-    animation: tabFadeIn 0.22s ease-out;
+    animation: tabFadeIn var(--dur-slow) var(--ease-out-quart) backwards;
 }
 
 @keyframes tabFadeIn {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 .tab {
-    display: flex;
+    position: relative;
+    display: inline-flex;
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-4);
@@ -307,19 +310,53 @@
     color: var(--text-muted);
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    margin-bottom: -1px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    isolation: isolate;
+    transition:
+        color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard);
+}
+
+/* Underline pill animado: escala de 0 → 1 con spring cuando se activa. */
+.tab::after {
+    content: '';
+    position: absolute;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: 0;
+    height: 2px;
+    background-color: var(--color-primary-500);
+    border-radius: 999px 999px 0 0;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform var(--dur-base) var(--ease-out-back);
+    pointer-events: none;
 }
 
 .tab:hover {
     color: var(--text-main);
+    background-color: color-mix(in srgb, var(--color-primary-500) 8%, transparent);
+}
+
+.tab:active {
+    transform: scale(0.97);
+}
+
+.tab:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .tabActive {
     color: var(--color-primary-600);
-    border-bottom-color: var(--color-primary-600);
+}
+
+.tabActive::after {
+    transform: scaleX(1);
 }
 
 .tabCount {
@@ -334,11 +371,30 @@
     font-weight: var(--font-bold);
     background-color: var(--color-gray-100);
     color: var(--text-muted);
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard);
 }
 
 .tabActive .tabCount {
     background-color: var(--color-primary-100);
     color: var(--color-primary-700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tabContent,
+    .tab,
+    .tab::after,
+    .tabCount {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+    .tab:active {
+        transform: none !important;
+    }
+    .tabActive::after {
+        transform: scaleX(1) !important;
+    }
 }
 
 /* Detalle alumno - lista de tareas */

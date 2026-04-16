@@ -1,9 +1,15 @@
 .container {
     display: flex;
     align-items: center;
-    width: 100%;
-    max-width: 450px; /* Aumentado para acomodar el selector */
+    /* Ancho "deseado" para que el search no devore el espacio. Encoge hasta 180px
+       antes que forzar wrap del header; no crece más allá de 320px. */
+    flex: 0 1 auto;
+    width: 280px;
+    min-width: 180px;
+    max-width: 320px;
+    min-height: 0;
     gap: var(--space-2);
+    box-sizing: border-box;
 }
 
 .select {
@@ -29,7 +35,8 @@
 
 .inputWrapper {
     position: relative;
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     align-items: center;
 }

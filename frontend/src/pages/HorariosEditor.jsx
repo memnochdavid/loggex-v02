@@ -889,6 +889,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           title={embedded ? t('schedules.title') : t('scheduleEditor.title')}
           logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
           middle={tabs}
+          stackActionsEarly
         >
           <ThemedSelect
             value={selectedYear}
@@ -916,7 +917,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 label: g.nombre,
               }))}
           />
-          <div className={styles.spacer} />
           <Button
             variant="secondary"
             onClick={handleExportPdf}

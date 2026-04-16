@@ -168,7 +168,8 @@
   "modal": {
     "save": "Gorde",
     "saving": "Gordetzen...",
-    "cancel": "Utzi"
+    "cancel": "Utzi",
+    "close": "Itxi"
   },
   "login": {
     "title": "Saioa hasi",
@@ -1096,7 +1097,7 @@
     "statusComplete": "Osatuta · {{done}}/{{total}}h",
     "statusDraft": "Zirriborroa · {{done}}/{{total}}h",
     "statusIncomplete": "Osatu gabe · {{done}}/{{total}}h",
-    "saveChanges": "Aldaketak gorde",
+    "saveChanges": "Gorde",
     "saved": "Gordeta",
     "saving": "Gordetzen…",
     "saveError": "Errorea gordetzean: {{message}}",

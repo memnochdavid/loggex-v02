@@ -168,7 +168,8 @@
   "modal": {
     "save": "Save",
     "saving": "Saving...",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "login": {
     "title": "Log In",
@@ -1096,7 +1097,7 @@
     "statusComplete": "Complete · {{done}}/{{total}}h",
     "statusDraft": "Draft · {{done}}/{{total}}h",
     "statusIncomplete": "Incomplete · {{done}}/{{total}}h",
-    "saveChanges": "Save changes",
+    "saveChanges": "Save",
     "saved": "Saved",
     "saving": "Saving…",
     "saveError": "Save failed: {{message}}",

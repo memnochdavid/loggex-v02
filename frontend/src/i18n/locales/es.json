@@ -168,7 +168,8 @@
   "modal": {
     "save": "Guardar",
     "saving": "Guardando...",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "close": "Cerrar"
   },
   "login": {
     "title": "Iniciar Sesión",
@@ -1096,7 +1097,7 @@
     "statusComplete": "Completo · {{done}}/{{total}}h",
     "statusDraft": "Borrador · {{done}}/{{total}}h",
     "statusIncomplete": "Incompleto · {{done}}/{{total}}h",
-    "saveChanges": "Guardar cambios",
+    "saveChanges": "Guardar",
     "saved": "Guardado",
     "saving": "Guardando…",
     "saveError": "Error al guardar: {{message}}",

@@ -4,10 +4,13 @@ import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
+import Lottie from 'lottie-react';
+import statsAnimation from '../../public/stats.json';
 
 const CalificacionesAdmin = () => {
     const { t, i18n } = useTranslation();
@@ -251,46 +254,46 @@ const CalificacionesAdmin = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <div className={styles.sectionHeader}>
-                    <h1 className={styles.title}>{t('grades.adminTitle')}</h1>
-                    <div className={styles.controls}>
-                        {isSuperAdmin && (
-                            <ThemedSelect
-                                value={selectedCentro}
-                                onChange={(v) => { setSelectedCentro(v); setSelectedYear(''); setExpandedId(null); }}
-                                minWidth={200}
-                                ariaLabel={t('common.selectCenter')}
-                                options={[
-                                    { value: '', label: t('common.selectCenter') },
-                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
-                                ]}
-                            />
-                        )}
+                <CrudHeader
+                    title={t('grades.adminTitle')}
+                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
+                    {isSuperAdmin && (
                         <ThemedSelect
-                            value={selectedYear}
-                            onChange={(v) => { setSelectedYear(v); setExpandedId(null); }}
-                            minWidth={160}
-                            ariaLabel={t('grades.allYears')}
+                            value={selectedCentro}
+                            onChange={(v) => { setSelectedCentro(v); setSelectedYear(''); setExpandedId(null); }}
+                            minWidth={200}
+                            ariaLabel={t('common.selectCenter')}
                             options={[
-                                { value: '', label: t('grades.allYears') },
-                                ...availableYears.map(y => ({ value: y, label: y })),
+                                { value: '', label: t('common.selectCenter') },
+                                ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
                             ]}
                         />
-                        <ThemedSelect
-                            value={selectedPeriodo}
-                            onChange={setSelectedPeriodo}
-                            minWidth={180}
-                            ariaLabel={t('grades.allPeriods')}
-                            options={[
-                                { value: '', label: t('grades.allPeriods') },
-                                ...periodos.map(p => {
-                                    const id = p.id || p['@id']?.split('/').pop();
-                                    return { value: String(id), label: p.nombre };
-                                }),
-                            ]}
-                        />
-                    </div>
-                </div>
+                    )}
+                    <ThemedSelect
+                        value={selectedYear}
+                        onChange={(v) => { setSelectedYear(v); setExpandedId(null); }}
+                        minWidth={160}
+                        ariaLabel={t('grades.allYears')}
+                        options={[
+                            { value: '', label: t('grades.allYears') },
+                            ...availableYears.map(y => ({ value: y, label: y })),
+                        ]}
+                    />
+                    <ThemedSelect
+                        value={selectedPeriodo}
+                        onChange={setSelectedPeriodo}
+                        minWidth={180}
+                        ariaLabel={t('grades.allPeriods')}
+                        options={[
+                            { value: '', label: t('grades.allPeriods') },
+                            ...periodos.map(p => {
+                                const id = p.id || p['@id']?.split('/').pop();
+                                return { value: String(id), label: p.nombre };
+                            }),
+                        ]}
+                    />
+                </CrudHeader>
 
                 {error && <div className={styles.errorContainer}>{error}</div>}
 

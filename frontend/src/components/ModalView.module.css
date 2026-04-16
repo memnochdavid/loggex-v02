@@ -4,13 +4,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(15, 23, 42, 0.55);
+    background-color: color-mix(in srgb, var(--color-gray-900) 55%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     opacity: 0;
     animation: overlayIn var(--dur-slow) var(--ease-standard) forwards;
 }
@@ -30,12 +30,11 @@
 
 /* Contenedor visual interno con animación */
 .modalContent {
-    background-color: var(--modal-header-bg);
+    /*background-color: var(--modal-header-bg);*/
     border-radius: var(--radius-lg);
     box-shadow:
         var(--shadow-lg),
-        0 0 0 1px color-mix(in srgb, var(--text-main) 5%, transparent),
-        inset 0 1px 0 0 color-mix(in srgb, white 8%, transparent);
+        0 0 0 1px color-mix(in srgb, var(--text-main) 5%, transparent);
     width: 100%;
     max-height: 100%;
     display: flex;
@@ -58,7 +57,7 @@
 
 .modalHeader {
     padding: var(--space-1) var(--space-2);
-    border-bottom: 1px solid var(--border-color);
+    /*border-bottom: 1px solid var(--border-color);*/
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -124,7 +123,15 @@
 
 .closeButton:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500, #6366f1) 35%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 38%, transparent);
+}
+
+.modalContent:focus-visible {
+    outline: none;
+}
+
+.modalContent:focus {
+    outline: none;
 }
 
 .modalBody {
@@ -135,7 +142,7 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    background-color: var(--modal-body-bg, var(--bg-card));
+    background-color: var(--modal-body-bg);
     color: var(--modal-body-text, var(--text-main));
 }
 

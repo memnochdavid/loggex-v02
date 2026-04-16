@@ -168,7 +168,8 @@
   "modal": {
     "save": "Gardar",
     "saving": "Gardando...",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "close": "Pechar"
   },
   "login": {
     "title": "Iniciar Sesión",
@@ -1096,7 +1097,7 @@
     "statusComplete": "Completo · {{done}}/{{total}}h",
     "statusDraft": "Borrador · {{done}}/{{total}}h",
     "statusIncomplete": "Incompleto · {{done}}/{{total}}h",
-    "saveChanges": "Gardar cambios",
+    "saveChanges": "Gardar",
     "saved": "Gardado",
     "saving": "Gardando…",
     "saveError": "Erro ao gardar: {{message}}",

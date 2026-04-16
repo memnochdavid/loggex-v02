@@ -5,7 +5,8 @@ import AccordionView from './AccordionView';
 import Lottie from 'lottie-react';
 import loadingAnimation from '../../public/loading.json';
 import loadingStyles from './LoadingView.module.css';
-import LoadingView from './LoadingView';
+import { TableSkeleton, MobileListSkeleton } from './Skeleton';
+import ThemedSelect from './ThemedSelect';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
@@ -59,12 +60,6 @@ const DataTable = ({
         }
     };
 
-    const handleItemsPerPageChange = (e) => {
-        if (onItemsPerPageChange) {
-            onItemsPerPageChange(Number(e.target.value));
-        }
-    };
-
     const getCellValue = (col, row) => {
         if (typeof col.accessor === 'function') {
             return col.accessor(row);
@@ -88,16 +83,15 @@ const DataTable = ({
                 <div className={styles.paginationControls}>
                     <div className={styles.itemsPerPage}>
                         <span>{t('dataTable.rows')}</span>
-                        <select 
-                            value={itemsPerPage} 
-                            onChange={handleItemsPerPageChange}
-                            className={styles.select}
+                        <ThemedSelect
+                            value={itemsPerPage}
+                            onChange={(v) => onItemsPerPageChange && onItemsPerPageChange(Number(v))}
+                            options={options.map(o => ({ value: o, label: String(o) }))}
                             disabled={loading}
-                        >
-                            {options.map(option => (
-                                <option key={option} value={option}>{option}</option>
-                            ))}
-                        </select>
+                            minWidth={72}
+                            placement={position === 'bottom' ? 'top' : 'bottom'}
+                            ariaLabel={t('dataTable.rows')}
+                        />
                     </div>
                     <div className={styles.pageInfo}>
                         {totalItems > 0 ? `${startItem}-${endItem} ${t('common.of')} ${totalItems}` : '0 de 0'}
@@ -203,11 +197,11 @@ const DataTable = ({
                             <tbody className={styles.tbody}>
                                 {/* Caso 1: Cargando y sin datos previos */}
                                 {loading && (!data || data.length === 0) ? (
-                                    <tr>
-                                        <td colSpan={columns.length} className={styles.td} style={{ textAlign: 'center', padding: '3rem' }}>
-                                            <LoadingView />
-                                        </td>
-                                    </tr>
+                                    <TableSkeleton
+                                        columns={columns.length}
+                                        rows={Math.min(itemsPerPage || 5, 8)}
+                                        tdClassName={styles.td}
+                                    />
                                 ) : noDataAvailable ? (
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
@@ -242,7 +236,7 @@ const DataTable = ({
                         </div>
 
                         {loading && (!data || data.length === 0) ? (
-                            <LoadingView />
+                            <MobileListSkeleton rows={4} />
                         ) : noDataAvailable ? (
                             <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
                                 {t('dataTable.noData')}
