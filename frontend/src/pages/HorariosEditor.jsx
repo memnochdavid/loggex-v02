@@ -894,7 +894,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       <Container>
         <CrudHeader
           title={embedded ? t('schedules.title') : t('scheduleEditor.title')}
-          logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 60, height: 60 }} />}
+          logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 56, height: 56 }} />}
           middle={tabs}
           stackActionsEarly
         >

@@ -487,7 +487,7 @@ const CalificacionesGrupo = () => {
                     subtitle={mediasData?.imparticion
                         ? `${mediasData.imparticion.modulo} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
                         : undefined}
-                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <>

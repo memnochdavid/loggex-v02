@@ -477,7 +477,11 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                     const currentShift = shiftsData.find(s => s.id === activeShift) || shiftsData[0];
                     return (
                         <>
-                            <div className={calStyles.tabBar} role="tablist" aria-label={t('timetable.shiftTabs', 'Turnos')}>
+                            <div
+                                className={calStyles.tabBar}
+                                role="tablist"
+                                aria-label={t('timetable.shiftTabs', 'Turnos')}
+                            >
                                 {shiftsData.map(shift => (
                                     <button
                                         key={shift.id}

@@ -157,7 +157,7 @@ const MisProfesores = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('myTeachers.title')}
-                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginRight: '1rem' }}>

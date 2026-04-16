@@ -284,7 +284,7 @@ const MisAlumnos = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('myStudents.title')}
-                            logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                            logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

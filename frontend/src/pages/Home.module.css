@@ -1,146 +1,342 @@
 .container {
     margin: 0 auto;
     width: 100%;
-    padding: var(--space-8);
+    max-width: 1400px;
+    padding: var(--space-6) var(--space-6) var(--space-12);
     box-sizing: border-box;
 }
 
-/* Estilos para el título personalizado en CrudHeader */
-.headerTitleContainer {
+/* =================================================================
+   HEADER: saludo + resumen + lottie
+   ================================================================= */
+.pageHeader {
     display: flex;
+    justify-content: flex-start;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    animation: headerIn var(--dur-slow) var(--ease-out-quart) backwards;
 }
 
-.headerLogo {
-    height: 40px; /* Tamaño ajustado para el header */
-    width: auto;
-    object-fit: contain;
-}
-
-.dashboardGrid {
-    display: block; /* Reseteamos display grid */
-    column-count: 1; /* Por defecto 1 columna (móvil) */
-    column-gap: var(--space-6);
-    /*margin: var(--space-8) auto;*/
-    width: 100%;
-    /*max-width: 1200px;*/
-    box-sizing: border-box;
-}
-
-/* Media query para escritorio */
-@media (min-width: 768px) {
-    .dashboardGrid {
-        column-count: 2; /* 2 columnas tipo periódico/masonry */
-    }
-}
-
-/* Estilos específicos para el acordeón de widgets */
-.widgetsAccordion {
-    /* Sobrescribimos variables del acordeón para usar las de los widgets */
-    --accordion-header-bg: var(--widget-header-bg, var(--color-background-secondary));
-    --accordion-header-text: var(--widget-header-text, var(--color-text-main));
-    --accordion-content-bg: var(--widget-bg, var(--bg-card));
-    --color-border: var(--widget-border, #e2e8f0);
-
-    /* Propiedades para Masonry */
-    break-inside: avoid; /* Evita que el widget se parta entre columnas */
-    margin-bottom: var(--space-6); /* Espacio vertical entre widgets */
-    height: auto; /* Dejar que crezca según contenido */
-}
-
-.accordionHeaderContent {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.accordionIcon {
+.greetingLottie {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.accordionTitle {
-    font-weight: 600;
-    font-size: 1rem;
+@keyframes headerIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.card {
+.greetingBlock {
+    flex: 1;
+    min-width: 0;
+}
+
+.greeting {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.name {
+    color: var(--color-primary-600);
+}
+
+.greetingSub {
+    margin: var(--space-2) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    letter-spacing: 0.005em;
+}
+
+/* =================================================================
+   STAT RIBBON — 4 chips clicables con datos en vivo
+   ================================================================= */
+.statRibbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+
+.statChip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    min-width: 0;
+    transition:
+        transform var(--dur-fast) var(--ease-out-back),
+        box-shadow var(--dur-base) var(--ease-standard),
+        border-color var(--dur-base) var(--ease-standard);
+    animation: chipIn var(--dur-slow) var(--ease-out-quart) backwards;
+}
+
+.statChip:nth-child(1) { animation-delay: 40ms; }
+.statChip:nth-child(2) { animation-delay: 90ms; }
+.statChip:nth-child(3) { animation-delay: 140ms; }
+.statChip:nth-child(4) { animation-delay: 190ms; }
+
+@keyframes chipIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.statChip:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--stat-accent, var(--color-primary-500)) 45%, var(--border-color));
+}
+
+.statChip:disabled {
+    cursor: default;
+}
+
+.statChip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 70%, transparent);
+    outline-offset: 2px;
+}
+
+.statIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background-color: color-mix(in srgb, var(--stat-accent, var(--color-primary-500)) 14%, transparent);
+    color: var(--stat-accent, var(--color-primary-500));
+    flex-shrink: 0;
+}
+
+.statBody {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.statValue {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.statLabel {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: var(--font-medium);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Acentos por tipo de chip */
+.stat_primary { --stat-accent: var(--color-primary-500); }
+.stat_amber   { --stat-accent: #f59e0b; }
+.stat_emerald { --stat-accent: #10b981; }
+.stat_violet  { --stat-accent: #8b5cf6; }
+
+/* =================================================================
+   BENTO GRID — asimétrico, sin AccordionView wrapper
+   ================================================================= */
+.bento {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: auto;
+    gap: var(--space-5);
+    grid-template-areas:
+        "tablon tablon tablon schedule schedule schedule"
+        "messages messages messages tasks tasks tasks";
+}
+
+.bentoTablon    { grid-area: tablon; }
+.bentoSchedule  { grid-area: schedule; }
+.bentoMessages  { grid-area: messages; }
+.bentoTasks     { grid-area: tasks; }
+
+/* Si no hay widget de tareas (no alumno), ajustar layout */
+.bento:not(:has(.bentoTasks)) {
+    grid-template-areas:
+        "tablon tablon tablon schedule schedule schedule"
+        "messages messages messages messages messages messages";
+}
+
+@media (max-width: 1100px) {
+    .bento {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "tablon tablon"
+            "schedule schedule"
+            "messages tasks";
+    }
+    .bento:not(:has(.bentoTasks)) {
+        grid-template-areas:
+            "tablon tablon"
+            "schedule schedule"
+            "messages messages";
+    }
+}
+
+@media (max-width: 680px) {
+    .bento,
+    .bento:not(:has(.bentoTasks)) {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "tablon"
+            "schedule"
+            "messages"
+            "tasks";
+    }
+}
+
+/* =================================================================
+   WIDGET CARD
+   ================================================================= */
+.widget {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     backdrop-filter: var(--elements-blur, none);
     -webkit-backdrop-filter: var(--elements-blur, none);
-    transition: box-shadow 0.2s, border-color 0.2s;
-    text-align: left;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    animation: widgetIn var(--dur-slow) var(--ease-out-quart) backwards;
+    transition:
+        box-shadow var(--dur-base) var(--ease-standard),
+        border-color var(--dur-base) var(--ease-standard);
 }
 
-.card:hover {
+@keyframes widgetIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.widget:nth-child(1) { animation-delay: 240ms; }
+.widget:nth-child(2) { animation-delay: 300ms; }
+.widget:nth-child(3) { animation-delay: 360ms; }
+.widget:nth-child(4) { animation-delay: 420ms; }
+
+.widget:hover {
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-300);
+    border-color: color-mix(in srgb, var(--color-primary-500) 30%, var(--border-color));
 }
 
-.cardTitle {
-    font-size: var(--text-xl);
-    font-weight: var(--font-bold);
-    color: var(--color-text-main);
-    margin-top: 0;
-    margin-bottom: var(--space-4);
-    text-align: center;
+.widgetHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+    flex-shrink: 0;
 }
 
-.backendStatus {
-    font-size: var(--text-lg);
-    font-weight: var(--font-medium);
-    margin-top: var(--space-2);
-    text-align: center;
+.widgetTitle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
 }
 
-.statusSuccess {
-    color: var(--color-success);
-}
-
-.statusError {
-    color: var(--color-error);
-}
-
-.button {
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    padding: var(--space-3) var(--space-6);
+.widgetTitle h3 {
+    margin: 0;
     font-size: var(--text-base);
-    font-weight: var(--font-medium);
-    background-color: var(--color-primary-600);
-    color: white;
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.widgetIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background-color: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+    color: var(--color-primary-600);
+    flex-shrink: 0;
+}
+
+.widgetActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+.widgetAction,
+.widgetLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    color: var(--text-muted);
     cursor: pointer;
-    transition: var(--transition-base);
-    box-shadow: var(--shadow-sm);
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back);
 }
 
-.button:hover {
-    background-color: var(--color-primary-700);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+.widgetAction:hover,
+.widgetLink:hover {
+    background-color: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+    color: var(--color-primary-600);
+    transform: translateX(1px);
 }
 
-.button:active {
-    transform: translateY(0);
+.widgetAction:active,
+.widgetLink:active {
+    transform: scale(0.94);
 }
 
-code {
-    background-color: var(--color-gray-100);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
-    color: var(--color-primary-700);
-    font-size: 0.9em;
+.widgetAction:focus-visible,
+.widgetLink:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 70%, transparent);
+    outline-offset: 2px;
 }
 
-/* Estilos para el Modal de Detalle de Evento */
+.widgetBody {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--space-4) var(--space-5);
+}
+
+/* =================================================================
+   MODAL (sin cambios funcionales — legacy)
+   ================================================================= */
 .modalBody {
     display: flex;
     flex-direction: column;
@@ -152,7 +348,7 @@ code {
     align-items: flex-start;
     gap: 1rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .detailRow:last-child {
@@ -167,7 +363,7 @@ code {
 
 .label {
     font-weight: 600;
-    color: var(--color-text-secondary);
+    color: var(--text-muted);
     margin-right: 0.5rem;
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -175,26 +371,26 @@ code {
 }
 
 .value {
-    color: var(--color-text-main);
+    color: var(--text-main);
     font-weight: 500;
 }
 
 .subValue {
-    color: var(--color-text-secondary);
+    color: var(--text-muted);
     font-size: 0.9em;
     margin-left: 0.5rem;
 }
 
 .eventsSection {
     margin-top: 1rem;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--border-color);
     padding-top: 1rem;
 }
 
 .eventsTitle {
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
-    color: var(--color-text-main);
+    color: var(--text-main);
     font-weight: 600;
 }
 
@@ -212,4 +408,24 @@ code {
 
 .attendanceButton {
     width: 100%;
+}
+
+/* =================================================================
+   REDUCED MOTION
+   ================================================================= */
+@media (prefers-reduced-motion: reduce) {
+    .pageHeader,
+    .statChip,
+    .widget {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+    .statChip:hover:not(:disabled),
+    .widget:hover,
+    .widgetAction:hover,
+    .widgetLink:hover,
+    .widgetAction:active,
+    .widgetLink:active {
+        transform: none !important;
+    }
 }

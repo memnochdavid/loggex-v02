@@ -139,7 +139,7 @@ const Companeros = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('classmates.title')}
-                            logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                            logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginRight: '1rem' }}>

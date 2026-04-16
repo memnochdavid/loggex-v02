@@ -227,6 +227,7 @@
 .sidebar.collapsed .navItem {
     justify-content: center;
     padding: var(--space-3) 0;
+    gap: 0;
 }
 
 .navItem:hover {

@@ -23,7 +23,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
     transition: transform var(--dur-base) var(--ease-out-back);
 }
 
@@ -32,7 +34,7 @@
 }
 
 .logo {
-    height: 40px;
+    height: 56px;
     width: auto;
     object-fit: contain;
 }
@@ -43,7 +45,7 @@
 }
 
 .title {
-    font-size: var(--text-2xl);
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: var(--font-bold);
     color: var(--text-main);
     margin: 0;
@@ -52,11 +54,12 @@
 }
 
 .subtitle {
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     color: var(--text-muted);
     margin: 0;
-    margin-top: 0.25rem;
+    margin-top: var(--space-1);
     letter-spacing: 0.005em;
+    line-height: 1.4;
 }
 
 /* Slot central (p. ej. tabs): ocupa su columna propia en la cuadrícula */

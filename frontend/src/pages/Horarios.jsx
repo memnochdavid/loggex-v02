@@ -39,6 +39,15 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
+  // Alineación del calendar con el grid del TimeTable: si hay mañana+tarde,
+  // el TimeTable muestra tabs encima del grid → offset al calendar para que
+  // sus días queden a la altura del grid, no de los tabs.
+  const hasBothShifts = useMemo(() => {
+    if (!Array.isArray(mySchedule) || mySchedule.length === 0) return false;
+    const morning = mySchedule.some(e => parseInt(e.horaInicio.split(':')[0]) < 15);
+    const afternoon = mySchedule.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15);
+    return morning && afternoon;
+  }, [mySchedule]);
   const [festivos, setFestivos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
@@ -514,7 +523,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const content = (
     <>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
-                    logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     middle={tabs}
         >
             {viewMode === 'calendar' && isMobile && (
@@ -605,7 +614,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     </div>
 
                     {!isMobile && (
-                        <div className={styles.calendarWrapper}>
+                        <div className={`${styles.calendarWrapper} ${hasBothShifts ? styles.calendarOffset : ''}`}>
                             <CalendarView
                                 selectedDate={selectedDate}
                                 onDateSelect={setSelectedDate}

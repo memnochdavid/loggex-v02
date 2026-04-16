@@ -106,7 +106,7 @@ const Claustro = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('faculty.title')}
-                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <ThemedSelect

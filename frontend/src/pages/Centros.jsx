@@ -389,7 +389,7 @@ const Centros = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('centers.title')}
-                            logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                            logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     <SearchBar
                         value={searchTerm}

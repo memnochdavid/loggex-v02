@@ -349,7 +349,7 @@ const MisCalificaciones = () => {
                 <CrudHeader
                     title={t('grades.myGradesTitle')}
                     subtitle={isSuperAdmin && data?.alumno ? `${data.alumno.apellidos}, ${data.alumno.nombre}` : undefined}
-                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
                         <>

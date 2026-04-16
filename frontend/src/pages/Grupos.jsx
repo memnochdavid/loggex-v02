@@ -448,7 +448,7 @@ const Grupos = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title={t('groups.title')}
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
                 <ThemedSelect

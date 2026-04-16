@@ -112,6 +112,14 @@
     top: var(--space-4);
 }
 
+/* Cuando el TimeTable muestra tabs "Mañana/Tarde" (ambos turnos con eventos)
+   el grid del horario queda empujado hacia abajo por: margin-top del tabBar
+   (var(--space-8) = 32px) + altura del tabBar (~38px) + gap interno (~8px).
+   Aplicamos ese offset al calendar para alinear día-a-día con el grid. */
+.calendarOffset {
+    margin-top: auto;
+}
+
 /* Sidebar Móvil (Drawer) — mismo patrón que el sidebar principal: respeta el header */
 .mobileSidebarOverlay {
     position: fixed;
