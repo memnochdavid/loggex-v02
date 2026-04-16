@@ -16,13 +16,19 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) both;
 }
 
 .logoContainer {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px; /* Ancho fijo para evitar saltos si no hay logo */
+    width: 40px;
+    transition: transform var(--dur-base) var(--ease-out-back);
+}
+
+.titleGroup:hover .logoContainer {
+    transform: scale(1.05) rotate(-2deg);
 }
 
 .logo {
@@ -39,33 +45,34 @@
 .title {
     font-size: var(--text-2xl);
     font-weight: var(--font-bold);
-    color: var(--text-main); /* Usar color principal */
+    color: var(--text-main);
     margin: 0;
     line-height: 1.2;
+    letter-spacing: -0.015em;
 }
 
 .subtitle {
     font-size: var(--text-sm);
-    color: var(--text-muted); /* Usar variable maestra */
+    color: var(--text-muted);
     margin: 0;
     margin-top: 0.25rem;
+    letter-spacing: 0.005em;
 }
 
-/* Slot central (p. ej. tabs): ocupa su columna propia en la cuadrícula,
-   alineado a la izquierda. Los tabs no se desplazan cuando cambie el ancho
-   de los filtros de la derecha (cada columna vive en su propia track). */
+/* Slot central (p. ej. tabs): ocupa su columna propia en la cuadrícula */
 .middle {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     justify-self: start;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 60ms both;
 }
 
 .actions {
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    /*flex-wrap: wrap;*/
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 120ms both;
 }
 
 /* En pantallas anchas, las acciones SIEMPRE en una sola línea */
@@ -74,8 +81,29 @@
     justify-content: flex-end;
 }
 
-/* Cuando el header no cabe cómodamente (con o sin middle), pasa a columna.
-   Evita el grid de 2 filas — quedaba descolocado a anchos intermedios. */
+@keyframes crudHeaderIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .titleGroup,
+    .middle,
+    .actions {
+        animation: none !important;
+    }
+    .titleGroup:hover .logoContainer {
+        transform: none !important;
+    }
+}
+
+/* Cuando el header no cabe cómodamente, pasa a columna */
 @media (max-width: 1100px) {
     .container,
     .container:not(:has(.middle)) {

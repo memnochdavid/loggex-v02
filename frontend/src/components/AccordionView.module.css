@@ -12,15 +12,39 @@
     border-bottom: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     overflow: hidden;
-    /* Fondo del contenido por defecto */
     background-color: var(--accordion-content-bg, #f0f0f0);
     isolation: isolate;
     backdrop-filter: var(--elements-blur, none);
     -webkit-backdrop-filter: var(--elements-blur, none);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 0 0 color-mix(in srgb, white 5%, transparent);
+    transition:
+        box-shadow var(--dur-base) var(--ease-standard),
+        transform var(--dur-base) var(--ease-standard);
+    animation: accordionItemIn var(--dur-slow) var(--ease-out-quart) both;
 }
 
-.accordionItem:last-child {
-    /*border-bottom: none;*/
+.accordionItem:nth-child(1) { animation-delay: 0ms; }
+.accordionItem:nth-child(2) { animation-delay: 40ms; }
+.accordionItem:nth-child(3) { animation-delay: 80ms; }
+.accordionItem:nth-child(4) { animation-delay: 120ms; }
+.accordionItem:nth-child(5) { animation-delay: 160ms; }
+.accordionItem:nth-child(6) { animation-delay: 200ms; }
+.accordionItem:nth-child(7) { animation-delay: 240ms; }
+.accordionItem:nth-child(8) { animation-delay: 280ms; }
+.accordionItem:nth-child(n+9) { animation-delay: 320ms; }
+
+.accordionItem:hover {
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 0 0 color-mix(in srgb, white 7%, transparent);
+}
+
+.accordionItem.open {
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 0 0 color-mix(in srgb, white 7%, transparent);
 }
 
 .accordionHeader {
@@ -28,23 +52,28 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    /* Variables de personalización con defaults del tip */
     background-color: var(--accordion-header-bg, #5c94f0);
     color: var(--accordion-header-text, #ffffff);
     cursor: pointer;
     font-weight: 600;
     font-size: 1.1rem;
-    transition: filter 0.2s ease, background-color 0.2s ease;
+    transition:
+        filter var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard);
     gap: var(--space-4);
+    user-select: none;
 }
 
 .accordionHeader:hover {
     filter: brightness(0.95);
 }
 
+.accordionHeader:active {
+    filter: brightness(0.92);
+}
+
 /* Estado activo (abierto) */
 .accordionItem.open > .accordionHeader {
-    /* Usamos el mismo color de fondo que el estado plegado por petición del usuario */
     background-color: var(--accordion-header-bg, #5c94f0) !important;
     color: var(--accordion-header-text, #ffffff) !important;
 }
@@ -62,7 +91,7 @@
 }
 
 .chevron {
-    transition: transform 0.3s ease;
+    transition: transform var(--dur-base) var(--ease-out-back);
 }
 
 .chevron.open {
@@ -73,8 +102,7 @@
 .accordionContentWrapper {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease;
-    /* Variables de personalización para el contenido */
+    transition: grid-template-rows var(--dur-slow) var(--ease-out-quart);
     background-color: var(--accordion-content-bg, #f0f0f0);
     color: var(--accordion-content-text, #46505d);
 }
@@ -90,6 +118,42 @@
 
 .accordionInner {
     padding: 1rem;
+    animation: accordionInnerIn var(--dur-slow) var(--ease-out-quart);
+}
+
+@keyframes accordionItemIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes accordionInnerIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .accordionItem,
+    .chevron,
+    .accordionContentWrapper,
+    .accordionHeader {
+        transition-duration: 0.01ms !important;
+        animation: none !important;
+    }
+    .chevron.open {
+        transform: rotate(180deg) !important;
+    }
 }
 
 /* Estilos de botones (respetando los originales de Crud.module.css) */
@@ -101,7 +165,7 @@
     border-radius: var(--border-radius-small);
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--dur-base) var(--ease-standard);
 }
 
 .addButton:hover {

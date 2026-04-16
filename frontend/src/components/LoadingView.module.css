@@ -6,6 +6,11 @@
     padding: 3rem;
     gap: 0.5rem;
     color: var(--text-muted);
+    animation: loadingFadeIn var(--dur-slow) var(--ease-out-quart);
+}
+
+.container > span {
+    animation: loadingPulse 1.6s var(--ease-standard) infinite;
 }
 
 .lottieThemed svg [fill]:not([fill="none"]):not([fill="transparent"]) {
@@ -14,4 +19,22 @@
 
 .lottieThemed svg [stroke]:not([stroke="none"]):not([stroke="transparent"]) {
     stroke: var(--color-primary-500, #4f46e5) !important;
+}
+
+@keyframes loadingFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes loadingPulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .container,
+    .container > span {
+        animation: none !important;
+        opacity: 1 !important;
+    }
 }

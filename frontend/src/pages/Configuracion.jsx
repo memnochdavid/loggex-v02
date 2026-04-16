@@ -406,12 +406,12 @@ const Configuracion = () => {
         </div>
     );
 
-    const renderThemeCard = (theme) => {
+    const renderThemeCard = (theme, index = 0) => {
         const themeSettings = theme.configuracion || {};
         const displaySettings = {...defaultSettings, ...themeSettings};
 
         return (
-            <div key={theme.id} className={styles.themeCard}>
+            <div key={theme.id} className={styles.themeCard} style={{ '--i': index }}>
                 <div className={styles.themePreview} style={{backgroundColor: displaySettings.sidebarColor}}>
                     <div className={styles.themeHeader}
                          style={{backgroundColor: displaySettings.headerFooterColor}}></div>
@@ -1048,9 +1048,10 @@ const Configuracion = () => {
 
                 <div className={styles.layout}>
                     <div className={styles.sidebar}>
-                        {tabs.map(tab => (
+                        {tabs.map((tab, index) => (
                             <button
                                 key={tab.id}
+                                style={{ '--i': index }}
                                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.activeTab : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
                             >
@@ -1062,6 +1063,7 @@ const Configuracion = () => {
 
                     <div className={styles.content}>
                         <div className={styles.formSection}>
+                            <div className={styles.tabPanel} key={activeTab}>
                             {activeTab === 'general' && (
                                 <div className={styles.grid}>
                                     {renderColorInput(t('config.general.primaryColor'), 'primaryColor')}
@@ -1499,15 +1501,18 @@ const Configuracion = () => {
 
                                     <h4 className={styles.sectionTitle}>{t('config.availableThemes')}</h4>
                                     <div className={styles.themesGrid}>
-                                        {themes.map((theme) => renderThemeCard(theme))}
+                                        {themes.map((theme, index) => renderThemeCard(theme, index))}
                                     </div>
                                 </div>
                             )}
+                            </div>
                         </div>
 
                         <div className={styles.previewContainer}>
                             <h3 className={styles.previewTitle}>{t('config.preview')}</h3>
-                            {renderPreview()}
+                            <div className={styles.previewWrap} key={activeTab + '-preview'}>
+                                {renderPreview()}
+                            </div>
                         </div>
                     </div>
                 </div>

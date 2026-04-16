@@ -35,7 +35,9 @@
       "Bash(xargs '-I{}' bash -c 'n=$\\(grep -c \"className={styles.select}\" \"{}\"\\); echo \"{}: $n\"')",
       "Bash(php -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Service/HorarioSolver.php)",
       "Bash(php -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Controller/HorarioSolverController.php)",
-      "Bash(php *)"
+      "Bash(php *)",
+      "Bash(ls frontend/src/*.css frontend/src/styles/*.css)",
+      "Bash(ls frontend/src/index.* frontend/src/main.*)"
     ]
   }
 }
