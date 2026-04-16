@@ -7,6 +7,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
+import ModuloLabel from '../components/ModuloLabel';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
@@ -62,6 +63,7 @@ const Modulos = () => {
   const [currentModulo, setCurrentModulo] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
+    abreviatura: '',
     codigoOficial: '',
     curso: 1,
     horasSemanales: 0,
@@ -247,6 +249,7 @@ const Modulos = () => {
 
       setFormData({
         nombre: modulo.nombre,
+        abreviatura: modulo.abreviatura || '',
         codigoOficial: modulo.codigoOficial || '',
         curso: modulo.curso,
         horasSemanales: modulo.horasSemanales,
@@ -256,6 +259,7 @@ const Modulos = () => {
       setCurrentModulo(null);
       setFormData({
         nombre: '',
+        abreviatura: '',
         codigoOficial: '',
         curso: 1,
         horasSemanales: 0,
@@ -374,7 +378,18 @@ const Modulos = () => {
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData]);
 
   const columns = useMemo(() => [
-    { header: t('modules.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    {
+      header: t('modules.name'),
+      accessor: (row) => <ModuloLabel modulo={row} />,
+      sortable: true,
+      sortKey: 'nombre'
+    },
+    {
+      header: t('modules.abbreviation'),
+      accessor: (row) => row.abreviatura || '-',
+      sortable: true,
+      sortKey: 'abreviatura'
+    },
     { header: t('modules.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
     { header: t('modules.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
     { 
@@ -495,6 +510,19 @@ const Modulos = () => {
                     className={styles.input}
                     required
                     placeholder={t('modules.namePlaceholder')}
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>{t('modules.abbreviationLabel')}</label>
+                <input
+                    type="text"
+                    name="abreviatura"
+                    value={formData.abreviatura}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    maxLength={16}
+                    placeholder={t('modules.abbreviationPlaceholder')}
                 />
             </div>
 

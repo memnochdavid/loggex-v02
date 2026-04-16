@@ -17,6 +17,7 @@ import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import ProfLoadPanel from '../components/ProfLoadPanel';
 import ModalView from '../components/ModalView';
+import ModuloLabel from '../components/ModuloLabel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download } from 'lucide-react';
@@ -93,7 +94,11 @@ const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected
     >
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
-        <span className={styles.moduleName}>{imparticion.modulo?.nombre || '—'}</span>
+        <span className={styles.moduleName}>
+          {imparticion.modulo
+            ? <ModuloLabel modulo={imparticion.modulo} />
+            : '—'}
+        </span>
         <span className={styles.moduleProfe}>
           {imparticion.profesor ? `${imparticion.profesor.nombre || ''} ${imparticion.profesor.apellidos || ''}`.trim() : '—'}
         </span>
@@ -119,7 +124,9 @@ const SlotBlock = ({ slotId, imparticion, color, aula }) => {
       {...listeners}
       {...attributes}
     >
-      <span className={styles.slotBlockTitle}>{imparticion.modulo?.nombre}</span>
+      <span className={styles.slotBlockTitle}>
+        {imparticion.modulo && <ModuloLabel modulo={imparticion.modulo} />}
+      </span>
       <span className={styles.slotBlockProfe}>
         {(imparticion.profesor?.apellidos || '').split(' ')[0]}
       </span>
@@ -1031,7 +1038,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             <DragOverlay dropAnimation={null}>
               {activeImp ? (
                 <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.modulo?.id || activeImp.id) }}>
-                  {activeImp.modulo?.nombre}
+                  {activeImp.modulo && <ModuloLabel modulo={activeImp.modulo} />}
                 </div>
               ) : null}
             </DragOverlay>

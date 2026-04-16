@@ -7,6 +7,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
+import ModuloLabel from '../components/ModuloLabel';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
@@ -406,10 +407,10 @@ const Imparticiones = () => {
         sortKey: 'profesor.nombre' 
     },
     { 
-        header: t('teaching.module'), 
-        accessor: (row) => row.modulo ? row.modulo.nombre : '-', 
-        sortable: true, 
-        sortKey: 'modulo.nombre' 
+        header: t('teaching.module'),
+        accessor: (row) => row.modulo ? <ModuloLabel modulo={row.modulo} /> : '-',
+        sortable: true,
+        sortKey: 'modulo.nombre'
     },
     { 
         header: t('teaching.group'), 

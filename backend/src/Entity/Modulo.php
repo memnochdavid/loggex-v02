@@ -36,12 +36,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
+    'abreviatura' => 'partial',
     'codigoOficial' => 'partial',
     'ciclo' => 'exact', // Para filtrar por ID de ciclo
     'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
     'ciclo.centro' => 'exact' // Para filtrar por centro (SuperAdmin)
 ])]
-#[ApiFilter(OrderFilter::class, properties: ['nombre', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Modulo
 {
     use TimestampableTrait;
@@ -60,6 +61,14 @@ class Modulo
     #[ORM\Column(length: 50, nullable: true)]
     #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $codigoOficial = null;
+
+    /**
+     * Forma corta del nombre para contextos con poco espacio horizontal
+     * (vista móvil de AccordionView, TimeTable, etc.).
+     */
+    #[ORM\Column(length: 16, nullable: true)]
+    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])]
+    private ?string $abreviatura = null;
 
     #[ORM\Column]
     #[Groups(['modulo:read', 'modulo:write', 'imparticion:read'])]
@@ -106,6 +115,17 @@ class Modulo
     public function setCodigoOficial(?string $codigoOficial): static
     {
         $this->codigoOficial = $codigoOficial;
+        return $this;
+    }
+
+    public function getAbreviatura(): ?string
+    {
+        return $this->abreviatura;
+    }
+
+    public function setAbreviatura(?string $abreviatura): static
+    {
+        $this->abreviatura = $abreviatura;
         return $this;
     }
 

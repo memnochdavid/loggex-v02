@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './PendingTasksWidget.module.css';
 import { ClipboardList, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import ModuloLabel from './ModuloLabel';
 
 const PendingTasksWidget = ({ hideHeader = false }) => {
     const { t } = useTranslation();
@@ -126,7 +127,9 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                             <div className={styles.details}>
                                 <span className={styles.title}>{task.titulo}</span>
                                 <span className={styles.module}>
-                                    {task.imparticion?.modulo?.nombre || t('common.unknownModule')}
+                                    {task.imparticion?.modulo
+                                        ? <ModuloLabel modulo={task.imparticion.modulo} />
+                                        : t('common.unknownModule')}
                                 </span>
                             </div>
                             <div className={`${styles.dueDate} ${remaining.urgent ? styles.urgent : ''}`}>

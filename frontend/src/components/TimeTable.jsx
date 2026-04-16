@@ -6,6 +6,7 @@ import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
 import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
+import ModuloLabel from './ModuloLabel';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
@@ -320,7 +321,12 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                                 title={t('timetable.viewDetails')}
                                                 style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
                                             >
-                                                <div className={styles.eventModulo}>{cellData.event.modulo}</div>
+                                                <div className={styles.eventModulo}>
+                                                    <ModuloLabel modulo={{
+                                                        nombre: cellData.event.modulo,
+                                                        abreviatura: cellData.event.moduloAbreviatura,
+                                                    }} />
+                                                </div>
                                                 <div className={styles.eventGroupSmall}>
                                                     {cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== ''
                                                         ? cellData.event.grupoAbreviatura
@@ -396,7 +402,10 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             {event.horaInicio} - {event.horaFin}
                         </div>
                         <div className={styles.mobileEventTitle}>
-                            {event.modulo}
+                            <ModuloLabel modulo={{
+                                nombre: event.modulo,
+                                abreviatura: event.moduloAbreviatura,
+                            }} />
                         </div>
                         <div className={styles.mobileEventSubtitle}>
                             {event.grupo} • {event.aula}

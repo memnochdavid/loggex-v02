@@ -7,6 +7,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import EventsSidebar from '../components/EventsSidebar';
+import ModuloLabel from '../components/ModuloLabel';
 import CalendarView from '../components/CalendarView';
 import WeekStrip from '../components/WeekStrip';
 import ModalView from '../components/ModalView';
@@ -30,7 +31,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canEdit = isSuperAdmin || isAdmin;
   
-  const isMobile = useMediaQuery('(max-width: 1200px)');
+  const isMobile = useMediaQuery('(max-width: 900px)');
 
   const [viewMode, setViewMode] = useState(embedded ? 'list' : 'calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -482,7 +483,9 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     { header: t('schedules.classroom'), accessor: 'aula', sortable: true, sortKey: 'aula' },
     {
         header: t('schedules.subject'),
-        accessor: (row) => row.imparticion && row.imparticion.modulo ? row.imparticion.modulo.nombre : '-',
+        accessor: (row) => row.imparticion && row.imparticion.modulo
+            ? <ModuloLabel modulo={row.imparticion.modulo} />
+            : '-',
         sortable: true, sortKey: 'imparticion.modulo.nombre'
     },
     {
@@ -586,6 +589,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                mobileBreakpoint="640px"
             />
         ) : (
             <>

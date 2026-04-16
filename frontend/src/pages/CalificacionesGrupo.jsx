@@ -6,6 +6,8 @@ import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import ThemedNumberInput from '../components/ThemedNumberInput';
 import CrudHeader from '../components/CrudHeader';
+import AccordionView from '../components/AccordionView';
+import useMediaQuery from '../hooks/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
@@ -141,6 +143,8 @@ const CalificacionesGrupo = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const imparticionId = searchParams.get('imparticion');
+    const isMobile = useMediaQuery('(max-width: 768px)');
+    const [expandedAlumnoId, setExpandedAlumnoId] = useState(null);
 
     // Data
     const [mediasData, setMediasData] = useState(null);
@@ -638,6 +642,63 @@ const CalificacionesGrupo = () => {
                     <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : sortedAlumnos.length === 0 ? (
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
+                ) : isMobile ? (
+                    <AccordionView
+                        data={sortedAlumnos.map(r => ({ ...r, id: r.alumno.id }))}
+                        canAdd={false}
+                        expandedId={expandedAlumnoId}
+                        onToggle={(id) => setExpandedAlumnoId(prev => prev === id ? null : id)}
+                        renderHeader={(row) => (
+                            <span className="accordionHeaderWithCount">
+                                <span className="accordionHeaderTitle">
+                                    {row.alumno.apellidos}, {row.alumno.nombre}
+                                </span>
+                                <span
+                                    className={`${styles.gradeBadge} ${getGradeClass(row.notaFinal)}`}
+                                    title={t('grades.finalGrade')}
+                                >
+                                    {formatGrade(row.notaFinal)}
+                                </span>
+                            </span>
+                        )}
+                        renderItem={(row) => (
+                            <div className={styles.mobileRowInner}>
+                                <div className={styles.mobileRowStats}>
+                                    <div className={styles.mobileStatChip}>
+                                        <span className={styles.mobileStatLabel}>{t('grades.avgExams')}</span>
+                                        <span className={`${styles.mobileStatValue} ${getGradeClass(row.mediaExamenes)}`}>
+                                            {formatGrade(row.mediaExamenes)}
+                                        </span>
+                                    </div>
+                                    <div className={styles.mobileStatChip}>
+                                        <span className={styles.mobileStatLabel}>{t('grades.avgTasks')}</span>
+                                        <span className={`${styles.mobileStatValue} ${getGradeClass(row.mediaTareas)}`}>
+                                            {formatGrade(row.mediaTareas)}
+                                        </span>
+                                    </div>
+                                    <div className={styles.mobileStatChip}>
+                                        <span className={styles.mobileStatLabel}>{t('grades.avgPractice')}</span>
+                                        <span className={`${styles.mobileStatValue} ${getGradeClass(row.mediaPracticas)}`}>
+                                            {formatGrade(row.mediaPracticas)}
+                                        </span>
+                                    </div>
+                                    <div className={styles.mobileStatChip}>
+                                        <span className={styles.mobileStatLabel}>{t('grades.pending')}</span>
+                                        <span className={styles.mobileStatValue}>
+                                            {row.entregasPendientes}/{row.totalTareas}
+                                        </span>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => navigate(`/calificaciones/detalle?imparticion=${selectedImparticion}&alumno=${row.alumno.id}`)}
+                                    style={{ marginTop: 'var(--space-3)', width: '100%' }}
+                                >
+                                    {t('grades.detail')}
+                                </Button>
+                            </div>
+                        )}
+                    />
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table className={styles.gradesTable}>

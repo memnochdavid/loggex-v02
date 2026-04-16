@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import ModalView from '../components/ModalView';
 import LiquidSignaturePad from '../components/LiquidSignaturePad';
 import Button from '../components/Button';
+import ModuloLabel from '../components/ModuloLabel';
 
 const Perfil = () => {
     const { t } = useTranslation();
@@ -276,7 +277,11 @@ const Perfil = () => {
                                         <div key={imp.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.module')}</span>
-                                                <span className={styles.value}>{imp.modulo?.nombre || t('profile.unknownModule')}</span>
+                                                <span className={styles.value}>
+                                                    {imp.modulo
+                                                        ? <ModuloLabel modulo={imp.modulo} />
+                                                        : t('profile.unknownModule')}
+                                                </span>
                                             </div>
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.group')}</span>

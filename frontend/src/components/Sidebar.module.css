@@ -228,23 +228,9 @@
     height: 50%;
 }
 
-/* Stagger entry within an open accordion section */
-.accordionWrapper :global(.accordionInner) .navItem {
-    opacity: 0;
-    transform: translateX(-8px);
-    animation: navItemIn var(--dur-slow) var(--ease-out-quart) forwards;
-}
-
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(1)  { animation-delay: 20ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(2)  { animation-delay: 60ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(3)  { animation-delay: 100ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(4)  { animation-delay: 140ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(5)  { animation-delay: 180ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(6)  { animation-delay: 220ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(7)  { animation-delay: 260ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(8)  { animation-delay: 300ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(9)  { animation-delay: 340ms; }
-.accordionWrapper :global(.accordionInner) .navItem:nth-child(10) { animation-delay: 380ms; }
+/* Sin stagger en los NavLink: el Sidebar se re-monta al navegar entre rutas
+   (cada página envuelve Layout) y el stagger volvía a dispararse cada vez,
+   produciendo parpadeo. La animación del accordion al abrirse ya aporta feedback. */
 
 .footer {
     margin-top: auto;
@@ -312,6 +298,16 @@
 
 .accordionWrapper :global(.accordionItem) {
     flex: 0 0 auto;
+    /* Desactivar la animación de entrada de AccordionView dentro del Sidebar:
+       Layout se remonta al cambiar de ruta y el stagger se volvía a disparar,
+       produciendo parpadeo en cada navegación. */
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.accordionWrapper :global(.accordionInner) {
+    animation: none !important;
 }
 
 .accordionWrapper :global(.accordionItemOpen) {
@@ -447,10 +443,6 @@
     to { opacity: 1; }
 }
 
-@keyframes navItemIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to { opacity: 1; transform: translateX(0); }
-}
 
 /* Reduced motion — preserve color feedback, strip transforms & timed entries */
 @media (prefers-reduced-motion: reduce) {
