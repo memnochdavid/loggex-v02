@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './TimeTable.module.css';
+import calStyles from '../pages/Calificaciones.module.css';
 import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ModalView from './ModalView';
@@ -472,15 +473,30 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                     <p className={styles.empty}>{t('timetable.noScheduledClasses')}</p>
                 ) : shiftsData.length === 1 ? (
                     renderGrid(shiftsData[0].slots, shiftsData[0].grid)
-                ) : (
-                    <AccordionView
-                        data={shiftsData}
-                        renderItem={(item) => renderGrid(item.slots, item.grid)}
-                        canAdd={false}
-                        expandedId={activeShift}
-                        onToggle={(id) => setActiveShift(activeShift === id ? null : id)}
-                    />
-                )}
+                ) : (() => {
+                    const currentShift = shiftsData.find(s => s.id === activeShift) || shiftsData[0];
+                    return (
+                        <>
+                            <div className={calStyles.tabBar} role="tablist" aria-label={t('timetable.shiftTabs', 'Turnos')}>
+                                {shiftsData.map(shift => (
+                                    <button
+                                        key={shift.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeShift === shift.id}
+                                        className={`${calStyles.tab} ${activeShift === shift.id ? calStyles.tabActive : ''}`}
+                                        onClick={() => setActiveShift(shift.id)}
+                                    >
+                                        {shift.title}
+                                    </button>
+                                ))}
+                            </div>
+                            <div key={activeShift} className={calStyles.tabContent} role="tabpanel">
+                                {renderGrid(currentShift.slots, currentShift.grid)}
+                            </div>
+                        </>
+                    );
+                })()}
             </div>
 
             {/* Vista Móvil */}
