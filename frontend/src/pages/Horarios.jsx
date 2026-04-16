@@ -7,6 +7,8 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import EventsSidebar from '../components/EventsSidebar';
+import CalendarView from '../components/CalendarView';
+import WeekStrip from '../components/WeekStrip';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
@@ -586,29 +588,37 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 onSort={handleSort}
             />
         ) : (
-            <div className={styles.calendarViewModeContainer}>
-                <div className={styles.timeTableWrapper}>
-                    <TimeTable 
-                        events={mySchedule} 
-                        festivos={festivos} 
-                        tareas={tareas} // Pasar tareas a TimeTable
-                        title="Mi Horario" 
-                        selectedDate={selectedDate}
-                    />
-                </div>
-                
-                {!isMobile && (
-                    <div className={styles.eventsSidebarWrapper}>
-                        <EventsSidebar
-                            selectedDate={selectedDate}
-                            onDateSelect={setSelectedDate}
+            <>
+                <div className={styles.calendarViewModeContainer}>
+                    <div className={styles.timeTableWrapper}>
+                        <TimeTable
+                            events={mySchedule}
                             festivos={festivos}
-                            events={sidebarEvents}
-                            onEventClick={handleEventClick}
+                            tareas={tareas}
+                            title="Mi Horario"
+                            selectedDate={selectedDate}
                         />
                     </div>
+
+                    {!isMobile && (
+                        <div className={styles.calendarWrapper}>
+                            <CalendarView
+                                selectedDate={selectedDate}
+                                onDateSelect={setSelectedDate}
+                                festivos={festivos}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {!isMobile && (
+                    <WeekStrip
+                        selectedDate={selectedDate}
+                        events={sidebarEvents}
+                        onEventClick={handleEventClick}
+                    />
                 )}
-            </div>
+            </>
         )}
 
         {isMobile && isSidebarOpen && (

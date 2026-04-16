@@ -91,59 +91,64 @@
     background-color: var(--color-error);
 }
 
-/* Layout de Vista Calendario */
+/* Layout de Vista Calendario — Fila 1: TimeTable + CalendarView; Fila 2: WeekStrip */
 .calendarViewModeContainer {
     display: flex;
     gap: var(--space-6);
-    flex: 1;
-    overflow: hidden;
-    height: 85vh;
+    align-items: flex-start;
+    width: 100%;
 }
 
 .timeTableWrapper {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow-y: auto;
-    background-color: transparent; /* Quitado fondo */
-    /* border-radius: var(--radius-lg); */ /* Quitado borde radius */
-    /* border: 1px solid var(--border-color); */ /* Quitado borde */
-    /* box-shadow: var(--shadow-sm); */ /* Quitado sombra */
+    background-color: transparent;
 }
 
-.eventsSidebarWrapper {
-    width: 320px;
+.calendarWrapper {
+    width: 340px;
     flex-shrink: 0;
-    height: 100%;
-    /* border-radius: var(--radius-lg); */ /* Quitado borde radius */
-    overflow-y: auto;
-    /* border: 1px solid var(--border-color); */ /* Quitado borde */
-    /* box-shadow: var(--shadow-sm); */ /* Quitado sombra */
+    position: sticky;
+    top: var(--space-4);
 }
 
-/* Sidebar Móvil (Drawer) */
+/* Sidebar Móvil (Drawer) — mismo patrón que el sidebar principal: respeta el header */
 .mobileSidebarOverlay {
     position: fixed;
-    top: 0;
+    top: 84px; /* Altura del header */
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    height: calc(100vh - 84px);
+    background-color: color-mix(in srgb, black 48%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 85; /* Por debajo del header (z-index: 100) */
     display: flex;
     justify-content: flex-end;
-    backdrop-filter: blur(2px);
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn var(--dur-base) var(--ease-standard);
 }
 
 .mobileSidebar {
-    width: 85%; /* Ancho relativo para móvil */
-    max-width: 320px;
+    width: 85%;
+    max-width: 340px;
     background-color: var(--bg-card);
     height: 100%;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    padding: var(--space-3);
+    box-shadow: -4px 0 24px color-mix(in srgb, black 22%, transparent);
     display: flex;
     flex-direction: column;
-    animation: slideInRight 0.3s ease-out;
+    z-index: 90;
+    animation: slideInRight var(--dur-slow) var(--ease-out-quart);
+    box-sizing: border-box;
+}
+
+/* Header reducido (<=768px) — idéntico al del sidebar principal */
+@media (max-width: 768px) {
+    .mobileSidebarOverlay {
+        top: 76px;
+        height: calc(100vh - 76px);
+    }
 }
 
 .mobileSidebarHeader {
@@ -321,16 +326,13 @@
 
     .calendarViewModeContainer {
         flex-direction: column;
-        height: auto;
-        overflow: visible;
     }
 
     .timeTableWrapper {
-        height: auto;
-        overflow-y: visible;
+        width: 100%;
     }
 
-    .eventsSidebarWrapper {
+    .calendarWrapper {
         display: none;
     }
 

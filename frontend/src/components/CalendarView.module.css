@@ -1,14 +1,15 @@
 .calendar {
-    background-color: var(--bg-card); /* Restaurado fondo */
-    border: none; /* Quitado borde */
+    background-color: var(--bg-card);
+    border: none;
     border-radius: var(--radius-lg);
     backdrop-filter: var(--elements-blur, none);
     -webkit-backdrop-filter: var(--elements-blur, none);
-    /*padding: var(--space-4);*/
     width: 100%;
     max-width: 350px;
-    box-shadow: var(--shadow-sm); /* Restaurada sombra para dar profundidad sin borde */
-    margin: 0 auto; /* Centrar si es más pequeño que el contenedor */
+    box-shadow: var(--shadow-sm);
+    margin: 0 auto;
+    overflow: hidden;
+    transition: box-shadow var(--dur-base) var(--ease-standard);
 }
 
 .header {
@@ -16,7 +17,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-4);
-    padding: var(--space-2); /* Añadir padding interno al header */
+    padding: var(--space-2);
 }
 
 .monthTitle {
@@ -24,21 +25,45 @@
     color: var(--text-main);
     font-size: var(--text-lg);
     text-transform: capitalize;
+    letter-spacing: -0.01em;
+    animation: titleSwap var(--dur-slow) var(--ease-out-quart);
+}
+
+@keyframes titleSwap {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .navButton {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text-muted); /* Usar variable maestra */
+    color: var(--text-muted);
     padding: var(--space-1);
     border-radius: var(--radius-sm);
-    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back),
+        box-shadow var(--dur-base) var(--ease-standard);
 }
 
 .navButton:hover {
-    background-color: var(--bg-input); /* Usar variable maestra */
+    background-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
     color: var(--color-primary-600);
+    transform: scale(1.08);
+}
+
+.navButton:active {
+    transform: scale(0.92);
+}
+
+.navButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 35%, transparent);
 }
 
 .weekDays {
@@ -53,15 +78,41 @@
     font-weight: var(--font-bold);
     color: var(--text-muted);
     padding: var(--space-1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .daysGrid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    /*gap: var(--space-1);*/
+    animation: gridFadeIn var(--dur-slow) var(--ease-out-quart) backwards;
+}
+
+.daysGrid.slideFromRight {
+    animation: gridSlideFromRight var(--dur-slow) var(--ease-out-quart) backwards;
+}
+
+.daysGrid.slideFromLeft {
+    animation: gridSlideFromLeft var(--dur-slow) var(--ease-out-quart) backwards;
+}
+
+@keyframes gridFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes gridSlideFromRight {
+    from { opacity: 0; transform: translateX(14px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes gridSlideFromLeft {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 .day {
+    position: relative;
     aspect-ratio: 1;
     display: flex;
     align-items: center;
@@ -72,46 +123,114 @@
     cursor: pointer;
     font-size: var(--text-sm);
     color: var(--text-main);
-    transition: all 0.2s;
     margin: 5px;
+    font-variant-numeric: tabular-nums;
+    isolation: isolate;
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back),
+        box-shadow var(--dur-fast) var(--ease-standard);
+    /* Entrada en cascada al cambiar de mes — delay dependiente del índice de celda. */
+    animation: dayIn var(--dur-base) var(--ease-out-quart) backwards;
+    animation-delay: calc(var(--i, 0) * 12ms);
+}
+
+@keyframes dayIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .day:hover {
-    background-color: var(--bg-input); /* Usar variable maestra */
+    background-color: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+    color: var(--color-primary-700);
+    transform: scale(1.06);
+}
+
+.day:active {
+    transform: scale(0.94);
+}
+
+.day:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 38%, transparent);
 }
 
 /* Fin de semana (Sábado y Domingo) */
-.day:nth-child(7n), .day:nth-child(7n-1) {
+.day:nth-child(7n),
+.day:nth-child(7n-1) {
     background-color: var(--calendar-weekend-bg, var(--bg-input));
     color: var(--calendar-weekend-text, var(--text-muted));
 }
 
-/* Festivos (mismo estilo que fin de semana) */
+/* Festivos — patrón sutil de rayas diagonales para distinguir del weekend sin sobrecargar */
 .festivo {
     background-color: var(--calendar-weekend-bg, var(--bg-input)) !important;
     color: var(--calendar-weekend-text, var(--text-muted)) !important;
     font-weight: var(--font-medium);
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0,
+        transparent 4px,
+        color-mix(in srgb, var(--color-warning) 14%, transparent) 4px,
+        color-mix(in srgb, var(--color-warning) 14%, transparent) 5px
+    );
 }
 
 .selected {
     background-color: var(--calendar-selected-bg, var(--color-primary-500)) !important;
     color: var(--calendar-selected-text, white) !important;
     font-weight: var(--font-bold);
+    box-shadow:
+        0 4px 10px -2px color-mix(in srgb, var(--color-primary-500) 45%, transparent),
+        0 0 0 2px color-mix(in srgb, var(--color-primary-400) 40%, transparent);
+    animation: selectedPop var(--dur-base) var(--ease-out-back);
+    z-index: 1;
 }
 
+@keyframes selectedPop {
+    0%   { transform: scale(1); }
+    55%  { transform: scale(1.14); }
+    100% { transform: scale(1); }
+}
+
+/* "Hoy" no seleccionado: anillo + dot pulsante abajo */
 .today {
-    border: 1px solid var(--calendar-selected-bg, var(--color-primary-500));
     color: var(--calendar-selected-bg, var(--color-primary-600));
+    font-weight: var(--font-bold);
+    box-shadow: inset 0 0 0 1px var(--calendar-selected-bg, var(--color-primary-500));
+}
+
+.today::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--color-primary-500);
+    transform: translateX(-50%);
+    animation: todayPulse 2.1s var(--ease-standard) infinite;
+}
+
+.today.selected::after {
+    background-color: var(--calendar-selected-text, white);
+    animation: none;
+}
+
+@keyframes todayPulse {
+    0%, 100% { opacity: 0.45; transform: translateX(-50%) scale(1); }
+    50%      { opacity: 1;    transform: translateX(-50%) scale(1.4); }
 }
 
 .emptyDay {
     aspect-ratio: 1;
 }
 
-/* Ajustes para móviles */
 @media (max-width: 480px) {
     .calendar {
-        max-width: 100%; /* Ocupar todo el ancho disponible */
+        max-width: 100%;
         padding: var(--space-2);
     }
 
@@ -120,15 +239,32 @@
     }
 
     .day {
-        /*margin: 0; !* Eliminar margen para maximizar espacio *!*/
         font-size: 0.8rem;
         border-radius: 30%;
         margin: 5px;
-
-
     }
 
     .daysGrid {
-        gap: 2px; /* Gap mínimo */
+        gap: 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .monthTitle,
+    .daysGrid,
+    .daysGrid.slideFromRight,
+    .daysGrid.slideFromLeft,
+    .day,
+    .selected,
+    .today::after,
+    .navButton {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+    .day:hover,
+    .day:active,
+    .navButton:hover,
+    .navButton:active {
+        transform: none !important;
     }
 }

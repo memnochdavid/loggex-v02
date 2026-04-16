@@ -175,6 +175,57 @@ Implementación:
 
 Integrado en `DataTable.jsx`: ambos `<LoadingView />` (vista escritorio + móvil) sustituidos por `TableSkeleton` / `MobileListSkeleton`. El número de filas en tabla respeta `itemsPerPage` (máx 8). `LoadingView` sigue disponible para las páginas que lo importan directamente.
 
+### Rediseño de `/horarios` (viewMode=calendar) — `WeekStrip` + CalendarView sticky
+
+Layout nuevo en escritorio (>1200px):
+
+- **Fila 1** (`.calendarViewModeContainer`, flex): `TimeTable` (flex-grow) + `CalendarView` en wrapper de 340px con `position: sticky; top: var(--space-4)` → el calendario acompaña el scroll del horario.
+- **Fila 2**: `<WeekStrip />` — grid de 7 columnas (Lun–Dom) con header (nombre + número) y `EventCard` apiladas por día.
+
+En móvil (≤1200px):
+- Se oculta `.calendarWrapper` y `WeekStrip` no se renderiza.
+- Se mantiene el drawer con `<EventsSidebar>` completo (CalendarView + lista de eventos de la semana como antes) — funciona como estaba.
+
+**Componente `WeekStrip.jsx` + `WeekStrip.module.css`** (lista horizontal plana):
+
+- Calcula lunes-domingo desde `selectedDate`, filtra `events` de esa semana y los ordena por fecha.
+- Header con título (`events.weekTitle`) + badge contador (`aria-live="polite"`).
+- Rejilla auto-fill: `grid-template-columns: repeat(auto-fill, minmax(260px, 1fr))` → se adapta al ancho, cada `EventCard` con mínimo 260px.
+- **Animación**: stagger 40ms por tarjeta (`animation-delay: calc(var(--i) * 40ms)`).
+- **Empty state**: bloque centrado con `--bg-input` + texto en `--text-muted` e itálica.
+- A11y: `aria-label` en la section, counter con `aria-live`.
+- `prefers-reduced-motion` desactiva la animación.
+
+Cambios en `Horarios.jsx`:
+- Import `CalendarView` y `WeekStrip`.
+- Reemplazo del `<EventsSidebar>` de escritorio por `<CalendarView>` sticky + `<WeekStrip>` a continuación.
+- El drawer móvil conserva `<EventsSidebar>` intacto.
+
+Cambios en `Horarios.module.css`:
+- `.calendarViewModeContainer`: altura auto (antes `85vh` + `overflow: hidden`), `align-items: flex-start` para permitir sticky del calendario.
+- Nueva `.calendarWrapper` (`width: 340px`, sticky).
+- Media ≤1200px: oculta `.calendarWrapper`; `.timeTableWrapper` a `width: 100%`.
+
+### `CalendarView.jsx` + `CalendarView.module.css`
+
+**JSX:**
+- Nuevo estado `direction` (-1/0/+1) para conocer el sentido del cambio de mes.
+- `key={year-month}` en `.daysGrid` y `.monthTitle` fuerza remount → re-ejecuta animaciones al navegar.
+- `aria-label`, `aria-pressed`, `aria-live="polite"` y `aria-hidden` en los chevrons.
+- `style={{ '--i': cellIndex }}` en cada día → stagger configurable desde CSS.
+
+**CSS (tokens motion + spring + reduced-motion):**
+- **Header**: `.monthTitle` con `titleSwap` (fade + translateY). `.navButton` con hover `scale(1.08)` + tinte primary, active `0.92`, focus-visible ring tokenizado.
+- **Días de la rejilla**: entrada en cascada `dayIn` con `animation-delay: calc(var(--i) * 12ms)` → onda de izquierda-arriba a derecha-abajo.
+- **Cambio de mes**: variantes `.slideFromRight` / `.slideFromLeft` en `.daysGrid` que aplican `translateX(±14px)` según dirección, combinadas con el stagger interno.
+- **Hover día**: tinte primary 14% + `scale(1.06)` + color primary 700. Active `0.94`.
+- **`.selected`**: spring `selectedPop` (1 → 1.14 → 1) con `--ease-out-back` + glow (box-shadow en dos capas con `color-mix`). `z-index: 1` para no quedar tapado por el día vecino durante el pop.
+- **`.today`**: anillo `inset box-shadow` + **dot pulsante** abajo (`::after` con `todayPulse` 2.1s infinite). Si `.today.selected`, el dot no pulsa y toma el color del texto seleccionado.
+- **Festivos**: patrón diagonal sutil con `repeating-linear-gradient` y `color-mix(--color-warning, 14%)` — distingue festivo de fin de semana sin saturar el color.
+- **Tabular numerals** en los números de día (evita saltos).
+- Todas las transiciones usan `--dur-fast/base/slow` y `--ease-standard/out-back/out-quart`.
+- Bloque `prefers-reduced-motion` completo (anula animaciones y transforms, mantiene colores).
+
 ### Tabs horizontales (`Calificaciones.module.css`)
 
 Las clases `.tabBar` / `.tab` / `.tabActive` / `.tabCount` / `.tabContent` viven en `Calificaciones.module.css` pero se reutilizan en 6 archivos (`HorariosAdmin`, `Fechas`, `MisCalificaciones`, `CalificacionesAdmin`, `CalificacionesDetalle`, `CalificacionesGrupo`) — modernizarlas aquí afecta a todos los tabs del sistema.
@@ -318,7 +369,7 @@ Agrupado por impacto. **Cualquier implementación debe seguir** el flujo `ui-ux-
 ### Componentes específicos del dominio académico
 
 5. `TimeTable` — celdas con micro-interacciones, hover sobre eventos, indicador de "ahora" (línea horizontal pulsante).
-6. `CalendarView` — días con animación al cambiar mes, festivos destacados.
+6. ~~`CalendarView`~~ ✅ animaciones mes/día, dot pulsante de "hoy", festivos con pattern.
 7. `EventCard` / `UserCard` / `EventsSidebar` — hover lift, click feedback.
 8. Widgets dashboard (`TablonWidget`, `UpcomingEventsWidget`, `PendingTasksWidget`) — entrada en cascada, skeletons, empty states ilustrados.
 
