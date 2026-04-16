@@ -5,10 +5,13 @@ import Layout from '../components/Layout';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import ThemedNumberInput from '../components/ThemedNumberInput';
+import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { Settings, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import Lottie from 'lottie-react';
+import statsAnimation from '../../public/stats.json';
 
 // Editor de peso por item (tarea individual) — agrupado por tipo
 const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeriodo = '', t }) => {
@@ -475,18 +478,15 @@ const CalificacionesGrupo = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <div className={styles.sectionHeader}>
-                    <div>
-                        <h1 className={styles.title}>{t('grades.title')}</h1>
-                        {mediasData?.imparticion && (
-                            <p className={styles.subtitle}>
-                                {mediasData.imparticion.modulo} — {mediasData.imparticion.grupo} — {mediasData.imparticion.profesor}
-                            </p>
-                        )}
-                    </div>
-                    <div className={styles.controls}>
-                        {isSuperAdmin && (
-                            <>
+                <CrudHeader
+                    title={t('grades.title')}
+                    subtitle={mediasData?.imparticion
+                        ? `${mediasData.imparticion.modulo} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
+                        : undefined}
+                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
+                    {isSuperAdmin && (
+                        <>
                             <ThemedSelect
                                 value={selectedCentro}
                                 onChange={(v) => { setSelectedCentro(v); setSelectedImparticion(''); setSelectedPeriodo(''); }}
@@ -509,37 +509,36 @@ const CalificacionesGrupo = () => {
                                     ]}
                                 />
                             )}
-                            </>
-                        )}
-                        <ThemedSelect
-                            value={selectedImparticion}
-                            onChange={(v) => { setSelectedImparticion(v); setSelectedPeriodo(''); }}
-                            minWidth={220}
-                            options={imparticiones.map(imp => {
-                                const id = imp.id || imp['@id']?.split('/').pop();
-                                return { value: String(id), label: getImparticionLabel(imp) };
-                            })}
-                        />
-                        <ThemedSelect
-                            value={selectedPeriodo}
-                            onChange={setSelectedPeriodo}
-                            minWidth={180}
-                            ariaLabel={t('grades.allPeriods')}
-                            options={[
-                                { value: '', label: t('grades.allPeriods') },
-                                ...periodos.map(p => {
-                                    const id = p.id || p['@id']?.split('/').pop();
-                                    return { value: String(id), label: p.nombre };
-                                }),
-                            ]}
-                        />
-                        {isProfesor && (
-                            <Button onClick={() => setShowWeights(!showWeights)}>
-                                <Settings size={16} />
-                            </Button>
-                        )}
-                    </div>
-                </div>
+                        </>
+                    )}
+                    <ThemedSelect
+                        value={selectedImparticion}
+                        onChange={(v) => { setSelectedImparticion(v); setSelectedPeriodo(''); }}
+                        minWidth={220}
+                        options={imparticiones.map(imp => {
+                            const id = imp.id || imp['@id']?.split('/').pop();
+                            return { value: String(id), label: getImparticionLabel(imp) };
+                        })}
+                    />
+                    <ThemedSelect
+                        value={selectedPeriodo}
+                        onChange={setSelectedPeriodo}
+                        minWidth={180}
+                        ariaLabel={t('grades.allPeriods')}
+                        options={[
+                            { value: '', label: t('grades.allPeriods') },
+                            ...periodos.map(p => {
+                                const id = p.id || p['@id']?.split('/').pop();
+                                return { value: String(id), label: p.nombre };
+                            }),
+                        ]}
+                    />
+                    {isProfesor && (
+                        <Button onClick={() => setShowWeights(!showWeights)}>
+                            <Settings size={16} />
+                        </Button>
+                    )}
+                </CrudHeader>
 
                 {/* Panel de ponderaciones */}
                 {showWeights && (

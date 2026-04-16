@@ -374,7 +374,9 @@ const Entregas = () => {
     }
   };
 
-  const renderContent = (imparticion) => {
+  // Devuelve las tareas de una imparticion tras aplicar TODOS los filtros activos
+  // (período, tab global y deliveryFilter si es alumno).
+  const filterTareas = (imparticion) => {
     const allTareas = (imparticion.tareas || []).filter(enPeriodo);
     let tareas = activeTab === 'todos' ? allTareas : allTareas.filter(t => t.tipo === activeTab);
     if (isAlumno && deliveryFilter !== 'all') {
@@ -383,6 +385,11 @@ const Entregas = () => {
         return deliveryFilter === 'delivered' ? hasEntrega : !hasEntrega;
       });
     }
+    return { allTareas, tareas };
+  };
+
+  const renderContent = (imparticion) => {
+    const { allTareas, tareas } = filterTareas(imparticion);
     if (allTareas.length === 0) return <div className={styles.emptyState}>{t('deliveries.noTasks')}</div>;
     if (tareas.length === 0) return <div className={styles.emptyState}>{t('grades.noTasksType')}</div>;
 
@@ -578,6 +585,15 @@ const Entregas = () => {
           <AccordionView
             data={asignaturas}
             renderItem={renderContent}
+            renderHeader={(imparticion) => {
+              const { tareas } = filterTareas(imparticion);
+              return (
+                <span className="accordionHeaderWithCount">
+                  <span className="accordionHeaderTitle">{imparticion.title}</span>
+                  <span className="accordionHeaderCount">{tareas.length}</span>
+                </span>
+              );
+            }}
             canAdd={isProfesor || isAdmin || isSuperAdmin}
             onAdd={(id) => handleOpenTareaModal(id)}
             expandedId={expandedId}

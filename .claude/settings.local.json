@@ -37,7 +37,8 @@
       "Bash(php -l /home/david/Documentos/CLASE/loggex-v02/backend/src/Controller/HorarioSolverController.php)",
       "Bash(php *)",
       "Bash(ls frontend/src/*.css frontend/src/styles/*.css)",
-      "Bash(ls frontend/src/index.* frontend/src/main.*)"
+      "Bash(ls frontend/src/index.* frontend/src/main.*)",
+      "Bash(ls *)"
     ]
   }
 }

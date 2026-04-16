@@ -8,10 +8,13 @@ import { Download } from 'lucide-react';
 import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import AccordionView from '../components/AccordionView';
+import CrudHeader from '../components/CrudHeader';
+import Lottie from 'lottie-react';
+import statsAnimation from '../../public/stats.json';
 
 // Header de cada módulo dentro del AccordionView. Dispara la carga lazy de
 // tareas la primera vez que el item se expande.
-const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, styles, t }) => {
+const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, styles, t, filteredCount }) => {
     React.useEffect(() => {
         if (isExpanded) onExpand?.();
     }, [isExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -26,7 +29,12 @@ const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, s
     return (
         <div className={styles.moduleHeaderRow}>
             <div className={styles.moduleHeaderMain}>
-                <div className={styles.moduleName}>{mod.imparticion.modulo}</div>
+                <div className={styles.moduleName}>
+                    {mod.imparticion.modulo}
+                    <span className="accordionHeaderCount" style={{ marginLeft: 'var(--space-2)' }}>
+                        {filteredCount}
+                    </span>
+                </div>
                 <div className={styles.moduleTeacher}>{mod.imparticion.profesor} — {mod.imparticion.grupo}</div>
                 <div className={styles.moduleStatsChips}>
                     {stats.map((s, i) => (
@@ -225,7 +233,9 @@ const MisCalificaciones = () => {
                 setData(await response.json());
                 setError(null);
                 setModuleTasks({});
-                setExpandedModuleId(null);
+                // No cerramos el accordion al cambiar de filtro. El useEffect de
+                // sincronización (abajo) recargará las tareas del módulo expandido
+                // o lo cerrará si ya no existe en los nuevos datos.
             } catch {
                 setError(t('grades.errorLoading'));
             } finally {
@@ -234,6 +244,21 @@ const MisCalificaciones = () => {
         };
         fetchCalificaciones();
     }, [selectedPeriodo, selectedAlumno, isSuperAdmin, t]);
+
+    // Tras cada fetch: si el módulo expandido sigue existiendo, recarga sus tareas
+    // (se limpian al cambiar de filtro). Si ya no existe, cierra el accordion.
+    useEffect(() => {
+        if (!data?.modulos || !expandedModuleId) return;
+        const stillExists = data.modulos.some(m => m.imparticion.id === expandedModuleId);
+        if (!stillExists) {
+            setExpandedModuleId(null);
+            return;
+        }
+        if (!moduleTasks[expandedModuleId] && !loadingTasks[expandedModuleId]) {
+            loadTasksForModule(expandedModuleId);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data, expandedModuleId]);
 
     // Carga las tareas + entregas de un módulo (lazy). Idempotente: no recarga
     // si ya están en moduleTasks o en proceso de carga.
@@ -321,88 +346,82 @@ const MisCalificaciones = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <div className={styles.sectionHeader}>
-                    <div>
-                        <h1 className={styles.title}>{t('grades.myGradesTitle')}</h1>
-                        {isSuperAdmin && data?.alumno && (
-                            <p className={styles.subtitle}>
-                                {data.alumno.apellidos}, {data.alumno.nombre}
-                            </p>
-                        )}
-                    </div>
-                    <div className={styles.controls}>
-                        {isSuperAdmin && (
-                            <>
+                <CrudHeader
+                    title={t('grades.myGradesTitle')}
+                    subtitle={isSuperAdmin && data?.alumno ? `${data.alumno.apellidos}, ${data.alumno.nombre}` : undefined}
+                    logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                >
+                    {isSuperAdmin && (
+                        <>
+                            <ThemedSelect
+                                value={selectedCentro}
+                                onChange={setSelectedCentro}
+                                minWidth={200}
+                                ariaLabel={t('common.selectCenter')}
+                                options={[
+                                    { value: '', label: t('common.selectCenter') },
+                                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                                ]}
+                            />
+                            {availableYears.length > 0 && (
                                 <ThemedSelect
-                                    value={selectedCentro}
-                                    onChange={setSelectedCentro}
-                                    minWidth={200}
-                                    ariaLabel={t('common.selectCenter')}
-                                    options={[
-                                        { value: '', label: t('common.selectCenter') },
-                                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
-                                    ]}
-                                />
-                                {availableYears.length > 0 && (
-                                    <ThemedSelect
-                                        value={selectedYear}
-                                        onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); }}
-                                        disabled={!selectedCentro}
-                                        minWidth={140}
-                                        ariaLabel={t('grades.allYears')}
-                                        options={[
-                                            { value: '', label: t('grades.allYears') },
-                                            ...availableYears.map(y => ({ value: y, label: y })),
-                                        ]}
-                                    />
-                                )}
-                                <ThemedSelect
-                                    value={selectedGrupo}
-                                    onChange={setSelectedGrupo}
+                                    value={selectedYear}
+                                    onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); }}
                                     disabled={!selectedCentro}
-                                    minWidth={150}
-                                    ariaLabel={t('common.allGroups')}
+                                    minWidth={140}
+                                    ariaLabel={t('grades.allYears')}
                                     options={[
-                                        { value: '', label: t('common.allGroups') },
-                                        ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                        { value: '', label: t('grades.allYears') },
+                                        ...availableYears.map(y => ({ value: y, label: y })),
                                     ]}
                                 />
-                                <ThemedSelect
-                                    value={selectedAlumno}
-                                    onChange={(v) => { setSelectedAlumno(v); setSelectedPeriodo(''); }}
-                                    disabled={!selectedGrupo}
-                                    minWidth={200}
-                                    ariaLabel={t('common.selectStudent')}
-                                    options={[
-                                        { value: '', label: t('common.selectStudent') },
-                                        ...alumnos.map(a => ({ value: String(a.id), label: `${a.apellidos}, ${a.nombre}` })),
-                                    ]}
-                                />
-                            </>
-                        )}
-                        <ThemedSelect
-                            value={selectedPeriodo}
-                            onChange={setSelectedPeriodo}
-                            minWidth={180}
-                            ariaLabel={t('grades.allPeriods')}
-                            options={[
-                                { value: '', label: t('grades.allPeriods') },
-                                ...periodos.map(p => {
-                                    const id = p.id || p['@id']?.split('/').pop();
-                                    return { value: String(id), label: p.nombre };
-                                }),
-                            ]}
-                        />
-                        <Button
-                            size="sm"
-                            onClick={handleDownloadBoletin}
-                            disabled={!selectedPeriodo || downloadingReport}
-                        >
-                            <Download size={14} style={{ marginRight: '4px' }} />
-                            {downloadingReport ? t('grades.generating') : t('grades.downloadReport')}
-                        </Button>
-                    </div>
-                </div>
+                            )}
+                            <ThemedSelect
+                                value={selectedGrupo}
+                                onChange={setSelectedGrupo}
+                                disabled={!selectedCentro}
+                                minWidth={150}
+                                ariaLabel={t('common.allGroups')}
+                                options={[
+                                    { value: '', label: t('common.allGroups') },
+                                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                ]}
+                            />
+                            <ThemedSelect
+                                value={selectedAlumno}
+                                onChange={(v) => { setSelectedAlumno(v); setSelectedPeriodo(''); }}
+                                disabled={!selectedGrupo}
+                                minWidth={200}
+                                ariaLabel={t('common.selectStudent')}
+                                options={[
+                                    { value: '', label: t('common.selectStudent') },
+                                    ...alumnos.map(a => ({ value: String(a.id), label: `${a.apellidos}, ${a.nombre}` })),
+                                ]}
+                            />
+                        </>
+                    )}
+                    <ThemedSelect
+                        value={selectedPeriodo}
+                        onChange={setSelectedPeriodo}
+                        minWidth={180}
+                        ariaLabel={t('grades.allPeriods')}
+                        options={[
+                            { value: '', label: t('grades.allPeriods') },
+                            ...periodos.map(p => {
+                                const id = p.id || p['@id']?.split('/').pop();
+                                return { value: String(id), label: p.nombre };
+                            }),
+                        ]}
+                    />
+                    <Button
+                        size="sm"
+                        onClick={handleDownloadBoletin}
+                        disabled={!selectedPeriodo || downloadingReport}
+                    >
+                        <Download size={14} style={{ marginRight: '4px' }} />
+                        {downloadingReport ? t('grades.generating') : t('grades.downloadReport')}
+                    </Button>
+                </CrudHeader>
 
                 {error && <div className={styles.errorContainer}>{error}</div>}
 
@@ -417,17 +436,26 @@ const MisCalificaciones = () => {
                         data={data.modulos.map(m => ({ ...m, id: m.imparticion.id }))}
                         expandedId={expandedModuleId}
                         onToggle={(id) => setExpandedModuleId(prev => prev === id ? null : id)}
-                        renderHeader={(mod, isExpanded) => (
-                            <ModuleHeader
-                                mod={mod}
-                                isExpanded={isExpanded}
-                                onExpand={() => loadTasksForModule(mod.imparticion.id)}
-                                getGradeClass={getGradeClass}
-                                formatGrade={formatGrade}
-                                styles={styles}
-                                t={t}
-                            />
-                        )}
+                        renderHeader={(mod, isExpanded) => {
+                            const impId = mod.imparticion.id;
+                            const tasks = moduleTasks[impId];
+                            const tab = moduleTab[impId] || 'todos';
+                            const filteredCount = tasks
+                                ? (tab === 'todos' ? tasks.length : tasks.filter(x => x.tipo === tab).length)
+                                : mod.totalTareas;
+                            return (
+                                <ModuleHeader
+                                    mod={mod}
+                                    isExpanded={isExpanded}
+                                    onExpand={() => loadTasksForModule(impId)}
+                                    getGradeClass={getGradeClass}
+                                    formatGrade={formatGrade}
+                                    styles={styles}
+                                    t={t}
+                                    filteredCount={filteredCount}
+                                />
+                            );
+                        }}
                         renderItem={(mod) => {
                             const impId = mod.imparticion.id;
                             const tasks = moduleTasks[impId];

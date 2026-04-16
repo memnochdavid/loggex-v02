@@ -395,6 +395,15 @@ const MaterialesAlumno = () => {
           <AccordionView
             data={asignaturas}
             renderItem={renderMateriales}
+            renderHeader={(a) => {
+              const count = (a.materiales || []).filter(enPeriodo).length;
+              return (
+                <span className="accordionHeaderWithCount">
+                  <span className="accordionHeaderTitle">{a.title}</span>
+                  <span className="accordionHeaderCount" aria-label={t('common.count', 'Total')}>{count}</span>
+                </span>
+              );
+            }}
             canAdd={false}
             expandedId={expandedId}
             onToggle={(id) => setExpandedId(prev => prev === id ? null : id)}
