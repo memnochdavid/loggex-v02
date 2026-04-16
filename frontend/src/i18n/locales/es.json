@@ -148,7 +148,9 @@
     "myGrades": "Mis Notas",
     "stats": "Estadísticas",
     "logout": "Cerrar Sesión",
-    "scheduleAdmin": "Horarios (administración)"
+    "scheduleAdmin": "Horarios (administración)",
+    "pin": "Anclar",
+    "unpin": "Desanclar"
   },
   "userAvatar": {
     "menuLabel": "Menú de usuario",

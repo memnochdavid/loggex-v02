@@ -1,19 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { Home, User, Settings, LogOut, ChevronLeft, ChevronRight, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
+import { getLastPointer } from '../utils/pointerTracker';
+import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { useTranslation } from 'react-i18next';
+import useUnreadMessages from '../hooks/useUnreadMessages';
+
+// Ancho del sidebar expandido — usado para estimar hover en el primer paint
+// tras un remount, cuando aún no existe ref al nuevo aside.
+const SIDEBAR_EXPANDED_WIDTH = 260;
+const HEADER_HEIGHT_ESTIMATE = 84;
+
+// Decide si el cursor está sobre la "zona del sidebar expandido" según la
+// última posición conocida del puntero. Usado para inicializar isHovered
+// en el primer render tras remount (sin esperar a un mouseenter).
+const estimateSidebarHover = () => {
+    const { x, y } = getLastPointer();
+    if (x < 0) return false;
+    return x >= 0 && x <= SIDEBAR_EXPANDED_WIDTH && y >= HEADER_HEIGHT_ESTIMATE;
+};
 
 const Sidebar = () => {
     const { t } = useTranslation();
     const { logout, user } = useAuth();
     const { isSidebarOpen, closeSidebar } = useUI();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isPinned, setIsPinned] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('sidebarPinned')) ?? false; }
+        catch { return false; }
+    });
+    // Initial state consulta directamente la zona física donde el sidebar
+    // expandido habría estado. Así, tras un remount con el cursor encima,
+    // el primer paint ya sale expandido (sin bounce).
+    const [isHovered, setIsHovered] = useState(estimateSidebarHover);
+    const asideRef = useRef(null);
+    const isExpanded = isPinned || isHovered || isSidebarOpen;
+    const isCollapsed = !isExpanded;
+    const unreadMessages = useUnreadMessages();
     const location = useLocation();
+
+    useEffect(() => {
+        localStorage.setItem('sidebarPinned', JSON.stringify(isPinned));
+    }, [isPinned]);
 
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -80,11 +111,11 @@ const Sidebar = () => {
         }
     }, [location.pathname, isAlumno, isSuperAdmin]);
 
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
+    const togglePin = () => {
+        setIsPinned(prev => !prev);
     };
 
-    const getNavLinkClass = ({ isActive }) => 
+    const getNavLinkClass = ({ isActive }) =>
         isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
 
     const handleAccordionToggle = (id) => {
@@ -102,19 +133,24 @@ const Sidebar = () => {
             <>
                 <NavLink to="/" className={getNavLinkClass} title={t('sidebar.home')} onClick={closeSidebar}>
                     <Home size={20} />
-                    {!isCollapsed && <span>{t('sidebar.home')}</span>}
+                    <span>{t('sidebar.home')}</span>
                 </NavLink>
                 <NavLink to="/horarios" className={getNavLinkClass} title={t('sidebar.schedule')} onClick={closeSidebar}>
                     <Calendar size={20} />
-                    {!isCollapsed && <span>{t('sidebar.schedule')}</span>}
+                    <span>{t('sidebar.schedule')}</span>
                 </NavLink>
                 <NavLink to="/mensajes" className={getNavLinkClass} title={t('sidebar.messaging')} onClick={closeSidebar}>
                     <MessageSquare size={20} />
-                    {!isCollapsed && <span>{t('sidebar.messaging')}</span>}
+                    <span>{t('sidebar.messaging')}</span>
+                    {unreadMessages > 0 && (
+                        <span className={styles.badge} aria-label={`${unreadMessages} no leídos`}>
+                            {unreadMessages > 99 ? '99+' : unreadMessages}
+                        </span>
+                    )}
                 </NavLink>
                 <NavLink to="/perfil" className={getNavLinkClass} title={t('sidebar.profile')} onClick={closeSidebar}>
                     <User size={20} />
-                    {!isCollapsed && <span>{t('sidebar.profile')}</span>}
+                    <span>{t('sidebar.profile')}</span>
                 </NavLink>
             </>
         )
@@ -129,23 +165,23 @@ const Sidebar = () => {
                 <>
                     <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                         <UploadCloud size={20} />
-                        {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
+                        <span>{t('sidebar.deliveries')}</span>
                     </NavLink>
                     <NavLink to="/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar}>
                         <BarChart3 size={20} />
-                        {!isCollapsed && <span>{t('sidebar.grades')}</span>}
+                        <span>{t('sidebar.grades')}</span>
                     </NavLink>
                     <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={closeSidebar}>
                         <Book size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myMaterials')}</span>}
+                        <span>{t('sidebar.myMaterials')}</span>
                     </NavLink>
                     <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={closeSidebar}>
                         <UserCheck size={20} />
-                        {!isCollapsed && <span>{t('sidebar.faculty')}</span>}
+                        <span>{t('sidebar.faculty')}</span>
                     </NavLink>
                     <NavLink to="/mis-alumnos" className={getNavLinkClass} title={t('sidebar.myStudents')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myStudents')}</span>}
+                        <span>{t('sidebar.myStudents')}</span>
                     </NavLink>
                 </>
             )
@@ -161,29 +197,29 @@ const Sidebar = () => {
                 <>
                     <NavLink to="/apuntes" className={getNavLinkClass} title={t('sidebar.myNotes')} onClick={closeSidebar}>
                         <FileText size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myNotes')}</span>}
+                        <span>{t('sidebar.myNotes')}</span>
                     </NavLink>
                     <NavLink to="/faltas" className={getNavLinkClass} title={t('sidebar.myAbsences')} onClick={closeSidebar}>
                         <AlertCircle size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myAbsences')}</span>}
+                        <span>{t('sidebar.myAbsences')}</span>
                     </NavLink>
                     <NavLink to="/mis-calificaciones" className={getNavLinkClass} title={t('sidebar.myGrades')} onClick={closeSidebar}>
                         <BarChart3 size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myGrades')}</span>}
+                        <span>{t('sidebar.myGrades')}</span>
                     </NavLink>
                     <NavLink to="/companeros" className={getNavLinkClass} title={t('sidebar.myClassmates')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myClassmates')}</span>}
+                        <span>{t('sidebar.myClassmates')}</span>
                     </NavLink>
                     <NavLink to="/mis-profesores" className={getNavLinkClass} title={t('sidebar.myTeachers')} onClick={closeSidebar}>
                         <UserCheck size={20} />
-                        {!isCollapsed && <span>{t('sidebar.myTeachers')}</span>}
+                        <span>{t('sidebar.myTeachers')}</span>
                     </NavLink>
                     {/* Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
                     {!isProfesor && !isAdmin && !isSuperAdmin && (
                         <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
                             <UploadCloud size={20} />
-                            {!isCollapsed && <span>{t('sidebar.deliveries')}</span>}
+                            <span>{t('sidebar.deliveries')}</span>
                         </NavLink>
                     )}
                 </>
@@ -200,45 +236,45 @@ const Sidebar = () => {
                 <>
                     <NavLink to="/usuarios" className={getNavLinkClass} title={t('sidebar.users')} onClick={closeSidebar}>
                         <Users size={20} />
-                        {!isCollapsed && <span>{t('sidebar.users')}</span>}
+                        <span>{t('sidebar.users')}</span>
                     </NavLink>
                     <NavLink to="/ciclos" className={getNavLinkClass} title={t('sidebar.cycles')} onClick={closeSidebar}>
                         <Layers size={20} />
-                        {!isCollapsed && <span>{t('sidebar.cycles')}</span>}
+                        <span>{t('sidebar.cycles')}</span>
                     </NavLink>
                     <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={closeSidebar}>
                         <UsersRound size={20} />
-                        {!isCollapsed && <span>{t('sidebar.groups')}</span>}
+                        <span>{t('sidebar.groups')}</span>
                     </NavLink>
                     <NavLink to="/modulos" className={getNavLinkClass} title={t('sidebar.modules')} onClick={closeSidebar}>
                         <BookOpen size={20} />
-                        {!isCollapsed && <span>{t('sidebar.modules')}</span>}
+                        <span>{t('sidebar.modules')}</span>
                     </NavLink>
                     <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={closeSidebar}>
                         <GraduationCap size={20} />
-                        {!isCollapsed && <span>{t('sidebar.enrollments')}</span>}
+                        <span>{t('sidebar.enrollments')}</span>
                     </NavLink>
                     <NavLink to="/imparticiones" className={getNavLinkClass} title={t('sidebar.teachingAssignment')} onClick={closeSidebar}>
                         <Briefcase size={20} />
-                        {!isCollapsed && <span>{t('sidebar.teaching')}</span>}
+                        <span>{t('sidebar.teaching')}</span>
                     </NavLink>
                     <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={closeSidebar}>
                         <Calendar size={20} />
-                        {!isCollapsed && <span>{t('sidebar.schedule')}</span>}
+                        <span>{t('sidebar.schedule')}</span>
                     </NavLink>
                     {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
                         <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                             <CalendarDays size={20} />
-                            {!isCollapsed && <span>Fechas</span>}
+                            <span>Fechas</span>
                         </NavLink>
                     )}
                     <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.stats')} onClick={closeSidebar}>
                         <BarChart3 size={20} />
-                        {!isCollapsed && <span>{t('sidebar.stats')}</span>}
+                        <span>{t('sidebar.stats')}</span>
                     </NavLink>
                     <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar}>
                         <Settings size={20} />
-                        {!isCollapsed && <span>{t('sidebar.settings')}</span>}
+                        <span>{t('sidebar.settings')}</span>
                     </NavLink>
                 </>
             )
@@ -254,11 +290,11 @@ const Sidebar = () => {
                 <>
                     <NavLink to="/centros" className={getNavLinkClass} title={t('sidebar.centers')} onClick={closeSidebar}>
                         <Building size={20} />
-                        {!isCollapsed && <span>{t('sidebar.centers')}</span>}
+                        <span>{t('sidebar.centers')}</span>
                     </NavLink>
                     <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={closeSidebar}>
                         <CalendarDays size={20} />
-                        {!isCollapsed && <span>Fechas</span>}
+                        <span>Fechas</span>
                     </NavLink>
                 </>
             )
@@ -274,26 +310,42 @@ const Sidebar = () => {
                 <div className={styles.overlay} onClick={closeSidebar} />
             )}
 
-            <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}>
-                <nav className={styles.nav}>
+            <aside
+                ref={asideRef}
+                className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isPinned ? styles.pinned : ''} ${isSidebarOpen ? styles.mobileOpen : ''}`}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+                <div className={styles.inner}>
+                    <nav className={styles.nav}>
+                        <div className={styles.accordionWrapper}>
+                            <AccordionView
+                                data={accordionData}
+                                renderItem={(item) => item.content}
+                                renderHeader={(item) => <span>{item.title}</span>}
+                                expandedId={expandedAccordion}
+                                onToggle={handleAccordionToggle}
+                            />
+                        </div>
+                    </nav>
 
-
-                    {/* Usamos AccordionView para las secciones */}
-                    <div className={styles.accordionWrapper}>
-                        <AccordionView
-                            data={accordionData}
-                            renderItem={(item) => item.content}
-                            renderHeader={(item) => !isCollapsed ? <span>{item.title}</span> : null}
-                            expandedId={expandedAccordion}
-                            onToggle={handleAccordionToggle}
-                        />
-                    </div>
-                </nav>
-
-                <div className={styles.footer}>
-                    <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title={t('sidebar.logout')} style={{ cursor: 'pointer' }}>
-                        <LogOut size={20} />
-                        {!isCollapsed && <span>{t('sidebar.logout')}</span>}
+                    <div className={styles.footer}>
+                        {/* Botón pin — solo visible expandido o en hover.
+                            En móvil se oculta por CSS. */}
+                        <button
+                            type="button"
+                            className={styles.pinBtn}
+                            onClick={togglePin}
+                            aria-pressed={isPinned}
+                            title={isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}
+                        >
+                            {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
+                            <span>{isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}</span>
+                        </button>
+                        <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title={t('sidebar.logout')} style={{ cursor: 'pointer' }}>
+                            <LogOut size={20} />
+                            <span>{t('sidebar.logout')}</span>
+                        </div>
                     </div>
                 </div>
             </aside>

@@ -148,7 +148,9 @@
     "myGrades": "Nire Notak",
     "stats": "Estatistikak",
     "logout": "Saioa itxi",
-    "scheduleAdmin": "Ordutegiak (administrazioa)"
+    "scheduleAdmin": "Ordutegiak (administrazioa)",
+    "pin": "Ainguratu",
+    "unpin": "Askatu"
   },
   "userAvatar": {
     "menuLabel": "Erabiltzaile menua",

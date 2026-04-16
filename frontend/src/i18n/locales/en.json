@@ -148,7 +148,9 @@
     "myGrades": "My Grades",
     "stats": "Statistics",
     "logout": "Log Out",
-    "scheduleAdmin": "Schedules (admin)"
+    "scheduleAdmin": "Schedules (admin)",
+    "pin": "Pin",
+    "unpin": "Unpin"
   },
   "userAvatar": {
     "menuLabel": "User menu",

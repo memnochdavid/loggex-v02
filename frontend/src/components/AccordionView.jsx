@@ -24,11 +24,11 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
 
   return (
     <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''} accordionItem ${isExpanded ? 'accordionItemOpen' : ''}`}>
-      <div className={styles.accordionHeader} onClick={handleToggle}>
-        <div className={styles.headerContent}>
+      <div className={`${styles.accordionHeader} accordionHeader`} onClick={handleToggle}>
+        <div className={`${styles.headerContent} headerContent`}>
             {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}
         </div>
-        <div className={styles.headerActions}>
+        <div className={`${styles.headerActions} headerActions`}>
           {canAdd && onAdd && (
             <button 
               className={stylesButton.iconButton}
