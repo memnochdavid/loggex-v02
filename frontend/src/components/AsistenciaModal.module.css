@@ -44,7 +44,7 @@
     display: flex;
     align-items: center;
     gap: 0.8rem;
-    color: var(--text-main); /* Usar variable maestra */
+    /*color: var(--text-main); !* Usar variable maestra *!*/
 }
 
 .avatar {
