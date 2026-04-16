@@ -92,6 +92,21 @@
     background-color: color-mix(in srgb, var(--bg-card), var(--text-main) 6%);
 }
 
+/* Fade al aparecer tras el skeleton (o al paginar/filtrar). Sin stagger: el efecto
+   es sólo de continuidad, no de cascada. */
+.dataRow {
+    animation: dataRowIn var(--dur-base) var(--ease-out-quart) backwards;
+}
+
+@keyframes dataRowIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dataRow { animation: none; }
+}
+
 .td {
     padding: var(--space-3) var(--space-4);
     color: var(--text-main);

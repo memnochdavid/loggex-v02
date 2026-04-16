@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import styles from './DataTable.module.css';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 import AccordionView from './AccordionView';
-import Lottie from 'lottie-react';
-import loadingAnimation from '../../public/loading.json';
-import loadingStyles from './LoadingView.module.css';
 import { TableSkeleton, MobileListSkeleton } from './Skeleton';
 import ThemedSelect from './ThemedSelect';
 import useMediaQuery from '../hooks/useMediaQuery';
@@ -141,31 +138,10 @@ const DataTable = ({
     const noDataAvailable = !loading && (!data || data.length === 0);
 
     return (
-        <div className={styles.container} style={{ position: 'relative', minHeight: '200px' }}>
-            {/* Overlay de carga sutil si loading es true Y hay datos previos */}
-            {loading && data && data.length > 0 && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                    zIndex: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none'
-                }}>
-                    <div className={loadingStyles.lottieThemed}>
-                        <Lottie animationData={loadingAnimation} loop style={{ width: 60, height: 60 }} />
-                    </div>
-                </div>
-            )}
-
+        <div className={styles.container}>
             {!isMobile ? (
                 /* Vista Escritorio */
-                <div className={styles.desktopView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                <div className={styles.desktopView}>
                     {renderPagination('top')}
                     
                     <div className={styles.tableWrapper}>
@@ -195,8 +171,8 @@ const DataTable = ({
                                 </tr>
                             </thead>
                             <tbody className={styles.tbody}>
-                                {/* Caso 1: Cargando y sin datos previos */}
-                                {loading && (!data || data.length === 0) ? (
+                                {/* Caso 1: Cargando — skeleton siempre que loading (también al paginar/filtrar) */}
+                                {loading ? (
                                     <TableSkeleton
                                         columns={columns.length}
                                         rows={Math.min(itemsPerPage || 5, 8)}
@@ -212,7 +188,7 @@ const DataTable = ({
                                 ) : (
                                     /* Caso 3: Datos disponibles */
                                     data.map((row, rowIndex) => (
-                                        <tr key={row.id || row['@id'] || rowIndex}>
+                                        <tr key={row.id || row['@id'] || rowIndex} className={styles.dataRow}>
                                             {columns.map((col, colIndex) => (
                                                 <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
                                                     {getCellValue(col, row)}
@@ -229,13 +205,13 @@ const DataTable = ({
                 </div>
             ) : (
                 /* Vista Móvil */
-                <div className={styles.mobileView} style={{ opacity: loading && data && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                <div className={styles.mobileView}>
                     <div className={styles.mobileContainer}>
                         <div className={styles.mobilePaginationContainer}>
                             {renderPagination('top')}
                         </div>
 
-                        {loading && (!data || data.length === 0) ? (
+                        {loading ? (
                             <MobileListSkeleton rows={4} />
                         ) : noDataAvailable ? (
                             <div className={styles.emptyState} style={{ padding: '2rem', textAlign: 'center' }}>
