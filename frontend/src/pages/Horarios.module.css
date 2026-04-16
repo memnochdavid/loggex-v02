@@ -311,7 +311,7 @@
 }
 
 /* Media Queries */
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
     .container {
         padding: 0 var(--space-2);
         height: auto;

@@ -362,8 +362,8 @@ const CalificacionesGrupo = () => {
         setSavingTareaPeso(prev => ({ ...prev, [tareaId]: true }));
         try {
             const res = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
                 body: JSON.stringify({ peso: parsed }),
                 credentials: 'include',
             });
