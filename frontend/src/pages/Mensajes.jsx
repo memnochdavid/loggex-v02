@@ -389,6 +389,7 @@ const Mensajes = () => {
                                 </div>
 
                                 <div
+                                    key={selectedUser?.id}
                                     className={styles.messagesContainer}
                                     ref={messagesContainerRef}
                                     onScroll={handleScroll}

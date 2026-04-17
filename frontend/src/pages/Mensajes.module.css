@@ -224,6 +224,18 @@
     flex-direction: column;
     gap: var(--space-3);
     min-height: 0;
+    animation: chatIn var(--dur-slow) var(--ease-out-quart);
+}
+
+@keyframes chatIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .messageBubble {
@@ -382,7 +394,8 @@
     .chatArea,
     .conversationItem,
     .backButton,
-    .messageInput {
+    .messageInput,
+    .messagesContainer {
         transition-duration: 0.01ms !important;
         animation: none !important;
     }
