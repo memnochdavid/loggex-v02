@@ -483,7 +483,8 @@ const Entregas = () => {
             onClick={(e) => {
               e.stopPropagation();
               setIsViewModalOpen(false);
-              navigate(`/calificaciones/detalle?imparticion=${viewImparticionId}&alumno=${alumnoId}`);
+              const tareaId = currentTarea?.id || currentTarea?.['@id']?.split('/').pop();
+              navigate(`/calificaciones/detalle?imparticion=${viewImparticionId}&alumno=${alumnoId}${tareaId ? `&tarea=${tareaId}` : ''}`);
             }}
             title={t('grades.viewDetail')}
           >

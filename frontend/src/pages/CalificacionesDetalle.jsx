@@ -14,6 +14,7 @@ const CalificacionesDetalle = () => {
     const [searchParams] = useSearchParams();
     const imparticionId = searchParams.get('imparticion');
     const alumnoId = searchParams.get('alumno');
+    const tareaParam = searchParams.get('tarea');
 
     const [mediaData, setMediaData] = useState(null);
     const [tareas, setTareas] = useState([]);
@@ -112,6 +113,27 @@ const CalificacionesDetalle = () => {
     }, [imparticionId, alumnoId, selectedPeriodo, t]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    // Deep-link a tarea concreta: cambiar tab + scroll
+    useEffect(() => {
+        if (!tareaParam || tareas.length === 0) return;
+        const tarea = tareas.find(t => String(t.id || t['@id']?.split('/').pop()) === String(tareaParam));
+        if (!tarea) return;
+        // Cambiar al tab del tipo de tarea (o "todos" si ya lo incluye)
+        if (tarea.tipo && ['examen', 'tarea', 'practica'].includes(tarea.tipo)) {
+            setActiveTab(tarea.tipo);
+        }
+        // Scroll al elemento tras el render
+        requestAnimationFrame(() => {
+            const el = document.getElementById(`tarea-${tareaParam}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight temporal
+                el.style.boxShadow = `inset 3px 0 0 0 var(--color-primary-500), var(--shadow-md)`;
+                setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+            }
+        });
+    }, [tareaParam, tareas]);
 
     const tabs = [
         { key: 'todos', label: t('grades.filterAll') },
@@ -378,7 +400,7 @@ const CalificacionesDetalle = () => {
                             const isEditingNt = editingNota === tareaKey;
 
                             return (
-                                <div key={tareaKey} className={styles.taskItem}>
+                                <div key={tareaKey} id={`tarea-${tarea.id || tarea['@id']?.split('/').pop()}`} className={styles.taskItem}>
                                     <div className={styles.taskInfo}>
                                         <div className={styles.taskName}>
                                             {tarea.titulo}
