@@ -11,7 +11,7 @@ import useMediaQuery from '../hooks/useMediaQuery';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
-import { Settings, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 
@@ -153,9 +153,11 @@ const CalificacionesGrupo = () => {
     const [imparticiones, setImparticiones] = useState([]);
     const [selectedImparticion, setSelectedImparticion] = useState(imparticionId || '');
 
+    // Tabs principales: alumnos | ponderaciones
+    const [mainTab, setMainTab] = useState('alumnos');
+
     // Ponderaciones
     const [pesos, setPesos] = useState({ examen: 50, tarea: 30, practica: 20 });
-    const [showWeights, setShowWeights] = useState(false);
     const [savingWeights, setSavingWeights] = useState(false);
     const [weightTab, setWeightTab] = useState('global');
     const [tareasImp, setTareasImp] = useState([]);
@@ -537,110 +539,122 @@ const CalificacionesGrupo = () => {
                             }),
                         ]}
                     />
-                    {isProfesor && (
-                        <Button onClick={() => setShowWeights(!showWeights)}>
-                            <Settings size={16} />
-                        </Button>
-                    )}
                 </CrudHeader>
 
-                {/* Panel de ponderaciones */}
-                <div className={`${styles.weightsPanel} ${showWeights ? styles.weightsPanelOpen : ''}`}>
-                  <div className={styles.weightsPanelInner}>
-                    <div className={styles.card}>
-                        <div className={styles.tabBar} style={{ marginBottom: 'var(--space-4)' }}>
-                            <button
-                                type="button"
-                                className={`${styles.tab} ${weightTab === 'global' ? styles.tabActive : ''}`}
-                                onClick={() => setWeightTab('global')}
-                            >
-                                {t('grades.weightTabGlobal')}
-                            </button>
-                            <button
-                                type="button"
-                                className={`${styles.tab} ${weightTab === 'items' ? styles.tabActive : ''}`}
-                                onClick={() => setWeightTab('items')}
-                            >
-                                {t('grades.weightTabItems')}
-                            </button>
-                        </div>
-
-                        {weightTab === 'global' && (<>
-                        <h3 className={styles.cardTitle}>{t('grades.weightConfig')}</h3>
-                        <div className={styles.weightsForm}>
-                            {[
-                                { key: 'examen', label: t('grades.weightExam'), barClass: styles.weightBarExam },
-                                { key: 'tarea', label: t('grades.weightTask'), barClass: styles.weightBarTask },
-                                { key: 'practica', label: t('grades.weightPractice'), barClass: styles.weightBarPractice },
-                            ].map(({ key, label, barClass }) => (
-                                <div key={key} className={styles.weightRow}>
-                                    <span className={styles.weightLabel}>{label}</span>
-                                    <ThemedNumberInput
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={String(pesos[key])}
-                                        onChange={(v) => setPesos({ ...pesos, [key]: parseInt(v, 10) || 0 })}
-                                        width={110}
-                                        suffix="%"
-                                        ariaLabel={label}
-                                    />
-                                    <div className={styles.weightBar}>
-                                        <div className={`${styles.weightBarFill} ${barClass}`} style={{ width: `${pesos[key]}%` }} />
-                                    </div>
-                                </div>
-                            ))}
-                            <div className={styles.weightTotal}>
-                                <span>{t('grades.weightSum')}:</span>
-                                <span className={weightValid ? styles.weightTotalOk : styles.weightTotalError}>
-                                    {weightSum}%
-                                </span>
-                                {!weightValid && (
-                                    <span className={styles.weightTotalError} style={{ fontSize: 'var(--text-xs)' }}>
-                                        {t('grades.weightSumError')}
-                                    </span>
-                                )}
-                            </div>
-                            {/* Barra apilada */}
-                            <div className={styles.stackedBar}>
-                                <div className={`${styles.stackedSegment} ${styles.weightBarExam}`} style={{ width: `${pesos.examen}%` }} />
-                                <div className={`${styles.stackedSegment} ${styles.weightBarTask}`} style={{ width: `${pesos.tarea}%` }} />
-                                <div className={`${styles.stackedSegment} ${styles.weightBarPractice}`} style={{ width: `${pesos.practica}%` }} />
-                            </div>
-                            <div className={styles.actionRow}>
-                                <Button
-                                    onClick={() => setPesos({ examen: 50, tarea: 30, practica: 20 })}
-                                    variant="secondary"
-                                >
-                                    {t('grades.weightDefaults')}
-                                </Button>
-                                <Button
-                                    onClick={handleSaveWeights}
-                                    disabled={!weightValid || savingWeights}
-                                >
-                                    {savingWeights ? t('common.saving') : t('common.save')}
-                                </Button>
-                            </div>
-                        </div>
-                        </>)}
-
-                        {weightTab === 'items' && (
-                            <ItemsWeightEditor
-                                tareas={tareasImp}
-                                saving={savingTareaPeso}
-                                onSave={handleSaveTareaPeso}
-                                periodos={periodos}
-                                selectedPeriodo={selectedPeriodo}
-                                t={t}
-                            />
-                        )}
+                {/* Tabs principales: Alumnos | Ponderaciones */}
+                {isProfesor && selectedImparticion && (
+                    <div className={styles.tabBar}>
+                        <button
+                            type="button"
+                            className={`${styles.tab} ${mainTab === 'alumnos' ? styles.tabActive : ''}`}
+                            onClick={() => setMainTab('alumnos')}
+                        >
+                            {t('grades.student')}
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.tab} ${mainTab === 'ponderaciones' ? styles.tabActive : ''}`}
+                            onClick={() => setMainTab('ponderaciones')}
+                        >
+                            {t('grades.weights')}
+                        </button>
                     </div>
-                  </div>
-                </div>
+                )}
 
                 {error && <div className={styles.errorContainer}>{error}</div>}
 
-                {loading ? (
+                {/* Tab: Ponderaciones */}
+                {mainTab === 'ponderaciones' && isProfesor && selectedImparticion ? (
+                    <div key="ponderaciones" className={styles.tabContent}>
+                        <div className={styles.card}>
+                            <div className={styles.tabBar} style={{ marginTop: 0 }}>
+                                <button
+                                    type="button"
+                                    className={`${styles.tab} ${weightTab === 'global' ? styles.tabActive : ''}`}
+                                    onClick={() => setWeightTab('global')}
+                                >
+                                    {t('grades.weightTabGlobal')}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`${styles.tab} ${weightTab === 'items' ? styles.tabActive : ''}`}
+                                    onClick={() => setWeightTab('items')}
+                                >
+                                    {t('grades.weightTabItems')}
+                                </button>
+                            </div>
+
+                            {weightTab === 'global' && (<>
+                            <h3 className={styles.cardTitle}>{t('grades.weightConfig')}</h3>
+                            <div className={styles.weightsForm}>
+                                {[
+                                    { key: 'examen', label: t('grades.weightExam'), barClass: styles.weightBarExam },
+                                    { key: 'tarea', label: t('grades.weightTask'), barClass: styles.weightBarTask },
+                                    { key: 'practica', label: t('grades.weightPractice'), barClass: styles.weightBarPractice },
+                                ].map(({ key, label, barClass }) => (
+                                    <div key={key} className={styles.weightRow}>
+                                        <span className={styles.weightLabel}>{label}</span>
+                                        <ThemedNumberInput
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={String(pesos[key])}
+                                            onChange={(v) => setPesos({ ...pesos, [key]: parseInt(v, 10) || 0 })}
+                                            width={110}
+                                            suffix="%"
+                                            ariaLabel={label}
+                                        />
+                                        <div className={styles.weightBar}>
+                                            <div className={`${styles.weightBarFill} ${barClass}`} style={{ width: `${pesos[key]}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className={styles.weightTotal}>
+                                    <span>{t('grades.weightSum')}:</span>
+                                    <span className={weightValid ? styles.weightTotalOk : styles.weightTotalError}>
+                                        {weightSum}%
+                                    </span>
+                                    {!weightValid && (
+                                        <span className={styles.weightTotalError} style={{ fontSize: 'var(--text-xs)' }}>
+                                            {t('grades.weightSumError')}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={styles.stackedBar}>
+                                    <div className={`${styles.stackedSegment} ${styles.weightBarExam}`} style={{ width: `${pesos.examen}%` }} />
+                                    <div className={`${styles.stackedSegment} ${styles.weightBarTask}`} style={{ width: `${pesos.tarea}%` }} />
+                                    <div className={`${styles.stackedSegment} ${styles.weightBarPractice}`} style={{ width: `${pesos.practica}%` }} />
+                                </div>
+                                <div className={styles.actionRow}>
+                                    <Button
+                                        onClick={() => setPesos({ examen: 50, tarea: 30, practica: 20 })}
+                                        variant="secondary"
+                                    >
+                                        {t('grades.weightDefaults')}
+                                    </Button>
+                                    <Button
+                                        onClick={handleSaveWeights}
+                                        disabled={!weightValid || savingWeights}
+                                    >
+                                        {savingWeights ? t('common.saving') : t('common.save')}
+                                    </Button>
+                                </div>
+                            </div>
+                            </>)}
+
+                            {weightTab === 'items' && (
+                                <ItemsWeightEditor
+                                    tareas={tareasImp}
+                                    saving={savingTareaPeso}
+                                    onSave={handleSaveTareaPeso}
+                                    periodos={periodos}
+                                    selectedPeriodo={selectedPeriodo}
+                                    t={t}
+                                />
+                            )}
+                        </div>
+                    </div>
+                ) : loading ? (
                     <div className={styles.loadingContainer}>{t('common.loading')}</div>
                 ) : sortedAlumnos.length === 0 ? (
                     <div className={styles.loadingContainer}>{t('grades.noGrades')}</div>
