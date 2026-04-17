@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './Academic.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
@@ -11,7 +11,7 @@ import SuperAdminFilters from '../components/SuperAdminFilters';
 import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import useImparticiones from '../hooks/useImparticiones';
-import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip, BarChart3 } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -21,6 +21,7 @@ import LoadingView from '../components/LoadingView';
 const Entregas = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tareaFileInputRef = useRef(null);
 
@@ -127,12 +128,7 @@ const Entregas = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [entregasTarea, setEntregasTarea] = useState([]);
   const [loadingEntregas, setLoadingEntregas] = useState(false);
-
-  // Modal Calificar
-  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
-  const [currentEntrega, setCurrentEntrega] = useState(null);
-  const [gradeFormData, setGradeFormData] = useState({ nota: '', feedback: '' });
-  const [savingGrade, setSavingGrade] = useState(false);
+  const [viewImparticionId, setViewImparticionId] = useState(null);
 
   // Modal Profesor: Crear/Editar Tarea
   const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
@@ -299,7 +295,7 @@ const Entregas = () => {
     if (isAlumno) {
       handleOpenUploadModal(tarea);
     } else {
-      handleViewEntregas(tarea);
+      handleViewEntregas(tarea, imp.id);
     }
 
     // Limpiar los params para que no se vuelva a disparar
@@ -310,8 +306,9 @@ const Entregas = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asignaturas]);
 
-  const handleViewEntregas = async (tarea) => {
+  const handleViewEntregas = async (tarea, imparticionId) => {
     setCurrentTarea(tarea);
+    setViewImparticionId(imparticionId);
     setIsViewModalOpen(true);
     setLoadingEntregas(true);
     try {
@@ -327,50 +324,6 @@ const Entregas = () => {
       alert(t('deliveries.errorLoadDeliveries'));
     } finally {
       setLoadingEntregas(false);
-    }
-  };
-
-  const handleOpenGradeModal = (entrega) => {
-    setCurrentEntrega(entrega);
-    setGradeFormData({
-      nota: entrega.calificacion ? entrega.calificacion.nota : '',
-      feedback: entrega.calificacion ? entrega.calificacion.feedbackProfesor : ''
-    });
-    setIsGradeModalOpen(true);
-  };
-
-  const handleSaveGrade = async (e) => {
-    e.preventDefault();
-    setSavingGrade(true);
-    try {
-      const method = currentEntrega.calificacion ? 'PUT' : 'POST';
-      const url = currentEntrega.calificacion
-        ? getApiUrl(`/api/calificacions/${currentEntrega.calificacion.id}`)
-        : getApiUrl('/api/calificacions');
-
-      const payload = {
-        nota: parseFloat(gradeFormData.nota),
-        feedbackProfesor: gradeFormData.feedback,
-        entrega: `/api/entregas/${currentEntrega.id}`
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error(t('deliveries.errorSaveGrade'));
-
-      const calificacionGuardada = await response.json();
-      setEntregasTarea(prev => prev.map(ent =>
-        ent.id === currentEntrega.id ? { ...ent, calificacion: calificacionGuardada } : ent
-      ));
-      setIsGradeModalOpen(false);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setSavingGrade(false);
     }
   };
 
@@ -469,7 +422,7 @@ const Entregas = () => {
                         <Paperclip size={18} />
                       </a>
                     )}
-                    <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea)}>
+                    <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea, imparticion.id)}>
                       <Eye size={16} style={{ marginRight: '4px' }} /> {t('deliveries.viewDeliveries')}
                     </Button>
                     <button
@@ -511,16 +464,33 @@ const Entregas = () => {
     { header: t('deliveries.commentCol'), accessor: 'comentarioAlumno' },
     {
       header: t('deliveries.gradeCol'),
-      accessor: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {row.calificacion
-            ? <span className={`${styles.badge} ${styles.badgeInfo}`}>{row.calificacion.nota}</span>
-            : <span className={`${styles.badge} ${styles.badgePending}`}>{t('common.pending')}</span>}
-          <button type="button" className={styles.iconButton} onClick={(e) => { e.stopPropagation(); handleOpenGradeModal(row); }} title={t('deliveries.gradeCol')}>
-            <Award size={18} />
+      accessor: (row) => {
+        if (!row.calificacion) return <span className={`${styles.badge} ${styles.badgePending}`}>{t('common.pending')}</span>;
+        const nota = row.calificacion.nota;
+        const cls = nota < 5 ? styles.badgeError : nota < 7 ? styles.badgePending : styles.badgeSuccess;
+        return <span className={`${styles.badge} ${cls}`}>{nota}</span>;
+      }
+    },
+    {
+      header: '',
+      accessor: (row) => {
+        const alumnoId = row.alumno?.id || row.alumno?.['@id']?.split('/').pop();
+        if (!alumnoId || !viewImparticionId) return null;
+        return (
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsViewModalOpen(false);
+              navigate(`/calificaciones/detalle?imparticion=${viewImparticionId}&alumno=${alumnoId}`);
+            }}
+            title={t('grades.viewDetail')}
+          >
+            <BarChart3 size={16} />
           </button>
-        </div>
-      )
+        );
+      }
     }
   ];
 
@@ -649,36 +619,6 @@ const Entregas = () => {
             onPageChange={() => {}}
             pageSizeOptions={[5, 10, 20, 50, 100]}
           />
-        </ModalView>
-
-        {/* Modal Calificar */}
-        <ModalView
-          isOpen={isGradeModalOpen}
-          onClose={() => setIsGradeModalOpen(false)}
-          title={t('deliveries.gradeTitle')}
-          onSubmit={handleSaveGrade}
-          isSubmitting={savingGrade}
-          submitText={t('deliveries.saveGrade')}
-          size="small"
-        >
-          <div className={styles.formGroup}>
-            <label className={styles.label}>{t('deliveries.gradeLabel')}</label>
-            <input
-              type="number" className={styles.input}
-              value={gradeFormData.nota}
-              onChange={e => setGradeFormData({ ...gradeFormData, nota: e.target.value })}
-              min="0" max="10" step="0.1" required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>{t('deliveries.feedbackLabel')}</label>
-            <textarea
-              className={styles.textarea}
-              value={gradeFormData.feedback}
-              onChange={e => setGradeFormData({ ...gradeFormData, feedback: e.target.value })}
-              placeholder={t('deliveries.feedbackPlaceholder')}
-            />
-          </div>
         </ModalView>
 
         {/* Modal Profesor: Crear/Editar Tarea */}

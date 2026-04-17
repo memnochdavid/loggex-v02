@@ -207,8 +207,8 @@ const CalificacionesDetalle = () => {
             const { calId, entregaId } = await ensureCalificacion(tarea);
             if (calId) {
                 const res = await fetch(getApiUrl(`/api/calificacions/${calId}`), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
                     body: JSON.stringify({ feedbackProfesor: feedbackValue }),
                     credentials: 'include',
                 });
@@ -246,8 +246,8 @@ const CalificacionesDetalle = () => {
             const { calId, entregaId } = await ensureCalificacion(tarea);
             if (calId) {
                 const res = await fetch(getApiUrl(`/api/calificacions/${calId}`), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
                     body: JSON.stringify({ nota: parsed }),
                     credentials: 'include',
                 });
