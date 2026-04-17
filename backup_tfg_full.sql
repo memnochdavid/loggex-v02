@@ -3776,7 +3776,7 @@ INSERT INTO `calificacion` VALUES
 (242,7.5,'Excelente desarrollo, se nota el esfuerzo dedicado.',263,'2026-04-14 17:27:00',NULL,0,NULL),
 (243,7.8,'Excelente desarrollo, se nota el esfuerzo dedicado.',264,'2026-04-14 17:27:00',NULL,0,NULL),
 (244,5,'Las ideas están, pero necesitas justificarlas mejor.',265,'2026-04-14 17:27:00',NULL,0,NULL),
-(245,7.8,'Planteamiento correcto y redacción clara.',266,'2026-04-14 17:27:00',NULL,0,NULL),
+(245,6,'Planteamiento correcto y redacción clara.',266,'2026-04-14 17:27:00','2026-04-17 14:25:11',0,NULL),
 (246,8,'Muy buena aplicación de los conceptos, enhorabuena.',267,'2026-04-14 17:27:00',NULL,0,NULL),
 (247,0,'Entrega incompleta. Revisa el enunciado y los criterios.',268,'2026-04-14 17:27:00',NULL,0,NULL),
 (248,8.8,'Trabajo muy completo, bien estructurado y con buenos ejemplos.',269,'2026-04-14 17:27:00',NULL,0,NULL),
@@ -6618,6 +6618,7 @@ CREATE TABLE `modulo` (
   `updated_at` datetime DEFAULT NULL,
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
+  `abreviatura` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_ECF1CF36D8F6DC8` (`ciclo_id`),
   CONSTRAINT `FK_ECF1CF36D8F6DC8` FOREIGN KEY (`ciclo_id`) REFERENCES `ciclo_formativo` (`id`)
@@ -6631,29 +6632,29 @@ CREATE TABLE `modulo` (
 LOCK TABLES `modulo` WRITE;
 /*!40000 ALTER TABLE `modulo` DISABLE KEYS */;
 INSERT INTO `modulo` VALUES
-(23,'Bases de datos','0001',4,1,6,'2026-02-01 08:05:15','2026-02-01 22:24:41',0,NULL),
-(24,'Entornos de desarrollo','0002',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(25,'Lenguajes de marcas','0003',4,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
-(26,'Programación','0004',4,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
-(27,'Sistemas informáticos','0005',4,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
-(28,'FOL','0006',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(29,'Acceso a datos','0007',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
-(30,'Desarrollo de interfaces','0008',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
-(31,'Programación multimedia','0009',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
-(32,'Servicios y procesos','0010',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
-(33,'Sistemas de gestión','0011',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL),
-(34,'EIE','0012',4,2,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(35,'Bases de datos','0001',3,1,6,'2026-02-01 08:05:15','2026-02-04 08:41:05',0,NULL),
-(36,'Entornos de desarrollo','0002',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(37,'Lenguajes de marcas','0003',3,1,4,'2026-02-01 08:05:15',NULL,0,NULL),
-(38,'Programación','0004',3,1,8,'2026-02-01 08:05:15',NULL,0,NULL),
-(39,'Sistemas informáticos','0005',3,1,6,'2026-02-01 08:05:15',NULL,0,NULL),
-(40,'FOL','0006',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL),
-(41,'Desarrollo Cliente','0013',3,2,7,'2026-02-01 08:05:15',NULL,0,NULL),
-(42,'Desarrollo Servidor','0014',3,2,8,'2026-02-01 08:05:15',NULL,0,NULL),
-(43,'Despliegue Apps','0015',3,2,4,'2026-02-01 08:05:15',NULL,0,NULL),
-(44,'Diseño de Interfaces','0016',3,2,6,'2026-02-01 08:05:15',NULL,0,NULL),
-(45,'EIE','0017',3,2,5,'2026-02-01 08:05:15',NULL,0,NULL);
+(23,'Bases de datos','0001',4,1,6,'2026-02-01 08:05:15','2026-02-01 22:24:41',0,NULL,NULL),
+(24,'Entornos de desarrollo','0002',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(25,'Lenguajes de marcas','0003',4,1,4,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(26,'Programación','0004',4,1,8,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(27,'Sistemas informáticos','0005',4,1,6,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(28,'FOL','0006',4,1,3,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(29,'Acceso a datos','0007',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(30,'Desarrollo de interfaces','0008',4,2,6,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(31,'Programación multimedia','0009',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(32,'Servicios y procesos','0010',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(33,'Sistemas de gestión','0011',4,2,5,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(34,'EIE','0012',4,2,3,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(35,'Bases de datos','0001',3,1,6,'2026-02-01 08:05:15','2026-02-04 08:41:05',0,NULL,NULL),
+(36,'Entornos de desarrollo','0002',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(37,'Lenguajes de marcas','0003',3,1,4,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(38,'Programación','0004',3,1,8,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(39,'Sistemas informáticos','0005',3,1,6,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(40,'FOL','0006',3,1,3,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(41,'Desarrollo Cliente','0013',3,2,7,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(42,'Desarrollo Servidor','0014',3,2,8,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(43,'Despliegue Apps','0015',3,2,4,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(44,'Diseño de Interfaces','0016',3,2,6,'2026-02-01 08:05:15',NULL,0,NULL,NULL),
+(45,'EIE','0017',3,2,5,'2026-02-01 08:05:15',NULL,0,NULL,NULL);
 /*!40000 ALTER TABLE `modulo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -6852,7 +6853,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#6366f1','#623c9a',3,'#f1f5f9','#94a3b8','#6366f1','#334155','#603e93','#f8fafc','#38316d','#ffffff','#433e70','#ffffff','#ffffff','#f8fafc','#1e293b','2026-02-01 10:25:33','2026-03-21 10:41:07',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#221d49','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#2d275d','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#52406d','#ffffff','#221d49','#94a3b8','#232037','#221d49','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#001657','0.75rem',1,1,0,30,'#314059','#ffffff','#919191','#676565','#948f8f','waves',40,3),
+(1,'#5c94f0','#1e293b',3,'#334155','#64748b','#62b767','#5c94f0','#1e293b','#ffffff','#334155','#ffffff','#334155','#ffffff','#ffffff','#ffffff','#608fd2','2026-02-01 10:25:33','2026-04-17 15:07:59',0,NULL,'#5c94f0','#f0f0f0','#8ab7ff','#62b767','#ffffff','#ff0000','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#62b767','#ffffff','#5c94f0','#ffffff','#7dcf82','#ffffff','#81df88','#ffffff','#94bdff','#ffffff','#3884ff','#ffffff','#96aaca','#ffffff',10,10,10,10,10,10,10,10,'#5c94f0','#ffffff','#eef2ff','auto','#5c94f0','#ffffff','#f0f0f0','#46505d','#ffffff','#5c94f0','#ffffff','#e6e6e6','#000000','#c7c7c7','#ff0000','#ffffff','#b30000','#ffffff','{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','#e0e7ff','#363030','#585e65','#e5f2ff','#f1f5f9','#e0e7ff','#6366f1','#334155','#64748b','#f75e5e','#ffffff','#5c94f0','#ffffff','#f8fafc','#62b767','#ffffff','#828282','#ffffff','#f1f5f9','#77a9f8','#ffffff','#e0fdff','#e0fdff','#000000','#000000','#ededed','#000000','#2b3950','#ffffff','#1e293b','#ffffff','#f5f5f5','#5c94f0','#ffffff','#e2e8f0','#334155','#f1f5f9','#ff0000','#f6f6f4','0.5rem',0,0,100,100,'#ffffff','#334155','#e2e8f0','#6366f1','#e0e7ff',NULL,100,0),
 (4,'#6366f1','#623c9a',NULL,'#f1f5f9','#94a3b8','#6366f1','#334155','#603e93','#f8fafc','#38316d','#ffffff','#433e70','#ffffff','#ffffff','#f8fafc','#1e293b','2026-03-07 15:52:21','2026-04-12 10:00:47',0,NULL,'#475569','#0f172a','#64748b','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#4338ca','#cbd5e1','#312e81','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff',10,10,10,10,10,10,10,10,'#312e81','#818cf8','#1e1b4b','10px','#221d49','#ffffff','#1e293b','#cbd5e1','#f1f5f9','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#6366f1','#ffffff','#334155','#f1f5f9','#1e293b','#2d275d','#ffffff','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#52406d','#ffffff','#221d49','#94a3b8','#232037','#221d49','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8','#001657','0.75rem',1,1,0,30,'#314059','#ffffff','#919191','#676565','#948f8f','waves',40,3);
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -6923,11 +6924,11 @@ CREATE TABLE `tarea` (
 LOCK TABLES `tarea` WRITE;
 /*!40000 ALTER TABLE `tarea` DISABLE KEYS */;
 INSERT INTO `tarea` VALUES
-(1,'Examen — Despliegue Apps','Entregar en PDF o enlace a repositorio. Valorar claridad y buenas prácticas.','2025-12-17 12:00:00',1,23,'2025-12-10 09:00:00','examen','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
+(1,'Examen — Despliegue Apps','Entregar en PDF o enlace a repositorio. Valorar claridad y buenas prácticas.','2025-12-17 12:00:00',1,23,'2025-12-10 09:00:00','examen','2026-04-14 17:27:09','2026-04-17 14:44:12',0,NULL,'Dummy.pdf',50),
 (2,'Cuestionario — Despliegue Apps','Trabajo individual salvo indicación en contra. Uso de IA debe indicarse.','2025-09-27 23:59:00',1,23,'2025-09-16 08:00:00','tarea','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
 (3,'Ejercicios de repaso — Despliegue Apps','Entregar en PDF o enlace a repositorio. Valorar claridad y buenas prácticas.','2025-09-30 23:59:00',1,23,'2025-09-22 08:00:00','tarea','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
 (4,'Implementación guiada — Despliegue Apps','Aplicar los conceptos vistos en las últimas sesiones. Ejercicios integradores.','2025-10-08 23:59:00',1,23,'2025-09-28 08:00:00','practica','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
-(5,'Examen — Despliegue Apps','Aplicar los conceptos vistos en las últimas sesiones. Ejercicios integradores.','2026-02-25 12:00:00',1,23,'2026-02-18 09:00:00','examen','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
+(5,'Examen — Despliegue Apps','Aplicar los conceptos vistos en las últimas sesiones. Ejercicios integradores.','2026-02-25 12:00:00',1,23,'2026-02-18 09:00:00','examen','2026-04-14 17:27:09','2026-04-17 14:44:14',0,NULL,'Dummy.pdf',50),
 (6,'Trabajo de investigación — Despliegue Apps','Se valorará la profundidad del análisis y la presentación formal.','2026-01-25 23:59:00',1,23,'2026-01-11 08:00:00','tarea','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
 (7,'Trabajo de investigación — Despliegue Apps','Documentar el proceso y justificar las decisiones tomadas.','2026-01-25 23:59:00',1,23,'2026-01-16 08:00:00','tarea','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
 (8,'Actividad en clase — Despliegue Apps','Aplicar los conceptos vistos en las últimas sesiones. Ejercicios integradores.','2026-02-26 23:59:00',1,23,'2026-02-16 08:00:00','tarea','2026-04-14 17:27:09',NULL,0,NULL,'Dummy.pdf',NULL),
@@ -7312,4 +7313,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-15 12:59:00
+-- Dump completed on 2026-04-17 15:09:23
