@@ -97,6 +97,16 @@ const Home = () => {
     const unreadMessages = useUnreadMessages();
     const { pendingTasks, pendingDeliveries, nextClass, weekEvents } = useHomeStats();
 
+    const [showLottie, setShowLottie] = useState(true);
+    useEffect(() => {
+        if (window.themeConfig?.showLottie !== undefined) setShowLottie(window.themeConfig.showLottie);
+        const handler = () => {
+            if (window.themeConfig?.showLottie !== undefined) setShowLottie(window.themeConfig.showLottie);
+        };
+        window.addEventListener('themeConfigChanged', handler);
+        return () => window.removeEventListener('themeConfigChanged', handler);
+    }, []);
+
     // Modal de detalle del evento (misma lógica previa)
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
@@ -273,9 +283,11 @@ const Home = () => {
             <div className={styles.container}>
                 {/* ============ Saludo ============ */}
                 <header className={styles.pageHeader}>
-                    <div className={styles.greetingLottie} aria-hidden="true">
-                        <Lottie animationData={helloAnimation} loop style={{ width: 56, height: 56 }} />
-                    </div>
+                    {showLottie && (
+                        <div className={styles.greetingLottie} aria-hidden="true">
+                            <Lottie animationData={helloAnimation} loop style={{ width: 56, height: 56 }} />
+                        </div>
+                    )}
                     <div className={styles.greetingBlock}>
                         <h1 className={styles.greeting}>
                             {greeting}, <span className={styles.name}>{user?.nombre || 'Usuario'}</span>

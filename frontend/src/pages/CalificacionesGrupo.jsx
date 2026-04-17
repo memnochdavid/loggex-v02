@@ -192,7 +192,7 @@ const CalificacionesGrupo = () => {
         setImparticiones(filtered);
         if (filtered.length > 0 && !imparticionId) {
             setSelectedImparticion(String(filtered[0].id ?? filtered[0]['@id']?.split('/').pop()));
-        } else if (filtered.length === 0) {
+        } else if (filtered.length === 0 && allImparticiones.length > 0) {
             setSelectedImparticion('');
             setMediasData(null);
         }

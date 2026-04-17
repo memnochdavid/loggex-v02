@@ -23,6 +23,7 @@ const CalificacionesDetalle = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('todos');
+    const [statusFilter, setStatusFilter] = useState('all'); // all | ungraded | undelivered
     const [editingFeedback, setEditingFeedback] = useState(null);
     const [feedbackValue, setFeedbackValue] = useState('');
     const [editingNota, setEditingNota] = useState(null);
@@ -158,15 +159,20 @@ const CalificacionesDetalle = () => {
     }, [tareas, periodos, selectedPeriodo]);
 
     const filteredTareas = useMemo(() => {
-        if (activeTab === 'todos') return tareasEnPeriodo;
-        return tareasEnPeriodo.filter(tr => tr.tipo === activeTab);
-    }, [tareasEnPeriodo, activeTab]);
+        let result = activeTab === 'todos' ? tareasEnPeriodo : tareasEnPeriodo.filter(tr => tr.tipo === activeTab);
+        if (statusFilter === 'ungraded') result = result.filter(tr => tr.calificacion?.nota == null);
+        else if (statusFilter === 'undelivered') result = result.filter(tr => !tr.entrega);
+        return result;
+    }, [tareasEnPeriodo, activeTab, statusFilter]);
 
     const counts = useMemo(() => {
-        const c = { todos: tareasEnPeriodo.length, examen: 0, tarea: 0, practica: 0 };
-        tareasEnPeriodo.forEach(tr => { if (c[tr.tipo] !== undefined) c[tr.tipo]++; });
+        let base = tareasEnPeriodo;
+        if (statusFilter === 'ungraded') base = base.filter(tr => tr.calificacion?.nota == null);
+        else if (statusFilter === 'undelivered') base = base.filter(tr => !tr.entrega);
+        const c = { todos: base.length, examen: 0, tarea: 0, practica: 0 };
+        base.forEach(tr => { if (c[tr.tipo] !== undefined) c[tr.tipo]++; });
         return c;
-    }, [tareasEnPeriodo]);
+    }, [tareasEnPeriodo, statusFilter]);
 
     const getGradeClass = (nota) => {
         if (nota === null || nota === undefined) return styles.gradeNa;
@@ -302,6 +308,9 @@ const CalificacionesDetalle = () => {
         { label: t('grades.finalGrade'), value: mediaData.notaFinal, fillClass: styles.barFillFinal },
     ] : [];
 
+    if (!imparticionId || !alumnoId) {
+        return <Layout><div className={styles.container}><div className={styles.errorContainer}>{t('grades.errorLoading')}</div></div></Layout>;
+    }
     if (loading && !mediaData) {
         return <Layout><div className={styles.container}><div className={styles.loadingContainer}>{t('common.loading')}</div></div></Layout>;
     }
@@ -332,6 +341,17 @@ const CalificacionesDetalle = () => {
                                     const id = p.id || p['@id']?.split('/').pop();
                                     return { value: String(id), label: p.nombre };
                                 }),
+                            ]}
+                        />
+                        <ThemedSelect
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            minWidth={160}
+                            ariaLabel={t('grades.filterStatus')}
+                            options={[
+                                { value: 'all', label: t('grades.filterAll') },
+                                { value: 'ungraded', label: t('grades.filterUngraded') },
+                                { value: 'undelivered', label: t('grades.filterUndelivered') },
                             ]}
                         />
                     </div>
