@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styles from './AccordionView.module.css';
-import stylesButton from '../pages/Crud.module.css';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen }) => {
@@ -30,14 +29,16 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
         </div>
         <div className={`${styles.headerActions} headerActions`}>
           {canAdd && onAdd && (
-            <button 
-              className={stylesButton.iconButton}
+            <button
+              className={styles.addAction}
               onClick={(e) => {
-                e.stopPropagation(); // Evita que el acordeón se abra/cierre
+                e.stopPropagation();
                 onAdd(item.id);
               }}
+              title={t('accordion.add')}
+              aria-label={t('accordion.add')}
             >
-              {t('accordion.add')}
+              <Plus size={16} />
             </button>
           )}
           <ChevronDown

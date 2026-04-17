@@ -190,34 +190,33 @@
     transition: background-color var(--dur-base) var(--ease-standard);
 }
 
-/* Estilos de botones (respetando los originales de Crud.module.css) */
-.addButton {
-    background-color: var(--color-button-primary);
-    color: var(--color-button-primary-text);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius-small);
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color var(--dur-base) var(--ease-standard);
-}
-
-.addButton:hover {
-    background-color: var(--color-button-primary-hover);
-}
-
-/* Soporte para botones de Crud.module.css */
-.button {
+/* Botón icono "+" en el header del acordeón */
+.addAction {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-2) var(--space-4);
+    width: 32px;
+    height: 32px;
+    border: none;
     border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    font-family: inherit;
-    font-weight: var(--font-medium);
-    font-size: var(--text-base);
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: inherit;
     cursor: pointer;
-    transition: var(--transition-base);
-    box-shadow: var(--shadow-sm);
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back);
+}
+
+.addAction:hover {
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+    transform: scale(1.08);
+}
+
+.addAction:active {
+    transform: scale(0.94);
+}
+
+.addAction:focus-visible {
+    outline: 2px solid color-mix(in srgb, currentColor 50%, transparent);
+    outline-offset: 2px;
 }

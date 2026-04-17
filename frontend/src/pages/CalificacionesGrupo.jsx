@@ -545,8 +545,9 @@ const CalificacionesGrupo = () => {
                 </CrudHeader>
 
                 {/* Panel de ponderaciones */}
-                {showWeights && (
-                    <div className={`${styles.card}`} style={{ marginBottom: 'var(--space-6)' }}>
+                <div className={`${styles.weightsPanel} ${showWeights ? styles.weightsPanelOpen : ''}`}>
+                  <div className={styles.weightsPanelInner}>
+                    <div className={styles.card}>
                         <div className={styles.tabBar} style={{ marginBottom: 'var(--space-4)' }}>
                             <button
                                 type="button"
@@ -634,7 +635,8 @@ const CalificacionesGrupo = () => {
                             />
                         )}
                     </div>
-                )}
+                  </div>
+                </div>
 
                 {error && <div className={styles.errorContainer}>{error}</div>}
 

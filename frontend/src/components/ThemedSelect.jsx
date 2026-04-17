@@ -62,7 +62,11 @@ const ThemedSelect = ({
 
     useEffect(() => {
         if (!open) return;
-        const onScroll = () => setOpen(false);
+        const onScroll = (e) => {
+            // No cerrar si el scroll ocurre dentro del propio dropdown
+            if (dropdownRef.current?.contains(e.target)) return;
+            setOpen(false);
+        };
         const onResize = () => updatePos();
         // Usamos capture para detectar scroll de cualquier ancestor
         window.addEventListener('scroll', onScroll, true);
