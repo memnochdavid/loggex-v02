@@ -150,3 +150,13 @@
     0%, 100% { opacity: 0.5; transform: translateX(0%) scaleX(1); }
     50% { opacity: 0.8; transform: translateX(5%) scaleX(1.1); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .gradient, .gradient *,
+    .caustics, .caustics2,
+    .waveSvg, .wave1, .wave2, .wave3, .wave4,
+    .surfaceLight {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

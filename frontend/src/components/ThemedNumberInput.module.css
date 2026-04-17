@@ -9,12 +9,12 @@
     overflow: hidden;
     height: 34px;
     box-sizing: border-box;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
 }
 
 .wrap:focus-within {
     border-color: var(--input-focus-border, var(--color-primary-500, var(--color-primary)));
-    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100, rgba(99, 102, 241, 0.15)));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100, color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent)));
 }
 
 .wrap.disabled {
@@ -69,7 +69,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.12s, color 0.12s;
+    transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
 }
 
 .spinBtn:first-child { border-bottom: 1px solid var(--border-input, var(--border-color)); }
@@ -79,7 +79,24 @@
     color: var(--color-primary, var(--primary-color));
 }
 
+.spinBtn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+    z-index: 1;
+}
+
+.spinBtn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
 .spinBtn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wrap,
+    .spinBtn {
+        transition: none;
+    }
 }

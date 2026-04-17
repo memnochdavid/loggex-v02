@@ -30,7 +30,12 @@
     font-weight: 600;
     color: var(--text-main);
     border-bottom: 1px solid transparent;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+.shiftHeader:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: -2px;
 }
 
 .shiftHeader:hover {
@@ -45,7 +50,7 @@
 
 .shiftContent {
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+    transition: max-height var(--dur-slow) var(--ease-out-quart);
     max-height: 0;
 }
 
@@ -146,10 +151,13 @@
     box-sizing: border-box;
     padding: var(--space-2);
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+    transition:
+        transform var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard),
+        filter var(--dur-fast) var(--ease-standard);
     overflow: hidden;
     font-size: 0.8rem;
-    color: #fff;
+    color: white;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -160,6 +168,15 @@
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
     filter: brightness(1.08);
+}
+
+.eventCard:focus-visible {
+    outline: 2px solid white;
+    outline-offset: -2px;
+}
+
+.eventCard:active {
+    transform: scale(0.97);
 }
 
 .eventModulo {
@@ -329,6 +346,11 @@
     color: var(--text-muted); /* Usar variable maestra */
 }
 
+.mobileEvent:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: -2px;
+}
+
 .mobileFestivo {
     text-align: center;
     padding: 1.5rem;
@@ -336,4 +358,12 @@
     background-color: var(--bg-input); /* Usar variable maestra */
     border-radius: var(--radius-md);
     font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shiftHeader,
+    .shiftContent,
+    .eventCard {
+        transition: none;
+    }
 }

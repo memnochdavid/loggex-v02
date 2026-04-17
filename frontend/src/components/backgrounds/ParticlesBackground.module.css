@@ -28,3 +28,11 @@
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .gradient, .gradient *,
+    .canvas {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

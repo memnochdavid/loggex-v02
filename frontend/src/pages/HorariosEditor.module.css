@@ -40,14 +40,19 @@
     background-size: 1em;
     padding-right: 2.2rem;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+}
+
+.grupoSelect:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .grupoSelect:hover { border-color: var(--color-primary-500, var(--color-primary)); }
 .grupoSelect:focus {
     outline: none;
     border-color: var(--input-focus-border, var(--color-primary));
-    box-shadow: 0 0 0 3px var(--color-primary-100, rgba(99, 102, 241, 0.15));
+    box-shadow: 0 0 0 3px var(--color-primary-100, color-mix(in srgb, var(--color-primary-500) 15%, transparent));
 }
 
 .statusBadge {
@@ -62,19 +67,19 @@
 }
 
 .statusComplete {
-    background: var(--color-success-100, rgba(34, 197, 94, 0.1));
+    background: var(--color-success-100, color-mix(in srgb, var(--color-success) 10%, transparent));
     color: var(--color-success, #16a34a);
     border-color: var(--color-success, #16a34a);
 }
 
 .statusDraft {
-    background: var(--color-warning-100, rgba(234, 179, 8, 0.1));
+    background: var(--color-warning-100, color-mix(in srgb, var(--color-warning) 10%, transparent));
     color: var(--color-warning, #ca8a04);
     border-color: var(--color-warning, #ca8a04);
 }
 
 .statusIncomplete {
-    background: var(--color-error-100, rgba(239, 68, 68, 0.1));
+    background: var(--color-error-100, color-mix(in srgb, var(--color-error) 10%, transparent));
     color: var(--color-error, #dc2626);
     border-color: var(--color-error, #dc2626);
 }
@@ -141,16 +146,22 @@
     background: var(--bg-input, var(--bg-card));
     cursor: grab;
     user-select: none;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
     color: var(--text-main);
 }
 
 .moduleChip:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-gray-900) 8%, transparent);
+}
+
+.moduleChip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .moduleChip:active {
     cursor: grabbing;
+    scale: 0.97;
 }
 
 .moduleChipDragging {
@@ -160,14 +171,14 @@
 .moduleChipDone {
     opacity: 0.5;
     cursor: not-allowed;
-    background: var(--color-success-50, rgba(34, 197, 94, 0.05));
+    background: var(--color-success-50, color-mix(in srgb, var(--color-success) 5%, transparent));
     border-color: var(--color-success, #16a34a);
 }
 
 .moduleChipSelected {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-200, rgba(99, 102, 241, 0.3));
-    background: var(--color-primary-50, rgba(99, 102, 241, 0.08));
+    box-shadow: 0 0 0 2px var(--color-primary-200, color-mix(in srgb, var(--color-primary-500) 30%, transparent));
+    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 8%, transparent));
 }
 
 .moduleDot {
@@ -283,7 +294,7 @@
 .slot {
     min-height: 56px;
     position: relative;
-    transition: background 0.1s;
+    transition: background var(--dur-fast) var(--ease-standard);
     display: flex;
 }
 
@@ -292,19 +303,19 @@
 }
 
 .slotDropActive {
-    background: var(--color-primary-50, rgba(99, 102, 241, 0.12));
+    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 12%, transparent));
     outline: 2px dashed var(--color-primary, #6366f1);
     outline-offset: -3px;
 }
 
 .slotDropValid {
-    background: var(--color-success-50, rgba(34, 197, 94, 0.08));
+    background: var(--color-success-50, color-mix(in srgb, var(--color-success) 8%, transparent));
     outline: 1px dashed var(--color-success, #16a34a);
     outline-offset: -2px;
 }
 
 .slotDropInvalid {
-    background: var(--color-error-50, rgba(239, 68, 68, 0.10));
+    background: var(--color-error-50, color-mix(in srgb, var(--color-error) 10%, transparent));
     outline: 1px dashed var(--color-error, #dc2626);
     outline-offset: -2px;
     cursor: not-allowed;
@@ -340,11 +351,11 @@
     white-space: normal;
     max-width: min(220px, 80vw);
     width: max-content;
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
+    box-shadow: var(--shadow-md, 0 4px 12px color-mix(in srgb, var(--color-gray-900) 15%, transparent));
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+    transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard), visibility var(--dur-fast) var(--ease-standard);
     z-index: 20;
     display: flex;
     flex-direction: column;
@@ -415,12 +426,12 @@
     background: var(--color-error, #dc2626);
     color: #fff;
     border-radius: var(--radius-md, 8px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--color-gray-900) 18%, transparent);
     font-size: var(--text-sm);
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    animation: toastSlide 0.2s ease-out;
+    animation: toastSlide var(--dur-base) var(--ease-out-quart);
 }
 
 @keyframes toastSlide {
@@ -436,5 +447,19 @@
     color: #fff;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--color-gray-900) 20%, transparent);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .grupoSelect,
+    .moduleChip,
+    .slot,
+    .slotTooltip {
+        transition: none;
+    }
+
+    .errorToast {
+        animation: none;
+    }
 }

@@ -7,9 +7,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.15); /* Fondo semitransparente para adaptarse ao header */
+    background: color-mix(in srgb, white 15%, transparent); /* Fondo semitransparente para adaptarse ao header */
     color: inherit; /* Herda a cor do texto do header */
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid color-mix(in srgb, white 30%, transparent);
     /* Usar variable de tema para el radio del borde, con fallback */
     border-radius: var(--border-radius, 6px);
     padding: 0.4rem 0.6rem;
@@ -17,7 +17,7 @@
     font-weight: 500;
     cursor: pointer;
     outline: none;
-    transition: all 0.2s ease;
+    transition: all var(--dur-base) var(--ease-standard);
     /* Eliminamos min-width fixo para permitir que se encolla en móbil */
     min-width: auto;
     justify-content: space-between;
@@ -38,8 +38,17 @@
 }
 
 .button:hover, .button.open {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: var(--primary-color, rgba(255, 255, 255, 0.8));
+    background: color-mix(in srgb, white 25%, transparent);
+    border-color: var(--primary-color, color-mix(in srgb, white 80%, transparent));
+}
+
+.button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.button:active {
+    transform: scale(0.96);
 }
 
 .currentSelection {
@@ -54,13 +63,13 @@
     right: 0;
     margin-top: 0.5rem;
     background-color: var(--bg-card-solid, var(--bg-card));
-    border: 1px solid var(--border-color, #e2e8f0);
+    border: 1px solid var(--border-color, color-mix(in srgb, var(--text-main, #000) 12%, var(--bg-card, #fff)));
     border-radius: var(--radius-lg, 8px);
     box-shadow: var(--shadow-lg);
     z-index: 1000;
     min-width: 180px;
     overflow: hidden;
-    animation: slideDown 0.2s ease-out;
+    animation: slideDown var(--dur-base) var(--ease-out-quart);
     padding: 0.25rem;
 }
 
@@ -84,11 +93,11 @@
     border: none;
     background: transparent;
     /* Usar variable de tema para o texto */
-    color: var(--text-main, #334155);
+    color: var(--text-main);
     font-size: 0.9rem;
     text-align: left;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--dur-fast) var(--ease-standard);
     /* Bordes redondeados internos para os items */
     border-radius: calc(var(--border-radius, 8px) - 2px);
     position: relative;
@@ -100,10 +109,19 @@
     color: var(--datatable-header-hover-text, var(--color-gray-900));
 }
 
+.item:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.item:active {
+    transform: scale(0.97);
+}
+
 /* Activo: Fondo sutil, texto primario e indicador visual (borde esquerdo) */
 .item.active {
-    background-color: rgba(0, 0, 0, 0.06);
-    color: var(--primary-color, #4f46e5);
+    background-color: color-mix(in srgb, var(--text-main, #000) 6%, transparent);
+    color: var(--primary-color, var(--color-primary));
     font-weight: 600;
 }
 
@@ -116,7 +134,7 @@
     transform: translateY(-50%);
     height: 60%;
     width: 3px;
-    background-color: var(--primary-color, #4f46e5);
+    background-color: var(--primary-color, var(--color-primary));
     border-radius: 2px;
 }
 
@@ -125,16 +143,27 @@
     height: 16px;
     border-radius: 2px;
     object-fit: cover;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-main, #000) 15%, transparent);
     display: block;
     flex-shrink: 0; /* Evitar que a bandeira se aplaste */
 }
 
 .chevron {
-    transition: transform 0.2s;
+    transition: transform var(--dur-base) var(--ease-standard);
     opacity: 0.8;
 }
 
 .open .chevron {
     transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button,
+    .item,
+    .chevron {
+        transition: none;
+    }
+    .dropdown {
+        animation: none;
+    }
 }

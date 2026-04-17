@@ -105,3 +105,12 @@
     0% { opacity: 0.4; }
     100% { opacity: 0.8; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .gradient, .gradient *,
+    .grid, .bottomGlow,
+    .floatingIcon {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

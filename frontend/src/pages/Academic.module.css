@@ -88,7 +88,7 @@
     display: grid; /* Cambiado a grid para layout de 2 columnas */
     grid-template-columns: 1fr auto; /* Columna principal y columna de acciones */
     gap: var(--space-3);
-    transition: all 0.2s ease;
+    transition: all var(--dur-base) var(--ease-standard);
     position: relative;
     overflow: hidden;
     align-items: start; /* Alinear al inicio verticalmente */
@@ -96,7 +96,7 @@
 
 .card:hover {
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-300);
+    border-color: color-mix(in srgb, var(--color-primary-500) 60%, transparent);
     transform: translateY(-2px);
 }
 
@@ -107,14 +107,23 @@
     border-radius: var(--radius-sm);
     background-color: var(--btn-primary-bg);
     color: var(--btn-primary-text);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
+.iconButton:hover {
+    filter: brightness(1.1);
+}
+
 .iconButton:active {
-    scale: 0.9;
+    transform: scale(0.96);
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .iconButton.danger{
@@ -131,7 +140,7 @@
     bottom: 0;
     width: 4px;
     background-color: var(--border-color);
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
 }
 
 .card:has(.badgePending)::before { background-color: var(--color-warning); }
@@ -198,13 +207,18 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform var(--dur-base) var(--ease-standard), box-shadow var(--dur-base) var(--ease-standard), border-color var(--dur-base) var(--ease-standard);
 }
 
 .userCard:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-300);
+    border-color: color-mix(in srgb, var(--color-primary-500) 60%, transparent);
+}
+
+.userCard:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .userAvatarContainer {
@@ -254,10 +268,16 @@
 .userDetail a {
     color: var(--color-primary-600);
     text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .userDetail a:hover {
     text-decoration: underline;
+}
+
+.userDetail a:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .userGroups {
@@ -321,7 +341,12 @@
     font-size: var(--text-sm);
     color: var(--color-primary-600);
     text-decoration: none;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+.downloadLink:focus-visible, .fileLink:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .downloadLink:hover, .fileLink:hover {
@@ -364,7 +389,7 @@
 }
 
 .tabContent {
-    animation: tabFadeIn 0.22s ease-out;
+    animation: tabFadeIn var(--dur-base) var(--ease-out-quart);
 }
 
 @keyframes tabFadeIn {
@@ -385,11 +410,20 @@
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
 }
 
 .tab:hover {
     color: var(--text-main);
+}
+
+.tab:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.tab:active {
+    transform: scale(0.96);
 }
 
 .tabActive {
@@ -462,19 +496,35 @@
 .input, .select, .textarea {
     width: 100%;
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color); /* Usar variable maestra */
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
-    background-color: var(--bg-input); /* Usar variable maestra */
-    color: var(--text-main);
-    box-sizing: border-box;
     font-family: inherit;
+    min-height: 38px;
+    box-sizing: border-box;
+    background-color: var(--bg-input);
+    color: var(--text-input, var(--text-main));
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.input:hover:not(:disabled):not(:focus),
+.select:hover:not(:disabled):not(:focus),
+.textarea:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
 }
 
 .input:focus, .select:focus, .textarea:focus {
     outline: none;
     border-color: var(--input-focus-border, var(--color-primary-500));
-    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500), transparent 80%));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
+}
+
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+    outline: none;
 }
 
 .textarea {
@@ -489,6 +539,16 @@
     border-radius: var(--radius-md);
     background-color: var(--bg-hover); /* Usar variable maestra */
     cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard);
+}
+
+.fileInput:hover {
+    border-color: color-mix(in srgb, var(--color-primary-500) 50%, var(--border-color));
+}
+
+.fileInput:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 /* Estilos para el porcentaje de faltas */
@@ -534,5 +594,37 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 0.5rem;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .card::before,
+    .iconButton,
+    .userCard,
+    .tab,
+    .downloadLink,
+    .fileLink,
+    .input,
+    .select,
+    .textarea,
+    .fileInput,
+    .userDetail a {
+        transition: none;
+    }
+
+    .card:hover,
+    .userCard:hover {
+        transform: none;
+    }
+
+    .iconButton:active,
+    .tab:active {
+        transform: none;
+    }
+
+    .tabContent {
+        animation: none;
     }
 }

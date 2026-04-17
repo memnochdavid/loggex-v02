@@ -11,7 +11,7 @@
     padding: 0;
     cursor: pointer;
     border-radius: 50%;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform var(--dur-base) var(--ease-out-quart), box-shadow var(--dur-base) var(--ease-out-quart);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,9 +24,13 @@
     box-shadow: 0 0 0 2px var(--color-primary-200);
 }
 
-.avatarButton:focus {
+.avatarButton:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--color-primary-300);
+}
+
+.avatarButton:active {
+    transform: scale(0.95);
 }
 
 .image {
@@ -59,7 +63,7 @@
     box-shadow: var(--shadow-lg);
     z-index: 100;
     overflow: hidden;
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn var(--dur-base) var(--ease-out-quart);
     transform-origin: top right;
 }
 
@@ -116,7 +120,7 @@
     font-size: var(--text-sm);
     color: var(--text-main); /* Usar variable maestra */
     border-radius: var(--radius-sm);
-    transition: background-color 0.15s;
+    transition: background-color var(--dur-fast) var(--ease-standard);
     text-decoration: none; /* Por si usamos <a> */
     box-sizing: border-box;
 }
@@ -124,6 +128,15 @@
 .menuItem:hover {
     background-color: var(--bg-hover); /* Usar variable maestra */
     color: var(--color-primary-600);
+}
+
+.menuItem:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.menuItem:active {
+    transform: scale(0.97);
 }
 
 .menuItem.danger {
@@ -144,5 +157,15 @@
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .avatarButton,
+    .menuItem {
+        transition: none;
+    }
+    .menu {
+        animation: none;
     }
 }

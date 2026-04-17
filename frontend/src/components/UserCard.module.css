@@ -14,7 +14,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform var(--dur-base) var(--ease-out-quart), box-shadow var(--dur-base) var(--ease-out-quart);
     cursor: pointer; /* Indicar que es clicable */
 }
 
@@ -22,6 +22,15 @@
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-primary-300);
+}
+
+.card:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.card:active {
+    transform: scale(0.98);
 }
 
 .avatarContainer {
@@ -100,4 +109,10 @@
 /* Clase para quitar padding del cuerpo del modal de perfil */
 .noPaddingBody {
     padding: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
 }

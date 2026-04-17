@@ -42,7 +42,7 @@
     border-radius: 50%;
     object-fit: cover;
     border: 4px solid var(--border-color); /* Borde del color de la tarjeta para integrarse */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--text-main) 10%, transparent);
     background-color: var(--bg-card);
 }
 
@@ -73,7 +73,7 @@
 .roleBadge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: color-mix(in srgb, white 20%, transparent);
     border-radius: 9999px;
     font-size: 0.875rem;
     font-weight: 600;
@@ -151,7 +151,16 @@
     cursor: pointer;
     box-shadow: var(--shadow-sm);
     color: var(--color-primary-600);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
+}
+
+.avatarUpload:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.avatarUpload:active {
+    transform: scale(0.96);
 }
 
 .avatarUpload:hover {
@@ -176,7 +185,7 @@
     background-color: var(--bg-input); /* Usar variable maestra */
     border-radius: var(--radius-md); /* Usar variable maestra */
     border: 1px solid var(--border-color); /* Usar variable maestra */
-    transition: transform 0.2s;
+    transition: transform var(--dur-base) var(--ease-standard);
 }
 
 .matriculaCard:hover {
@@ -207,5 +216,18 @@
 
     .grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .avatarUpload,
+    .matriculaCard {
+        transition: none;
+    }
+
+    .avatarUpload:hover,
+    .avatarUpload:active,
+    .matriculaCard:hover {
+        transform: none;
     }
 }

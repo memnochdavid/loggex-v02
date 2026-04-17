@@ -154,9 +154,9 @@
 
 /* Acentos por tipo de chip */
 .stat_primary { --stat-accent: var(--color-primary-500); }
-.stat_amber   { --stat-accent: #f59e0b; }
-.stat_emerald { --stat-accent: #10b981; }
-.stat_violet  { --stat-accent: #8b5cf6; }
+.stat_amber   { --stat-accent: var(--color-warning, #f59e0b); }
+.stat_emerald { --stat-accent: var(--color-success, #10b981); }
+.stat_violet  { --stat-accent: var(--color-violet, #8b5cf6); }
 
 /* =================================================================
    BENTO GRID — asimétrico, sin AccordionView wrapper

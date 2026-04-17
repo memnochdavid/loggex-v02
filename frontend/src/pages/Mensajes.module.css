@@ -29,7 +29,7 @@
     background-color: var(--chat-sidebar-bg, var(--bg-card));
     min-height: 0;
     overflow: hidden;
-    transition: transform 0.3s ease;
+    transition: transform var(--dur-slow) var(--ease-standard);
     border-radius: var(--radius-lg); /* Borde redondeado propio */
     /* border: 1px solid var(--border-color); */ /* Quitado borde */
     box-shadow: var(--shadow-sm); /* Sombra sutil para dar profundidad sin borde */
@@ -56,11 +56,20 @@
     display: flex;
     gap: var(--space-3);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
     /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde inferior */
     position: relative;
     color: var(--chat-item-text-main, var(--text-main));
     border-radius: var(--radius-md); /* Items redondeados */
+}
+
+.conversationItem:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 35%, transparent);
+}
+
+.conversationItem:active {
+    scale: 0.98;
 }
 
 .conversationItem:hover {
@@ -161,7 +170,7 @@
     font-weight: 600;
     flex-shrink: 0;
     /* Sombra sutil para separar del contenido si es del mismo color */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-main) 5%, transparent);
     z-index: 10;
 }
 
@@ -172,6 +181,17 @@
     cursor: pointer;
     padding: 4px;
     color: inherit;
+    transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.backButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 35%, transparent);
+    border-radius: var(--radius-sm);
+}
+
+.backButton:active {
+    scale: 0.9;
 }
 
 .avatarSmall {
@@ -183,7 +203,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid color-mix(in srgb, white 20%, transparent);
 }
 
 .avatarSmall img {
@@ -214,7 +234,7 @@
     font-size: 0.95rem;
     line-height: 1.4;
     word-wrap: break-word;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-main) 5%, transparent);
 }
 
 .sent {
@@ -247,7 +267,7 @@
     gap: var(--space-2);
     flex-shrink: 0;
     /* Sombra sutil invertida para separar del contenido */
-    box-shadow: 0 -1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 -1px 2px color-mix(in srgb, var(--text-main) 5%, transparent);
     z-index: 10;
 }
 
@@ -261,7 +281,12 @@
     color: var(--text-input); /* Usar variable maestra */
     height: min-content;
     resize: none;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+.messageInput:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 35%, transparent);
 }
 
 .messageInput:focus {
@@ -326,7 +351,7 @@
         left: 0;
         z-index: 5;
         transform: translateX(100%);
-        transition: transform 0.3s ease;
+        transition: transform var(--dur-slow) var(--ease-out-quart);
         background-color: var(--chat-container-bg, var(--bg-view));
         border-radius: 0; /* Sin borde redondeado en móvil */
         border: none;
@@ -348,5 +373,17 @@
 
     .chatHeader {
         padding: 10px;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .chatArea,
+    .conversationItem,
+    .backButton,
+    .messageInput {
+        transition-duration: 0.01ms !important;
+        animation: none !important;
     }
 }

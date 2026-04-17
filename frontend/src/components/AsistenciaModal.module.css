@@ -31,7 +31,7 @@
 
 .tr {
     border-bottom: 1px solid var(--border-color); /* Usar variable maestra */
-    transition: background-color 0.15s;
+    transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 .tr:hover {
@@ -97,8 +97,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
 }
+
+.actionButton:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: -2px;
+}
+
 .actionButton:active{
     scale: 0.9;
 }
@@ -161,6 +167,11 @@
     border-color: var(--input-focus-border, var(--color-primary-500));
 }
 
+.inputComentario:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: -2px;
+}
+
 .footer {
     padding: 1rem;
     border-top: 1px solid var(--border-color); /* Usar variable maestra */
@@ -218,7 +229,12 @@
         background-color: var(--bg-input); /* Usar variable maestra */
         color: var(--text-muted); /* Usar variable maestra */
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all var(--dur-base) var(--ease-standard);
+    }
+
+    .mobileActionButton:focus-visible {
+        outline: 2px solid var(--color-primary-500);
+        outline-offset: -2px;
     }
 
     .mobileActionButtonActiveP {
@@ -259,4 +275,12 @@
         overflow: visible;
     }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tr,
+    .actionButton,
+    .mobileActionButton {
+        transition: none;
+    }
 }

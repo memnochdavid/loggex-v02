@@ -145,10 +145,15 @@
     /*color: var(--color-gray-500);*/
     background-color: var(--btn-primary-bg, var(--color-primary-600));
     color: var(--btn-primary-text, white);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
 }
 
 .iconButton:active {
@@ -193,7 +198,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, var(--color-gray-900) 55%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -212,7 +217,7 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideIn 0.2s ease-out;
+    animation: slideIn var(--dur-base) var(--ease-standard);
     display: flex;
     flex-direction: column;
 }
@@ -239,11 +244,19 @@
     color: var(--color-gray-500);
     padding: var(--space-1);
     border-radius: var(--radius-sm);
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard);
 }
 
 .closeButton:hover {
     background-color: var(--color-gray-100);
     color: var(--color-gray-700);
+}
+
+.closeButton:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
 }
 
 .modalBody {
@@ -326,6 +339,11 @@
     width: 16px;
     height: 16px;
     cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
 }
 
 /* Estilos Específicos (Avatar, Logo) */
@@ -426,5 +444,18 @@
     }
     .modalFooter {
         justify-content: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .input, .select, .textarea,
+    .iconButton, .closeButton,
+    .checkboxLabel,
+    .fileInput::file-selector-button {
+        transition: none;
+    }
+
+    .modal {
+        animation: none;
     }
 }

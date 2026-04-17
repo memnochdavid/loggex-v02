@@ -38,7 +38,11 @@
       "Bash(php *)",
       "Bash(ls frontend/src/*.css frontend/src/styles/*.css)",
       "Bash(ls frontend/src/index.* frontend/src/main.*)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/check_css.sh)",
+      "Bash(/tmp/check_css.sh)",
+      "Read(//tmp/**)"
     ]
   }
 }

@@ -216,3 +216,10 @@
     33% { opacity: 0.25; transform: translate(10%, -5%) scale(1.15); }
     66% { opacity: 0.5; transform: translate(-8%, 8%) scale(0.9); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .base, .base * {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

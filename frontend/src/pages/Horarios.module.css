@@ -40,15 +40,44 @@
 
 .select {
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
+    font-family: inherit;
+    min-height: 38px;
+    box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1em;
+    cursor: pointer;
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.select:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
+}
+
+.select:focus {
+    outline: none;
+    border-color: var(--input-focus-border, var(--color-primary-500));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
+}
+
+.select:focus-visible {
+    outline: none;
 }
 
 .errorContainer {
-    background-color: #fef2f2;
+    background-color: color-mix(in srgb, var(--color-error) 8%, var(--bg-card));
     border: 1px solid var(--color-error);
     color: var(--color-error);
     padding: var(--space-4);
@@ -72,10 +101,15 @@
     /*color: var(--color-gray-500);*/
     background-color: var(--btn-primary-bg, var(--color-primary-600));
     color: var(--btn-primary-text, white);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .iconButton:active {
@@ -217,7 +251,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, var(--color-gray-900) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -234,7 +268,7 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideIn 0.2s ease-out;
+    animation: slideIn var(--dur-base) var(--ease-out-quart);
     display: flex;
     flex-direction: column;
 }
@@ -266,6 +300,15 @@
 .closeButton:hover {
     background-color: var(--color-gray-100);
     color: var(--color-gray-700);
+}
+
+.closeButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.closeButton:active {
+    scale: 0.9;
 }
 
 .modalBody {
@@ -303,19 +346,33 @@
 .input {
     width: 100%;
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
-    transition: border-color 0.2s;
+    font-family: inherit;
+    min-height: 38px;
     box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.input:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
 }
 
 .input:focus {
     outline: none;
     border-color: var(--input-focus-border, var(--color-primary-500));
-    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
+}
+
+.input:focus-visible {
+    outline: none;
 }
 
 /* Media Queries */
@@ -347,6 +404,21 @@
     .modal {
         max-height: 100vh;
         border-radius: 0;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .iconButton,
+    .input,
+    .select {
+        transition: none;
+    }
+
+    .modal,
+    .mobileSidebarOverlay,
+    .mobileSidebar {
+        animation: none;
     }
 }
 
