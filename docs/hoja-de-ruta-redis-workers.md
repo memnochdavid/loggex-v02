@@ -1,4 +1,4 @@
-# Hoja de Ruta: Redis + Workers para Tiempo Real
+# Hoja de Ruta: Redis + Mercure + Workers para Tiempo Real
 
 ## Problema Actual
 
@@ -24,8 +24,8 @@ Toda la "reactividad" de Loggex se basa en **polling directo a la BD** desde el 
 ```
 Frontend (React)
     │
-    ├── SSE (Server-Sent Events) ← para mensajes, notificaciones, stats
-    │       EventSource persistente, una conexión por usuario
+    ├── EventSource (Mercure) ← para mensajes, notificaciones, stats
+    │       1 conexión SSE persistente por usuario, gestionada por el hub Mercure
     │
     └── fetch REST ← para CRUD (tareas, usuarios, etc.) — sin cambios
     
@@ -33,48 +33,83 @@ Backend (Symfony)
     │
     ├── Controladores REST ← sin cambios (API Platform)
     │
-    ├── Event Dispatcher ← al crear/editar mensaje, entrega, calificación...
-    │       despacha evento a Redis (pub/sub)
+    ├── Mercure Publisher ← al crear/editar mensaje, entrega, calificación...
+    │       publica update al hub Mercure con topic por usuario/recurso
     │
-    └── SSE Controller ← endpoint /api/v1/stream
-            lee de Redis, emite al cliente conectado
+    └── Symfony Messenger ← despacha jobs async a Redis
+    
+Mercure Hub (binario Go)
+    └── Recibe updates del backend → los push-ea a los clientes suscritos vía SSE
+        Autenticación por JWT (misma clave que LexikJWT)
     
 Redis
-    ├── Pub/Sub ← canal por usuario (user:{id}:events)
-    ├── Cache ← stats precalculados, contadores
-    └── Queue (opcional fase 3) ← jobs pesados
+    ├── Cache ← stats precalculados, contadores de no-leídos
+    └── Queue ← transport para Symfony Messenger (jobs async)
     
 Worker(s) (Symfony Messenger)
-    └── Consume eventos → precalcula stats, limpia cache, etc.
+    └── Consume jobs → recalcula medias, genera PDFs, invalida cache, etc.
 ```
 
-### Por qué SSE en vez de WebSockets
+### Por qué Mercure + Redis (en vez de solo Redis pub/sub)
 
-- **SSE** funciona sobre HTTP estándar — compatible con Caddy sin config extra.
-- Unidireccional (servidor → cliente) — suficiente para notificaciones y chat (el envío de mensajes sigue siendo POST REST).
-- Más simple que WebSockets: no hay handshake, no hay heartbeat custom, auto-reconnect nativo del browser.
-- Si en el futuro se necesita bidireccional (ej: typing indicators), se puede migrar a WS sin cambiar la arquitectura Redis.
+**Mercure** es el protocolo estándar recomendado por Symfony para tiempo real:
+- **SSE nativo** — el hub gestiona las conexiones, reconexión, heartbeat. No hay que implementar un SseController manual.
+- **Autenticación por JWT** — usa la misma clave que LexikJWT. El backend firma un token con los topics a los que el usuario puede suscribirse; el hub lo valida. Seguridad built-in.
+- **API Platform integration** — basta con añadir `mercure: true` a una entidad para que los updates se publiquen automáticamente al crear/editar/borrar.
+- **Un solo binario Go (~15MB)** — se añade a docker-compose y ya. No hay que programar el servidor de eventos.
+- **Topics flexibles** — se puede suscribir por usuario (`/users/57`), por recurso (`/mensajes/{id}`), por grupo (`/centros/3/comunicados`), etc.
+
+**Redis** se mantiene para lo que hace mejor: cache de lectura rápida y cola de trabajos (Messenger transport). No hace pub/sub — eso lo hace Mercure.
+
+| Responsabilidad | Componente |
+|---|---|
+| Tiempo real (push al cliente) | **Mercure** |
+| Cache de lectura | **Redis** |
+| Cola de jobs async | **Redis** (Messenger transport) |
+| API REST / CRUD | **API Platform** (sin cambios) |
 
 ---
 
 ## Fases de Implementación
 
-### Fase 1: Infraestructura Redis + Cache de Lectura
+### Fase 1: Infraestructura Redis + Mercure + Cache
 
-**Objetivo:** Añadir Redis al stack y usarlo como cache para las queries más frecuentes. El frontend sigue con polling pero golpea Redis en vez de MariaDB.
+**Objetivo:** Añadir Redis y Mercure al stack. Redis cachea las queries frecuentes (el polling golpea cache en vez de BD). Mercure queda disponible pero aún no se usa desde el frontend.
 
-**Docker Compose:**
+#### Docker Compose
+
 ```yaml
 redis:
   image: redis:7-alpine
-  ports:
-    - "6379:6379"
   volumes:
     - redis_data:/data
   command: redis-server --appendonly yes
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    retries: 3
+
+mercure:
+  image: dunglas/mercure
+  restart: unless-stopped
+  environment:
+    # Misma clave JWT que LexikJWT para simplificar
+    MERCURE_PUBLISHER_JWT_KEY: '${JWT_SECRET}'
+    MERCURE_SUBSCRIBER_JWT_KEY: '${JWT_SECRET}'
+    MERCURE_PUBLISHER_JWT_ALG: 'HS256'
+    MERCURE_SUBSCRIBER_JWT_ALG: 'HS256'
+    # Permitir orígenes del frontend
+    MERCURE_EXTRA_DIRECTIVES: |
+      cors_origins https://localhost:8443
+      anonymous
+  ports:
+    - "3000:80"
+  volumes:
+    - mercure_data:/data
 ```
 
-**Backend — Symfony Cache:**
+#### Backend — Symfony Cache con Redis
+
 ```yaml
 # config/packages/cache.yaml
 framework:
@@ -83,7 +118,24 @@ framework:
     default_redis_provider: 'redis://redis:6379'
 ```
 
-**Endpoints a cachear (invalidación por evento):**
+#### Backend — Mercure Bundle
+
+```bash
+composer require symfony/mercure-bundle
+```
+
+```yaml
+# config/packages/mercure.yaml
+mercure:
+  hubs:
+    default:
+      url: 'http://mercure/.well-known/mercure'
+      jwt:
+        secret: '%env(JWT_SECRET)%'
+        algorithm: 'hmac.sha256'
+```
+
+#### Endpoints a cachear (invalidación por evento Doctrine)
 
 | Dato | Clave Redis | TTL | Invalidado cuando |
 |---|---|---|---|
@@ -94,132 +146,199 @@ framework:
 
 **Invalidación:** Event subscribers de Doctrine (`postPersist`, `postUpdate`, `postRemove`) que borran las claves afectadas.
 
-**Frontend:** Sin cambios. Sigue polling, pero las respuestas son instantáneas (Redis) en vez de queries SQL.
+**Frontend:** Sin cambios todavía. Sigue polling, pero las respuestas salen de Redis (~1ms) en vez de queries SQL.
 
-**Resultado:** Reducción drástica de carga en MariaDB. La latencia del polling baja a <5ms.
+**Resultado:** Carga de MariaDB reducida drásticamente. Latencia de polling <5ms.
 
 ---
 
-### Fase 2: SSE — Tiempo Real sin Polling
+### Fase 2: Mercure — Tiempo Real sin Polling
 
-**Objetivo:** Reemplazar todo el polling del frontend por una conexión SSE persistente. El usuario recibe eventos push instantáneamente.
+**Objetivo:** Reemplazar todo el polling del frontend por suscripciones Mercure. El usuario recibe eventos push instantáneamente.
 
-#### Backend
+#### Backend — Publicación de updates
 
-**Nuevo endpoint SSE:**
+Cada acción relevante publica un update Mercure en los topics del usuario afectado:
+
 ```php
-#[Route('/api/v1/stream', name: 'api_sse_stream', methods: ['GET'])]
-public function stream(): StreamedResponse
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
+
+class MensajeEventSubscriber implements EventSubscriberInterface
 {
-    $user = $this->getUser();
-    $response = new StreamedResponse(function () use ($user) {
-        $redis = new \Redis();
-        $redis->connect('redis', 6379);
-        $redis->subscribe(["user:{$user->getId()}:events"], function ($redis, $channel, $message) {
-            echo "data: {$message}\n\n";
-            ob_flush();
-            flush();
-        });
-    });
-    $response->headers->set('Content-Type', 'text/event-stream');
-    $response->headers->set('Cache-Control', 'no-cache');
-    $response->headers->set('X-Accel-Buffering', 'no');
-    return $response;
+    public function __construct(private HubInterface $hub) {}
+
+    public function onMensajeCreated(MensajeCreatedEvent $event): void
+    {
+        $mensaje = $event->getMensaje();
+        $destinatarioId = $mensaje->getDestinatario()->getId();
+
+        $this->hub->publish(new Update(
+            // Topics: el destinatario se suscribe a estos
+            [
+                "/users/{$destinatarioId}/messages",
+                "/users/{$destinatarioId}/notifications",
+            ],
+            json_encode([
+                'type' => 'new_message',
+                'data' => [
+                    'id' => $mensaje->getId(),
+                    'from' => $mensaje->getRemitente()->getId(),
+                    'fromName' => $mensaje->getRemitente()->getNombre(),
+                    'preview' => mb_substr($mensaje->getTexto(), 0, 80),
+                    'timestamp' => $mensaje->getFechaEnvio()->format('c'),
+                ],
+            ]),
+            // Private: solo el usuario con JWT que incluya este topic puede recibirlo
+            true
+        ));
+    }
 }
 ```
 
-**Publicación de eventos (Event Subscribers):**
+#### Topics por funcionalidad
 
-Cada acción relevante publica un evento JSON en el canal del usuario afectado:
+| Topic | Quién se suscribe | Eventos que recibe |
+|---|---|---|
+| `/users/{id}/messages` | El usuario {id} | `new_message`, `message_read` |
+| `/users/{id}/notifications` | El usuario {id} | `new_message`, `new_delivery`, `grade_updated`, `new_comunicado` |
+| `/users/{id}/stats` | El usuario {id} | `stats_update` (pendingTasks, pendingDeliveries, etc.) |
+| `/centros/{id}/comunicados` | Todos los usuarios del centro | `new_comunicado` |
+| `/imparticiones/{id}/entregas` | El profesor de la impartición | `new_delivery` |
+
+#### API Platform — Mercure automático en entidades
+
+Para entidades donde queremos updates automáticos al CRUD:
 
 ```php
-// Al crear un mensaje
-$this->redis->publish("user:{$destinatarioId}:events", json_encode([
-    'type' => 'new_message',
-    'data' => [
-        'from' => $remitente->getId(),
-        'fromName' => $remitente->getNombre(),
-        'preview' => mb_substr($mensaje->getTexto(), 0, 80),
-        'conversationId' => $remitente->getId(),
-        'timestamp' => (new \DateTime())->format('c'),
-    ],
-]));
+#[ApiResource(
+    mercure: true,  // Publica update automáticamente en POST/PUT/PATCH/DELETE
+)]
+class Mensaje { ... }
 ```
 
-**Tipos de evento:**
+Esto publica automáticamente cuando se crea/edita un mensaje vía API Platform, sin necesidad de event subscriber manual. Para lógica custom (topics privados, payload específico), se usa el subscriber manual.
 
-| Evento | Publicado cuando | Canal(es) | Payload |
-|---|---|---|---|
-| `new_message` | Se crea un Mensaje | `user:{destinatarioId}` | from, preview, timestamp |
-| `message_read` | Se marcan mensajes como leídos | `user:{remitentes}` | conversationId |
-| `unread_count` | Cambia el conteo de no leídos | `user:{userId}` | count |
-| `new_delivery` | Alumno entrega una tarea | `user:{profesorId}` | tareaId, alumnoNombre |
-| `grade_updated` | Profesor pone/modifica nota | `user:{alumnoId}` | tareaId, nota |
-| `new_comunicado` | Se publica comunicado | `user:{todos del centro}` | titulo, preview |
-| `stats_update` | Cambian stats del home | `user:{userId}` | pendingTasks, pendingDeliveries, etc. |
+#### Frontend — Hook `useMercure`
 
-#### Frontend
-
-**Hook `useEventStream`:**
 ```javascript
-export function useEventStream() {
+import { useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+
+const MERCURE_HUB_URL = 'https://localhost:3000/.well-known/mercure';
+
+export function useMercure(topics, onEvent) {
     const { user } = useAuth();
-    const [lastEvent, setLastEvent] = useState(null);
+    const callbackRef = useRef(onEvent);
+    callbackRef.current = onEvent;
 
     useEffect(() => {
-        if (!user) return;
-        const source = new EventSource(getApiUrl('/api/v1/stream'), {
-            withCredentials: true,
-        });
-        source.onmessage = (e) => {
-            const event = JSON.parse(e.data);
-            setLastEvent(event);
-            // Dispatch a un event bus interno
-            window.dispatchEvent(new CustomEvent('sse-event', { detail: event }));
-        };
-        source.onerror = () => {
-            // Auto-reconnect nativo de EventSource (backoff exponencial)
-        };
-        return () => source.close();
-    }, [user?.id]);
+        if (!user?.id || !topics?.length) return;
 
-    return lastEvent;
+        const url = new URL(MERCURE_HUB_URL);
+        topics.forEach(topic => url.searchParams.append('topic', topic));
+
+        const source = new EventSource(url, { withCredentials: true });
+
+        source.onmessage = (e) => {
+            try {
+                const event = JSON.parse(e.data);
+                callbackRef.current(event);
+            } catch { /* ignore malformed */ }
+        };
+
+        // EventSource reconecta automáticamente con backoff
+        source.onerror = () => {
+            console.warn('Mercure: conexión perdida, reconectando...');
+        };
+
+        return () => source.close();
+    }, [user?.id, JSON.stringify(topics)]);
 }
 ```
 
-**Migración de cada mecanismo de polling:**
+#### Migración de cada mecanismo de polling
 
-| Antes (polling) | Después (SSE) |
-|---|---|
-| `useUnreadMessages` (30s poll) | Escucha evento `unread_count` → actualiza estado |
-| `NotificationList` (3s poll) | Escucha evento `new_message` → añade al listado local |
-| `useHomeStats` (60s poll) | Escucha evento `stats_update` → actualiza chips |
-| `Mensajes.jsx` (1s poll) | Escucha `new_message` + `message_read` → actualiza conversación |
-
-**Cada componente se suscribe a los tipos de evento que le interesan:**
+**useUnreadMessages → useMercure:**
 ```javascript
-useEffect(() => {
-    const handler = (e) => {
-        if (e.detail.type === 'new_message') {
-            // Añadir mensaje a la conversación local
-        }
-    };
-    window.addEventListener('sse-event', handler);
-    return () => window.removeEventListener('sse-event', handler);
-}, []);
+// Antes: polling cada 30s a /api/mensajes?leido=false
+// Después:
+const [unreadCount, setUnreadCount] = useState(0);
+
+// Carga inicial (1 sola vez)
+useEffect(() => { fetchUnreadCount().then(setUnreadCount); }, []);
+
+// Updates en tiempo real
+useMercure(
+    [`/users/${user.id}/notifications`],
+    (event) => {
+        if (event.type === 'new_message') setUnreadCount(c => c + 1);
+        if (event.type === 'message_read') fetchUnreadCount().then(setUnreadCount);
+    }
+);
 ```
 
-**Fallback:** Si SSE se desconecta (red inestable), los hooks vuelven a polling lento (30s) como respaldo. Al reconectar SSE, se desactiva el polling automáticamente.
+**NotificationList → useMercure:**
+```javascript
+// Antes: polling cada 3s
+// Después:
+useMercure(
+    [`/users/${user.id}/notifications`],
+    (event) => {
+        if (event.type === 'new_message') {
+            setNotifications(prev => [event.data, ...prev].slice(0, limit));
+        }
+    }
+);
+```
 
-**Resultado:** Chat instantáneo (0ms delay), 0 polling, 1 conexión HTTP por usuario.
+**Mensajes.jsx (Chat) → useMercure:**
+```javascript
+// Antes: polling cada 1s a /api/v1/mensajes
+// Después:
+useMercure(
+    [`/users/${user.id}/messages`],
+    (event) => {
+        if (event.type === 'new_message') {
+            // Añadir a la conversación correcta
+            addMessageToConversation(event.data);
+        }
+        if (event.type === 'message_read') {
+            // Actualizar estado de leído
+            markConversationRead(event.data.conversationId);
+        }
+    }
+);
+```
+
+**useHomeStats → useMercure:**
+```javascript
+// Antes: polling cada 60s a 3 endpoints
+// Después:
+// Carga inicial (1 sola vez)
+useEffect(() => { fetchStats().then(setStats); }, []);
+
+// Updates en tiempo real
+useMercure(
+    [`/users/${user.id}/stats`],
+    (event) => {
+        if (event.type === 'stats_update') setStats(event.data);
+    }
+);
+```
+
+**Fallback:** Si Mercure se desconecta (red inestable), EventSource reconecta automáticamente. Si la reconexión tarda >10s, activar polling lento (30s) como respaldo temporal.
+
+**Resultado:** Chat instantáneo (0ms delay percibido), 0 polling, 1 conexión SSE por usuario gestionada por Mercure.
 
 ---
 
 ### Fase 3: Workers con Symfony Messenger
 
-**Objetivo:** Mover lógica pesada fuera del request HTTP — el profesor pone una nota y la respuesta es instantánea; el recálculo de medias, envío de notificaciones, etc. ocurren en background.
+**Objetivo:** Mover lógica pesada fuera del request HTTP. El profesor pone una nota → respuesta instantánea; el recálculo de medias, generación de PDFs, publicación a Mercure... todo en background.
 
-**Docker Compose — Worker:**
+#### Docker Compose — Worker
+
 ```yaml
 worker:
   build: ./backend
@@ -227,12 +346,14 @@ worker:
   depends_on:
     - redis
     - database
+    - mercure
   restart: unless-stopped
   deploy:
     replicas: 2  # 2 workers en paralelo
 ```
 
-**Transport Redis:**
+#### Transport Redis (Messenger)
+
 ```yaml
 # config/packages/messenger.yaml
 framework:
@@ -246,90 +367,113 @@ framework:
           consumer: worker_%hostname%
     routing:
       App\Message\RecalcularMedias: async
-      App\Message\EnviarNotificacionPush: async
+      App\Message\PublicarMercureUpdate: async
       App\Message\GenerarBoletin: async
       App\Message\InvalidarCache: async
+      App\Message\EnviarEmailResumen: async
 ```
 
-**Jobs a mover a workers:**
+#### Jobs a mover a workers
 
 | Job | Trigger | Qué hace | Prioridad |
 |---|---|---|---|
-| `RecalcularMedias` | PUT/POST calificacion | Recalcula medias del alumno + publica `stats_update` por SSE | Alta |
+| `RecalcularMedias` | POST/PUT/PATCH calificacion | Recalcula medias del alumno, invalida cache, publica `stats_update` vía Mercure | Alta |
 | `InvalidarCache` | Cualquier write en entidades cacheadas | Borra claves Redis afectadas | Alta |
-| `PublicarEventoSSE` | Cualquier acción notificable | Publica en canal Redis del usuario | Alta |
+| `PublicarMercureUpdate` | Cualquier acción notificable | Publica update en el hub Mercure | Alta |
 | `GenerarBoletin` | Solicitud de PDF de boletín | Genera PDF y lo sube a MinIO | Media |
 | `EnviarEmailResumen` | Cron diario | Email resumen a profesores con entregas pendientes | Baja |
 | `LimpiarSesiones` | Cron horario | Limpia tokens JWT expirados | Baja |
 
-**Resultado:** Las respuestas HTTP son instantáneas (~50ms). El trabajo pesado se procesa en paralelo sin bloquear al usuario.
+#### Ejemplo: flujo completo de "profesor pone nota"
+
+```
+1. Frontend: PATCH /api/calificacions/245 { nota: 7.5 }
+2. Backend Controller: actualiza BD, responde 200 (~50ms)
+3. Doctrine postUpdate Event: despacha RecalcularMedias al bus
+4. Worker (async):
+   a. Recalcula medias del alumno
+   b. Invalida cache Redis (home_stats:{alumnoId}, pending_deliveries:{profId})
+   c. Publica Mercure update en /users/{alumnoId}/stats
+   d. Publica Mercure update en /users/{alumnoId}/notifications (grade_updated)
+5. Frontend del alumno: recibe SSE → stats se actualizan, aparece notificación
+```
+
+**Resultado:** Respuestas HTTP instantáneas (~50ms). El trabajo pesado se procesa en paralelo sin bloquear al usuario.
 
 ---
 
-## Fase 4: Monitorización y Observabilidad
+### Fase 4: Monitorización y Observabilidad
 
-**Redis:**
-- `redis-cli INFO` para métricas de memoria/conexiones.
-- Supervisord o Docker healthcheck para restart automático.
+#### Redis
+- `redis-cli INFO` para métricas de memoria, conexiones, hit rate.
+- Docker healthcheck (ya incluido en Fase 1).
 
-**Workers:**
-- `messenger:stats` para ver cola pendiente.
-- Log de errores por job (`messenger:failed:show`).
-- Alertas si la cola crece por encima de umbral (>100 jobs pendientes).
+#### Mercure
+- Dashboard nativo del hub (si se habilita `debug: true`).
+- Logs del contenedor para conexiones activas.
+- Métrica: conexiones SSE activas (el hub lo expone).
 
-**SSE:**
-- Contador de conexiones activas (middleware que incrementa/decrementa en Redis).
-- Timeout de conexiones inactivas (Caddy: `flush_interval 100ms`, `read_timeout 5m`).
+#### Workers
+- `php bin/console messenger:stats` — cola pendiente por transport.
+- `php bin/console messenger:failed:show` — jobs fallidos.
+- Alertas si la cola crece por encima de 100 jobs pendientes.
+- Logs por job (level INFO para éxito, ERROR para fallos).
+
+#### Caddy
+- Logs de acceso para `/api/v1/` y `/.well-known/mercure`.
+- Métricas de requests/segundo (confirmar que el polling desapareció).
 
 ---
 
-## Configuración de Caddy para SSE
+## Configuración de Caddy para Mercure
 
 ```caddyfile
-handle /api/v1/stream {
-    reverse_proxy backend:80 {
-        flush_interval 100ms
-        transport http {
-            read_timeout 0
-        }
-    }
+# Proxy al hub Mercure
+handle /.well-known/mercure* {
+    reverse_proxy mercure:80
 }
 ```
+
+El hub Mercure se sirve a través de Caddy como cualquier otro servicio. El frontend se conecta a `https://localhost:8443/.well-known/mercure` (mismo dominio, sin CORS).
 
 ---
 
 ## Orden de Ejecución Recomendado
 
 ```
-Fase 1 (Cache Redis)
-  ├── Añadir Redis a docker-compose
+Fase 1 (Infraestructura + Cache)
+  ├── Añadir Redis + Mercure a docker-compose
+  ├── composer require symfony/mercure-bundle
   ├── Configurar Symfony Cache con Redis adapter
+  ├── Configurar Mercure bundle (hub URL + JWT)
+  ├── Configurar Caddy proxy para Mercure
   ├── Cachear endpoints de lectura frecuente
-  ├── Event subscribers para invalidación
-  └── Verificar: polling sigue funcionando pero sin tocar BD
+  ├── Event subscribers Doctrine para invalidación de cache
+  └── Verificar: polling sigue, pero respuestas salen de Redis
          ↓
-Fase 2 (SSE)
-  ├── Endpoint /api/v1/stream con Redis pub/sub
-  ├── Hook useEventStream en frontend
-  ├── Migrar useUnreadMessages → SSE
-  ├── Migrar NotificationList → SSE
-  ├── Migrar Mensajes.jsx chat → SSE
-  ├── Migrar useHomeStats → SSE
-  ├── Eliminar polling constants de api.js
+Fase 2 (Mercure — Tiempo Real)
+  ├── Event subscribers que publican updates Mercure
+  ├── mercure: true en entidades clave (Mensaje, Comunicado)
+  ├── Hook useMercure en frontend
+  ├── Migrar useUnreadMessages → useMercure
+  ├── Migrar NotificationList → useMercure
+  ├── Migrar Mensajes.jsx chat → useMercure
+  ├── Migrar useHomeStats → useMercure
+  ├── Eliminar POLLING_INTERVAL_* de api.js
   ├── Fallback polling para desconexiones
-  └── Configurar Caddy para SSE
+  └── Verificar: 0 polling, chat instantáneo
          ↓
-Fase 3 (Workers)
+Fase 3 (Workers — Async)
   ├── Configurar Symfony Messenger con Redis transport
   ├── Crear Message classes + Handlers
-  ├── Añadir worker service a docker-compose
+  ├── Añadir worker service a docker-compose (2 replicas)
   ├── Migrar RecalcularMedias a async
   ├── Migrar GenerarBoletin a async
-  ├── Migrar PublicarEventoSSE a async
+  ├── Migrar PublicarMercureUpdate a async
   └── Verificar: jobs se procesan sin bloquear HTTP
          ↓
 Fase 4 (Monitorización)
-  ├── Healthchecks Redis + Workers
+  ├── Healthchecks Redis + Mercure + Workers
   ├── Dashboard de métricas (opcional)
   └── Alertas de cola
 ```
@@ -339,26 +483,40 @@ Fase 4 (Monitorización)
 ## Impacto en Archivos Existentes
 
 ### Backend (modificar)
-- `docker-compose.yml` — añadir servicio redis + worker
+- `docker-compose.yml` — añadir servicios redis, mercure, worker
+- `Caddyfile` — proxy para Mercure hub
 - `config/packages/cache.yaml` — adapter Redis
-- `config/packages/messenger.yaml` — transport Redis
-- `Caddyfile` — configurar SSE proxy
-- Controladores que crean/editan Mensaje, Entrega, Calificacion, Comunicado — despachar eventos
-- Nuevo: `src/Controller/SseController.php`
+- `config/packages/mercure.yaml` — hub URL + JWT (**nuevo**)
+- `config/packages/messenger.yaml` — transport Redis (**nuevo**)
+- Controladores que crean/editan Mensaje, Entrega, Calificacion, Comunicado — despachar al bus
 - Nuevo: `src/EventSubscriber/CacheInvalidationSubscriber.php`
-- Nuevo: `src/EventSubscriber/SseEventPublisher.php`
+- Nuevo: `src/EventSubscriber/MercureEventPublisher.php`
 - Nuevo: `src/Message/` (clases de mensajes para workers)
 - Nuevo: `src/MessageHandler/` (handlers)
 
 ### Frontend (modificar)
-- `src/config/api.js` — eliminar `POLLING_INTERVAL_*`
-- `src/hooks/useUnreadMessages.js` — reemplazar polling por SSE listener
-- `src/hooks/useHomeStats.js` — reemplazar polling por SSE listener
-- `src/components/NotificationList.jsx` — reemplazar polling por SSE listener
-- `src/pages/Mensajes.jsx` — reemplazar polling por SSE listener
-- Nuevo: `src/hooks/useEventStream.js`
+- `src/config/api.js` — eliminar `POLLING_INTERVAL_*`, añadir `MERCURE_HUB_URL`
+- `src/hooks/useUnreadMessages.js` — reemplazar polling por `useMercure`
+- `src/hooks/useHomeStats.js` — reemplazar polling por `useMercure`
+- `src/components/NotificationList.jsx` — reemplazar polling por `useMercure`
+- `src/pages/Mensajes.jsx` — reemplazar polling por `useMercure`
+- Nuevo: `src/hooks/useMercure.js`
 
 ### Sin cambios
-- Entidades Doctrine (sin cambios de schema)
+- Entidades Doctrine (sin cambios de schema, solo añadir `mercure: true` opcionalmente)
 - API Platform resources (los endpoints REST siguen igual)
 - Todas las vistas/componentes UI (solo cambia de dónde viene el dato)
+- Auth (JWT) — Mercure reutiliza la misma clave
+
+---
+
+## Comparativa: Antes vs Después
+
+| Métrica | Antes (polling) | Después (Mercure + Redis) |
+|---|---|---|
+| Queries/s a BD (50 usuarios) | ~60/s | ~2/s (solo writes) |
+| Latencia de chat | 0-1000ms | <50ms |
+| Latencia de notificaciones | 0-3000ms | <50ms |
+| Conexiones HTTP por usuario | 4 intervalos concurrentes | 1 SSE persistente |
+| Banda ancha consumida | Alta (respuestas repetidas) | Mínima (solo deltas) |
+| Complejidad de deploy | Baja (solo PHP + MariaDB) | Media (+ Redis + Mercure + Workers) |
