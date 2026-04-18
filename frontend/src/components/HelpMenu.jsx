@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, Check, Play, X, RotateCcw } from 'lucide-react';
+import { GraduationCap, Check, Play, X, RotateCcw, Bell, BellOff } from 'lucide-react';
 import { useTour } from '../context/TourContext';
 import styles from './HelpMenu.module.css';
 
@@ -16,7 +16,10 @@ import styles from './HelpMenu.module.css';
  */
 const HelpMenu = ({ open, onClose }) => {
     const { t } = useTranslation();
-    const { availableTours, isCompleted, startTour, resetTours } = useTour();
+    const {
+        availableTours, isCompleted, startTour, resetTours,
+        badgesEnabled, setBadges,
+    } = useTour();
     const [confirmReset, setConfirmReset] = useState(false);
 
     if (!open) return null;
@@ -96,6 +99,20 @@ const HelpMenu = ({ open, onClose }) => {
                 )}
 
                 <footer className={styles.footer}>
+                    <label className={styles.badgeToggle}>
+                        <input
+                            type="checkbox"
+                            checked={badgesEnabled}
+                            onChange={(e) => setBadges(e.target.checked)}
+                        />
+                        <span className={styles.badgeToggleTrack}>
+                            <span className={styles.badgeToggleThumb} />
+                        </span>
+                        <span className={styles.badgeToggleLabel}>
+                            {badgesEnabled ? <Bell size={12} /> : <BellOff size={12} />}
+                            {t('helpMenu.badgesToggle')}
+                        </span>
+                    </label>
                     <button
                         className={`${styles.resetBtn} ${confirmReset ? styles.resetBtnConfirm : ''}`}
                         onClick={handleReset}

@@ -1,5 +1,48 @@
 # Hoja de Ruta: Tutorial Interactivo de Onboarding
 
+## Estado actual (2026-04-18)
+
+Las **3 fases** del roadmap están **implementadas y en dev**. Resumen:
+
+| Fase | Estado | Notas |
+|---|---|---|
+| 1 — MVP (tour único, localStorage, menú Ayuda) | ✅ Completada | react-joyride 3.0.2 |
+| 2 — Backend persistence + tours por rol | ✅ Completada | 6 tours nuevos + migración Doctrine + 3 endpoints |
+| 3 — Contextual help + condicionales | ✅ Completada | Badge flotante, trigger por ruta, toggle, step condicional (motor listo, sin uso real todavía) |
+
+**Ficheros creados (frontend):**
+- `src/context/TourContext.jsx`
+- `src/components/Tour.jsx`
+- `src/components/HelpMenu.jsx` + `.module.css`
+- `src/components/ContextualHelpBadge.jsx` + `.module.css`
+- `src/tours/index.js`
+- `src/tours/common/primer-login.js`
+- `src/tours/alumno/{entregar-tarea,ver-calificaciones}.js`
+- `src/tours/profesor/{poner-nota,editor-horarios}.js`
+- `src/tours/admin/{personalizar-centro,crear-grupo}.js`
+
+**Ficheros creados (backend):**
+- `src/Controller/TutorialController.php`
+- `migrations/Version20260418110226.php`
+
+**Ficheros modificados:**
+- `src/App.jsx` — `<TourProvider>` + `<Tour />` + `<ContextualHelpBadge />`
+- `src/layout/Header.jsx` — `data-tour="header-notifications"`
+- `src/components/Sidebar.jsx` — 19 `data-tour` + hook `useTour()` para expandir acordeón del tour activo
+- `src/components/UserAvatar.jsx` — item "Tutoriales" + `data-tour="header-user-menu"`
+- `src/Entity/User.php` — campo `tutorialsCompleted` (JSON) + `markTutorialCompleted()`
+- `src/i18n/locales/es.json` — bloques `tour.*`, `helpMenu.*`, `contextualBadge.*`
+
+**Pendiente de la hoja de ruta original:**
+- Traducciones `tour.*` en `en/ca/gl/eu` (hoy usan fallback a `es` según recomendación del roadmap).
+- Ejemplo real de step condicional (el motor está, ningún tour lo usa aún).
+- "Tours obligatorios" (mencionados como posible Fase 4 hipotética).
+- Analítica de tour (`POST /api/me/tutorials/:id/event`) — el roadmap la deja explícitamente como overkill para el TFG.
+
+**Divergencias respecto al plan original (documentadas por fase, abajo).**
+
+---
+
 ## Problema Actual
 
 Loggex tiene muchas funciones distribuidas por rol (SuperAdmin, Admin, Profesor, Alumno) y hoy no hay nada que guíe al usuario al entrar por primera vez:
@@ -91,9 +134,13 @@ Un tour de 25 pasos cansa y el usuario lo salta entero. Tours de 3-6 pasos por t
 
 ## Fases de Implementación
 
-### Fase 1: MVP — un tour, persistencia local, menú de ayuda
+### Fase 1: MVP — un tour, persistencia local, menú de ayuda ✅
 
 **Objetivo:** probar el encaje del componente y el flujo básico con un solo tour completo. Persistencia solo en `localStorage` (sin backend todavía).
+
+> **Implementado tal cual** salvo por un campo extra `accordionSection` en la definición de tour (no previsto en el plan): cuando un tour apunta a items que viven dentro de un acordeón colapsado del Sidebar, el `TourContext` lo pasa a éste vía `useTour()` y se fuerza la expansión. Sin esto Joyride no encontraría los targets al lanzar tours de fases posteriores.
+>
+> **Nota de API:** `react-joyride` 3.x usa export nombrado `{ Joyride }` (no default como indicaba el snippet original). Corregido en `components/Tour.jsx`.
 
 #### Dependencias
 
@@ -277,9 +324,14 @@ Un usuario entra por primera vez → se lanza el tour de bienvenida automáticam
 
 ---
 
-### Fase 2: Backend persistence + tours por rol
+### Fase 2: Backend persistence + tours por rol ✅
 
 **Objetivo:** el progreso sobrevive a cambios de navegador/dispositivo. Añadir 4-6 tours más, uno por rol y tarea principal.
+
+> **Implementado** con estos matices:
+> - Endpoint adicional `POST /api/me/tutorials/reset` (no previsto) para que el botón "Reiniciar mi progreso" del HelpMenu limpie también el backend, no solo localStorage.
+> - Los 6 tours listados en la tabla inferior se hicieron **sidebar-first**: cada paso apunta a un item de la barra lateral con un tooltip explicando qué se encuentra ahí, en lugar de guiar click-por-click dentro de cada página. Razón: robusto frente a refactors de páginas individuales, coste de mantenimiento bajo, suficiente para el onboarding. La versión "profunda" (click → archivo → enviar) queda para una fase posterior si se necesita.
+> - Estrategia de sync: unión backend+local al login, optimistic update en `finishTour`, migración automática (subida en background) de IDs locales que el backend no tuviera — así cualquier usuario que hubiera usado Fase 1 conserva su progreso.
 
 #### Backend — entidad User
 
@@ -353,9 +405,16 @@ Un profesor ve solo los 3-4 tours que le importan. Cambia al portátil de casa y
 
 ---
 
-### Fase 3: Contextual help + condicionales
+### Fase 3: Contextual help + condicionales ✅
 
 **Objetivo:** no esperar al primer login — ofrecer ayuda en el momento en que el usuario la necesita.
+
+> **Implementado** con estos matices:
+> - Matching de `trigger.route` soporta 4 formas: string exacto (`'/entregas'`), string con `:param` (`'/tareas/:id'`), `RegExp`, o función predicado `(pathname) => bool`.
+> - "No, gracias" (`dismissTour`) marca el tour como completado igual que `skipped` — no hay diferencia semántica; el badge no vuelve a salir y queda listable en el menú Ayuda como "Visto".
+> - El toggle de badges vive en el footer del modal HelpMenu (no en /perfil). Persistencia en `localStorage.loggex.tours.badgesDisabled`, no en backend — es una preferencia de cliente.
+> - `setTourContext(partial)` y `useProvideTourContext(data)` expuestos por el context, pero ningún tour declara aún un step con `condition`. El motor está listo; cuando lo necesites, en la página haz `useProvideTourContext({ flag: valor })` y en el step `condition: (ctx) => ctx.flag > 0`.
+> - El `badgeCandidate` se desactiva automáticamente mientras hay un tour en curso, así nunca se solapa la ayuda contextual con un tour ya iniciado.
 
 #### Trigger por ruta
 

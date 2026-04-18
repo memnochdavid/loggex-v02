@@ -10,6 +10,8 @@ export default {
     roles: ['ROLE_ALUMNO', 'ROLE_SUPERADMIN'],
     accordionSection: 'alumno',
     isAutoStart: false,
+    /* Badge contextual en la página de entregas. */
+    trigger: { route: '/entregas' },
     steps: [
         {
             targetId: 'sidebar-entregas',

@@ -9,6 +9,7 @@ export default {
     roles: ['ROLE_ALUMNO', 'ROLE_SUPERADMIN'],
     accordionSection: 'alumno',
     isAutoStart: false,
+    trigger: { route: '/mis-calificaciones' },
     steps: [
         {
             targetId: 'sidebar-mis-calificaciones',

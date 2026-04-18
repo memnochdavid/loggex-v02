@@ -10,6 +10,9 @@ export default {
     roles: ['ROLE_PROFESOR', 'ROLE_ADMIN', 'ROLE_SUPERADMIN'],
     accordionSection: 'profesor',
     isAutoStart: false,
+    /* Mismo path que alumno-entregar-tarea, pero los roles los separan:
+       un profesor verá este badge, un alumno el otro. */
+    trigger: { route: '/entregas' },
     steps: [
         {
             targetId: 'sidebar-entregas',

@@ -14,17 +14,24 @@ const Tour = () => {
     const { t } = useTranslation();
     const { currentTour, finishTour } = useTour();
 
-    /* Memoizar steps para evitar recálculos innecesarios en cada render. */
+    const { tourRuntimeCtx } = useTour();
+
+    /* Memoizar steps para evitar recálculos innecesarios en cada render.
+       Los steps con `condition: (ctx) => bool` se evalúan contra el
+       tourRuntimeCtx publicado por la página activa → se filtran antes
+       de pasárselos a Joyride, así Joyride no ve steps que no aplican. */
     const steps = useMemo(() => {
         if (!currentTour) return [];
-        return currentTour.steps.map(s => ({
-            target: `[data-tour="${s.targetId}"]`,
-            content: t(s.contentKey),
-            title: s.titleKey ? t(s.titleKey) : undefined,
-            placement: s.placement || 'auto',
-            disableBeacon: s.disableBeacon ?? false,
-        }));
-    }, [currentTour, t]);
+        return currentTour.steps
+            .filter(s => typeof s.condition !== 'function' || s.condition(tourRuntimeCtx))
+            .map(s => ({
+                target: `[data-tour="${s.targetId}"]`,
+                content: t(s.contentKey),
+                title: s.titleKey ? t(s.titleKey) : undefined,
+                placement: s.placement || 'auto',
+                disableBeacon: s.disableBeacon ?? false,
+            }));
+    }, [currentTour, tourRuntimeCtx, t]);
 
     if (!currentTour) return null;
 

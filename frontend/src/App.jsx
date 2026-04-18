@@ -11,6 +11,7 @@ import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
 import { TourProvider } from './context/TourContext';
 import Tour from './components/Tour';
+import ContextualHelpBadge from './components/ContextualHelpBadge';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
@@ -82,6 +83,9 @@ const RootLayout = () => (
         {/* Tour se monta una vez en el root y se activa solo cuando
             TourContext.currentTour deja de ser null. */}
         <Tour />
+        {/* Badge flotante que ofrece el tour asociado a la ruta actual
+            (Fase 3 — ayuda contextual). Oculto si no hay candidato. */}
+        <ContextualHelpBadge />
       </div>
     </TourProvider>
   </>

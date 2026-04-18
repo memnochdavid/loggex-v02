@@ -10,6 +10,8 @@ export default {
     roles: ['ROLE_PROFESOR', 'ROLE_ADMIN', 'ROLE_SUPERADMIN'],
     accordionSection: 'general',
     isAutoStart: false,
+    /* Se ofrece en la página de horarios (del profesor o del admin). */
+    trigger: { route: '/horarios' },
     steps: [
         {
             targetId: 'sidebar-horarios',

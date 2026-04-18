@@ -254,7 +254,16 @@
     "replay": "Repetir",
     "reset": "Reiniciar mi progreso",
     "resetConfirm": "Pulsa otra vez para confirmar",
+    "badgesToggle": "Sugerencias en páginas nuevas",
     "close": "Cerrar"
+  },
+  "contextualBadge": {
+    "label": "¿Necesitas ayuda?",
+    "close": "Cerrar sugerencia",
+    "show": "Mostrar",
+    "dismiss": "No, gracias",
+    "stepsCount_one": "{{count}} paso",
+    "stepsCount_other": "{{count}} pasos"
   },
   "dataTable": {
     "rows": "Filas:",
