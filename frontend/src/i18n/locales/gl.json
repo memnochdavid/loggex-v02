@@ -196,7 +196,9 @@
     "feature5": "Tarefas e entregas",
     "feature6": "Temas personalizables",
     "feature7": "Materiais e temarios",
-    "feature8": "Roles e permisos"
+    "feature8": "Roles e permisos",
+    "learnMore": "Coñece Loggex",
+    "capsLock": "Bloq Maius activado"
   },
   "home": {
     "greeting": "Ola, {{name}}, que teñas un bo día.",

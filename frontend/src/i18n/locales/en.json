@@ -196,7 +196,9 @@
     "feature5": "Tasks and submissions",
     "feature6": "Custom themes",
     "feature7": "Materials and syllabi",
-    "feature8": "Roles and permissions"
+    "feature8": "Roles and permissions",
+    "learnMore": "Discover Loggex",
+    "capsLock": "Caps Lock is on"
   },
   "home": {
     "greeting": "Hello, {{name}}, have a great day.",

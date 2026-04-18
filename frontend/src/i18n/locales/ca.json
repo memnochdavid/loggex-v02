@@ -196,7 +196,9 @@
     "feature5": "Tasques i lliuraments",
     "feature6": "Temes personalitzables",
     "feature7": "Materials i temaris",
-    "feature8": "Rols i permisos"
+    "feature8": "Rols i permisos",
+    "learnMore": "Coneix Loggex",
+    "capsLock": "Bloq Maj activat"
   },
   "home": {
     "greeting": "Hola, {{name}}, que tinguis un bon dia.",

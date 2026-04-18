@@ -196,7 +196,9 @@
     "feature5": "Atazak eta entregak",
     "feature6": "Gai pertsonalizagarriak",
     "feature7": "Materialak eta gaiak",
-    "feature8": "Rolak eta baimenak"
+    "feature8": "Rolak eta baimenak",
+    "learnMore": "Ezagutu Loggex",
+    "capsLock": "Maius Blok aktibatuta"
   },
   "home": {
     "greeting": "Kaixo, {{name}}, egun on.",

@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
 import {
   Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
   CalendarCheck, Clock, MessageSquare, Users,
-  BookOpen, Palette, FileText, Shield
+  BookOpen, Palette, FileText, Shield,
+  ArrowRight, CornerDownLeft, Package, Zap, Sparkles,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Lottie from 'lottie-react';
@@ -20,12 +21,35 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [capsLock, setCapsLock] = useState(false);
+  const cardRef = useRef(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/';
+
+  // Parallax sutil: el ratón mueve ligeramente el glow del card.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const handle = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      el.style.setProperty('--px', `${x}%`);
+      el.style.setProperty('--py', `${y}%`);
+    };
+    el.addEventListener('mousemove', handle);
+    return () => el.removeEventListener('mousemove', handle);
+  }, []);
+
+  const handleKeyUp = (e) => {
+    if (typeof e.getModifierState === 'function') {
+      setCapsLock(e.getModifierState('CapsLock'));
+    }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -42,15 +66,34 @@ const Login = () => {
     }
   };
 
+  const features = [
+    { icon: CalendarCheck, key: 'feature1', accent: 'primary' },
+    { icon: Clock,         key: 'feature2', accent: 'emerald' },
+    { icon: MessageSquare, key: 'feature3', accent: 'amber'   },
+    { icon: Users,         key: 'feature4', accent: 'violet'  },
+    { icon: FileText,      key: 'feature5', accent: 'cyan'    },
+    { icon: Palette,       key: 'feature6', accent: 'primary' },
+    { icon: BookOpen,      key: 'feature7', accent: 'emerald' },
+    { icon: Shield,        key: 'feature8', accent: 'violet'  },
+  ];
+
   return (
     <div className={styles.page}>
-      {/* Panel izquierdo - Branding */}
-      <div className={styles.brandPanel}>
+      {/* Fondo de ondas global que cubre ambos paneles */}
+      <div className={styles.pageBg} aria-hidden="true">
+        <AnimatedBackground type="waves" />
+      </div>
+
+      {/* ============ PANEL IZQUIERDO ============ */}
+      <aside className={styles.brandPanel}>
         <AnimatedBackground forceDefault />
 
         <div className={styles.brandContent}>
-          <div className={styles.lottieContainer}>
-            <Lottie animationData={bookAnimation} loop={true} />
+          <div className={styles.lottieStage}>
+            <div className={styles.lottieHalo} aria-hidden="true" />
+            <div className={styles.lottieContainer}>
+              <Lottie animationData={bookAnimation} loop={true} />
+            </div>
           </div>
 
           <img
@@ -58,57 +101,60 @@ const Login = () => {
             alt="Loggex"
             className={styles.brandLogo}
           />
-          <p className={styles.brandTagline}>{t('login.tagline', 'Gestión académica integral')}</p>
+
+          <h2 className={styles.brandTitle}>{t('login.tagline', 'Gestión académica integral')}</h2>
+          <p className={styles.brandSubtitle}>
+            {t('about.tagline', 'Plataforma moderna para centros educativos')}
+          </p>
+
+          <div className={styles.brandChips}>
+            <span className={styles.chip}><Package size={12} /> v0.2</span>
+            <span className={styles.chip}><Zap size={12} /> React 19 · Symfony 8</span>
+          </div>
 
           <div className={styles.featureGrid}>
-            <div className={styles.featureCard}>
-              <CalendarCheck size={18} className={styles.featureIcon} />
-              <span>{t('login.feature1', 'Control de asistencia')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <Clock size={18} className={styles.featureIcon} />
-              <span>{t('login.feature2', 'Gestión de horarios')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <MessageSquare size={18} className={styles.featureIcon} />
-              <span>{t('login.feature3', 'Comunicación integrada')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <Users size={18} className={styles.featureIcon} />
-              <span>{t('login.feature4', 'Gestión de usuarios')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <FileText size={18} className={styles.featureIcon} />
-              <span>{t('login.feature5', 'Tareas y entregas')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <Palette size={18} className={styles.featureIcon} />
-              <span>{t('login.feature6', 'Temas personalizables')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <BookOpen size={18} className={styles.featureIcon} />
-              <span>{t('login.feature7', 'Materiales y temarios')}</span>
-            </div>
-            <div className={styles.featureCard}>
-              <Shield size={18} className={styles.featureIcon} />
-              <span>{t('login.feature8', 'Roles y permisos')}</span>
-            </div>
+            {features.map(({ icon: Icon, key, accent }, i) => (
+              <div
+                key={key}
+                className={`${styles.featureCard} ${styles[`accent_${accent}`]}`}
+                style={{ '--i': i }}
+              >
+                <span className={styles.featureIconWrap}>
+                  <Icon size={15} />
+                </span>
+                <span className={styles.featureLabel}>
+                  {t(`login.${key}`)}
+                </span>
+              </div>
+            ))}
           </div>
+
+          <Link to="/about" className={styles.learnMore}>
+            <Sparkles size={13} />
+            <span>{t('login.learnMore', 'Conoce Loggex')}</span>
+            <ArrowRight size={14} className={styles.learnMoreArrow} />
+          </Link>
         </div>
-      </div>
+      </aside>
 
-      {/* Panel derecho - Formulario */}
-      <div className={styles.formPanel}>
-        <div className={styles.formContainer}>
+      {/* ============ PANEL DERECHO ============ */}
+      <main className={styles.formPanel}>
+        <div ref={cardRef} className={styles.formCard}>
+          <div className={styles.formCardGlow} aria-hidden="true" />
+
           <div className={styles.formHeader}>
-            <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
+            <div className={styles.formLogoWrap}>
+              <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
+            </div>
             <h1 className={styles.formTitle}>{t('login.title')}</h1>
-            <p className={styles.formSubtitle}>{t('login.subtitle', 'Introduce tus credenciales para acceder')}</p>
+            <p className={styles.formSubtitle}>
+              {t('login.subtitle', 'Introduce tus credenciales para acceder')}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
             {error && (
-              <div className={styles.error}>
+              <div className={styles.error} role="alert">
                 <AlertCircle size={16} />
                 <span>{error}</span>
               </div>
@@ -130,6 +176,7 @@ const Login = () => {
                   placeholder={t('login.emailPlaceholder')}
                   autoComplete="email"
                 />
+                <span className={styles.inputUnderline} aria-hidden="true" />
               </div>
             </div>
 
@@ -145,6 +192,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
+                  onKeyUp={handleKeyUp}
                   required
                   placeholder={t('login.passwordPlaceholder')}
                   autoComplete="current-password"
@@ -158,7 +206,13 @@ const Login = () => {
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+                <span className={styles.inputUnderline} aria-hidden="true" />
               </div>
+              {capsLock && (
+                <span className={styles.capsHint}>
+                  <AlertCircle size={12} /> {t('login.capsLock', 'Bloq Mayús activado')}
+                </span>
+              )}
             </div>
 
             <button
@@ -166,20 +220,28 @@ const Login = () => {
               className={styles.submitButton}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <span className={styles.spinner} />
-              ) : (
-                <LogIn size={18} />
-              )}
-              <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
+              <span className={styles.submitSheen} aria-hidden="true" />
+              <span className={styles.submitContent}>
+                {isSubmitting ? (
+                  <span className={styles.spinner} />
+                ) : (
+                  <LogIn size={18} />
+                )}
+                <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
+              </span>
+              <span className={styles.submitShortcut} aria-hidden="true">
+                <CornerDownLeft size={12} />
+              </span>
             </button>
           </form>
 
           <div className={styles.footer}>
-            <span className={styles.footerText}>Loggex &copy; {new Date().getFullYear()}</span>
+            <span className={styles.footerText}>
+              Loggex &copy; {new Date().getFullYear()}
+            </span>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
