@@ -136,6 +136,39 @@ Patrón obligatorio:
 - **Body scroll lock**: `document.body.style.overflow = 'hidden'` mientras el modal es visible; se restaura al desmontar.
 - Fix del gap de animación de cierre: timeout `300ms` → `180ms` (coincide con `--dur-exit` + margen).
 
+### `ModalView.jsx` + `ModalView.module.css` — pasada 2 (a11y + robustez apertura/cierre)
+
+Segunda iteración sobre el modal resolviendo bugs y lagunas de accesibilidad detectadas tras la primera modernización.
+
+**CSS:**
+- `scaleOut` simétrico con `scaleIn` (antes: salida `scale(0.96) translateY(4px)` — se percibía "plana"; ahora: `scale(0.94) translateY(8px)` igual que la entrada).
+- Nueva regla `.modalContent.closing .closeButton` → `pointer-events: none` + `transform: none` aplicado también a `:hover` y `:active`. Corrige bug visible: el `rotate(90deg)` del hover quedaba congelado sobre el botón durante la animación de cierre si el cursor seguía encima.
+- Móvil (≤768px): `backdrop-filter` reducido de `blur(8px)` → `blur(4px)` en el overlay. El blur es caro en móviles de gama baja.
+
+**JSX (reescritura del ciclo de vida):**
+
+Estado global compartido entre instancias (pila LIFO + contadores):
+- `modalStack` — pila de instancias abiertas; solo el `top` responde a `Escape`.
+- `scrollLockCount` + `acquireScrollLock/releaseScrollLock` — contador global para que los modales anidados no desbloqueen prematuramente. Ahora compensa la scrollbar del sistema: `padding-right: sbw` calculado con `window.innerWidth - document.documentElement.clientWidth` (evita layout shift en SO con scrollbars no flotantes).
+- `inertCount` + `applyInert/releaseInert` — añade `inert` + `aria-hidden="true"` a los hijos directos de `<body>` que no sean portales de modal (`[data-modal-portal]`) ni portales permitidos (`[data-modal-allow-focus]`). Preserva el estado previo para restaurarlo al cerrar. Esto evita que lectores de pantalla y Tab escapen al contenido detrás del modal.
+
+Focus management:
+- Auto-focus conserva comportamiento (primer focusable o contenedor).
+- **Restore de foco robusto**: comprueba `restore.isConnected` antes de intentar `focus()`. Si el trigger fue desmontado (CRUD que refresca tras guardar), no falla silenciosamente ni crashea.
+- **Focus-trap permisivo con portales**: si `document.activeElement` está fuera del modal pero dentro de un `[data-modal-allow-focus]` (p.ej. dropdown de `ThemedSelect` abierto dentro del modal), el trap **no** se activa — el foco puede navegar dentro del portal sin volver forzadamente al modal. Si el foco se escapó fuera de todo, el trap sí lo recupera.
+- **ESC con pila**: sólo el modal en el tope de `modalStack` reacciona al Escape → los modales anidados se cierran en orden LIFO.
+
+Cierre limpio:
+- Eliminado el `setTimeout(180ms)` mágico. El desmonte del modal ahora se dispara por `onAnimationEnd` del propio `.modalContent` → siempre coincide exactamente con la duración real de la animación (sea `scaleOut` en desktop o `slideDown` en móvil). Si el token `--dur-exit` cambia en el futuro, no hay que tocar JS.
+- Eliminada redundancia en `handleClose`: ya no pone `setIsClosing(true)` directo — sólo llama a `onClose()`. El `useEffect` sincronizador se encarga del resto.
+
+Interacción:
+- **Overlay click**: requiere que `mousedown` y `mouseup` ocurran ambos sobre el overlay (no sobre el modal). Evita cierres accidentales cuando el usuario arrastra una selección de texto desde dentro del modal hasta soltarla fuera.
+- Atributo `data-modal-portal=""` en el overlay → permite al sistema de `inert` identificarlo como elemento propio.
+
+**`ThemedSelect.jsx`:**
+- Dropdown portal ahora marca `data-modal-allow-focus=""` → compatible con el focus-trap permisivo del modal. Los selects dentro de modales son navegables por teclado sin que el trap los bloquee.
+
 ### `AccordionView.module.css`
 
 - Item entry stagger via `:nth-child` (sin tocar JSX).

@@ -126,6 +126,18 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 38%, transparent);
 }
 
+/* Durante el cierre el hover del closeButton (rotate 90deg) se queda enganchado
+   si el cursor sigue encima. Forzamos reset de transform e inhabilitamos la
+   interacción mientras el modal está animando su salida. */
+.modalContent.closing .closeButton {
+    pointer-events: none;
+}
+.modalContent.closing .closeButton,
+.modalContent.closing .closeButton:hover,
+.modalContent.closing .closeButton:active {
+    transform: none;
+}
+
 .modalContent:focus-visible {
     outline: none;
 }
@@ -183,7 +195,7 @@
         opacity: 1;
     }
     to {
-        transform: scale(0.96) translateY(4px);
+        transform: scale(0.94) translateY(8px);
         opacity: 0;
     }
 }
@@ -207,6 +219,9 @@
     .modalOverlay {
         align-items: flex-end;
         padding: 0;
+        /* backdrop-filter es caro en móvil — reducimos el blur */
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 
     .modalContainer {

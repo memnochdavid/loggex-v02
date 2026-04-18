@@ -120,6 +120,7 @@ const ThemedSelect = ({
             {open && pos && createPortal(
                 <div
                     ref={dropdownRef}
+                    data-modal-allow-focus=""
                     className={`${styles.dropdown} ${pos.openUp ? styles.openUp : ''}`}
                     role="listbox"
                     style={{
