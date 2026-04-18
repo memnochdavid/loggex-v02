@@ -135,3 +135,42 @@
         text-align: left;
     }
 }
+
+/* =================================================================
+   Modo fullscreen — el diagrama ocupa todo el espacio disponible
+   DENTRO del main del layout (el Header del layout sigue visible
+   arriba). Solo se oculta el header propio de la vista (icono +
+   título + subtítulo); queda el back button como único chrome.
+   ================================================================= */
+.pageFs {
+    /* No usar position:fixed — queremos respetar el Header del layout
+       y el Footer; nos limitamos a expandir dentro del .content del Layout. */
+    max-width: none;
+    margin: 0;
+    padding: var(--space-2);
+    height: 100%;
+    min-height: 0;
+    gap: var(--space-2);
+}
+
+.pageFs .header {
+    /* El header completo se reduce a una sola fila con solo el back button. */
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 0 0 auto;
+}
+
+.pageFs .diagramWrap {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    height: auto;
+}
+
+.pageFs .backLink {
+    /* Acento más visible en fullscreen para que destaque sobre el diagrama. */
+    background: rgba(99, 102, 241, 0.22);
+    border-color: rgba(165, 180, 252, 0.45);
+    color: white;
+}

@@ -111,7 +111,9 @@
     "apiDocsTooltip": "Documentación API Platform"
   },
   "footer": {
-    "copyright": "© {{year}} Loggex-Machina v0.2 - Propiedad de David Duque Díaz."
+    "developedBy": "Desarrollado por",
+    "role": "Desarrollador y diseñador del sistema",
+    "copyright": "Loggex-Machina © {{year}}"
   },
   "sidebar": {
     "general": "General",

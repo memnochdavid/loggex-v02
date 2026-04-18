@@ -41,7 +41,7 @@ const composeFields = (fields, { timestamps = false, softDelete = false } = {}) 
 ];
 
 export const ER_ENTITIES = [
-    /* ============ COL 1 — CENTRO ============ */
+    /* ============ COL 0 — CENTRO ============ */
     {
         id: 'Centro',
         table: 'centro',
@@ -117,7 +117,7 @@ export const ER_ENTITIES = [
         id: 'CicloFormativo',
         table: 'ciclo_formativo',
         domain: 'academic',
-        position: { x: 440, y: 60 },
+        position: { x: 540, y: 60 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -131,7 +131,7 @@ export const ER_ENTITIES = [
         id: 'Modulo',
         table: 'modulo',
         domain: 'academic',
-        position: { x: 440, y: 420 },
+        position: { x: 540, y: 420 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -148,7 +148,7 @@ export const ER_ENTITIES = [
         id: 'Grupo',
         table: 'grupo',
         domain: 'academic',
-        position: { x: 440, y: 840 },
+        position: { x: 540, y: 840 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -167,7 +167,7 @@ export const ER_ENTITIES = [
         id: 'PeriodoEvaluativo',
         table: 'periodo_evaluativo',
         domain: 'academic',
-        position: { x: 440, y: 1380 },
+        position: { x: 540, y: 1380 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -186,7 +186,7 @@ export const ER_ENTITIES = [
         id: 'User',
         table: 'usuario',
         domain: 'people',
-        position: { x: 840, y: 60 },
+        position: { x: 1040, y: 60 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -208,7 +208,7 @@ export const ER_ENTITIES = [
         id: 'Matricula',
         table: 'matricula',
         domain: 'people',
-        position: { x: 840, y: 700 },
+        position: { x: 1040, y: 700 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -221,7 +221,7 @@ export const ER_ENTITIES = [
         id: 'Imparticion',
         table: 'imparticion',
         domain: 'teaching',
-        position: { x: 840, y: 980 },
+        position: { x: 1040, y: 980 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -235,7 +235,7 @@ export const ER_ENTITIES = [
         id: 'PonderacionImparticion',
         table: 'ponderacion_imparticion',
         domain: 'teaching',
-        position: { x: 840, y: 1310 },
+        position: { x: 1040, y: 1310 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -251,7 +251,7 @@ export const ER_ENTITIES = [
         id: 'Horario',
         table: 'horario',
         domain: 'teaching',
-        position: { x: 1240, y: 60 },
+        position: { x: 1540, y: 60 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -267,7 +267,7 @@ export const ER_ENTITIES = [
         id: 'Material',
         table: 'material',
         domain: 'activity',
-        position: { x: 1240, y: 460 },
+        position: { x: 1540, y: 460 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -282,7 +282,7 @@ export const ER_ENTITIES = [
         id: 'Tarea',
         table: 'tarea',
         domain: 'activity',
-        position: { x: 1240, y: 820 },
+        position: { x: 1540, y: 820 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -302,7 +302,7 @@ export const ER_ENTITIES = [
         id: 'Asistencia',
         table: 'asistencia',
         domain: 'activity',
-        position: { x: 1240, y: 1340 },
+        position: { x: 1540, y: 1340 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -321,7 +321,7 @@ export const ER_ENTITIES = [
         id: 'Mensaje',
         table: 'mensaje',
         domain: 'communication',
-        position: { x: 1640, y: 60 },
+        position: { x: 2040, y: 60 },
         timestamps: false,
         softDelete: false,
         fields: composeFields([
@@ -338,7 +338,7 @@ export const ER_ENTITIES = [
         id: 'Comunicado',
         table: 'comunicado',
         domain: 'communication',
-        position: { x: 1640, y: 440 },
+        position: { x: 2040, y: 440 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -354,7 +354,7 @@ export const ER_ENTITIES = [
         id: 'Entrega',
         table: 'entrega',
         domain: 'results',
-        position: { x: 1640, y: 820 },
+        position: { x: 2040, y: 820 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -371,7 +371,7 @@ export const ER_ENTITIES = [
         id: 'Calificacion',
         table: 'calificacion',
         domain: 'results',
-        position: { x: 1640, y: 1280 },
+        position: { x: 2040, y: 1280 },
         timestamps: true,
         softDelete: true,
         fields: composeFields([
@@ -438,11 +438,35 @@ export const ER_RELATIONS = [
  * posiciones sea predecible. La altura se calcula en runtime según los
  * campos visibles (con o sin auditoría).
  */
+/**
+ * Geometría de columnas y canales (gutters) usada por el router ortogonal
+ * de las líneas de relación. Cada columna está separada de la siguiente
+ * por un gutter de 160 px → suficiente para alojar varias sub-lanes
+ * (canales paralelos) sin solapes.
+ */
 export const ER_LAYOUT = {
     cardWidth: 340,
     headerHeight: 56,
     fieldHeight: 22,
     footerHeight: 14,
-    worldWidth: 2080,
-    worldHeight: 1700,
+    worldWidth: 2420,
+    worldHeight: 1740,
+
+    /* X de la esquina izquierda de cada columna. Debe coincidir con
+       las posiciones x de las entidades. */
+    columnX: [40, 540, 1040, 1540, 2040],
+
+    /* X del centro de cada gutter (entre col i y col i+1).
+       Calculado: cardLeft + cardWidth + gutterWidth/2 = 40+340+80 = 460, etc. */
+    gutterCenterX: [460, 960, 1460, 1960],
+
+    /* Anchura del gutter y separación entre sub-lanes dentro de él. */
+    gutterWidth: 160,
+    laneStep: 11,
+
+    /* Highway horizontal por encima de todas las cajas (las cajas empiezan
+       en y=60). highwayTopY es la Y de la lane 0 (la más arriba); lanes
+       inferiores van bajando hasta tocar las cajas. */
+    highwayTopY: 10,
+    highwayLaneStep: 9,
 };

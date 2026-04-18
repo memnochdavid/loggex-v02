@@ -1,16 +1,89 @@
+/* =================================================================
+   Layout Footer — barra inferior con créditos a la izquierda y
+   copyright a la derecha. Contenido distribuido horizontalmente.
+   ================================================================= */
 .footer {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    padding: var(--space-1);
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    padding: var(--space-2) var(--space-5);
     background-color: var(--bg-header-footer-alpha, var(--bg-header-footer, var(--bg-dark)));
     color: var(--text-header-footer, var(--color-gray-400));
     backdrop-filter: var(--elements-blur, none);
     -webkit-backdrop-filter: var(--elements-blur, none);
-    text-align: center;
+    border-top: 1px solid var(--color-gray-700, rgba(255, 255, 255, 0.1));
     margin-top: auto;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    border-top: 1px solid var(--color-gray-700);
-    height: 3vh;
+    min-height: 36px;
+    box-sizing: border-box;
+    /* En /about y /about/er el .pageBg fixed (waves) se solapa por encima
+       del footer dado que el contenedor del Layout es z-index:1. Posicionar
+       el footer relativamente con z-index propio lo levanta por encima. */
+    position: relative;
+    z-index: 50;
+}
+
+/* ---- Bloque izquierdo: créditos del autor ---- */
+.developer {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    color: var(--text-header-footer, var(--color-gray-500));
+    opacity: 0.7;
+}
+
+.name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-header-footer, white);
+    letter-spacing: -0.01em;
+}
+
+.sep {
+    color: var(--text-header-footer, var(--color-gray-500));
+    opacity: 0.5;
+    font-size: 0.85rem;
+}
+
+.role {
+    font-size: 0.78rem;
+    color: var(--text-header-footer, var(--color-gray-400));
+    opacity: 0.85;
+}
+
+/* ---- Bloque derecho: copyright ---- */
+.copyright {
+    font-size: 0.72rem;
+    color: var(--text-header-footer, var(--color-gray-500));
+    opacity: 0.75;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ---- Responsive: en pantallas estrechas centrar y apilar ---- */
+@media (max-width: 640px) {
+    .footer {
+        justify-content: center;
+        text-align: center;
+        padding: var(--space-2);
+    }
+    .developer {
+        justify-content: center;
+    }
+    .copyright {
+        white-space: normal;
+    }
 }

@@ -66,6 +66,14 @@
     min-width: 0;
 }
 
+/* Anula el outline rectangular global de :focus-visible — el feedback de
+   foco lo da el borde redondeado de .searchWrap (vía :focus-within). */
+.searchInput:focus,
+.searchInput:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
 .searchInput::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }

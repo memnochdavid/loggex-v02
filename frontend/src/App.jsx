@@ -55,7 +55,8 @@ const PageTitleUpdater = () => {
 // Componente auxiliar para renderizar el Footer condicionalmente
 const ConditionalFooter = () => {
   const location = useLocation();
-  // Mostrar footer en Login y en cualquier subruta de /about
+  // Footer visible en Login y en /about + /about/* (los créditos del autor
+  // se renderizan dentro del propio Footer en horizontal).
   const showFooter = location.pathname === '/login'
     || location.pathname === '/about'
     || location.pathname.startsWith('/about/');

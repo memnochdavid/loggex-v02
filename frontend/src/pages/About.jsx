@@ -354,20 +354,8 @@ const About = () => {
                     </div>
                 </Reveal>
 
-                {/* ============ FOOTER con CREDITS ============ */}
-                <Reveal as="footer" className={styles.footer}>
-                    <div className={styles.creditsCard}>
-                        <div className={styles.creditsRing} aria-hidden="true" />
-                        <div className={styles.creditsInner}>
-                            <div className={styles.creditsLabel}>{t('about.creditsLabel')}</div>
-                            <h3 className={styles.creditsAuthor}>David Duque Díaz</h3>
-                            <p className={styles.creditsRole}>{t('about.creditsRole')}</p>
-                        </div>
-                    </div>
-                    <div className={styles.footerCopy}>
-                        <span>Loggex-Machina &copy; {new Date().getFullYear()}</span>
-                    </div>
-                </Reveal>
+                {/* Los créditos del autor + copyright se renderizan ahora en
+                    el Footer del layout (compartido con /about/er y /login). */}
             </div>
         </Layout>
     );

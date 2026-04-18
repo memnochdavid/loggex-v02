@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
-    ZoomIn, ZoomOut, Maximize2, Eye, EyeOff, Search, X,
+    ZoomIn, ZoomOut, Maximize2, Minimize2, Eye, EyeOff, Search, X,
     Key, Link2, Hash, Calendar, ToggleLeft, FileText, Type,
     Boxes, Database, Clock, Trash2,
 } from 'lucide-react';
@@ -44,51 +44,211 @@ const rowCenterY = (entity, rowIndex) =>
     entity.position.y + ER_LAYOUT.headerHeight + (rowIndex + 0.5) * ER_LAYOUT.fieldHeight;
 
 /* ============================================================
-   Cálculo de anclajes / geometría de las líneas de relación.
+   Router ortogonal de líneas de relación.
+
+   Cada línea se traza con segmentos perpendiculares:
+   - mismo column → desvío por el gutter lateral
+   - columnas adyacentes → un único canal vertical en el gutter común
+   - 2+ columnas de distancia → highway horizontal por encima del mundo
+
+   Después se asignan sub-lanes (offsets) en cada gutter y en la highway
+   para que múltiples líneas no se superpongan.
    ============================================================ */
 
-/**
- * Para una relación `from → to`, determina:
- *  - el lado de salida (left/right) en `from` (anclado al row del FK)
- *  - el lado de entrada en `to` (anclado al row del PK = id, idx 0)
- *  - la posición exacta de cada extremo en coords mundo
- */
-const computeAnchors = (from, to, relation, heights, showAudit) => {
-    const fromW = ER_LAYOUT.cardWidth;
-    const toW   = ER_LAYOUT.cardWidth;
-
-    const fromCenterX = from.position.x + fromW / 2;
-    const toCenterX   = to.position.x   + toW   / 2;
-
-    const fkIdx = findFkRowIndex(from, relation, showAudit);
-    const fromY = fkIdx >= 0
-        ? rowCenterY(from, fkIdx)
-        : from.position.y + heights[from.id] / 2;
-
-    // PK (id) siempre es el primer campo visible (índice 0)
-    const toY = rowCenterY(to, 0);
-
-    // Salida por el lado más cercano (el lateral que mira al destino)
-    const fromOnLeft = fromCenterX > toCenterX;
-    const fromX = fromOnLeft ? from.position.x : from.position.x + fromW;
-    const toX   = fromOnLeft ? to.position.x + toW : to.position.x;
-
-    return { fromX, fromY, toX, toY, fromOnLeft };
+/** Índice de columna de una entidad (según su X). */
+const colOf = (entity) => {
+    const idx = ER_LAYOUT.columnX.indexOf(entity.position.x);
+    return idx >= 0 ? idx : 0;
 };
 
-/** Construye una bezier cúbica horizontal entre dos puntos. */
-const bezierPath = (x1, y1, x2, y2) => {
-    const dx = Math.max(80, Math.abs(x2 - x1) * 0.5);
-    const cx1 = x1 + (x2 >= x1 ? dx : -dx);
-    const cx2 = x2 + (x2 >= x1 ? -dx : dx);
-    return `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
+/**
+ * Calcula el camino ortogonal "base" (sin offsets de lane) de una relación.
+ * Devuelve los puntos del polígono y los gutters/highway que ocupa, para
+ * que la asignación de lanes pueda desplazarlos después.
+ */
+const computeRelPath = (rel, source, target, heights, showAudit, sameColSide) => {
+    const sCol = colOf(source);
+    const tCol = colOf(target);
+
+    const sFkIdx = findFkRowIndex(source, rel, showAudit);
+    const sFkY = sFkIdx >= 0
+        ? rowCenterY(source, sFkIdx)
+        : source.position.y + heights[source.id] / 2;
+
+    /* PK siempre es el primer campo visible (índice 0). */
+    const tPkY = rowCenterY(target, 0);
+
+    /* ---- Mismo column: desvío por gutter lateral ---- */
+    if (sCol === tCol) {
+        /* alterna lado para no apilar todas las internas en la misma columna */
+        const useLeft = sameColSide === 'left' || (sameColSide == null && sCol > 0);
+        const gutterIdx = useLeft ? sCol - 1 : sCol;
+        const channelX = ER_LAYOUT.gutterCenterX[gutterIdx];
+        const sExitX  = useLeft ? source.position.x : source.position.x + ER_LAYOUT.cardWidth;
+        const tEnterX = useLeft ? target.position.x : target.position.x + ER_LAYOUT.cardWidth;
+        return {
+            kind: 'sameCol',
+            points: [
+                { x: sExitX,  y: sFkY },
+                { x: channelX, y: sFkY, channelGutter: gutterIdx },
+                { x: channelX, y: tPkY, channelGutter: gutterIdx },
+                { x: tEnterX, y: tPkY },
+            ],
+            channels: [{ gutterIdx, y1: Math.min(sFkY, tPkY), y2: Math.max(sFkY, tPkY) }],
+            anchors: { sExitX, sFkY, tEnterX, tPkY, fromOnLeft: useLeft },
+        };
+    }
+
+    const goingRight = tCol > sCol;
+    const sExitX  = goingRight ? source.position.x + ER_LAYOUT.cardWidth : source.position.x;
+    const tEnterX = goingRight ? target.position.x : target.position.x + ER_LAYOUT.cardWidth;
+
+    /* ---- Columnas adyacentes: canal único en el gutter común ---- */
+    if (Math.abs(tCol - sCol) === 1) {
+        const gutterIdx = goingRight ? sCol : tCol;
+        const channelX = ER_LAYOUT.gutterCenterX[gutterIdx];
+        return {
+            kind: 'adjacent',
+            points: [
+                { x: sExitX,  y: sFkY },
+                { x: channelX, y: sFkY, channelGutter: gutterIdx },
+                { x: channelX, y: tPkY, channelGutter: gutterIdx },
+                { x: tEnterX, y: tPkY },
+            ],
+            channels: [{ gutterIdx, y1: Math.min(sFkY, tPkY), y2: Math.max(sFkY, tPkY) }],
+            anchors: { sExitX, sFkY, tEnterX, tPkY, fromOnLeft: !goingRight },
+        };
+    }
+
+    /* ---- Multi-hop (2+ columnas): highway por arriba ---- */
+    const sGutterIdx = goingRight ? sCol : sCol - 1;
+    const tGutterIdx = goingRight ? tCol - 1 : tCol;
+    const sChannelX = ER_LAYOUT.gutterCenterX[sGutterIdx];
+    const tChannelX = ER_LAYOUT.gutterCenterX[tGutterIdx];
+    const highwayY = ER_LAYOUT.highwayTopY;
+    return {
+        kind: 'multiHop',
+        points: [
+            { x: sExitX,    y: sFkY },
+            { x: sChannelX, y: sFkY,     channelGutter: sGutterIdx },
+            { x: sChannelX, y: highwayY, channelGutter: sGutterIdx, highwayLane: true },
+            { x: tChannelX, y: highwayY, channelGutter: tGutterIdx, highwayLane: true },
+            { x: tChannelX, y: tPkY,     channelGutter: tGutterIdx },
+            { x: tEnterX,   y: tPkY },
+        ],
+        channels: [
+            { gutterIdx: sGutterIdx, y1: Math.min(highwayY, sFkY), y2: Math.max(highwayY, sFkY) },
+            { gutterIdx: tGutterIdx, y1: Math.min(highwayY, tPkY), y2: Math.max(highwayY, tPkY) },
+        ],
+        highway: { x1: Math.min(sChannelX, tChannelX), x2: Math.max(sChannelX, tChannelX) },
+        anchors: { sExitX, sFkY, tEnterX, tPkY, fromOnLeft: !goingRight },
+    };
+};
+
+/**
+ * Asigna sub-lanes a cada relación dentro de cada gutter (y dentro de la
+ * highway superior). El offset se aplica restando la mitad de las lanes para
+ * que queden centradas alrededor del eje del gutter.
+ */
+const assignLanes = (paths) => {
+    /* Agrupa por gutter las relaciones cuyo canal vertical lo atraviesa. */
+    const byGutter = {};
+    paths.forEach((p, pIdx) => {
+        p.channels.forEach((ch, cIdx) => {
+            (byGutter[ch.gutterIdx] ??= []).push({ pIdx, cIdx, ...ch });
+        });
+    });
+
+    const gutterLanes = {}; // `${pIdx}_${cIdx}` -> lane index
+    Object.entries(byGutter).forEach(([, entries]) => {
+        /* Orden estable por punto medio Y → líneas similares quedan juntas
+           pero sin solaparse. */
+        entries.sort((a, b) => ((a.y1 + a.y2) - (b.y1 + b.y2)) / 2);
+        const mid = (entries.length - 1) / 2;
+        entries.forEach((e, i) => {
+            gutterLanes[`${e.pIdx}_${e.cIdx}`] = i - mid; // centrado alrededor de 0
+        });
+    });
+
+    /* Asigna lane Y a las relaciones que usan la highway superior. */
+    const highwayEntries = [];
+    paths.forEach((p, pIdx) => {
+        if (p.highway) highwayEntries.push({ pIdx, ...p.highway });
+    });
+    /* Las más largas (que cubren más X) en lanes superiores;
+       las más cortas en lanes inferiores → menos cruces visuales. */
+    highwayEntries.sort((a, b) => (b.x2 - b.x1) - (a.x2 - a.x1));
+    const highwayLanes = {};
+    highwayEntries.forEach((e, i) => {
+        highwayLanes[e.pIdx] = i;
+    });
+
+    return { gutterLanes, highwayLanes };
+};
+
+/**
+ * Aplica los offsets de lane a los puntos de cada path. Los puntos del
+ * canal vertical (con `channelGutter`) reciben offset X. Los puntos de la
+ * highway (con `highwayLane`) reciben offset Y.
+ */
+const applyLanes = (paths, gutterLanes, highwayLanes) => {
+    return paths.map((p, pIdx) => {
+        const newPoints = p.points.map((pt, ptIdx) => {
+            let { x, y } = pt;
+            if (pt.channelGutter != null) {
+                /* Cada punto puede pertenecer a una de las channels[]; busca
+                   la que coincide con su gutterIdx para coger el lane correcto. */
+                const cIdx = p.channels.findIndex(c => c.gutterIdx === pt.channelGutter);
+                const lane = gutterLanes[`${pIdx}_${cIdx}`] ?? 0;
+                x = ER_LAYOUT.gutterCenterX[pt.channelGutter] + lane * ER_LAYOUT.laneStep;
+            }
+            if (pt.highwayLane) {
+                const lane = highwayLanes[pIdx] ?? 0;
+                /* Lane 0 = la más arriba; cada lane siguiente baja una pista.
+                   Así las líneas más largas (asignadas a lane 0) quedan en el
+                   borde y las más cortas más cerca de las cajas. */
+                y = ER_LAYOUT.highwayTopY + lane * ER_LAYOUT.highwayLaneStep;
+            }
+            return { x, y };
+        });
+        return { ...p, finalPoints: newPoints };
+    });
+};
+
+/**
+ * Convierte una lista de puntos en un atributo `d` de SVG con esquinas
+ * suavemente redondeadas (cuarto de círculo de radio `r`).
+ */
+const pointsToRoundedPath = (points, r = 6) => {
+    if (points.length < 2) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length - 1; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        const next = points[i + 1];
+        const d1x = curr.x - prev.x;
+        const d1y = curr.y - prev.y;
+        const len1 = Math.hypot(d1x, d1y) || 1;
+        const d2x = next.x - curr.x;
+        const d2y = next.y - curr.y;
+        const len2 = Math.hypot(d2x, d2y) || 1;
+        const radius = Math.max(0, Math.min(r, len1 / 2, len2 / 2));
+        const ax = curr.x - (d1x / len1) * radius;
+        const ay = curr.y - (d1y / len1) * radius;
+        const bx = curr.x + (d2x / len2) * radius;
+        const by = curr.y + (d2y / len2) * radius;
+        d += ` L ${ax} ${ay} Q ${curr.x} ${curr.y} ${bx} ${by}`;
+    }
+    const last = points[points.length - 1];
+    d += ` L ${last.x} ${last.y}`;
+    return d;
 };
 
 /* ============================================================
    ErDiagram — componente principal.
    ============================================================ */
 
-const ErDiagram = () => {
+const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
     const [transform, setTransform] = useState({ x: 60, y: 40, scale: 0.55 });
     const [showAudit, setShowAudit] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
@@ -105,6 +265,44 @@ const ErDiagram = () => {
         ER_ENTITIES.forEach(e => { m[e.id] = computeHeight(e, showAudit); });
         return m;
     }, [showAudit]);
+
+    /* ---------- Routing ortogonal de TODAS las relaciones ----------
+       Calcula primero el camino base de cada relación, luego asigna
+       sub-lanes por gutter/highway y por último compone los puntos
+       finales del polígono. */
+    const routedPaths = useMemo(() => {
+        /* Para entidades en la misma columna, alterna lado izquierdo/derecho
+           para que las relaciones internas no se apilen todas a la izquierda. */
+        const sameColCounter = {};
+        const basePaths = ER_RELATIONS.map((rel) => {
+            const from = ENTITY_BY_ID[rel.from];
+            const to   = ENTITY_BY_ID[rel.to];
+            if (!from || !to) return { rel, path: null };
+
+            let sameColSide;
+            if (colOf(from) === colOf(to)) {
+                const colKey = colOf(from);
+                sameColCounter[colKey] = (sameColCounter[colKey] || 0) + 1;
+                /* Col 0 (Centro) sólo puede ir por la derecha; resto alterna. */
+                if (colKey === 0) sameColSide = 'right';
+                else sameColSide = sameColCounter[colKey] % 2 === 1 ? 'left' : 'right';
+            }
+
+            const path = computeRelPath(rel, from, to, heights, showAudit, sameColSide);
+            return { rel, path };
+        });
+
+        const realPaths = basePaths.filter(p => p.path).map(p => p.path);
+        const { gutterLanes, highwayLanes } = assignLanes(realPaths);
+        const withLanes = applyLanes(realPaths, gutterLanes, highwayLanes);
+
+        /* Reasocia los paths re-laneados con sus relaciones originales. */
+        let i = 0;
+        return basePaths.map(({ rel, path }) => ({
+            rel,
+            path: path ? withLanes[i++] : null,
+        }));
+    }, [heights, showAudit]);
 
     /* ---------- Foco / dim ---------- */
     const focusedId = hoveredId || selectedId;
@@ -241,6 +439,17 @@ const ErDiagram = () => {
         return () => ro.disconnect();
     }, [fitToScreen]);
 
+    /* Re-fit cuando cambia el modo fullscreen (el contenedor cambia de tamaño).
+       Esperamos un par de frames para que el navegador aplique el nuevo layout
+       antes de calcular las dimensiones reales. */
+    useEffect(() => {
+        const r1 = requestAnimationFrame(() => {
+            const r2 = requestAnimationFrame(() => fitToScreen());
+            return () => cancelAnimationFrame(r2);
+        });
+        return () => cancelAnimationFrame(r1);
+    }, [fullscreen, fitToScreen]);
+
     /* Listeners globales para soltar el drag fuera del canvas. */
     useEffect(() => {
         const up = () => { dragRef.current.active = false; };
@@ -297,8 +506,15 @@ const ErDiagram = () => {
                     <button className={styles.tbBtn} onClick={() => zoomBy(0.83)} title="Alejar">
                         <ZoomOut size={14} />
                     </button>
-                    <button className={styles.tbBtn} onClick={fitToScreen} title="Ajustar a pantalla">
-                        <Maximize2 size={14} />
+                    <button
+                        className={styles.tbBtn}
+                        onClick={() => {
+                            if (onToggleFullscreen) onToggleFullscreen();
+                            else fitToScreen();
+                        }}
+                        title={fullscreen ? 'Salir de pantalla completa' : 'Ajustar a pantalla'}
+                    >
+                        {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                     </button>
                     <span className={styles.zoomLabel}>{Math.round(transform.scale * 100)}%</span>
                 </div>
@@ -350,18 +566,16 @@ const ErDiagram = () => {
                                 </marker>
                             </defs>
 
-                            {ER_RELATIONS.map((rel, i) => {
-                                const from = ENTITY_BY_ID[rel.from];
-                                const to   = ENTITY_BY_ID[rel.to];
-                                if (!from || !to) return null;
-                                const a = computeAnchors(from, to, rel, heights, showAudit);
-                                const path = bezierPath(a.fromX, a.fromY, a.toX, a.toY);
+                            {routedPaths.map(({ rel, path }, i) => {
+                                if (!path) return null;
+                                const dStr = pointsToRoundedPath(path.finalPoints, 8);
                                 const dimmed = isRelationDimmed(rel);
                                 const active = focusedId && (rel.from === focusedId || rel.to === focusedId);
 
-                                // Etiqueta en el extremo del FK ('N' para muchos, '1' para uno)
-                                const fromCard = rel.cardinality.split(':')[0]; // 'N' o '1'
-                                const toCard   = rel.cardinality.split(':')[1]; // siempre '1'
+                                /* 'N' o '1' del lado FK; siempre '1' del lado PK. */
+                                const fromCard = rel.cardinality.split(':')[0];
+                                const toCard   = rel.cardinality.split(':')[1];
+                                const a = path.anchors;
 
                                 return (
                                     <g
@@ -369,23 +583,23 @@ const ErDiagram = () => {
                                         className={`${styles.relGroup} ${dimmed ? styles.relDim : ''} ${active ? styles.relActive : ''}`}
                                     >
                                         <path
-                                            d={path}
+                                            d={dStr}
                                             className={styles.relPath}
                                             markerEnd={active ? 'url(#er-arrow-active)' : 'url(#er-arrow)'}
                                             fill="none"
                                         />
-                                        {/* Cardinalidad junto a cada extremo */}
+                                        {/* Cardinalidad: 'N'/'1' junto al lado FK, '1' junto al lado PK */}
                                         <text
-                                            x={a.fromX + (a.fromOnLeft ? -10 : 10)}
-                                            y={a.fromY - 6}
+                                            x={a.sExitX + (a.fromOnLeft ? -8 : 8)}
+                                            y={a.sFkY - 5}
                                             className={styles.relCard}
                                             textAnchor={a.fromOnLeft ? 'end' : 'start'}
                                         >
                                             {fromCard}
                                         </text>
                                         <text
-                                            x={a.toX + (a.fromOnLeft ? 10 : -10)}
-                                            y={a.toY - 6}
+                                            x={a.tEnterX + (a.fromOnLeft ? 8 : -8)}
+                                            y={a.tPkY - 5}
                                             className={styles.relCard}
                                             textAnchor={a.fromOnLeft ? 'start' : 'end'}
                                         >
