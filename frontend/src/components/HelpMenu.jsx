@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, Check, Play, X, RotateCcw, Bell, BellOff } from 'lucide-react';
+import { GraduationCap, Check, Play, RotateCcw, Bell, BellOff } from 'lucide-react';
+import ModalView from './ModalView';
+import Button from './Button';
 import { useTour } from '../context/TourContext';
 import styles from './HelpMenu.module.css';
 
 /**
- * Modal accesible desde el menú del UserAvatar — lista todos los tours
- * disponibles para el rol del usuario, con indicador "ya visto" y botón
- * para relanzarlos. Incluye también un reset del progreso (útil para QA
- * y demos).
- *
- * El componente se controla externamente con `open` + `onClose` para que
- * el botón que lo abre quede en la jerarquía del menú existente.
+ * Modal con la lista de tutoriales disponibles para el rol del usuario.
+ * Se apoya en ModalView — hereda header/footer/body con las variables de
+ * tema del centro, focus trap, ESC, scroll lock y animaciones.
  */
 const HelpMenu = ({ open, onClose }) => {
     const { t } = useTranslation();
@@ -22,13 +19,11 @@ const HelpMenu = ({ open, onClose }) => {
     } = useTour();
     const [confirmReset, setConfirmReset] = useState(false);
 
-    if (!open) return null;
-
     const handleStart = (id) => {
         onClose();
-        /* Pequeño delay para que el modal cierre limpio antes de que
-           Joyride pinte el primer tooltip. */
-        setTimeout(() => startTour(id), 150);
+        /* Pequeño delay para que el modal termine su animación de cierre
+           antes de que Joyride pinte el primer tooltip. */
+        setTimeout(() => startTour(id), 200);
     };
 
     const handleReset = () => {
@@ -40,65 +35,15 @@ const HelpMenu = ({ open, onClose }) => {
         setConfirmReset(false);
     };
 
-    const modal = (
-        <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                <header className={styles.header}>
-                    <div className={styles.headerTitle}>
-                        <GraduationCap size={18} />
-                        <h3>{t('helpMenu.title')}</h3>
-                    </div>
-                    <button
-                        className={styles.closeBtn}
-                        onClick={onClose}
-                        aria-label={t('helpMenu.close')}
-                    >
-                        <X size={18} />
-                    </button>
-                </header>
-
-                <p className={styles.intro}>{t('helpMenu.intro')}</p>
-
-                {availableTours.length === 0 ? (
-                    <p className={styles.empty}>{t('helpMenu.empty')}</p>
-                ) : (
-                    <ul className={styles.list}>
-                        {availableTours.map((tour) => {
-                            const done = isCompleted(tour.id);
-                            return (
-                                <li key={tour.id} className={styles.item}>
-                                    <div className={styles.itemMain}>
-                                        <span className={styles.itemTitle}>
-                                            {t(tour.titleKey)}
-                                        </span>
-                                        {tour.descKey && (
-                                            <span className={styles.itemDesc}>
-                                                {t(tour.descKey)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className={styles.itemActions}>
-                                        {done && (
-                                            <span className={styles.doneChip} title={t('helpMenu.alreadySeen')}>
-                                                <Check size={12} />
-                                                {t('helpMenu.seen')}
-                                            </span>
-                                        )}
-                                        <button
-                                            className={styles.startBtn}
-                                            onClick={() => handleStart(tour.id)}
-                                        >
-                                            <Play size={12} />
-                                            {done ? t('helpMenu.replay') : t('helpMenu.start')}
-                                        </button>
-                                    </div>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
-
-                <footer className={styles.footer}>
+    return (
+        <ModalView
+            isOpen={open}
+            onClose={onClose}
+            title={t('helpMenu.title')}
+            size="medium"
+            headerIcon={<GraduationCap size={22} />}
+            footer={
+                <div className={styles.footerRow}>
                     <label className={styles.badgeToggle}>
                         <input
                             type="checkbox"
@@ -113,22 +58,64 @@ const HelpMenu = ({ open, onClose }) => {
                             {t('helpMenu.badgesToggle')}
                         </span>
                     </label>
-                    <button
-                        className={`${styles.resetBtn} ${confirmReset ? styles.resetBtnConfirm : ''}`}
+
+                    <Button
+                        type="button"
+                        variant={confirmReset ? 'danger' : 'secondary'}
                         onClick={handleReset}
                         onBlur={() => setConfirmReset(false)}
                     >
-                        <RotateCcw size={12} />
-                        {confirmReset
-                            ? t('helpMenu.resetConfirm')
-                            : t('helpMenu.reset')}
-                    </button>
-                </footer>
-            </div>
-        </div>
-    );
+                        <RotateCcw size={14} style={{ marginRight: 6 }} />
+                        {confirmReset ? t('helpMenu.resetConfirm') : t('helpMenu.reset')}
+                    </Button>
+                </div>
+            }
+        >
+            <p className={styles.intro}>{t('helpMenu.intro')}</p>
 
-    return createPortal(modal, document.body);
+            {availableTours.length === 0 ? (
+                <p className={styles.empty}>{t('helpMenu.empty')}</p>
+            ) : (
+                <ul className={styles.list}>
+                    {availableTours.map((tour) => {
+                        const done = isCompleted(tour.id);
+                        return (
+                            <li key={tour.id} className={styles.item}>
+                                <div className={styles.itemMain}>
+                                    <div className={styles.itemHeadline}>
+                                        <span className={styles.itemTitle}>
+                                            {t(tour.titleKey)}
+                                        </span>
+                                        {done && (
+                                            <span className={styles.doneChip} title={t('helpMenu.alreadySeen')}>
+                                                <Check size={11} />
+                                                {t('helpMenu.seen')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {tour.descKey && (
+                                        <span className={styles.itemDesc}>
+                                            {t(tour.descKey)}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={styles.itemActions}>
+                                    <Button
+                                        type="button"
+                                        variant={done ? 'secondary' : 'primary'}
+                                        onClick={() => handleStart(tour.id)}
+                                    >
+                                        <Play size={13} style={{ marginRight: 6 }} />
+                                        {done ? t('helpMenu.replay') : t('helpMenu.start')}
+                                    </Button>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </ModalView>
+    );
 };
 
 export default HelpMenu;

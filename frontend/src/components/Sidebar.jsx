@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
@@ -8,6 +8,7 @@ import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
 import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
+import ConfirmLogoutModal from './ConfirmLogoutModal';
 import { useTranslation } from 'react-i18next';
 import useUnreadMessages from '../hooks/useUnreadMessages';
 
@@ -29,7 +30,7 @@ const Sidebar = () => {
     const { t } = useTranslation();
     const { logout, user } = useAuth();
     const { isSidebarOpen, closeSidebar } = useUI();
-    const { currentTour } = useTour();
+    const { currentTour, currentStepIndex } = useTour();
     const [isPinned, setIsPinned] = useState(() => {
         try { return JSON.parse(localStorage.getItem('sidebarPinned')) ?? false; }
         catch { return false; }
@@ -38,8 +39,12 @@ const Sidebar = () => {
     // expandido habría estado. Así, tras un remount con el cursor encima,
     // el primer paint ya sale expandido (sin bounce).
     const [isHovered, setIsHovered] = useState(estimateSidebarHover);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const asideRef = useRef(null);
-    const isExpanded = isPinned || isHovered || isSidebarOpen;
+    /* Si hay un tour activo, forzamos sidebar expandido para que Joyride
+       pueda localizar y medir los items diana (que quedarían colapsados
+       a 72px con labels ocultos si no). */
+    const isExpanded = isPinned || isHovered || isSidebarOpen || !!currentTour;
     const isCollapsed = !isExpanded;
     const unreadMessages = useUnreadMessages();
     const location = useLocation();
@@ -89,38 +94,55 @@ const Sidebar = () => {
         '/': 'general',
     };
 
-    // Inicialización perezosa del estado
-    const [expandedAccordion, setExpandedAccordion] = useState(() => {
-        const currentPath = location.pathname;
-        // Buscar la coincidencia más larga para priorizar rutas específicas
-        const bestMatch = Object.keys(routeToAccordionMap)
-            .filter(path => currentPath.startsWith(path))
-            .sort((a, b) => b.length - a.length)[0]; // Ordenar por longitud descendente
+    /* Resolución del acordeón expandido — PRIORIDAD:
+       1) Tour activo con accordionSection → manda siempre (inmutable durante el tour).
+       2) Elección manual del usuario (click en un header).
+       3) Ruta actual (al navegar, se sugiere un acordeón coherente).
+       En cuanto el tour termina, vuelve a mandar (2) o (3). */
 
-        return bestMatch ? routeToAccordionMap[bestMatch] : null;
-    });
-
-    // Efecto para actualizar el acordeón si la ruta cambia (navegación)
-    useEffect(() => {
-        const currentPath = location.pathname;
+    const routeAccordion = useMemo(() => {
         const bestMatch = Object.keys(routeToAccordionMap)
-            .filter(path => currentPath.startsWith(path))
+            .filter(path => location.pathname.startsWith(path))
             .sort((a, b) => b.length - a.length)[0];
-
-        if (bestMatch) {
-            const targetId = routeToAccordionMap[bestMatch];
-            setExpandedAccordion(targetId);
-        }
+        return bestMatch ? routeToAccordionMap[bestMatch] : null;
     }, [location.pathname, isAlumno, isSuperAdmin]);
 
-    // Cuando hay un tour activo que apunta a items de una sección concreta
-    // del Sidebar, forzamos la expansión de ese acordeón para que Joyride
-    // pueda localizar los targets (si no, estarían ocultos en collapsed).
+    /* Elección manual del usuario. Se inicializa con la sección sugerida
+       por la ruta actual para que al entrar ya haya algo abierto. */
+    const [manualAccordion, setManualAccordion] = useState(routeAccordion);
+
+    /* Al navegar, actualizamos la elección manual al acordeón de la nueva
+       ruta (pero solo si NO hay un tour activo — no queremos que una
+       navegación accidental cambie el acordeón mientras se muestra un tour). */
     useEffect(() => {
-        if (currentTour?.accordionSection) {
-            setExpandedAccordion(currentTour.accordionSection);
+        if (!currentTour) {
+            setManualAccordion(routeAccordion);
         }
-    }, [currentTour]);
+    }, [routeAccordion, currentTour]);
+
+    /* Al iniciar el tour o cambiar de step, abrimos automáticamente el
+       acordeón que ese step necesita. El usuario puede cerrarlo después
+       si quiere (single-select normal, sin bloqueos). Si cierra el del
+       step actual, pierde el target del tour — es decisión suya. */
+    useEffect(() => {
+        if (!currentTour) return;
+        const step = currentTour.steps?.[currentStepIndex];
+        const stepAccordion = step?.accordionSection || currentTour.accordionSection;
+        if (stepAccordion) {
+            setManualAccordion(stepAccordion);
+        }
+    }, [currentTour, currentStepIndex]);
+
+    const expandedAccordion = manualAccordion;
+
+    /* Debug — queremos ver este log SIEMPRE que se renderice el Sidebar
+       mientras arreglamos el fallo de los tours. */
+    console.log('[SIDEBAR]', {
+        currentTour: currentTour?.id ?? null,
+        currentStepIndex,
+        manualAccordion,
+        expandedAccordion,
+    });
 
     const togglePin = () => {
         setIsPinned(prev => !prev);
@@ -130,7 +152,7 @@ const Sidebar = () => {
         isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
 
     const handleAccordionToggle = (id) => {
-        setExpandedAccordion(expandedAccordion === id ? null : id);
+        setManualAccordion(prev => prev === id ? null : id);
     };
 
     // Definición de las secciones del acordeón
@@ -353,13 +375,24 @@ const Sidebar = () => {
                             {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
                             <span>{isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}</span>
                         </button>
-                        <div className={styles.navItem} onClick={() => { logout(); closeSidebar(); }} title={t('sidebar.logout')} style={{ cursor: 'pointer' }}>
+                        <div
+                            className={styles.navItem}
+                            onClick={() => { setLogoutConfirmOpen(true); closeSidebar(); }}
+                            title={t('sidebar.logout')}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <LogOut size={20} />
                             <span>{t('sidebar.logout')}</span>
                         </div>
                     </div>
                 </div>
             </aside>
+
+            <ConfirmLogoutModal
+                isOpen={logoutConfirmOpen}
+                onClose={() => setLogoutConfirmOpen(false)}
+                onConfirm={() => { setLogoutConfirmOpen(false); logout(); }}
+            />
         </>
     );
 

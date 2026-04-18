@@ -6,12 +6,14 @@ import { User, LogOut, Settings, GraduationCap } from 'lucide-react';
 import { getAssetUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import HelpMenu from './HelpMenu';
+import ConfirmLogoutModal from './ConfirmLogoutModal';
 
 const UserAvatar = ({ size = 40, className = '' }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -40,9 +42,16 @@ const UserAvatar = ({ size = 40, className = '' }) => {
         };
     }, [isOpen]);
 
-    const handleLogout = () => {
-        logout();
+    /* Paso 1: abrir modal de confirmación desde el dropdown. */
+    const requestLogout = () => {
         setIsOpen(false);
+        setLogoutConfirmOpen(true);
+    };
+
+    /* Paso 2: si el usuario confirma, ejecuta el logout real. */
+    const performLogout = () => {
+        setLogoutConfirmOpen(false);
+        logout();
         navigate('/login');
     };
 
@@ -114,7 +123,7 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                             </button>
                         </li>
                         <li>
-                            <button className={`${styles.menuItem} ${styles.danger}`} onClick={handleLogout}>
+                            <button className={`${styles.menuItem} ${styles.danger}`} onClick={requestLogout}>
                                 <LogOut size={16} />
                                 {t('userAvatar.logout')}
                             </button>
@@ -124,6 +133,11 @@ const UserAvatar = ({ size = 40, className = '' }) => {
             )}
 
             <HelpMenu open={helpOpen} onClose={() => setHelpOpen(false)} />
+            <ConfirmLogoutModal
+                isOpen={logoutConfirmOpen}
+                onClose={() => setLogoutConfirmOpen(false)}
+                onConfirm={performLogout}
+            />
         </div>
     );
 };

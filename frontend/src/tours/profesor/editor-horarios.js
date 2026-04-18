@@ -19,12 +19,15 @@ export default {
             titleKey:   'tour.profesorEditorHorarios.step1Title',
             placement: 'right',
             disableBeacon: true,
+            accordionSection: 'general',
         },
         {
             targetId: 'sidebar-admin-horarios',
             contentKey: 'tour.profesorEditorHorarios.step2',
             titleKey:   'tour.profesorEditorHorarios.step2Title',
             placement: 'right',
+            /* Override: este paso vive en un acordeón distinto al del tour. */
+            accordionSection: 'administracion',
         },
     ],
 };

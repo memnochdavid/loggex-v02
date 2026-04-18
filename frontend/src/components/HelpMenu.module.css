@@ -1,205 +1,120 @@
 /* =================================================================
-   HelpMenu — modal con la lista de tutoriales disponibles para el rol
-   del usuario. Reusa la paleta del tema dinámico del centro con
-   fallbacks razonables para usuarios sin centro asignado.
+   HelpMenu — contenido interno del ModalView.
+   Sin chrome propio: el overlay/header/footer/close + animaciones vienen
+   de ModalView. Aquí solo la lista de tours y el toggle, usando las
+   mismas variables de tema que el resto del modal.
    ================================================================= */
 
-.overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9000;
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-4);
-    animation: fadeIn 160ms ease-out;
-}
-
-.modal {
-    background: var(--bg-card, #ffffff);
-    color: var(--text-main, #1e293b);
-    border-radius: 14px;
-    box-shadow:
-        0 30px 70px -20px rgba(15, 23, 42, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-    width: 100%;
-    max-width: 520px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slideUp 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-4);
-    border-bottom: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.08));
-    flex-shrink: 0;
-}
-
-.headerTitle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-primary-500, #6366f1);
-}
-
-.headerTitle h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--text-main, #1e293b);
-    letter-spacing: -0.01em;
-}
-
-.closeBtn {
-    background: transparent;
-    border: none;
-    color: var(--text-soft, #64748b);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.15s ease;
-}
-
-.closeBtn:hover {
-    background: var(--color-gray-100, rgba(0, 0, 0, 0.05));
-    color: var(--text-main, #1e293b);
-}
-
-/* ---------- Cuerpo ---------- */
 .intro {
-    margin: 0;
-    padding: var(--space-3) var(--space-4) 0;
-    color: var(--text-soft, #64748b);
-    font-size: 0.875rem;
+    margin: 0 0 var(--space-4);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.7;
+    font-size: var(--text-sm);
     line-height: 1.55;
 }
 
 .empty {
     margin: 0;
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-6) 0;
     text-align: center;
-    color: var(--text-soft, #64748b);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.6;
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
 }
 
 .list {
     list-style: none;
     margin: 0;
-    padding: var(--space-3) var(--space-4);
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
 }
 
+/* Cada entrada: card suave sobre el body del modal, con bordes del tema.
+   El hover intensifica el borde y levanta ligeramente la card. */
 .item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding: var(--space-3);
-    background: var(--color-gray-50, rgba(0, 0, 0, 0.02));
-    border: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.06));
-    border-radius: 10px;
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: 1px solid var(--border-color, var(--color-gray-200));
+    border-radius: var(--radius-md, 8px);
+    color: var(--modal-body-text, var(--text-main));
     transition:
-        border-color 0.15s ease,
-        background-color 0.15s ease,
-        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border-color var(--dur-base, 200ms) var(--ease-standard),
+        background-color var(--dur-base, 200ms) var(--ease-standard),
+        transform var(--dur-fast, 150ms) var(--ease-out-back),
+        box-shadow var(--dur-base, 200ms) var(--ease-standard);
 }
 
 .item:hover {
-    border-color: var(--color-primary-300, rgba(99, 102, 241, 0.3));
-    background: var(--color-gray-100, rgba(99, 102, 241, 0.04));
+    border-color: var(--color-primary-400, #818cf8);
+    background: color-mix(in srgb, var(--color-primary-500) 5%, transparent);
     transform: translateY(-1px);
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--color-primary-500) 45%, transparent);
 }
 
 .itemMain {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
     flex: 1;
 }
 
+.itemHeadline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
 .itemTitle {
-    font-weight: 600;
-    color: var(--text-main, #1e293b);
-    font-size: 0.95rem;
+    font-weight: var(--font-semibold, 600);
+    color: var(--modal-body-text, var(--text-main));
+    font-size: var(--text-base, 0.95rem);
     letter-spacing: -0.005em;
 }
 
 .itemDesc {
-    font-size: 0.78rem;
-    color: var(--text-soft, #64748b);
-    line-height: 1.45;
+    font-size: var(--text-xs, 0.78rem);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.68;
+    line-height: 1.5;
 }
 
 .itemActions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     flex-shrink: 0;
 }
 
+/* Chip "Visto" — estilo discreto junto al título. */
 .doneChip {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 3px 8px;
-    background: var(--color-success-100, rgba(34, 197, 94, 0.15));
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--color-success-500, #22c55e) 15%, transparent);
     color: var(--color-success-700, #15803d);
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 }
 
-.startBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    background: var(--color-primary-500, #6366f1);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition:
-        background-color 0.15s ease,
-        transform 0.15s ease;
-}
-
-.startBtn:hover {
-    background: var(--color-primary-600, #4f46e5);
-    transform: translateY(-1px);
-}
-
-/* ---------- Footer ---------- */
-.footer {
-    padding: var(--space-3) var(--space-4);
-    border-top: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.06));
+/* =================================================================
+   Footer (contenido del footer del ModalView)
+   ================================================================= */
+.footerRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    flex-shrink: 0;
+    width: 100%;
     flex-wrap: wrap;
 }
 
@@ -207,11 +122,12 @@
 .badgeToggle {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-soft, #64748b);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium, 500);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.85;
     user-select: none;
 }
 
@@ -223,11 +139,11 @@
 
 .badgeToggleTrack {
     position: relative;
-    width: 30px;
-    height: 16px;
-    background: var(--color-gray-300, rgba(0, 0, 0, 0.15));
+    width: 32px;
+    height: 18px;
+    background: color-mix(in srgb, var(--text-main) 18%, transparent);
     border-radius: 999px;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--dur-base, 200ms) var(--ease-standard);
     flex-shrink: 0;
 }
 
@@ -235,12 +151,12 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 12px;
-    height: 12px;
-    background: white;
+    width: 14px;
+    height: 14px;
+    background: var(--bg-card, white);
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform var(--dur-base, 200ms) var(--ease-out-back);
 }
 
 .badgeToggle input:checked + .badgeToggleTrack {
@@ -254,50 +170,26 @@
 .badgeToggleLabel {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-}
-
-.resetBtn {
-    display: inline-flex;
-    align-items: center;
     gap: 5px;
-    background: transparent;
-    border: 1px solid var(--color-gray-300, rgba(0, 0, 0, 0.12));
-    color: var(--text-soft, #64748b);
-    padding: 5px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.15s ease;
 }
 
-.resetBtn:hover {
-    border-color: var(--color-warning-400, #fbbf24);
-    color: var(--color-warning-700, #b45309);
-}
-
-.resetBtnConfirm {
-    background: var(--color-warning-100, rgba(251, 191, 36, 0.15));
-    border-color: var(--color-warning-500, #f59e0b);
-    color: var(--color-warning-700, #b45309);
-    font-weight: 700;
-}
-
-/* ---------- Animaciones ---------- */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(16px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .overlay, .modal, .item {
-        animation: none;
-        transition: none;
+/* Mobile: footer en columna para que el toggle y el botón no se aprieten. */
+@media (max-width: 640px) {
+    .footerRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .badgeToggle {
+        justify-content: space-between;
+    }
+    .item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .itemActions {
+        width: 100%;
+    }
+    .itemActions button {
+        width: 100%;
     }
 }

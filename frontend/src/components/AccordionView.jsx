@@ -59,19 +59,31 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
 };
 
 const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll }) => {
+  /* expandedId puede ser:
+       · undefined  → modo no controlado (cada item mantiene su propio estado)
+       · null       → modo controlado, ninguno abierto
+       · string     → modo controlado, uno abierto
+       · string[]   → modo controlado, múltiples abiertos (usado durante un
+                      tour para mantener abiertas a la vez todas las
+                      secciones cuyos items son targets del tour). */
+  const isItemOpen = (id) => {
+    if (expandedId === undefined) return undefined;
+    if (Array.isArray(expandedId)) return expandedId.includes(id);
+    return expandedId === id;
+  };
+
   return (
     <div className={`${styles.accordionContainer} ${className || ''} accordionContainer`}>
       {data.map((item, index) => (
-        <AccordionItem 
-          key={item.id || index} 
+        <AccordionItem
+          key={item.id || index}
           item={item}
           renderHeader={renderHeader}
-          // Si expandedId está definido (aunque sea null), controlamos la apertura
-          isOpen={expandedId !== undefined ? expandedId === item.id : undefined}
+          isOpen={isItemOpen(item.id)}
           onToggle={onToggle ? () => onToggle(item.id) : undefined}
           onAdd={onAdd}
           canAdd={canAdd}
-          defaultOpen={defaultOpenAll} // Pasamos la prop para abrir por defecto
+          defaultOpen={defaultOpenAll}
         >
           {renderItem(item)}
         </AccordionItem>

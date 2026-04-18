@@ -26,16 +26,20 @@
     pointer-events: auto;
 }
 
+/* Fondo SIEMPRE sólido. --bg-card puede venir con alpha cuando hay fondo
+   animado + elementsOpacity < 100 (theme.js lo envuelve en color-mix con
+   transparent). Por eso usamos --bg-card-solid, que es la versión SIN alpha
+   y que theme.js siempre expone a la par de --bg-card. */
 .card {
     position: relative;
     padding: var(--space-4);
-    background: var(--bg-card, #ffffff);
+    background-color: var(--bg-card-solid, var(--bg-card, #ffffff));
     color: var(--text-main, #1e293b);
-    border: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.08));
-    border-radius: 14px;
+    border: 1px solid var(--border-color, var(--color-gray-200));
+    border-radius: var(--radius-lg, 14px);
     box-shadow:
-        0 24px 50px -16px rgba(15, 23, 42, 0.5),
-        0 0 0 1px var(--color-primary-500, rgba(99, 102, 241, 0.25));
+        0 24px 50px -16px color-mix(in srgb, var(--color-gray-900, #0f172a) 45%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--color-primary-500) 20%, transparent);
     display: flex;
     flex-direction: column;
     gap: var(--space-2);

@@ -117,6 +117,7 @@ export const TourProvider = ({ children }) => {
 
     const [completed, setCompleted] = useState(() => readLocal());
     const [currentTour, setCurrentTour] = useState(null);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [badgesDisabled, setBadgesDisabled] = useState(() => readBadgesDisabled());
 
     /* Contexto publicable por cada página, usado por steps condicionales.
@@ -163,6 +164,20 @@ export const TourProvider = ({ children }) => {
         }
     }, [user]);
 
+    /* ---------- Marca <body> con clase `tour-active` mientras hay tour ----------
+       Esto permite desactivar vía CSS las transiciones costosas (p. ej. el
+       acordeón del Sidebar con grid-template-rows: 0fr→1fr) durante el tour,
+       para que el cambio de acordeón entre steps sea instantáneo y Joyride
+       siempre mida targets con dimensiones finales estables. */
+    useEffect(() => {
+        if (currentTour) {
+            document.body.classList.add('tour-active');
+        } else {
+            document.body.classList.remove('tour-active');
+        }
+        return () => document.body.classList.remove('tour-active');
+    }, [currentTour]);
+
     /* ---------- API pública ---------- */
 
     const isCompleted = useCallback(
@@ -176,10 +191,19 @@ export const TourProvider = ({ children }) => {
             console.warn(`[TourContext] tour "${id}" no encontrado en el registro`);
             return;
         }
+        console.log('[TOUR] startTour →', id, 'steps:', tour.steps.length, 'accordionSection:', tour.accordionSection);
+        setCurrentStepIndex(0);
         setCurrentTour(tour);
     }, []);
 
+    /* Lo publica Tour.jsx desde el callback de Joyride al cambiar de step.
+       El Sidebar lo usa para abrir el acordeón específico de ese step. */
+    const setTourStepIndex = useCallback((idx) => {
+        setCurrentStepIndex(idx);
+    }, []);
+
     const finishTour = useCallback((outcome = 'completed') => {
+        console.log('[TOUR] finishTour →', outcome);
         setCurrentTour(prev => {
             if (prev && (outcome === 'completed' || outcome === 'skipped')) {
                 const id = prev.id;
@@ -193,6 +217,12 @@ export const TourProvider = ({ children }) => {
             }
             return null;
         });
+        setCurrentStepIndex(0);
+        /* Limpieza defensiva: quita la clase del <body> y cualquier
+           elemento residual que Joyride pudiera haber dejado tras un
+           unmount con animación en curso. Así evitamos que una sesión
+           de tour "contamine" la interacción del Sidebar tras cerrarse. */
+        document.body.classList.remove('tour-active');
     }, [user]);
 
     /** Marca un tour como "visto/saltado" sin lanzarlo — para el "No, gracias"
@@ -251,6 +281,18 @@ export const TourProvider = ({ children }) => {
         ) || null;
     }, [availableTours, completed, currentTour, badgesDisabled, location.pathname, user]);
 
+    /* Debug — siempre, mientras arreglamos el problema. */
+    useEffect(() => {
+        console.log('[TOUR]', {
+            pathname: location.pathname,
+            currentTour: currentTour?.id ?? null,
+            badgeCandidate: badgeCandidate?.id ?? null,
+            completed,
+            badgesDisabled,
+            availableTours: availableTours.map(t => t.id),
+        });
+    }, [location.pathname, currentTour, badgeCandidate, completed, badgesDisabled, availableTours]);
+
     /* ---------- auto-start ---------- */
     useEffect(() => {
         if (!user || autoStartChecked) return;
@@ -270,6 +312,7 @@ export const TourProvider = ({ children }) => {
     /* ---------- value ---------- */
     const value = useMemo(() => ({
         currentTour,
+        currentStepIndex,
         availableTours,
         completed,
         tourRuntimeCtx,
@@ -282,11 +325,12 @@ export const TourProvider = ({ children }) => {
         resetTours,
         setBadges,
         setTourContext,
+        setTourStepIndex,
         location,
     }), [
-        currentTour, availableTours, completed, tourRuntimeCtx, badgesDisabled,
-        badgeCandidate, startTour, finishTour, dismissTour, isCompleted,
-        resetTours, setBadges, setTourContext, location,
+        currentTour, currentStepIndex, availableTours, completed, tourRuntimeCtx,
+        badgesDisabled, badgeCandidate, startTour, finishTour, dismissTour,
+        isCompleted, resetTours, setBadges, setTourContext, setTourStepIndex, location,
     ]);
 
     return (

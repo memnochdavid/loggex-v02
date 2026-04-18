@@ -265,6 +265,12 @@
     "stepsCount_one": "{{count}} paso",
     "stepsCount_other": "{{count}} pasos"
   },
+  "confirmLogout": {
+    "title": "¿Cerrar sesión?",
+    "body": "Saldrás de tu cuenta y volverás a la pantalla de login. Cualquier cambio no guardado se perderá.",
+    "cancel": "Cancelar",
+    "confirm": "Cerrar sesión"
+  },
   "dataTable": {
     "rows": "Filas:",
     "page": "Página",
