@@ -11,7 +11,10 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql opcache zip gd
+    && docker-php-ext-install pdo pdo_mysql opcache zip gd \
+    # phpredis: requerido por symfony/redis-messenger (no soporta predis)
+    && pecl install redis \
+    && docker-php-ext-enable redis
 
 # Habilitar mod_rewrite
 RUN a2enmod rewrite

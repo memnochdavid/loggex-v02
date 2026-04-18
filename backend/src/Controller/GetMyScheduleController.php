@@ -9,9 +9,18 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 class GetMyScheduleController extends AbstractController
 {
+    public const CACHE_KEY_PREFIX = 'schedule_';
+    private const CACHE_TTL_SECONDS = 300; // 5min
+
+    public function __construct(private readonly CacheInterface $cache)
+    {
+    }
+
     #[Route('/api/my-schedule', name: 'api_my_schedule', methods: ['GET'])]
     public function __invoke(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
     {
@@ -19,6 +28,20 @@ class GetMyScheduleController extends AbstractController
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
+        $userId = $user->getId();
+        $data = $this->cache->get(
+            self::CACHE_KEY_PREFIX . $userId,
+            function (ItemInterface $item) use ($user, $entityManager): array {
+                $item->expiresAfter(self::CACHE_TTL_SECONDS);
+                return $this->computeSchedule($user, $entityManager);
+            }
+        );
+
+        return $this->json($data);
+    }
+
+    private function computeSchedule(User $user, EntityManagerInterface $entityManager): array
+    {
         $horarios = [];
         $roles = $user->getRoles();
         $userId = $user->getId();
@@ -90,6 +113,6 @@ class GetMyScheduleController extends AbstractController
             ];
         }
 
-        return $this->json($data);
+        return $data;
     }
 }

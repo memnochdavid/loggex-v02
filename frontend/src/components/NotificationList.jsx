@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
-import { getApiUrl, getAssetUrl, POLLING_INTERVAL_NOTIFICATIONS } from '../config/api';
+import { getApiUrl, getAssetUrl } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import useMercure from '../hooks/useMercure';
 import styles from './NotificationList.module.css';
 import { useTranslation } from 'react-i18next';
 
@@ -24,83 +25,79 @@ const NotificationList = ({
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchMessages = useCallback(async () => {
         if (!user) return;
+        try {
+            const userIri = `/api/users/${user.id}`;
+            let url = `/api/mensajes?destinatario=${encodeURIComponent(userIri)}&pagination=false&order[fechaEnvio]=desc`;
 
-        const fetchMessages = async () => {
-            try {
-                const userIri = `/api/users/${user.id}`;
-                let url = `/api/mensajes?destinatario=${encodeURIComponent(userIri)}&pagination=false&order[fechaEnvio]=desc`;
-                
-                // Si onlyUnread es true, añadimos el filtro leido=false
-                if (onlyUnread) {
-                    url += '&leido=false';
-                }
-
-                const response = await fetch(getApiUrl(url), {
-                    headers: { 'Accept': 'application/ld+json' },
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const fetchedMessages = data['hydra:member'] || data.member || [];
-                    
-                    // Calcular total de no leídos independientemente de lo que mostremos
-                    // Si onlyUnread es true, fetchedMessages.length es el total de no leídos
-                    // Si onlyUnread es false, tendríamos que filtrar o hacer otra petición si queremos el dato exacto
-                    // Para simplificar, si onlyUnread es true usamos length, si no, asumimos que el padre no necesita este dato exacto o lo gestiona aparte
-                    if (onlyUnread) {
-                        setTotalUnreadCount(fetchedMessages.length);
-                        if (onUnreadCountChange) {
-                            onUnreadCountChange(fetchedMessages.length);
-                        }
-                    } else if (onUnreadCountChange) {
-                        // Si mostramos todos, quizás queramos saber cuántos hay sin leer de esos
-                        const unread = fetchedMessages.filter(m => !m.leido).length;
-                        setTotalUnreadCount(unread);
-                        onUnreadCountChange(unread);
-                    }
-                    
-                    // Agrupar mensajes por remitente
-                    const grouped = {};
-                    fetchedMessages.forEach(msg => {
-                        const senderId = msg.remitente.id;
-                        if (!grouped[senderId]) {
-                            grouped[senderId] = {
-                                user: msg.remitente,
-                                count: 0,
-                                lastMessage: msg,
-                                hasUnread: false
-                            };
-                        }
-                        
-                        if (!msg.leido) {
-                            grouped[senderId].count++;
-                            grouped[senderId].hasUnread = true;
-                        }
-                        
-                        // Como vienen ordenados por fecha desc, el primero es el último
-                        if (new Date(msg.fechaEnvio) > new Date(grouped[senderId].lastMessage.fechaEnvio)) {
-                            grouped[senderId].lastMessage = msg;
-                        }
-                    });
-                    
-                    // Convertir a array y limitar
-                    setMessages(Object.values(grouped).slice(0, limit));
-                }
-            } catch (error) {
-                console.error("Error checking messages:", error);
-            } finally {
-                setLoading(false);
+            if (onlyUnread) {
+                url += '&leido=false';
             }
-        };
 
-        fetchMessages(); // Primera carga
-        const interval = setInterval(fetchMessages, POLLING_INTERVAL_NOTIFICATIONS);
+            const response = await fetch(getApiUrl(url), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            });
 
-        return () => clearInterval(interval);
+            if (response.ok) {
+                const data = await response.json();
+                const fetchedMessages = data['hydra:member'] || data.member || [];
+
+                if (onlyUnread) {
+                    setTotalUnreadCount(fetchedMessages.length);
+                    if (onUnreadCountChange) {
+                        onUnreadCountChange(fetchedMessages.length);
+                    }
+                } else if (onUnreadCountChange) {
+                    const unread = fetchedMessages.filter(m => !m.leido).length;
+                    setTotalUnreadCount(unread);
+                    onUnreadCountChange(unread);
+                }
+
+                // Agrupar mensajes por remitente
+                const grouped = {};
+                fetchedMessages.forEach(msg => {
+                    const senderId = msg.remitente.id;
+                    if (!grouped[senderId]) {
+                        grouped[senderId] = {
+                            user: msg.remitente,
+                            count: 0,
+                            lastMessage: msg,
+                            hasUnread: false
+                        };
+                    }
+
+                    if (!msg.leido) {
+                        grouped[senderId].count++;
+                        grouped[senderId].hasUnread = true;
+                    }
+
+                    if (new Date(msg.fechaEnvio) > new Date(grouped[senderId].lastMessage.fechaEnvio)) {
+                        grouped[senderId].lastMessage = msg;
+                    }
+                });
+
+                setMessages(Object.values(grouped).slice(0, limit));
+            }
+        } catch (error) {
+            console.error("Error checking messages:", error);
+        } finally {
+            setLoading(false);
+        }
     }, [user, limit, onUnreadCountChange, onlyUnread]);
+
+    // Carga inicial (y al cambiar filtros/usuario). Sin polling: los eventos llegan por Mercure.
+    useEffect(() => { fetchMessages(); }, [fetchMessages]);
+
+    useMercure(
+        user?.id ? [`/users/${user.id}/notifications`] : [],
+        useCallback((event) => {
+            if (event?.type === 'new_message' || event?.type === 'message_read') {
+                fetchMessages();
+            }
+        }, [fetchMessages])
+    );
 
     const handleItemClick = (sender) => {
         if (onItemClick) {

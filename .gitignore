@@ -4,6 +4,9 @@
 *.swp
 *.swo
 
+# Claude Code local settings (permisos y config específicos de cada máquina)
+.claude/
+
 # Docker Volumes & Data
 caddy_data/
 caddy_config/
@@ -21,3 +24,6 @@ Thumbs.db
 
 # token file
 token-github.txt
+
+# Cert raíz de Caddy extraído localmente (específico de cada máquina)
+caddy-root.crt

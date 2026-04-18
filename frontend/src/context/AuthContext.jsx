@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { applyTheme } from '../utils/theme';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import { resetMercureSubscription } from '../hooks/useMercure';
 
 const AuthContext = createContext(null);
 
@@ -87,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+    resetMercureSubscription();
     setUser(null);
   };
 

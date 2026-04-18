@@ -1,13 +1,14 @@
-import React, {useState, useEffect, useRef, useLayoutEffect} from 'react';
+import React, {useState, useEffect, useRef, useLayoutEffect, useCallback} from 'react';
 import {useLocation} from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
 import {useAuth} from '../context/AuthContext';
+import useMercure from '../hooks/useMercure';
 import styles from './Mensajes.module.css';
 import {Send, User, ArrowLeft} from 'lucide-react';
 import Button from '../components/Button';
-import {getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT} from '../config/api';
+import {getApiUrl, getAssetUrl} from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import messageAnimation from '../../public/message.json';
@@ -34,13 +35,22 @@ const Mensajes = () => {
 
     const isMobile = useMediaQuery('(max-width: 768px)');
 
+    // Carga inicial del historial. Los nuevos mensajes llegan por Mercure (ver más abajo).
     useEffect(() => {
         if (user) {
             fetchMensajes();
-            const interval = setInterval(fetchMensajes, POLLING_INTERVAL_CHAT);
-            return () => clearInterval(interval);
         }
     }, [user]);
+
+    // Updates en tiempo real: nuevos mensajes entrantes y cambios de leído.
+    useMercure(
+        user?.id ? [`/users/${user.id}/messages`] : [],
+        useCallback((event) => {
+            if (event?.type === 'new_message' || event?.type === 'message_read') {
+                fetchMensajes();
+            }
+        }, [])
+    );
 
     // Ajustar altura del textarea automáticamente
     useEffect(() => {

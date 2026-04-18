@@ -529,6 +529,7 @@
 .card_emerald  { --card-accent: #6ee7b7; }
 .card_amber    { --card-accent: #fcd34d; }
 .card_violet   { --card-accent: #c4b5fd; }
+.card_cyan     { --card-accent: #67e8f9; }
 
 .cardHeader {
     display: flex;

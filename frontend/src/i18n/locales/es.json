@@ -742,7 +742,16 @@
     "statRoles": "Roles",
     "statThemeVars": "Variables de tema",
     "creditsLabel": "Desarrollado por",
-    "creditsRole": "Desarrollador y diseñador del sistema"
+    "creditsRole": "Desarrollador y diseñador del sistema",
+    "realtime": "Tiempo Real",
+    "pushSse": "Push SSE:",
+    "cacheQueue": "Cache y Cola:",
+    "jobs": "Jobs async:",
+    "workers": "Workers:",
+    "workersValue": "2 réplicas (messenger:consume)",
+    "latency": "Latencia chat:",
+    "featureRealTime": "Chat y Notificaciones en Tiempo Real",
+    "featureRealTimeDesc": "Mercure empuja nuevos mensajes al navegador vía Server-Sent Events, con jobs async en workers Symfony Messenger y cache Redis. Sin polling: el chat se siente instantáneo y la base de datos respira."
   },
   "config": {
     "title": "Personalización",

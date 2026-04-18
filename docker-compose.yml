@@ -16,6 +16,7 @@ services:
       - frontend
       - backend
       - minio
+      - mercure
 
   database:
     image: mariadb:10.11
@@ -48,17 +49,50 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: loggex-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  mercure:
+    image: dunglas/mercure
+    container_name: loggex-mercure
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: '${MERCURE_JWT_SECRET:-!ChangeThisMercureHubSecret!MakeItLongEnoughFor256Bits!}'
+      MERCURE_SUBSCRIBER_JWT_KEY: '${MERCURE_JWT_SECRET:-!ChangeThisMercureHubSecret!MakeItLongEnoughFor256Bits!}'
+      MERCURE_PUBLISHER_JWT_ALG: 'HS256'
+      MERCURE_SUBSCRIBER_JWT_ALG: 'HS256'
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins https://localhost:8443 https://localhost:8888
+        anonymous
+    volumes:
+      - mercure_data:/data
+      - mercure_config:/config
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: loggex-backend:latest
     container_name: loggex-backend
     volumes:
       - ./backend:/var/www/html:z
     depends_on:
       - database
       - minio
-    environment:
+      - redis
+      - mercure
+    environment: &backend_env
       DATABASE_URL: "mysql://app_user:app_password@database:3306/app_db?serverVersion=10.11.15-MariaDB&charset=utf8mb4"
       CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?'
       # Configuración MinIO para el Backend
@@ -66,6 +100,32 @@ services:
       MINIO_ACCESS_KEY: "minio_admin"
       MINIO_SECRET_KEY: "minio_password"
       MINIO_BUCKET: "loggex-data"
+      # Redis (cache y cola Messenger)
+      REDIS_URL: "redis://redis:6379"
+      MESSENGER_TRANSPORT_DSN: "redis://redis:6379/loggex_jobs"
+      # Mercure
+      MERCURE_URL: "http://mercure/.well-known/mercure"
+      MERCURE_PUBLIC_URL: "https://localhost:8443/.well-known/mercure"
+      MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET:-!ChangeThisMercureHubSecret!MakeItLongEnoughFor256Bits!}"
+    security_opt:
+      - apparmor:unconfined
+
+  # Worker Messenger: consume jobs async desde Redis.
+  # Reusa la imagen de backend (mismo Dockerfile) — no duplicamos build.
+  # Sin container_name para permitir múltiples réplicas (--scale worker=N).
+  worker:
+    image: loggex-backend:latest
+    command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M -vv
+    volumes:
+      - ./backend:/var/www/html:z
+    depends_on:
+      - database
+      - redis
+      - mercure
+    environment: *backend_env
+    restart: unless-stopped
+    deploy:
+      replicas: 2
     security_opt:
       - apparmor:unconfined
 
@@ -91,3 +151,6 @@ volumes:
   caddy_data:
   caddy_config:
   minio_data:
+  redis_data:
+  mercure_data:
+  mercure_config:

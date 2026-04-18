@@ -5,7 +5,7 @@ import {
     Server, Database, Layout as LayoutIcon, Shield, Code, Layers,
     HardDrive, Globe, Palette, Users, Lock, Sparkles, Zap,
     GitBranch, Package, ExternalLink,
-    CalendarClock, FileText, PenLine,
+    CalendarClock, FileText, PenLine, Radio,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useInView from '../hooks/useInView';
@@ -141,6 +141,19 @@ const About = () => {
                 { label: t('about.persistence'), value: t('about.dockerVolumes') },
             ],
         },
+        {
+            id: 'realtime',
+            title: t('about.realtime'),
+            icon: <Radio />,
+            color: 'cyan',
+            items: [
+                { label: t('about.pushSse'), value: 'Mercure Hub' },
+                { label: t('about.cacheQueue'), value: 'Redis 7' },
+                { label: t('about.jobs'), value: 'Symfony Messenger' },
+                { label: t('about.workers'), value: t('about.workersValue') },
+                { label: t('about.latency'), value: '< 50 ms' },
+            ],
+        },
     ];
 
     const features = [
@@ -153,6 +166,7 @@ const About = () => {
         { icon: <Lock />, key: 'GranularSecurity' },
         { icon: <Users />, key: 'Attendance' },
         { icon: <Sparkles />, key: 'Messaging' },
+        { icon: <Radio />, key: 'RealTime' },
     ];
 
     const stats = [
