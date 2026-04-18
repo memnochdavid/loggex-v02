@@ -178,6 +178,70 @@
       "step3": "Aquí aparecen tus avisos: nuevos mensajes, tareas a punto de vencer y comunicados del centro. El número rojo indica cuántos hay sin leer.",
       "step4Title": "Tu cuenta",
       "step4": "Desde aquí accedes a tu perfil, vuelves a abrir cualquier tutorial cuando lo necesites, y cierras sesión. ¡Bienvenido a Loggex!"
+    },
+    "alumnoEntregarTarea": {
+      "title": "Cómo entregar una tarea",
+      "desc": "Tres puntos esenciales para no perderte ninguna entrega.",
+      "step1Title": "Tus entregas",
+      "step1": "En \"Entregas\" verás todas las tareas que tus profesores te han asignado. Cada una indica fecha límite, peso y si ya está entregada. Para entregar, abre la tarea, adjunta tu archivo o enlace, y pulsa Enviar.",
+      "step2Title": "Tus faltas",
+      "step2": "Aquí consultas las faltas de asistencia que el profesor te ha registrado, organizadas por módulo y mes. Revisa periódicamente para evitar acumular ausencias sin justificar.",
+      "step3Title": "Materiales del aula",
+      "step3": "En \"Apuntes\" tienes los materiales que tus profesores suben para el módulo: presentaciones, PDFs, enlaces. Descárgalos cuando los necesites para estudiar."
+    },
+    "alumnoVerCalificaciones": {
+      "title": "Tu rendimiento académico",
+      "desc": "Notas, faltas y compañeros: dónde encontrar tu información personal.",
+      "step1Title": "Mis calificaciones",
+      "step1": "Aquí ves todas tus notas filtradas por módulo, con la media calculada según las ponderaciones que el profesor haya configurado.",
+      "step2Title": "Mis faltas",
+      "step2": "Tus faltas de asistencia agrupadas por módulo. Te ayuda a saber a tiempo si te estás acercando al límite permitido.",
+      "step3Title": "Compañeros",
+      "step3": "Lista de compañeros de tu grupo. Pulsa cualquier nombre para abrir un chat directo con esa persona.",
+      "step4Title": "Mis profesores",
+      "step4": "Quién te imparte cada módulo. También puedes iniciar conversación con tus profesores desde aquí."
+    },
+    "profesorPonerNota": {
+      "title": "Calificar a tus alumnos",
+      "desc": "El ciclo completo: revisar entregas, poner notas y consultar tu alumnado.",
+      "step1Title": "Entregas pendientes",
+      "step1": "Tus alumnos suben aquí sus tareas. Verás las pendientes de calificar destacadas — pulsa una para abrirla, descargar el archivo y poner nota con feedback.",
+      "step2Title": "Calificaciones",
+      "step2": "Vista global por grupo y módulo, con medias automáticas según las ponderaciones que hayas definido (examen, práctica, etc.). Desde aquí también puedes generar boletines en PDF.",
+      "step3Title": "Mis materiales",
+      "step3": "Sube apuntes, presentaciones o enlaces para que tus alumnos los descarguen. Quedan organizados por módulo e imparticion.",
+      "step4Title": "Mis alumnos",
+      "step4": "Lista de los alumnos que te corresponden por imparticion, con acceso rápido a su ficha y a su histórico de notas y faltas."
+    },
+    "profesorEditorHorarios": {
+      "title": "Editor visual de horarios",
+      "desc": "Cómo consultar tu horario y, si eres admin, cómo construirlos arrastrando.",
+      "step1Title": "Mi horario",
+      "step1": "Tu horario semanal. Cada celda muestra el módulo, el grupo y el aula. Pasa el ratón por encima para ver más detalles, o haz click para abrir esa imparticion.",
+      "step2Title": "Editor de horarios (Admin)",
+      "step2": "Si eres admin, aquí tienes el editor visual: arrastra una imparticion desde el panel lateral y suéltala sobre la rejilla semanal. El sistema valida solapamientos y carga horaria en tiempo real."
+    },
+    "adminPersonalizarCentro": {
+      "title": "Personalizar el aspecto del centro",
+      "desc": "Adapta los colores, fuentes y fondos de la interfaz a la imagen de tu centro.",
+      "step1Title": "Configuración",
+      "step1": "Desde \"Configuración\" puedes cambiar los colores principales, fuentes, fondos animados, layout del Sidebar, animaciones y más de 80 variables visuales. Los cambios se aplican en tiempo real para todos los usuarios de tu centro."
+    },
+    "adminCrearGrupo": {
+      "title": "Montar la estructura académica",
+      "desc": "Recorrido por las 6 entidades clave para dar de alta un curso de cero.",
+      "step1Title": "1. Usuarios",
+      "step1": "Empieza creando profesores y alumnos. Cada usuario pertenece a un centro y tiene un rol que determina lo que ve y puede hacer.",
+      "step2Title": "2. Ciclos formativos",
+      "step2": "Los ciclos son la unidad académica superior (p. ej. \"DAW\" o \"DAM\"). Agrupan los módulos que se imparten dentro de ellos.",
+      "step3Title": "3. Módulos",
+      "step3": "Los módulos son las asignaturas. Pertenecen a un ciclo, tienen un curso (1º o 2º) y unas horas semanales asignadas.",
+      "step4Title": "4. Grupos",
+      "step4": "Un grupo es un conjunto de alumnos del mismo ciclo y curso en un año escolar concreto (p. ej. \"DAW 1º A 2025/26\").",
+      "step5Title": "5. Matrículas",
+      "step5": "Asocia alumnos a grupos. Una matrícula significa \"este alumno pertenece a este grupo en este curso\".",
+      "step6Title": "6. Imparticiones",
+      "step6": "La pieza final: une un profesor con un módulo y un grupo. Es lo que aparece en los horarios y lo que define quién califica a quién."
     }
   },
   "helpMenu": {

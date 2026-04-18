@@ -4,18 +4,19 @@
  * Cada tour es un objeto con la forma:
  *
  *   {
- *     id:           'identificador-unico',          // string, usado como key de persistencia
- *     titleKey:     'tour.miTour.title',            // i18n key para el menú Ayuda
- *     descKey:      'tour.miTour.desc',             // i18n key (opcional) — descripción corta
- *     roles:        ['ROLE_ALUMNO', ...],           // roles autorizados a verlo
- *     isAutoStart:  true,                           // si se lanza solo en el primer login
+ *     id:                'identificador-unico',          // string, key de persistencia
+ *     titleKey:          'tour.miTour.title',            // i18n key — menú Ayuda
+ *     descKey:           'tour.miTour.desc',             // i18n key (opc.) — descripción corta
+ *     roles:             ['ROLE_ALUMNO', ...],           // roles autorizados
+ *     accordionSection:  'profesor',                     // (opc.) acordeón del Sidebar a expandir
+ *     isAutoStart:       true,                           // si se lanza solo en el primer login
  *     steps: [
  *       {
- *         targetId:   'sidebar-home',               // selector via [data-tour="sidebar-home"]
- *         contentKey: 'tour.miTour.step1',          // i18n key del contenido
- *         titleKey:   'tour.miTour.step1Title',     // opcional — header del tooltip
- *         placement:  'right',                      // top|bottom|left|right|auto (default auto)
- *         disableBeacon: true,                      // no mostrar el "ping" antes del paso
+ *         targetId:      'sidebar-home',                 // selector via [data-tour="..."]
+ *         contentKey:    'tour.miTour.step1',
+ *         titleKey:      'tour.miTour.step1Title',
+ *         placement:     'right',                        // top|bottom|left|right|auto
+ *         disableBeacon: true,
  *       },
  *       ...
  *     ],
@@ -25,9 +26,23 @@
  * e impórtalo aquí. El orden del array es el orden de aparición en el menú Ayuda.
  */
 
-import primerLogin from './common/primer-login';
+import primerLogin            from './common/primer-login';
+import alumnoEntregarTarea    from './alumno/entregar-tarea';
+import alumnoVerCalificaciones from './alumno/ver-calificaciones';
+import profesorPonerNota      from './profesor/poner-nota';
+import profesorEditorHorarios from './profesor/editor-horarios';
+import adminPersonalizarCentro from './admin/personalizar-centro';
+import adminCrearGrupo        from './admin/crear-grupo';
 
 export const tourRegistry = [
     primerLogin,
-    // Próximas fases añadirán aquí: alumno-entregar-tarea, profesor-poner-nota, etc.
+    /* Alumno */
+    alumnoEntregarTarea,
+    alumnoVerCalificaciones,
+    /* Profesor (también accesibles para Admin/SuperAdmin) */
+    profesorPonerNota,
+    profesorEditorHorarios,
+    /* Admin / SuperAdmin */
+    adminPersonalizarCentro,
+    adminCrearGrupo,
 ];

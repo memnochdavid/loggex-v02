@@ -123,6 +123,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'destinatario', targetEntity: Mensaje::class)]
     private Collection $mensajesRecibidos;
 
+    /**
+     * IDs de tutoriales interactivos que el usuario ya ha completado o saltado.
+     * Persistido en JSON para no acoplar el backend a una lista cerrada de tours
+     * (los tours viven en el frontend).
+     */
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $tutorialsCompleted = [];
+
     public function __construct()
     {
         $this->matriculas = new ArrayCollection();
@@ -482,6 +490,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             }
         }
 
+        return $this;
+    }
+
+    /* =========================================================
+       Tutoriales interactivos
+       ========================================================= */
+
+    public function getTutorialsCompleted(): array
+    {
+        return $this->tutorialsCompleted;
+    }
+
+    public function setTutorialsCompleted(array $ids): static
+    {
+        /* Normaliza: solo strings, sin duplicados, con índices reseteados
+           para que se serialice como array JSON y no como objeto. */
+        $clean = array_values(array_unique(array_filter($ids, 'is_string')));
+        $this->tutorialsCompleted = $clean;
+        return $this;
+    }
+
+    public function markTutorialCompleted(string $id): static
+    {
+        if (!in_array($id, $this->tutorialsCompleted, true)) {
+            $this->tutorialsCompleted[] = $id;
+        }
         return $this;
     }
 }

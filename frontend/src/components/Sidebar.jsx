@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import styles from './Sidebar.module.css';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
 import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
 import AccordionView from './AccordionView';
@@ -28,6 +29,7 @@ const Sidebar = () => {
     const { t } = useTranslation();
     const { logout, user } = useAuth();
     const { isSidebarOpen, closeSidebar } = useUI();
+    const { currentTour } = useTour();
     const [isPinned, setIsPinned] = useState(() => {
         try { return JSON.parse(localStorage.getItem('sidebarPinned')) ?? false; }
         catch { return false; }
@@ -104,12 +106,21 @@ const Sidebar = () => {
         const bestMatch = Object.keys(routeToAccordionMap)
             .filter(path => currentPath.startsWith(path))
             .sort((a, b) => b.length - a.length)[0];
-        
+
         if (bestMatch) {
             const targetId = routeToAccordionMap[bestMatch];
             setExpandedAccordion(targetId);
         }
     }, [location.pathname, isAlumno, isSuperAdmin]);
+
+    // Cuando hay un tour activo que apunta a items de una sección concreta
+    // del Sidebar, forzamos la expansión de ese acordeón para que Joyride
+    // pueda localizar los targets (si no, estarían ocultos en collapsed).
+    useEffect(() => {
+        if (currentTour?.accordionSection) {
+            setExpandedAccordion(currentTour.accordionSection);
+        }
+    }, [currentTour]);
 
     const togglePin = () => {
         setIsPinned(prev => !prev);
@@ -135,7 +146,7 @@ const Sidebar = () => {
                     <Home size={20} />
                     <span>{t('sidebar.home')}</span>
                 </NavLink>
-                <NavLink to="/horarios" className={getNavLinkClass} title={t('sidebar.schedule')} onClick={closeSidebar}>
+                <NavLink to="/horarios" className={getNavLinkClass} title={t('sidebar.schedule')} onClick={closeSidebar} data-tour="sidebar-horarios">
                     <Calendar size={20} />
                     <span>{t('sidebar.schedule')}</span>
                 </NavLink>
@@ -148,7 +159,7 @@ const Sidebar = () => {
                         </span>
                     )}
                 </NavLink>
-                <NavLink to="/perfil" className={getNavLinkClass} title={t('sidebar.profile')} onClick={closeSidebar}>
+                <NavLink to="/perfil" className={getNavLinkClass} title={t('sidebar.profile')} onClick={closeSidebar} data-tour="sidebar-perfil">
                     <User size={20} />
                     <span>{t('sidebar.profile')}</span>
                 </NavLink>
@@ -163,23 +174,23 @@ const Sidebar = () => {
             title: t('sidebar.teacher'),
             content: (
                 <>
-                    <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
+                    <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar} data-tour="sidebar-entregas">
                         <UploadCloud size={20} />
                         <span>{t('sidebar.deliveries')}</span>
                     </NavLink>
-                    <NavLink to="/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar}>
+                    <NavLink to="/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={closeSidebar} data-tour="sidebar-calificaciones">
                         <BarChart3 size={20} />
                         <span>{t('sidebar.grades')}</span>
                     </NavLink>
-                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={closeSidebar}>
+                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={closeSidebar} data-tour="sidebar-mis-temarios">
                         <Book size={20} />
                         <span>{t('sidebar.myMaterials')}</span>
                     </NavLink>
-                    <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={closeSidebar}>
+                    <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={closeSidebar} data-tour="sidebar-claustro">
                         <UserCheck size={20} />
                         <span>{t('sidebar.faculty')}</span>
                     </NavLink>
-                    <NavLink to="/mis-alumnos" className={getNavLinkClass} title={t('sidebar.myStudents')} onClick={closeSidebar}>
+                    <NavLink to="/mis-alumnos" className={getNavLinkClass} title={t('sidebar.myStudents')} onClick={closeSidebar} data-tour="sidebar-mis-alumnos">
                         <UsersRound size={20} />
                         <span>{t('sidebar.myStudents')}</span>
                     </NavLink>
@@ -195,15 +206,15 @@ const Sidebar = () => {
             title: t('sidebar.student'),
             content: (
                 <>
-                    <NavLink to="/apuntes" className={getNavLinkClass} title={t('sidebar.myNotes')} onClick={closeSidebar}>
+                    <NavLink to="/apuntes" className={getNavLinkClass} title={t('sidebar.myNotes')} onClick={closeSidebar} data-tour="sidebar-apuntes">
                         <FileText size={20} />
                         <span>{t('sidebar.myNotes')}</span>
                     </NavLink>
-                    <NavLink to="/faltas" className={getNavLinkClass} title={t('sidebar.myAbsences')} onClick={closeSidebar}>
+                    <NavLink to="/faltas" className={getNavLinkClass} title={t('sidebar.myAbsences')} onClick={closeSidebar} data-tour="sidebar-faltas">
                         <AlertCircle size={20} />
                         <span>{t('sidebar.myAbsences')}</span>
                     </NavLink>
-                    <NavLink to="/mis-calificaciones" className={getNavLinkClass} title={t('sidebar.myGrades')} onClick={closeSidebar}>
+                    <NavLink to="/mis-calificaciones" className={getNavLinkClass} title={t('sidebar.myGrades')} onClick={closeSidebar} data-tour="sidebar-mis-calificaciones">
                         <BarChart3 size={20} />
                         <span>{t('sidebar.myGrades')}</span>
                     </NavLink>
@@ -217,7 +228,7 @@ const Sidebar = () => {
                     </NavLink>
                     {/* Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
                     {!isProfesor && !isAdmin && !isSuperAdmin && (
-                        <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar}>
+                        <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={closeSidebar} data-tour="sidebar-entregas">
                             <UploadCloud size={20} />
                             <span>{t('sidebar.deliveries')}</span>
                         </NavLink>
@@ -234,31 +245,31 @@ const Sidebar = () => {
             title: t('sidebar.admin'),
             content: (
                 <>
-                    <NavLink to="/usuarios" className={getNavLinkClass} title={t('sidebar.users')} onClick={closeSidebar}>
+                    <NavLink to="/usuarios" className={getNavLinkClass} title={t('sidebar.users')} onClick={closeSidebar} data-tour="sidebar-usuarios">
                         <Users size={20} />
                         <span>{t('sidebar.users')}</span>
                     </NavLink>
-                    <NavLink to="/ciclos" className={getNavLinkClass} title={t('sidebar.cycles')} onClick={closeSidebar}>
+                    <NavLink to="/ciclos" className={getNavLinkClass} title={t('sidebar.cycles')} onClick={closeSidebar} data-tour="sidebar-ciclos">
                         <Layers size={20} />
                         <span>{t('sidebar.cycles')}</span>
                     </NavLink>
-                    <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={closeSidebar}>
+                    <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={closeSidebar} data-tour="sidebar-grupos">
                         <UsersRound size={20} />
                         <span>{t('sidebar.groups')}</span>
                     </NavLink>
-                    <NavLink to="/modulos" className={getNavLinkClass} title={t('sidebar.modules')} onClick={closeSidebar}>
+                    <NavLink to="/modulos" className={getNavLinkClass} title={t('sidebar.modules')} onClick={closeSidebar} data-tour="sidebar-modulos">
                         <BookOpen size={20} />
                         <span>{t('sidebar.modules')}</span>
                     </NavLink>
-                    <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={closeSidebar}>
+                    <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={closeSidebar} data-tour="sidebar-matriculas">
                         <GraduationCap size={20} />
                         <span>{t('sidebar.enrollments')}</span>
                     </NavLink>
-                    <NavLink to="/imparticiones" className={getNavLinkClass} title={t('sidebar.teachingAssignment')} onClick={closeSidebar}>
+                    <NavLink to="/imparticiones" className={getNavLinkClass} title={t('sidebar.teachingAssignment')} onClick={closeSidebar} data-tour="sidebar-imparticiones">
                         <Briefcase size={20} />
                         <span>{t('sidebar.teaching')}</span>
                     </NavLink>
-                    <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={closeSidebar}>
+                    <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={closeSidebar} data-tour="sidebar-admin-horarios">
                         <Calendar size={20} />
                         <span>{t('sidebar.schedule')}</span>
                     </NavLink>
@@ -272,7 +283,7 @@ const Sidebar = () => {
                         <BarChart3 size={20} />
                         <span>{t('sidebar.stats')}</span>
                     </NavLink>
-                    <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar}>
+                    <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={closeSidebar} data-tour="sidebar-configuracion">
                         <Settings size={20} />
                         <span>{t('sidebar.settings')}</span>
                     </NavLink>
@@ -288,7 +299,7 @@ const Sidebar = () => {
             title: t('sidebar.superadmin'),
             content: (
                 <>
-                    <NavLink to="/centros" className={getNavLinkClass} title={t('sidebar.centers')} onClick={closeSidebar}>
+                    <NavLink to="/centros" className={getNavLinkClass} title={t('sidebar.centers')} onClick={closeSidebar} data-tour="sidebar-centros">
                         <Building size={20} />
                         <span>{t('sidebar.centers')}</span>
                     </NavLink>
