@@ -742,7 +742,16 @@
     "statRoles": "Roles",
     "statThemeVars": "Theme variables",
     "creditsLabel": "Developed by",
-    "creditsRole": "System developer and designer"
+    "creditsRole": "System developer and designer",
+    "erCtaEyebrow": "Data Model",
+    "erCtaTitle": "Explore the Entity-Relationship Model",
+    "erCtaText": "Browse the 20 domain entities and their relations with an interactive diagram: zoom, search and a per-entity detail panel."
+  },
+  "aboutEr": {
+    "back": "Back to /about",
+    "eyebrow": "Data Model",
+    "title": "Entity-Relationship Model",
+    "subtitle": "Complete database schema of Loggex: 20 Doctrine entities grouped by functional domain, with every backend field, key and relationship. Drag the canvas to explore and click any entity to view its detail card."
   },
   "config": {
     "title": "Customization",

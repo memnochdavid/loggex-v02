@@ -13,6 +13,7 @@ import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
 import About from './pages/About';
+import AboutErModel from './pages/AboutErModel';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
 import Usuarios from './pages/Usuarios';
@@ -54,8 +55,10 @@ const PageTitleUpdater = () => {
 // Componente auxiliar para renderizar el Footer condicionalmente
 const ConditionalFooter = () => {
   const location = useLocation();
-  // Mostrar footer solo en Login y About
-  const showFooter = ['/login', '/about'].includes(location.pathname);
+  // Mostrar footer en Login y en cualquier subruta de /about
+  const showFooter = location.pathname === '/login'
+    || location.pathname === '/about'
+    || location.pathname.startsWith('/about/');
   
   return showFooter ? <Footer /> : null;
 };
@@ -81,6 +84,7 @@ const router = createBrowserRouter(
                 
                 {/* Rutas Públicas */}
                 <Route path="/about" element={<About />} />
+                <Route path="/about/er" element={<AboutErModel />} />
                 
                 {/* Rutas Protegidas */}
                 <Route path="/" element={

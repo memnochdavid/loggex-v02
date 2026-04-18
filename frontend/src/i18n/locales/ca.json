@@ -742,7 +742,16 @@
     "statRoles": "Rols",
     "statThemeVars": "Variables de tema",
     "creditsLabel": "Desenvolupat per",
-    "creditsRole": "Desenvolupador i dissenyador del sistema"
+    "creditsRole": "Desenvolupador i dissenyador del sistema",
+    "erCtaEyebrow": "Model de Dades",
+    "erCtaTitle": "Explora el Model Entitat-Relació",
+    "erCtaText": "Recorre les 20 entitats del domini i les seves relacions amb un diagrama interactiu: zoom, cerca i panell de detall per entitat."
+  },
+  "aboutEr": {
+    "back": "Torna a /about",
+    "eyebrow": "Model de Dades",
+    "title": "Model Entitat-Relació",
+    "subtitle": "Esquema complet de la base de dades de Loggex: 20 entitats Doctrine agrupades per domini funcional, amb tots els camps, claus i relacions del backend. Arrossega el llenç per explorar i clica qualsevol entitat per veure'n la fitxa detallada."
   },
   "config": {
     "title": "Personalització",

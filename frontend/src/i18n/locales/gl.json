@@ -742,7 +742,16 @@
     "statRoles": "Roles",
     "statThemeVars": "Variables de tema",
     "creditsLabel": "Desenvolvido por",
-    "creditsRole": "Desenvolvedor e deseñador do sistema"
+    "creditsRole": "Desenvolvedor e deseñador do sistema",
+    "erCtaEyebrow": "Modelo de Datos",
+    "erCtaTitle": "Visualiza o Modelo Entidade-Relación",
+    "erCtaText": "Explora as 20 entidades do dominio académico e as súas relacións cun diagrama interactivo: zoom, busca e panel de detalle por entidade."
+  },
+  "aboutEr": {
+    "back": "Volver a /about",
+    "eyebrow": "Modelo de Datos",
+    "title": "Modelo Entidade-Relación",
+    "subtitle": "Esquema completo da base de datos de Loggex: 20 entidades Doctrine agrupadas por dominio funcional, con todos os campos, claves e relacións do backend. Arrastra o lenzo para explorar e fai click en calquera entidade para ver a súa ficha detallada."
   },
   "config": {
     "title": "Personalización",

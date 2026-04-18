@@ -742,7 +742,16 @@
     "statRoles": "Rolak",
     "statThemeVars": "Gai aldagaiak",
     "creditsLabel": "Garatzailea",
-    "creditsRole": "Sistemaren garatzaile eta diseinatzailea"
+    "creditsRole": "Sistemaren garatzaile eta diseinatzailea",
+    "erCtaEyebrow": "Datu Eredua",
+    "erCtaTitle": "Ikusi Entitate-Erlazio Eredua",
+    "erCtaText": "Arakatu domeinuko 20 entitateak eta haien erlazioak, zooma, bilaketa eta entitate bakoitzeko xehetasun-panela duen diagrama interaktibo batekin."
+  },
+  "aboutEr": {
+    "back": "Itzuli /about-era",
+    "eyebrow": "Datu Eredua",
+    "title": "Entitate-Erlazio Eredua",
+    "subtitle": "Loggex datu-basearen eskema osoa: 20 Doctrine entitate domeinu funtzionalaren arabera taldekatuta, backend-eko eremu, gako eta erlazio guztiekin. Arrastatu oihala arakatzeko eta egin klik edozein entitatetan bere xehetasun-fitxa ikusteko."
   },
   "config": {
     "title": "Pertsonalizazioa",

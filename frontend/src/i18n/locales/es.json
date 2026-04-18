@@ -751,7 +751,16 @@
     "workersValue": "2 réplicas (messenger:consume)",
     "latency": "Latencia chat:",
     "featureRealTime": "Chat y Notificaciones en Tiempo Real",
-    "featureRealTimeDesc": "Mercure empuja nuevos mensajes al navegador vía Server-Sent Events, con jobs async en workers Symfony Messenger y cache Redis. Sin polling: el chat se siente instantáneo y la base de datos respira."
+    "featureRealTimeDesc": "Mercure empuja nuevos mensajes al navegador vía Server-Sent Events, con jobs async en workers Symfony Messenger y cache Redis. Sin polling: el chat se siente instantáneo y la base de datos respira.",
+    "erCtaEyebrow": "Modelo de Datos",
+    "erCtaTitle": "Visualiza el Modelo Entidad-Relación",
+    "erCtaText": "Explora las 20 entidades del dominio académico y sus relaciones con un diagrama interactivo: zoom, búsqueda y panel de detalle por entidad."
+  },
+  "aboutEr": {
+    "back": "Volver a /about",
+    "eyebrow": "Modelo de Datos",
+    "title": "Modelo Entidad-Relación",
+    "subtitle": "Esquema completo de la base de datos de Loggex: 20 entidades Doctrine agrupadas por dominio funcional, con todos los campos, claves y relaciones del backend. Arrastra el lienzo para explorar y haz click en cualquier entidad para ver su ficha detallada."
   },
   "config": {
     "title": "Personalización",

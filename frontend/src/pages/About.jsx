@@ -4,9 +4,10 @@ import styles from './About.module.css';
 import {
     Server, Database, Layout as LayoutIcon, Shield, Code, Layers,
     HardDrive, Globe, Palette, Users, Lock, Sparkles, Zap,
-    GitBranch, Package, ExternalLink,
+    GitBranch, Package, ExternalLink, ArrowRight,
     CalendarClock, FileText, PenLine, Radio,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useInView from '../hooks/useInView';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -171,7 +172,7 @@ const About = () => {
 
     const stats = [
         { value: 5, label: t('about.statLanguages'), icon: <Globe /> },
-        { value: 17, label: t('about.statEntities'), icon: <Layers /> },
+        { value: 20, label: t('about.statEntities'), icon: <Layers /> },
         { value: 4, label: t('about.statRoles'), icon: <Users /> },
         { value: 80, label: t('about.statThemeVars'), suffix: '+', icon: <Palette /> },
     ];
@@ -272,6 +273,24 @@ const About = () => {
                             </div>
                         </div>
                     </div>
+                </Reveal>
+
+                {/* ============ CTA: MODELO ER ============ */}
+                <Reveal className={styles.section}>
+                    <Link to="/about/er" className={styles.erCta}>
+                        <div className={styles.erCtaGlow} aria-hidden="true" />
+                        <div className={styles.erCtaIcon}>
+                            <Database size={28} />
+                        </div>
+                        <div className={styles.erCtaBody}>
+                            <span className={styles.erCtaEyebrow}>{t('about.erCtaEyebrow')}</span>
+                            <h3 className={styles.erCtaTitle}>{t('about.erCtaTitle')}</h3>
+                            <p className={styles.erCtaText}>{t('about.erCtaText')}</p>
+                        </div>
+                        <div className={styles.erCtaArrow} aria-hidden="true">
+                            <ArrowRight size={20} />
+                        </div>
+                    </Link>
                 </Reveal>
 
                 {/* ============ STATS ============ */}

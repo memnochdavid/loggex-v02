@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -3522,7 +3522,7 @@ CREATE TABLE `calificacion` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_8A3AF2187AB91AEC` (`entrega_id`),
   CONSTRAINT `FK_8A3AF2187AB91AEC` FOREIGN KEY (`entrega_id`) REFERENCES `entrega` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1098 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1102 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3575,7 +3575,7 @@ INSERT INTO `calificacion` VALUES
 (41,5.6,'Las ideas están, pero necesitas justificarlas mejor.',42,'2026-04-14 17:27:00',NULL,0,NULL),
 (42,8.7,'Buen trabajo, los detalles finales marcan la diferencia.',43,'2026-04-14 17:27:00',NULL,0,NULL),
 (43,7,'Trabajo muy completo, bien estructurado y con buenos ejemplos.',44,'2026-04-14 17:27:00',NULL,0,NULL),
-(44,8.7,'Excelente desarrollo, se nota el esfuerzo dedicado.',45,'2026-04-14 17:27:00',NULL,0,NULL),
+(44,9.2,'Excelente desarrollo, se nota el esfuerzo dedicado.',45,'2026-04-14 17:27:00','2026-04-18 04:19:45',0,NULL),
 (45,6,'Has entendido la base, falta pulir detalles.',46,'2026-04-14 17:27:00',NULL,0,NULL),
 (46,1.5,'Hay errores de base que debes corregir antes de la siguiente entrega.',47,'2026-04-14 17:27:00',NULL,0,NULL),
 (47,7.1,'Excelente desarrollo, se nota el esfuerzo dedicado.',49,'2026-04-14 17:27:00',NULL,0,NULL),
@@ -4628,7 +4628,11 @@ INSERT INTO `calificacion` VALUES
 (1094,5.4,'Trabajo correcto en conjunto, algunos aspectos mejorables.',1175,'2026-04-14 17:27:00',NULL,0,NULL),
 (1095,3,'No alcanzas los objetivos mínimos. Repasa los conceptos principales.',1176,'2026-04-14 17:27:00',NULL,0,NULL),
 (1096,5.8,'Has entendido la base, falta pulir detalles.',1177,'2026-04-14 17:27:00',NULL,0,NULL),
-(1097,5.4,'Entrega aceptable. Se valora la constancia, pero falta profundidad.',1178,'2026-04-14 17:27:00',NULL,0,NULL);
+(1097,5.4,'Entrega aceptable. Se valora la constancia, pero falta profundidad.',1178,'2026-04-14 17:27:00',NULL,0,NULL),
+(1098,0,NULL,1179,'2026-04-17 19:40:59','2026-04-17 19:40:59',0,NULL),
+(1099,5,NULL,1021,'2026-04-17 19:41:09','2026-04-17 19:41:09',0,NULL),
+(1100,0,NULL,1180,'2026-04-17 19:57:43','2026-04-17 19:57:43',0,NULL),
+(1101,0,NULL,1181,'2026-04-17 19:57:48','2026-04-17 19:57:48',0,NULL);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -4791,7 +4795,7 @@ CREATE TABLE `entrega` (
   KEY `IDX_E56D596BFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_E56D596B6D5BDFE1` FOREIGN KEY (`tarea_id`) REFERENCES `tarea` (`id`),
   CONSTRAINT `FK_E56D596BFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1179 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1182 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5978,7 +5982,10 @@ INSERT INTO `entrega` VALUES
 (1175,'2026-04-27 14:30:00',NULL,265,58,'https://github.com/alumno/proyecto-63684','2026-04-14 17:27:03',NULL,0,NULL,'Dummy.pdf'),
 (1176,'2026-04-30 19:45:00',NULL,265,59,'https://drive.google.com/file/d/47311/view','2026-04-14 17:27:03',NULL,0,NULL,NULL),
 (1177,'2026-04-29 10:45:00','Si hay alguna duda sobre el formato, avíseme.',265,60,NULL,'2026-04-14 17:27:03',NULL,0,NULL,'Dummy.pdf'),
-(1178,'2026-05-03 12:45:00','He tenido problemas con un apartado, lo indico en el PDF.',265,61,'https://github.com/alumno/proyecto-72193','2026-04-14 17:27:03',NULL,0,NULL,'Dummy.pdf');
+(1178,'2026-05-03 12:45:00','He tenido problemas con un apartado, lo indico en el PDF.',265,61,'https://github.com/alumno/proyecto-72193','2026-04-14 17:27:03',NULL,0,NULL,'Dummy.pdf'),
+(1179,'2026-04-17 19:40:58',NULL,230,74,NULL,'2026-04-17 19:40:59','2026-04-17 19:40:59',0,NULL,NULL),
+(1180,'2026-04-17 19:57:43',NULL,144,70,NULL,'2026-04-17 19:57:43','2026-04-17 19:57:43',0,NULL,NULL),
+(1181,'2026-04-17 19:57:48',NULL,141,70,NULL,'2026-04-17 19:57:48','2026-04-17 19:57:48',0,NULL,NULL);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -6521,7 +6528,7 @@ CREATE TABLE `mensaje` (
   KEY `IDX_9B631D01B564FBC1` (`destinatario_id`),
   CONSTRAINT `FK_9B631D011C3E945F` FOREIGN KEY (`remitente_id`) REFERENCES `usuario` (`id`),
   CONSTRAINT `FK_9B631D01B564FBC1` FOREIGN KEY (`destinatario_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6567,7 +6574,30 @@ INSERT INTO `mensaje` VALUES
 (54,'BGmGVRsvQgpezJq3Z2DtTXQvWkRQcGRyNmZMVFBPZDRlQjV2ZlE9PQ==','2026-03-07 13:04:31',0,55,52),
 (55,'6lHkNIhq15WhSh6drLKvJDNBZFJsbkNUNm1MQy9HY09JVmtNd1E9PQ==','2026-03-16 14:29:29',1,57,55),
 (56,'kbY7IZIJIflPRubj8nxM82NWTHQxU2owRS9NVXByM1hDZUdOZFE9PQ==','2026-03-21 08:42:52',1,57,55),
-(57,'QyQiPo5svdYGzj1T4i3jVHY1MC9GRjZFdTZJdjJQY3JJMXgyREE9PQ==','2026-03-21 08:43:03',1,55,57);
+(57,'QyQiPo5svdYGzj1T4i3jVHY1MC9GRjZFdTZJdjJQY3JJMXgyREE9PQ==','2026-03-21 08:43:03',1,55,57),
+(58,'DAtuRFzvgv3WC6bKRgkx5XA4U2l3SWpENzhQb1BYb3k5KzlMNWc9PQ==','2026-04-18 05:12:29',1,57,55),
+(59,'e9+Ss87n4x7dgIRCDFHl4Fl1TUZDQlI1bHhnU2V0UzFlSm5KM1E9PQ==','2026-04-18 05:12:42',1,57,55),
+(60,'BS5222Jf40Xm0hJAY0+dL00vNFA5K0F2aDdsMWF5QWY4RVJBcXc9PQ==','2026-04-18 05:12:52',1,57,55),
+(61,'CujPc3XH0O4RRsdw+PbgSy81Y0dhM0hiTE1KdlVsdnVYOTBiN3c9PQ==','2026-04-18 05:13:01',1,55,57),
+(62,'sdIzt1EaHC4JWvUTrM7Nf2JvbkdDOVNyT1ZjSXlNMHZyU2xWUVE9PQ==','2026-04-18 05:24:44',1,57,55),
+(63,'IVbP9TGcLZhUQCV6lRcDS2ZQYXIxb0k4cFZjdVgvdWVYNlExM1E9PQ==','2026-04-18 05:24:49',1,55,57),
+(64,'wav4V9HnNfIZPrzUbkWCcVpPQzVMV1JEVEtBRUtwOXl0WE5lRkE9PQ==','2026-04-18 05:24:58',1,55,57),
+(65,'TFyhTleS7E+VPj2LzOT/vkFEVnNKYVZhNERqZ29xOWkwRVpySHc9PQ==','2026-04-18 05:29:44',1,57,55),
+(66,'iNgQBQ2XRqAz1PLfkDEn/Ul0MVdNNnl5b3VDK2JiMjJmcUUwd2c9PQ==','2026-04-18 05:29:54',1,55,57),
+(67,'q+iNPEjqivOf/D8feT9v2VVQNW5lZE5KZ3lVN3pwVFRPeFBoR2c9PQ==','2026-04-18 05:42:14',1,55,57),
+(68,'mCX4vVWlfnfHAM5zuDRntzFEellkQTRzZEszYlFQZnE3MUMvNE8wTWY3YW14TDJoWCtMYUliNTFaZHQ1emR1RTlIL3FNN2ZKbWVlTmM1cXY=','2026-04-18 05:42:30',1,57,55),
+(69,'BAqDKEhATLwFYD8kB0AvbmJuVlg1Q1JYMEI3elkvb0pyaWdEbmc9PQ==','2026-04-18 05:42:42',1,55,57),
+(70,'az8SSRjLcISCm52COk7dHnRremxmbTNtQWVnNTI0bG1QekIvNUE9PQ==','2026-04-18 05:42:58',1,55,57),
+(71,'fbNDVI13dlyis7empH8djERvNzZOVVF6SmhzSnQwSzB0am9zRGc9PQ==','2026-04-18 05:43:09',1,57,55),
+(72,'KFYD2gtgpsmep1Q7Yr6j0EFzZDgzQ3NRVnQxd1R5Mkw2Ny91clE9PQ==','2026-04-18 05:47:59',1,57,50),
+(73,'yhpJyJM6PLj1KCZtkUjD41RLVXRFQ3hiLzA2ZmNjOURkRXZwM1E9PQ==','2026-04-18 05:48:10',1,50,57),
+(74,'6VOjEfGOlUdVHAu5Pu61TVJFMjJGZHJwVFl1MkFaTzJlb3Q0UEdvNUtUTFlyeWVlZy94Tm5zbFJtSWE0VmlJdW1jWVJydzZzK0FndDN6UisyU05UczMybHI1dE1sbmkwVGtCd3J3PT0=','2026-04-18 05:48:41',1,50,57),
+(75,'EkaGbsTTRbhynmG3B91zMnRLeVcvZkdqMFFha1FTQTgwdFVoK1VjMG5SNitIMHZnNlgzdU9VRkZOMzQ9','2026-04-18 05:48:51',1,57,50),
+(76,'/Wb9NApIK09M5ypcjyPMJEM4aytXQ0hTckFUdXNrTlFzeDFoZWFHdldLTUxxL2h0L29CTzlxSWczRStxQzlweWpkbzZJZ3RuL1FqcDl6ZXE=','2026-04-18 05:50:02',1,57,50),
+(77,'cSPw8H0HCAkZcGYNTxie020wRU93VzZGWHBxOXFvT1l4S3Vqcnc9PQ==','2026-04-18 05:50:10',1,50,57),
+(78,'Xpi7meafU7fxwQrwBRDvgEJKQmJleCs2Wnk1NTBTV0s5R2xyQnpMSGVkZnc1cjV1bEpwb3k2NVlOSk55RWFyOHBkeEcra0hKZ0FQU1VXazgrbHVGVktSS28yTWNhdEtORi9Qbm5TaFB6a2NOdDArL3hvdGNlT0FRWS93PQ==','2026-04-18 05:50:41',1,57,50),
+(79,'lt1lB75ehWnIzTQi+FXdPktoMHdIU3pvSjlDa1FLY0gyRjlueDlvOWlQN0VUOThPcnpzVkFyS1NvaG89','2026-04-18 05:50:50',1,50,57),
+(80,'GYCxhBDzBwBiaOtUPl+dw0hwWXVpUTY1R09HbFhUUDkzNDUxemc9PQ==','2026-04-18 05:58:43',1,57,50);
 /*!40000 ALTER TABLE `mensaje` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -7313,4 +7343,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-17 15:09:23
+-- Dump completed on 2026-04-18  9:30:02
