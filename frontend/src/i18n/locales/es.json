@@ -157,7 +157,40 @@
   "userAvatar": {
     "menuLabel": "Menú de usuario",
     "profile": "Perfil",
+    "tutorials": "Tutoriales",
     "logout": "Cerrar Sesión"
+  },
+  "tour": {
+    "back": "Atrás",
+    "close": "Cerrar",
+    "last": "Finalizar",
+    "next": "Siguiente",
+    "skip": "Saltar tutorial",
+    "open": "Abrir tutorial",
+    "primerLogin": {
+      "title": "Tour de bienvenida",
+      "desc": "Conoce los elementos principales de Loggex en 4 pasos rápidos.",
+      "step1Title": "Inicio",
+      "step1": "Aquí tienes tu panel principal con un resumen de tu actividad: tareas pendientes, próximos eventos y mensajes recientes. Es la pantalla a la que vuelves cuando pulsas el logo.",
+      "step2Title": "Mensajería",
+      "step2": "Habla directamente con compañeros, profesores o el equipo de tu centro. Los mensajes nuevos llegan en tiempo real, sin recargar la página.",
+      "step3Title": "Notificaciones",
+      "step3": "Aquí aparecen tus avisos: nuevos mensajes, tareas a punto de vencer y comunicados del centro. El número rojo indica cuántos hay sin leer.",
+      "step4Title": "Tu cuenta",
+      "step4": "Desde aquí accedes a tu perfil, vuelves a abrir cualquier tutorial cuando lo necesites, y cierras sesión. ¡Bienvenido a Loggex!"
+    }
+  },
+  "helpMenu": {
+    "title": "Tutoriales interactivos",
+    "intro": "Pequeñas guías paso a paso por las funciones principales de Loggex. Puedes lanzarlas en cualquier momento.",
+    "empty": "No hay tutoriales disponibles para tu rol todavía.",
+    "seen": "Visto",
+    "alreadySeen": "Ya completaste este tutorial",
+    "start": "Empezar",
+    "replay": "Repetir",
+    "reset": "Reiniciar mi progreso",
+    "resetConfirm": "Pulsa otra vez para confirmar",
+    "close": "Cerrar"
   },
   "dataTable": {
     "rows": "Filas:",

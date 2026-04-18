@@ -2,14 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './UserAvatar.module.css';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, GraduationCap } from 'lucide-react';
 import { getAssetUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import HelpMenu from './HelpMenu';
 
 const UserAvatar = ({ size = 40, className = '' }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [helpOpen, setHelpOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -49,15 +51,20 @@ const UserAvatar = ({ size = 40, className = '' }) => {
         setIsOpen(false);
     };
 
+    const handleOpenHelp = () => {
+        setIsOpen(false);
+        setHelpOpen(true);
+    };
+
     if (!user) return null;
 
     const avatarUrl = getImageUrl(user.foto);
     const initials = user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U';
 
     return (
-        <div className={`${styles.container} ${className}`} ref={menuRef}>
-            <button 
-                className={styles.avatarButton} 
+        <div className={`${styles.container} ${className}`} ref={menuRef} data-tour="header-user-menu">
+            <button
+                className={styles.avatarButton}
                 onClick={() => setIsOpen(!isOpen)}
                 style={{ width: size, height: size }}
                 aria-label={t('userAvatar.menuLabel')}
@@ -100,13 +107,12 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                                 {t('userAvatar.profile')}
                             </button>
                         </li>
-                        {/* Podríamos añadir Configuración aquí si fuera diferente de Perfil */}
-                        {/* <li>
-                            <button className={styles.menuItem} onClick={() => navigate('/configuracion')}>
-                                <Settings size={16} />
-                                Configuración
+                        <li>
+                            <button className={styles.menuItem} onClick={handleOpenHelp}>
+                                <GraduationCap size={16} />
+                                {t('userAvatar.tutorials')}
                             </button>
-                        </li> */}
+                        </li>
                         <li>
                             <button className={`${styles.menuItem} ${styles.danger}`} onClick={handleLogout}>
                                 <LogOut size={16} />
@@ -116,6 +122,8 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                     </ul>
                 </div>
             )}
+
+            <HelpMenu open={helpOpen} onClose={() => setHelpOpen(false)} />
         </div>
     );
 };

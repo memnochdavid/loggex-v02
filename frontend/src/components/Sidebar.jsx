@@ -131,7 +131,7 @@ const Sidebar = () => {
         title: t('sidebar.general'),
         content: (
             <>
-                <NavLink to="/" className={getNavLinkClass} title={t('sidebar.home')} onClick={closeSidebar}>
+                <NavLink to="/" className={getNavLinkClass} title={t('sidebar.home')} onClick={closeSidebar} data-tour="sidebar-home">
                     <Home size={20} />
                     <span>{t('sidebar.home')}</span>
                 </NavLink>
@@ -139,7 +139,7 @@ const Sidebar = () => {
                     <Calendar size={20} />
                     <span>{t('sidebar.schedule')}</span>
                 </NavLink>
-                <NavLink to="/mensajes" className={getNavLinkClass} title={t('sidebar.messaging')} onClick={closeSidebar}>
+                <NavLink to="/mensajes" className={getNavLinkClass} title={t('sidebar.messaging')} onClick={closeSidebar} data-tour="sidebar-mensajes">
                     <MessageSquare size={20} />
                     <span>{t('sidebar.messaging')}</span>
                     {unreadMessages > 0 && (

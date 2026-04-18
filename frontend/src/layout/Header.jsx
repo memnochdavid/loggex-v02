@@ -193,8 +193,8 @@ const Header = () => {
 
                 {user ? (
                     <div className={styles.userActions}>
-                        <div className={styles.notificationContainer} ref={notifRef}>
-                            <button 
+                        <div className={styles.notificationContainer} ref={notifRef} data-tour="header-notifications">
+                            <button
                                 className={styles.notificationButton}
                                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                                 title={t('header.notifications')}

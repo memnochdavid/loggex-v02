@@ -9,6 +9,8 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
+import { TourProvider } from './context/TourContext';
+import Tour from './components/Tour';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 import Home from './pages/Home';
@@ -67,14 +69,21 @@ const ConditionalFooter = () => {
 const RootLayout = () => (
   <>
     <PageTitleUpdater />
-    <div className="app-layout">
-      <AnimatedBackground />
-      <Header />
-      <main className="app-main">
-        <Outlet />
-      </main>
-      <ConditionalFooter />
-    </div>
+    {/* TourProvider va dentro del Router (RootLayout es el elemento raíz
+        de las rutas) para poder usar useLocation y reaccionar al login. */}
+    <TourProvider>
+      <div className="app-layout">
+        <AnimatedBackground />
+        <Header />
+        <main className="app-main">
+          <Outlet />
+        </main>
+        <ConditionalFooter />
+        {/* Tour se monta una vez en el root y se activa solo cuando
+            TourContext.currentTour deja de ser null. */}
+        <Tour />
+      </div>
+    </TourProvider>
   </>
 );
 

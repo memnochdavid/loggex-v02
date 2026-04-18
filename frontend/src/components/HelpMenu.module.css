@@ -1,0 +1,246 @@
+/* =================================================================
+   HelpMenu — modal con la lista de tutoriales disponibles para el rol
+   del usuario. Reusa la paleta del tema dinámico del centro con
+   fallbacks razonables para usuarios sin centro asignado.
+   ================================================================= */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: fadeIn 160ms ease-out;
+}
+
+.modal {
+    background: var(--bg-card, #ffffff);
+    color: var(--text-main, #1e293b);
+    border-radius: 14px;
+    box-shadow:
+        0 30px 70px -20px rgba(15, 23, 42, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.08));
+    flex-shrink: 0;
+}
+
+.headerTitle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-primary-500, #6366f1);
+}
+
+.headerTitle h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-main, #1e293b);
+    letter-spacing: -0.01em;
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-soft, #64748b);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease;
+}
+
+.closeBtn:hover {
+    background: var(--color-gray-100, rgba(0, 0, 0, 0.05));
+    color: var(--text-main, #1e293b);
+}
+
+/* ---------- Cuerpo ---------- */
+.intro {
+    margin: 0;
+    padding: var(--space-3) var(--space-4) 0;
+    color: var(--text-soft, #64748b);
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.empty {
+    margin: 0;
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+    color: var(--text-soft, #64748b);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-gray-50, rgba(0, 0, 0, 0.02));
+    border: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.06));
+    border-radius: 10px;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.item:hover {
+    border-color: var(--color-primary-300, rgba(99, 102, 241, 0.3));
+    background: var(--color-gray-100, rgba(99, 102, 241, 0.04));
+    transform: translateY(-1px);
+}
+
+.itemMain {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.itemTitle {
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+    font-size: 0.95rem;
+    letter-spacing: -0.005em;
+}
+
+.itemDesc {
+    font-size: 0.78rem;
+    color: var(--text-soft, #64748b);
+    line-height: 1.45;
+}
+
+.itemActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.doneChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    background: var(--color-success-100, rgba(34, 197, 94, 0.15));
+    color: var(--color-success-700, #15803d);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.startBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: var(--color-primary-500, #6366f1);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.startBtn:hover {
+    background: var(--color-primary-600, #4f46e5);
+    transform: translateY(-1px);
+}
+
+/* ---------- Footer ---------- */
+.footer {
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--color-gray-200, rgba(0, 0, 0, 0.06));
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.resetBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 1px solid var(--color-gray-300, rgba(0, 0, 0, 0.12));
+    color: var(--text-soft, #64748b);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.resetBtn:hover {
+    border-color: var(--color-warning-400, #fbbf24);
+    color: var(--color-warning-700, #b45309);
+}
+
+.resetBtnConfirm {
+    background: var(--color-warning-100, rgba(251, 191, 36, 0.15));
+    border-color: var(--color-warning-500, #f59e0b);
+    color: var(--color-warning-700, #b45309);
+    font-weight: 700;
+}
+
+/* ---------- Animaciones ---------- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .overlay, .modal, .item {
+        animation: none;
+        transition: none;
+    }
+}
