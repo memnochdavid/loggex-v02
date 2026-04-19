@@ -7,7 +7,7 @@ const Footer = () => {
   const year = new Date().getFullYear();
 
   return (
-    <footer className={styles.footer}>
+    <footer className={styles.footer} aria-label={t('footer.developedBy')}>
       <div className={styles.developer}>
         <span className={styles.label}>{t('footer.developedBy')}</span>
         <strong className={styles.name}>David Duque Díaz</strong>

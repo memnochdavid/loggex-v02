@@ -234,12 +234,6 @@ const Login = () => {
               </span>
             </button>
           </form>
-
-          <div className={styles.footer}>
-            <span className={styles.footerText}>
-              Loggex &copy; {new Date().getFullYear()}
-            </span>
-          </div>
         </div>
       </main>
     </div>

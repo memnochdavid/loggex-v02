@@ -38,6 +38,7 @@ const Header = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [supportLoading, setSupportLoading] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const notifRef = useRef(null);
     const navigate = useNavigate();
 
@@ -66,6 +67,37 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Cerrar dropdown con Escape (devolver foco al trigger)
+    useEffect(() => {
+        if (!isNotifOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                setIsNotifOpen(false);
+                notifRef.current?.querySelector('button')?.focus();
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isNotifOpen]);
+
+    // Elevación progresiva al hacer scroll (throttle vía rAF).
+    useEffect(() => {
+        let raf = null;
+        const update = () => {
+            raf = null;
+            setScrolled(window.scrollY > 4);
+        };
+        const onScroll = () => {
+            if (raf === null) raf = requestAnimationFrame(update);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        update();
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            if (raf !== null) cancelAnimationFrame(raf);
+        };
+    }, []);
+
     const handleNotificationClick = (sender) => {
         setIsNotifOpen(false);
         navigate('/mensajes', { state: { chatWith: sender } });
@@ -91,7 +123,7 @@ const Header = () => {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     const users = data['hydra:member'] || data.member || [];
@@ -142,9 +174,19 @@ const Header = () => {
         />
     );
 
+    const hasUnread = unreadCount > 0;
+
     return (
-        <header className={styles.header}>
-            <div className={styles.logoContainer} style={user?.centro?.personalizacion?.nameTitleConfig?.alignment ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment } : {}}>
+        <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
+            <div
+                className={styles.logoContainer}
+                style={{
+                    '--i': 0,
+                    ...(user?.centro?.personalizacion?.nameTitleConfig?.alignment
+                        ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment }
+                        : {}),
+                }}
+            >
                 {isMobile && user ? (
                     <Link to="#" className={styles.logoLink} onClick={toggleSidebar}>
                         {LogoImage}
@@ -154,38 +196,39 @@ const Header = () => {
                         {LogoImage}
                     </Link>
                 )}
-                
+
                 <NameTitle name={getCentroName()} className={styles.nombrecentro} />
             </div>
 
-            <nav className={styles.nav}>
+            <nav className={styles.nav} style={{ '--i': 1 }}>
                 <div className={styles.desktopNav}>
                     {(!user || isSuperAdmin) && (
-                        <Link to="/about" className={styles.navLink}>{t('header.about')}</Link>
+                        <Link to="/about" className={styles.navLink}>
+                            <span className={styles.navLinkLabel}>{t('header.about')}</span>
+                        </Link>
                     )}
-                    
+
                     {user && !isSuperAdmin && (
-                        <a 
-                            href="#" 
-                            onClick={handleSupportClick} 
-                            className={styles.navLink}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: supportLoading ? 'wait' : 'pointer' }}
+                        <a
+                            href="#"
+                            onClick={handleSupportClick}
+                            className={`${styles.navLink} ${supportLoading ? styles.navLinkLoading : ''}`}
                         >
-                            <MessageCircleQuestion size={18} />
-                            {t('header.support')}
+                            <MessageCircleQuestion size={18} className={styles.navLinkIcon} />
+                            <span className={styles.navLinkLabel}>{t('header.support')}</span>
                         </a>
                     )}
                 </div>
 
                 {user && isSuperAdmin && (
                     <a
-                        href="https://localhost:9443/api"
+                        href="/api"
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}
                         title={t('header.apiDocsTooltip')}
                     >
-                        {t('header.apiDocs')}
+                        <span className={styles.navLinkLabel}>{t('header.apiDocs')}</span>
                     </a>
                 )}
 
@@ -193,24 +236,35 @@ const Header = () => {
 
                 {user ? (
                     <div className={styles.userActions}>
-                        <div className={styles.notificationContainer} ref={notifRef} data-tour="header-notifications">
+                        <div
+                            className={`${styles.notificationContainer} ${hasUnread ? styles.hasUnread : ''}`}
+                            ref={notifRef}
+                            data-tour="header-notifications"
+                        >
                             <button
                                 className={styles.notificationButton}
                                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                                 title={t('header.notifications')}
+                                aria-label={t('header.notifications')}
+                                aria-haspopup="dialog"
+                                aria-expanded={isNotifOpen}
                             >
-                                <Bell size={24} />
+                                <Bell size={22} aria-hidden="true" />
                             </button>
-                            
-                            {unreadCount > 0 && (
-                                <span className={styles.badge} onClick={() => setIsNotifOpen(!isNotifOpen)}>
+
+                            {hasUnread && (
+                                <span
+                                    className={styles.badge}
+                                    onClick={() => setIsNotifOpen(!isNotifOpen)}
+                                    aria-hidden="true"
+                                >
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </span>
                             )}
 
                             {isNotifOpen && (
-                                <div className={styles.dropdown}>
-                                    <NotificationList 
+                                <div className={styles.dropdown} role="dialog" aria-label={t('header.notifications')}>
+                                    <NotificationList
                                         title={t('header.notifications')}
                                         showUnreadCountInHeader={true}
                                         onUnreadCountChange={setUnreadCount}
@@ -220,10 +274,10 @@ const Header = () => {
                                     />
                                 </div>
                             )}
-                            
+
                             {!isNotifOpen && (
                                 <div style={{ display: 'none' }}>
-                                    <NotificationList 
+                                    <NotificationList
                                         onUnreadCountChange={setUnreadCount}
                                         limit={0}
                                     />

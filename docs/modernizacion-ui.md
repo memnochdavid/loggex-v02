@@ -420,6 +420,71 @@ Problema raíz resuelto: el `.dropdown` se posicionaba `position: absolute` dent
 - `placement="top"` en `paginationBottom` y `placement="bottom"` en `paginationTop` (evita que el dropdown salga fuera de viewport en el paginador inferior).
 - Borrado `handleItemsPerPageChange` huérfano; `onItemsPerPageChange` llamado directamente con el valor.
 
+### `Header.jsx` + `Header.module.css` — modernización completa
+
+Bloque `layout/` antes tenía transiciones `0.2s` ad-hoc, hex `#ef4444`, `rgba(255,255,255,0.1)` en hovers y `white`/`#334155` hardcoded en el dropdown. Reescritura completa manteniendo la misma API (mismos tokens que tematiza el usuario).
+
+**`Header.jsx`:**
+- **Scroll-aware**: estado `scrolled` + listener `scroll` con throttle via `requestAnimationFrame`, aplica `.scrolled` cuando `scrollY > 4`. El CSS responde con `box-shadow` más profunda y borde inferior más marcado.
+- **Stagger entry**: `--i` inline en `.logoContainer` (0) y `.nav` (1) → animación `headerFadeSlide` escalonada 60ms.
+- **Tecla Escape**: cierra el dropdown de notificaciones y devuelve foco al botón trigger (solo cuando `isNotifOpen`).
+- **A11y dropdown**: `role="dialog"` + `aria-label`, botón con `aria-haspopup="dialog"` + `aria-expanded`. Badge con `aria-hidden="true"` (lectura duplicada — el conteo real va en el `aria-label` del botón + en `NotificationList`).
+- **Fix URL ngrok-friendly**: sustituido `https://localhost:9443/api` por `/api` relativo → ahora funciona tanto en local como tras el túnel de ngrok (sigue enrutándose a backend por el bloque `/api/*` del Caddyfile principal).
+- **className condicional `hasUnread`** en el container del botón → habilita en CSS el wiggle periódico de la campana.
+- **supportClick loading**: clase `navLinkLoading` en lugar de `style` inline con cursor.
+
+**`Header.module.css`:**
+- **Regla de oro aplicada íntegra**: cero hex hardcodeados en el flujo normal; `#fff` sólo como fallback de `var(--text-light)` en el texto del badge.
+  - `#ef4444` → `var(--color-error)` + `color-mix` para el ring del badge.
+  - `rgba(255,255,255,0.1)` → `color-mix(in srgb, currentColor 10-12%, transparent)` en hovers → se adapta al color del header.
+  - `rgba(0,0,0,0.*)` de sombras → `var(--shadow-sm/md/lg)`.
+  - `.dropdown` de `white` + `#334155` → `var(--bg-card)` + `var(--text-main)` + borde con `color-mix` sobre `--border-color` → respeta el tema activo.
+- **Tokens motion** en todas las transiciones (`--dur-fast/base/slow`, `--ease-out-back/standard/out-quart`), sin duraciones inventadas.
+- **NavLink con underline pill animada** (`::after` con `scaleX 0 → 1` + `--ease-out-back`, mismo lenguaje que los tabs de `Calificaciones.module.css`). Hover con tinte `color-mix(currentColor, 10%)`, active `scale(0.97)`, focus-visible ring `color-mix(--color-primary-400, 75%)`.
+- **NavLink icon (soporte)**: `rotate(-6deg) scale(1.08)` al hover del link.
+- **Logo**: hover `scale(1.04) rotate(-2deg)` + drop-shadow tintado primary (color-mix 45%). Active `scale(0.98)`. El `nombrecentro` vira sutilmente hacia `--color-primary-300` cuando el usuario hoverea el container del logo.
+- **Botón campana**: hover `scale(1.08)` + tinte `currentColor 12%`, active `0.92`, focus-visible ring tokenizado. Cuando `.hasUnread` → animación `bellWiggle` 4s infinite (sacudida breve cada 4s, llamada de atención sin ser intrusiva). El hover pausa el wiggle y deja la campana rotada `-10deg` para dar feedback de "la voy a tocar".
+- **Badge con ring pulsante**: `@keyframes badgePulse` que expande un `box-shadow` con `color-mix(--color-error, 55%)` a 8px y lo desvanece — efecto radar sobre el contador. `font-variant-numeric: tabular-nums` para evitar saltos si el conteo cambia (`1 → 9+`).
+- **Dropdown con spring entry**: `transform-origin: top right`, animación `dropdownIn` (opacity + translateY + scale 0.96 → 1) con `--ease-out-back`. Fondo, borde y texto tematizables. Shadow `--shadow-lg`. En móvil `transform-origin: top center` + `position: fixed` (igual que antes).
+- **Focus-visible** explícitos en `.navLink` y `.notificationButton` — el global de `index.css` funciona, pero sin regla local el bg hover del navLink tapaba el ring; ahora hay regla específica que mantiene visible el outline 2px + offset 2px.
+- **Header transitions**: `box-shadow`, `border-color` y `background-color` en `--dur-base --ease-standard` → el cambio a `.scrolled` es suave, no un "click".
+- **Border-bottom** con `color-mix(currentColor, 8%/14%)` en reposo/scrolled → separación visual sutil que se adapta al tema.
+- **`prefers-reduced-motion`** completo: anula animaciones y transforms, pero mantiene la underline pill animada al hover (transform binario, no continuo) + colores.
+
+Esto cierra el item 2 de la sección "Sugerido" (Layout — header global). Quedan las "route transitions con React Router" de ese mismo item, que se abordarán en pasada aparte.
+
+### `Footer.jsx` + `Footer.module.css` — modernización completa
+
+Segunda mitad del "Layout" (complementa el Header modernizado arriba). El footer aparece condicionalmente en `/login`, `/about` y `/about/*` vía `ConditionalFooter` en `App.jsx`.
+
+**Integración con `/login`:**
+- Eliminado el `<div className={styles.footer}>Loggex © 2026</div>` que el formCard del Login llevaba internamente → duplicaba al Footer global. Ahora el Login se apoya 100% en el Footer compartido (mismo comportamiento que `/about` y `/about/er`).
+- Borradas las clases `.footer` y `.footerText` huérfanas de `Login.module.css`.
+
+**`Footer.jsx`:**
+- Añadido `aria-label={t('footer.developedBy')}` al `<footer>` para que lectores de pantalla enuncien el landmark con un nombre en el idioma activo.
+- Mantiene estructura `.developer` (créditos) + `.copyright` (año) + `<span aria-hidden>` para el separador visual.
+
+**`Footer.module.css`:**
+- **Integración visual con el main** (segunda pasada): el Footer dejó de pintarse como una barra aparte.
+  - `background: transparent` (antes `--bg-header-footer-alpha / --bg-header-footer`).
+  - Eliminados `border-top`, `box-shadow: inset ...` y `backdrop-filter` → ninguna línea divisoria con el contenido superior.
+  - Nuevo `::before` con gradient sutil `color-mix(currentColor 4%, transparent) → transparent` (28px de alto) → da sensación de profundidad sin dibujar un separador. Se adapta al tema vía currentColor.
+  - **En `Login.module.css`**: `.pageBg` pasa de `position: absolute` a `position: fixed` (misma pauta que `AboutErModel.module.css` y `About.module.css`) → el canvas dark + waves se extiende también tras el Footer; las waves son continuas hasta el borde inferior del viewport.
+  - Resultado: el Footer parece flotar *dentro* de la misma vista, no colgado debajo.
+- **Fallback de `.name`** `white` → `var(--text-light)` (ya existe en index.css, semánticamente correcto).
+- **Motion tokens** aplicados en todas las transiciones (`--dur-fast/base/slow`, `--ease-out-back/standard/out-quart`) — antes el footer era 100% estático.
+- **Entry animation** `footerFadeUp` (translateY 6px + opacity) en `--dur-slow --ease-out-quart backwards`. Armoniza con el `headerFadeSlide` del Header y con los reveals de /about.
+- **Micro-interacción en `.developer`** (guiño, no link):
+  - Hover del bloque entero → `translateY(-1px)` + `.label` opacity 0.7→0.9 + `.role` opacity 0.85→1 + `.name` vira hacia `color-mix(--text-header-footer, --color-primary-300 12%)` y reduce letter-spacing en 2 milésimas (sutil énfasis tipográfico).
+  - No es un link: es la firma del producto; el hover sólo indica que "está vivo", sin pretender navegación. Si en el futuro se convierte en enlace al portfolio, el foco visual ya está preparado.
+- **Separador `.sep`**: animación `sepPulse` (opacity 0.35 → 0.7 → 0.35) en 4s, loop infinito. Respira sin ser intrusivo.
+- **`.copyright`**: hover opacity 0.75→1 con transición tokenizada.
+- **`prefers-reduced-motion`** completo: anula todas las animaciones (entry fade, sep pulse) y el `translateY` del hover. Mantiene los cambios de color.
+- **Mobile (`≤640px`)** se conserva igual: justify-content center + text-align center + padding reducido.
+
+Se mantiene `margin-top: auto` + `z-index: 50` para que siga funcionando correctamente sobre el `pageBg` fixed de `/about` y `/about/er` (comentario original preservado).
+
 ### `Sidebar.module.css`
 
 - **Indicador activo:** barra acento izquierda (`::before` pill 3px) con `scaleY` y `--ease-out-back`; en colapsado desplazada a `left: 4px` y altura reducida para lecturabilidad.
@@ -445,7 +510,7 @@ Agrupado por impacto. **Cualquier implementación debe seguir** el flujo `ui-ux-
 ### Componentes que faltan tocar (alto impacto)
 
 1. ~~`Sidebar`~~ ✅ hecho.
-2. `Layout` — header global, transiciones entre páginas (route transitions con React Router).
+2. ~~`Layout` — header global~~ ✅ hecho. Pendiente sólo: transiciones entre páginas (route transitions con React Router).
 3. Inputs genéricos: ~~`ThemedSelect`~~ ✅ portal + auto-flip. ~~`.input`/`.select`/`.textarea`/`.fileInput`/`.checkboxLabel` en `Crud.module.css`~~ ✅ unificados con tokens. Pendientes afinar `ThemedNumberInput`, `SearchBar` (ya usan tokens parcialmente).
 4. `UserAvatar` — fallback sin foto, presence indicator opcional.
 

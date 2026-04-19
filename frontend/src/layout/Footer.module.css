@@ -1,38 +1,76 @@
 /* =================================================================
-   Layout Footer — barra inferior con créditos a la izquierda y
-   copyright a la derecha. Contenido distribuido horizontalmente.
+   LAYOUT FOOTER — barra inferior tematizable (créditos + copyright).
+   Reglas del doc:
+   - Sin hex/rgba hardcoded (fallbacks usan tokens semánticos).
+   - Tokens motion (--dur-*, --ease-*).
+   - color-mix sobre currentColor para separadores/hovers.
+   - focus-visible ring primary si hubiera interactivos.
+   - prefers-reduced-motion al final.
    ================================================================= */
 .footer {
+    /* Integrado en el main: sin fondo, sin border-top, sin backdrop-filter.
+       El canvas oscuro (.pageBg con AnimatedBackground) de Login/About se
+       extiende por detrás (position: fixed) y muestra las waves continuas
+       hasta el borde inferior. El footer sólo aporta texto flotando encima. */
+    position: relative;
+    z-index: 50; /* por encima del pageBg para que el texto se vea */
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-4);
     flex-wrap: wrap;
     padding: var(--space-2) var(--space-5);
-    background-color: var(--bg-header-footer-alpha, var(--bg-header-footer, var(--bg-dark)));
-    color: var(--text-header-footer, var(--color-gray-400));
-    backdrop-filter: var(--elements-blur, none);
-    -webkit-backdrop-filter: var(--elements-blur, none);
-    border-top: 1px solid var(--color-gray-700, rgba(255, 255, 255, 0.1));
     margin-top: auto;
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
     min-height: 36px;
     box-sizing: border-box;
-    /* En /about y /about/er el .pageBg fixed (waves) se solapa por encima
-       del footer dado que el contenedor del Layout es z-index:1. Posicionar
-       el footer relativamente con z-index propio lo levanta por encima. */
-    position: relative;
-    z-index: 50;
+    background: transparent;
+    color: var(--text-header-footer, var(--color-gray-400));
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    animation: footerFadeUp var(--dur-slow) var(--ease-out-quart) backwards;
 }
 
-/* ---- Bloque izquierdo: créditos del autor ---- */
+/* Velo muy sutil que desvanece el contenido de arriba hacia el borde del
+   footer — da sensación de "profundidad" sin dibujar una línea divisoria.
+   Se apoya sobre el propio color del texto vía color-mix → se adapta al tema. */
+.footer::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 28px;
+    pointer-events: none;
+    background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, currentColor 4%, transparent) 0%,
+        transparent 100%
+    );
+    z-index: -1;
+}
+
+/* =================================================================
+   Bloque izquierdo: créditos del autor
+   ================================================================= */
 .developer {
     display: flex;
     align-items: baseline;
     gap: var(--space-2);
     flex-wrap: wrap;
     min-width: 0;
+    transition: transform var(--dur-base) var(--ease-out-back);
+}
+
+/* Micro-interacción: el nombre + rol se elevan un pelín al hover del bloque
+   entero, dando feedback de que es la "firma" del producto (un guiño de vida,
+   no un link navegable). */
+.developer:hover {
+    transform: translateY(-1px);
+}
+
+.developer:hover .name {
+    color: color-mix(in srgb, var(--text-header-footer, currentColor) 88%, var(--color-primary-300) 12%);
+    letter-spacing: -0.008em;
 }
 
 .label {
@@ -42,28 +80,45 @@
     font-weight: 700;
     color: var(--text-header-footer, var(--color-gray-500));
     opacity: 0.7;
+    transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+.developer:hover .label {
+    opacity: 0.9;
 }
 
 .name {
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--text-header-footer, white);
+    color: var(--text-header-footer, var(--text-light));
     letter-spacing: -0.01em;
+    transition:
+        color var(--dur-base) var(--ease-standard),
+        letter-spacing var(--dur-base) var(--ease-standard);
 }
 
 .sep {
     color: var(--text-header-footer, var(--color-gray-500));
     opacity: 0.5;
     font-size: 0.85rem;
+    /* Pequeño punto separador "respirando" para matizar la línea estática */
+    animation: sepPulse 4s var(--ease-standard) infinite;
 }
 
 .role {
     font-size: 0.78rem;
     color: var(--text-header-footer, var(--color-gray-400));
     opacity: 0.85;
+    transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
-/* ---- Bloque derecho: copyright ---- */
+.developer:hover .role {
+    opacity: 1;
+}
+
+/* =================================================================
+   Bloque derecho: copyright
+   ================================================================= */
 .copyright {
     font-size: 0.72rem;
     color: var(--text-header-footer, var(--color-gray-500));
@@ -71,9 +126,29 @@
     letter-spacing: 0.04em;
     white-space: nowrap;
     flex-shrink: 0;
+    transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
-/* ---- Responsive: en pantallas estrechas centrar y apilar ---- */
+.copyright:hover {
+    opacity: 1;
+}
+
+/* =================================================================
+   Keyframes
+   ================================================================= */
+@keyframes footerFadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sepPulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.7; }
+}
+
+/* =================================================================
+   Responsive: en pantallas estrechas centrar y apilar
+   ================================================================= */
 @media (max-width: 640px) {
     .footer {
         justify-content: center;
@@ -85,5 +160,24 @@
     }
     .copyright {
         white-space: normal;
+    }
+}
+
+/* =================================================================
+   Reduced motion
+   ================================================================= */
+@media (prefers-reduced-motion: reduce) {
+    .footer,
+    .developer,
+    .sep,
+    .name,
+    .label,
+    .role,
+    .copyright {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+    .developer:hover {
+        transform: none !important;
     }
 }
