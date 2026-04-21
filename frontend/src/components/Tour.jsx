@@ -14,6 +14,7 @@ import TourTooltip from './TourTooltip';
 const Tour = () => {
     const { t } = useTranslation();
     const { currentTour, finishTour, tourRuntimeCtx, setTourStepIndex } = useTour();
+    console.log('[TOUR render]', { currentTour: currentTour?.id ?? null });
     /* Esperamos a que el PRIMER target esté realmente en DOM y con
        dimensiones > 0 antes de arrancar Joyride. Es más fiable que un
        setTimeout fijo: las transiciones de Sidebar (72→260px) y
@@ -119,7 +120,9 @@ const Tour = () => {
        sobre una instancia ya montada, lo cual podía dejar state interno
        inconsistente (Joyride v3 cachea la posición del primer target al
        montar). Montar fresco cada tour con key único es más determinista. */
+    console.log('[TOUR render] gate', { currentTour: currentTour?.id ?? null, ready });
     if (!currentTour || !ready) return null;
+    console.log('[TOUR render] MOUNTING Joyride', { stepsCount: steps.length });
 
     return (
         <Joyride
@@ -153,8 +156,9 @@ const Tour = () => {
                     zIndex: 10000,
                 },
             }}
-            callback={(data) => {
+            onEvent={(data) => {
                 const { status, action, type, index } = data;
+                console.log('[JOYRIDE cb]', { type, action, status, index });
 
                 /* Publicamos el step index actual en el TourContext para
                    que el Sidebar pueda abrir el acordeón concreto que cada
@@ -162,6 +166,7 @@ const Tour = () => {
                    misma sección, p. ej. profesor-editor-horarios pasa de
                    'general' a 'administracion'). */
                 if (type === EVENTS.STEP_BEFORE || type === EVENTS.TOUR_START) {
+                    console.log('[JOYRIDE cb] setTourStepIndex →', index);
                     setTourStepIndex(typeof index === 'number' ? index : 0);
                 }
 

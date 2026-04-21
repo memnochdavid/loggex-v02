@@ -17,6 +17,14 @@ import useUnreadMessages from '../hooks/useUnreadMessages';
 const SIDEBAR_EXPANDED_WIDTH = 260;
 const HEADER_HEIGHT_ESTIMATE = 84;
 
+/* Clave del último step de tour cuyo acordeón ya se forzó. Vive a nivel de
+   módulo para sobrevivir al remount del Sidebar que ocurre en cada navegación.
+   Sin esto, cada remount re-aplicaba el "force" del step activo, lo que
+   sobreescribía tanto la elección manual del usuario como el acordeón de la
+   ruta destino en mitad del tour (el usuario pulsaba un ítem de otra sección
+   y al remontar el Sidebar, effect2 volvía a abrir la sección del tour). */
+let lastForcedTourStepKey = null;
+
 // Decide si el cursor está sobre la "zona del sidebar expandido" según la
 // última posición conocida del puntero. Usado para inicializar isHovered
 // en el primer render tras remount (sin esperar a un mouseenter).
@@ -111,9 +119,11 @@ const Sidebar = () => {
        por la ruta actual para que al entrar ya haya algo abierto. */
     const [manualAccordion, setManualAccordion] = useState(routeAccordion);
 
-    /* Al navegar, actualizamos la elección manual al acordeón de la nueva
-       ruta (pero solo si NO hay un tour activo — no queremos que una
-       navegación accidental cambie el acordeón mientras se muestra un tour). */
+    /* Al navegar, sincronizamos el acordeón a la sección de la ruta destino:
+       así, pulsar un ítem dentro de un acordeón mantiene ese acordeón abierto
+       (porque routeAccordion coincide) y pulsar un ítem de otro acordeón
+       abre el correcto. Gated por !currentTour para que una navegación
+       accidental durante un tour no cambie el acordeón que el step requiere. */
     useEffect(() => {
         if (!currentTour) {
             setManualAccordion(routeAccordion);
@@ -125,24 +135,35 @@ const Sidebar = () => {
        si quiere (single-select normal, sin bloqueos). Si cierra el del
        step actual, pierde el target del tour — es decisión suya. */
     useEffect(() => {
-        if (!currentTour) return;
+        console.log('[SIDEBAR effect2]', {
+            currentTour: currentTour?.id ?? null,
+            currentStepIndex,
+            lastForcedTourStepKey,
+        });
+        if (!currentTour) {
+            lastForcedTourStepKey = null;
+            return;
+        }
         const step = currentTour.steps?.[currentStepIndex];
         const stepAccordion = step?.accordionSection || currentTour.accordionSection;
-        if (stepAccordion) {
-            setManualAccordion(stepAccordion);
+        console.log('[SIDEBAR effect2] step=', step, 'stepAccordion=', stepAccordion);
+        if (!stepAccordion) return;
+        /* Sólo forzamos la primera vez que vemos este (tour, step). Si el
+           Sidebar se remonta por una navegación pero el tour no ha avanzado,
+           respetamos la elección del usuario (o el acordeón de la ruta
+           destino, que ya entró por useState inicial) en lugar de reabrir
+           la sección del tour. */
+        const key = `${currentTour.id}#${currentStepIndex}`;
+        if (key === lastForcedTourStepKey) {
+            console.log('[SIDEBAR effect2] SKIP (already forced)', key);
+            return;
         }
+        lastForcedTourStepKey = key;
+        console.log('[SIDEBAR effect2] FORCING', stepAccordion, 'key=', key);
+        setManualAccordion(stepAccordion);
     }, [currentTour, currentStepIndex]);
 
     const expandedAccordion = manualAccordion;
-
-    /* Debug — queremos ver este log SIEMPRE que se renderice el Sidebar
-       mientras arreglamos el fallo de los tours. */
-    console.log('[SIDEBAR]', {
-        currentTour: currentTour?.id ?? null,
-        currentStepIndex,
-        manualAccordion,
-        expandedAccordion,
-    });
 
     const togglePin = () => {
         setIsPinned(prev => !prev);
