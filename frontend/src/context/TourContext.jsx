@@ -191,7 +191,6 @@ export const TourProvider = ({ children }) => {
             console.warn(`[TourContext] tour "${id}" no encontrado en el registro`);
             return;
         }
-        console.log('[TOUR] startTour →', id, 'steps:', tour.steps.length, 'accordionSection:', tour.accordionSection);
         setCurrentStepIndex(0);
         setCurrentTour(tour);
     }, []);
@@ -203,7 +202,6 @@ export const TourProvider = ({ children }) => {
     }, []);
 
     const finishTour = useCallback((outcome = 'completed') => {
-        console.log('[TOUR] finishTour →', outcome);
         setCurrentTour(prev => {
             if (prev && (outcome === 'completed' || outcome === 'skipped')) {
                 const id = prev.id;
@@ -281,19 +279,13 @@ export const TourProvider = ({ children }) => {
         ) || null;
     }, [availableTours, completed, currentTour, badgesDisabled, location.pathname, user]);
 
-    /* Debug — siempre, mientras arreglamos el problema. */
-    useEffect(() => {
-        console.log('[TOUR]', {
-            pathname: location.pathname,
-            currentTour: currentTour?.id ?? null,
-            badgeCandidate: badgeCandidate?.id ?? null,
-            completed,
-            badgesDisabled,
-            availableTours: availableTours.map(t => t.id),
-        });
-    }, [location.pathname, currentTour, badgeCandidate, completed, badgesDisabled, availableTours]);
-
-    /* ---------- auto-start ---------- */
+    /* ---------- auto-start ----------
+       OJO: `setAutoStartChecked(true)` se llama DENTRO del setTimeout (no
+       fuera) porque modificar una dep del efecto justo después de programar
+       el timer provocaba que React, al re-renderizar, ejecutara la cleanup
+       `clearTimeout(timer)` antes de que disparase, anulando el auto-start.
+       Con esto, la bandera solo se marca cuando el tour efectivamente se
+       lanza o cuando se confirma que no hay candidato. */
     useEffect(() => {
         if (!user || autoStartChecked) return;
         if (lastSyncedUserId.current !== user.id) return;
@@ -301,12 +293,15 @@ export const TourProvider = ({ children }) => {
         const candidate = availableTours.find(
             t => t.isAutoStart && !completed.includes(t.id),
         );
-        if (candidate) {
-            const timer = setTimeout(() => setCurrentTour(candidate), 700);
+        if (!candidate) {
             setAutoStartChecked(true);
-            return () => clearTimeout(timer);
+            return;
         }
-        setAutoStartChecked(true);
+        const timer = setTimeout(() => {
+            setCurrentTour(candidate);
+            setAutoStartChecked(true);
+        }, 700);
+        return () => clearTimeout(timer);
     }, [user, availableTours, completed, autoStartChecked]);
 
     /* ---------- value ---------- */

@@ -135,18 +135,12 @@ const Sidebar = () => {
        si quiere (single-select normal, sin bloqueos). Si cierra el del
        step actual, pierde el target del tour — es decisión suya. */
     useEffect(() => {
-        console.log('[SIDEBAR effect2]', {
-            currentTour: currentTour?.id ?? null,
-            currentStepIndex,
-            lastForcedTourStepKey,
-        });
         if (!currentTour) {
             lastForcedTourStepKey = null;
             return;
         }
         const step = currentTour.steps?.[currentStepIndex];
         const stepAccordion = step?.accordionSection || currentTour.accordionSection;
-        console.log('[SIDEBAR effect2] step=', step, 'stepAccordion=', stepAccordion);
         if (!stepAccordion) return;
         /* Sólo forzamos la primera vez que vemos este (tour, step). Si el
            Sidebar se remonta por una navegación pero el tour no ha avanzado,
@@ -154,12 +148,8 @@ const Sidebar = () => {
            destino, que ya entró por useState inicial) en lugar de reabrir
            la sección del tour. */
         const key = `${currentTour.id}#${currentStepIndex}`;
-        if (key === lastForcedTourStepKey) {
-            console.log('[SIDEBAR effect2] SKIP (already forced)', key);
-            return;
-        }
+        if (key === lastForcedTourStepKey) return;
         lastForcedTourStepKey = key;
-        console.log('[SIDEBAR effect2] FORCING', stepAccordion, 'key=', key);
         setManualAccordion(stepAccordion);
     }, [currentTour, currentStepIndex]);
 

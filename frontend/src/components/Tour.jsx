@@ -3,6 +3,7 @@ import { Joyride, STATUS, EVENTS, ACTIONS } from 'react-joyride';
 import { useTranslation } from 'react-i18next';
 import { useTour } from '../context/TourContext';
 import TourTooltip from './TourTooltip';
+import TourBeacon from './TourBeacon';
 
 /**
  * Wrapper sobre react-joyride. Lee el tour activo del TourContext, traduce los
@@ -14,7 +15,6 @@ import TourTooltip from './TourTooltip';
 const Tour = () => {
     const { t } = useTranslation();
     const { currentTour, finishTour, tourRuntimeCtx, setTourStepIndex } = useTour();
-    console.log('[TOUR render]', { currentTour: currentTour?.id ?? null });
     /* Esperamos a que el PRIMER target esté realmente en DOM y con
        dimensiones > 0 antes de arrancar Joyride. Es más fiable que un
        setTimeout fijo: las transiciones de Sidebar (72→260px) y
@@ -96,23 +96,25 @@ const Tour = () => {
        tourRuntimeCtx publicado por la página activa → se filtran antes
        de pasárselos a Joyride, así Joyride no ve steps que no aplican.
 
-       NOTA: forzamos disableBeacon: true por defecto en todos los pasos
-       (se puede sobrescribir explícitamente con disableBeacon: false).
-       El beacon (pin pulsante que hay que clicar para revelar el
-       tooltip) es poco descubrible para usuarios sin experiencia y
-       además intermitente cuando el target cambia de posición por una
-       animación cercana. Con continuous:true (ya activo) el tour va de
-       un tooltip al siguiente con solo el botón Next — UX más directo. */
+       Beacon: mostramos beacon SOLO en el primer step (indica "aquí arranca
+       el tour"). En los siguientes pasos el flujo es continuous y saltamos
+       directos al tooltip con Next/Back. El beacon usa la animación Lottie
+       de `TourBeacon` en lugar del punto negro por defecto de Joyride. */
     const steps = useMemo(() => {
         if (!currentTour) return [];
         return currentTour.steps
             .filter(s => typeof s.condition !== 'function' || s.condition(tourRuntimeCtx))
-            .map(s => ({
+            .map((s, i) => ({
                 target: `[data-tour="${s.targetId}"]`,
                 content: t(s.contentKey),
                 title: s.titleKey ? t(s.titleKey) : undefined,
                 placement: s.placement || 'auto',
-                disableBeacon: s.disableBeacon !== false,
+                /* Siempre beacon en el primer step (es el indicador visual de
+                   "aquí arranca el tour"). Los demás steps van directos al
+                   tooltip con Next. El `disableBeacon` que hay en las
+                   definiciones de tour es legado del flujo sin beacon y se
+                   ignora aquí a propósito. */
+                disableBeacon: i !== 0,
             }));
     }, [currentTour, tourRuntimeCtx, t]);
 
@@ -120,9 +122,7 @@ const Tour = () => {
        sobre una instancia ya montada, lo cual podía dejar state interno
        inconsistente (Joyride v3 cachea la posición del primer target al
        montar). Montar fresco cada tour con key único es más determinista. */
-    console.log('[TOUR render] gate', { currentTour: currentTour?.id ?? null, ready });
     if (!currentTour || !ready) return null;
-    console.log('[TOUR render] MOUNTING Joyride', { stepsCount: steps.length });
 
     return (
         <Joyride
@@ -137,6 +137,8 @@ const Tour = () => {
             spotlightPadding={6}
             /* Tooltip 100% tematizado con nuestro componente + CSS Modules. */
             tooltipComponent={TourTooltip}
+            /* Beacon custom: Lottie de fuego en lugar del punto negro. */
+            beaconComponent={TourBeacon}
             locale={{
                 back:  t('tour.back'),
                 close: t('tour.close'),
@@ -158,7 +160,6 @@ const Tour = () => {
             }}
             onEvent={(data) => {
                 const { status, action, type, index } = data;
-                console.log('[JOYRIDE cb]', { type, action, status, index });
 
                 /* Publicamos el step index actual en el TourContext para
                    que el Sidebar pueda abrir el acordeón concreto que cada
@@ -166,7 +167,6 @@ const Tour = () => {
                    misma sección, p. ej. profesor-editor-horarios pasa de
                    'general' a 'administracion'). */
                 if (type === EVENTS.STEP_BEFORE || type === EVENTS.TOUR_START) {
-                    console.log('[JOYRIDE cb] setTourStepIndex →', index);
                     setTourStepIndex(typeof index === 'number' ? index : 0);
                 }
 
