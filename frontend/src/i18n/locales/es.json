@@ -113,7 +113,14 @@
   "footer": {
     "developedBy": "Desarrollado por",
     "role": "Desarrollador y diseñador del sistema",
-    "copyright": "Loggex-Machina © {{year}}"
+    "copyright": "Loggex-Machina © {{year}}",
+    "tagline": "Plataforma de gestión académica integral para centros formativos.",
+    "madeWith": "Hecho con cuidado, línea a línea",
+    "exploreLabel": "Explora",
+    "aboutLink": "Acerca del proyecto",
+    "erLink": "Modelo entidad-relación",
+    "apiLink": "Documentación API",
+    "stackLabel": "Stack"
   },
   "sidebar": {
     "general": "General",

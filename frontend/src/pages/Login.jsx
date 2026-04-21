@@ -5,13 +5,9 @@ import styles from './Login.module.css';
 import { useTranslation } from 'react-i18next';
 import {
   Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
-  CalendarCheck, Clock, MessageSquare, Users,
-  BookOpen, Palette, FileText, Shield,
-  ArrowRight, CornerDownLeft, Package, Zap, Sparkles,
+  ArrowRight, CornerDownLeft, Sparkles,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
-import Lottie from 'lottie-react';
-import bookAnimation from '../../public/book.json';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -66,176 +62,122 @@ const Login = () => {
     }
   };
 
-  const features = [
-    { icon: CalendarCheck, key: 'feature1', accent: 'primary' },
-    { icon: Clock,         key: 'feature2', accent: 'emerald' },
-    { icon: MessageSquare, key: 'feature3', accent: 'amber'   },
-    { icon: Users,         key: 'feature4', accent: 'violet'  },
-    { icon: FileText,      key: 'feature5', accent: 'cyan'    },
-    { icon: Palette,       key: 'feature6', accent: 'primary' },
-    { icon: BookOpen,      key: 'feature7', accent: 'emerald' },
-    { icon: Shield,        key: 'feature8', accent: 'violet'  },
-  ];
-
   return (
     <div className={styles.page}>
-      {/* Fondo de ondas global que cubre ambos paneles */}
+      {/* Fondo de ondas global */}
       <div className={styles.pageBg} aria-hidden="true">
         <AnimatedBackground type="waves" />
       </div>
 
-      {/* ============ PANEL IZQUIERDO ============ */}
-      <aside className={styles.brandPanel}>
-        <AnimatedBackground forceDefault />
+      <section className={styles.formPanel}>
+        <div className={styles.stack}>
+          {/* ============ CARD DEL FORMULARIO ============ */}
+          <div ref={cardRef} className={styles.formCard}>
+            <div className={styles.formCardGlow} aria-hidden="true" />
 
-        <div className={styles.brandContent}>
-          <div className={styles.lottieStage}>
-            <div className={styles.lottieHalo} aria-hidden="true" />
-            <div className={styles.lottieContainer}>
-              <Lottie animationData={bookAnimation} loop={true} />
-            </div>
-          </div>
-
-          <img
-            src="/logo_texto_horizontal.png"
-            alt="Loggex"
-            className={styles.brandLogo}
-          />
-
-          <h2 className={styles.brandTitle}>{t('login.tagline', 'Gestión académica integral')}</h2>
-          <p className={styles.brandSubtitle}>
-            {t('about.tagline', 'Plataforma moderna para centros educativos')}
-          </p>
-
-          <div className={styles.brandChips}>
-            <span className={styles.chip}><Package size={12} /> v0.2</span>
-            <span className={styles.chip}><Zap size={12} /> React 19 · Symfony 8</span>
-          </div>
-
-          <div className={styles.featureGrid}>
-            {features.map(({ icon: Icon, key, accent }, i) => (
-              <div
-                key={key}
-                className={`${styles.featureCard} ${styles[`accent_${accent}`]}`}
-                style={{ '--i': i }}
-              >
-                <span className={styles.featureIconWrap}>
-                  <Icon size={15} />
-                </span>
-                <span className={styles.featureLabel}>
-                  {t(`login.${key}`)}
-                </span>
+            <div className={styles.formHeader}>
+              <div className={styles.formLogoWrap}>
+                <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
               </div>
-            ))}
+              <h1 className={styles.formTitle}>{t('login.title')}</h1>
+              <p className={styles.formSubtitle}>
+                {t('login.subtitle', 'Introduce tus credenciales para acceder')}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className={styles.form} noValidate>
+              {error && (
+                <div className={styles.error} role="alert">
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className={`${styles.inputGroup} ${focusedField === 'email' ? styles.focused : ''} ${email ? styles.filled : ''}`}>
+                <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
+                <div className={styles.inputWrapper}>
+                  <Mail size={18} className={styles.inputIcon} />
+                  <input
+                    type="email"
+                    id="email"
+                    className={styles.input}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    required
+                    placeholder={t('login.emailPlaceholder')}
+                    autoComplete="email"
+                  />
+                  <span className={styles.inputUnderline} aria-hidden="true" />
+                </div>
+              </div>
+
+              <div className={`${styles.inputGroup} ${focusedField === 'password' ? styles.focused : ''} ${password ? styles.filled : ''}`}>
+                <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
+                <div className={styles.inputWrapper}>
+                  <Lock size={18} className={styles.inputIcon} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    className={styles.input}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    onKeyUp={handleKeyUp}
+                    required
+                    placeholder={t('login.passwordPlaceholder')}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className={styles.togglePassword}
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <span className={styles.inputUnderline} aria-hidden="true" />
+                </div>
+                {capsLock && (
+                  <span className={styles.capsHint}>
+                    <AlertCircle size={12} /> {t('login.capsLock', 'Bloq Mayús activado')}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={isSubmitting}
+              >
+                <span className={styles.submitSheen} aria-hidden="true" />
+                <span className={styles.submitContent}>
+                  {isSubmitting ? (
+                    <span className={styles.spinner} />
+                  ) : (
+                    <LogIn size={18} />
+                  )}
+                  <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
+                </span>
+                <span className={styles.submitShortcut} aria-hidden="true">
+                  <CornerDownLeft size={12} />
+                </span>
+              </button>
+            </form>
           </div>
 
+          {/* Enlace a /about — acción secundaria, fuera del card para no
+              competir con el botón de submit. */}
           <Link to="/about" className={styles.learnMore}>
             <Sparkles size={13} />
             <span>{t('login.learnMore', 'Conoce Loggex')}</span>
             <ArrowRight size={14} className={styles.learnMoreArrow} />
           </Link>
         </div>
-      </aside>
-
-      {/* ============ PANEL DERECHO ============ */}
-      <main className={styles.formPanel}>
-        <div ref={cardRef} className={styles.formCard}>
-          <div className={styles.formCardGlow} aria-hidden="true" />
-
-          <div className={styles.formHeader}>
-            <div className={styles.formLogoWrap}>
-              <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
-            </div>
-            <h1 className={styles.formTitle}>{t('login.title')}</h1>
-            <p className={styles.formSubtitle}>
-              {t('login.subtitle', 'Introduce tus credenciales para acceder')}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className={styles.form} noValidate>
-            {error && (
-              <div className={styles.error} role="alert">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className={`${styles.inputGroup} ${focusedField === 'email' ? styles.focused : ''} ${email ? styles.filled : ''}`}>
-              <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
-              <div className={styles.inputWrapper}>
-                <Mail size={18} className={styles.inputIcon} />
-                <input
-                  type="email"
-                  id="email"
-                  className={styles.input}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
-                  required
-                  placeholder={t('login.emailPlaceholder')}
-                  autoComplete="email"
-                />
-                <span className={styles.inputUnderline} aria-hidden="true" />
-              </div>
-            </div>
-
-            <div className={`${styles.inputGroup} ${focusedField === 'password' ? styles.focused : ''} ${password ? styles.filled : ''}`}>
-              <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
-              <div className={styles.inputWrapper}>
-                <Lock size={18} className={styles.inputIcon} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  className={styles.input}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyUp={handleKeyUp}
-                  required
-                  placeholder={t('login.passwordPlaceholder')}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  className={styles.togglePassword}
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                <span className={styles.inputUnderline} aria-hidden="true" />
-              </div>
-              {capsLock && (
-                <span className={styles.capsHint}>
-                  <AlertCircle size={12} /> {t('login.capsLock', 'Bloq Mayús activado')}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              <span className={styles.submitSheen} aria-hidden="true" />
-              <span className={styles.submitContent}>
-                {isSubmitting ? (
-                  <span className={styles.spinner} />
-                ) : (
-                  <LogIn size={18} />
-                )}
-                <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
-              </span>
-              <span className={styles.submitShortcut} aria-hidden="true">
-                <CornerDownLeft size={12} />
-              </span>
-            </button>
-          </form>
-        </div>
-      </main>
+      </section>
     </div>
   );
 };

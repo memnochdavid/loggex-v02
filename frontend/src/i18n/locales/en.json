@@ -113,7 +113,14 @@
   "footer": {
     "developedBy": "Developed by",
     "role": "System developer and designer",
-    "copyright": "Loggex-Machina © {{year}}"
+    "copyright": "Loggex-Machina © {{year}}",
+    "tagline": "A comprehensive academic management platform for training centers.",
+    "madeWith": "Crafted with care, line by line",
+    "exploreLabel": "Explore",
+    "aboutLink": "About the project",
+    "erLink": "Entity-relationship model",
+    "apiLink": "API Documentation",
+    "stackLabel": "Stack"
   },
   "sidebar": {
     "general": "General",

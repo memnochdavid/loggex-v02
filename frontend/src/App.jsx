@@ -55,41 +55,40 @@ const PageTitleUpdater = () => {
   return null;
 };
 
-// Componente auxiliar para renderizar el Footer condicionalmente
-const ConditionalFooter = () => {
+const RootLayout = () => {
   const location = useLocation();
-  // Footer visible en Login y en /about + /about/* (los créditos del autor
-  // se renderizan dentro del propio Footer en horizontal).
+  // En /login, /about y /about/* el Footer se renderiza DENTRO del <main>
+  // como último hijo, y el main pasa a ser scrollable. El contenido de la
+  // página ocupa el alto visible y el Footer queda justo por debajo del
+  // viewport — sólo aparece al hacer scroll hacia abajo.
   const showFooter = location.pathname === '/login'
     || location.pathname === '/about'
     || location.pathname.startsWith('/about/');
-  
-  return showFooter ? <Footer /> : null;
-};
 
-const RootLayout = () => (
-  <>
-    <PageTitleUpdater />
-    {/* TourProvider va dentro del Router (RootLayout es el elemento raíz
-        de las rutas) para poder usar useLocation y reaccionar al login. */}
-    <TourProvider>
-      <div className="app-layout">
-        <AnimatedBackground />
-        <Header />
-        <main className="app-main">
-          <Outlet />
-        </main>
-        <ConditionalFooter />
-        {/* Tour se monta una vez en el root y se activa solo cuando
-            TourContext.currentTour deja de ser null. */}
-        <Tour />
-        {/* Badge flotante que ofrece el tour asociado a la ruta actual
-            (Fase 3 — ayuda contextual). Oculto si no hay candidato. */}
-        <ContextualHelpBadge />
-      </div>
-    </TourProvider>
-  </>
-);
+  return (
+    <>
+      <PageTitleUpdater />
+      {/* TourProvider va dentro del Router (RootLayout es el elemento raíz
+          de las rutas) para poder usar useLocation y reaccionar al login. */}
+      <TourProvider>
+        <div className="app-layout">
+          <AnimatedBackground />
+          <Header />
+          <main className={`app-main${showFooter ? ' app-main--withFooter' : ''}`}>
+            <Outlet />
+            {showFooter && <Footer />}
+          </main>
+          {/* Tour se monta una vez en el root y se activa solo cuando
+              TourContext.currentTour deja de ser null. */}
+          <Tour />
+          {/* Badge flotante que ofrece el tour asociado a la ruta actual
+              (Fase 3 — ayuda contextual). Oculto si no hay candidato. */}
+          <ContextualHelpBadge />
+        </div>
+      </TourProvider>
+    </>
+  );
+};
 
 const router = createBrowserRouter(
   createRoutesFromElements(

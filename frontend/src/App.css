@@ -15,3 +15,26 @@
   position: relative;
   z-index: 1; /* Encima de AnimatedBackground */
 }
+
+/* En /login, /about y /about/* el Footer se renderiza como último hijo
+   del main. El contenido de la página ocupa el 100% del main (viewport −
+   header) y el Footer queda justo por debajo del viewport, visible sólo
+   al hacer scroll.
+   Claves:
+   - display: block (NO flex-column): en flex-column los hijos se encogen
+     por flex-shrink:1 y el contenido "cabe" → nunca desborda → no hay
+     scroll. Con block los hijos apilan sin encogerse.
+   - min-height: 0: el main es un ítem de grid; sin esto su min-height
+     auto haría crecer la fila y tampoco habría desbordamiento.
+   - overflow-y: auto: habilita el scroll que revela el Footer. */
+.app-main--withFooter {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+  /* En /login, /about y /about/* el body (#f8fafc) puede filtrarse en
+     el borde entre la página (dark) y el Footer (gradiente con top
+     transparente), apareciendo como una franja blanca fea. Forzamos
+     el color base dark del canvas para que el tránsito sea continuo. */
+  background-color: #0c1222;
+}

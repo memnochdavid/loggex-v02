@@ -113,7 +113,14 @@
   "footer": {
     "developedBy": "Garatzailea",
     "role": "Sistemaren garatzaile eta diseinatzailea",
-    "copyright": "Loggex-Machina © {{year}}"
+    "copyright": "Loggex-Machina © {{year}}",
+    "tagline": "Prestakuntza-zentroentzako kudeaketa akademikorako plataforma integrala.",
+    "madeWith": "Lerroz lerro, arretaz eginda",
+    "exploreLabel": "Arakatu",
+    "aboutLink": "Proiektuari buruz",
+    "erLink": "Entitate-erlazio eredua",
+    "apiLink": "API dokumentazioa",
+    "stackLabel": "Stack"
   },
   "sidebar": {
     "general": "Orokorra",
