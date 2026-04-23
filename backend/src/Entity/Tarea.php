@@ -85,6 +85,14 @@ class Tarea
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?float $peso = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private bool $obligatoria = true;
+
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?float $notaMinima = null;
+
     #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
@@ -190,6 +198,28 @@ class Tarea
     public function setPeso(?float $peso): static
     {
         $this->peso = $peso;
+        return $this;
+    }
+
+    public function isObligatoria(): bool
+    {
+        return $this->obligatoria;
+    }
+
+    public function setObligatoria(bool $obligatoria): static
+    {
+        $this->obligatoria = $obligatoria;
+        return $this;
+    }
+
+    public function getNotaMinima(): ?float
+    {
+        return $this->notaMinima;
+    }
+
+    public function setNotaMinima(?float $notaMinima): static
+    {
+        $this->notaMinima = $notaMinima;
         return $this;
     }
 

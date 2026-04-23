@@ -26,8 +26,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
-        new Put(),
+        new Post(security: "is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPERADMIN')"),
+        new Put(security: "is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPERADMIN')"),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],

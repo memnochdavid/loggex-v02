@@ -7,6 +7,7 @@ use App\Entity\Matricula;
 use App\Entity\PeriodoEvaluativo;
 use App\Entity\User;
 use App\Repository\PonderacionImparticionRepository;
+use App\Repository\RecuperacionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +18,8 @@ class CalificacionMediaController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly PonderacionImparticionRepository $ponderacionRepo
+        private readonly PonderacionImparticionRepository $ponderacionRepo,
+        private readonly RecuperacionRepository $recuperacionRepo
     ) {
     }
 
@@ -49,6 +51,12 @@ class CalificacionMediaController extends AbstractController
                 'id' => $alumno->getId(),
                 'nombre' => $alumno->getNombre(),
                 'apellidos' => $alumno->getApellidos(),
+            ],
+            'imparticion' => [
+                'id' => $imparticion->getId(),
+                'modulo' => $imparticion->getModulo()->getNombre(),
+                'grupo' => $imparticion->getGrupo()->getNombre(),
+                'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
             ],
             'pesos' => $pesos,
             ...$resultado,
@@ -208,7 +216,7 @@ class CalificacionMediaController extends AbstractController
         ?PeriodoEvaluativo $periodo = null
     ): array {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('t.tipo', 't.peso AS tareaPeso', 'c.nota')
+        $qb->select('t.id AS tareaId', 't.titulo', 't.tipo', 't.peso AS tareaPeso', 't.obligatoria', 't.notaMinima', 't.fechaLimite', 'c.nota')
             ->from('App\Entity\Tarea', 't')
             ->leftJoin('App\Entity\Entrega', 'e', 'WITH', 'e.tarea = t AND e.alumno = :alumnoId AND e.deleted = false')
             ->leftJoin('App\Entity\Calificacion', 'c', 'WITH', 'c.entrega = e AND c.deleted = false')
@@ -226,21 +234,53 @@ class CalificacionMediaController extends AbstractController
 
         $rows = $qb->getQuery()->getResult();
 
+        $tareaIds = array_map(fn($r) => (int) $r['tareaId'], $rows);
+        $recuperaciones = $this->recuperacionRepo->findLatestByAlumnoAndTareas($alumnoId, $tareaIds);
+
         $notasPorTipo = ['examen' => [], 'tarea' => [], 'practica' => []];
         $totalTareas = 0;
         $entregasPendientes = 0;
+        $motivosNoEvaluable = [];
+        $ahora = new \DateTime();
 
         foreach ($rows as $row) {
             $tipo = $row['tipo'] ?? 'tarea';
             $totalTareas++;
 
-            if ($row['nota'] !== null) {
+            $notaOriginal = $row['nota'] !== null ? (float) $row['nota'] : null;
+            $tareaId = (int) $row['tareaId'];
+            $rec = $recuperaciones[$tareaId] ?? null;
+            // Prevalece la última: si hay recuperación, su nota manda sobre la original.
+            $notaEfectiva = $rec !== null ? (float) $rec->getNota() : $notaOriginal;
+
+            if ($notaEfectiva !== null) {
                 $notasPorTipo[$tipo][] = [
-                    'nota' => $row['nota'],
-                    'peso' => $row['tareaPeso'] !== null ? (float)$row['tareaPeso'] : 1.0,
+                    'nota' => $notaEfectiva,
+                    'peso' => $row['tareaPeso'] !== null ? (float) $row['tareaPeso'] : 1.0,
                 ];
             } else {
                 $entregasPendientes++;
+            }
+
+            $plazoVencido = $row['fechaLimite'] instanceof \DateTimeInterface && $row['fechaLimite'] < $ahora;
+            if ($row['obligatoria'] && $notaEfectiva === null && $plazoVencido) {
+                $motivosNoEvaluable[] = [
+                    'tareaId' => $tareaId,
+                    'titulo' => $row['titulo'],
+                    'tipo' => $tipo,
+                    'razon' => 'obligatoria_no_entregada',
+                ];
+            }
+
+            if ($row['notaMinima'] !== null && $notaEfectiva !== null && $notaEfectiva < (float) $row['notaMinima']) {
+                $motivosNoEvaluable[] = [
+                    'tareaId' => $tareaId,
+                    'titulo' => $row['titulo'],
+                    'tipo' => $tipo,
+                    'razon' => 'nota_minima_no_alcanzada',
+                    'nota' => $notaEfectiva,
+                    'notaMinima' => (float) $row['notaMinima'],
+                ];
             }
         }
 
@@ -277,6 +317,11 @@ class CalificacionMediaController extends AbstractController
             $notaFinal = round($sumaPonderada / $pesoTotal, 2);
         }
 
+        $evaluable = empty($motivosNoEvaluable);
+        if (!$evaluable) {
+            $notaFinal = null;
+        }
+
         return [
             'mediaExamenes' => $mediaPorTipo['examen'],
             'mediaTareas' => $mediaPorTipo['tarea'],
@@ -284,6 +329,8 @@ class CalificacionMediaController extends AbstractController
             'notaFinal' => $notaFinal,
             'entregasPendientes' => $entregasPendientes,
             'totalTareas' => $totalTareas,
+            'evaluable' => $evaluable,
+            'motivosNoEvaluable' => $motivosNoEvaluable,
         ];
     }
 

@@ -49,7 +49,7 @@ REM 4. Preparar Base de Datos (si hay migraciones)
 echo Ejecutando migraciones de base de datos...
 REM Esperar un poco a que la BD esté lista
 timeout /t 10 /nobreak
-%DC% exec backend php bin/console doctrine:migrations:migrate --no-interaction
+%DC% exec backend php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 IF %ERRORLEVEL% NEQ 0 ( echo Error en migraciones & exit /b %ERRORLEVEL% )
 
 echo.

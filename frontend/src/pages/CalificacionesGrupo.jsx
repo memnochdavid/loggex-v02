@@ -15,6 +15,20 @@ import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 
+// Genera un tooltip en texto plano con los motivos por los que un alumno no es evaluable.
+export const formatMotivos = (motivos, t) => {
+    if (!motivos || motivos.length === 0) return '';
+    return motivos.map(m => {
+        if (m.razon === 'obligatoria_no_entregada') {
+            return `${m.titulo}: ${t('grades.reasonMandatoryMissing', { defaultValue: 'no entregada (obligatoria)' })}`;
+        }
+        if (m.razon === 'nota_minima_no_alcanzada') {
+            return `${m.titulo}: ${t('grades.reasonBelowMin', { defaultValue: 'por debajo del mínimo' })} (${m.nota} < ${m.notaMinima})`;
+        }
+        return m.titulo;
+    }).join('\n');
+};
+
 // Editor de peso por item (tarea individual) — agrupado por tipo
 const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeriodo = '', t }) => {
     const [draft, setDraft] = React.useState({});
@@ -37,9 +51,34 @@ const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeri
         tareasFiltradas.forEach(tr => { if (g[tr.tipo]) g[tr.tipo].push(tr); });
         return g;
     }, [tareasFiltradas]);
+    const getDraftField = (id, field, fallback) => {
+        const d = draft[id];
+        if (d && field in d) return d[field];
+        return fallback;
+    };
     const pesoOf = (tr) => {
         const id = tr.id || tr['@id']?.split('/').pop();
-        return (id in draft) ? draft[id] : (tr.peso != null ? String(tr.peso) : '');
+        return getDraftField(id, 'peso', tr.peso != null ? String(tr.peso) : '');
+    };
+    const obligatoriaOf = (tr) => {
+        const id = tr.id || tr['@id']?.split('/').pop();
+        return getDraftField(id, 'obligatoria', !!tr.obligatoria);
+    };
+    const notaMinimaOf = (tr) => {
+        const id = tr.id || tr['@id']?.split('/').pop();
+        return getDraftField(id, 'notaMinima', tr.notaMinima != null ? String(tr.notaMinima) : '');
+    };
+    const isDirty = (tr) => {
+        const id = tr.id || tr['@id']?.split('/').pop();
+        const d = draft[id];
+        if (!d) return false;
+        if ('peso' in d && String(d.peso || '') !== String(tr.peso != null ? tr.peso : '')) return true;
+        if ('obligatoria' in d && Boolean(d.obligatoria) !== Boolean(tr.obligatoria)) return true;
+        if ('notaMinima' in d && String(d.notaMinima || '') !== String(tr.notaMinima != null ? tr.notaMinima : '')) return true;
+        return false;
+    };
+    const patchDraft = (id, field, value) => {
+        setDraft(prev => ({ ...prev, [id]: { ...(prev[id] || {}), [field]: value } }));
     };
     const sumaTipo = (tipo) => {
         return grupos[tipo].reduce((acc, tr) => {
@@ -62,7 +101,7 @@ const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeri
         if (!window.confirm(t('grades.confirmResetWeights'))) return;
         tareasFiltradas.forEach(tr => {
             const id = tr.id || tr['@id']?.split('/').pop();
-            if (tr.peso != null) onSave(id, '');
+            if (tr.peso != null) onSave(id, { peso: '' });
         });
         setDraft({});
     };
@@ -98,19 +137,37 @@ const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeri
                         {grupos[tipo].map(tr => {
                             const id = tr.id || tr['@id']?.split('/').pop();
                             const value = pesoOf(tr);
-                            const isDirty = id in draft && String(draft[id] || '') !== String(tr.peso != null ? tr.peso : '');
+                            const dirty = isDirty(tr);
                             return (
-                                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--border-color)' }}>
-                                    <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                                    <span style={{ flex: 1, minWidth: '160px', fontSize: 'var(--text-sm)', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {tr.titulo}
                                     </span>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }} title={t('tasks.mandatoryHelp')}>
+                                        <input
+                                            type="checkbox"
+                                            checked={obligatoriaOf(tr)}
+                                            onChange={(e) => patchDraft(id, 'obligatoria', e.target.checked)}
+                                        />
+                                        {t('tasks.mandatory')}
+                                    </label>
+                                    <ThemedNumberInput
+                                        min={0}
+                                        max={10}
+                                        step={0.1}
+                                        placeholder={t('tasks.minGradeShort', { value: '—' })}
+                                        value={notaMinimaOf(tr)}
+                                        onChange={(v) => patchDraft(id, 'notaMinima', v)}
+                                        width={90}
+                                        ariaLabel={t('tasks.minGrade')}
+                                    />
                                     <ThemedNumberInput
                                         min={0}
                                         max={100}
                                         step={0.5}
                                         placeholder={t('grades.auto')}
                                         value={value}
-                                        onChange={(v) => setDraft(prev => ({ ...prev, [id]: v }))}
+                                        onChange={(v) => patchDraft(id, 'peso', v)}
                                         width={110}
                                         suffix="%"
                                         ariaLabel={t('grades.weightTabItems')}
@@ -118,12 +175,12 @@ const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeri
                                     <Button
                                         size="sm"
                                         onClick={() => {
-                                            onSave(id, draft[id] ?? (tr.peso != null ? String(tr.peso) : ''));
+                                            onSave(id, draft[id] || {});
                                             setDraft(prev => {
                                                 const n = { ...prev }; delete n[id]; return n;
                                             });
                                         }}
-                                        disabled={!isDirty || saving[id]}
+                                        disabled={!dirty || saving[id]}
                                     >
                                         {saving[id] ? t('common.saving') : t('common.save')}
                                     </Button>
@@ -354,26 +411,44 @@ const CalificacionesGrupo = () => {
             .catch(() => setTareasImp([]));
     }, [selectedImparticion]);
 
-    // Guardar peso individual de una tarea
-    const handleSaveTareaPeso = async (tareaId, peso) => {
-        const parsed = peso === '' || peso == null ? null : parseFloat(peso);
-        if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
-            alert(t('grades.weightRange'));
-            return;
+    // Guardar cambios individuales de una tarea (peso / obligatoria / notaMinima)
+    const handleSaveTareaPeso = async (tareaId, changes) => {
+        const patch = {};
+        if ('peso' in changes) {
+            const raw = changes.peso;
+            const parsed = raw === '' || raw == null ? null : parseFloat(raw);
+            if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
+                alert(t('grades.weightRange'));
+                return;
+            }
+            patch.peso = parsed;
         }
+        if ('obligatoria' in changes) {
+            patch.obligatoria = Boolean(changes.obligatoria);
+        }
+        if ('notaMinima' in changes) {
+            const raw = changes.notaMinima;
+            const parsed = raw === '' || raw == null ? null : parseFloat(raw);
+            if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 10)) {
+                alert(t('tasks.minGradeRange', { defaultValue: 'La nota mínima debe estar entre 0 y 10' }));
+                return;
+            }
+            patch.notaMinima = parsed;
+        }
+        if (Object.keys(patch).length === 0) return;
         setSavingTareaPeso(prev => ({ ...prev, [tareaId]: true }));
         try {
             const res = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-                body: JSON.stringify({ peso: parsed }),
+                body: JSON.stringify(patch),
                 credentials: 'include',
             });
             if (!res.ok) throw new Error();
             const data = await res.json();
             setTareasImp(prev => prev.map(tr => {
                 const id = tr.id || tr['@id']?.split('/').pop();
-                return String(id) === String(tareaId) ? { ...tr, peso: data.peso } : tr;
+                return String(id) === String(tareaId) ? { ...tr, peso: data.peso, obligatoria: data.obligatoria, notaMinima: data.notaMinima } : tr;
             }));
         } catch {
             alert(t('grades.errorSavingWeights'));
@@ -669,12 +744,21 @@ const CalificacionesGrupo = () => {
                                 <span className="accordionHeaderTitle">
                                     {row.alumno.apellidos}, {row.alumno.nombre}
                                 </span>
-                                <span
-                                    className={`${styles.gradeBadge} ${getGradeClass(row.notaFinal)}`}
-                                    title={t('grades.finalGrade')}
-                                >
-                                    {formatGrade(row.notaFinal)}
-                                </span>
+                                {row.evaluable === false ? (
+                                    <span
+                                        className={`${styles.gradeBadge} ${styles.gradeFail}`}
+                                        title={formatMotivos(row.motivosNoEvaluable, t)}
+                                    >
+                                        {t('grades.notEvaluable')}
+                                    </span>
+                                ) : (
+                                    <span
+                                        className={`${styles.gradeBadge} ${getGradeClass(row.notaFinal)}`}
+                                        title={t('grades.finalGrade')}
+                                    >
+                                        {formatGrade(row.notaFinal)}
+                                    </span>
+                                )}
                             </span>
                         )}
                         renderItem={(row) => (
@@ -755,8 +839,10 @@ const CalificacionesGrupo = () => {
                                         <td className={`${styles.gradeCell} ${getGradeClass(row.mediaPracticas)}`}>
                                             {formatGrade(row.mediaPracticas)}
                                         </td>
-                                        <td className={`${styles.gradeCell} ${getGradeClass(row.notaFinal)}`}>
-                                            {formatGrade(row.notaFinal)}
+                                        <td className={`${styles.gradeCell} ${row.evaluable === false ? styles.gradeFail : getGradeClass(row.notaFinal)}`}>
+                                            {row.evaluable === false ? (
+                                                <span title={formatMotivos(row.motivosNoEvaluable, t)}>{t('grades.notEvaluable')}</span>
+                                            ) : formatGrade(row.notaFinal)}
                                         </td>
                                         <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                                             {row.entregasPendientes}/{row.totalTareas}

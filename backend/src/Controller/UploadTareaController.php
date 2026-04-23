@@ -43,6 +43,8 @@ class UploadTareaController extends AbstractController
             $fechaLimiteStr = $request->request->get('fechaLimite');
             $tipo = $request->request->get('tipo');
             $visible = $request->request->get('visible') === 'true';
+            $obligatoria = $request->request->get('obligatoria') === 'true';
+            $notaMinimaStr = $request->request->get('notaMinima');
             $imparticionId = $request->request->get('imparticionId');
             $tareaId = $request->request->get('id'); // Si viene ID, es edición
 
@@ -88,6 +90,13 @@ class UploadTareaController extends AbstractController
             $tarea->setDescripcion($descripcion);
             $tarea->setTipo($tipo);
             $tarea->setVisible($visible);
+            $tarea->setObligatoria($obligatoria);
+            if ($notaMinimaStr === null || $notaMinimaStr === '') {
+                $tarea->setNotaMinima(null);
+            } else {
+                $nm = (float) $notaMinimaStr;
+                $tarea->setNotaMinima($nm >= 0 && $nm <= 10 ? $nm : null);
+            }
 
             try {
                 $fechaLimite = new \DateTime($fechaLimiteStr);

@@ -37,13 +37,13 @@ docker compose exec backend composer install --no-interaction --optimize-autoloa
 echo "📦 Instalando dependencias de React (NPM)..."
 docker compose exec frontend npm install
 
-# 5. Sincronizar Base de Datos
-echo "🔄 Sincronizando esquema de base de datos..."
+# 5. Sincronizar Base de Datos (vía migraciones Doctrine)
+echo "🔄 Aplicando migraciones Doctrine..."
 echo "   (Esperando 5s a que MariaDB esté lista...)"
 sleep 5
 
-# Actualizar esquema (crea tablas/columnas nuevas sin borrar datos)
-docker compose exec backend php bin/console doctrine:schema:update --force --no-interaction
+# Aplica migraciones pendientes. --allow-no-migration evita fallar si no hay nuevas.
+docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
 # 6. Limpieza y Optimización (CRÍTICO)
 echo "🧹 Limpiando y regenerando caché..."

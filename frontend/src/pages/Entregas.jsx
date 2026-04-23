@@ -114,9 +114,16 @@ const Entregas = () => {
 
   const globalCounts = useMemo(() => {
     const c = { todos: 0, examen: 0, tarea: 0, practica: 0 };
-    asignaturas.forEach(a => (a.tareas || []).filter(enPeriodo).forEach(t => { c.todos++; if (c[t.tipo] !== undefined) c[t.tipo]++; }));
+    asignaturas.forEach(a => (a.tareas || []).filter(enPeriodo).forEach(t => {
+      if (isAlumno && deliveryFilter !== 'all') {
+        const hasEntrega = Boolean(misEntregas[t.id]);
+        if (deliveryFilter === 'delivered' ? !hasEntrega : hasEntrega) return;
+      }
+      c.todos++;
+      if (c[t.tipo] !== undefined) c[t.tipo]++;
+    }));
     return c;
-  }, [asignaturas, periodoRanges]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [asignaturas, periodoRanges, isAlumno, deliveryFilter, misEntregas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Modal Alumno (Subir Entrega)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -137,6 +144,7 @@ const Entregas = () => {
   const [tareaForm, setTareaForm] = useState({
     titulo: '', descripcion: '', fechaLimite: '',
     tipo: 'tarea', visible: true, archivo: null,
+    obligatoria: false, notaMinima: '',
   });
   const [savingTarea, setSavingTarea] = useState(false);
 
@@ -151,10 +159,12 @@ const Entregas = () => {
         tipo: tarea.tipo || 'tarea',
         visible: tarea.visible,
         archivo: null,
+        obligatoria: !!tarea.obligatoria,
+        notaMinima: tarea.notaMinima != null ? String(tarea.notaMinima) : '',
       });
     } else {
       setEditingTarea(null);
-      setTareaForm({ titulo: '', descripcion: '', fechaLimite: '', tipo: 'tarea', visible: true, archivo: null });
+      setTareaForm({ titulo: '', descripcion: '', fechaLimite: '', tipo: 'tarea', visible: true, archivo: null, obligatoria: true, notaMinima: '' });
     }
     setIsTareaModalOpen(true);
   };
@@ -184,6 +194,8 @@ const Entregas = () => {
       data.append('fechaLimite', tareaForm.fechaLimite);
       data.append('tipo', tareaForm.tipo);
       data.append('visible', tareaForm.visible);
+      data.append('obligatoria', tareaForm.obligatoria);
+      data.append('notaMinima', tareaForm.notaMinima ?? '');
       data.append('imparticionId', tareaImparticionId);
       if (editingTarea) data.append('id', editingTarea.id);
       if (tareaForm.archivo) data.append('file', tareaForm.archivo);
@@ -313,12 +325,59 @@ const Entregas = () => {
     setLoadingEntregas(true);
     try {
       const tareaId = tarea.id || tarea['@id'].split('/').pop();
-      const response = await fetch(getApiUrl(`/api/entregas?tarea=${tareaId}&pagination=false`), {
-        headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+      const imparticion = asignaturas.find(a => String(a.id) === String(imparticionId));
+      const grupoId = imparticion ? (
+        typeof imparticion.grupo === 'string'
+          ? imparticion.grupo.split('/').pop()
+          : (imparticion.grupo?.id || imparticion.grupo?.['@id']?.split('/').pop())
+      ) : null;
+
+      const [entregasRes, matriculasRes] = await Promise.all([
+        fetch(getApiUrl(`/api/entregas?tarea=${tareaId}&pagination=false`), {
+          headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        }),
+        grupoId ? fetch(getApiUrl(`/api/matriculas?grupo=${grupoId}&pagination=false`), {
+          headers: { 'Accept': 'application/ld+json' }, credentials: 'include'
+        }) : Promise.resolve(null),
+      ]);
+      if (!entregasRes.ok) throw new Error(`Error ${entregasRes.status}`);
+
+      const entregasData = await entregasRes.json();
+      const entregasList = entregasData['hydra:member'] || entregasData.member || [];
+
+      let alumnosGrupo = [];
+      if (matriculasRes && matriculasRes.ok) {
+        const matData = await matriculasRes.json();
+        const matriculas = matData['hydra:member'] || matData.member || [];
+        const alumnosMap = new Map();
+        matriculas.forEach(m => {
+          if (m.alumno && !alumnosMap.has(m.alumno.id)) alumnosMap.set(m.alumno.id, m.alumno);
+        });
+        alumnosGrupo = Array.from(alumnosMap.values());
+      }
+
+      const entregasPorAlumnoId = new Map();
+      entregasList.forEach(e => {
+        const aId = e.alumno?.id || e.alumno?.['@id']?.split('/').pop();
+        if (aId) entregasPorAlumnoId.set(String(aId), e);
       });
-      if (!response.ok) throw new Error(`Error ${response.status}`);
-      const data = await response.json();
-      setEntregasTarea(data['hydra:member'] || data.member || []);
+
+      const isPlazoVencido = tarea.fechaLimite ? new Date() > new Date(tarea.fechaLimite) : false;
+      const filasVirtuales = alumnosGrupo
+        .filter(a => !entregasPorAlumnoId.has(String(a.id)))
+        .map(a => ({
+          id: `virtual-${a.id}`,
+          virtual: true,
+          estadoEntrega: isPlazoVencido ? 'no_entregado' : 'pendiente',
+          alumno: a,
+          fechaEntrega: null,
+          archivo: null,
+          enlace: null,
+          comentarioAlumno: null,
+          calificacion: null,
+        }));
+
+      setEntregasTarea([...entregasList, ...filasVirtuales]);
     } catch (err) {
       console.error(err);
       alert(t('deliveries.errorLoadDeliveries'));
@@ -362,6 +421,16 @@ const Entregas = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
                     <span className={styles.date}><Calendar size={12} /> {new Date(tarea.fechaLimite).toLocaleDateString()}</span>
+                    {tarea.obligatoria && (
+                      <span className={`${styles.badge} ${styles.badgeError}`} title={t('tasks.mandatoryHelp')}>
+                        {t('tasks.mandatory')}
+                      </span>
+                    )}
+                    {tarea.notaMinima != null && (
+                      <span className={`${styles.badge} ${styles.badgePending}`} title={t('tasks.minGradeHelp')}>
+                        {t('tasks.minGradeShort', { value: tarea.notaMinima })}
+                      </span>
+                    )}
                     {isAlumno && (
                       <span className={`${styles.badge} ${isLate && !entrega ? styles.badgeError : badgeClass}`}>
                         {isLate && !entrega ? t('deliveries.delayed') : estado}
@@ -451,7 +520,7 @@ const Entregas = () => {
 
   const entregasColumns = [
     { header: t('deliveries.studentCol'), accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : t('common.unknown'), sortable: true },
-    { header: t('deliveries.dateCol'), accessor: (row) => new Date(row.fechaEntrega).toLocaleString(), sortable: true },
+    { header: t('deliveries.dateCol'), accessor: (row) => row.fechaEntrega ? new Date(row.fechaEntrega).toLocaleString() : '—', sortable: true },
     {
       header: t('deliveries.filesCol'),
       accessor: (row) => (
@@ -465,6 +534,11 @@ const Entregas = () => {
     {
       header: t('deliveries.gradeCol'),
       accessor: (row) => {
+        if (row.virtual) {
+          const cls = row.estadoEntrega === 'no_entregado' ? styles.badgeError : styles.badgePending;
+          const label = row.estadoEntrega === 'no_entregado' ? t('grades.notDelivered') : t('grades.pendingDelivery');
+          return <span className={`${styles.badge} ${cls}`}>{label}</span>;
+        }
         if (!row.calificacion) return <span className={`${styles.badge} ${styles.badgePending}`}>{t('common.pending')}</span>;
         const nota = row.calificacion.nota;
         const cls = nota < 5 ? styles.badgeError : nota < 7 ? styles.badgePending : styles.badgeSuccess;
@@ -671,6 +745,29 @@ const Entregas = () => {
               <input type="checkbox" name="visible" checked={tareaForm.visible} onChange={handleTareaInput} />
               {t('tasks.visibleToStudents')}
             </label>
+          </div>
+          <div className={styles.formGroup}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="checkbox" name="obligatoria" checked={tareaForm.obligatoria} onChange={handleTareaInput} />
+              {t('tasks.mandatory')}
+            </label>
+            <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+              {t('tasks.mandatoryHelp')}
+            </small>
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>{t('tasks.minGrade')}</label>
+            <input
+              type="number" min="0" max="10" step="0.1"
+              className={styles.input}
+              name="notaMinima"
+              value={tareaForm.notaMinima}
+              onChange={handleTareaInput}
+              placeholder={t('tasks.minGradePlaceholder')}
+            />
+            <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+              {t('tasks.minGradeHelp')}
+            </small>
           </div>
         </ModalView>
       </div>

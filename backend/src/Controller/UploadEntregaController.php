@@ -54,6 +54,12 @@ class UploadEntregaController extends AbstractController
                 return $this->json(['message' => 'Tarea no encontrada'], 404);
             }
 
+            // Bloquear entregas/ediciones fuera de plazo (salvo admin/superadmin)
+            $esAdmin = in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles());
+            if (!$esAdmin && $tarea->getFechaLimite() && new \DateTime() > $tarea->getFechaLimite()) {
+                return $this->json(['message' => 'El plazo de entrega ha finalizado'], 403);
+            }
+
             // Verificar si ya existe una entrega para este alumno y tarea
             $entrega = $entityManager->getRepository(Entrega::class)->findOneBy([
                 'tarea' => $tarea,

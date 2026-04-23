@@ -47,8 +47,15 @@ const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, s
                     ))}
                 </div>
             </div>
-            <div className={`${styles.moduleGrade} ${getGradeClass(mod.notaFinal)}`}>
-                {formatGrade(mod.notaFinal)}
+            <div className={`${styles.moduleGrade} ${mod.evaluable === false ? styles.gradeFail : getGradeClass(mod.notaFinal)}`}
+                 title={mod.evaluable === false ? (mod.motivosNoEvaluable || []).map(m =>
+                    m.razon === 'obligatoria_no_entregada'
+                        ? `${m.titulo}: ${t('grades.reasonMandatoryMissing', { defaultValue: 'no entregada (obligatoria)' })}`
+                        : m.razon === 'nota_minima_no_alcanzada'
+                            ? `${m.titulo}: ${t('grades.reasonBelowMin', { defaultValue: 'por debajo del mínimo' })} (${m.nota} < ${m.notaMinima})`
+                            : m.titulo
+                 ).join('\n') : ''}>
+                {mod.evaluable === false ? t('grades.notEvaluable') : formatGrade(mod.notaFinal)}
             </div>
         </div>
     );
