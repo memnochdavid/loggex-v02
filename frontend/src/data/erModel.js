@@ -286,18 +286,19 @@ export const ER_ENTITIES = [
         timestamps: true,
         softDelete: true,
         fields: composeFields([
-            { name: 'id',             type: 'int',         pk: true },
-            { name: 'imparticion_id', type: 'int',         fk: 'Imparticion' },
-            { name: 'titulo',         type: 'string(255)' },
-            { name: 'descripcion',    type: 'text',        nullable: true },
-            { name: 'archivo',        type: 'string(255)', nullable: true },
-            { name: 'fechaInicio',    type: 'datetime',    nullable: true },
-            { name: 'fechaLimite',    type: 'datetime' },
-            { name: 'tipo',           type: 'string(20)' },
-            { name: 'peso',           type: 'float',       nullable: true },
-            { name: 'obligatoria',    type: 'boolean' },
-            { name: 'notaMinima',     type: 'float',       nullable: true },
-            { name: 'visible',        type: 'boolean' },
+            { name: 'id',                 type: 'int',         pk: true },
+            { name: 'imparticion_id',     type: 'int',         fk: 'Imparticion' },
+            { name: 'tarea_original_id',  type: 'int',         fk: 'Tarea', nullable: true },
+            { name: 'titulo',             type: 'string(255)' },
+            { name: 'descripcion',        type: 'text',        nullable: true },
+            { name: 'archivo',            type: 'string(255)', nullable: true },
+            { name: 'fechaInicio',        type: 'datetime',    nullable: true },
+            { name: 'fechaLimite',        type: 'datetime' },
+            { name: 'tipo',               type: 'string(20)' },
+            { name: 'peso',               type: 'float',       nullable: true },
+            { name: 'obligatoria',        type: 'boolean' },
+            { name: 'notaMinima',         type: 'float',       nullable: true },
+            { name: 'visible',            type: 'boolean' },
         ], { timestamps: true, softDelete: true }),
     },
     {
@@ -383,23 +384,6 @@ export const ER_ENTITIES = [
             { name: 'feedbackProfesor',  type: 'text', nullable: true },
         ], { timestamps: true, softDelete: true }),
     },
-    {
-        id: 'Recuperacion',
-        table: 'recuperacion',
-        domain: 'results',
-        position: { x: 1540, y: 1540 },
-        timestamps: true,
-        softDelete: true,
-        fields: composeFields([
-            { name: 'id',                type: 'int',         pk: true },
-            { name: 'tarea_id',          type: 'int',         fk: 'Tarea' },
-            { name: 'alumno_id',         type: 'int',         fk: 'User' },
-            { name: 'tipo',              type: 'string(20)' },
-            { name: 'nota',              type: 'float' },
-            { name: 'fecha',             type: 'datetime' },
-            { name: 'feedbackProfesor',  type: 'text',        nullable: true },
-        ], { timestamps: true, softDelete: true }),
-    },
 ];
 
 /**
@@ -450,8 +434,8 @@ export const ER_RELATIONS = [
     // Tarea / Entrega
     { from: 'Entrega',                to: 'Tarea',          cardinality: 'N:1', label: 'tarea' },
     { from: 'Calificacion',           to: 'Entrega',        cardinality: '1:1', label: 'entrega' },
-    { from: 'Recuperacion',           to: 'Tarea',          cardinality: 'N:1', label: 'tarea' },
-    { from: 'Recuperacion',           to: 'User',           cardinality: 'N:1', label: 'alumno' },
+    // Auto-referencia: las recuperaciones/subidas de nota son tareas hija que referencian a su original.
+    { from: 'Tarea',                  to: 'Tarea',          cardinality: 'N:1', label: 'tarea_original', nullable: true },
 ];
 
 /**
@@ -471,7 +455,7 @@ export const ER_LAYOUT = {
     fieldHeight: 22,
     footerHeight: 14,
     worldWidth: 2420,
-    worldHeight: 1900,
+    worldHeight: 1740,
 
     /* X de la esquina izquierda de cada columna. Debe coincidir con
        las posiciones x de las entidades. */

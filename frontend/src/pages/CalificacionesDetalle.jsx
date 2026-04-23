@@ -4,11 +4,9 @@ import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import ThemedSelect from '../components/ThemedSelect';
 import ThemedNumberInput from '../components/ThemedNumberInput';
-import Button from '../components/Button';
-import ModalView from '../components/ModalView';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Edit2, Check, X, AlertTriangle, RotateCcw, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Check, X, AlertTriangle } from 'lucide-react';
 
 const CalificacionesDetalle = () => {
     const { t } = useTranslation();
@@ -31,10 +29,6 @@ const CalificacionesDetalle = () => {
     const [editingNota, setEditingNota] = useState(null);
     const [notaValue, setNotaValue] = useState('');
     const [saving, setSaving] = useState(false);
-    const [recuperaciones, setRecuperaciones] = useState([]);
-    const [recModal, setRecModal] = useState({ open: false, tarea: null });
-    const [recForm, setRecForm] = useState({ tipo: 'recuperacion', nota: '', feedbackProfesor: '' });
-    const [savingRec, setSavingRec] = useState(false);
 
     // Cargar periodos del grupo al cargar la impartición
     useEffect(() => {
@@ -112,15 +106,6 @@ const CalificacionesDetalle = () => {
 
             setTareas(tareasConNotas);
 
-            const recRes = await fetch(
-                getApiUrl(`/api/recuperacions?alumno=${alumnoId}&pagination=false&order[fecha]=asc`),
-                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }
-            );
-            if (recRes.ok) {
-                const recData = await recRes.json();
-                setRecuperaciones(recData['hydra:member'] || recData.member || []);
-            }
-
             setError(null);
         } catch {
             setError(t('grades.errorLoading'));
@@ -129,69 +114,16 @@ const CalificacionesDetalle = () => {
         }
     }, [imparticionId, alumnoId, selectedPeriodo, t]);
 
-    // Map por tareaId -> array de recuperaciones (ordenadas por fecha asc)
-    const recuperacionesByTarea = useMemo(() => {
-        const map = {};
-        recuperaciones.forEach(r => {
-            const tId = r.tarea?.id || r.tarea?.['@id']?.split('/').pop() || r.tarea;
-            const key = String(tId);
-            if (!map[key]) map[key] = [];
-            map[key].push(r);
+    // Para cada tarea padre, saber si el alumno la aprobó (≥ 5). Sirve para el indicador
+    // "recupera / sube nota" en sus tareas hija.
+    const notaPorTareaId = useMemo(() => {
+        const m = new Map();
+        tareas.forEach(tr => {
+            const id = tr.id || tr['@id']?.split('/').pop();
+            if (tr.calificacion?.nota != null) m.set(String(id), tr.calificacion.nota);
         });
-        return map;
-    }, [recuperaciones]);
-
-    const openRecModal = (tarea) => {
-        setRecForm({ tipo: 'recuperacion', nota: '', feedbackProfesor: '' });
-        setRecModal({ open: true, tarea });
-    };
-    const closeRecModal = () => setRecModal({ open: false, tarea: null });
-
-    const handleSaveRecuperacion = async (e) => {
-        e.preventDefault();
-        const parsed = parseFloat(recForm.nota);
-        if (isNaN(parsed) || parsed < 0 || parsed > 10) {
-            alert(t('grades.gradeRange', { defaultValue: 'La nota debe estar entre 0 y 10' }));
-            return;
-        }
-        setSavingRec(true);
-        try {
-            const tareaId = recModal.tarea.id || recModal.tarea['@id']?.split('/').pop();
-            const res = await fetch(getApiUrl('/api/recuperacions'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-                body: JSON.stringify({
-                    tarea: `/api/tareas/${tareaId}`,
-                    alumno: `/api/users/${alumnoId}`,
-                    tipo: recForm.tipo,
-                    nota: parsed,
-                    fecha: new Date().toISOString(),
-                    feedbackProfesor: recForm.feedbackProfesor || null,
-                }),
-                credentials: 'include',
-            });
-            if (!res.ok) throw new Error();
-            closeRecModal();
-            await fetchData();
-        } catch {
-            alert(t('grades.errorSavingRecuperacion', { defaultValue: 'Error al guardar la recuperación' }));
-        } finally {
-            setSavingRec(false);
-        }
-    };
-
-    const handleDeleteRecuperacion = async (recId) => {
-        if (!window.confirm(t('grades.confirmDeleteRec', { defaultValue: '¿Eliminar esta recuperación?' }))) return;
-        try {
-            const res = await fetch(getApiUrl(`/api/recuperacions/${recId}`), {
-                method: 'DELETE', credentials: 'include',
-            });
-            if (!res.ok) throw new Error();
-            await fetchData();
-        } catch {
-            alert(t('grades.errorDeletingRec', { defaultValue: 'Error al eliminar' }));
-        }
-    };
+        return m;
+    }, [tareas]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -538,12 +470,22 @@ const CalificacionesDetalle = () => {
                             const nota = tarea.calificacion?.nota ?? null;
                             const feedback = tarea.calificacion?.feedbackProfesor ?? null;
                             const tareaKey = tarea.id || tarea['@id'];
-                            const tareaIdStr = String(tarea.id || tarea['@id']?.split('/').pop());
                             const isEditingFb = editingFeedback === tareaKey;
                             const isEditingNt = editingNota === tareaKey;
-                            const recsTarea = recuperacionesByTarea[tareaIdStr] || [];
-                            const lastRec = recsTarea.length > 0 ? recsTarea[recsTarea.length - 1] : null;
-                            const notaEfectiva = lastRec ? lastRec.nota : nota;
+
+                            // Indicador "↩ recupera / ↑ sube nota" si la tarea es hija
+                            const padreObj = tarea.tareaOriginal;
+                            const padreId = padreObj
+                                ? (typeof padreObj === 'string' ? padreObj.split('/').pop() : (padreObj.id || padreObj['@id']?.split('/').pop()))
+                                : null;
+                            const padreTitulo = typeof padreObj === 'object' ? padreObj?.titulo : null;
+                            const notaPadre = padreId ? notaPorTareaId.get(String(padreId)) : null;
+                            const padreAprobada = notaPadre != null && notaPadre >= 5;
+                            const indicadorHija = padreId
+                                ? (padreAprobada
+                                    ? t('grades.upgradesIndicator', { title: padreTitulo || '', defaultValue: '↑ sube nota: {{title}}' })
+                                    : t('grades.recoversIndicator', { title: padreTitulo || '', defaultValue: '↩ recupera: {{title}}' }))
+                                : null;
 
                             return (
                                 <div key={tareaKey} id={`tarea-${tarea.id || tarea['@id']?.split('/').pop()}`} className={styles.taskItem}>
@@ -563,6 +505,11 @@ const CalificacionesDetalle = () => {
                                                     {t('tasks.minGradeShort', { value: tarea.notaMinima })}
                                                 </span>
                                             )}
+                                            {indicadorHija && (
+                                                <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                    {indicadorHija}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className={styles.taskMeta}>
                                             {t('grades.deadline')}: {tarea.fechaLimite ? new Date(tarea.fechaLimite).toLocaleDateString() : ''}
@@ -572,35 +519,6 @@ const CalificacionesDetalle = () => {
                                                     : <> — <em>{t('grades.pendingDelivery')}</em></>
                                             )}
                                         </div>
-
-                                        {recsTarea.length > 0 && (
-                                            <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2)', background: 'color-mix(in srgb, var(--text-main) 4%, transparent)', borderRadius: 'var(--radius-sm)' }}>
-                                                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                                    {t('grades.recoveriesTitle', { defaultValue: 'Recuperaciones / Subidas' })}
-                                                </div>
-                                                {recsTarea.map((r, idx) => {
-                                                    const rId = r.id || r['@id']?.split('/').pop();
-                                                    const isLast = idx === recsTarea.length - 1;
-                                                    return (
-                                                        <div key={rId} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', padding: '2px 0' }}>
-                                                            <RotateCcw size={12} style={{ color: 'var(--text-muted)' }} />
-                                                            <span style={{ color: 'var(--text-muted)' }}>
-                                                                {r.tipo === 'mejora' ? t('grades.recTypeUpgrade', { defaultValue: 'Subida' }) : t('grades.recTypeRecovery', { defaultValue: 'Recuperación' })}
-                                                            </span>
-                                                            <span>— {new Date(r.fecha).toLocaleDateString()}</span>
-                                                            <span className={`${styles.taskGrade} ${getGradeClass(r.nota)}`} style={{ fontWeight: 'var(--font-bold)' }}>
-                                                                {formatGrade(r.nota)}
-                                                            </span>
-                                                            {isLast && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)' }}>★ {t('grades.recCounts', { defaultValue: 'cuenta para media' })}</span>}
-                                                            {r.feedbackProfesor && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>— {r.feedbackProfesor}</span>}
-                                                            <button type="button" className={styles.iconButton} onClick={() => handleDeleteRecuperacion(rId)} title={t('common.delete')} style={{ marginLeft: 'auto' }}>
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
 
                                         {/* Feedback editable inline */}
                                         <div className={styles.feedbackInline}>
@@ -637,98 +555,43 @@ const CalificacionesDetalle = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
-                                        {/* Nota editable (original) */}
-                                        {isEditingNt ? (
-                                            <div className={styles.feedbackInline} style={{ alignItems: 'center' }}>
-                                                <ThemedNumberInput
-                                                    min={0}
-                                                    max={10}
-                                                    step={0.1}
-                                                    value={notaValue}
-                                                    onChange={setNotaValue}
-                                                    width={110}
-                                                    ariaLabel={t('grades.gradeLabel', { defaultValue: 'Nota' })}
-                                                />
-                                                <button className={styles.feedbackSaveBtn} onClick={() => handleSaveNota(tarea)} disabled={saving}>
-                                                    <Check size={14} />
-                                                </button>
-                                                <button className={styles.feedbackEditBtn} onClick={() => setEditingNota(null)}>
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className={`${styles.gradeEditable} ${nota == null ? styles.gradeEmpty : ''}`}
-                                                onClick={() => { setEditingNota(tareaKey); setNotaValue(nota != null ? String(nota) : ''); }}
-                                                title={lastRec ? t('grades.originalGradeHint', { defaultValue: 'Nota original (sustituida por recuperación)' }) : 'Editar nota'}
-                                            >
-                                                <Edit2 size={14} className={styles.editHint} />
-                                                <span className={`${styles.taskGrade} ${lastRec ? styles.gradeNa : getGradeClass(nota)}`} style={lastRec ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}>
-                                                    {nota == null ? '+ Poner nota' : formatGrade(nota)}
-                                                </span>
+                                    {/* Nota editable */}
+                                    {isEditingNt ? (
+                                        <div className={styles.feedbackInline} style={{ alignItems: 'center' }}>
+                                            <ThemedNumberInput
+                                                min={0}
+                                                max={10}
+                                                step={0.1}
+                                                value={notaValue}
+                                                onChange={setNotaValue}
+                                                width={110}
+                                                ariaLabel={t('grades.gradeLabel', { defaultValue: 'Nota' })}
+                                            />
+                                            <button className={styles.feedbackSaveBtn} onClick={() => handleSaveNota(tarea)} disabled={saving}>
+                                                <Check size={14} />
                                             </button>
-                                        )}
-                                        <Button size="sm" variant="secondary" onClick={() => openRecModal(tarea)} title={t('grades.addRecuperacion', { defaultValue: 'Añadir recuperación/subida' })}>
-                                            <Plus size={14} style={{ marginRight: '4px' }} />
-                                            {t('grades.addRec', { defaultValue: 'Recuperación' })}
-                                        </Button>
-                                    </div>
+                                            <button className={styles.feedbackEditBtn} onClick={() => setEditingNota(null)}>
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={`${styles.gradeEditable} ${nota == null ? styles.gradeEmpty : ''}`}
+                                            onClick={() => { setEditingNota(tareaKey); setNotaValue(nota != null ? String(nota) : ''); }}
+                                            title="Editar nota"
+                                        >
+                                            <Edit2 size={14} className={styles.editHint} />
+                                            <span className={`${styles.taskGrade} ${getGradeClass(nota)}`}>
+                                                {nota == null ? '+ Poner nota' : formatGrade(nota)}
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })
                     )}
                 </div>
-
-                <ModalView
-                    isOpen={recModal.open}
-                    onClose={closeRecModal}
-                    title={t('grades.addRecuperacionTitle', { defaultValue: 'Añadir recuperación / subida de nota', tarea: recModal.tarea?.titulo })}
-                    onSubmit={handleSaveRecuperacion}
-                    isSubmitting={savingRec}
-                    submitText={t('common.save')}
-                >
-                    <div style={{ marginBottom: 'var(--space-3)' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)' }}>
-                            {t('grades.recType', { defaultValue: 'Tipo' })}
-                        </label>
-                        <ThemedSelect
-                            value={recForm.tipo}
-                            onChange={(v) => setRecForm(f => ({ ...f, tipo: v }))}
-                            options={[
-                                { value: 'recuperacion', label: t('grades.recTypeRecovery', { defaultValue: 'Recuperación' }) },
-                                { value: 'mejora', label: t('grades.recTypeUpgrade', { defaultValue: 'Subida de nota' }) },
-                            ]}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 'var(--space-3)' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)' }}>
-                            {t('grades.gradeLabel', { defaultValue: 'Nota' })}
-                        </label>
-                        <ThemedNumberInput
-                            min={0} max={10} step={0.1}
-                            value={recForm.nota}
-                            onChange={(v) => setRecForm(f => ({ ...f, nota: v }))}
-                            width={120}
-                            ariaLabel={t('grades.gradeLabel', { defaultValue: 'Nota' })}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 'var(--space-3)' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)' }}>
-                            {t('grades.feedback')}
-                        </label>
-                        <textarea
-                            value={recForm.feedbackProfesor}
-                            onChange={(e) => setRecForm(f => ({ ...f, feedbackProfesor: e.target.value }))}
-                            rows={3}
-                            style={{ width: '100%', padding: 'var(--space-2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', fontFamily: 'inherit' }}
-                        />
-                    </div>
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-                        {t('grades.recHint', { defaultValue: 'La última recuperación registrada prevalece sobre la nota original en el cálculo de la media.' })}
-                    </p>
-                </ModalView>
             </div>
         </Layout>
     );

@@ -40,6 +40,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiFilter(SearchFilter::class, properties: [
     'imparticion' => 'exact',
     'tipo' => 'exact',
+    'tareaOriginal' => 'exact',
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['fechaLimite', 'titulo'], arguments: ['orderParameterName' => 'order'])]
 class Tarea
@@ -97,6 +98,15 @@ class Tarea
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?Imparticion $imparticion = null;
+
+    /**
+     * Si esta tarea es una recuperación / subida de nota, referencia a la tarea original.
+     * Su calificación sustituye (o mejora) la de la original en el cálculo de la media.
+     */
+    #[ORM\ManyToOne(targetEntity: Tarea::class)]
+    #[ORM\JoinColumn(name: 'tarea_original_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?Tarea $tareaOriginal = null;
 
     #[ORM\OneToMany(mappedBy: 'tarea', targetEntity: Entrega::class)]
     // NO serializar aquí: filtraría las entregas de todos los alumnos a cualquiera con acceso a la tarea.
@@ -231,6 +241,17 @@ class Tarea
     public function setImparticion(?Imparticion $imparticion): static
     {
         $this->imparticion = $imparticion;
+        return $this;
+    }
+
+    public function getTareaOriginal(): ?Tarea
+    {
+        return $this->tareaOriginal;
+    }
+
+    public function setTareaOriginal(?Tarea $tareaOriginal): static
+    {
+        $this->tareaOriginal = $tareaOriginal;
         return $this;
     }
 

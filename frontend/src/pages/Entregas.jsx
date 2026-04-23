@@ -11,7 +11,7 @@ import SuperAdminFilters from '../components/SuperAdminFilters';
 import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import useImparticiones from '../hooks/useImparticiones';
-import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip, BarChart3 } from 'lucide-react';
+import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip, BarChart3, RotateCcw } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
@@ -137,6 +137,7 @@ const Entregas = () => {
   const [loadingEntregas, setLoadingEntregas] = useState(false);
   const [viewImparticionId, setViewImparticionId] = useState(null);
 
+
   // Modal Profesor: Crear/Editar Tarea
   const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
@@ -144,7 +145,7 @@ const Entregas = () => {
   const [tareaForm, setTareaForm] = useState({
     titulo: '', descripcion: '', fechaLimite: '',
     tipo: 'tarea', visible: true, archivo: null,
-    obligatoria: false, notaMinima: '',
+    obligatoria: true, notaMinima: '', tareaOriginalId: null,
   });
   const [savingTarea, setSavingTarea] = useState(false);
 
@@ -161,10 +162,11 @@ const Entregas = () => {
         archivo: null,
         obligatoria: !!tarea.obligatoria,
         notaMinima: tarea.notaMinima != null ? String(tarea.notaMinima) : '',
+        tareaOriginalId: null,
       });
     } else {
       setEditingTarea(null);
-      setTareaForm({ titulo: '', descripcion: '', fechaLimite: '', tipo: 'tarea', visible: true, archivo: null, obligatoria: true, notaMinima: '' });
+      setTareaForm({ titulo: '', descripcion: '', fechaLimite: '', tipo: 'tarea', visible: true, archivo: null, obligatoria: true, notaMinima: '', tareaOriginalId: null });
     }
     setIsTareaModalOpen(true);
   };
@@ -197,6 +199,7 @@ const Entregas = () => {
       data.append('obligatoria', tareaForm.obligatoria);
       data.append('notaMinima', tareaForm.notaMinima ?? '');
       data.append('imparticionId', tareaImparticionId);
+      if (tareaForm.tareaOriginalId) data.append('tareaOriginalId', tareaForm.tareaOriginalId);
       if (editingTarea) data.append('id', editingTarea.id);
       if (tareaForm.archivo) data.append('file', tareaForm.archivo);
 
@@ -413,6 +416,24 @@ const Entregas = () => {
           const badgeClass = entrega ? (entrega.calificacion ? styles.badgeInfo : styles.badgeSuccess) : styles.badgePending;
           const isLate = new Date() > new Date(tarea.fechaLimite);
 
+          // Detectar si esta tarea es hija (recuperación/subida de nota de otra)
+          const padreObj = tarea.tareaOriginal;
+          const padreId = padreObj
+            ? (typeof padreObj === 'string' ? padreObj.split('/').pop() : (padreObj.id || padreObj['@id']?.split('/').pop()))
+            : null;
+          const padreTitulo = typeof padreObj === 'object' ? padreObj?.titulo : null;
+          const esHija = !!padreId;
+          // Para el alumno: ¿tenía aprobada la padre? → "↑ sube nota"; si no → "↩ recupera"
+          const entregaPadre = padreId ? misEntregas[padreId] : null;
+          const padreAprobada = entregaPadre?.calificacion?.nota != null && entregaPadre.calificacion.nota >= 5;
+          const indicadorHija = esHija
+            ? (isAlumno
+                ? (padreAprobada
+                    ? { txt: t('grades.upgradesIndicator', { title: padreTitulo || '', defaultValue: '↑ sube nota: {{title}}' }), cls: styles.badgeInfo }
+                    : { txt: t('grades.recoversIndicator', { title: padreTitulo || '', defaultValue: '↩ recupera: {{title}}' }), cls: styles.badgePending })
+                : { txt: t('grades.recoversIndicator', { title: padreTitulo || '', defaultValue: '↩ recupera: {{title}}' }), cls: styles.badgePending })
+            : null;
+
           return (
             <li key={tarea.id} className={styles.listItem}>
               <div className={styles.itemInfo}>
@@ -421,6 +442,11 @@ const Entregas = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: '600' }}>{tarea.titulo}</span>
                     <span className={styles.date}><Calendar size={12} /> {new Date(tarea.fechaLimite).toLocaleDateString()}</span>
+                    {indicadorHija && (
+                      <span className={`${styles.badge} ${indicadorHija.cls}`} title={indicadorHija.txt}>
+                        {indicadorHija.txt}
+                      </span>
+                    )}
                     {tarea.obligatoria && (
                       <span className={`${styles.badge} ${styles.badgeError}`} title={t('tasks.mandatoryHelp')}>
                         {t('tasks.mandatory')}
@@ -494,6 +520,11 @@ const Entregas = () => {
                     <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea, imparticion.id)}>
                       <Eye size={16} style={{ marginRight: '4px' }} /> {t('deliveries.viewDeliveries')}
                     </Button>
+                    {isLate && (
+                      <Button size="sm" variant="secondary" onClick={() => handleOpenRecuModal(tarea, imparticion.id)} title={t('grades.openRecuperacion', { defaultValue: 'Registrar recuperaciones para este ítem' })}>
+                        <RotateCcw size={16} style={{ marginRight: '4px' }} /> {t('grades.recuperacion', { defaultValue: 'Recuperación' })}
+                      </Button>
+                    )}
                     <button
                       className={styles.iconButton}
                       onClick={() => handleOpenTareaModal(imparticion.id, tarea)}
@@ -516,6 +547,26 @@ const Entregas = () => {
         })}
       </ul>
     );
+  };
+
+  // "Crear recuperación" = abrir el modal de nueva tarea precargado con datos de la original
+  // y con tareaOriginal_id = esta. El profe ajusta título/fecha/etc y al guardar se crea como
+  // tarea hija. Los alumnos entregan en ella como en cualquier otra tarea.
+  const handleOpenRecuModal = (tarea, imparticionId) => {
+    setTareaImparticionId(imparticionId);
+    setEditingTarea(null);
+    setTareaForm({
+      titulo: `Recuperación: ${tarea.titulo}`,
+      descripcion: tarea.descripcion || '',
+      fechaLimite: '',
+      tipo: tarea.tipo || 'tarea',
+      visible: true,
+      archivo: null,
+      obligatoria: tarea.obligatoria !== false,
+      notaMinima: tarea.notaMinima != null ? String(tarea.notaMinima) : '',
+      tareaOriginalId: tarea.id || tarea['@id']?.split('/').pop(),
+    });
+    setIsTareaModalOpen(true);
   };
 
   const entregasColumns = [
@@ -695,6 +746,7 @@ const Entregas = () => {
             pageSizeOptions={[5, 10, 20, 50, 100]}
           />
         </ModalView>
+
 
         {/* Modal Profesor: Crear/Editar Tarea */}
         <ModalView

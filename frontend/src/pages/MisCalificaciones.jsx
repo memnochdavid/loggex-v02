@@ -290,13 +290,33 @@ const MisCalificaciones = () => {
             const entregasData = await entregasRes.json();
             const entregas = entregasData['hydra:member'] || entregasData.member || [];
 
+            // Map rápido de calificaciones por tareaId (para saber si la padre está aprobada en el indicador)
+            const calPorTareaId = new Map();
+            entregas.forEach(e => {
+                const tId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
+                if (tId && e.calificacion) calPorTareaId.set(String(tId), e.calificacion);
+            });
+
             let combined = tareasItems.map(tarea => {
                 const tareaId = tarea.id || tarea['@id']?.split('/').pop();
                 const entrega = entregas.find(e => {
                     const eTareaId = e.tarea?.id || e.tarea?.['@id']?.split('/').pop() || e.tarea;
                     return String(eTareaId) === String(tareaId);
                 });
-                return { ...tarea, calificacion: entrega?.calificacion || null };
+                const padreObj = tarea.tareaOriginal;
+                const padreId = padreObj
+                    ? (typeof padreObj === 'string' ? padreObj.split('/').pop() : (padreObj.id || padreObj['@id']?.split('/').pop()))
+                    : null;
+                const padreTitulo = typeof padreObj === 'object' ? padreObj?.titulo : null;
+                const calPadre = padreId ? calPorTareaId.get(String(padreId)) : null;
+                const padreAprobada = calPadre?.nota != null && calPadre.nota >= 5;
+                return {
+                    ...tarea,
+                    calificacion: entrega?.calificacion || null,
+                    _esHija: !!padreId,
+                    _padreTitulo: padreTitulo,
+                    _padreAprobada: padreAprobada,
+                };
             });
 
             // Filtrar por período seleccionado (fechaLimite dentro del rango)
@@ -504,6 +524,11 @@ const MisCalificaciones = () => {
                                         ) : filteredTasks.map(tarea => {
                                             const nota = tarea.calificacion?.nota ?? null;
                                             const feedback = tarea.calificacion?.feedbackProfesor;
+                                            const indicador = tarea._esHija
+                                                ? (tarea._padreAprobada
+                                                    ? { txt: t('grades.upgradesIndicator', { title: tarea._padreTitulo || '', defaultValue: '↑ sube nota: {{title}}' }) }
+                                                    : { txt: t('grades.recoversIndicator', { title: tarea._padreTitulo || '', defaultValue: '↩ recupera: {{title}}' }) })
+                                                : null;
                                             return (
                                                 <div key={tarea.id || tarea['@id']} className={styles.taskItem}>
                                                     <div className={styles.taskInfo}>
@@ -512,6 +537,11 @@ const MisCalificaciones = () => {
                                                             <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
                                                                 {getTypeName(tarea.tipo)}
                                                             </span>
+                                                            {indicador && (
+                                                                <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                                    {indicador.txt}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className={styles.taskMeta}>
                                                             {tarea.fechaLimite && new Date(tarea.fechaLimite).toLocaleDateString()}

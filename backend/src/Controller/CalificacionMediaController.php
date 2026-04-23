@@ -7,7 +7,6 @@ use App\Entity\Matricula;
 use App\Entity\PeriodoEvaluativo;
 use App\Entity\User;
 use App\Repository\PonderacionImparticionRepository;
-use App\Repository\RecuperacionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,8 +17,7 @@ class CalificacionMediaController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly PonderacionImparticionRepository $ponderacionRepo,
-        private readonly RecuperacionRepository $recuperacionRepo
+        private readonly PonderacionImparticionRepository $ponderacionRepo
     ) {
     }
 
@@ -215,8 +213,11 @@ class CalificacionMediaController extends AbstractController
         array $pesos,
         ?PeriodoEvaluativo $periodo = null
     ): array {
+        // Cargamos TODAS las tareas de la impartición (padres e hijas) con la nota del alumno si existe.
+        // El filtro de periodo NO se aplica en la query: lo aplicamos después solo a las padres; las hijas
+        // se relacionan a su padre y su fecha puede caer fuera del rango del periodo (es un evento posterior).
         $qb = $this->em->createQueryBuilder();
-        $qb->select('t.id AS tareaId', 't.titulo', 't.tipo', 't.peso AS tareaPeso', 't.obligatoria', 't.notaMinima', 't.fechaLimite', 'c.nota')
+        $qb->select('t.id AS tareaId', 't.titulo', 't.tipo', 't.peso AS tareaPeso', 't.obligatoria', 't.notaMinima', 't.fechaLimite', 'IDENTITY(t.tareaOriginal) AS tareaOriginalId', 'c.nota')
             ->from('App\Entity\Tarea', 't')
             ->leftJoin('App\Entity\Entrega', 'e', 'WITH', 'e.tarea = t AND e.alumno = :alumnoId AND e.deleted = false')
             ->leftJoin('App\Entity\Calificacion', 'c', 'WITH', 'c.entrega = e AND c.deleted = false')
@@ -225,17 +226,30 @@ class CalificacionMediaController extends AbstractController
             ->setParameter('imparticionId', $imparticionId)
             ->setParameter('alumnoId', $alumnoId);
 
-        if ($periodo) {
-            $qb->andWhere('t.fechaLimite >= :periodoInicio')
-                ->andWhere('t.fechaLimite <= :periodoFin')
-                ->setParameter('periodoInicio', $periodo->getFechaInicio())
-                ->setParameter('periodoFin', $periodo->getFechaFin());
-        }
-
         $rows = $qb->getQuery()->getResult();
 
-        $tareaIds = array_map(fn($r) => (int) $r['tareaId'], $rows);
-        $recuperaciones = $this->recuperacionRepo->findLatestByAlumnoAndTareas($alumnoId, $tareaIds);
+        // Separar padres e hijas. Cada fila: normalizar la nota a float|null y fecha a DateTime|null.
+        $padres = [];
+        $hijasPorPadre = [];
+        foreach ($rows as $row) {
+            $row['nota'] = $row['nota'] !== null ? (float) $row['nota'] : null;
+            if (!empty($row['tareaOriginalId'])) {
+                $padreId = (int) $row['tareaOriginalId'];
+                $hijasPorPadre[$padreId][] = $row;
+            } else {
+                $padres[(int) $row['tareaId']] = $row;
+            }
+        }
+
+        // Aplicar filtro de periodo SOLO a las padres (las hijas se heredan de su padre).
+        if ($periodo) {
+            $pIni = $periodo->getFechaInicio();
+            $pFin = $periodo->getFechaFin();
+            $padres = array_filter($padres, function ($p) use ($pIni, $pFin) {
+                if (!$p['fechaLimite'] instanceof \DateTimeInterface) return false;
+                return $p['fechaLimite'] >= $pIni && $p['fechaLimite'] <= $pFin;
+            });
+        }
 
         $notasPorTipo = ['examen' => [], 'tarea' => [], 'practica' => []];
         $totalTareas = 0;
@@ -243,43 +257,67 @@ class CalificacionMediaController extends AbstractController
         $motivosNoEvaluable = [];
         $ahora = new \DateTime();
 
-        foreach ($rows as $row) {
-            $tipo = $row['tipo'] ?? 'tarea';
+        foreach ($padres as $padre) {
+            $tipo = $padre['tipo'] ?? 'tarea';
             $totalTareas++;
+            $tareaId = (int) $padre['tareaId'];
+            $notaPadre = $padre['nota']; // nullable float
 
-            $notaOriginal = $row['nota'] !== null ? (float) $row['nota'] : null;
-            $tareaId = (int) $row['tareaId'];
-            $rec = $recuperaciones[$tareaId] ?? null;
-            // Prevalece la última: si hay recuperación, su nota manda sobre la original.
-            $notaEfectiva = $rec !== null ? (float) $rec->getNota() : $notaOriginal;
+            // Buscar la última hija calificada del alumno para esta padre (por fechaLimite descendente).
+            $hijas = $hijasPorPadre[$tareaId] ?? [];
+            $ultimaHijaCalificada = null;
+            foreach ($hijas as $hija) {
+                if ($hija['nota'] === null) continue;
+                if ($ultimaHijaCalificada === null
+                    || ($hija['fechaLimite'] instanceof \DateTimeInterface
+                        && $ultimaHijaCalificada['fechaLimite'] instanceof \DateTimeInterface
+                        && $hija['fechaLimite'] > $ultimaHijaCalificada['fechaLimite'])) {
+                    $ultimaHijaCalificada = $hija;
+                }
+            }
+            // Regla: prevalece la última. Si hay hija calificada, su nota sustituye a la de la padre.
+            $notaEfectiva = $ultimaHijaCalificada !== null ? $ultimaHijaCalificada['nota'] : $notaPadre;
 
             if ($notaEfectiva !== null) {
                 $notasPorTipo[$tipo][] = [
                     'nota' => $notaEfectiva,
-                    'peso' => $row['tareaPeso'] !== null ? (float) $row['tareaPeso'] : 1.0,
+                    'peso' => $padre['tareaPeso'] !== null ? (float) $padre['tareaPeso'] : 1.0,
                 ];
             } else {
                 $entregasPendientes++;
             }
 
-            $plazoVencido = $row['fechaLimite'] instanceof \DateTimeInterface && $row['fechaLimite'] < $ahora;
-            if ($row['obligatoria'] && $notaEfectiva === null && $plazoVencido) {
+            // No evaluable por "obligatoria no entregada": solo si el alumno no tiene NI nota en padre NI
+            // nota en hija, la padre es obligatoria, su plazo venció, y no queda ninguna hija abierta
+            // que aún pudiera "salvar" al alumno (plazo de la hija todavía por vencer).
+            $padrePlazoVencido = $padre['fechaLimite'] instanceof \DateTimeInterface && $padre['fechaLimite'] < $ahora;
+            $aunPuedeEntregarEnHija = false;
+            foreach ($hijas as $hija) {
+                if ($hija['nota'] === null
+                    && $hija['fechaLimite'] instanceof \DateTimeInterface
+                    && $hija['fechaLimite'] >= $ahora) {
+                    $aunPuedeEntregarEnHija = true;
+                    break;
+                }
+            }
+            if ($padre['obligatoria'] && $notaEfectiva === null && $padrePlazoVencido && !$aunPuedeEntregarEnHija) {
                 $motivosNoEvaluable[] = [
                     'tareaId' => $tareaId,
-                    'titulo' => $row['titulo'],
+                    'titulo' => $padre['titulo'],
                     'tipo' => $tipo,
                     'razon' => 'obligatoria_no_entregada',
                 ];
             }
 
-            if ($row['notaMinima'] !== null && $notaEfectiva !== null && $notaEfectiva < (float) $row['notaMinima']) {
+            // Nota mínima (de la padre): aplica sobre la nota efectiva.
+            if ($padre['notaMinima'] !== null && $notaEfectiva !== null && $notaEfectiva < (float) $padre['notaMinima']) {
                 $motivosNoEvaluable[] = [
                     'tareaId' => $tareaId,
-                    'titulo' => $row['titulo'],
+                    'titulo' => $padre['titulo'],
                     'tipo' => $tipo,
                     'razon' => 'nota_minima_no_alcanzada',
                     'nota' => $notaEfectiva,
-                    'notaMinima' => (float) $row['notaMinima'],
+                    'notaMinima' => (float) $padre['notaMinima'],
                 ];
             }
         }

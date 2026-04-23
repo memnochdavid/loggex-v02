@@ -47,6 +47,7 @@ class UploadTareaController extends AbstractController
             $notaMinimaStr = $request->request->get('notaMinima');
             $imparticionId = $request->request->get('imparticionId');
             $tareaId = $request->request->get('id'); // Si viene ID, es edición
+            $tareaOriginalId = $request->request->get('tareaOriginalId'); // Si viene, la tarea es una recu/subida de nota
 
             $logger->info('UploadTarea: Datos recibidos', [
                 'titulo' => $titulo,
@@ -91,6 +92,14 @@ class UploadTareaController extends AbstractController
             $tarea->setTipo($tipo);
             $tarea->setVisible($visible);
             $tarea->setObligatoria($obligatoria);
+            // tareaOriginal solo se setea al crear (no editable después)
+            if (!$tareaId && $tareaOriginalId) {
+                $tareaOriginalIdClean = basename($tareaOriginalId);
+                $tareaOriginal = $entityManager->getRepository(Tarea::class)->find($tareaOriginalIdClean);
+                if ($tareaOriginal) {
+                    $tarea->setTareaOriginal($tareaOriginal);
+                }
+            }
             if ($notaMinimaStr === null || $notaMinimaStr === '') {
                 $tarea->setNotaMinima(null);
             } else {
