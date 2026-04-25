@@ -12,7 +12,7 @@ namespace App\Entity\Catalogo;
  */
 enum TipoMateria: string
 {
-    case MODULO              = 'materia';
+    case MODULO              = 'modulo';
     case TRONCAL             = 'troncal';
     case ESPECIFICA          = 'especifica';
     case OPTATIVA            = 'optativa';

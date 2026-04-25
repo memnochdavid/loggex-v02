@@ -541,7 +541,11 @@ const Itinerarios = () => {
                                 setSelectedCatalogoItinerario(item);
                             }}
                             endpoint="/api/catalogo_itinerarios"
-                            extraParams={{ etapa: ['fp_basica', 'fp_medio', 'fp_superior', 'fp_especializacion'] }}
+                            // Sin filtro por etapa: mostramos todas las etapas implementadas
+                            // (FP + ESO; en el futuro Bach, Universidad…). El admin discrimina
+                            // tecleando el nombre. Si se añaden etapas no deseadas, este es el
+                            // sitio para acotar.
+                            extraParams={{}}
                             getOptionLabel={(i) => `${i.codigoOficial} — ${i.nombre}`}
                             getOptionValue={(i) => i.id}
                             placeholder={t('itinerarios.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del ciclo…' })}

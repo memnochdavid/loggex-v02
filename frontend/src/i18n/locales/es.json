@@ -597,7 +597,11 @@
     "cycleLabel": "Ciclo Formativo",
     "course1": "1º",
     "course2": "2º",
-    "weeklyHours": "Horas Semanales"
+    "course3": "3º",
+    "course4": "4º",
+    "weeklyHours": "Horas Semanales",
+    "type": "Tipo",
+    "typeUnset": "— Sin especificar —"
   },
   "enrollments": {
     "title": "Matrículas",

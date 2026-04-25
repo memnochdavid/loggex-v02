@@ -153,6 +153,9 @@ final class CatalogoMaterializationController extends AbstractController
             EtapaEducativa::FP_MEDIO           => 'Medio',
             EtapaEducativa::FP_SUPERIOR        => 'Superior',
             EtapaEducativa::FP_ESPECIALIZACION => 'Curso de Especialización',
+            EtapaEducativa::PRIMARIA           => 'Primaria',
+            EtapaEducativa::ESO                => 'ESO',
+            EtapaEducativa::BACHILLERATO       => 'Bachillerato',
             default                            => $etapa->label(),
         };
     }

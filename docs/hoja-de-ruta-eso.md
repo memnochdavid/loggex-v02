@@ -40,7 +40,7 @@ Esta hoja arranca tras el cierre de Fase 1 del catálogo (FP) y el rename a voca
 - [x] Fase B — `BoeEsoAdapter` + parser implementados *(28 materias extraídas, smoke test pasa, lint OK; auto-registrado vía `_instanceof`)*
 - [x] Fase C — Refresh ejecutado *(1 itinerario "Educación Secundaria Obligatoria" persistido con sus 28 materias)*
 - [x] Fase D — Campos opcionales: `Materia.horasSemanales` ahora nullable + nuevo campo `Materia.tipo` (enum). Materialización catalogo→centro propaga `tipo`. **Pendiente migration**: ejecutar `make:migration` + `migrate` para aplicar el ALTER. Pasada de limpieza de residuos del rename anterior en Materias.jsx, Grupos.jsx, Itinerarios.jsx (formData.ciclo → formData.itinerario, /api/ciclo_formativos → /api/itinerarios, etc.).
-- [ ] Fase E — Formularios y terminología adaptativos
+- [x] Fase E — Formularios y terminología adaptativos *(AsyncSearchSelect de "Nuevo Itinerario" abierto a todas las etapas; `mapNivel` materialización soporta Primaria/ESO/Bach; form Materias añade select `tipo` y acepta `horasSemanales` vacío. Bug fix crítico: `TipoMateria::MODULO = 'modulo'` (el sed del rename §18 lo había roto). Migration `Version20260425210000` para corregir datos existentes.)*
 - [ ] Fase F — i18n + verificación end-to-end
 
 ## 4. Riesgos conocidos

@@ -70,7 +70,8 @@ const Materias = () => {
     abreviatura: '',
     codigoOficial: '',
     curso: 1,
-    horasSemanales: 0,
+    horasSemanales: '',
+    tipo: '',
     itinerario: ''
   });
   const [saving, setSaving] = useState(false);
@@ -256,7 +257,8 @@ const Materias = () => {
         abreviatura: modulo.abreviatura || '',
         codigoOficial: modulo.codigoOficial || '',
         curso: modulo.curso,
-        horasSemanales: modulo.horasSemanales,
+        horasSemanales: modulo.horasSemanales ?? '',
+        tipo: modulo.tipo || '',
         itinerario: itinerarioId
       });
     } else {
@@ -266,7 +268,8 @@ const Materias = () => {
         abreviatura: '',
         codigoOficial: '',
         curso: 1,
-        horasSemanales: 0,
+        horasSemanales: '',
+        tipo: '',
         itinerario: ''
       });
     }
@@ -309,6 +312,8 @@ const Materias = () => {
         horasSemanales: horasSemRaw === '' || horasSemRaw === null || horasSemRaw === undefined
           ? null
           : parseInt(horasSemRaw),
+        // tipo es enum nullable; '' del select equivale a sin valor.
+        tipo: formData.tipo === '' ? null : formData.tipo,
         // Asegurar formato IRI para la relación al itinerario.
         itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
       };
@@ -585,6 +590,8 @@ const Materias = () => {
                 >
                     <option value="1">{t('materias.course1')}</option>
                     <option value="2">{t('materias.course2')}</option>
+                    <option value="3">{t('materias.course3', '3º')}</option>
+                    <option value="4">{t('materias.course4', '4º')}</option>
                 </select>
             </div>
 
@@ -599,6 +606,28 @@ const Materias = () => {
                     min="1"
                     max="30"
                 />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('materias.type', { defaultValue: 'Tipo' })}
+                </label>
+                <select
+                    name="tipo"
+                    value={formData.tipo}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="">{t('materias.typeUnset', { defaultValue: '— Sin especificar —' })}</option>
+                    <option value="modulo">{t('catalogo.tipoLabel.MODULO', 'Módulo')}</option>
+                    <option value="troncal">{t('catalogo.tipoLabel.TRONCAL', 'Troncal')}</option>
+                    <option value="especifica">{t('catalogo.tipoLabel.ESPECIFICA', 'Específica')}</option>
+                    <option value="optativa">{t('catalogo.tipoLabel.OPTATIVA', 'Optativa')}</option>
+                    <option value="libre_configuracion">{t('catalogo.tipoLabel.LIBRE_CONFIGURACION', 'Libre configuración')}</option>
+                    <option value="asignatura">{t('catalogo.tipoLabel.ASIGNATURA', 'Asignatura')}</option>
+                    <option value="fct">{t('catalogo.tipoLabel.FCT', 'FCT')}</option>
+                    <option value="proyecto">{t('catalogo.tipoLabel.PROYECTO', 'Proyecto')}</option>
+                </select>
             </div>
         </ModalView>
         </div>
