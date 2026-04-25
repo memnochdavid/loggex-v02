@@ -34,7 +34,7 @@ const Grupos = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedItinerario, setSelectedCiclo] = useState('');
+  const [selectedItinerario, setSelectedItinerario] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,7 +93,7 @@ const Grupos = () => {
 
   // Cargar ciclos (filtrados por centro si se selecciona uno)
   useEffect(() => {
-    let url = getApiUrl('/api/ciclo_formativos?pagination=false');
+    let url = getApiUrl('/api/itinerarios?pagination=false');
     
     if (isSuperAdmin && selectedCentro) {
         url += `&centro=${selectedCentro}`;
@@ -137,7 +137,7 @@ const Grupos = () => {
       }
       
       if (params.selectedItinerario) {
-          url += `&ciclo=${params.selectedItinerario}`;
+          url += `&itinerario=${params.selectedItinerario}`;
       }
       
       if (params.isSuperAdmin && params.selectedCentro) {
@@ -312,17 +312,18 @@ const Grupos = () => {
       const method = currentGrupo ? 'PUT' : 'POST';
 
       // Asegurar que ciclo y centro sean strings antes de usar includes
-      const cicloValue = String(formData.ciclo);
+      const itinerarioValue = String(formData.itinerario);
       const centroValue = formData.centro ? String(formData.centro) : null;
 
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
-        ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`,
+        itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
         centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null,
         fechaInicio: formData.fechaInicio || null,
         fechaFin: formData.fechaFin || null
       };
+      delete payload.ciclo;
 
       // Si no es superadmin, asignar centro automáticamente si es nuevo
       if (!isSuperAdmin && !currentGrupo && user.centro) {
@@ -467,7 +468,7 @@ const Grupos = () => {
             {isSuperAdmin && (
                 <ThemedSelect
                     value={selectedCentro}
-                    onChange={(v) => { setSelectedCentro(v); setSelectedCiclo(''); }}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedItinerario(''); }}
                     minWidth={200}
                     ariaLabel={t('common.allCenters')}
                     options={[
@@ -479,7 +480,7 @@ const Grupos = () => {
 
             <ThemedSelect
                 value={selectedItinerario}
-                onChange={setSelectedCiclo}
+                onChange={setSelectedItinerario}
                 minWidth={200}
                 ariaLabel={t('common.allCycles')}
                 options={[
@@ -598,10 +599,10 @@ const Grupos = () => {
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('groups.cycleLabel')}</label>
                 <AsyncSearchSelect
-                    name="ciclo"
-                    value={formData.ciclo}
-                    onChange={(v) => setFormData(p => ({ ...p, ciclo: v }))}
-                    endpoint="/api/ciclo_formativos"
+                    name="itinerario"
+                    value={formData.itinerario}
+                    onChange={(v) => setFormData(p => ({ ...p, itinerario: v }))}
+                    endpoint="/api/itinerarios"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
                     getOptionLabel={(c) => c.nombre}
                     getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}

@@ -36,10 +36,10 @@ Esta hoja arranca tras el cierre de Fase 1 del catálogo (FP) y el rename a voca
 
 ## 3. Estado / progreso
 
-- [ ] Fase A — Investigación BOE RD 217/2022 (estructura XML)
-- [ ] Fase B — `BoeEsoAdapter` + parser implementados
-- [ ] Fase C — Refresh ejecutado, cobertura verificada
-- [ ] Fase D — Campos opcionales y validaciones condicionales
+- [x] Fase A — Investigación BOE RD 217/2022 *(Anexo IV es tabla limpia con 3 secciones marcadas por `<em>`; nombres con `*` final = optativas)*
+- [x] Fase B — `BoeEsoAdapter` + parser implementados *(28 materias extraídas, smoke test pasa, lint OK; auto-registrado vía `_instanceof`)*
+- [x] Fase C — Refresh ejecutado *(1 itinerario "Educación Secundaria Obligatoria" persistido con sus 28 materias)*
+- [x] Fase D — Campos opcionales: `Materia.horasSemanales` ahora nullable + nuevo campo `Materia.tipo` (enum). Materialización catalogo→centro propaga `tipo`. **Pendiente migration**: ejecutar `make:migration` + `migrate` para aplicar el ALTER. Pasada de limpieza de residuos del rename anterior en Materias.jsx, Grupos.jsx, Itinerarios.jsx (formData.ciclo → formData.itinerario, /api/ciclo_formativos → /api/itinerarios, etc.).
 - [ ] Fase E — Formularios y terminología adaptativos
 - [ ] Fase F — i18n + verificación end-to-end
 

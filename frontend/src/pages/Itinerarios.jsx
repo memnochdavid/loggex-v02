@@ -61,7 +61,7 @@ const Itinerarios = () => {
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentItinerario, setCurrentCiclo] = useState(null);
+  const [currentItinerario, setCurrentItinerario] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     nivel: 'Superior', // Default
@@ -92,7 +92,7 @@ const Itinerarios = () => {
     }
   }, [isSuperAdmin]);
 
-  const getCicloId = (c) => {
+  const getItinerarioId = (c) => {
     if (c.id) return c.id;
     if (c['@id']) {
         const parts = c['@id'].split('/');
@@ -102,7 +102,7 @@ const Itinerarios = () => {
   };
 
   // Función de carga optimizada
-  const fetchCiclosData = useCallback(async (params) => {
+  const fetchItinerariosData = useCallback(async (params) => {
     if (abortController.current) {
         abortController.current.abort();
     }
@@ -111,7 +111,7 @@ const Itinerarios = () => {
     setLoading(true);
 
     try {
-      let url = getApiUrl(`/api/ciclo_formativos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
+      let url = getApiUrl(`/api/itinerarios?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
       if (params.searchTerm) {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
@@ -177,11 +177,11 @@ const Itinerarios = () => {
       if (searchChanged) {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
           debounceTimeout.current = setTimeout(() => {
-              fetchCiclosData(params);
+              fetchItinerariosData(params);
           }, 500);
       } else {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-          fetchCiclosData(params);
+          fetchItinerariosData(params);
       }
 
       return () => {
@@ -196,7 +196,7 @@ const Itinerarios = () => {
       sortColumn, 
       sortDirection, 
       isSuperAdmin,
-      fetchCiclosData
+      fetchItinerariosData
   ]);
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
@@ -215,7 +215,7 @@ const Itinerarios = () => {
 
   const handleOpenModal = useCallback((ciclo = null) => {
     if (ciclo) {
-      setCurrentCiclo(ciclo);
+      setCurrentItinerario(ciclo);
       
       let centroId = '';
       if (ciclo.centro) {
@@ -232,7 +232,7 @@ const Itinerarios = () => {
         centro: centroId
       });
     } else {
-      setCurrentCiclo(null);
+      setCurrentItinerario(null);
       setFormData({
         nombre: '',
         nivel: 'Superior',
@@ -248,7 +248,7 @@ const Itinerarios = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setCurrentCiclo(null);
+    setCurrentItinerario(null);
   };
 
   const handleInputChange = (e) => {
@@ -293,7 +293,7 @@ const Itinerarios = () => {
         }
 
         const data = await response.json();
-        fetchCiclosData({
+        fetchItinerariosData({
           page: currentPage, itemsPerPage, searchTerm, searchField,
           selectedCentro, sortColumn, sortDirection, isSuperAdmin
         });
@@ -315,10 +315,10 @@ const Itinerarios = () => {
 
     // Flujo manual (creación tradicional o edición).
     try {
-      const id = currentItinerario ? getCicloId(currentItinerario) : null;
+      const id = currentItinerario ? getItinerarioId(currentItinerario) : null;
       const url = currentItinerario
-        ? getApiUrl(`/api/ciclo_formativos/${id}`)
-        : getApiUrl('/api/ciclo_formativos');
+        ? getApiUrl(`/api/itinerarios/${id}`)
+        : getApiUrl('/api/itinerarios');
 
       const method = currentItinerario ? 'PUT' : 'POST';
 
@@ -343,7 +343,7 @@ const Itinerarios = () => {
       }
 
       // Recargar datos
-      fetchCiclosData({
+      fetchItinerariosData({
           page: currentPage,
           itemsPerPage,
           searchTerm,
@@ -375,11 +375,11 @@ const Itinerarios = () => {
       return;
     }
 
-    const id = getCicloId(ciclo);
+    const id = getItinerarioId(ciclo);
     if (!id) return;
 
     try {
-      const response = await fetch(getApiUrl(`/api/ciclo_formativos/${id}`), {
+      const response = await fetch(getApiUrl(`/api/itinerarios/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -389,7 +389,7 @@ const Itinerarios = () => {
         throw new Error(message);
       }
 
-      fetchCiclosData({
+      fetchItinerariosData({
           page: currentPage,
           itemsPerPage,
           searchTerm,
@@ -407,7 +407,7 @@ const Itinerarios = () => {
         description: t('itinerarios.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el ciclo' })
       });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData, t]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchItinerariosData, t]);
 
   const columns = useMemo(() => [
     { header: t('itinerarios.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
@@ -473,7 +473,7 @@ const Itinerarios = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchCiclosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchItinerariosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 

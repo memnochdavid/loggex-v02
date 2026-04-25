@@ -120,7 +120,7 @@ const TemariosAlumno = () => {
             // Lógica para SuperAdmin
             let query = 'pagination=false';
             if (selectedMateria) {
-                query += `&modulo=${selectedMateria}`;
+                query += `&materia=${selectedMateria}`;
                 if (selectedGrupo) query += `&grupo=${selectedGrupo}`;
             } else if (selectedGrupo) {
                 query += `&grupo=${selectedGrupo}`;

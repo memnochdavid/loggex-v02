@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoMateria;
+use App\Entity\Catalogo\TipoMateria;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\MateriaRepository;
@@ -78,9 +79,26 @@ class Materia
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $curso = null;
 
-    #[ORM\Column]
+    /**
+     * Horas lectivas semanales. Obligatorio en FP (donde el currículo
+     * nacional las define). En ESO/Bachillerato es opcional: el RD nacional
+     * solo fija horas mínimas totales por etapa, y el reparto curso a curso
+     * lo decide cada CCAA. El admin puede dejarlo en blanco hasta confirmar
+     * el reparto regional.
+     */
+    #[ORM\Column(nullable: true)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $horasSemanales = null;
+
+    /**
+     * Tipo de materia (TRONCAL, ESPECIFICA, OPTATIVA, MODULO, FCT, …) — re-usa
+     * el enum del catálogo. Nullable porque las materias FP existentes pre-ESO
+     * no lo tienen. Lo rellena la materialización desde catálogo (catalogoOrigen)
+     * o el admin manualmente.
+     */
+    #[ORM\Column(type: 'string', enumType: TipoMateria::class, nullable: true)]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
+    private ?TipoMateria $tipo = null;
 
     #[ORM\ManyToOne(inversedBy: 'materias')]
     #[ORM\JoinColumn(nullable: false)]
@@ -155,9 +173,20 @@ class Materia
         return $this->horasSemanales;
     }
 
-    public function setHorasSemanales(int $horasSemanales): static
+    public function setHorasSemanales(?int $horasSemanales): static
     {
         $this->horasSemanales = $horasSemanales;
+        return $this;
+    }
+
+    public function getTipo(): ?TipoMateria
+    {
+        return $this->tipo;
+    }
+
+    public function setTipo(?TipoMateria $tipo): static
+    {
+        $this->tipo = $tipo;
         return $this;
     }
 

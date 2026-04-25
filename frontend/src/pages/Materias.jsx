@@ -25,8 +25,8 @@ const Materias = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-  const [modulos, setMaterias] = useState([]);
-  const [ciclos, setItinerarios] = useState([]);
+  const [materias, setMaterias] = useState([]);
+  const [itinerarios, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -35,14 +35,14 @@ const Materias = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedItinerario, setSelectedCiclo] = useState('');
+  const [selectedItinerario, setSelectedItinerario] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   
   // Usar hook de paginación
-  const [itemsPerPage, setItemsPerPage] = usePagination('modulos');
+  const [itemsPerPage, setItemsPerPage] = usePagination('materias');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchField, setSearchField] = useState('nombre');
@@ -59,19 +59,19 @@ const Materias = () => {
   const searchFields = [
       { value: 'nombre', label: t('materias.name') },
       { value: 'codigoOficial', label: t('materias.code') },
-      { value: 'ciclo.nombre', label: t('materias.cycle') }
+      { value: 'itinerario.nombre', label: t('materias.cycle') }
   ];
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMateria, setCurrentModulo] = useState(null);
+  const [currentMateria, setCurrentMateria] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
     codigoOficial: '',
     curso: 1,
     horasSemanales: 0,
-    ciclo: ''
+    itinerario: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -93,7 +93,7 @@ const Materias = () => {
 
   // Cargar ciclos (filtrados por centro si se selecciona uno, o todos si es admin de centro)
   useEffect(() => {
-    let url = getApiUrl('/api/ciclo_formativos?pagination=false');
+    let url = getApiUrl('/api/itinerarios?pagination=false');
     
     if (isSuperAdmin && selectedCentro) {
         url += `&centro=${selectedCentro}`;
@@ -108,10 +108,10 @@ const Materias = () => {
         const items = data['hydra:member'] || data.member || [];
         setItinerarios(items);
     })
-    .catch(err => console.error("Error cargando ciclos:", err));
+    .catch(err => console.error("Error cargando itinerarios:", err));
   }, [selectedCentro, isSuperAdmin]);
 
-  const getModuloId = (m) => {
+  const getMateriaId = (m) => {
     if (m.id) return m.id;
     if (m['@id']) {
         const parts = m['@id'].split('/');
@@ -121,7 +121,7 @@ const Materias = () => {
   };
 
   // Función de carga optimizada
-  const fetchModulosData = useCallback(async (params) => {
+  const fetchMateriasData = useCallback(async (params) => {
     if (abortController.current) {
         abortController.current.abort();
     }
@@ -137,10 +137,10 @@ const Materias = () => {
       }
       
       if (params.selectedItinerario) {
-          url += `&ciclo=${params.selectedItinerario}`;
+          url += `&itinerario=${params.selectedItinerario}`;
       } else if (params.isSuperAdmin && params.selectedCentro) {
           // Si no hay ciclo seleccionado pero sí centro, filtrar por centro del ciclo
-          url += `&ciclo.centro=${params.selectedCentro}`;
+          url += `&itinerario.centro=${params.selectedCentro}`;
       }
       
       if (params.sortColumn) {
@@ -169,7 +169,7 @@ const Materias = () => {
 
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.error("Error fetching modulos:", err);
+      console.error("Error fetching materias:", err);
       setError(err.message);
     } finally {
       if (abortController.current && !abortController.current.signal.aborted) {
@@ -200,11 +200,11 @@ const Materias = () => {
       if (searchChanged) {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
           debounceTimeout.current = setTimeout(() => {
-              fetchModulosData(params);
+              fetchMateriasData(params);
           }, 500);
       } else {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-          fetchModulosData(params);
+          fetchMateriasData(params);
       }
 
       return () => {
@@ -220,7 +220,7 @@ const Materias = () => {
       sortColumn, 
       sortDirection, 
       isSuperAdmin,
-      fetchModulosData
+      fetchMateriasData
   ]);
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
@@ -239,15 +239,15 @@ const Materias = () => {
 
   const handleOpenModal = useCallback((modulo = null) => {
     if (modulo) {
-      setCurrentModulo(modulo);
+      setCurrentMateria(modulo);
       
       // Extraer ID del ciclo de forma segura
-      let cicloId = '';
+      let itinerarioId = '';
       if (modulo.ciclo) {
           if (typeof modulo.ciclo === 'object') {
-              cicloId = modulo.ciclo.id || (modulo.ciclo['@id'] ? modulo.ciclo['@id'].split('/').pop() : '');
+              itinerarioId = modulo.ciclo.id || (modulo.ciclo['@id'] ? modulo.ciclo['@id'].split('/').pop() : '');
           } else if (typeof modulo.ciclo === 'string') {
-              cicloId = modulo.ciclo.split('/').pop();
+              itinerarioId = modulo.ciclo.split('/').pop();
           }
       }
 
@@ -257,17 +257,17 @@ const Materias = () => {
         codigoOficial: modulo.codigoOficial || '',
         curso: modulo.curso,
         horasSemanales: modulo.horasSemanales,
-        ciclo: cicloId
+        itinerario: itinerarioId
       });
     } else {
-      setCurrentModulo(null);
+      setCurrentMateria(null);
       setFormData({
         nombre: '',
         abreviatura: '',
         codigoOficial: '',
         curso: 1,
         horasSemanales: 0,
-        ciclo: ''
+        itinerario: ''
       });
     }
     setIsModalOpen(true);
@@ -275,7 +275,7 @@ const Materias = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setCurrentModulo(null);
+    setCurrentMateria(null);
   };
 
   const handleInputChange = (e) => {
@@ -291,21 +291,29 @@ const Materias = () => {
     setSaving(true);
 
     try {
-      const id = currentMateria ? getModuloId(currentMateria) : null;
+      const id = currentMateria ? getMateriaId(currentMateria) : null;
       const url = currentMateria 
         ? getApiUrl(`/api/materias/${id}`)
         : getApiUrl('/api/materias');
       
       const method = currentMateria ? 'PUT' : 'POST';
 
-      const cicloValue = String(formData.ciclo);
+      const itinerarioValue = String(formData.itinerario ?? formData.itinerario ?? '');
+      const horasSemRaw = formData.horasSemanales;
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
-        horasSemanales: parseInt(formData.horasSemanales),
-        // Asegurar formato IRI para relación
-        ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`
+        // Permitir h.semanales vacío para itinerarios no-FP (ESO/Bachillerato)
+        // donde el reparto curso a curso lo decide cada CCAA y aún puede no
+        // estar definido cuando se crea la materia.
+        horasSemanales: horasSemRaw === '' || horasSemRaw === null || horasSemRaw === undefined
+          ? null
+          : parseInt(horasSemRaw),
+        // Asegurar formato IRI para la relación al itinerario.
+        itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
       };
+      // Limpiar el alias antiguo si venía del state inicial.
+      delete payload.ciclo;
 
       const response = await fetch(url, {
         method: method,
@@ -323,7 +331,7 @@ const Materias = () => {
       }
 
       // Recargar datos
-      fetchModulosData({
+      fetchMateriasData({
           page: currentPage,
           itemsPerPage,
           searchTerm,
@@ -356,7 +364,7 @@ const Materias = () => {
       return;
     }
 
-    const id = getModuloId(modulo);
+    const id = getMateriaId(modulo);
     if (!id) return;
 
     try {
@@ -370,7 +378,7 @@ const Materias = () => {
         throw new Error(message);
       }
 
-      fetchModulosData({
+      fetchMateriasData({
           page: currentPage,
           itemsPerPage,
           searchTerm,
@@ -389,7 +397,7 @@ const Materias = () => {
         description: t('materias.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el módulo' })
       });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData, t]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchMateriasData, t]);
 
   const columns = useMemo(() => [
     {
@@ -410,7 +418,7 @@ const Materias = () => {
         header: t('materias.cycle'), 
         accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
         sortable: true, 
-        sortKey: 'ciclo.nombre' 
+        sortKey: 'itinerario.nombre' 
     },
     { 
         header: t('common.actions'),
@@ -445,7 +453,7 @@ const Materias = () => {
             {isSuperAdmin && (
                 <ThemedSelect
                     value={selectedCentro}
-                    onChange={(v) => { setSelectedCentro(v); setSelectedCiclo(''); }}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedItinerario(''); }}
                     minWidth={200}
                     ariaLabel={t('common.allCenters')}
                     options={[
@@ -457,12 +465,12 @@ const Materias = () => {
 
             <ThemedSelect
                 value={selectedItinerario}
-                onChange={setSelectedCiclo}
+                onChange={setSelectedItinerario}
                 minWidth={200}
                 ariaLabel={t('common.allCycles')}
                 options={[
                     { value: '', label: t('common.allCycles') },
-                    ...ciclos.map(c => ({
+                    ...itinerarios.map(c => ({
                         value: String(c.id || c['@id']?.split('/').pop()),
                         label: c.nombre,
                     })),
@@ -487,13 +495,13 @@ const Materias = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchMateriasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
         <DataTable
             columns={columns}
-            data={modulos}
+            data={materias}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
@@ -556,9 +564,9 @@ const Materias = () => {
                 <label className={styles.label}>{t('materias.cycleLabel')}</label>
                 <AsyncSearchSelect
                     name="ciclo"
-                    value={formData.ciclo}
-                    onChange={(v) => setFormData(p => ({ ...p, ciclo: v }))}
-                    endpoint="/api/ciclo_formativos"
+                    value={formData.itinerario}
+                    onChange={(v) => setFormData(p => ({ ...p, itinerario: v }))}
+                    endpoint="/api/itinerarios"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
                     getOptionLabel={(c) => c.nombre}
                     getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
