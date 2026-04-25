@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import ModuloLabel from '../components/ModuloLabel';
 import { useAuth } from '../context/AuthContext';
@@ -26,9 +27,8 @@ const Imparticiones = () => {
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [imparticiones, setImparticiones] = useState([]);
-  const [profesores, setProfesores] = useState([]);
-  const [allModulos, setAllModulos] = useState([]);
-  const [allGrupos, setAllGrupos] = useState([]);
+  // Las listas auxiliares (profesores/modulos/grupos) ya no se cargan upfront:
+  // los AsyncSearchSelect del modal hacen búsqueda on-demand contra la API.
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -70,25 +70,21 @@ const Imparticiones = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Listas filtradas para el modal
-  const filteredModulos = useMemo(() => {
-      if (!formData.grupo) return [];
-      
-      const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
-      if (!selectedGrupo) return [];
+  // Filtro derivado del grupo seleccionado para la cascada Grupo → Módulo:
+  // un módulo elegible debe pertenecer al mismo ciclo y al mismo curso que el grupo.
+  const [grupoFilter, setGrupoFilter] = useState({ ciclo: '', curso: '' });
 
-      return allModulos.filter(m => {
-          if (m.curso !== selectedGrupo.curso) return false;
-          
-          const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
-          const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
-          
-          const modCicloIdStr = String(modCicloId).split('/').pop();
-          const grupCicloIdStr = String(grupCicloId).split('/').pop();
+  // Helper para extraer id de un valor que puede ser objeto, IRI string o id puro.
+  const extractId = (raw) => {
+    if (raw == null) return '';
+    if (typeof raw === 'object') return String(raw.id || raw['@id']?.split('/').pop() || '');
+    if (typeof raw === 'string') return String(raw.split('/').pop());
+    return String(raw);
+  };
 
-          return modCicloIdStr === grupCicloIdStr;
-      });
-  }, [allModulos, allGrupos, formData.grupo]);
+  // El antiguo `filteredModulos` (cascada Grupo→Módulo en cliente) se ha sustituido
+  // por extraParams del AsyncSearchSelect: el módulo se filtra en servidor por
+  // ?ciclo=<grupo.ciclo>&curso=<grupo.curso>, derivado del state grupoFilter.
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -106,40 +102,9 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar datos auxiliares (filtrados por centro)
-  useEffect(() => {
-    let urlProfesores = getApiUrl('/api/users?itemsPerPage=100&rol_app=profesor');
-    let urlModulos = getApiUrl('/api/modulos?itemsPerPage=100');
-    let urlGrupos = getApiUrl('/api/grupos?itemsPerPage=100');
-    
-    if (isSuperAdmin && selectedCentro) {
-        urlProfesores += `&centro=${selectedCentro}`;
-        urlModulos += `&ciclo.centro=${selectedCentro}`;
-        urlGrupos += `&centro=${selectedCentro}`;
-    }
-    
-    const fetchData = async () => {
-        try {
-            const [resProf, resMod, resGrup] = await Promise.all([
-                fetch(urlProfesores, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }),
-                fetch(urlModulos, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }),
-                fetch(urlGrupos, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
-            ]);
-
-            const dataProf = await resProf.json();
-            const dataMod = await resMod.json();
-            const dataGrup = await resGrup.json();
-
-            setProfesores(dataProf['hydra:member'] || dataProf.member || []);
-            setAllModulos(dataMod['hydra:member'] || dataMod.member || []);
-            setAllGrupos(dataGrup['hydra:member'] || dataGrup.member || []);
-        } catch (err) {
-            console.error("Error cargando datos auxiliares:", err);
-        }
-    };
-
-    fetchData();
-  }, [selectedCentro, isSuperAdmin]);
+  // (Antes había aquí un useEffect que precargaba profesores+módulos+grupos al
+  // montar la página. Ya no es necesario: cada AsyncSearchSelect del modal hace
+  // su propia búsqueda servidor on-demand cuando el usuario teclea.)
 
   const getImparticionId = (i) => {
     if (i.id) return i.id;
@@ -263,23 +228,33 @@ const Imparticiones = () => {
   const handleOpenModal = useCallback((imparticion = null) => {
     if (imparticion) {
       setCurrentImparticion(imparticion);
-      
-      const getId = (obj) => {
-          if (!obj) return '';
-          if (typeof obj === 'object') {
-              return String(obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : ''));
-          }
-          if (typeof obj === 'string') {
-              return String(obj.split('/').pop());
-          }
-          return String(obj);
-      };
 
+      const grupoId = extractId(imparticion.grupo);
       setFormData({
-        profesor: getId(imparticion.profesor),
-        modulo: getId(imparticion.modulo),
-        grupo: getId(imparticion.grupo)
+        profesor: extractId(imparticion.profesor),
+        modulo: extractId(imparticion.modulo),
+        grupo: grupoId
       });
+
+      // Hidratar el filtro grupo→módulo para que el AsyncSearchSelect de módulo
+      // restrinja al ciclo+curso correctos también en modo edición.
+      if (grupoId) {
+        fetch(getApiUrl(`/api/grupos/${grupoId}`), {
+          headers: { Accept: 'application/ld+json' },
+          credentials: 'include'
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(g => {
+            if (!g) return;
+            setGrupoFilter({
+              ciclo: extractId(g.ciclo),
+              curso: g.curso != null ? String(g.curso) : ''
+            });
+          })
+          .catch(() => { /* fallo silencioso: el modal sigue funcionando, solo sin filtro de cascada */ });
+      } else {
+        setGrupoFilter({ ciclo: '', curso: '' });
+      }
     } else {
       setCurrentImparticion(null);
       setFormData({
@@ -287,6 +262,7 @@ const Imparticiones = () => {
         modulo: '',
         grupo: ''
       });
+      setGrupoFilter({ ciclo: '', curso: '' });
     }
     setIsModalOpen(true);
   }, []);
@@ -519,60 +495,66 @@ const Imparticiones = () => {
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.teacherCount', { count: profesores.length })}</label>
-                <select
+                <label className={styles.label}>{t('teaching.teacher', { defaultValue: 'Profesor' })}</label>
+                <AsyncSearchSelect
                     name="profesor"
                     value={formData.profesor}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, profesor: v }))}
+                    endpoint="/api/users"
+                    extraParams={{
+                        rol_app: 'profesor',
+                        ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {})
+                    }}
+                    getOptionLabel={(p) => `${p.nombre} ${p.apellidos}`}
+                    getOptionValue={(p) => p.id || p['@id']?.split('/').pop()}
+                    placeholder={t('common.selectTeacher')}
                     required
-                >
-                    <option value="">{t('common.selectTeacher')}</option>
-                    {profesores.map(p => (
-                        <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
-                            {p.nombre} {p.apellidos}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.groupCount', { count: allGrupos.length })}</label>
-                <select
+                <label className={styles.label}>{t('teaching.group', { defaultValue: 'Grupo' })}</label>
+                <AsyncSearchSelect
                     name="grupo"
                     value={formData.grupo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v, item) => {
+                        // Cambiar grupo: vacía el módulo y actualiza el filtro de cascada.
+                        setFormData(p => ({ ...p, grupo: v, modulo: '' }));
+                        if (item) {
+                            setGrupoFilter({
+                                ciclo: extractId(item.ciclo),
+                                curso: item.curso != null ? String(item.curso) : ''
+                            });
+                        } else {
+                            setGrupoFilter({ ciclo: '', curso: '' });
+                        }
+                    }}
+                    endpoint="/api/grupos"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(g) => g.abreviatura || g.nombre}
+                    getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
+                    placeholder={t('common.selectGroup')}
                     required
-                >
-                    <option value="">{t('common.selectGroup')}</option>
-                    {allGrupos.map(g => (
-                        <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
-                            {g.abreviatura || g.nombre}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.moduleCount', { count: filteredModulos.length })}</label>
-                <select
+                <label className={styles.label}>{t('teaching.module', { defaultValue: 'Módulo' })}</label>
+                <AsyncSearchSelect
                     name="modulo"
                     value={formData.modulo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, modulo: v }))}
+                    endpoint="/api/modulos"
+                    extraParams={{
+                        ...(grupoFilter.ciclo ? { ciclo: grupoFilter.ciclo } : {}),
+                        ...(grupoFilter.curso ? { curso: grupoFilter.curso } : {}),
+                    }}
+                    getOptionLabel={(m) => `${m.nombre} (${m.codigoOficial}) - ${m.curso}º`}
+                    getOptionValue={(m) => m.id || m['@id']?.split('/').pop()}
+                    placeholder={formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
+                    disabled={!formData.grupo}
                     required
-                    disabled={!formData.grupo} // Deshabilitar si no hay grupo
-                >
-                    <option value="">
-                        {formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
-                    </option>
-                    {filteredModulos.map(m => (
-                        <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
-                            {m.nombre} ({m.codigoOficial}) - {m.curso}º
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
         </ModalView>
         </div>

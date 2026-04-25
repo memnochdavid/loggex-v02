@@ -11,6 +11,7 @@ import ModuloLabel from '../components/ModuloLabel';
 import CalendarView from '../components/CalendarView';
 import WeekStrip from '../components/WeekStrip';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose, Download } from 'lucide-react';
@@ -710,14 +711,17 @@ const Horarios = ({ embedded = false, tabs = null }) => {
             </div>
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('schedules.subjectLabel')}</label>
-                <select name="imparticion" value={formData.imparticion} onChange={handleInputChange} className={styles.select} required>
-                    <option value="">{t('schedules.selectSubject')}</option>
-                    {imparticiones.map(i => (
-                        <option key={i.id || i['@id']} value={i.id || i['@id'].split('/').pop()}>
-                            {i.modulo?.nombre} - {i.grupo?.abreviatura || i.grupo?.nombre} ({i.profesor?.nombre})
-                        </option>
-                    ))}
-                </select>
+                <AsyncSearchSelect
+                    name="imparticion"
+                    value={formData.imparticion}
+                    onChange={(v) => setFormData(p => ({ ...p, imparticion: v }))}
+                    endpoint="/api/imparticions"
+                    extraParams={isSuperAdmin && selectedCentro ? { 'grupo.centro': selectedCentro } : {}}
+                    getOptionLabel={(i) => `${i.modulo?.nombre ?? ''} — ${i.grupo?.abreviatura || i.grupo?.nombre || ''} (${i.profesor?.nombre ?? ''} ${i.profesor?.apellidos ?? ''})`}
+                    getOptionValue={(i) => i.id || i['@id']?.split('/').pop()}
+                    placeholder={t('schedules.selectSubject')}
+                    required
+                />
             </div>
         </ModalView>
     </>

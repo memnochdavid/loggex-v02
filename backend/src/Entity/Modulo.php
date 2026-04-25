@@ -41,7 +41,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'codigoOficial' => 'partial',
     'ciclo' => 'exact', // Para filtrar por ID de ciclo
     'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
-    'ciclo.centro' => 'exact' // Para filtrar por centro (SuperAdmin)
+    'ciclo.centro' => 'exact', // Para filtrar por centro (SuperAdmin)
+    'curso' => 'exact' // Para filtrar por curso (1, 2, …) — usado en cascadas Grupo→Modulo
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]

@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import ModuloLabel from '../components/ModuloLabel';
 import { useAuth } from '../context/AuthContext';
@@ -553,18 +554,17 @@ const Modulos = () => {
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('modules.cycleLabel')}</label>
-                <select
+                <AsyncSearchSelect
                     name="ciclo"
                     value={formData.ciclo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, ciclo: v }))}
+                    endpoint="/api/ciclo_formativos"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(c) => c.nombre}
+                    getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                    placeholder={t('common.selectCycle')}
                     required
-                >
-                    <option value="">{t('common.selectCycle')}</option>
-                    {ciclos.map(c => (
-                        <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>

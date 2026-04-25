@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ImparticionRepository;
@@ -43,6 +44,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'grupo.nombre' => 'partial',
     'grupo.centro' => 'exact' // AÑADIDO: Permite filtrar imparticiones por centro del grupo
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['profesor.nombre', 'profesor.apellidos', 'modulo.nombre', 'modulo.abreviatura', 'modulo.codigoOficial', 'grupo.nombre', 'grupo.abreviatura'])]
 #[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'modulo.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Imparticion
 {

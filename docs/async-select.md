@@ -70,8 +70,8 @@ use App\Doctrine\Filter\SearchAnyFilter;
 class MiEntidad { ... }
 ```
 
-- `properties`: lista de los campos de la entidad sobre los que aplicar `LIKE %q%` con OR.
-- Solo soporta campos *directos* sobre la tabla raíz (no joins). Los nombres se sanitizan (`/[^a-zA-Z0-9_]/`) por seguridad.
+- `properties`: lista de los campos sobre los que aplicar `LIKE %q%` con OR.
+- Soporta tanto **campos directos** (`'nombre'`) como **paths con joins implícitos** (`'profesor.nombre'`, `'imparticion.modulo.nombre'`, …). Cada segmento se sanitiza como identificador SQL (`/[^a-zA-Z0-9_]/`) por seguridad. Para los paths, el filtro añade `LEFT JOIN`s con alias deterministas (`sa_<segmento>`) y reutiliza el mismo alias entre propiedades que comparten prefijo (p. ej. `'profesor.nombre'` y `'profesor.apellidos'` solo joinean `profesor` una vez).
 - El parámetro de cliente siempre es `q`. No es configurable a propósito (consistencia entre entidades).
 
 > **Aviso sobre el formato de `properties`** — API Platform normaliza internamente la lista plana `['nombre', 'apellidos']` a un mapping `['nombre' => null, 'apellidos' => null]` (espera el formato del `SearchFilter` estándar). Por eso `SearchAnyFilter::apply()` itera detectando si la clave es `int` (lista) o `string` (mapping). Si extiendes este filtro o escribes uno parecido, **no asumas un formato fijo**: lee la clave si es string y el valor si es int. Pasarlo por alto es lo que provocó el primer bug histórico (sección 8).
@@ -139,7 +139,7 @@ import AsyncSearchSelect from '../components/AsyncSearchSelect';
 | Prop | Tipo | Default | Descripción |
 |---|---|---|---|
 | `value` | `string` \| `number` | — | Valor actual (id o IRI) del elemento seleccionado |
-| `onChange` | `(value) => void` | — | Handler cuando se selecciona un elemento |
+| `onChange` | `(value, item) => void` | — | Handler de selección. El primer argumento es el value (id). El segundo es el item completo del API (o `null` al limpiar). Útil para cascadas: `onChange={(v, grupo) => setGrupoFilter(extractCiclo(grupo))}` |
 | `endpoint` | `string` | — | URL relativa del recurso (p. ej. `/api/users`) |
 | `extraParams` | `object` | `{}` | Query params fijos que siempre acompañan a `q` (p. ej. `{ rol_app: 'alumno', centro: 3 }`) |
 | `getOptionLabel` | `(item) => string` | `item.label ?? String(item.id)` | Cómo mostrar cada opción |
@@ -226,30 +226,45 @@ Pasos checklist:
 | Página | Modal | Campos |
 |---|---|---|
 | `Matriculas.jsx` | Nueva/editar matrícula | `alumno`, `grupo` |
+| `Modulos.jsx` | Nuevo/editar módulo | `ciclo` |
+| `CiclosFormativos.jsx` | Nuevo/editar ciclo | `centro` (solo SuperAdmin) |
+| `Festivos.jsx` | Nuevo/editar festivo | `centro` (opcional, solo SuperAdmin) |
+| `Grupos.jsx` | Nuevo/editar grupo | `ciclo`, `centro` (centro solo SuperAdmin) |
+| `Imparticiones.jsx` | Nueva/editar impartición | `profesor`, `grupo`, `modulo` (con cascada Grupo→Módulo) |
+| `Horarios.jsx` | Nuevo/editar horario | `imparticion` |
 
-### Selects pendientes de migrar
+### Casos analizados que NO necesitaban migración
 
-(Identificados con `grep -rn "<select" frontend/src/pages` — sustituir mecánicamente siguiendo el recipe.)
+| Página | Razón |
+|---|---|
+| `TablonWidget.jsx` (Comunicados) | El centro se decide con un toggle "global sí/no" que asigna automáticamente el centro del usuario; no hay `<select>` |
+| `Configuracion.jsx` (Personalización) | El centro se infiere del usuario actual; no hay selector |
+| `Entregas.jsx` | Las imparticiones se muestran como accordion (no select); las tareas se gestionan dentro de la imparticion ya visible |
+| `MisFaltas.jsx` / `AsistenciaModal.jsx` | Sin `<select>` de gran cardinalidad |
 
-| Página | Modal | Campos a migrar | Filtro backend listo |
-|---|---|---|---|
-| `Imparticiones.jsx` | Nueva/editar impartición | `profesor`, `modulo`, `grupo` | ☑ `User` ☑ `Modulo` ☑ `Grupo` |
-| `Grupos.jsx` | Nuevo/editar grupo | `ciclo`, `centro` | ☑ `CicloFormativo` ☑ `Centro` |
-| `Modulos.jsx` | Nuevo/editar módulo | `ciclo` | ☑ `CicloFormativo` |
-| `CiclosFormativos.jsx` | Nuevo/editar ciclo | `centro` | ☑ `Centro` |
-| `Festivos.jsx` | Nuevo/editar festivo | `centro` | ☑ `Centro` |
-| `Comunicados.jsx` (TablonWidget) | Nuevo comunicado | `centro` | ☑ `Centro` |
-| `Personalizacion.jsx` | (centro selector si aplica) | `centro` | ☑ `Centro` |
-| `Horarios.jsx` | Nuevo/editar horario | `imparticion` | (ver nota abajo) |
-| `Entregas.jsx` | Nueva/editar tarea | `imparticion` | (ver nota abajo) |
-| `Asistencia*.jsx` | Filtros relacionados | `imparticion`, `alumno` | (ver nota abajo) |
+### Patrón de cascada (caso `Imparticion` en `Imparticiones.jsx`)
 
-**Nota sobre `Imparticion`**: es una entidad relacional (profesor + módulo + grupo) sin campos de texto propios, así que no le encaja `SearchAnyFilter`. Dos opciones:
+El select de **módulo** depende del **grupo** seleccionado: solo módulos del mismo ciclo y curso. Implementación de referencia:
 
-1. Añadir un `SearchAnyFilter` con properties cruzadas (`profesor.nombre`, `modulo.nombre`, `grupo.nombre`) — pero `SearchAnyFilter` actual no soporta paths con punto. Habría que ampliarlo.
-2. Migrar los modales de Tarea/Horario/Asistencia para que el usuario seleccione primero `grupo` y `modulo` por separado (dos `AsyncSearchSelect` independientes) y el backend resuelva la `imparticion` correspondiente.
+1. El `onChange` del grupo recibe el item completo (segundo argumento del callback) y guarda `{ciclo, curso}` en un estado local `grupoFilter`.
+2. El `AsyncSearchSelect` del módulo pasa `grupoFilter.ciclo` y `grupoFilter.curso` como `extraParams`, y se marca `disabled` mientras no haya grupo.
+3. En modo edición, `handleOpenModal` hace un `fetch` puntual del grupo para hidratar `grupoFilter` (si no, el modal abriría con módulo libre y la cascada estaría rota).
 
-Decidir caso a caso cuando se llegue a esos modales.
+Backend: añadido `'curso' => 'exact'` al `SearchFilter` de `Modulo` para soportar el filtrado.
+
+### Selects de `Imparticion` en otras páginas
+
+`Imparticion` no tiene campos de texto propios (es una tabla puente profesor↔módulo↔grupo). El `SearchAnyFilter` se ha extendido para soportar paths con `.` (joins implícitos), declarado así en la entidad:
+
+```php
+#[ApiFilter(SearchAnyFilter::class, properties: [
+    'profesor.nombre', 'profesor.apellidos',
+    'modulo.nombre', 'modulo.abreviatura', 'modulo.codigoOficial',
+    'grupo.nombre', 'grupo.abreviatura'
+])]
+```
+
+El filtro hace `LEFT JOIN` lazy con alias deterministas (`sa_<segmento>`) reutilizados entre propiedades del mismo path, y aplica `OR` con `LIKE %q%` sobre cada hoja. Funciona tanto para campos directos como con cualquier profundidad de relación (siempre que cada segmento sea un identificador SQL válido).
 
 ---
 

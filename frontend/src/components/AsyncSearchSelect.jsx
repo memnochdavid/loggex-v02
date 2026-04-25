@@ -210,14 +210,17 @@ const AsyncSearchSelect = ({
 
     const handleSelect = (item) => {
         setSelectedItem(item);
-        onChange(getOptionValue(item));
+        // Segundo argumento: el item completo. Útil cuando el caller necesita
+        // derivar otros campos del item seleccionado (p. ej. el ciclo de un grupo
+        // para luego filtrar módulos). El caller puede ignorarlo si solo le interesa el id.
+        onChange(getOptionValue(item), item);
         setOpen(false);
     };
 
     const handleClear = (e) => {
         e.stopPropagation();
         setSelectedItem(null);
-        onChange('');
+        onChange('', null);
     };
 
     const handleKeyDown = (e) => {

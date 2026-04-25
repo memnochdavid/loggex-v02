@@ -50,18 +50,54 @@ final class SearchAnyFilter implements FilterInterface
         $rootAlias = $queryBuilder->getRootAliases()[0];
         $parameterName = $queryNameGenerator->generateParameterName('q');
 
+        // Cache de joins ya añadidos en esta invocación, indexados por path-prefix
+        // (p. ej. "profesor", "imparticion.modulo"), para reutilizar el mismo
+        // alias entre propiedades distintas (`profesor.nombre`, `profesor.email`).
+        $joinedAliases = [];
+
         $orParts = [];
         // API Platform normaliza `properties: ['nombre', 'apellidos']` (lista plana)
         // a `['nombre' => null, 'apellidos' => null]` (mapping propiedad=>strategy).
         // Soportamos ambos formatos: usamos la clave si es string, el valor si es int.
-        foreach ($this->properties as $key => $value2) {
-            $field = is_int($key) ? $value2 : $key;
-            // Solo campos planos sobre la tabla raíz; nombre seguro = identificador SQL.
-            $field = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $field);
-            if ($field === '') {
+        foreach ($this->properties as $key => $val) {
+            $rawField = (string) (is_int($key) ? $val : $key);
+
+            // Saneamos cada segmento del path como identificador SQL.
+            $segments = array_values(array_filter(
+                array_map(
+                    fn($s) => preg_replace('/[^a-zA-Z0-9_]/', '', $s),
+                    explode('.', $rawField)
+                ),
+                fn($s) => $s !== ''
+            ));
+
+            if (empty($segments)) {
                 continue;
             }
-            $orParts[] = sprintf('LOWER(%s.%s) LIKE LOWER(:%s)', $rootAlias, $field, $parameterName);
+
+            // Caso simple: campo directo de la entidad raíz.
+            if (count($segments) === 1) {
+                $orParts[] = sprintf('LOWER(%s.%s) LIKE LOWER(:%s)', $rootAlias, $segments[0], $parameterName);
+                continue;
+            }
+
+            // Caso con dots: JOIN implícito por cada nivel de relación, LIKE sobre la hoja.
+            // P. ej. `profesor.nombre` → leftJoin profesor → LOWER(sa_profesor.nombre) LIKE :q.
+            $currentAlias = $rootAlias;
+            $leaf = array_pop($segments);
+            $pathPrefix = '';
+            foreach ($segments as $seg) {
+                $pathPrefix .= ($pathPrefix === '' ? '' : '.') . $seg;
+                if (!isset($joinedAliases[$pathPrefix])) {
+                    // Prefijo `sa_` para reducir el riesgo de colisión con joins
+                    // añadidos por otros filtros o por la propia metadata.
+                    $joinAlias = 'sa_' . str_replace('.', '_', $pathPrefix);
+                    $queryBuilder->leftJoin(sprintf('%s.%s', $currentAlias, $seg), $joinAlias);
+                    $joinedAliases[$pathPrefix] = $joinAlias;
+                }
+                $currentAlias = $joinedAliases[$pathPrefix];
+            }
+            $orParts[] = sprintf('LOWER(%s.%s) LIKE LOWER(:%s)', $currentAlias, $leaf, $parameterName);
         }
 
         if (empty($orParts)) {

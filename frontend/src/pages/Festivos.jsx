@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
@@ -518,18 +519,15 @@ const Festivos = ({ embedded = false, tabs = null }) => {
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
                     <label className={styles.label}>{t('holidays.centerOptional')}</label>
-                    <select
+                    <AsyncSearchSelect
                         name="centro"
                         value={formData.centro}
-                        onChange={handleInputChange}
-                        className={styles.select}
-                        style={{ width: '100%' }}
-                    >
-                        <option value="">{t('holidays.globalOption')}</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
+                        onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                        endpoint="/api/centros"
+                        getOptionLabel={(c) => c.nombre}
+                        getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                        placeholder={t('holidays.globalOption')}
+                    />
                 </div>
             )}
         </ModalView>
