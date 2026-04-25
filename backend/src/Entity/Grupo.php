@@ -83,7 +83,7 @@ class Grupo
     #[ORM\ManyToOne(inversedBy: 'grupos')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
-    private ?CicloFormativo $ciclo = null;
+    private ?Itinerario $itinerario = null;
 
     #[ORM\ManyToOne(inversedBy: 'grupos')]
     #[ORM\JoinColumn(nullable: false)]
@@ -173,14 +173,14 @@ class Grupo
         return $this;
     }
 
-    public function getCiclo(): ?CicloFormativo
+    public function getItinerario(): ?Itinerario
     {
-        return $this->ciclo;
+        return $this->itinerario;
     }
 
-    public function setCiclo(?CicloFormativo $ciclo): static
+    public function setItinerario(?Itinerario $itinerario): static
     {
-        $this->ciclo = $ciclo;
+        $this->itinerario = $itinerario;
         return $this;
     }
 

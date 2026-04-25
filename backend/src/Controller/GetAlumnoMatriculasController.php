@@ -24,7 +24,7 @@ class GetAlumnoMatriculasController extends AbstractController
         $data = [];
         foreach ($matriculas as $matricula) {
             $grupo = $matricula->getGrupo();
-            $ciclo = $grupo->getCiclo();
+            $itinerario = $grupo->getItinerario();
 
             $data[] = [
                 'id' => $matricula->getId(),
@@ -33,7 +33,7 @@ class GetAlumnoMatriculasController extends AbstractController
                     'curso' => $grupo->getCurso(),
                     'anioEscolar' => $grupo->getAnioEscolar(),
                     'ciclo' => [
-                        'nombre' => $ciclo->getNombre()
+                        'nombre' => $itinerario->getNombre()
                     ]
                 ]
             ];

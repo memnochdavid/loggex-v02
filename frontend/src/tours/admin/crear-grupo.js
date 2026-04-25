@@ -20,13 +20,13 @@ export default {
             disableBeacon: true,
         },
         {
-            targetId: 'sidebar-ciclos',
+            targetId: 'sidebar-itinerarios',
             contentKey: 'tour.adminCrearGrupo.step2',
             titleKey:   'tour.adminCrearGrupo.step2Title',
             placement: 'right',
         },
         {
-            targetId: 'sidebar-modulos',
+            targetId: 'sidebar-materias',
             contentKey: 'tour.adminCrearGrupo.step3',
             titleKey:   'tour.adminCrearGrupo.step3Title',
             placement: 'right',

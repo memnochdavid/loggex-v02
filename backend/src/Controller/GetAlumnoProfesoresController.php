@@ -41,7 +41,7 @@ class GetAlumnoProfesoresController extends AbstractController
                             'asignaturas' => []
                         ];
                     }
-                    $profesoresMap[$id]['asignaturas'][] = $imp->getModulo()->getNombre();
+                    $profesoresMap[$id]['asignaturas'][] = $imp->getMateria()->getNombre();
                 }
             }
         }

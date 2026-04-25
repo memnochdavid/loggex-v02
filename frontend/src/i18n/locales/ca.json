@@ -131,7 +131,7 @@
     "teacher": "Professor",
     "tasks": "Tasques",
     "deliveries": "Lliuraments",
-    "myMaterials": "Els meus temaris",
+    "myTemarios": "Els meus temaris",
     "faculty": "Claustre",
     "myStudents": "Els meus alumnes",
     "student": "Alumne",
@@ -141,10 +141,10 @@
     "myTeachers": "Els meus professors",
     "admin": "Administració",
     "users": "Usuaris",
-    "cycles": "Cicles",
-    "cyclesLong": "Cicles Formatius",
+    "itinerarios": "Cicles",
+    "itinerariosLong": "Cicles Formatius",
     "groups": "Grups",
-    "modules": "Mòduls",
+    "materias": "Mòduls",
     "enrollments": "Matrícules",
     "teachingAssignment": "Assignació Docència",
     "teaching": "Docència",
@@ -285,7 +285,7 @@
     "phonePlaceholder": "912 345 678",
     "activeCheckbox": "Centre actiu"
   },
-  "cycles": {
+  "itinerarios": {
     "title": "Cicles formatius",
     "searchPlaceholder": "Cercar cicle...",
     "name": "Nom",
@@ -327,7 +327,7 @@
     "course2": "2n",
     "centerLabel": "Centre"
   },
-  "modules": {
+  "materias": {
     "title": "Mòduls formatius",
     "searchPlaceholder": "Cercar mòdul...",
     "name": "Nom",

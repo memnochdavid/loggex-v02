@@ -74,10 +74,10 @@ final class BasicaParser
         }
 
         $identificacion = $this->extractIdentificacion($rangeCrawler);
-        $modulos = $this->seccionParser->parseFromParagraphs($rangeCrawler);
+        $materias = $this->seccionParser->parseFromParagraphs($rangeCrawler);
 
         return [
-            'modulos' => $modulos,
+            'modulos' => $materias,
             'identificacion' => $identificacion,
         ];
     }

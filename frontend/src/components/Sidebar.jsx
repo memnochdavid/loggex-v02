@@ -100,9 +100,9 @@ const Sidebar = () => {
         '/mis-profesores': 'alumno',
         
         '/usuarios': 'administracion',
-        '/ciclos': 'administracion',
+        '/itinerarios': 'administracion',
         '/grupos': 'administracion',
-        '/modulos': 'administracion',
+        '/materias': 'administracion',
         '/matriculas': 'administracion',
         '/imparticiones': 'administracion',
         '/fechas': isSuperAdmin ? 'superadmin' : 'administracion',
@@ -238,9 +238,9 @@ const Sidebar = () => {
                         <BarChart3 size={20} />
                         <span>{t('sidebar.grades')}</span>
                     </NavLink>
-                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myMaterials')} onClick={handleNavClose} data-tour="sidebar-mis-temarios">
+                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myTemarios')} onClick={handleNavClose} data-tour="sidebar-mis-temarios">
                         <Book size={20} />
-                        <span>{t('sidebar.myMaterials')}</span>
+                        <span>{t('sidebar.myTemarios')}</span>
                     </NavLink>
                     <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={handleNavClose} data-tour="sidebar-claustro">
                         <UserCheck size={20} />
@@ -305,17 +305,17 @@ const Sidebar = () => {
                         <Users size={20} />
                         <span>{t('sidebar.users')}</span>
                     </NavLink>
-                    <NavLink to="/ciclos" className={getNavLinkClass} title={t('sidebar.cycles')} onClick={handleNavClose} data-tour="sidebar-ciclos">
+                    <NavLink to="/itinerarios" className={getNavLinkClass} title={t('sidebar.itinerarios')} onClick={handleNavClose} data-tour="sidebar-itinerarios">
                         <Layers size={20} />
-                        <span>{t('sidebar.cycles')}</span>
+                        <span>{t('sidebar.itinerarios')}</span>
                     </NavLink>
                     <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={handleNavClose} data-tour="sidebar-grupos">
                         <UsersRound size={20} />
                         <span>{t('sidebar.groups')}</span>
                     </NavLink>
-                    <NavLink to="/modulos" className={getNavLinkClass} title={t('sidebar.modules')} onClick={handleNavClose} data-tour="sidebar-modulos">
+                    <NavLink to="/materias" className={getNavLinkClass} title={t('sidebar.materias')} onClick={handleNavClose} data-tour="sidebar-materias">
                         <BookOpen size={20} />
-                        <span>{t('sidebar.modules')}</span>
+                        <span>{t('sidebar.materias')}</span>
                     </NavLink>
                     <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={handleNavClose} data-tour="sidebar-matriculas">
                         <GraduationCap size={20} />

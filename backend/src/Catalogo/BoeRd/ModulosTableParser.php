@@ -67,7 +67,7 @@ final class ModulosTableParser
         $tableCrawler = new Crawler($targetTable);
         $rows = $tableCrawler->filterXPath('.//tr');
 
-        $modulos = [];
+        $materias = [];
         $orden = 0;
         $headerRowsToSkip = 2;  // Las dos primeras filas son cabecera (rowspan/colspan).
 
@@ -112,7 +112,7 @@ final class ModulosTableParser
                 $horasSemanalesElegidas = null;  // Solo horas totales, sin h/sem (proyecto, FCT).
             }
 
-            $modulos[] = [
+            $materias[] = [
                 'codigoOficial' => $codigo,
                 'nombre' => $nombre,
                 'tipo' => $this->detectTipo($nombre),
@@ -123,7 +123,7 @@ final class ModulosTableParser
             ];
         }
 
-        return $modulos;
+        return $materias;
     }
 
     /**

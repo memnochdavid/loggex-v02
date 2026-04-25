@@ -34,9 +34,9 @@ class ImportOldDataCommand extends Command
             // 1. Limpiar tablas (Orden inverso de dependencia)
             // NO tocamos 'usuario' ni 'personalizacion'
             $tablesToTruncate = [
-                'asistencia', 'calificacion', 'material', 'entrega', 'tarea',
-                'horario', 'matricula', 'imparticion', 'grupo', 'modulo',
-                'ciclo_formativo', 'festivo'
+                'asistencia', 'calificacion', 'temario', 'entrega', 'tarea',
+                'horario', 'matricula', 'imparticion', 'grupo', 'materia',
+                'itinerario', 'festivo'
             ];
 
             foreach ($tablesToTruncate as $table) {
@@ -380,8 +380,8 @@ class ImportOldDataCommand extends Command
     private function insertMaterial($conn)
     {
         $sql = "INSERT INTO material (id, titulo, archivo, fecha_subida, imparticion_id, created_at, deleted) VALUES
-        (1,'Tema 1','20251228_entornos-desarrollo-tema-1.pdf','2025-12-28 10:43:11',24, NOW(), 0),
-        (2,'Tema 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28, NOW(), 0)";
+        (1,'TemaVisual 1','20251228_entornos-desarrollo-tema-1.pdf','2025-12-28 10:43:11',24, NOW(), 0),
+        (2,'TemaVisual 1','20251228_fol-tema-1.pdf','2025-12-28 10:50:10',28, NOW(), 0)";
         $conn->executeStatement($sql);
     }
 

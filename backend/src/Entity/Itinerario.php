@@ -15,15 +15,15 @@ use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
-use App\Repository\CicloFormativoRepository;
+use App\Repository\ItinerarioRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-#[ORM\Entity(repositoryClass: CicloFormativoRepository::class)]
-#[ORM\Table(name: 'ciclo_formativo')]
+#[ORM\Entity(repositoryClass: ItinerarioRepository::class)]
+#[ORM\Table(name: 'itinerario')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -33,8 +33,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Put(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
-    normalizationContext: ['groups' => ['ciclo:read', 'timestamp:read', 'softdelete:read']],
-    denormalizationContext: ['groups' => ['ciclo:write']]
+    normalizationContext: ['groups' => ['itinerario:read', 'timestamp:read', 'softdelete:read']],
+    denormalizationContext: ['groups' => ['itinerario:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
@@ -43,7 +43,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'nivel', 'id'], arguments: ['orderParameterName' => 'order'])]
-class CicloFormativo
+class Itinerario
 {
     use TimestampableTrait;
     use SoftDeletableTrait;
@@ -51,20 +51,20 @@ class CicloFormativo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ciclo:read', 'modulo:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
+    #[Groups(['itinerario:read', 'materia:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
+    #[Groups(['itinerario:read', 'itinerario:write', 'materia:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['ciclo:read', 'ciclo:write', 'modulo:read'])]
+    #[Groups(['itinerario:read', 'itinerario:write', 'materia:read'])]
     private ?string $nivel = null;
 
-    #[ORM\ManyToOne(inversedBy: 'ciclos')]
+    #[ORM\ManyToOne(inversedBy: 'itinerarios')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['ciclo:read', 'ciclo:write'])]
+    #[Groups(['itinerario:read', 'itinerario:write'])]
     private ?Centro $centro = null;
 
     /**
@@ -74,18 +74,18 @@ class CicloFormativo
      */
     #[ORM\ManyToOne(targetEntity: CatalogoItinerario::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['ciclo:read'])]
+    #[Groups(['itinerario:read'])]
     private ?CatalogoItinerario $catalogoOrigen = null;
 
-    #[ORM\OneToMany(mappedBy: 'ciclo', targetEntity: Modulo::class)]
-    private Collection $modulos;
+    #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Materia::class)]
+    private Collection $materias;
 
-    #[ORM\OneToMany(mappedBy: 'ciclo', targetEntity: Grupo::class)]
+    #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Grupo::class)]
     private Collection $grupos;
 
     public function __construct()
     {
-        $this->modulos = new ArrayCollection();
+        $this->materias = new ArrayCollection();
         $this->grupos = new ArrayCollection();
     }
 
@@ -128,28 +128,28 @@ class CicloFormativo
     }
 
     /**
-     * @return Collection<int, Modulo>
+     * @return Collection<int, Materia>
      */
-    public function getModulos(): Collection
+    public function getMaterias(): Collection
     {
-        return $this->modulos;
+        return $this->materias;
     }
 
-    public function addModulo(Modulo $modulo): static
+    public function addMateria(Materia $materia): static
     {
-        if (!$this->modulos->contains($modulo)) {
-            $this->modulos->add($modulo);
-            $modulo->setCiclo($this);
+        if (!$this->materias->contains($materia)) {
+            $this->materias->add($materia);
+            $materia->setItinerario($this);
         }
 
         return $this;
     }
 
-    public function removeModulo(Modulo $modulo): static
+    public function removeMateria(Materia $materia): static
     {
-        if ($this->modulos->removeElement($modulo)) {
-            if ($modulo->getCiclo() === $this) {
-                $modulo->setCiclo(null);
+        if ($this->materias->removeElement($materia)) {
+            if ($materia->getItinerario() === $this) {
+                $materia->setItinerario(null);
             }
         }
 
@@ -168,7 +168,7 @@ class CicloFormativo
     {
         if (!$this->grupos->contains($grupo)) {
             $this->grupos->add($grupo);
-            $grupo->setCiclo($this);
+            $grupo->setItinerario($this);
         }
 
         return $this;
@@ -177,8 +177,8 @@ class CicloFormativo
     public function removeGrupo(Grupo $grupo): static
     {
         if ($this->grupos->removeElement($grupo)) {
-            if ($grupo->getCiclo() === $this) {
-                $grupo->setCiclo(null);
+            if ($grupo->getItinerario() === $this) {
+                $grupo->setItinerario(null);
             }
         }
 

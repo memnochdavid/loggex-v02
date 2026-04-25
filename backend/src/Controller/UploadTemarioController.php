@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Imparticion;
-use App\Entity\Material;
+use App\Entity\Temario;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemOperator;
@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
-class UploadMaterialController extends AbstractController
+class UploadTemarioController extends AbstractController
 {
     #[Route('/api/materiales/upload', name: 'api_material_upload', methods: ['POST'])]
     public function upload(
@@ -70,19 +70,19 @@ class UploadMaterialController extends AbstractController
             return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
         }
 
-        // Crear entidad Material
-        $material = new Material();
-        $material->setTitulo($titulo);
-        $material->setArchivo($newFilename);
-        $material->setFechaSubida(new \DateTime());
-        $material->setImparticion($imparticion);
+        // Crear entidad Temario
+        $temario = new Temario();
+        $temario->setTitulo($titulo);
+        $temario->setArchivo($newFilename);
+        $temario->setFechaSubida(new \DateTime());
+        $temario->setImparticion($imparticion);
 
-        $entityManager->persist($material);
+        $entityManager->persist($temario);
         $entityManager->flush();
 
         return $this->json([
-            'message' => 'Material subido correctamente',
-            'id' => $material->getId(),
+            'message' => 'Temario subido correctamente',
+            'id' => $temario->getId(),
             'archivo' => $newFilename
         ], 201);
     }

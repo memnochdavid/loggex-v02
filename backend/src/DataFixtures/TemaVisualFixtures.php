@@ -2,15 +2,15 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Tema;
+use App\Entity\TemaVisual;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
-class TemaFixtures extends Fixture
+class TemaVisualFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $temas = [
+        $temasVisuales = [
             [
                 'nombre' => 'Default',
                 'configuracion' => [
@@ -483,14 +483,14 @@ class TemaFixtures extends Fixture
             ]
         ];
 
-        foreach ($temas as $data) {
-            $tema = new Tema();
-            $tema->setNombre($data['nombre']);
-            $tema->setConfiguracion($data['configuracion']);
-            $tema->setEsPredefinido(true);
-            $tema->setCentro(null); // Global
+        foreach ($temasVisuales as $data) {
+            $temaVisual = new TemaVisual();
+            $temaVisual->setNombre($data['nombre']);
+            $temaVisual->setConfiguracion($data['configuracion']);
+            $temaVisual->setEsPredefinido(true);
+            $temaVisual->setCentro(null); // Global
 
-            $manager->persist($tema);
+            $manager->persist($temaVisual);
         }
 
         $manager->flush();

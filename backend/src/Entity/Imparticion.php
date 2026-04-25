@@ -38,7 +38,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiFilter(SearchFilter::class, properties: [
     'profesor' => 'exact',
     'profesor.nombre' => 'partial',
-    'modulo' => 'exact',
+    'materia' => 'exact',
     'modulo.nombre' => 'partial',
     'grupo' => 'exact',
     'grupo.nombre' => 'partial',
@@ -65,7 +65,7 @@ class Imparticion
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
-    private ?Modulo $modulo = null;
+    private ?Materia $materia = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
@@ -79,8 +79,8 @@ class Imparticion
     #[Groups(['imparticion:read'])] // Añadido para ver tareas anidadas
     private Collection $tareas;
 
-    #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Material::class)]
-    private Collection $materiales;
+    #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Temario::class)]
+    private Collection $temarios;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Asistencia::class)]
     private Collection $asistencias;
@@ -89,7 +89,7 @@ class Imparticion
     {
         $this->horarios = new ArrayCollection();
         $this->tareas = new ArrayCollection();
-        $this->materiales = new ArrayCollection();
+        $this->temarios = new ArrayCollection();
         $this->asistencias = new ArrayCollection();
     }
 
@@ -109,14 +109,14 @@ class Imparticion
         return $this;
     }
 
-    public function getModulo(): ?Modulo
+    public function getMateria(): ?Materia
     {
-        return $this->modulo;
+        return $this->materia;
     }
 
-    public function setModulo(?Modulo $modulo): static
+    public function setMateria(?Materia $materia): static
     {
-        $this->modulo = $modulo;
+        $this->materia = $materia;
         return $this;
     }
 

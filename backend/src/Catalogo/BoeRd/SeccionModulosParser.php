@@ -53,7 +53,7 @@ final class SeccionModulosParser
      */
     public function parseFromParagraphs(Crawler $paragraphs): array
     {
-        $modulos = [];
+        $materias = [];
         $orden = 0;
 
         // Estado: cuando vemos un header, abrimos un módulo "abierto" hasta que
@@ -76,7 +76,7 @@ final class SeccionModulosParser
 
                 if (preg_match(self::HEADER_RE, $line, $m)) {
                     if ($current !== null) {
-                        $modulos[] = $this->finalizeModulo($current, ++$orden);
+                        $materias[] = $this->finalizeModulo($current, ++$orden);
                     }
                     $current = [
                         'nombre' => $this->cleanName($m[1]),
@@ -110,12 +110,12 @@ final class SeccionModulosParser
         }
 
         if ($current !== null) {
-            $modulos[] = $this->finalizeModulo($current, ++$orden);
+            $materias[] = $this->finalizeModulo($current, ++$orden);
         }
 
         // Filtrar módulos que solo tengan nombre pero ni código ni horas — son
         // falsos positivos (p. ej. "Módulo: Resultados de aprendizaje" como mero título).
-        return array_values(array_filter($modulos, static function (array $m): bool {
+        return array_values(array_filter($materias, static function (array $m): bool {
             return !empty($m['codigoOficial']);
         }));
     }

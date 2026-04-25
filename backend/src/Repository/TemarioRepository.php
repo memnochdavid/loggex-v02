@@ -2,17 +2,17 @@
 
 namespace App\Repository;
 
-use App\Entity\Material;
+use App\Entity\Temario;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Material>
+ * @extends ServiceEntityRepository<Temario>
  */
-class MaterialRepository extends ServiceEntityRepository
+class TemarioRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Material::class);
+        parent::__construct($registry, Temario::class);
     }
 }

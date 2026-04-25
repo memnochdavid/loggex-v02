@@ -16,7 +16,7 @@ import LoadingView from '../components/LoadingView';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
-const MaterialesProfesor = () => {
+const TemariosProfesor = () => {
   const { t } = useTranslation();
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -188,7 +188,7 @@ const MaterialesProfesor = () => {
         data.append('titulo', formData.titulo);
         data.append('imparticionId', currentImparticionId);
 
-        const response = await fetch(getApiUrl('/api/materiales/upload'), {
+        const response = await fetch(getApiUrl('/api/temarios/upload'), {
             method: 'POST',
             body: data,
             credentials: 'include'
@@ -397,4 +397,4 @@ const MaterialesProfesor = () => {
   );
 };
 
-export default MaterialesProfesor;
+export default TemariosProfesor;

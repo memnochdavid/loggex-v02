@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Entrega;
 use App\Entity\Imparticion;
-use App\Entity\Material;
+use App\Entity\Temario;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -40,15 +40,15 @@ class FileProxyController extends AbstractController
         $storedFilename = null;
 
         if ($type === 'materiales') {
-            /** @var Material|null $material */
-            $material = $em->getRepository(Material::class)->find($id);
-            if (!$material) {
+            /** @var Temario|null $temario */
+            $temario = $em->getRepository(Temario::class)->find($id);
+            if (!$temario) {
                 throw $this->createNotFoundException();
             }
-            if (!$this->canAccessImparticion($user, $material->getImparticion())) {
+            if (!$this->canAccessImparticion($user, $temario->getImparticion())) {
                 throw $this->createAccessDeniedException('No tienes permiso para acceder a este material.');
             }
-            $storedFilename = $material->getArchivo();
+            $storedFilename = $temario->getArchivo();
         } elseif ($type === 'tareas') {
             /** @var Tarea|null $tarea */
             $tarea = $em->getRepository(Tarea::class)->find($id);

@@ -25,7 +25,7 @@ const Grupos = () => {
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [grupos, setGrupos] = useState([]);
-  const [ciclos, setCiclos] = useState([]);
+  const [ciclos, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -34,7 +34,7 @@ const Grupos = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedCiclo, setSelectedCiclo] = useState('');
+  const [selectedItinerario, setSelectedCiclo] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,7 +106,7 @@ const Grupos = () => {
     .then(res => res.json())
     .then(data => {
         const items = data['hydra:member'] || data.member || [];
-        setCiclos(items);
+        setItinerarios(items);
     })
     .catch(err => console.error("Error cargando ciclos:", err));
   }, [selectedCentro, isSuperAdmin]);
@@ -136,8 +136,8 @@ const Grupos = () => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (params.selectedCiclo) {
-          url += `&ciclo=${params.selectedCiclo}`;
+      if (params.selectedItinerario) {
+          url += `&ciclo=${params.selectedItinerario}`;
       }
       
       if (params.isSuperAdmin && params.selectedCentro) {
@@ -191,7 +191,7 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
@@ -216,7 +216,7 @@ const Grupos = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
-      selectedCiclo,
+      selectedItinerario,
       selectedCentro, 
       sortColumn, 
       sortDirection, 
@@ -350,7 +350,7 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
@@ -397,7 +397,7 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
@@ -411,7 +411,7 @@ const Grupos = () => {
         description: t('groups.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el grupo' })
       });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData, t]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData, t]);
 
   const columns = useMemo(() => [
     { header: t('groups.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
@@ -478,7 +478,7 @@ const Grupos = () => {
             )}
 
             <ThemedSelect
-                value={selectedCiclo}
+                value={selectedItinerario}
                 onChange={setSelectedCiclo}
                 minWidth={200}
                 ariaLabel={t('common.allCycles')}
@@ -509,7 +509,7 @@ const Grupos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 

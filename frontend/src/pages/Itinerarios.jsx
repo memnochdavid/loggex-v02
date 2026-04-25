@@ -19,13 +19,13 @@ import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
 
-const CiclosFormativos = () => {
+const Itinerarios = () => {
   const { t } = useTranslation();
   const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-  const [ciclos, setCiclos] = useState([]);
+  const [ciclos, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -55,13 +55,13 @@ const CiclosFormativos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: t('cycles.name') },
-      { value: 'nivel', label: t('cycles.level') }
+      { value: 'nombre', label: t('itinerarios.name') },
+      { value: 'nivel', label: t('itinerarios.level') }
   ];
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentCiclo, setCurrentCiclo] = useState(null);
+  const [currentItinerario, setCurrentCiclo] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     nivel: 'Superior', // Default
@@ -141,7 +141,7 @@ const CiclosFormativos = () => {
       const items = data['hydra:member'] || data.member || [];
       const total = data['hydra:totalItems'] || data.totalItems || items.length;
       
-      setCiclos(items);
+      setItinerarios(items);
       setTotalItems(total);
       setError(null);
 
@@ -264,11 +264,11 @@ const CiclosFormativos = () => {
     setSaving(true);
 
     // Caso especial: creación desde el catálogo oficial. Llama al endpoint
-    // /api/ciclos/from-catalogo que materializa el ciclo + sus módulos.
-    if (!currentCiclo && createMode === 'catalogo') {
+    // /api/itinerarios/from-catalogo que materializa el ciclo + sus módulos.
+    if (!currentItinerario && createMode === 'catalogo') {
       try {
         if (!selectedCatalogoItinerarioId) {
-          toast.warning(t('cycles.catalogo.selectRequired', { defaultValue: 'Selecciona un itinerario del catálogo o cambia a modo manual.' }));
+          toast.warning(t('itinerarios.catalogo.selectRequired', { defaultValue: 'Selecciona un itinerario del catálogo o cambia a modo manual.' }));
           setSaving(false);
           return;
         }
@@ -280,7 +280,7 @@ const CiclosFormativos = () => {
           payload.centroId = parseInt(formData.centro, 10);
         }
 
-        const response = await fetch(getApiUrl('/api/ciclos/from-catalogo'), {
+        const response = await fetch(getApiUrl('/api/itinerarios/from-catalogo'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -298,14 +298,14 @@ const CiclosFormativos = () => {
           selectedCentro, sortColumn, sortDirection, isSuperAdmin
         });
         handleCloseModal();
-        toast.success(t('cycles.catalogo.createdSuccess', {
+        toast.success(t('itinerarios.catalogo.createdSuccess', {
           defaultValue: 'Ciclo creado desde el catálogo con {{count}} módulos',
           count: data.modulosCreados ?? 0,
         }));
       } catch (err) {
         console.error('Error creando ciclo desde catálogo:', err);
         toast.error(err.message, {
-          description: t('cycles.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' }),
+          description: t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' }),
         });
       } finally {
         setSaving(false);
@@ -315,12 +315,12 @@ const CiclosFormativos = () => {
 
     // Flujo manual (creación tradicional o edición).
     try {
-      const id = currentCiclo ? getCicloId(currentCiclo) : null;
-      const url = currentCiclo
+      const id = currentItinerario ? getCicloId(currentItinerario) : null;
+      const url = currentItinerario
         ? getApiUrl(`/api/ciclo_formativos/${id}`)
         : getApiUrl('/api/ciclo_formativos');
 
-      const method = currentCiclo ? 'PUT' : 'POST';
+      const method = currentItinerario ? 'PUT' : 'POST';
 
       const payload = {
         ...formData,
@@ -354,16 +354,16 @@ const CiclosFormativos = () => {
           isSuperAdmin
       });
       handleCloseModal();
-      toast.success(currentCiclo
-        ? t('cycles.updatedSuccess', { defaultValue: 'Ciclo actualizado' })
-        : t('cycles.createdSuccess', { defaultValue: 'Ciclo creado' }));
+      toast.success(currentItinerario
+        ? t('itinerarios.updatedSuccess', { defaultValue: 'Ciclo actualizado' })
+        : t('itinerarios.createdSuccess', { defaultValue: 'Ciclo creado' }));
 
     } catch (err) {
       console.error("Error saving ciclo:", err);
       toast.error(err.message, {
-        description: currentCiclo
-          ? t('cycles.errorUpdating', { defaultValue: 'No se ha podido actualizar el ciclo' })
-          : t('cycles.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' })
+        description: currentItinerario
+          ? t('itinerarios.errorUpdating', { defaultValue: 'No se ha podido actualizar el ciclo' })
+          : t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' })
       });
     } finally {
       setSaving(false);
@@ -371,7 +371,7 @@ const CiclosFormativos = () => {
   };
 
   const handleDelete = useCallback(async (ciclo) => {
-    if (!(await confirm({ body: t('cycles.confirmDelete') }))) {
+    if (!(await confirm({ body: t('itinerarios.confirmDelete') }))) {
       return;
     }
 
@@ -385,7 +385,7 @@ const CiclosFormativos = () => {
       });
 
       if (!response.ok) {
-        const message = await parseErrorResponse(response, t('cycles.errorDelete'));
+        const message = await parseErrorResponse(response, t('itinerarios.errorDelete'));
         throw new Error(message);
       }
 
@@ -399,19 +399,19 @@ const CiclosFormativos = () => {
           sortDirection,
           isSuperAdmin
       });
-      toast.success(t('cycles.deletedSuccess', { defaultValue: 'Ciclo eliminado' }));
+      toast.success(t('itinerarios.deletedSuccess', { defaultValue: 'Ciclo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting ciclo:", err);
       toast.error(err.message, {
-        description: t('cycles.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el ciclo' })
+        description: t('itinerarios.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el ciclo' })
       });
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData, t]);
 
   const columns = useMemo(() => [
-    { header: t('cycles.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
-    { header: t('cycles.level'), accessor: 'nivel', sortable: true, sortKey: 'nivel' },
+    { header: t('itinerarios.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('itinerarios.level'), accessor: 'nivel', sortable: true, sortKey: 'nivel' },
     { 
         header: t('common.actions'),
         accessor: (row) => (
@@ -439,7 +439,7 @@ const CiclosFormativos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title={t('cycles.title')}
+        <CrudHeader title={t('itinerarios.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
@@ -458,7 +458,7 @@ const CiclosFormativos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder={t('cycles.searchPlaceholder')}
+                placeholder={t('itinerarios.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -496,14 +496,14 @@ const CiclosFormativos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentCiclo ? t('cycles.editTitle') : t('cycles.newTitle')}
+            title={currentItinerario ? t('itinerarios.editTitle') : t('itinerarios.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             {/* Toggle de modo (solo en creación). Edición siempre es manual. */}
-            {!currentCiclo && (
+            {!currentItinerario && (
                 <div className={styles.formGroup}>
-                    <div className={styles.modeToggle} role="tablist" aria-label={t('cycles.modeToggleAria', { defaultValue: 'Modo de creación' })}>
+                    <div className={styles.modeToggle} role="tablist" aria-label={t('itinerarios.modeToggleAria', { defaultValue: 'Modo de creación' })}>
                         <button
                             type="button"
                             role="tab"
@@ -511,7 +511,7 @@ const CiclosFormativos = () => {
                             className={`${styles.modeToggleBtn} ${createMode === 'catalogo' ? styles.modeToggleActive : ''}`}
                             onClick={() => setCreateMode('catalogo')}
                         >
-                            {t('cycles.modeCatalogo', { defaultValue: 'Catálogo oficial' })}
+                            {t('itinerarios.modeCatalogo', { defaultValue: 'Catálogo oficial' })}
                         </button>
                         <button
                             type="button"
@@ -520,18 +520,18 @@ const CiclosFormativos = () => {
                             className={`${styles.modeToggleBtn} ${createMode === 'manual' ? styles.modeToggleActive : ''}`}
                             onClick={() => setCreateMode('manual')}
                         >
-                            {t('cycles.modeManual', { defaultValue: 'Manual' })}
+                            {t('itinerarios.modeManual', { defaultValue: 'Manual' })}
                         </button>
                     </div>
                 </div>
             )}
 
             {/* MODO CATÁLOGO: AsyncSearchSelect contra /api/catalogo_itinerarios + preview + centro */}
-            {!currentCiclo && createMode === 'catalogo' ? (
+            {!currentItinerario && createMode === 'catalogo' ? (
                 <>
                     <div className={styles.formGroup}>
                         <label className={styles.label}>
-                            {t('cycles.catalogo.searchLabel', { defaultValue: 'Buscar en el catálogo oficial' })}
+                            {t('itinerarios.catalogo.searchLabel', { defaultValue: 'Buscar en el catálogo oficial' })}
                         </label>
                         <AsyncSearchSelect
                             name="catalogoItinerario"
@@ -544,7 +544,7 @@ const CiclosFormativos = () => {
                             extraParams={{ etapa: ['fp_basica', 'fp_medio', 'fp_superior', 'fp_especializacion'] }}
                             getOptionLabel={(i) => `${i.codigoOficial} — ${i.nombre}`}
                             getOptionValue={(i) => i.id}
-                            placeholder={t('cycles.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del ciclo…' })}
+                            placeholder={t('itinerarios.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del ciclo…' })}
                             required
                         />
                     </div>
@@ -552,22 +552,22 @@ const CiclosFormativos = () => {
                     {selectedCatalogoItinerario && (
                         <div className={styles.catalogoPreview}>
                             {selectedCatalogoItinerario.familia && (
-                                <p><strong>{t('cycles.catalogo.familyLabel', { defaultValue: 'Familia' })}:</strong> {selectedCatalogoItinerario.familia}</p>
+                                <p><strong>{t('itinerarios.catalogo.familyLabel', { defaultValue: 'Familia' })}:</strong> {selectedCatalogoItinerario.familia}</p>
                             )}
                             {selectedCatalogoItinerario.nivel && (
-                                <p><strong>{t('cycles.catalogo.levelLabel', { defaultValue: 'Nivel' })}:</strong> {selectedCatalogoItinerario.nivel}</p>
+                                <p><strong>{t('itinerarios.catalogo.levelLabel', { defaultValue: 'Nivel' })}:</strong> {selectedCatalogoItinerario.nivel}</p>
                             )}
                             {selectedCatalogoItinerario.duracionTotalHoras && (
-                                <p><strong>{t('cycles.catalogo.durationLabel', { defaultValue: 'Duración total' })}:</strong> {selectedCatalogoItinerario.duracionTotalHoras} h</p>
+                                <p><strong>{t('itinerarios.catalogo.durationLabel', { defaultValue: 'Duración total' })}:</strong> {selectedCatalogoItinerario.duracionTotalHoras} h</p>
                             )}
                             <p>
-                                <strong>{t('cycles.catalogo.modulesLabel', { defaultValue: 'Módulos' })}:</strong>{' '}
+                                <strong>{t('itinerarios.catalogo.modulesLabel', { defaultValue: 'Módulos' })}:</strong>{' '}
                                 {selectedCatalogoItinerario.materias?.length ?? 0}{' '}
-                                <em>({t('cycles.catalogo.modulesAuto', { defaultValue: 'se crearán automáticamente' })})</em>
+                                <em>({t('itinerarios.catalogo.modulesAuto', { defaultValue: 'se crearán automáticamente' })})</em>
                             </p>
                             {selectedCatalogoItinerario.normativa && (
                                 <p className={styles.catalogoMeta}>
-                                    <strong>{t('cycles.catalogo.regulationLabel', { defaultValue: 'Normativa' })}:</strong> {selectedCatalogoItinerario.normativa}
+                                    <strong>{t('itinerarios.catalogo.regulationLabel', { defaultValue: 'Normativa' })}:</strong> {selectedCatalogoItinerario.normativa}
                                 </p>
                             )}
                         </div>
@@ -575,7 +575,7 @@ const CiclosFormativos = () => {
 
                     {isSuperAdmin && (
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>{t('cycles.centerLabel')}</label>
+                            <label className={styles.label}>{t('itinerarios.centerLabel')}</label>
                             <AsyncSearchSelect
                                 name="centro"
                                 value={formData.centro}
@@ -593,7 +593,7 @@ const CiclosFormativos = () => {
                 /* MODO MANUAL (creación libre o edición) */
                 <>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('cycles.nameLabel')}</label>
+                        <label className={styles.label}>{t('itinerarios.nameLabel')}</label>
                         <input
                             type="text"
                             name="nombre"
@@ -601,28 +601,28 @@ const CiclosFormativos = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
-                            placeholder={t('cycles.namePlaceholder')}
+                            placeholder={t('itinerarios.namePlaceholder')}
                         />
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('cycles.level')}</label>
+                        <label className={styles.label}>{t('itinerarios.level')}</label>
                         <select
                             name="nivel"
                             value={formData.nivel}
                             onChange={handleInputChange}
                             className={styles.select}
                         >
-                            <option value="Básico">{t('cycles.levelBasic')}</option>
-                            <option value="Medio">{t('cycles.levelMiddle')}</option>
-                            <option value="Superior">{t('cycles.levelHigher')}</option>
-                            <option value="Curso de Especialización">{t('cycles.levelSpecialization')}</option>
+                            <option value="Básico">{t('itinerarios.levelBasic')}</option>
+                            <option value="Medio">{t('itinerarios.levelMiddle')}</option>
+                            <option value="Superior">{t('itinerarios.levelHigher')}</option>
+                            <option value="Curso de Especialización">{t('itinerarios.levelSpecialization')}</option>
                         </select>
                     </div>
 
                     {isSuperAdmin && (
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>{t('cycles.centerLabel')}</label>
+                            <label className={styles.label}>{t('itinerarios.centerLabel')}</label>
                             <AsyncSearchSelect
                                 name="centro"
                                 value={formData.centro}
@@ -643,4 +643,4 @@ const CiclosFormativos = () => {
   );
 };
 
-export default CiclosFormativos;
+export default Itinerarios;

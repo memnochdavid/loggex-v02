@@ -7,12 +7,12 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\Calificacion;
-use App\Entity\CicloFormativo;
+use App\Entity\Itinerario;
 use App\Entity\Comunicado;
 use App\Entity\Entrega;
 use App\Entity\Festivo;
 use App\Entity\Mensaje;
-use App\Entity\Modulo;
+use App\Entity\Materia;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
@@ -41,8 +41,8 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
     {
         $supportedClasses = [
             User::class,
-            CicloFormativo::class,
-            Modulo::class,
+            Itinerario::class,
+            Materia::class,
             Festivo::class,
             Mensaje::class,
             Tarea::class,
@@ -103,7 +103,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
 
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if (method_exists($user, 'getCentro') && $user->getCentro()) {
-            if ($resourceClass === Modulo::class) {
+            if ($resourceClass === Materia::class) {
                 $queryBuilder->join(sprintf('%s.ciclo', $rootAlias), 'c')
                              ->andWhere('c.centro = :current_centro')
                              ->setParameter('current_centro', $user->getCentro());

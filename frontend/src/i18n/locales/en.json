@@ -131,7 +131,7 @@
     "teacher": "Teacher",
     "tasks": "Tasks",
     "deliveries": "Deliveries",
-    "myMaterials": "My Materials",
+    "myTemarios": "My Materials",
     "faculty": "Faculty",
     "myStudents": "My Students",
     "student": "Student",
@@ -141,10 +141,10 @@
     "myTeachers": "My Teachers",
     "admin": "Administration",
     "users": "Users",
-    "cycles": "Cycles",
-    "cyclesLong": "Training Cycles",
+    "itinerarios": "Cycles",
+    "itinerariosLong": "Training Cycles",
     "groups": "Groups",
-    "modules": "Modules",
+    "materias": "Modules",
     "enrollments": "Enrollments",
     "teachingAssignment": "Teaching Assignment",
     "teaching": "Teaching",
@@ -285,7 +285,7 @@
     "phonePlaceholder": "555 123 456",
     "activeCheckbox": "Active Center"
   },
-  "cycles": {
+  "itinerarios": {
     "title": "Training Cycles",
     "searchPlaceholder": "Search cycle...",
     "name": "Name",
@@ -327,7 +327,7 @@
     "course2": "2nd",
     "centerLabel": "Center"
   },
-  "modules": {
+  "materias": {
     "title": "Training Modules",
     "searchPlaceholder": "Search module...",
     "name": "Name",

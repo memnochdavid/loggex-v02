@@ -82,7 +82,7 @@ export const ER_ENTITIES = [
         ], { timestamps: true, softDelete: true }),
     },
     {
-        id: 'Tema',
+        id: 'TemaVisual',
         table: 'tema',
         domain: 'centro',
         position: { x: 40, y: 1080 },
@@ -114,7 +114,7 @@ export const ER_ENTITIES = [
 
     /* ============ COL 2 — ACADÉMICA ============ */
     {
-        id: 'CicloFormativo',
+        id: 'Itinerario',
         table: 'ciclo_formativo',
         domain: 'academic',
         position: { x: 540, y: 60 },
@@ -128,7 +128,7 @@ export const ER_ENTITIES = [
         ], { timestamps: true, softDelete: true }),
     },
     {
-        id: 'Modulo',
+        id: 'Materia',
         table: 'modulo',
         domain: 'academic',
         position: { x: 540, y: 420 },
@@ -136,7 +136,7 @@ export const ER_ENTITIES = [
         softDelete: true,
         fields: composeFields([
             { name: 'id',             type: 'int',         pk: true },
-            { name: 'ciclo_id',       type: 'int',         fk: 'CicloFormativo' },
+            { name: 'ciclo_id',       type: 'int',         fk: 'Itinerario' },
             { name: 'nombre',         type: 'string(255)' },
             { name: 'codigoOficial',  type: 'string(50)',  nullable: true },
             { name: 'abreviatura',    type: 'string(16)',  nullable: true },
@@ -153,7 +153,7 @@ export const ER_ENTITIES = [
         softDelete: true,
         fields: composeFields([
             { name: 'id',           type: 'int',         pk: true },
-            { name: 'ciclo_id',     type: 'int',         fk: 'CicloFormativo' },
+            { name: 'ciclo_id',     type: 'int',         fk: 'Itinerario' },
             { name: 'centro_id',    type: 'int',         fk: 'Centro' },
             { name: 'nombre',       type: 'string(50)' },
             { name: 'abreviatura',  type: 'string(20)',  nullable: true },
@@ -227,7 +227,7 @@ export const ER_ENTITIES = [
         fields: composeFields([
             { name: 'id',           type: 'int', pk: true },
             { name: 'profesor_id',  type: 'int', fk: 'User' },
-            { name: 'modulo_id',    type: 'int', fk: 'Modulo' },
+            { name: 'materia_id',    type: 'int', fk: 'Materia' },
             { name: 'grupo_id',     type: 'int', fk: 'Grupo' },
         ], { timestamps: true, softDelete: true }),
     },
@@ -264,7 +264,7 @@ export const ER_ENTITIES = [
         ], { timestamps: true, softDelete: true }),
     },
     {
-        id: 'Material',
+        id: 'Temario',
         table: 'material',
         domain: 'activity',
         position: { x: 1540, y: 460 },
@@ -395,17 +395,17 @@ export const ER_ENTITIES = [
  */
 export const ER_RELATIONS = [
     // Centro ←
-    { from: 'CicloFormativo',         to: 'Centro',         cardinality: 'N:1', label: 'centro' },
+    { from: 'Itinerario',         to: 'Centro',         cardinality: 'N:1', label: 'centro' },
     { from: 'Grupo',                  to: 'Centro',         cardinality: 'N:1', label: 'centro' },
     { from: 'Festivo',                to: 'Centro',         cardinality: 'N:1', label: 'centro', nullable: true },
-    { from: 'Tema',                   to: 'Centro',         cardinality: 'N:1', label: 'centro', nullable: true },
+    { from: 'TemaVisual',                   to: 'Centro',         cardinality: 'N:1', label: 'centro', nullable: true },
     { from: 'User',                   to: 'Centro',         cardinality: 'N:1', label: 'centro', nullable: true },
     { from: 'Comunicado',             to: 'Centro',         cardinality: 'N:1', label: 'centro', nullable: true },
     { from: 'Personalizacion',        to: 'Centro',         cardinality: '1:1', label: 'centro' },
 
-    // CicloFormativo ←
-    { from: 'Modulo',                 to: 'CicloFormativo', cardinality: 'N:1', label: 'ciclo' },
-    { from: 'Grupo',                  to: 'CicloFormativo', cardinality: 'N:1', label: 'ciclo' },
+    // Itinerario ←
+    { from: 'Materia',                 to: 'Itinerario', cardinality: 'N:1', label: 'itinerario' },
+    { from: 'Grupo',                  to: 'Itinerario', cardinality: 'N:1', label: 'itinerario' },
 
     // Grupo ←
     { from: 'Matricula',              to: 'Grupo',          cardinality: 'N:1', label: 'grupo' },
@@ -421,12 +421,12 @@ export const ER_RELATIONS = [
     { from: 'Mensaje',                to: 'User',           cardinality: 'N:1', label: 'remitente' },
     { from: 'Mensaje',                to: 'User',           cardinality: 'N:1', label: 'destinatario' },
 
-    // Modulo ←
-    { from: 'Imparticion',            to: 'Modulo',         cardinality: 'N:1', label: 'modulo' },
+    // Materia ←
+    { from: 'Imparticion',            to: 'Materia',         cardinality: 'N:1', label: 'materia' },
 
     // Imparticion ←
     { from: 'Horario',                to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },
-    { from: 'Material',               to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },
+    { from: 'Temario',               to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },
     { from: 'Tarea',                  to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },
     { from: 'Asistencia',             to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },
     { from: 'PonderacionImparticion', to: 'Imparticion',    cardinality: 'N:1', label: 'imparticion' },

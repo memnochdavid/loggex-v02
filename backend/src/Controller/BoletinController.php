@@ -51,7 +51,7 @@ class BoletinController extends AbstractController
         $this->verificarAccesoBoletin($alumno);
 
         $grupo = $periodo->getGrupo();
-        $centro = $grupo->getCiclo()->getCentro();
+        $centro = $grupo->getItinerario()->getCentro();
         // Acumulativo: solo periodos cuya fecha_fin <= fecha_fin del seleccionado
         $periodos = $this->getPeriodosOrdenados($grupo, $periodo->getFechaFin());
 
@@ -91,7 +91,7 @@ class BoletinController extends AbstractController
             return $this->json(['message' => 'Periodo no encontrado'], 404);
         }
         $periodos = $this->getPeriodosOrdenados($grupo, $periodoSel->getFechaFin());
-        $centro = $grupo->getCiclo()->getCentro();
+        $centro = $grupo->getItinerario()->getCentro();
 
         $matriculas = $this->em->getRepository(Matricula::class)->findBy(['grupo' => $grupo]);
         $alumnos = array_map(fn($m) => $m->getAlumno(), $matriculas);
@@ -148,7 +148,7 @@ class BoletinController extends AbstractController
     {
         $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
 
-        $modulos = [];
+        $materias = [];
         foreach ($imparticiones as $imp) {
             $pesos = $this->ponderacionRepo->getPesosParaImparticion($imp->getId());
 
@@ -162,8 +162,8 @@ class BoletinController extends AbstractController
             // Porcentaje de faltas del alumno en esta impartición (recorte acumulativo si hay fecha tope)
             $faltasPct = $this->calcularPorcentajeFaltas($imp, $alumno, $hasta);
 
-            $modulos[] = [
-                'modulo' => $imp->getModulo()->getNombre(),
+            $materias[] = [
+                'materia' => $imp->getMateria()->getNombre(),
                 'faltasPct' => $faltasPct,
                 'notasPorPeriodo' => $notasPorPeriodo,
             ];
@@ -176,7 +176,7 @@ class BoletinController extends AbstractController
                 'apellidos' => $alumno->getApellidos(),
                 'nif' => $alumno->getNif(),
             ],
-            'modulos' => $modulos,
+            'modulos' => $materias,
         ];
     }
     private function calcularHorasLectivas(Imparticion $imparticion, \DateTimeInterface $inicio, \DateTimeInterface $fin, array $festivos): int
@@ -407,7 +407,7 @@ class BoletinController extends AbstractController
                 'fechaFin' => $grupo->getFechaFin() ? $grupo->getFechaFin()->format('d/m/Y') : '',
             ],
             'ciclo' => [
-                'nombre' => $grupo->getCiclo()->getNombre(),
+                'nombre' => $grupo->getItinerario()->getNombre(),
             ],
             'periodos' => $periodosData,
             'logoUrl' => $logoPath,

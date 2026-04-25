@@ -41,11 +41,11 @@ final class EspecializacionParser
         $crawler = new Crawler();
         $crawler->addXmlContent($xml);
 
-        $modulos = $this->seccionParser->parseAllParagraphs($xml);
+        $materias = $this->seccionParser->parseAllParagraphs($xml);
         $identificacion = $this->extractIdentificacion($crawler);
 
         return [
-            'modulos' => $modulos,
+            'modulos' => $materias,
             'identificacion' => $identificacion,
         ];
     }

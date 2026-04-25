@@ -2,17 +2,17 @@
 
 namespace App\Repository;
 
-use App\Entity\Modulo;
+use App\Entity\Itinerario;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Modulo>
+ * @extends ServiceEntityRepository<Itinerario>
  */
-class ModuloRepository extends ServiceEntityRepository
+class ItinerarioRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Modulo::class);
+        parent::__construct($registry, Itinerario::class);
     }
 }

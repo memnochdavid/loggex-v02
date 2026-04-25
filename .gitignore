@@ -30,3 +30,7 @@ caddy-root.crt
 
 # Entregas TFG (documentos personales, capturas y PDFs generados)
 docs/entregas/
+
+# Dump filtrado generado durante el refactor de renombrado.
+# Se regenera con: awk -f /tmp/extract_preserve.awk backup_tfg_full.sql > backup_preserve.sql
+backup_preserve.sql

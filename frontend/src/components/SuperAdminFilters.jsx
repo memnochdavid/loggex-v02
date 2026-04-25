@@ -13,7 +13,7 @@ const SuperAdminFilters = ({ filters }) => {
         centros, selectedCentro, setSelectedCentro,
         availableYears, selectedYear, setSelectedYear,
         grupos, selectedGrupo, setSelectedGrupo,
-        modulos, selectedModulo, setSelectedModulo,
+        modulos, selectedMateria, setSelectedModulo,
     } = filters;
 
     return (
@@ -59,7 +59,7 @@ const SuperAdminFilters = ({ filters }) => {
             />
 
             <ThemedSelect
-                value={selectedModulo}
+                value={selectedMateria}
                 onChange={setSelectedModulo}
                 disabled={!selectedGrupo}
                 minWidth={150}

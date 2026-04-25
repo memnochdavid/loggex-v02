@@ -19,14 +19,14 @@ import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
-const Modulos = () => {
+const Materias = () => {
   const { t } = useTranslation();
   const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-  const [modulos, setModulos] = useState([]);
-  const [ciclos, setCiclos] = useState([]);
+  const [modulos, setMaterias] = useState([]);
+  const [ciclos, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -35,7 +35,7 @@ const Modulos = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedCiclo, setSelectedCiclo] = useState('');
+  const [selectedItinerario, setSelectedCiclo] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,14 +57,14 @@ const Modulos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: t('modules.name') },
-      { value: 'codigoOficial', label: t('modules.code') },
-      { value: 'ciclo.nombre', label: t('modules.cycle') }
+      { value: 'nombre', label: t('materias.name') },
+      { value: 'codigoOficial', label: t('materias.code') },
+      { value: 'ciclo.nombre', label: t('materias.cycle') }
   ];
 
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentModulo, setCurrentModulo] = useState(null);
+  const [currentMateria, setCurrentModulo] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
@@ -106,7 +106,7 @@ const Modulos = () => {
     .then(res => res.json())
     .then(data => {
         const items = data['hydra:member'] || data.member || [];
-        setCiclos(items);
+        setItinerarios(items);
     })
     .catch(err => console.error("Error cargando ciclos:", err));
   }, [selectedCentro, isSuperAdmin]);
@@ -130,14 +130,14 @@ const Modulos = () => {
     setLoading(true);
 
     try {
-      let url = getApiUrl(`/api/modulos?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
+      let url = getApiUrl(`/api/materias?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
       if (params.searchTerm) {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (params.selectedCiclo) {
-          url += `&ciclo=${params.selectedCiclo}`;
+      if (params.selectedItinerario) {
+          url += `&ciclo=${params.selectedItinerario}`;
       } else if (params.isSuperAdmin && params.selectedCentro) {
           // Si no hay ciclo seleccionado pero sí centro, filtrar por centro del ciclo
           url += `&ciclo.centro=${params.selectedCentro}`;
@@ -163,7 +163,7 @@ const Modulos = () => {
       const items = data['hydra:member'] || data.member || [];
       const total = data['hydra:totalItems'] || data.totalItems || items.length;
       
-      setModulos(items);
+      setMaterias(items);
       setTotalItems(total);
       setError(null);
 
@@ -190,7 +190,7 @@ const Modulos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
@@ -215,7 +215,7 @@ const Modulos = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
-      selectedCiclo, 
+      selectedItinerario, 
       selectedCentro, 
       sortColumn, 
       sortDirection, 
@@ -291,12 +291,12 @@ const Modulos = () => {
     setSaving(true);
 
     try {
-      const id = currentModulo ? getModuloId(currentModulo) : null;
-      const url = currentModulo 
-        ? getApiUrl(`/api/modulos/${id}`)
-        : getApiUrl('/api/modulos');
+      const id = currentMateria ? getModuloId(currentMateria) : null;
+      const url = currentMateria 
+        ? getApiUrl(`/api/materias/${id}`)
+        : getApiUrl('/api/materias');
       
-      const method = currentModulo ? 'PUT' : 'POST';
+      const method = currentMateria ? 'PUT' : 'POST';
 
       const cicloValue = String(formData.ciclo);
       const payload = {
@@ -328,23 +328,23 @@ const Modulos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
           isSuperAdmin
       });
       handleCloseModal();
-      toast.success(currentModulo
-        ? t('modules.updatedSuccess', { defaultValue: 'Módulo actualizado' })
-        : t('modules.createdSuccess', { defaultValue: 'Módulo creado' }));
+      toast.success(currentMateria
+        ? t('materias.updatedSuccess', { defaultValue: 'Módulo actualizado' })
+        : t('materias.createdSuccess', { defaultValue: 'Módulo creado' }));
 
     } catch (err) {
       console.error("Error saving modulo:", err);
       toast.error(err.message, {
-        description: currentModulo
-          ? t('modules.errorUpdating', { defaultValue: 'No se ha podido actualizar el módulo' })
-          : t('modules.errorCreating', { defaultValue: 'No se ha podido crear el módulo' })
+        description: currentMateria
+          ? t('materias.errorUpdating', { defaultValue: 'No se ha podido actualizar el módulo' })
+          : t('materias.errorCreating', { defaultValue: 'No se ha podido crear el módulo' })
       });
     } finally {
       setSaving(false);
@@ -352,7 +352,7 @@ const Modulos = () => {
   };
 
   const handleDelete = useCallback(async (modulo) => {
-    if (!(await confirm({ body: t('modules.confirmDelete') }))) {
+    if (!(await confirm({ body: t('materias.confirmDelete') }))) {
       return;
     }
 
@@ -360,13 +360,13 @@ const Modulos = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(getApiUrl(`/api/modulos/${id}`), {
+      const response = await fetch(getApiUrl(`/api/materias/${id}`), {
         method: 'DELETE',
         credentials: 'include'
       });
 
       if (!response.ok) {
-        const message = await parseErrorResponse(response, t('modules.errorDelete'));
+        const message = await parseErrorResponse(response, t('materias.errorDelete'));
         throw new Error(message);
       }
 
@@ -375,39 +375,39 @@ const Modulos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
           isSuperAdmin
       });
-      toast.success(t('modules.deletedSuccess', { defaultValue: 'Módulo eliminado' }));
+      toast.success(t('materias.deletedSuccess', { defaultValue: 'Módulo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting modulo:", err);
       toast.error(err.message, {
-        description: t('modules.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el módulo' })
+        description: t('materias.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el módulo' })
       });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData, t]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData, t]);
 
   const columns = useMemo(() => [
     {
-      header: t('modules.name'),
+      header: t('materias.name'),
       accessor: (row) => <ModuloLabel modulo={row} />,
       sortable: true,
       sortKey: 'nombre'
     },
     {
-      header: t('modules.abbreviation'),
+      header: t('materias.abbreviation'),
       accessor: (row) => row.abreviatura || '-',
       sortable: true,
       sortKey: 'abreviatura'
     },
-    { header: t('modules.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
-    { header: t('modules.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
+    { header: t('materias.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
+    { header: t('materias.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
     { 
-        header: t('modules.cycle'), 
+        header: t('materias.cycle'), 
         accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
         sortable: true, 
         sortKey: 'ciclo.nombre' 
@@ -439,7 +439,7 @@ const Modulos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title={t('modules.title')}
+        <CrudHeader title={t('materias.title')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
@@ -456,7 +456,7 @@ const Modulos = () => {
             )}
 
             <ThemedSelect
-                value={selectedCiclo}
+                value={selectedItinerario}
                 onChange={setSelectedCiclo}
                 minWidth={200}
                 ariaLabel={t('common.allCycles')}
@@ -472,7 +472,7 @@ const Modulos = () => {
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder={t('modules.searchPlaceholder')}
+                placeholder={t('materias.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -487,7 +487,7 @@ const Modulos = () => {
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
+            <Button onClick={() => fetchModulosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
@@ -510,12 +510,12 @@ const Modulos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentModulo ? t('modules.editTitle') : t('modules.newTitle')}
+            title={currentMateria ? t('materias.editTitle') : t('materias.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.nameLabel')}</label>
+                <label className={styles.label}>{t('materias.nameLabel')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -523,12 +523,12 @@ const Modulos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder={t('modules.namePlaceholder')}
+                    placeholder={t('materias.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.abbreviationLabel')}</label>
+                <label className={styles.label}>{t('materias.abbreviationLabel')}</label>
                 <input
                     type="text"
                     name="abreviatura"
@@ -536,24 +536,24 @@ const Modulos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     maxLength={16}
-                    placeholder={t('modules.abbreviationPlaceholder')}
+                    placeholder={t('materias.abbreviationPlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.codeLabel')}</label>
+                <label className={styles.label}>{t('materias.codeLabel')}</label>
                 <input
                     type="text"
                     name="codigoOficial"
                     value={formData.codigoOficial}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder={t('modules.codePlaceholder')}
+                    placeholder={t('materias.codePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.cycleLabel')}</label>
+                <label className={styles.label}>{t('materias.cycleLabel')}</label>
                 <AsyncSearchSelect
                     name="ciclo"
                     value={formData.ciclo}
@@ -568,20 +568,20 @@ const Modulos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.course')}</label>
+                <label className={styles.label}>{t('materias.course')}</label>
                 <select
                     name="curso"
                     value={formData.curso}
                     onChange={handleInputChange}
                     className={styles.select}
                 >
-                    <option value="1">{t('modules.course1')}</option>
-                    <option value="2">{t('modules.course2')}</option>
+                    <option value="1">{t('materias.course1')}</option>
+                    <option value="2">{t('materias.course2')}</option>
                 </select>
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('modules.weeklyHours')}</label>
+                <label className={styles.label}>{t('materias.weeklyHours')}</label>
                 <input
                     type="number"
                     name="horasSemanales"
@@ -598,4 +598,4 @@ const Modulos = () => {
   );
 };
 
-export default Modulos;
+export default Materias;

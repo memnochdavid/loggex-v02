@@ -22,7 +22,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * Read-only desde la API: solo se modifica vía CatalogoIngestService durante
  * un job de ingesta. Los admins lo consumen para alimentar el AsyncSearchSelect
  * del modal de "Nuevo Ciclo / Curso" y para materializar instancias editables
- * en la BD del centro (ver `CicloFormativo::$catalogoOrigen`).
+ * en la BD del centro (ver `Itinerario::$catalogoOrigen`).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'catalogo_itinerario')]

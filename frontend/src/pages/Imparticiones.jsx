@@ -304,7 +304,7 @@ const Imparticiones = () => {
 
       const payload = {
         profesor: profesorValue.includes('/api/') ? profesorValue : `/api/users/${profesorValue}`,
-        modulo: moduloValue.includes('/api/') ? moduloValue : `/api/modulos/${moduloValue}`,
+        modulo: moduloValue.includes('/api/') ? moduloValue : `/api/materias/${moduloValue}`,
         grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
       };
 
@@ -544,7 +544,7 @@ const Imparticiones = () => {
                     name="modulo"
                     value={formData.modulo}
                     onChange={(v) => setFormData(p => ({ ...p, modulo: v }))}
-                    endpoint="/api/modulos"
+                    endpoint="/api/materias"
                     extraParams={{
                         ...(grupoFilter.ciclo ? { ciclo: grupoFilter.ciclo } : {}),
                         ...(grupoFilter.curso ? { curso: grupoFilter.curso } : {}),

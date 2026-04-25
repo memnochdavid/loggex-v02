@@ -131,7 +131,7 @@
     "teacher": "Profesor",
     "tasks": "Tareas",
     "deliveries": "Entregas",
-    "myMaterials": "Mis Temarios",
+    "myTemarios": "Mis Temarios",
     "faculty": "Claustro",
     "myStudents": "Mis Alumnos",
     "student": "Alumno",
@@ -141,10 +141,10 @@
     "myTeachers": "Mis Profesores",
     "admin": "Administración",
     "users": "Usuarios",
-    "cycles": "Ciclos",
-    "cyclesLong": "Ciclos Formativos",
+    "itinerarios": "Ciclos",
+    "itinerariosLong": "Ciclos Formativos",
     "groups": "Grupos",
-    "modules": "Módulos",
+    "materias": "Módulos",
     "enrollments": "Matrículas",
     "teachingAssignment": "Asignación Docencia",
     "teaching": "Docencia",
@@ -226,7 +226,7 @@
       "title": "Detalle del itinerario",
       "backToList": "Volver al listado",
       "identification": "Identificación",
-      "modules": "Módulos profesionales",
+      "materias": "Módulos profesionales",
       "labelDenominacion": "Denominación",
       "labelEtapa": "Etapa",
       "labelFamilia": "Familia profesional",
@@ -534,7 +534,7 @@
     "phonePlaceholder": "912 345 678",
     "activeCheckbox": "Centro Activo"
   },
-  "cycles": {
+  "itinerarios": {
     "title": "Ciclos Formativos",
     "searchPlaceholder": "Buscar ciclo...",
     "name": "Nombre",
@@ -576,7 +576,7 @@
     "course2": "2º",
     "centerLabel": "Centro"
   },
-  "modules": {
+  "materias": {
     "title": "Módulos Formativos",
     "searchPlaceholder": "Buscar módulo...",
     "name": "Nombre",

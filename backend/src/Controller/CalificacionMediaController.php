@@ -52,7 +52,7 @@ class CalificacionMediaController extends AbstractController
             ],
             'imparticion' => [
                 'id' => $imparticion->getId(),
-                'modulo' => $imparticion->getModulo()->getNombre(),
+                'materia' => $imparticion->getMateria()->getNombre(),
                 'grupo' => $imparticion->getGrupo()->getNombre(),
                 'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
             ],
@@ -107,7 +107,7 @@ class CalificacionMediaController extends AbstractController
         $response = [
             'imparticion' => [
                 'id' => $imparticion->getId(),
-                'modulo' => $imparticion->getModulo()->getNombre(),
+                'materia' => $imparticion->getMateria()->getNombre(),
                 'grupo' => $imparticion->getGrupo()->getNombre(),
                 'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
             ],
@@ -434,7 +434,7 @@ class CalificacionMediaController extends AbstractController
                 $total = count($notas);
 
                 $modulosData[] = [
-                    'modulo' => $imp->getModulo()->getNombre(),
+                    'materia' => $imp->getMateria()->getNombre(),
                     'profesor' => $imp->getProfesor()->getNombre() . ' ' . $imp->getProfesor()->getApellidos(),
                     'mediaGrupo' => $total > 0 ? round(array_sum($notas) / $total, 2) : null,
                     'aprobados' => $aprobados,
@@ -444,12 +444,12 @@ class CalificacionMediaController extends AbstractController
                 ];
             }
 
-            $ciclo = $grupo->getCiclo();
+            $itinerario = $grupo->getItinerario();
             $resultado[] = [
                 'grupo' => [
                     'id' => $grupo->getId(),
                     'nombre' => $grupo->getNombre(),
-                    'ciclo' => $ciclo->getNombre(),
+                    'ciclo' => $itinerario->getNombre(),
                     'anioEscolar' => $grupo->getAnioEscolar(),
                 ],
                 'modulos' => $modulosData,
@@ -497,7 +497,7 @@ class CalificacionMediaController extends AbstractController
 
         $matriculas = $this->em->getRepository(Matricula::class)->findBy(['alumno' => $alumno]);
 
-        $modulos = [];
+        $materias = [];
         foreach ($matriculas as $matricula) {
             $grupo = $matricula->getGrupo();
             $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
@@ -506,10 +506,10 @@ class CalificacionMediaController extends AbstractController
                 $pesos = $this->ponderacionRepo->getPesosParaImparticion($imparticion->getId());
                 $media = $this->calcularMediaAlumno($imparticion->getId(), $alumno->getId(), $pesos, $periodo);
 
-                $modulos[] = [
+                $materias[] = [
                     'imparticion' => [
                         'id' => $imparticion->getId(),
-                        'modulo' => $imparticion->getModulo()->getNombre(),
+                        'materia' => $imparticion->getMateria()->getNombre(),
                         'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
                         'grupo' => $grupo->getNombre(),
                     ],
@@ -524,7 +524,7 @@ class CalificacionMediaController extends AbstractController
                 'nombre' => $alumno->getNombre(),
                 'apellidos' => $alumno->getApellidos(),
             ],
-            'modulos' => $modulos,
+            'modulos' => $materias,
         ]);
     }
 

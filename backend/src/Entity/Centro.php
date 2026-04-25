@@ -47,11 +47,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema_visual:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema_visual:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -87,8 +87,8 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: User::class)]
     private Collection $usuarios;
 
-    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: CicloFormativo::class)]
-    private Collection $ciclos;
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Itinerario::class)]
+    private Collection $itinerarios;
 
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Grupo::class)]
     private Collection $grupos;
@@ -96,9 +96,9 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Festivo::class)]
     private Collection $festivos;
 
-    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Tema::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: TemaVisual::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read'])]
-    private Collection $temas;
+    private Collection $temasVisuales;
 
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
@@ -107,10 +107,10 @@ class Centro
     public function __construct()
     {
         $this->usuarios = new ArrayCollection();
-        $this->ciclos = new ArrayCollection();
+        $this->itinerarios = new ArrayCollection();
         $this->grupos = new ArrayCollection();
         $this->festivos = new ArrayCollection();
-        $this->temas = new ArrayCollection();
+        $this->temasVisuales = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -271,28 +271,28 @@ class Centro
     }
 
     /**
-     * @return Collection<int, Tema>
+     * @return Collection<int, TemaVisual>
      */
-    public function getTemas(): Collection
+    public function getTemasVisuales(): Collection
     {
-        return $this->temas;
+        return $this->temasVisuales;
     }
 
-    public function addTema(Tema $tema): static
+    public function addTemaVisual(TemaVisual $temaVisual): static
     {
-        if (!$this->temas->contains($tema)) {
-            $this->temas->add($tema);
-            $tema->setCentro($this);
+        if (!$this->temasVisuales->contains($temaVisual)) {
+            $this->temasVisuales->add($temaVisual);
+            $temaVisual->setCentro($this);
         }
 
         return $this;
     }
 
-    public function removeTema(Tema $tema): static
+    public function removeTemaVisual(TemaVisual $temaVisual): static
     {
-        if ($this->temas->removeElement($tema)) {
-            if ($tema->getCentro() === $this) {
-                $tema->setCentro(null);
+        if ($this->temasVisuales->removeElement($temaVisual)) {
+            if ($temaVisual->getCentro() === $this) {
+                $temaVisual->setCentro(null);
             }
         }
 

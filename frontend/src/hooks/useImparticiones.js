@@ -25,8 +25,8 @@ const useImparticiones = () => {
     const [allGrupos, setAllGrupos] = useState([]); // todos los del centro (para extraer años)
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedGrupo, setSelectedGrupo] = useState('');
-    const [modulos, setModulos] = useState([]);
-    const [selectedModulo, setSelectedModulo] = useState('');
+    const [modulos, setMaterias] = useState([]);
+    const [selectedMateria, setSelectedModulo] = useState('');
 
     // Años escolares disponibles (extraídos de los grupos del centro)
     const availableYears = useMemo(() => {
@@ -65,7 +65,7 @@ const useImparticiones = () => {
                 setAllGrupos(data['hydra:member'] || data.member || []);
                 setSelectedYear('');
                 setSelectedGrupo('');
-                setModulos([]);
+                setMaterias([]);
                 setSelectedModulo('');
             })
             .catch(err => console.error('Error cargando grupos:', err));
@@ -73,7 +73,7 @@ const useImparticiones = () => {
             setAllGrupos([]);
             setSelectedYear('');
             setSelectedGrupo('');
-            setModulos([]);
+            setMaterias([]);
             setSelectedModulo('');
         }
     }, [selectedCentro, isSuperAdmin]);
@@ -81,7 +81,7 @@ const useImparticiones = () => {
     // Reset grupo al cambiar año
     useEffect(() => {
         setSelectedGrupo('');
-        setModulos([]);
+        setMaterias([]);
         setSelectedModulo('');
     }, [selectedYear]);
 
@@ -101,12 +101,12 @@ const useImparticiones = () => {
                         map.set(item.modulo.id, item.modulo);
                     }
                 });
-                setModulos([...map.values()]);
+                setMaterias([...map.values()]);
                 setSelectedModulo('');
             })
             .catch(err => console.error('Error cargando módulos:', err));
         } else {
-            setModulos([]);
+            setMaterias([]);
             setSelectedModulo('');
         }
     }, [selectedGrupo, isSuperAdmin]);
@@ -137,8 +137,8 @@ const useImparticiones = () => {
                 }
             } else if (isSuperAdmin) {
                 let query = 'pagination=false';
-                if (selectedModulo) {
-                    query += `&modulo=${selectedModulo}`;
+                if (selectedMateria) {
+                    query += `&modulo=${selectedMateria}`;
                     if (selectedGrupo) query += `&grupo=${selectedGrupo}`;
                 } else if (selectedGrupo) {
                     query += `&grupo=${selectedGrupo}`;
@@ -189,7 +189,7 @@ const useImparticiones = () => {
         } finally {
             setLoading(false);
         }
-    }, [user, isProfesor, isAlumno, isAdmin, isSuperAdmin, selectedCentro, selectedGrupo, selectedModulo, t]);
+    }, [user, isProfesor, isAlumno, isAdmin, isSuperAdmin, selectedCentro, selectedGrupo, selectedMateria, t]);
 
     useEffect(() => {
         fetchData();
@@ -205,7 +205,7 @@ const useImparticiones = () => {
             centros, selectedCentro, setSelectedCentro,
             availableYears, selectedYear, setSelectedYear,
             grupos, selectedGrupo, setSelectedGrupo,
-            modulos, selectedModulo, setSelectedModulo,
+            modulos, selectedMateria, setSelectedModulo,
         },
     };
 };

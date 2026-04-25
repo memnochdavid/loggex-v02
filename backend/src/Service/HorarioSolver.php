@@ -36,7 +36,7 @@ class HorarioSolver
 
     public function solve(Grupo $grupo, ?int $seed = null): array
     {
-        $turno = $this->turnoFromCiclo($grupo->getCiclo()?->getNombre() ?? '');
+        $turno = $this->turnoFromCiclo($grupo->getItinerario()?->getNombre() ?? '');
         $slots = $turno === 'T' ? self::SLOTS_TARDE : self::SLOTS_MANANA;
 
         $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
@@ -45,7 +45,7 @@ class HorarioSolver
         // Expandir a "una tarea por hora a colocar"
         $tasks = [];
         foreach ($imps as $imp) {
-            $horas = $imp->getModulo()?->getHorasSemanales() ?? 0;
+            $horas = $imp->getMateria()?->getHorasSemanales() ?? 0;
             for ($i = 0; $i < $horas; $i++) {
                 $tasks[] = $imp;
             }
@@ -100,12 +100,12 @@ class HorarioSolver
         }
         $unplaced = [];
         foreach ($imps as $imp) {
-            $total = $imp->getModulo()?->getHorasSemanales() ?? 0;
+            $total = $imp->getMateria()?->getHorasSemanales() ?? 0;
             $placed = $placedPerImp[$imp->getId()] ?? 0;
             if ($placed < $total) {
                 $unplaced[] = [
                     'imparticionId' => $imp->getId(),
-                    'modulo' => $imp->getModulo()?->getNombre(),
+                    'materia' => $imp->getMateria()?->getNombre(),
                     'horasRestantes' => $total - $placed,
                 ];
             }
@@ -128,10 +128,10 @@ class HorarioSolver
         foreach ($imps as $imp) {
             $tasksPerImp[] = [
                 'imparticionId' => $imp->getId(),
-                'modulo' => $imp->getModulo()?->getNombre(),
+                'materia' => $imp->getMateria()?->getNombre(),
                 'profesor' => trim(($imp->getProfesor()?->getNombre() ?? '').' '.($imp->getProfesor()?->getApellidos() ?? '')),
                 'profesorId' => $imp->getProfesor()?->getId(),
-                'horasSemanales' => $imp->getModulo()?->getHorasSemanales() ?? 0,
+                'horasSemanales' => $imp->getMateria()?->getHorasSemanales() ?? 0,
             ];
         }
         $parallelBusySummary = [];
@@ -177,7 +177,7 @@ class HorarioSolver
         }
         $imp = $tasks[$idx];
         $pid = $imp->getProfesor()?->getId();
-        $moduloId = $imp->getModulo()?->getId();
+        $moduloId = $imp->getMateria()?->getId();
 
         // Ordenar candidatas: prioriza días donde ya hay bloques del mismo módulo
         // (hasta MAX_SAME_MODULE_PER_DAY), luego el resto.
@@ -190,7 +190,7 @@ class HorarioSolver
             $n = 0;
             foreach ($placements as $k => $p) {
                 [$dk] = explode('_', $k);
-                if ((int) $dk === $dia && $p['imp']->getModulo()?->getId() === $moduloId) {
+                if ((int) $dk === $dia && $p['imp']->getMateria()?->getId() === $moduloId) {
                     $n++;
                 }
             }
@@ -237,7 +237,7 @@ class HorarioSolver
         $busy = [];
         foreach ($grupos as $g) {
             if ($g->getId() === $grupo->getId()) continue;
-            if ($this->turnoFromCiclo($g->getCiclo()?->getNombre() ?? '') !== $turno) continue;
+            if ($this->turnoFromCiclo($g->getItinerario()?->getNombre() ?? '') !== $turno) continue;
             $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $g]);
             foreach ($imps as $imp) {
                 $pid = $imp->getProfesor()?->getId();

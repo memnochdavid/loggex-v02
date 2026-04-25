@@ -15,15 +15,15 @@ use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
-use App\Repository\ModuloRepository;
+use App\Repository\MateriaRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-#[ORM\Entity(repositoryClass: ModuloRepository::class)]
-#[ORM\Table(name: 'modulo')]
+#[ORM\Entity(repositoryClass: MateriaRepository::class)]
+#[ORM\Table(name: 'materia')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -33,8 +33,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Put(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
-    normalizationContext: ['groups' => ['modulo:read', 'timestamp:read', 'softdelete:read']],
-    denormalizationContext: ['groups' => ['modulo:write']]
+    normalizationContext: ['groups' => ['materia:read', 'timestamp:read', 'softdelete:read']],
+    denormalizationContext: ['groups' => ['materia:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
@@ -43,11 +43,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'ciclo' => 'exact', // Para filtrar por ID de ciclo
     'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
     'ciclo.centro' => 'exact', // Para filtrar por centro (SuperAdmin)
-    'curso' => 'exact' // Para filtrar por curso (1, 2, …) — usado en cascadas Grupo→Modulo
+    'curso' => 'exact' // Para filtrar por curso (1, 2, …) — usado en cascadas Grupo→Materia
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
-class Modulo
+class Materia
 {
     use TimestampableTrait;
     use SoftDeletableTrait;
@@ -55,15 +55,15 @@ class Modulo
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['modulo:read', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido imparticion:read, horario:read, tarea:read
+    #[Groups(['materia:read', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido imparticion:read, horario:read, tarea:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $codigoOficial = null;
 
     /**
@@ -71,29 +71,29 @@ class Modulo
      * (vista móvil de AccordionView, TimeTable, etc.).
      */
     #[ORM\Column(length: 16, nullable: true)]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read', 'horario:read', 'tarea:read'])]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])]
     private ?string $abreviatura = null;
 
     #[ORM\Column]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read'])]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $curso = null;
 
     #[ORM\Column]
-    #[Groups(['modulo:read', 'modulo:write', 'imparticion:read'])]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $horasSemanales = null;
 
-    #[ORM\ManyToOne(inversedBy: 'modulos')]
+    #[ORM\ManyToOne(inversedBy: 'materias')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['modulo:read', 'modulo:write'])]
-    private ?CicloFormativo $ciclo = null;
+    #[Groups(['materia:read', 'materia:write'])]
+    private ?Itinerario $itinerario = null;
 
-    #[ORM\OneToMany(mappedBy: 'modulo', targetEntity: Imparticion::class)]
+    #[ORM\OneToMany(mappedBy: 'materia', targetEntity: Imparticion::class)]
     private Collection $imparticiones;
 
     /** Trazabilidad al catálogo oficial. Nullable: módulos manuales son válidos. */
     #[ORM\ManyToOne(targetEntity: CatalogoMateria::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['modulo:read'])]
+    #[Groups(['materia:read'])]
     private ?CatalogoMateria $catalogoOrigen = null;
 
     public function __construct()
@@ -161,14 +161,14 @@ class Modulo
         return $this;
     }
 
-    public function getCiclo(): ?CicloFormativo
+    public function getItinerario(): ?Itinerario
     {
-        return $this->ciclo;
+        return $this->itinerario;
     }
 
-    public function setCiclo(?CicloFormativo $ciclo): static
+    public function setItinerario(?Itinerario $itinerario): static
     {
-        $this->ciclo = $ciclo;
+        $this->itinerario = $itinerario;
         return $this;
     }
 

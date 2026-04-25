@@ -12,14 +12,14 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
-use App\Repository\MaterialRepository;
+use App\Repository\TemarioRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-#[ORM\Entity(repositoryClass: MaterialRepository::class)]
-#[ORM\Table(name: 'material')]
+#[ORM\Entity(repositoryClass: TemarioRepository::class)]
+#[ORM\Table(name: 'temario')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
@@ -29,11 +29,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Put(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
-    normalizationContext: ['groups' => ['material:read', 'timestamp:read', 'softdelete:read']],
-    denormalizationContext: ['groups' => ['material:write']]
+    normalizationContext: ['groups' => ['temario:read', 'timestamp:read', 'softdelete:read']],
+    denormalizationContext: ['groups' => ['temario:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: ['imparticion' => 'exact'])]
-class Material
+class Temario
 {
     use TimestampableTrait;
     use SoftDeletableTrait;
@@ -41,24 +41,24 @@ class Material
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['material:read'])]
+    #[Groups(['temario:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['material:read', 'material:write'])]
+    #[Groups(['temario:read', 'temario:write'])]
     private ?string $titulo = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['material:read', 'material:write'])]
+    #[Groups(['temario:read', 'temario:write'])]
     private ?string $archivo = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[Groups(['material:read', 'material:write'])]
+    #[Groups(['temario:read', 'temario:write'])]
     private ?\DateTimeInterface $fechaSubida = null;
 
-    #[ORM\ManyToOne(inversedBy: 'materiales')]
+    #[ORM\ManyToOne(inversedBy: 'temarios')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['material:read', 'material:write'])]
+    #[Groups(['temario:read', 'temario:write'])]
     private ?Imparticion $imparticion = null;
 
     public function getId(): ?int

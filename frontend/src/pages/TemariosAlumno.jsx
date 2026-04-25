@@ -12,7 +12,7 @@ import bookAnimation from "../../public/book.json";
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 
-const MaterialesAlumno = () => {
+const TemariosAlumno = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [asignaturas, setAsignaturas] = useState([]);
@@ -30,8 +30,8 @@ const MaterialesAlumno = () => {
   const [allGrupos, setAllGrupos] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
-  const [modulos, setModulos] = useState([]); // NUEVO
-  const [selectedModulo, setSelectedModulo] = useState(''); // NUEVO
+  const [modulos, setMaterias] = useState([]); // NUEVO
+  const [selectedMateria, setSelectedModulo] = useState(''); // NUEVO
 
   // Cargar centros para SuperAdmin
   useEffect(() => {
@@ -62,7 +62,7 @@ const MaterialesAlumno = () => {
               setAllGrupos(items);
               setSelectedYear('');
               setSelectedGrupo(''); // Resetear grupo al cambiar centro
-              setModulos([]); // Resetear módulos
+              setMaterias([]); // Resetear módulos
               setSelectedModulo('');
           })
           .catch(err => console.error("Error cargando grupos:", err));
@@ -70,7 +70,7 @@ const MaterialesAlumno = () => {
           setAllGrupos([]);
           setSelectedYear('');
           setSelectedGrupo('');
-          setModulos([]);
+          setMaterias([]);
           setSelectedModulo('');
       }
   }, [selectedCentro, isSuperAdmin]);
@@ -98,12 +98,12 @@ const MaterialesAlumno = () => {
                       uniqueModulos.push(item.modulo);
                   }
               }
-              setModulos(uniqueModulos);
+              setMaterias(uniqueModulos);
               setSelectedModulo('');
           })
           .catch(err => console.error("Error cargando módulos:", err));
       } else {
-          setModulos([]);
+          setMaterias([]);
           setSelectedModulo('');
       }
   }, [selectedGrupo, isSuperAdmin]);
@@ -119,8 +119,8 @@ const MaterialesAlumno = () => {
         if (isSuperAdmin) {
             // Lógica para SuperAdmin
             let query = 'pagination=false';
-            if (selectedModulo) {
-                query += `&modulo=${selectedModulo}`;
+            if (selectedMateria) {
+                query += `&modulo=${selectedMateria}`;
                 if (selectedGrupo) query += `&grupo=${selectedGrupo}`;
             } else if (selectedGrupo) {
                 query += `&grupo=${selectedGrupo}`;
@@ -218,7 +218,7 @@ const MaterialesAlumno = () => {
     };
 
     fetchData();
-  }, [user, selectedCentro, selectedGrupo, selectedModulo]);
+  }, [user, selectedCentro, selectedGrupo, selectedMateria]);
 
   // Cargar períodos evaluativos de todos los grupos implicados
   useEffect(() => {
@@ -355,7 +355,7 @@ const MaterialesAlumno = () => {
                         ]}
                     />
                     <ThemedSelect
-                        value={selectedModulo}
+                        value={selectedMateria}
                         onChange={setSelectedModulo}
                         disabled={!selectedGrupo}
                         minWidth={150}
@@ -414,4 +414,4 @@ const MaterialesAlumno = () => {
   );
 };
 
-export default MaterialesAlumno;
+export default TemariosAlumno;

@@ -6,8 +6,8 @@ use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Catalogo\EtapaEducativa;
 use App\Entity\Centro;
-use App\Entity\CicloFormativo;
-use App\Entity\Modulo;
+use App\Entity\Itinerario;
+use App\Entity\Materia;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *
  * Cuando un admin selecciona un ciclo del catálogo en el modal "Nuevo ciclo",
  * el frontend POSTea aquí con el id del CatalogoItinerario. El backend crea
- * el CicloFormativo + sus Modulo copiando los datos del catálogo, dejando
+ * el Itinerario + sus Materia copiando los datos del catálogo, dejando
  * `catalogoOrigen` apuntando a la fuente para trazar futuros cambios.
  */
 #[IsGranted('ROLE_ADMIN')]
@@ -66,12 +66,12 @@ final class CatalogoMaterializationController extends AbstractController
         }
 
         try {
-            $ciclo = $this->buildCiclo($itinerario, $centro);
-            $this->em->persist($ciclo);
+            $itinerario = $this->buildCiclo($itinerario, $centro);
+            $this->em->persist($itinerario);
 
             foreach ($itinerario->getMaterias() as $materia) {
-                $modulo = $this->buildModulo($materia, $ciclo);
-                $this->em->persist($modulo);
+                $materia = $this->buildModulo($materia, $itinerario);
+                $this->em->persist($materia);
             }
 
             $this->em->flush();
@@ -83,12 +83,12 @@ final class CatalogoMaterializationController extends AbstractController
         }
 
         return $this->json([
-            'id' => $ciclo->getId(),
-            'nombre' => $ciclo->getNombre(),
-            'nivel' => $ciclo->getNivel(),
+            'id' => $itinerario->getId(),
+            'nombre' => $itinerario->getNombre(),
+            'nivel' => $itinerario->getNivel(),
             'centroId' => $centro->getId(),
             'catalogoItinerarioId' => $itinerario->getId(),
-            'modulosCreados' => $ciclo->getModulos()->count(),
+            'modulosCreados' => $itinerario->getMaterias()->count(),
         ], Response::HTTP_CREATED);
     }
 
@@ -108,35 +108,35 @@ final class CatalogoMaterializationController extends AbstractController
         return $currentUser->getCentro();
     }
 
-    private function buildCiclo(CatalogoItinerario $itinerario, Centro $centro): CicloFormativo
+    private function buildCiclo(CatalogoItinerario $itinerario, Centro $centro): Itinerario
     {
-        return (new CicloFormativo())
+        return (new Itinerario())
             ->setNombre($itinerario->getNombre())
             ->setNivel($this->mapNivel($itinerario->getEtapa()))
             ->setCentro($centro)
             ->setCatalogoOrigen($itinerario);
     }
 
-    private function buildModulo(CatalogoMateria $materia, CicloFormativo $ciclo): Modulo
+    private function buildModulo(CatalogoMateria $materia, Itinerario $itinerario): Materia
     {
-        // CatalogoMateria → Modulo: el campo horasSemanales del catálogo es decimal,
-        // el del Modulo del centro es int. Redondeamos al alza para no perder horas.
+        // CatalogoMateria → Materia: el campo horasSemanales del catálogo es decimal,
+        // el del Materia del centro es int. Redondeamos al alza para no perder horas.
         // Si el catálogo no especifica (FCT, proyecto), usamos 0 — el setter de
-        // Modulo no acepta null y para esos módulos no hay carga semanal regular.
+        // Materia no acepta null y para esos módulos no hay carga semanal regular.
         $horasSemanales = $materia->getHorasSemanales();
         $horasInt = $horasSemanales !== null ? (int) ceil((float) $horasSemanales) : 0;
 
-        return (new Modulo())
+        return (new Materia())
             ->setNombre($materia->getNombre())
             ->setCodigoOficial($materia->getCodigoOficial())
             ->setCurso($materia->getCurso() ?? 1)
             ->setHorasSemanales($horasInt)
-            ->setCiclo($ciclo)
+            ->setItinerario($itinerario)
             ->setCatalogoOrigen($materia);
     }
 
     /**
-     * Mapea la EtapaEducativa del catálogo al string `nivel` del CicloFormativo
+     * Mapea la EtapaEducativa del catálogo al string `nivel` del Itinerario
      * que ya usa Loggex en el formulario actual ("Básico" / "Medio" / "Superior" / …).
      */
     private function mapNivel(EtapaEducativa $etapa): string

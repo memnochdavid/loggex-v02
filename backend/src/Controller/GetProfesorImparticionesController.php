@@ -24,12 +24,12 @@ class GetProfesorImparticionesController extends AbstractController
         $data = [];
         foreach ($imparticiones as $imparticion) {
             $grupo = $imparticion->getGrupo();
-            $modulo = $imparticion->getModulo();
+            $materia = $imparticion->getMateria();
 
             $data[] = [
                 'id' => $imparticion->getId(),
-                'modulo' => [
-                    'nombre' => $modulo->getNombre()
+                'materia' => [
+                    'nombre' => $materia->getNombre()
                 ],
                 'grupo' => [
                     'nombre' => $grupo->getNombre(),

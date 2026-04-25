@@ -92,7 +92,7 @@ class HorarioPdfController extends AbstractController
         }
 
         $horarios = $this->loadHorariosForGrupo($grupo);
-        $centro = $grupo->getCiclo()?->getCentro();
+        $centro = $grupo->getItinerario()?->getCentro();
         if (!$centro) {
             return $this->json(['message' => 'El grupo no tiene centro asociado'], 422);
         }
@@ -184,7 +184,7 @@ class HorarioPdfController extends AbstractController
         if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
-        $centroGrupo = $grupo->getCiclo()?->getCentro();
+        $centroGrupo = $grupo->getItinerario()?->getCentro();
         $mismoCentro = $centroGrupo && $user->getCentro()
             && $centroGrupo->getId() === $user->getCentro()->getId();
 
@@ -263,7 +263,7 @@ class HorarioPdfController extends AbstractController
             if (!$hi || !$hf || !$dia) continue;
             $key = $hi . '-' . $hf;
             $imp = $h->getImparticion();
-            $modulo = $imp?->getModulo();
+            $materia = $imp?->getMateria();
             $profesor = $imp?->getProfesor();
             $grupoEv = $imp?->getGrupo();
 
@@ -272,13 +272,13 @@ class HorarioPdfController extends AbstractController
                 : null;
 
             $matriz[$key][$dia] = [
-                'modulo' => $modulo?->getNombre() ?? '—',
-                'moduloId' => $modulo?->getId() ?? 0,
+                'materia' => $materia?->getNombre() ?? '—',
+                'moduloId' => $materia?->getId() ?? 0,
                 'profesor' => $profNombre,
                 'aula' => $h->getAula(),
                 'grupoNombre' => $grupoEv?->getNombre(),
                 'grupoAbreviatura' => $grupoEv?->getAbreviatura(),
-                'color' => $this->colorForModule($modulo?->getId() ?? 0),
+                'color' => $this->colorForModule($materia?->getId() ?? 0),
             ];
         }
 
@@ -293,7 +293,7 @@ class HorarioPdfController extends AbstractController
             $contextLine = null;
         } elseif ($grupo) {
             $subjectLine = $grupo->getNombre();
-            $contextLine = $grupo->getCiclo()?->getNombre();
+            $contextLine = $grupo->getItinerario()?->getNombre();
         }
 
         $t = fn(string $key) => $this->translator->trans($key, [], 'horario', $lang);

@@ -156,7 +156,7 @@ class AsistenciaController extends AbstractController
 
                 foreach ($imparticiones as $imparticion) {
                     $key = $imparticion->getId();
-                    $moduloNombre = $imparticion->getModulo()->getNombre();
+                    $moduloNombre = $imparticion->getMateria()->getNombre();
                     $profesor = $imparticion->getProfesor();
                     $profesorNombre = $profesor ? ($profesor->getNombre() . ' ' . $profesor->getApellidos()) : 'Sin profesor';
 

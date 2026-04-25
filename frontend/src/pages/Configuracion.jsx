@@ -149,7 +149,7 @@ const Configuracion = () => {
     // Cargar temas desde API
     const fetchThemes = async () => {
         try {
-            const response = await fetch(getApiUrl('/api/temas?pagination=false'), {
+            const response = await fetch(getApiUrl('/api/temas_visuales?pagination=false'), {
                 headers: {'Accept': 'application/ld+json'},
                 credentials: 'include'
             });
@@ -233,7 +233,7 @@ const Configuracion = () => {
                 centro: user.centro ? `/api/centros/${user.centro.id}` : null
             };
 
-            const response = await fetch(getApiUrl('/api/temas'), {
+            const response = await fetch(getApiUrl('/api/temas_visuales'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/ld+json',
@@ -267,7 +267,7 @@ const Configuracion = () => {
         if (!(await confirm({ body: t('config.themeDeleteConfirm', { name: theme.nombre }) }))) return;
 
         try {
-            const response = await fetch(getApiUrl(`/api/temas/${theme.id}`), {
+            const response = await fetch(getApiUrl(`/api/temas_visuales/${theme.id}`), {
                 method: 'DELETE',
                 credentials: 'include'
             });

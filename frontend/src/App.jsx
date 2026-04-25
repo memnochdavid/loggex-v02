@@ -21,9 +21,9 @@ import AboutErModel from './pages/AboutErModel';
 import Login from './pages/Login';
 import Centros from './pages/Centros';
 import Usuarios from './pages/Usuarios';
-import CiclosFormativos from './pages/CiclosFormativos';
+import Itinerarios from './pages/Itinerarios';
 import Grupos from './pages/Grupos';
-import Modulos from './pages/Modulos';
+import Materias from './pages/Materias';
 import Matriculas from './pages/Matriculas';
 import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
@@ -34,8 +34,8 @@ import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
-import MaterialesAlumno from './pages/MaterialesAlumno';
-import MaterialesProfesor from './pages/MaterialesProfesor';
+import TemariosAlumno from './pages/TemariosAlumno';
+import TemariosProfesor from './pages/TemariosProfesor';
 import Mensajes from './pages/Mensajes';
 import Claustro from './pages/Claustro';
 import Companeros from './pages/Companeros';
@@ -125,9 +125,9 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/ciclos" element={
+                <Route path="/itinerarios" element={
                   <PrivateRoute>
-                    <CiclosFormativos />
+                    <Itinerarios />
                   </PrivateRoute>
                 } />
 
@@ -137,9 +137,9 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/modulos" element={
+                <Route path="/materias" element={
                   <PrivateRoute>
-                    <Modulos />
+                    <Materias />
                   </PrivateRoute>
                 } />
 
@@ -193,13 +193,13 @@ const router = createBrowserRouter(
 
                 <Route path="/apuntes" element={
                   <PrivateRoute>
-                    <MaterialesAlumno />
+                    <TemariosAlumno />
                   </PrivateRoute>
                 } />
 
                 <Route path="/mis-temarios" element={
                   <PrivateRoute>
-                    <MaterialesProfesor />
+                    <TemariosProfesor />
                   </PrivateRoute>
                 } />
 

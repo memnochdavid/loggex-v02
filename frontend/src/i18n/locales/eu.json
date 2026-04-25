@@ -131,7 +131,7 @@
     "teacher": "Irakaslea",
     "tasks": "Zereginak",
     "deliveries": "Bidalketak",
-    "myMaterials": "Nire Gai-zerrendak",
+    "myTemarios": "Nire Gai-zerrendak",
     "faculty": "Irakaslegoa",
     "myStudents": "Nire Ikasleak",
     "student": "Ikaslea",
@@ -141,10 +141,10 @@
     "myTeachers": "Nire Irakasleak",
     "admin": "Administrazioa",
     "users": "Erabiltzaileak",
-    "cycles": "Zikloak",
-    "cyclesLong": "Heziketa Zikloak",
+    "itinerarios": "Zikloak",
+    "itinerariosLong": "Heziketa Zikloak",
     "groups": "Taldeak",
-    "modules": "Moduluak",
+    "materias": "Moduluak",
     "enrollments": "Matrikulak",
     "teachingAssignment": "Irakaskuntza Esleipena",
     "teaching": "Irakaskuntza",
@@ -285,7 +285,7 @@
     "phonePlaceholder": "912 345 678",
     "activeCheckbox": "Ikastetxe Aktiboa"
   },
-  "cycles": {
+  "itinerarios": {
     "title": "Heziketa Zikloak",
     "searchPlaceholder": "Bilatu zikloa...",
     "name": "Izena",
@@ -327,7 +327,7 @@
     "course2": "2.",
     "centerLabel": "Ikastetxea"
   },
-  "modules": {
+  "materias": {
     "title": "Modulu Formatuak",
     "searchPlaceholder": "Bilatu modulua...",
     "name": "Izena",
