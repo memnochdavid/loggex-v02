@@ -45,6 +45,11 @@ import CalificacionesGrupo from './pages/CalificacionesGrupo';
 import CalificacionesDetalle from './pages/CalificacionesDetalle';
 import MisCalificaciones from './pages/MisCalificaciones';
 import CalificacionesAdmin from './pages/CalificacionesAdmin';
+import CatalogoAcerca from './pages/catalogo/CatalogoAcerca';
+import CatalogoItinerarios from './pages/catalogo/CatalogoItinerarios';
+import CatalogoItinerarioDetail from './pages/catalogo/CatalogoItinerarioDetail';
+import CatalogoMaterias from './pages/catalogo/CatalogoMaterias';
+import CatalogoCentros from './pages/catalogo/CatalogoCentros';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -261,6 +266,36 @@ const router = createBrowserRouter(
                 <Route path="/admin/calificaciones" element={
                   <PrivateRoute>
                     <CalificacionesAdmin />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/catalogo/itinerarios" element={
+                  <PrivateRoute>
+                    <CatalogoItinerarios />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/catalogo/itinerarios/:id" element={
+                  <PrivateRoute>
+                    <CatalogoItinerarioDetail />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/catalogo/materias" element={
+                  <PrivateRoute>
+                    <CatalogoMaterias />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/catalogo/centros" element={
+                  <PrivateRoute>
+                    <CatalogoCentros />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/catalogo/acerca" element={
+                  <PrivateRoute>
+                    <CatalogoAcerca />
                   </PrivateRoute>
                 } />
 

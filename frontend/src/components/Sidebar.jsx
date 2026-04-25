@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
-import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3 } from 'lucide-react';
+import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ConfirmLogoutModal from './ConfirmLogoutModal';
 import { useTranslation } from 'react-i18next';
@@ -108,7 +108,9 @@ const Sidebar = () => {
         '/fechas': isSuperAdmin ? 'superadmin' : 'administracion',
         '/admin/calificaciones': 'administracion',
         '/configuracion': 'administracion',
-        
+
+        '/admin/catalogo': 'catalogo',
+
         '/centros': 'superadmin',
 
         // Ruta raíz al final
@@ -346,7 +348,37 @@ const Sidebar = () => {
         });
     }
 
-    // 5. Superadmin
+    // 5. Catálogo oficial (read-only del catálogo educativo nacional)
+    if (isSuperAdmin || isAdmin) {
+        accordionData.push({
+            id: 'catalogo',
+            title: t('sidebar.catalogo'),
+            content: (
+                <>
+                    <NavLink to="/admin/catalogo/itinerarios" className={getNavLinkClass} title={t('sidebar.catalogoItinerarios')} onClick={handleNavClose}>
+                        <Library size={20} />
+                        <span>{t('sidebar.catalogoItinerarios')}</span>
+                    </NavLink>
+                    <NavLink to="/admin/catalogo/materias" className={getNavLinkClass} title={t('sidebar.catalogoMaterias')} onClick={handleNavClose}>
+                        <Database size={20} />
+                        <span>{t('sidebar.catalogoMaterias')}</span>
+                    </NavLink>
+                    {isSuperAdmin && (
+                        <NavLink to="/admin/catalogo/centros" className={getNavLinkClass} title={t('sidebar.catalogoCentros')} onClick={handleNavClose}>
+                            <Building2 size={20} />
+                            <span>{t('sidebar.catalogoCentros')}</span>
+                        </NavLink>
+                    )}
+                    <NavLink to="/admin/catalogo/acerca" className={getNavLinkClass} title={t('sidebar.catalogoAcerca')} onClick={handleNavClose}>
+                        <Info size={20} />
+                        <span>{t('sidebar.catalogoAcerca')}</span>
+                    </NavLink>
+                </>
+            )
+        });
+    }
+
+    // 6. Superadmin
     if (isSuperAdmin) {
         accordionData.push({
             id: 'superadmin',

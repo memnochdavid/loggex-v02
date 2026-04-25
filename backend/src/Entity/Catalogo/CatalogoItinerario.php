@@ -2,6 +2,7 @@
 
 namespace App\Entity\Catalogo;
 
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -40,8 +41,12 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'etapa' => 'exact',
     'ccaa' => 'exact',
     'familia' => 'partial',
+    'nivel' => 'partial',
 ])]
-#[ApiFilter(OrderFilter::class, properties: ['nombre', 'codigoOficial'], arguments: ['orderParameterName' => 'order'])]
+// vigenteHasta IS NULL ⇒ vigente; IS NOT NULL ⇒ retirado.
+// Uso desde el frontend: ?exists[vigenteHasta]=false  (muestra solo vigentes)
+#[ApiFilter(ExistsFilter::class, properties: ['vigenteHasta'])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'codigoOficial', 'duracionTotalHoras', 'etapa'], arguments: ['orderParameterName' => 'order'])]
 class CatalogoItinerario
 {
     #[ORM\Id]

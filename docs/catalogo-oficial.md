@@ -1205,3 +1205,38 @@ Tras el primer batch surgieron 6 huérfanos que requirieron tres fixes:
 
 ### 16.7 Limitaciones documentadas (pendientes de v1.1)
 - **RDs de modificación post-LOMLOE**: TodoFP a veces enlaza al RD que *modifica* el título (p. ej. RD 498/2024 que altera el anexo X "Carpintería y Mueble" del RD 127/2014). Estos RDs no contienen la definición del título sino tablas de cambios. **Causa raíz: scraper de TodoFP**, no del parser BOE. Solución v1.1: detectar amendment RDs (heurística por `<p class="articulo">Modificación…</p>`) y mapear al original.
+
+## 17. Vistas de administración (UI)
+
+Tras llegar a 233/234 itinerarios de FP enriquecidos (497 módulos), expone los datos en una sección de admin del frontend para que los gestores puedan consultar el catálogo sin tocar SQL.
+
+### 17.1 Principios
+- **Read-only**. El catálogo se rellena por scraping; editar manualmente generaría divergencias que el siguiente refresh sobrescribiría sin control. La pantalla muestra; no edita.
+- **Procedencia visible**. Cada vista lleva un banner `DataProvenanceBanner` que recuerda la fuente (TodoFP + BOE), la última sincronización y el aviso de que Loggex no es la fuente oficial.
+- **Consistencia visual obligatoria**. Hereda 100 % del sistema de temas (`utils/theme.js` + variables CSS de `index.css`). Sin colores, espacios, radios ni transiciones hardcodeados — todo vía `var(--*)`. Hereda fondo animado y `.content` translúcido del `Layout`.
+
+### 17.2 Rutas y rol de acceso
+- `/admin/catalogo/itinerarios` — ROLE_ADMIN+. Listing con filtros server-side.
+- `/admin/catalogo/itinerarios/:id` — ROLE_ADMIN+. Detalle con identificación + materias.
+- `/admin/catalogo/materias` — ROLE_ADMIN+. Listing con filtro por itinerario via AsyncSearchSelect.
+- `/admin/catalogo/centros` — **ROLE_SUPERADMIN únicamente**. Stub hasta Fase 2 del catálogo (ingestión de centros de `centros.gob.es`).
+- `/admin/catalogo/acerca` — ROLE_ADMIN+. Explicación completa del sistema (procedencia, refresh, alcance, limitaciones, aviso legal).
+
+### 17.3 Componentes reutilizables nuevos
+- **`DataProvenanceBanner`**: aparece encima de cada listing y detalle. Compacto (1-2 líneas). Variantes por contenido (Itinerarios / Materias / Centros). Link a `/admin/catalogo/acerca`.
+
+### 17.4 Filtros server-side
+Los entity filters de API Platform ya están casi listos. Para el listing:
+- **Itinerarios**: `q` (SearchAnyFilter sobre nombre + códigoOficial), `etapa`, `familia`, `nivel`, `ccaa`. Ordenación por nombre/etapa/duración.
+- **Materias**: `q` (SearchAnyFilter sobre nombre + códigoOficial), `itinerario` (id, exact), `tipo` (enum), `curso` (1/2).
+- **Centros**: a definir cuando exista la fuente.
+
+Hidratación: los listings consumen `application/ld+json` y leen `hydra:member` + `hydra:totalItems` siguiendo el patrón ya estandarizado (ver `Usuarios.jsx`).
+
+### 17.5 Roadmap de la sección
+1. Sidebar + ruteo + `AcercaPage` y `DataProvenanceBanner` (cimientos).
+2. Listing Itinerarios + filtros.
+3. Detail Itinerario.
+4. Listing Materias.
+5. Stub Centros.
+6. **(Fase 2)** Botones de actualización manual: disparan `app:catalogo:refresh` y `app:catalogo:enrich-boe` vía Symfony Messenger; UI muestra progreso. Out of scope hasta tener el listing y el detalle estables.
