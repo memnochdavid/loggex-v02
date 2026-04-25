@@ -663,3 +663,168 @@ Cuando se decida arrancar:
 6. Tras Fase 1, añadir `CatalogoCalendarioEscolar.php` y `CatalogoPeriodoCalendario.php` y los endpoints `/api/catalogo/calendarios` (Fase 1.5).
 
 A partir de ahí, cualquier adapter es trabajo aislado en paralelo. El primero en escribir es `TodoFpAdapter` (caso de uso más vendible y la fuente más estructurada de las "no-API"). Después `BoeBojaCalendarioAdapter` (el segundo mayor ahorro percibido por los admins, porque copiar el calendario del BOJA cada inicio de curso es de las cosas más tediosas de la gestión escolar).
+
+---
+
+## 12. Refactor de nomenclatura: de FP-only a multi-etapa
+
+> **Status:** pendiente. Es el bloqueador más importante para que Loggex deje de ser "una herramienta de FP" y pase a ser "una plataforma de gestión académica". No tiene sentido lanzar Fase 3 (ESO + Bach) sin haber hecho antes este refactor, o como mínimo decidido la estrategia. Queda documentado aquí para que no se ignore.
+
+### 12.1 Por qué es necesario
+
+Loggex se diseñó originalmente para Formación Profesional. Esa decisión inicial caló en **toda** la pila — base de datos, entidades Doctrine, controladores, rutas API, componentes React, claves i18n, copys de la UI, documentación. Pero la visión del proyecto (ver introducción de este documento) abarca cualquier nivel educativo: Primaria, ESO, Bachillerato, FP, Universidad.
+
+El choque concreto:
+
+- En FP existen **"ciclos formativos"** que se componen de **"módulos"**. Una clase es una **"impartición"** (profesor + módulo + grupo).
+- En ESO/Bach/Primaria no hay ciclos: hay **"cursos"** o **"etapas"** con **"asignaturas"**. Las "imparticiones" se llaman simplemente "asignaciones docentes".
+- En Universidad hay **"grados"/"másteres"** con **"asignaturas"** que valen ECTS.
+
+Si un IES de ESO entra hoy a Loggex y crea un grupo, el sistema le pide que lo asocie a un *"ciclo formativo"* y a *"módulos"*. El admin del IES no entiende esa terminología — para él son "1º ESO" y "Lengua Castellana", no un ciclo y un módulo. La aplicación queda inutilizable o, en el mejor caso, parece amateur.
+
+El refactor cubre dos planos:
+
+1. **Plano semántico de datos** (entidades, tablas, columnas, FKs). El nombre del concepto a nivel código y BD.
+2. **Plano de presentación** (UI, copys, rutas, i18n). Lo que el admin ve.
+
+Ambos están entrelazados ahora mismo. Hay que separarlos.
+
+### 12.2 Inventario de lo que está acoplado a FP
+
+#### 12.2.1 Backend: entidades y tablas
+
+| Entidad / tabla actual | Concepto | Propuesta multi-etapa | Comentario |
+|---|---|---|---|
+| `CicloFormativo` / `ciclo_formativo` | Programa formativo de un grupo | `ItinerarioFormativo` o `ProgramaEducativo` o `Plan` | El más invasivo. Aparece en muchos joins. |
+| `Modulo` / `modulo` | Unidad docente de un programa | `Materia` o `UnidadDocente` | "Asignatura" suena natural pero choca con el dialecto FP. "Materia" es más neutro y se entiende en todas las etapas. |
+| `Imparticion` / `imparticion` | Profesor + materia + grupo | `Docencia` o `Asignacion` | "Imparticion" no es palabra estrictamente FP, pero se lee así por contexto. |
+| `Tarea` / `tarea` | Actividad evaluable | (igual) | OK, neutro. |
+| `Entrega` / `entrega` | Entrega del alumno | (igual) | OK. |
+| `Calificacion` / `calificacion` | Nota | (igual) | OK. |
+| `Grupo` / `grupo` | Conjunto de alumnos | (igual) | OK; el campo `curso` ya admite distintos significados. |
+| `Matricula` / `matricula` | Inscripción alumno↔grupo | (igual) | OK. |
+| `PeriodoEvaluativo` / `periodo_evaluativo` | Trimestre / cuatrimestre | (igual) | Neutro. |
+| `Asistencia`, `Material`, `Festivo`, `Centro`, `User`, `Mensaje`, `Comunicado` | — | (igual) | Todos neutros. |
+
+Conclusión: **3 entidades** acopladas a FP por nombre (`CicloFormativo`, `Modulo`, `Imparticion`). El resto del modelo es ya neutro.
+
+Pero esas 3 son justamente las entidades centrales del dominio académico, así que su refactor toca **todo**: relaciones, repositorios, fixtures, migraciones, fixtures de test, fixtures de seed, controladores, normalizadores, DTOs, filtros, columnas de DataTable.
+
+#### 12.2.2 Backend: rutas API y código
+
+- `/api/ciclo_formativos` (autogenerada por API Platform).
+- `/api/modulos`.
+- `/api/imparticions` (sí, con typo plural inglés — bug histórico que también convendría arreglar al renombrar).
+- Filtros y SearchFilters declarados con paths `ciclo.nombre`, `modulo.nombre`, `imparticion.modulo`, etc.
+- `CurrentUserExtension` con whitelist de clases, varias FP-céntricas.
+- Repositorios `CicloFormativoRepository`, `ModuloRepository`, `ImparticionRepository`.
+- Mensajería i18n del backend (errores) con cadenas tipo *"No se ha podido borrar el ciclo formativo"*.
+
+#### 12.2.3 Frontend: rutas, componentes, i18n
+
+| Capa | Estado actual | Cambio necesario |
+|---|---|---|
+| Rutas SPA | `/ciclos`, `/modulos`, `/imparticiones` | Rutas neutras. Posible: `/programas`, `/materias`, `/docencias`. O mantener URLs por compatibilidad y solo cambiar labels. |
+| Páginas | `pages/CiclosFormativos.jsx`, `pages/Modulos.jsx`, `pages/Imparticiones.jsx` | Renombrar archivos + clases internas. |
+| Sidebar | Items con etiquetas "Ciclos", "Módulos", "Imparticiones" | Etiquetas dinámicas según etapa principal del centro o agnósticas. |
+| Modales | Títulos "Nuevo ciclo formativo", "Nuevo módulo" | Adaptar a la etapa: el modal de "nuevo programa" muestra "Nuevo ciclo"/"Nueva modalidad"/"Nuevo grado" según contexto. |
+| Componentes auxiliares | `ModuloLabel.jsx` | Renombrar a `MateriaLabel.jsx`. |
+| Claves i18n | `cycles.*`, `modules.*`, `teaching.*` (53 + 47 + 31 ocurrencias aprox.) | Migrar a `programs.*`, `subjects.*`, `lessons.*` con scripts de búsqueda y reemplazo. Mantener un alias de compatibilidad durante una transición. |
+| Copy en español | "Ciclo Formativo", "Módulo", "Impartición" | Por nivel: en FP siguen apareciendo (es el término oficial), en ESO/Bach pasan a "Curso"/"Asignatura"/"Asignación". |
+
+#### 12.2.4 Documentación, scripts, datos
+
+- `CLAUDE.md` lista entidades como `CicloFormativo`, `Modulo`, `Imparticion`. Mantenerlo coherente.
+- Fixtures Doctrine en `backend/src/DataFixtures/` — habrá que regenerarlas cuando cambien los nombres.
+- `docs/sistema-toasts.md` y otros docs internos — referencias menores.
+- `backup_tfg*.sql` — backups con el esquema antiguo. Tras la migración los backups viejos no se podrán restaurar sin transformación.
+- Scripts `scripts/init.sh`, `scripts/seed_calificaciones.sql`, `scripts/regen_fixtures.py` — referencias a tablas.
+
+### 12.3 Estrategias posibles
+
+#### Estrategia A — Solo capa de presentación (cambio cosmético)
+
+Dejar entidades, tablas y rutas API como están. Solo cambiar **etiquetas de UI** según la etapa del centro/grupo: el mismo registro de `CicloFormativo` se muestra como "Ciclo" en FP y como "Curso" en ESO.
+
+- **Pros:** trabajo mínimo. Cero migraciones de BD. APIs siguen funcionando.
+- **Contras:** mentira semántica. Cualquier desarrollador nuevo lee el código y se pregunta *"¿por qué un curso de 1º ESO está en la tabla `ciclo_formativo`?"*. La deuda técnica se cronifica. Las migraciones futuras (importar de catálogo no-FP) escupen datos en tablas con nombre engañoso.
+
+#### Estrategia B — Refactor profundo (rename masivo)
+
+Renombrar entidades, tablas, columnas, rutas, claves i18n, componentes. Migración de datos completa.
+
+- **Pros:** dominio limpio y honesto. Onboarding de devs nuevos sin rozaduras. Diccionario único para la próxima década.
+- **Contras:** **muy costoso** (estimación abajo). Migración de datos invasiva. Rompe URLs, rompe APIs si hay clientes externos (móvil), rompe backups antiguos. Una semana sin features mientras se ejecuta.
+
+#### Estrategia C — Híbrido (renombrar entidades, mantener tablas con aliases)
+
+Renombrar **clases PHP/JS** (capa lógica) pero **dejar las tablas con su nombre actual** vía atributos `#[ORM\Table(name: 'ciclo_formativo')]`. APIs existentes mantienen sus URLs vía `uriTemplate` explícito en `#[ApiResource]`. Solo el código nuevo usa los nombres limpios.
+
+- **Pros:** ahorra la migración de datos. Devs nuevos solo ven los nombres limpios. Compatibilidad de APIs.
+- **Contras:** la BD queda en un limbo donde el dev tiene que recordar que `ItinerarioFormativo` mapea a `ciclo_formativo`. Pasa el problema al SQL crudo.
+
+### 12.4 Estrategia recomendada
+
+**Híbrido (C) en lo profundo + retoques cosméticos (A) en el corto plazo.**
+
+Razones:
+
+- La migración masiva de tablas (Estrategia B) es un proyecto de 2-3 semanas con riesgo alto y casi cero valor añadido para el usuario final. No la haríamos hasta tener un cliente real que justifique el esfuerzo.
+- La Estrategia A pura (solo etiquetas) ya nos rompe ahora porque el catálogo oficial (este documento) introduce las entidades `Catalogo*` con nombres limpios y multi-etapa. Tener `CatalogoItinerario` apuntando a `CicloFormativo` ya empieza a oler raro.
+- La C nos da un compromiso razonable: el nuevo código (catálogo, próximos features) usa nomenclatura limpia. El código viejo sigue funcionando. Las tablas viejas se dejan estar.
+
+**Plan concreto:**
+
+1. **Renombrar clases PHP** sin tocar tablas:
+   - `CicloFormativo` → `ItinerarioFormativo` (clase) pero `#[ORM\Table(name: 'ciclo_formativo')]`.
+   - `Modulo` → `Materia` (clase) pero `#[ORM\Table(name: 'modulo')]`.
+   - `Imparticion` → `Docencia` (clase) pero `#[ORM\Table(name: 'imparticion')]`.
+2. **Renombrar componentes y páginas frontend** (archivos JSX) manteniendo rutas SPA actuales por backwards-compat. Cambiar URLs es opcional, en otra ronda.
+3. **Generalizar copys e i18n** con un `useTerminologia(etapa)` hook que devuelve el label correcto según el contexto. *"Ciclo"* en FP, *"Curso"* en ESO, *"Modalidad"* en Bach, *"Grado"* en Universidad. El admin del centro elige (o se infiere por el catálogo).
+4. **APIs**: mantener `/api/ciclo_formativos` para no romper clientes (sería breaking change). Cuando exista una API v2 o un cliente nuevo, ofrecer `/api/itinerarios` como alias.
+5. **Documentación interna** (`CLAUDE.md`, `docs/*.md`): actualizar a la nomenclatura nueva, dejando notas históricas donde haga falta.
+
+Para los siguientes 3-6 meses esto es suficiente. La migración total de tablas (Estrategia B) puede ejecutarse cuando haya tiempo "de oficina" — un sprint dedicado entre lanzamientos de features — sin bloquear nada.
+
+### 12.5 Plan en sub-fases
+
+| Sub-fase | Esfuerzo | Bloquea a |
+|---|---|---|
+| 12.A — Hook `useTerminologia` + diccionario base | 2 días | Nada (puro frontend, no rompe) |
+| 12.B — Renombrar componentes JSX (`Modulos.jsx` → `Materias.jsx`, etc.) | 3 días | Hay que actualizar imports y rutas internas |
+| 12.C — Renombrar clases PHP (mantener tablas) | 5 días | API contracts: requiere `uriTemplate` explícito en `#[ApiResource]` |
+| 12.D — Generalizar i18n keys (`cycles.*` → `programs.*`) con alias | 3 días | Toda la UI; alias para no romper traducciones existentes |
+| 12.E — Actualizar copys españoles según etapa | 2 días | Tras 12.A |
+| 12.F — Actualizar `CLAUDE.md` y docs internos | 1 día | Final, una vez todo lo demás esté consistente |
+| 12.G *(opcional, futuro)* — Migrar tablas de BD a nombres limpios | 2-3 semanas | Bloquea features mientras se ejecuta |
+
+**Total bloque obligatorio (12.A-12.F):** ~3 semanas. Encaja como **bloqueador previo a Fase 3** del catálogo (cuando arranque ESO/Bach).
+
+### 12.6 Migración de datos (si en algún momento se ejecuta 12.G)
+
+Si en el futuro ejecutamos 12.G:
+
+1. Migración Doctrine que crea las tablas nuevas (`itinerario_formativo`, `materia`, `docencia`).
+2. Migración SQL que copia datos: `INSERT INTO itinerario_formativo SELECT * FROM ciclo_formativo`.
+3. Migración que actualiza FKs en tablas dependientes: `UPDATE grupo SET itinerario_formativo_id = ciclo_id`, etc.
+4. Borrar tablas viejas (con backup previo).
+5. Renombrar atributos `#[ORM\Table]` para apuntar a las nuevas tablas.
+
+Tiempo estimado de ventana de mantenimiento: **2-4 horas** para una BD de tamaño medio (decenas de miles de filas). Para evitar downtime se puede hacer con doble escritura durante una transición.
+
+### 12.7 Riesgos
+
+- **APIs externas**: si Loggex llega a tener una app móvil o integraciones B2B, cualquier cambio de URL/recurso es breaking. Antes de tocar `/api/*` hay que inventariar consumidores. Hoy no hay ninguno (sección 5.3 del doc de autenticación).
+- **Marcadores y URLs guardadas**: usuarios que tengan `https://centro.loggex.com/ciclos` guardado verán 404 si cambiamos a `/programas`. Mitigación: redirect 301 permanente.
+- **Backups antiguos**: los `backup_tfg*.sql` ya no se podrán restaurar tal cual tras el rename de tablas (12.G). Se mantiene un script de transformación en `scripts/migrate_backup_to_v2.sh` que cualquiera puede aplicar a un dump viejo para adaptarlo.
+- **Búsqueda en logs/issues antiguos**: cualquier referencia a "Ciclo Formativo" en issues, commits o documentación queda como referencia histórica. Conviene NO reescribir el historial git para preservar trazabilidad.
+- **Equipo nuevo**: durante la transición convivirán dos terminologías. Hay que comunicarlo al onboarding.
+
+### 12.8 Estimación final y recomendación de cuándo
+
+| Bloque | Duración | Cuándo encaja |
+|---|---|---|
+| 12.A → 12.F (estrategia C) | ~3 semanas | **Antes de Fase 3** del catálogo (ESO + Bach) |
+| 12.G (opcional, estrategia B completa) | 2-3 semanas | Cuando se quiera limpieza arqueológica del esquema, sin bloquear features. Probablemente nunca, salvo razón estratégica. |
+
+**Recomendación:** ejecutar 12.A-12.F como **prerrequisito de Fase 3**. Sin esto, importar el catálogo de ESO funciona técnicamente pero es UX inadmisible (admin de IES viendo "Nuevo módulo de FP" cuando intenta crear "Lengua Castellana"). 12.G se aplaza sine die.

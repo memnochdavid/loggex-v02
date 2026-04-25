@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Doctrine\Filter\SearchAnyFilter;
+use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CicloFormativoRepository;
@@ -65,6 +66,16 @@ class CicloFormativo
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['ciclo:read', 'ciclo:write'])]
     private ?Centro $centro = null;
+
+    /**
+     * Trazabilidad al catálogo oficial. Si el ciclo se creó seleccionando del catálogo
+     * de TodoFP (o equivalente), aquí queda el origen para detectar futuros cambios
+     * normativos. Nullable: ciclos manuales son válidos.
+     */
+    #[ORM\ManyToOne(targetEntity: CatalogoItinerario::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['ciclo:read'])]
+    private ?CatalogoItinerario $catalogoOrigen = null;
 
     #[ORM\OneToMany(mappedBy: 'ciclo', targetEntity: Modulo::class)]
     private Collection $modulos;
@@ -171,6 +182,17 @@ class CicloFormativo
             }
         }
 
+        return $this;
+    }
+
+    public function getCatalogoOrigen(): ?CatalogoItinerario
+    {
+        return $this->catalogoOrigen;
+    }
+
+    public function setCatalogoOrigen(?CatalogoItinerario $origen): static
+    {
+        $this->catalogoOrigen = $origen;
         return $this;
     }
 }

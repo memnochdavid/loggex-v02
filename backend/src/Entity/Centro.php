@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Doctrine\Filter\SearchAnyFilter;
+use App\Entity\Catalogo\CatalogoCentro;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CentroRepository;
@@ -60,6 +61,12 @@ class Centro
     #[ORM\Column(type: 'boolean')]
     #[Groups(['centro:read', 'centro:write'])]
     private bool $activo = true;
+
+    /** Trazabilidad al catálogo oficial. Nullable: centros manuales son válidos. */
+    #[ORM\ManyToOne(targetEntity: CatalogoCentro::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['centro:read'])]
+    private ?CatalogoCentro $catalogoOrigen = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['centro:read', 'centro:write'])]
@@ -289,6 +296,17 @@ class Centro
             }
         }
 
+        return $this;
+    }
+
+    public function getCatalogoOrigen(): ?CatalogoCentro
+    {
+        return $this->catalogoOrigen;
+    }
+
+    public function setCatalogoOrigen(?CatalogoCentro $origen): self
+    {
+        $this->catalogoOrigen = $origen;
         return $this;
     }
 }

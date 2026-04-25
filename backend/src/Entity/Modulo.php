@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Doctrine\Filter\SearchAnyFilter;
+use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ModuloRepository;
@@ -89,6 +90,12 @@ class Modulo
     #[ORM\OneToMany(mappedBy: 'modulo', targetEntity: Imparticion::class)]
     private Collection $imparticiones;
 
+    /** Trazabilidad al catálogo oficial. Nullable: módulos manuales son válidos. */
+    #[ORM\ManyToOne(targetEntity: CatalogoMateria::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['modulo:read'])]
+    private ?CatalogoMateria $catalogoOrigen = null;
+
     public function __construct()
     {
         $this->imparticiones = new ArrayCollection();
@@ -162,6 +169,17 @@ class Modulo
     public function setCiclo(?CicloFormativo $ciclo): static
     {
         $this->ciclo = $ciclo;
+        return $this;
+    }
+
+    public function getCatalogoOrigen(): ?CatalogoMateria
+    {
+        return $this->catalogoOrigen;
+    }
+
+    public function setCatalogoOrigen(?CatalogoMateria $origen): self
+    {
+        $this->catalogoOrigen = $origen;
         return $this;
     }
 }

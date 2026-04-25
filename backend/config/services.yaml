@@ -46,3 +46,15 @@ services:
 
     # Alias para inyectar el filesystem fácilmente
     League\Flysystem\FilesystemOperator: '@oneup_flysystem.loggex_storage_filesystem'
+
+    # Auto-tag de adapters del catálogo oficial. Cualquier clase que implemente
+    # CatalogoSourceAdapterInterface se etiqueta para ser descubierta por el
+    # comando `app:catalogo:refresh` y por el ingest service.
+    _instanceof:
+        App\Catalogo\Source\CatalogoSourceAdapterInterface:
+            tags: ['app.catalogo.source']
+
+    # Iterador inyectable de todos los adapters tagueados.
+    App\Catalogo\Source\CatalogoSourceAdapterRegistry:
+        arguments:
+            $adapters: !tagged_iterator app.catalogo.source
