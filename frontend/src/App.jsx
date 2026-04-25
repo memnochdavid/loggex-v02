@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { TourProvider } from './context/TourContext';
 import Tour from './components/Tour';
 import ContextualHelpBadge from './components/ContextualHelpBadge';
@@ -272,14 +273,16 @@ function App() {
   return (
     <AuthProvider>
       <UIProvider>
-        <RouterProvider router={router} />
-        <Toaster
-          position="bottom-right"
-          richColors
-          closeButton
-          expand={false}
-          toastOptions={{ duration: 4000 }}
-        />
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+          <Toaster
+            position="bottom-right"
+            richColors
+            closeButton
+            expand={false}
+            toastOptions={{ duration: 4000 }}
+          />
+        </ConfirmProvider>
       </UIProvider>
     </AuthProvider>
   );

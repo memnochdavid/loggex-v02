@@ -16,10 +16,12 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 
 const Imparticiones = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -373,7 +375,7 @@ const Imparticiones = () => {
   };
 
   const handleDelete = useCallback(async (imparticion) => {
-    if (!window.confirm(t('teaching.confirmDelete'))) {
+    if (!(await confirm({ body: t('teaching.confirmDelete') }))) {
       return;
     }
 

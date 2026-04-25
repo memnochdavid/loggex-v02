@@ -8,10 +8,12 @@ import Button from './Button';
 import ModalView from './ModalView';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const confirm = useConfirm();
     const [comunicados, setComunicados] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -119,7 +121,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('bulletin.confirmDelete'))) return;
+        if (!(await confirm({ body: t('bulletin.confirmDelete') }))) return;
         try {
             const response = await fetch(getApiUrl(`/api/comunicados/${id}`), {
                 method: 'DELETE',

@@ -14,9 +14,11 @@ import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const MaterialesProfesor = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [asignaturas, setAsignaturas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -212,7 +214,7 @@ const MaterialesProfesor = () => {
   };
 
   const handleDelete = async (materialId) => {
-      if (!window.confirm(t('teacherMaterials.confirmDelete'))) return;
+      if (!(await confirm({ body: t('teacherMaterials.confirmDelete') }))) return;
 
       try {
           const response = await fetch(getApiUrl(`/api/materials/${materialId}`), {

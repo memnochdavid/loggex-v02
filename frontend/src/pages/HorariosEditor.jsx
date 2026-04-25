@@ -24,6 +24,7 @@ import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkle
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
 import styles from './HorariosEditor.module.css';
@@ -167,6 +168,7 @@ const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, on
 // ─── Componente principal ──────────────────────────────────────────────
 const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const { t, i18n } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -802,7 +804,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const runSolver = async (seed = null) => {
     if (!selectedGrupo) return;
     const hasContent = Object.keys(placements).length > 0;
-    if (hasContent && !window.confirm(t('scheduleEditor.solverConfirmOverwrite'))) return;
+    if (hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return;
     setSolving(true);
     setDragError(null);
     try {

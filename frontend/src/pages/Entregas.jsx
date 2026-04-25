@@ -18,9 +18,11 @@ import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Entregas = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -228,7 +230,7 @@ const Entregas = () => {
   };
 
   const handleDeleteTarea = async (tareaId) => {
-    if (!window.confirm(t('tasks.confirmDelete'))) return;
+    if (!(await confirm({ body: t('tasks.confirmDelete') }))) return;
     try {
       const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
         method: 'DELETE', credentials: 'include',

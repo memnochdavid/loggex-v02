@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import Layout from '../components/Layout';
 import Button from '../components/Button';
 import {useAuth} from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import {applyTheme} from '../utils/theme';
 import styles from './Configuracion.module.css';
 import {
@@ -87,6 +88,7 @@ const MOCK_FESTIVOS = [
 
 const Configuracion = () => {
     const { t } = useTranslation();
+    const confirm = useConfirm();
     const {user, checkAuth} = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -262,7 +264,7 @@ const Configuracion = () => {
     };
 
     const handleDeleteTheme = async (theme) => {
-        if (!window.confirm(t('config.themeDeleteConfirm', { name: theme.nombre }))) return;
+        if (!(await confirm({ body: t('config.themeDeleteConfirm', { name: theme.nombre }) }))) return;
 
         try {
             const response = await fetch(getApiUrl(`/api/temas/${theme.id}`), {

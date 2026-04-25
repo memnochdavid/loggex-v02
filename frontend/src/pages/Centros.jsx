@@ -14,9 +14,11 @@ import crudAnimation from '../../public/crud.json';
 import helloAnimation from "../../public/hello.json";
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Centros = () => {
     const { t } = useTranslation();
+    const confirm = useConfirm();
     const [centros, setCentros] = useState([]);
     
     // Estado de carga único
@@ -295,7 +297,7 @@ const Centros = () => {
     };
 
     const handleDelete = useCallback(async (centro) => {
-        if (!window.confirm(t('centers.confirmDelete'))) {
+        if (!(await confirm({ body: t('centers.confirmDelete') }))) {
             return;
         }
 

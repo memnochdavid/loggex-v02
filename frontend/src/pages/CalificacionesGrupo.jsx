@@ -15,6 +15,7 @@ import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 import { toast } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 // Genera un tooltip en texto plano con los motivos por los que un alumno no es evaluable.
 export const formatMotivos = (motivos, t) => {
@@ -32,6 +33,7 @@ export const formatMotivos = (motivos, t) => {
 
 // Editor de peso por item (tarea individual) — agrupado por tipo
 const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeriodo = '', t }) => {
+    const confirm = useConfirm();
     const [draft, setDraft] = React.useState({});
     // Filtrar por evaluación seleccionada (por fechaLimite dentro del rango)
     const tareasFiltradas = React.useMemo(() => {
@@ -98,8 +100,8 @@ const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeri
     }
 
     // Resetear a "auto" (peso=null) todos los ítems mostrados
-    const handleResetAll = () => {
-        if (!window.confirm(t('grades.confirmResetWeights'))) return;
+    const handleResetAll = async () => {
+        if (!(await confirm({ body: t('grades.confirmResetWeights') }))) return;
         tareasFiltradas.forEach(tr => {
             const id = tr.id || tr['@id']?.split('/').pop();
             if (tr.peso != null) onSave(id, { peso: '' });

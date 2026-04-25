@@ -10,9 +10,11 @@ import LiquidSignaturePad from '../components/LiquidSignaturePad';
 import Button from '../components/Button';
 import ModuloLabel from '../components/ModuloLabel';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Perfil = () => {
     const { t } = useTranslation();
+    const confirm = useConfirm();
     const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -145,7 +147,7 @@ const Perfil = () => {
     };
 
     const handleDeleteFirma = async () => {
-        if (!window.confirm('¿Eliminar tu firma registrada?')) return;
+        if (!(await confirm({ body: '¿Eliminar tu firma registrada?' }))) return;
         try {
             const res = await fetch(getApiUrl('/api/user/firma'), { method: 'DELETE', credentials: 'include' });
             if (!res.ok) {

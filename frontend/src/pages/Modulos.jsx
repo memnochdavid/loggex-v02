@@ -16,9 +16,11 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Modulos = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
@@ -349,7 +351,7 @@ const Modulos = () => {
   };
 
   const handleDelete = useCallback(async (modulo) => {
-    if (!window.confirm(t('modules.confirmDelete'))) {
+    if (!(await confirm({ body: t('modules.confirmDelete') }))) {
       return;
     }
 

@@ -14,11 +14,13 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const TIPOS = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'ORDINARIA_FINAL', 'EXTRAORDINARIA'];
 
 const Evaluaciones = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -187,7 +189,7 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
   };
 
   const handleDelete = async (p) => {
-    if (!window.confirm('¿Eliminar esta evaluación?')) return;
+    if (!(await confirm({ body: '¿Eliminar esta evaluación?' }))) return;
     try {
       const id = getId(p);
       const res = await fetch(getApiUrl(`/api/periodo_evaluativos/${id}`), { method: 'DELETE', credentials: 'include' });

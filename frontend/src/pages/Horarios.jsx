@@ -23,9 +23,11 @@ import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Horarios = ({ embedded = false, tabs = null }) => {
   const { t, i18n } = useTranslation();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
@@ -457,7 +459,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   };
 
   const handleDelete = useCallback(async (horario) => {
-    if (!window.confirm(t('schedules.confirmDelete'))) return;
+    if (!(await confirm({ body: t('schedules.confirmDelete') }))) return;
 
     const id = getHorarioId(horario);
     if (!id) return;

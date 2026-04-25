@@ -12,6 +12,7 @@ import { Bell, MessageCircleQuestion } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import LanguageSelector from '../components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
+import { toast } from '../utils/toast';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -150,12 +151,12 @@ const Header = () => {
             if (targetUser) {
                 navigate('/mensajes', { state: { chatWith: targetUser } });
             } else {
-                alert(t('header.noSupportFound'));
+                toast.warning(t('header.noSupportFound'));
             }
 
         } catch (error) {
             console.error("Error buscando soporte:", error);
-            alert(t('header.errorSupport'));
+            toast.error(t('header.errorSupport'));
         } finally {
             setSupportLoading(false);
         }
