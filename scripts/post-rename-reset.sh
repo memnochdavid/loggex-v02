@@ -26,11 +26,14 @@ fi
 echo "→ Limpiando caché de Symfony…"
 docker compose exec -T backend php bin/console cache:clear
 
-echo "→ Generando migration unificada (esquema vacío → completo con nombres nuevos)…"
-docker compose exec -T backend php bin/console make:migration --no-interaction
-
 echo "→ Dropping schema (TODAS las tablas)…"
 docker compose exec -T backend php bin/console doctrine:schema:drop --full-database --force
+
+echo "→ Generando migration unificada (BD vacía → esquema completo con nombres nuevos)…"
+# OJO: tiene que ir DESPUÉS del drop, si no `make:migration` genera un diff
+# del esquema viejo al nuevo (DROP+CREATE) y luego al aplicarlo sobre BD vacía
+# fallan los DROP. Con BD vacía, genera CREATE TABLE limpios.
+docker compose exec -T backend php bin/console make:migration --no-interaction
 
 echo "→ Aplicando migrations…"
 docker compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction
