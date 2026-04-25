@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\Doctrine\Filter\SearchAnyFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -46,6 +47,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     'centro' => 'exact',
     'rol_app' => 'exact'
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'apellidos', 'email', 'nif'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'apellidos', 'email', 'id'], arguments: ['orderParameterName' => 'order'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {

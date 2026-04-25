@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CicloFormativoRepository;
@@ -39,6 +40,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'nivel' => 'exact',
     'centro' => 'exact'
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'nivel', 'id'], arguments: ['orderParameterName' => 'order'])]
 class CicloFormativo
 {

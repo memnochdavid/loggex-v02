@@ -144,11 +144,26 @@ const ModalView = ({
     }, [isOpen, shouldRender]);
 
     // Efectos globales (scroll lock + inert + pila) atados al ciclo de vida visible.
+    // IMPORTANTE: capturamos triggerRef y blureamos el elemento disparador AQUÍ, antes
+    // de aplicar inert. Si no, durante los ~60ms hasta que el efecto de foco mueve el
+    // cursor al modal, el botón que abrió el modal sigue con foco dentro de #root ya
+    // marcado como aria-hidden — y Chrome lanza el warning "Blocked aria-hidden on an
+    // element because its descendant retained focus".
     useEffect(() => {
         if (!shouldRender) return;
         const id = instanceIdRef.current;
         modalStack.push(id);
         acquireScrollLock();
+
+        triggerRef.current = document.activeElement;
+        if (
+            triggerRef.current &&
+            triggerRef.current !== document.body &&
+            typeof triggerRef.current.blur === 'function'
+        ) {
+            triggerRef.current.blur();
+        }
+
         applyInert();
         return () => {
             const idx = modalStack.indexOf(id);
@@ -159,9 +174,9 @@ const ModalView = ({
     }, [shouldRender]);
 
     // Auto-focus al abrir + restore al cerrar.
+    // (triggerRef ya quedó capturado en el efecto anterior, antes del inert.)
     useEffect(() => {
         if (isOpen) {
-            triggerRef.current = document.activeElement;
             const timer = setTimeout(() => {
                 if (!contentRef.current) return;
                 const focusable = contentRef.current.querySelector(FOCUSABLE_SELECTOR);

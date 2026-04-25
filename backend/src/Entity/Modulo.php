@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ModuloRepository;
@@ -42,6 +43,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
     'ciclo.centro' => 'exact' // Para filtrar por centro (SuperAdmin)
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Modulo
 {

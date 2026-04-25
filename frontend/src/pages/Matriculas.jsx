@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
@@ -25,7 +26,6 @@ const Matriculas = () => {
 
   const [matriculas, setMatriculas] = useState([]);
   const [grupos, setGrupos] = useState([]);
-  const [alumnos, setAlumnos] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -85,17 +85,12 @@ const Matriculas = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar grupos y alumnos (filtrados por centro si se selecciona uno)
+  // Cargar grupos para el filtro de la cabecera (el alumno del modal lo busca AsyncSearchSelect)
   useEffect(() => {
     let urlGrupos = getApiUrl('/api/grupos?pagination=false');
-    let urlAlumnos = getApiUrl('/api/users?pagination=false&rol_app=alumno');
-    
     if (isSuperAdmin && selectedCentro) {
         urlGrupos += `&centro=${selectedCentro}`;
-        urlAlumnos += `&centro=${selectedCentro}`;
     }
-    
-    // Cargar Grupos
     fetch(urlGrupos, {
         headers: { 'Accept': 'application/ld+json' },
         credentials: 'include'
@@ -106,18 +101,6 @@ const Matriculas = () => {
         setGrupos(items);
     })
     .catch(err => console.error("Error cargando grupos:", err));
-
-    // Cargar Alumnos
-    fetch(urlAlumnos, {
-        headers: { 'Accept': 'application/ld+json' },
-        credentials: 'include'
-    })
-    .then(res => res.json())
-    .then(data => {
-        const items = data['hydra:member'] || data.member || [];
-        setAlumnos(items);
-    })
-    .catch(err => console.error("Error cargando alumnos:", err));
 
   }, [selectedCentro, isSuperAdmin]);
 
@@ -512,38 +495,35 @@ const Matriculas = () => {
         >
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('enrollments.student')}</label>
-                <select
+                <AsyncSearchSelect
                     name="alumno"
                     value={formData.alumno}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, alumno: v }))}
+                    endpoint="/api/users"
+                    extraParams={{
+                        rol_app: 'alumno',
+                        ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {})
+                    }}
+                    getOptionLabel={(a) => `${a.nombre} ${a.apellidos} (${a.email})`}
+                    getOptionValue={(a) => a.id || a['@id']?.split('/').pop()}
+                    placeholder={t('common.selectStudent')}
                     required
-                >
-                    <option value="">{t('common.selectStudent')}</option>
-                    {alumnos.map(a => (
-                        <option key={a.id || a['@id']} value={a.id || a['@id'].split('/').pop()}>
-                            {a.nombre} {a.apellidos} ({a.email})
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('enrollments.group')}</label>
-                <select
+                <AsyncSearchSelect
                     name="grupo"
                     value={formData.grupo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, grupo: v }))}
+                    endpoint="/api/grupos"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(g) => `${g.curso}º ${g.nombre}`}
+                    getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
+                    placeholder={t('common.selectGroup')}
                     required
-                >
-                    <option value="">{t('common.selectGroup')}</option>
-                    {grupos.map(g => (
-                        <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                            {g.curso}º {g.nombre}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
         </ModalView>
         </div>

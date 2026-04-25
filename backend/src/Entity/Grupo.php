@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\GrupoRepository;
@@ -42,6 +43,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'ciclo.nombre' => 'partial',
     'centro' => 'exact'
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'anioEscolar'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'curso', 'anioEscolar', 'id', 'fechaInicio', 'fechaFin'], arguments: ['orderParameterName' => 'order'])]
 class Grupo
 {
