@@ -2,7 +2,9 @@
 
 Documento de arquitectura y planificación. Define cómo Loggex va a ofrecer al admin de un centro una **lista oficial y siempre actualizada** de ciclos, cursos, modalidades y asignaturas para que dar de alta un Ciclo / Curso / Asignatura sea **seleccionar de un desplegable**, no rellenar campos a mano. El objetivo es eliminar el riesgo de typo, código oficial mal escrito o currículo desactualizado.
 
-Estado: **borrador de diseño** (abril 2026). Nada de esto está implementado todavía; este documento existe para alinear la decisión antes de empezar.
+Estado: **implementado y operativo** (abril 2026). Las secciones §1–12 reflejan el diseño original (con vocabulario solo-FP); §13 documenta lo construido; §16 registra el dispatcher por etapa; §17 las vistas admin; §18 el rename a vocabulario neutro.
+
+> **Nomenclatura post-§18**: el doc original habla de `CicloFormativo`, `Modulo`, `Material`, `Tema`. Tras el refactor de §18 esas clases se llaman **`Itinerario`**, **`Materia`**, **`Temario`**, **`TemaVisual`** respectivamente, y las tablas siguen el mismo cambio. Las rutas `/ciclos`, `/modulos` pasan a `/itinerarios`, `/materias`. Donde hace falta, se anota la equivalencia inline; el resto se conserva como referencia histórica del diseño.
 
 ---
 
@@ -906,30 +908,39 @@ Todo el cableado base está hecho:
 - API REST autogenerada (read-only) con `SearchAnyFilter`: `/api/catalogo_itinerarios`, `/api/catalogo_materias`, `/api/catalogo_centros`.
 - `role_hierarchy` con `ROLE_SUPERADMIN: [ROLE_ADMIN]` para que controllers protegidos con `IsGranted('ROLE_ADMIN')` los pueda usar también un SuperAdmin.
 
-### 13.2 Fase 1 — MVP con FP nacional ⚠️ parcialmente completa
+### 13.2 Fase 1 — MVP con FP nacional ✅ completa
 
-**Lo que sí está hecho:**
+**Cobertura final tras Fases 1.6 + 1.7 + §16:**
 
-- `TodoFpJsonAdapter` (lee de `backend/data/catalogo/todofp/itinerarios-fp.json`).
-- JSON curado a mano con 4 ciclos de Informática y Comunicaciones: IFC22 (SMR), IFC31 (ASIR), IFC32 (DAW), IFC33 (DAM) — total 52 módulos.
-- `DummyFixturesAdapter` para smoke test (ya retirado de uso productivo).
-- Endpoint backend `POST /api/itinerarios/from-catalogo` (controller `CatalogoMaterializationController`) que recibe el id del itinerario y crea `Itinerario` + sus `Materia` automáticamente, todo con `catalogoOrigen` trazado. *(Tras §18: era `/api/ciclos/from-catalogo` con clases `CicloFormativo`/`Modulo`.)*
-- Frontend: modal de Nuevo Ciclo con toggle **Catálogo / Manual**, `AsyncSearchSelect` filtrado a etapas FP, vista previa del itinerario seleccionado (familia, nivel, duración, número de módulos, normativa) y materialización al confirmar.
+| Etapa | Itinerarios | Sin módulos | Total módulos |
+|---|---|---|---|
+| FP Básica | 34 | 0 | ~340 |
+| FP Medio | 67 | ~13 | ~640 |
+| FP Superior | 94 | ~16 | ~1 040 |
+| Cursos de Especialización | 34 | 0 | ~150 |
+| **Total** | **229** | **~30 (13 %)** | **~2 200** |
 
-**Lo que NO está hecho (por eso ⚠️):**
+Los ~30 sin módulos son ciclos cuyo currículo (Orden EDU) tiene una estructura HTML atípica que `ModulosTableParser` no cubre todavía — limitación documentada para v1.1, no bloqueante para producción.
 
-- Los datos del JSON los **escribí yo basándome en mi conocimiento general**, no provienen de TodoFP ni del BOE. Los códigos de módulos pueden tener pequeñas inexactitudes. Las horas semanales son representativas pero no garantizadas.
-- Cobertura: 4 ciclos de 185 (~2%).
-- No hay link al BOE verificable en cada entrada.
-- No hay variantes por CCAA.
+**Componentes operativos:**
 
-**El JSON cumple su función como bootstrap** (permite probar el flujo end-to-end y demostrar la feature), pero **no es lo definitivo**. La sustitución por una fuente oficial real está documentada en las secciones 14 y 15.
+- **`TodoFpHttpAdapter`** (sección 15.1): scraper HTTP de TodoFP, produce los 229 itinerarios nacionales con `boletinUrl` apuntando al RD del BOE.
+- **`BoeRdEnricher`** (sección 16): enriquece cada itinerario con identificación + módulos extraídos del XML del BOE. Despacha por etapa:
+  - `enrichTabla` para Grado Medio/Superior (currículo con tabla).
+  - `enrichBasica` (BasicaParser) para FP Básica (RD multi-título con anexos).
+  - `enrichEspecializacion` (EspecializacionParser) para Cursos de Especialización.
+- **`SeccionModulosParser`** común a Básica + Especialización: regex case-insensitive sobre `<strong>Módulo Profesional:` / `<strong>Código:` / `<strong>Duración:` con tolerancia a guiones Unicode y nombres partidos en `<strong>`s.
+- **`TodoFpJsonAdapter` retirado**: el JSON manual con 4 ciclos sirvió como bootstrap; tras la cobertura completa por scraping ya no se usa. `DummyFixturesAdapter` también retirado.
+- **Endpoint backend `POST /api/itinerarios/from-catalogo`** (controller `CatalogoMaterializationController`): recibe el id del itinerario y crea `Itinerario` + sus `Materia` automáticamente, todo con `catalogoOrigen` trazado. *(Tras §18: era `/api/ciclos/from-catalogo` con clases `CicloFormativo`/`Modulo`.)*
+- **Frontend modal de Nuevo Ciclo** con toggle **Catálogo / Manual**, `AsyncSearchSelect` filtrado a etapas FP, vista previa con familia/nivel/duración/módulos/normativa y materialización al confirmar.
+- **Vistas admin del catálogo** (§17): `/admin/catalogo/itinerarios`, `/.../itinerarios/:id`, `/.../materias`, `/.../centros` (SUPERADMIN-only stub), `/.../acerca` con `DataProvenanceBanner` reutilizable.
 
-### 13.3 Lo que falta para cerrar Fase 1 de verdad
+### 13.3 Lo que queda para v1.1 (no bloqueante)
 
-1. Sustituir el JSON curado por scraping real de TodoFP (Fase 1.6, ver sección 15).
-2. Añadir parser BOE para extraer horas por módulo (Fase 1.7).
-3. Limpiar el JSON cuando los scrapers cubran todo. Borrar `DummyFixturesAdapter`.
+1. Soporte de **RDs de modificación post-LOMLOE** (p. ej. RD 498/2024 que altera anexos de RD 127/2014). Hoy: 1 ciclo afectado (Carpintería y Mueble actualizada). Mitigación: detectar por heurística `<p class="articulo">Modificación…</p>` y mapear al original.
+2. Cobertura de los ~30 itinerarios huérfanos de FP Medio/Superior (currículos con HTML atípico que `ModulosTableParser` no cubre).
+3. Variantes por CCAA (Fase 3 del plan original — ver §15.3 capa 3 de adapters por CCAA).
+4. Fase 2: ingestión del directorio nacional de centros docentes (`centros.gob.es`).
 
 ### 13.4 Log de decisiones
 
@@ -1234,12 +1245,12 @@ Los entity filters de API Platform ya están casi listos. Para el listing:
 Hidratación: los listings consumen `application/ld+json` y leen `hydra:member` + `hydra:totalItems` siguiendo el patrón ya estandarizado (ver `Usuarios.jsx`).
 
 ### 17.5 Roadmap de la sección
-1. Sidebar + ruteo + `AcercaPage` y `DataProvenanceBanner` (cimientos).
-2. Listing Itinerarios + filtros.
-3. Detail Itinerario.
-4. Listing Materias.
-5. Stub Centros.
-6. **(Fase 2)** Botones de actualización manual: disparan `app:catalogo:refresh` y `app:catalogo:enrich-boe` vía Symfony Messenger; UI muestra progreso. Out of scope hasta tener el listing y el detalle estables.
+1. ✅ Sidebar + ruteo + `AcercaPage` y `DataProvenanceBanner` (cimientos).
+2. ✅ Listing Itinerarios + filtros server-side (búsqueda libre, etapa, familia, nivel, vigencia).
+3. ✅ Detail Itinerario con tarjeta de identificación + tabla de módulos.
+4. ✅ Listing Materias con filtro de itinerario via AsyncSearchSelect.
+5. ✅ Stub Centros gateado SUPERADMIN.
+6. ⏳ **(Fase 2)** Botones de actualización manual: dispararán `app:catalogo:refresh` y `app:catalogo:enrich-boe` vía Symfony Messenger; UI mostrará progreso. **Out of scope** del MVP: hoy se ejecutan los comandos por terminal, lo cual basta para administradores con acceso al servidor. Cuando llegue el momento, se añade aquí.
 
 ## 18. Rename a vocabulario neutro (abr 2026)
 
