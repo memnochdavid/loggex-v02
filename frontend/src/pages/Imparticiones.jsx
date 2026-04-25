@@ -27,7 +27,7 @@ const Imparticiones = () => {
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [imparticiones, setImparticiones] = useState([]);
-  // Las listas auxiliares (profesores/modulos/grupos) ya no se cargan upfront:
+  // Las listas auxiliares (profesores/materias/grupos) ya no se cargan upfront:
   // los AsyncSearchSelect del modal hacen búsqueda on-demand contra la API.
   const [centros, setCentros] = useState([]);
   
