@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
+import { toast } from '../utils/toast';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
 import styles from './HorariosEditor.module.css';
@@ -648,7 +649,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }));
       return true;
     } catch (err) {
-      alert(t('scheduleEditor.saveError', { message: err.message }));
+      toast.error(err.message, {
+        description: t('scheduleEditor.saveErrorCtx', { defaultValue: 'No se ha podido guardar el horario' })
+      });
       return false;
     } finally {
       setSaving(false);
@@ -688,7 +691,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const grupoNombre = grupo?.nombre ? grupo.nombre.replace(/[^a-zA-Z0-9]+/g, '_') : 'grupo';
       await downloadFileFromApi(url, `horario_${grupoNombre}.pdf`);
     } catch (err) {
-      alert(t('scheduleEditor.exportError', { message: err.message }));
+      toast.error(err.message, {
+        description: t('scheduleEditor.exportErrorCtx', { defaultValue: 'No se ha podido exportar el horario' })
+      });
     } finally {
       setExporting(false);
     }
@@ -854,7 +859,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         window.setTimeout(() => setDragError(null), 6000);
       }
     } catch (err) {
-      alert(t('scheduleEditor.solverError', { message: err.message }));
+      toast.error(err.message, {
+        description: t('scheduleEditor.solverErrorCtx', { defaultValue: 'El solver ha fallado' })
+      });
     } finally {
       setSolving(false);
     }

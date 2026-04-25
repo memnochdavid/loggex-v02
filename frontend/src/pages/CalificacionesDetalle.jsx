@@ -7,6 +7,7 @@ import ThemedNumberInput from '../components/ThemedNumberInput';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Edit2, Check, X, AlertTriangle } from 'lucide-react';
+import { toast } from '../utils/toast';
 
 const CalificacionesDetalle = () => {
     const { t } = useTranslation();
@@ -268,8 +269,9 @@ const CalificacionesDetalle = () => {
             }
             setEditingFeedback(null);
             await fetchData();
+            toast.success(t('grades.feedbackSaved', { defaultValue: 'Feedback guardado' }));
         } catch {
-            alert(t('grades.errorSavingFeedback'));
+            toast.error(t('grades.errorSavingFeedback'));
         } finally {
             setSaving(false);
         }
@@ -278,7 +280,7 @@ const CalificacionesDetalle = () => {
     const handleSaveNota = async (tarea) => {
         const parsed = parseFloat(notaValue);
         if (isNaN(parsed) || parsed < 0 || parsed > 10) {
-            alert('La nota debe estar entre 0 y 10');
+            toast.warning(t('grades.gradeRange', { defaultValue: 'La nota debe estar entre 0 y 10' }));
             return;
         }
         setSaving(true);
@@ -306,8 +308,9 @@ const CalificacionesDetalle = () => {
             }
             setEditingNota(null);
             await fetchData();
+            toast.success(t('grades.gradeSaved', { defaultValue: 'Nota guardada' }));
         } catch {
-            alert('Error al guardar la nota');
+            toast.error(t('grades.errorSavingGrade', { defaultValue: 'No se ha podido guardar la nota' }));
         } finally {
             setSaving(false);
         }

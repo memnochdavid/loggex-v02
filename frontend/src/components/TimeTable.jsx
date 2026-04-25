@@ -11,6 +11,7 @@ import ModuloLabel from './ModuloLabel';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
+import { toast } from '../utils/toast';
 
 // Misma paleta determinista que el editor (HorariosEditor): hue derivado del id
 const colorForModule = (mid) => {
@@ -449,12 +450,13 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
 
             if (response.ok) {
                 handleCloseModal();
+                toast.success(t('home.attendanceSaved', { defaultValue: 'Asistencia registrada' }));
             } else {
-                alert(t('home.errorSavingAttendance'));
+                toast.error(t('home.errorSavingAttendance'));
             }
         } catch (error) {
             console.error(error);
-            alert(t('home.errorConnection'));
+            toast.error(t('home.errorConnection'));
         } finally {
             setSavingAttendance(false);
         }

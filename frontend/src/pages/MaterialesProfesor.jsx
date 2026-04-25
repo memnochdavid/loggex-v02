@@ -13,6 +13,7 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const MaterialesProfesor = () => {
   const { t } = useTranslation();
@@ -173,7 +174,7 @@ const MaterialesProfesor = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.archivo || !formData.titulo) {
-        alert(t('teacherMaterials.fillAllFields'));
+        toast.warning(t('teacherMaterials.fillAllFields'));
         return;
     }
 
@@ -192,16 +193,19 @@ const MaterialesProfesor = () => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || t('teacherMaterials.errorUpload'));
+            const message = await parseErrorResponse(response, t('teacherMaterials.errorUpload'));
+            throw new Error(message);
         }
 
         await fetchData();
         handleCloseModal();
+        toast.success(t('teacherMaterials.uploadSuccess', { defaultValue: 'Material subido' }));
 
     } catch (err) {
         console.error("Error subiendo material:", err);
-        alert(t('teacherMaterials.errorUploadMsg', { message: err.message }));
+        toast.error(err.message, {
+          description: t('teacherMaterials.errorUploadCtx', { defaultValue: 'No se ha podido subir el material' })
+        });
     } finally {
         setUploading(false);
     }
@@ -216,12 +220,18 @@ const MaterialesProfesor = () => {
               credentials: 'include'
           });
 
-          if (!response.ok) throw new Error(t('teacherMaterials.errorDelete'));
-          
+          if (!response.ok) {
+            const message = await parseErrorResponse(response, t('teacherMaterials.errorDelete'));
+            throw new Error(message);
+          }
+
           fetchData();
+          toast.success(t('teacherMaterials.deletedSuccess', { defaultValue: 'Material eliminado' }));
       } catch (err) {
           console.error(err);
-          alert(t('teacherMaterials.errorDelete'));
+          toast.error(err.message, {
+            description: t('teacherMaterials.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el material' })
+          });
       }
   };
 

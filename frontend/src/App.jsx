@@ -48,6 +48,7 @@ import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import AnimatedBackground from './components/AnimatedBackground';
 import usePageTitle from './hooks/usePageTitle';
+import { Toaster } from 'sonner';
 import './App.css';
 
 const PageTitleUpdater = () => {
@@ -272,6 +273,13 @@ function App() {
     <AuthProvider>
       <UIProvider>
         <RouterProvider router={router} />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          expand={false}
+          toastOptions={{ duration: 4000 }}
+        />
       </UIProvider>
     </AuthProvider>
   );

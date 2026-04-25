@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
+import { toast } from '../utils/toast';
 
 // Genera un tooltip en texto plano con los motivos por los que un alumno no es evaluable.
 export const formatMotivos = (motivos, t) => {
@@ -418,7 +419,7 @@ const CalificacionesGrupo = () => {
             const raw = changes.peso;
             const parsed = raw === '' || raw == null ? null : parseFloat(raw);
             if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 100)) {
-                alert(t('grades.weightRange'));
+                toast.warning(t('grades.weightRange'));
                 return;
             }
             patch.peso = parsed;
@@ -430,7 +431,7 @@ const CalificacionesGrupo = () => {
             const raw = changes.notaMinima;
             const parsed = raw === '' || raw == null ? null : parseFloat(raw);
             if (parsed !== null && (isNaN(parsed) || parsed < 0 || parsed > 10)) {
-                alert(t('tasks.minGradeRange', { defaultValue: 'La nota mínima debe estar entre 0 y 10' }));
+                toast.warning(t('tasks.minGradeRange', { defaultValue: 'La nota mínima debe estar entre 0 y 10' }));
                 return;
             }
             patch.notaMinima = parsed;
@@ -451,7 +452,7 @@ const CalificacionesGrupo = () => {
                 return String(id) === String(tareaId) ? { ...tr, peso: data.peso, obligatoria: data.obligatoria, notaMinima: data.notaMinima } : tr;
             }));
         } catch {
-            alert(t('grades.errorSavingWeights'));
+            toast.error(t('grades.errorSavingWeights'));
         } finally {
             setSavingTareaPeso(prev => ({ ...prev, [tareaId]: false }));
         }
@@ -492,10 +493,10 @@ const CalificacionesGrupo = () => {
                 });
             }
 
-            alert(t('grades.weightSaved'));
+            toast.success(t('grades.weightSaved'));
             reloadMedias();
         } catch {
-            alert(t('grades.errorSavingWeights'));
+            toast.error(t('grades.errorSavingWeights'));
         } finally {
             setSavingWeights(false);
         }

@@ -13,6 +13,7 @@ import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import messageAnimation from '../../public/message.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Mensajes = () => {
     const { t } = useTranslation();
@@ -272,10 +273,14 @@ const Mensajes = () => {
                     textareaRef.current.focus();
                 }
             } else {
-                alert(t('messages.errorSending'));
+                const message = await parseErrorResponse(response, t('messages.errorSending'));
+                toast.error(message, {
+                    description: t('messages.errorSendingCtx', { defaultValue: 'No se ha podido enviar el mensaje' })
+                });
             }
         } catch (error) {
             console.error(error);
+            toast.error(t('messages.errorSending'));
         } finally {
             setSending(false);
         }

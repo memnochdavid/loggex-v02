@@ -13,6 +13,7 @@ import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import helloAnimation from "../../public/hello.json";
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Centros = () => {
     const { t } = useTranslation();
@@ -263,9 +264,8 @@ const Centros = () => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                const errorMessage = errorData.message || errorData.detail || t('common.errorSaving', { message: 'Error desconocido' });
-                throw new Error(errorMessage);
+                const message = await parseErrorResponse(response);
+                throw new Error(message);
             }
 
             // Recargar datos
@@ -278,10 +278,17 @@ const Centros = () => {
                 sortDirection
             });
             handleCloseModal();
+            toast.success(currentCentro
+                ? t('centers.updatedSuccess', { defaultValue: 'Centro actualizado' })
+                : t('centers.createdSuccess', { defaultValue: 'Centro creado' }));
 
         } catch (err) {
             console.error("Error saving centro:", err);
-            alert(t('common.errorSaving', { message: err.message }));
+            toast.error(err.message, {
+                description: currentCentro
+                    ? t('centers.errorUpdating', { defaultValue: 'No se ha podido actualizar el centro' })
+                    : t('centers.errorCreating', { defaultValue: 'No se ha podido crear el centro' })
+            });
         } finally {
             setSaving(false);
         }
@@ -302,7 +309,8 @@ const Centros = () => {
             });
 
             if (!response.ok) {
-                throw new Error(t('centers.errorDelete'));
+                const message = await parseErrorResponse(response, t('centers.errorDelete'));
+                throw new Error(message);
             }
 
             fetchCentrosData({
@@ -313,12 +321,15 @@ const Centros = () => {
                 sortColumn,
                 sortDirection
             });
+            toast.success(t('centers.deletedSuccess', { defaultValue: 'Centro eliminado' }));
 
         } catch (err) {
             console.error("Error deleting centro:", err);
-            alert(t('common.errorDeletingMsg', { message: err.message }));
+            toast.error(err.message, {
+                description: t('centers.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el centro' })
+            });
         }
-    }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchCentrosData]);
+    }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchCentrosData, t]);
 
     const columns = useMemo(() => [
         {

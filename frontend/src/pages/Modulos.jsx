@@ -15,6 +15,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Modulos = () => {
   const { t } = useTranslation();
@@ -314,9 +315,8 @@ const Modulos = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -332,10 +332,17 @@ const Modulos = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(currentModulo
+        ? t('modules.updatedSuccess', { defaultValue: 'Módulo actualizado' })
+        : t('modules.createdSuccess', { defaultValue: 'Módulo creado' }));
 
     } catch (err) {
       console.error("Error saving modulo:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentModulo
+          ? t('modules.errorUpdating', { defaultValue: 'No se ha podido actualizar el módulo' })
+          : t('modules.errorCreating', { defaultValue: 'No se ha podido crear el módulo' })
+      });
     } finally {
       setSaving(false);
     }
@@ -356,7 +363,8 @@ const Modulos = () => {
       });
 
       if (!response.ok) {
-        throw new Error(t('modules.errorDelete'));
+        const message = await parseErrorResponse(response, t('modules.errorDelete'));
+        throw new Error(message);
       }
 
       fetchModulosData({
@@ -370,12 +378,15 @@ const Modulos = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('modules.deletedSuccess', { defaultValue: 'Módulo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting modulo:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('modules.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el módulo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchModulosData, t]);
 
   const columns = useMemo(() => [
     {

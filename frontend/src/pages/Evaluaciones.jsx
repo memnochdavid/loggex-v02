@@ -13,6 +13,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const TIPOS = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'ORDINARIA_FINAL', 'EXTRAORDINARIA'];
 
@@ -140,7 +141,10 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.grupo) { alert('Selecciona un grupo'); return; }
+    if (!formData.grupo) {
+      toast.warning(t('evaluations.selectGroup', { defaultValue: 'Selecciona un grupo' }));
+      return;
+    }
     setSaving(true);
     try {
       const id = current ? getId(current) : null;
@@ -163,13 +167,20 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
         credentials: 'include',
       });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData['hydra:description'] || errData.detail || 'Error al guardar');
+        const message = await parseErrorResponse(res);
+        throw new Error(message);
       }
       fetchPeriodos();
       setIsModalOpen(false);
+      toast.success(current
+        ? t('evaluations.updatedSuccess', { defaultValue: 'Evaluación actualizada' })
+        : t('evaluations.createdSuccess', { defaultValue: 'Evaluación creada' }));
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message, {
+        description: current
+          ? t('evaluations.errorUpdating', { defaultValue: 'No se ha podido actualizar la evaluación' })
+          : t('evaluations.errorCreating', { defaultValue: 'No se ha podido crear la evaluación' })
+      });
     } finally {
       setSaving(false);
     }
@@ -180,9 +191,17 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
     try {
       const id = getId(p);
       const res = await fetch(getApiUrl(`/api/periodo_evaluativos/${id}`), { method: 'DELETE', credentials: 'include' });
-      if (!res.ok) throw new Error('Error al eliminar');
+      if (!res.ok) {
+        const message = await parseErrorResponse(res, t('evaluations.errorDelete', { defaultValue: 'Error al eliminar' }));
+        throw new Error(message);
+      }
       fetchPeriodos();
-    } catch (err) { alert(err.message); }
+      toast.success(t('evaluations.deletedSuccess', { defaultValue: 'Evaluación eliminada' }));
+    } catch (err) {
+      toast.error(err.message, {
+        description: t('evaluations.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la evaluación' })
+      });
+    }
   };
 
   const columns = useMemo(() => [

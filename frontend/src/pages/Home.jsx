@@ -20,6 +20,7 @@ import {
 import Lottie from 'lottie-react';
 import helloAnimation from '../../public/hello.json';
 import { useTranslation } from 'react-i18next';
+import { toast } from '../utils/toast';
 import useUnreadMessages from '../hooks/useUnreadMessages';
 import useHomeStats from '../hooks/useHomeStats';
 
@@ -260,11 +261,15 @@ const Home = () => {
                 body: JSON.stringify(payload),
                 credentials: 'include',
             });
-            if (response.ok) handleCloseModal();
-            else alert(t('home.errorSavingAttendance'));
+            if (response.ok) {
+                handleCloseModal();
+                toast.success(t('home.attendanceSaved', { defaultValue: 'Asistencia registrada' }));
+            } else {
+                toast.error(t('home.errorSavingAttendance'));
+            }
         } catch (error) {
             console.error(error);
-            alert(t('home.errorConnection'));
+            toast.error(t('home.errorConnection'));
         } finally {
             setSavingAttendance(false);
         }

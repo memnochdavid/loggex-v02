@@ -9,6 +9,7 @@ import ModalView from '../components/ModalView';
 import LiquidSignaturePad from '../components/LiquidSignaturePad';
 import Button from '../components/Button';
 import ModuloLabel from '../components/ModuloLabel';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Perfil = () => {
     const { t } = useTranslation();
@@ -98,19 +99,26 @@ const Perfil = () => {
 
             if (response.ok) {
                 await checkAuth(); // Recargar usuario
+                toast.success(t('profile.avatarUpdated', { defaultValue: 'Avatar actualizado' }));
             } else {
-                alert("Error al actualizar avatar");
+                const message = await parseErrorResponse(response, t('profile.avatarErrorCtx', { defaultValue: 'No se ha podido actualizar el avatar' }));
+                toast.error(message, {
+                    description: t('profile.avatarErrorCtx', { defaultValue: 'No se ha podido actualizar el avatar' })
+                });
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión");
+            toast.error(t('common.connectionError', { defaultValue: 'Error de conexión' }));
         } finally {
             setUploading(false);
         }
     };
 
     const handleSaveFirma = async () => {
-        if (!draftSvg || !draftSvg.png) { alert('Dibuja la firma primero'); return; }
+        if (!draftSvg || !draftSvg.png) {
+            toast.warning(t('profile.signatureDrawFirst', { defaultValue: 'Dibuja la firma primero' }));
+            return;
+        }
         setSavingFirma(true);
         try {
             const res = await fetch(getApiUrl('/api/user/firma'), {
@@ -120,14 +128,17 @@ const Perfil = () => {
                 credentials: 'include',
             });
             if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.message || 'Error al guardar la firma');
+                const message = await parseErrorResponse(res, t('profile.signatureSaveError', { defaultValue: 'Error al guardar la firma' }));
+                throw new Error(message);
             }
             await checkAuth();
             setIsSignModalOpen(false);
             setDraftSvg(null);
+            toast.success(t('profile.signatureSaved', { defaultValue: 'Firma guardada' }));
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message, {
+                description: t('profile.signatureSaveErrorCtx', { defaultValue: 'No se ha podido guardar la firma' })
+            });
         } finally {
             setSavingFirma(false);
         }
@@ -137,10 +148,16 @@ const Perfil = () => {
         if (!window.confirm('¿Eliminar tu firma registrada?')) return;
         try {
             const res = await fetch(getApiUrl('/api/user/firma'), { method: 'DELETE', credentials: 'include' });
-            if (!res.ok) throw new Error('Error al eliminar');
+            if (!res.ok) {
+                const message = await parseErrorResponse(res, t('profile.signatureDeleteError', { defaultValue: 'Error al eliminar la firma' }));
+                throw new Error(message);
+            }
             await checkAuth();
+            toast.success(t('profile.signatureDeleted', { defaultValue: 'Firma eliminada' }));
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message, {
+                description: t('profile.signatureDeleteErrorCtx', { defaultValue: 'No se ha podido eliminar la firma' })
+            });
         }
     };
 

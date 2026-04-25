@@ -22,6 +22,7 @@ import { usePagination } from '../hooks/usePagination';
 import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Horarios = ({ embedded = false, tabs = null }) => {
   const { t, i18n } = useTranslation();
@@ -108,7 +109,9 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       const url = getApiUrl(`/api/v1/informes/horario/me?lang=${lang}`);
       await downloadFileFromApi(url, 'horario.pdf');
     } catch (err) {
-      alert(t('schedules.exportError', { message: err.message }));
+      toast.error(err.message, {
+        description: t('schedules.exportErrorCtx', { defaultValue: 'No se ha podido exportar el horario' })
+      });
     } finally {
       setExporting(false);
     }
@@ -423,9 +426,8 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -438,10 +440,17 @@ const Horarios = ({ embedded = false, tabs = null }) => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentHorario
+        ? t('schedules.updatedSuccess', { defaultValue: 'Horario actualizado' })
+        : t('schedules.createdSuccess', { defaultValue: 'Horario creado' }));
 
     } catch (err) {
       console.error("Error saving horario:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentHorario
+          ? t('schedules.errorUpdating', { defaultValue: 'No se ha podido actualizar el horario' })
+          : t('schedules.errorCreating', { defaultValue: 'No se ha podido crear el horario' })
+      });
     } finally {
       setSaving(false);
     }
@@ -459,7 +468,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error(t('schedules.errorDelete'));
+      if (!response.ok) {
+        const message = await parseErrorResponse(response, t('schedules.errorDelete'));
+        throw new Error(message);
+      }
       fetchHorariosData({
           page: currentPage,
           itemsPerPage,
@@ -468,11 +480,14 @@ const Horarios = ({ embedded = false, tabs = null }) => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('schedules.deletedSuccess', { defaultValue: 'Horario eliminado' }));
     } catch (err) {
       console.error("Error deleting horario:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('schedules.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el horario' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData, t]);
 
   const columns = useMemo(() => [
     { 

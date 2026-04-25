@@ -7,6 +7,7 @@ import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     const { t } = useTranslation();
@@ -96,17 +97,22 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData['hydra:description'] || errorData.detail || t('bulletin.errorSave'));
+                const message = await parseErrorResponse(response, t('bulletin.errorSave'));
+                throw new Error(message);
             }
 
             setShowModal(false);
             setEditingComunicado(null);
             setFormData({ titulo: '', contenido: '', global: false });
             fetchComunicados();
+            toast.success(editingComunicado
+                ? t('bulletin.updatedSuccess', { defaultValue: 'Comunicado actualizado' })
+                : t('bulletin.createdSuccess', { defaultValue: 'Comunicado creado' }));
         } catch (err) {
             if (err.message !== 'Failed to fetch') {
-                alert(t('bulletin.errorSave') + err.message);
+                toast.error(err.message, {
+                    description: t('bulletin.errorSaveCtx', { defaultValue: 'No se ha podido guardar el comunicado' })
+                });
             }
             throw err;
         }
@@ -119,10 +125,16 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                 method: 'DELETE',
                 credentials: 'include'
             });
-            if (!response.ok) throw new Error(t('bulletin.errorDelete'));
+            if (!response.ok) {
+                const message = await parseErrorResponse(response, t('bulletin.errorDelete'));
+                throw new Error(message);
+            }
             fetchComunicados();
+            toast.success(t('bulletin.deletedSuccess', { defaultValue: 'Comunicado eliminado' }));
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message, {
+                description: t('bulletin.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el comunicado' })
+            });
         }
     };
 

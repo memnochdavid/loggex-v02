@@ -17,6 +17,7 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Entregas = () => {
   const { t } = useTranslation();
@@ -207,13 +208,20 @@ const Entregas = () => {
         method: 'POST', body: data, credentials: 'include',
       });
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || t('common.errorSaving', { message: 'Error desconocido' }));
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
       await fetchData();
       handleCloseTareaModal();
+      toast.success(editingTarea
+        ? t('tasks.updatedSuccess', { defaultValue: 'Tarea actualizada' })
+        : t('tasks.createdSuccess', { defaultValue: 'Tarea creada' }));
     } catch (err) {
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: editingTarea
+          ? t('tasks.errorUpdating', { defaultValue: 'No se ha podido actualizar la tarea' })
+          : t('tasks.errorCreating', { defaultValue: 'No se ha podido crear la tarea' })
+      });
     } finally {
       setSavingTarea(false);
     }
@@ -225,10 +233,16 @@ const Entregas = () => {
       const response = await fetch(getApiUrl(`/api/tareas/${tareaId}`), {
         method: 'DELETE', credentials: 'include',
       });
-      if (!response.ok) throw new Error(t('tasks.errorDelete'));
+      if (!response.ok) {
+        const message = await parseErrorResponse(response, t('tasks.errorDelete'));
+        throw new Error(message);
+      }
       fetchData();
+      toast.success(t('tasks.deletedSuccess', { defaultValue: 'Tarea eliminada' }));
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message, {
+        description: t('tasks.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la tarea' })
+      });
     }
   };
 
@@ -283,13 +297,16 @@ const Entregas = () => {
         method: 'POST', body: data, credentials: 'include'
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || t('deliveries.errorUpload'));
+        const message = await parseErrorResponse(response, t('deliveries.errorUpload'));
+        throw new Error(message);
       }
       await fetchData();
       setIsUploadModalOpen(false);
+      toast.success(t('deliveries.uploadSuccess', { defaultValue: 'Entrega enviada' }));
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message, {
+        description: t('deliveries.errorUploadCtx', { defaultValue: 'No se ha podido enviar la entrega' })
+      });
     } finally {
       setUploading(false);
     }
@@ -383,7 +400,7 @@ const Entregas = () => {
       setEntregasTarea([...entregasList, ...filasVirtuales]);
     } catch (err) {
       console.error(err);
-      alert(t('deliveries.errorLoadDeliveries'));
+      toast.error(t('deliveries.errorLoadDeliveries'));
     } finally {
       setLoadingEntregas(false);
     }

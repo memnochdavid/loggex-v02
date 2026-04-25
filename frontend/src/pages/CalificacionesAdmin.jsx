@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
+import { toast } from '../utils/toast';
 
 const CalificacionesAdmin = () => {
     const { t, i18n } = useTranslation();
@@ -28,7 +29,7 @@ const CalificacionesAdmin = () => {
 
     const handleDownloadBoletines = async (grupoId, formato) => {
         if (!selectedPeriodo) {
-            alert(t('grades.selectPeriodFirst'));
+            toast.warning(t('grades.selectPeriodFirst'));
             return;
         }
         setDownloading(`${grupoId}-${formato}`);
@@ -48,7 +49,9 @@ const CalificacionesAdmin = () => {
             a.click();
             URL.revokeObjectURL(url);
         } catch {
-            alert(t('grades.errorLoading'));
+            toast.error(t('grades.errorLoading'), {
+                description: t('grades.errorDownloadCtx', { defaultValue: 'No se ha podido descargar el boletín' })
+            });
         } finally {
             setDownloading(null);
         }

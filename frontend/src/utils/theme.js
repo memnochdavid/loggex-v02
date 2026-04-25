@@ -153,7 +153,13 @@ export const applyTheme = (colors) => {
         widgetBorderColor: '#e2e8f0',
         widgetItemTextColor: '#334155',
         widgetItemHoverBgColor: '#f1f5f9',
-        widgetIconColor: '#6366f1'
+        widgetIconColor: '#6366f1',
+
+        // Toasts (notificaciones efímeras)
+        toastSuccessColor: '#10b981',
+        toastErrorColor: '#ef4444',
+        toastWarningColor: '#f59e0b',
+        toastInfoColor: null
     };
 
     const theme = { ...defaults, ...colors };
@@ -378,6 +384,13 @@ export const applyTheme = (colors) => {
     // 15. EventsSidebar
     if (theme.eventsSidebarBgColor) root.style.setProperty('--events-sidebar-bg', theme.eventsSidebarBgColor);
     if (theme.eventsSidebarTitleColor) root.style.setProperty('--events-sidebar-title-color', theme.eventsSidebarTitleColor);
+
+    // 17. Toasts — colores semánticos que heredan el fondo/borde/radio del tema general
+    if (theme.toastSuccessColor) root.style.setProperty('--toast-success', theme.toastSuccessColor);
+    if (theme.toastErrorColor) root.style.setProperty('--toast-error', theme.toastErrorColor);
+    if (theme.toastWarningColor) root.style.setProperty('--toast-warning', theme.toastWarningColor);
+    const toastInfo = theme.toastInfoColor || theme.primaryColor;
+    if (toastInfo) root.style.setProperty('--toast-info', toastInfo);
 
     // 16. Dashboard Widgets
     if (theme.widgetBgColor) root.style.setProperty('--widget-bg', applyAlpha(theme.widgetBgColor));

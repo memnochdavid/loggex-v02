@@ -14,6 +14,7 @@ import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 
 const Usuarios = () => {
@@ -322,8 +323,8 @@ const Usuarios = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.detail || t('common.errorSaving', { message: 'Error desconocido' }));
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos actuales
@@ -338,9 +339,14 @@ const Usuarios = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(currentUser ? t('users.updatedSuccess', { defaultValue: 'Usuario actualizado' }) : t('users.createdSuccess', { defaultValue: 'Usuario creado' }));
     } catch (err) {
       console.error("Error saving usuario:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentUser
+          ? t('users.errorUpdating', { defaultValue: 'No se ha podido actualizar el usuario' })
+          : t('users.errorCreating', { defaultValue: 'No se ha podido crear el usuario' })
+      });
     } finally {
       setSaving(false);
     }
@@ -356,7 +362,10 @@ const Usuarios = () => {
         method: 'DELETE',
         credentials: 'include'
       });
-      if (!response.ok) throw new Error(t('users.errorDelete'));
+      if (!response.ok) {
+        const message = await parseErrorResponse(response, t('users.errorDelete'));
+        throw new Error(message);
+      }
       // Recargar datos actuales
       fetchUsuariosData({
           page: currentPage,
@@ -368,11 +377,14 @@ const Usuarios = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('users.deletedSuccess', { defaultValue: 'Usuario eliminado' }));
     } catch (err) {
       console.error("Error deleting usuario:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('users.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el usuario' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchUsuariosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchUsuariosData, t]);
 
   const columns = useMemo(() => [
     {

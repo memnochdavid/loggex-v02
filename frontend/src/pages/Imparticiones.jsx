@@ -15,6 +15,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 
 const Imparticiones = () => {
@@ -340,9 +341,8 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -356,10 +356,17 @@ const Imparticiones = () => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentImparticion
+        ? t('teaching.updatedSuccess', { defaultValue: 'Impartición actualizada' })
+        : t('teaching.createdSuccess', { defaultValue: 'Impartición creada' }));
 
     } catch (err) {
       console.error("Error saving imparticion:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentImparticion
+          ? t('teaching.errorUpdating', { defaultValue: 'No se ha podido actualizar la impartición' })
+          : t('teaching.errorCreating', { defaultValue: 'No se ha podido crear la impartición' })
+      });
     } finally {
       setSaving(false);
     }
@@ -380,7 +387,8 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        throw new Error(t('teaching.errorDelete'));
+        const message = await parseErrorResponse(response, t('teaching.errorDelete'));
+        throw new Error(message);
       }
 
       fetchImparticionesData({
@@ -392,12 +400,15 @@ const Imparticiones = () => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('teaching.deletedSuccess', { defaultValue: 'Impartición eliminada' }));
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('teaching.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la impartición' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData, t]);
 
   const columns = useMemo(() => [
     { 

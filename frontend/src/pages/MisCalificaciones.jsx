@@ -11,6 +11,7 @@ import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
+import { toast } from '../utils/toast';
 
 // Header de cada módulo dentro del AccordionView. Dispara la carga lazy de
 // tareas la primera vez que el item se expande.
@@ -78,7 +79,7 @@ const MisCalificaciones = () => {
     const [downloadingReport, setDownloadingReport] = useState(false);
 
     const handleDownloadBoletin = async () => {
-        if (!selectedPeriodo) { alert(t('grades.selectPeriodFirst')); return; }
+        if (!selectedPeriodo) { toast.warning(t('grades.selectPeriodFirst')); return; }
         const alumnoId = isSuperAdmin && selectedAlumno ? selectedAlumno : user.id;
         setDownloadingReport(true);
         try {
@@ -94,7 +95,7 @@ const MisCalificaciones = () => {
             a.download = `boletin.pdf`;
             a.click();
             URL.revokeObjectURL(url);
-        } catch { alert(t('grades.errorLoading')); }
+        } catch { toast.error(t('grades.errorLoading')); }
         finally { setDownloadingReport(false); }
     };
 

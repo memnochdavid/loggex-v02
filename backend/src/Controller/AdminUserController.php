@@ -4,11 +4,13 @@ namespace App\Controller;
 
 use App\Entity\Centro;
 use App\Entity\User;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -49,6 +51,9 @@ class AdminUserController extends AbstractController
         $nombre = $request->request->get('nombre');
         $apellidos = $request->request->get('apellidos');
         $email = $request->request->get('email');
+        if (is_string($email)) {
+            $email = trim($email);
+        }
         $telefono = $request->request->get('telefono');
         $nif = $request->request->get('nif');
         $password = $request->request->get('password');
@@ -58,7 +63,19 @@ class AdminUserController extends AbstractController
 
         // Validaciones básicas para crear
         if (!$user->getId() && (!$email || !$password || !$nombre || !$apellidos)) {
-            return $this->json(['message' => 'Faltan campos obligatorios'], 400);
+            return $this->json(['message' => 'Faltan campos obligatorios'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Comprobar email duplicado antes del flush (evita que MariaDB dispare
+        // UniqueConstraintViolationException y Symfony devuelva HTML 500).
+        if ($email) {
+            $existing = $entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+            if ($existing && $existing->getId() !== $user->getId()) {
+                return $this->json(
+                    ['message' => 'Ya existe un usuario con ese email'],
+                    Response::HTTP_CONFLICT
+                );
+            }
         }
 
         if ($nombre) $user->setNombre($nombre);
@@ -138,8 +155,20 @@ class AdminUserController extends AbstractController
             }
         }
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        try {
+            $entityManager->persist($user);
+            $entityManager->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            return $this->json(
+                ['message' => 'Ya existe un usuario con ese email'],
+                Response::HTTP_CONFLICT
+            );
+        } catch (\Throwable $e) {
+            return $this->json(
+                ['message' => 'No se ha podido guardar el usuario: ' . $e->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
 
         return $this->json([
             'message' => 'Usuario guardado correctamente',

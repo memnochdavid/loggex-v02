@@ -14,6 +14,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Matriculas = () => {
   const { t } = useTranslation();
@@ -316,9 +317,8 @@ const Matriculas = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -333,10 +333,17 @@ const Matriculas = () => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentMatricula
+        ? t('enrollments.updatedSuccess', { defaultValue: 'Matrícula actualizada' })
+        : t('enrollments.createdSuccess', { defaultValue: 'Matrícula creada' }));
 
     } catch (err) {
       console.error("Error saving matricula:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentMatricula
+          ? t('enrollments.errorUpdating', { defaultValue: 'No se ha podido actualizar la matrícula' })
+          : t('enrollments.errorCreating', { defaultValue: 'No se ha podido crear la matrícula' })
+      });
     } finally {
       setSaving(false);
     }
@@ -357,7 +364,8 @@ const Matriculas = () => {
       });
 
       if (!response.ok) {
-        throw new Error(t('enrollments.errorDelete'));
+        const message = await parseErrorResponse(response, t('enrollments.errorDelete'));
+        throw new Error(message);
       }
 
       fetchMatriculasData({
@@ -370,12 +378,15 @@ const Matriculas = () => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('enrollments.deletedSuccess', { defaultValue: 'Matrícula eliminada' }));
 
     } catch (err) {
       console.error("Error deleting matricula:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('enrollments.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la matrícula' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData, t]);
 
   const columns = useMemo(() => [
     { 

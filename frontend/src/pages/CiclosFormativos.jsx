@@ -14,6 +14,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 
 const CiclosFormativos = () => {
@@ -272,9 +273,8 @@ const CiclosFormativos = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -289,10 +289,17 @@ const CiclosFormativos = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(currentCiclo
+        ? t('cycles.updatedSuccess', { defaultValue: 'Ciclo actualizado' })
+        : t('cycles.createdSuccess', { defaultValue: 'Ciclo creado' }));
 
     } catch (err) {
       console.error("Error saving ciclo:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentCiclo
+          ? t('cycles.errorUpdating', { defaultValue: 'No se ha podido actualizar el ciclo' })
+          : t('cycles.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' })
+      });
     } finally {
       setSaving(false);
     }
@@ -313,7 +320,8 @@ const CiclosFormativos = () => {
       });
 
       if (!response.ok) {
-        throw new Error(t('cycles.errorDelete'));
+        const message = await parseErrorResponse(response, t('cycles.errorDelete'));
+        throw new Error(message);
       }
 
       fetchCiclosData({
@@ -326,12 +334,15 @@ const CiclosFormativos = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('cycles.deletedSuccess', { defaultValue: 'Ciclo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting ciclo:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('cycles.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el ciclo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchCiclosData, t]);
 
   const columns = useMemo(() => [
     { header: t('cycles.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },

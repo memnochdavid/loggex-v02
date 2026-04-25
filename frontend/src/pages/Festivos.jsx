@@ -14,6 +14,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Festivos = ({ embedded = false, tabs = null }) => {
   const { t } = useTranslation();
@@ -282,9 +283,8 @@ const Festivos = ({ embedded = false, tabs = null }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -298,10 +298,17 @@ const Festivos = ({ embedded = false, tabs = null }) => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentFestivo
+        ? t('holidays.updatedSuccess', { defaultValue: 'Festivo actualizado' })
+        : t('holidays.createdSuccess', { defaultValue: 'Festivo creado' }));
 
     } catch (err) {
       console.error("Error saving festivo:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentFestivo
+          ? t('holidays.errorUpdating', { defaultValue: 'No se ha podido actualizar el festivo' })
+          : t('holidays.errorCreating', { defaultValue: 'No se ha podido crear el festivo' })
+      });
     } finally {
       setSaving(false);
     }
@@ -322,7 +329,8 @@ const Festivos = ({ embedded = false, tabs = null }) => {
       });
 
       if (!response.ok) {
-        throw new Error(t('holidays.errorDelete'));
+        const message = await parseErrorResponse(response, t('holidays.errorDelete'));
+        throw new Error(message);
       }
 
       fetchFestivosData({
@@ -334,12 +342,15 @@ const Festivos = ({ embedded = false, tabs = null }) => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('holidays.deletedSuccess', { defaultValue: 'Festivo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting festivo:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('holidays.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el festivo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData, t]);
 
   const columns = useMemo(() => [
     { header: t('holidays.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },

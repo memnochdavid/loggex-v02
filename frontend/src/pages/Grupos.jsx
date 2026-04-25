@@ -14,6 +14,7 @@ import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Grupos = () => {
   const { t } = useTranslation();
@@ -336,9 +337,8 @@ const Grupos = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || t('common.errorSaving', { message: 'Error desconocido' });
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -354,10 +354,17 @@ const Grupos = () => {
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(currentGrupo
+        ? t('groups.updatedSuccess', { defaultValue: 'Grupo actualizado' })
+        : t('groups.createdSuccess', { defaultValue: 'Grupo creado' }));
 
     } catch (err) {
       console.error("Error saving grupo:", err);
-      alert(t('common.errorSaving', { message: err.message }));
+      toast.error(err.message, {
+        description: currentGrupo
+          ? t('groups.errorUpdating', { defaultValue: 'No se ha podido actualizar el grupo' })
+          : t('groups.errorCreating', { defaultValue: 'No se ha podido crear el grupo' })
+      });
     } finally {
       setSaving(false);
     }
@@ -378,7 +385,8 @@ const Grupos = () => {
       });
 
       if (!response.ok) {
-        throw new Error(t('groups.errorDelete'));
+        const message = await parseErrorResponse(response, t('groups.errorDelete'));
+        throw new Error(message);
       }
 
       fetchGruposData({
@@ -392,12 +400,15 @@ const Grupos = () => {
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('groups.deletedSuccess', { defaultValue: 'Grupo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting grupo:", err);
-      alert(t('common.errorDeletingMsg', { message: err.message }));
+      toast.error(err.message, {
+        description: t('groups.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el grupo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData, t]);
 
   const columns = useMemo(() => [
     { header: t('groups.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },

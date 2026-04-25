@@ -1,0 +1,60 @@
+/* ======================================================================
+ * Integración de sonner con el sistema de tematización de Loggex.
+ * Sobrescribe las CSS variables internas de sonner con las variables
+ * del tema activo — así cualquier cambio de paleta del centro se
+ * refleja automáticamente en los toasts.
+ * ====================================================================== */
+
+[data-sonner-toaster] {
+    /* Toast neutro (message / loading) */
+    --normal-bg: var(--widget-bg, #ffffff);
+    --normal-text: var(--text-main, #334155);
+    --normal-border: var(--border-color, #e2e8f0);
+
+    /* Success */
+    --success-bg: color-mix(in srgb, var(--toast-success, #10b981) 10%, var(--widget-bg, #ffffff));
+    --success-text: var(--toast-success, #10b981);
+    --success-border: color-mix(in srgb, var(--toast-success, #10b981) 35%, transparent);
+
+    /* Error */
+    --error-bg: color-mix(in srgb, var(--toast-error, #ef4444) 10%, var(--widget-bg, #ffffff));
+    --error-text: var(--toast-error, #ef4444);
+    --error-border: color-mix(in srgb, var(--toast-error, #ef4444) 35%, transparent);
+
+    /* Warning */
+    --warning-bg: color-mix(in srgb, var(--toast-warning, #f59e0b) 10%, var(--widget-bg, #ffffff));
+    --warning-text: var(--toast-warning, #f59e0b);
+    --warning-border: color-mix(in srgb, var(--toast-warning, #f59e0b) 35%, transparent);
+
+    /* Info */
+    --info-bg: color-mix(in srgb, var(--toast-info, #6366f1) 10%, var(--widget-bg, #ffffff));
+    --info-text: var(--toast-info, #6366f1);
+    --info-border: color-mix(in srgb, var(--toast-info, #6366f1) 35%, transparent);
+
+    font-family: inherit;
+}
+
+[data-sonner-toaster] [data-sonner-toast] {
+    border-radius: var(--border-radius, 0.5rem) !important;
+    font-family: inherit;
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-title] {
+    font-weight: 600;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+    color: var(--text-muted, #64748b);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+    background: var(--widget-bg, #ffffff) !important;
+    border-color: var(--border-color, #e2e8f0) !important;
+    color: var(--text-main, #334155) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+    background: var(--widget-item-hover-bg, #f1f5f9) !important;
+}
