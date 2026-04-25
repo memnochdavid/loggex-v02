@@ -62,17 +62,31 @@ final class CatalogoIngestService
     public function upsertItinerario(CatalogoItinerarioDto $dto, string $fuente): void
     {
         $repo = $this->em->getRepository(CatalogoItinerario::class);
-        $criteria = [
-            'codigoOficial' => $dto->codigoOficial,
-            'ccaa' => $dto->ccaa,
-            'vigenteDesde' => $dto->vigenteDesde,
-            'fuenteIngesta' => $fuente,
-        ];
+
+        // Identidad de un itinerario:
+        //  1) Si el DTO trae `boletinUrl` (RD del BOE), es la clave más estable
+        //     entre ingestas — el código oficial o el slug pueden cambiar entre
+        //     refreshes (TodoFpHttpAdapter usa slug provisional; BoeRdAdapter
+        //     lo sobrescribe con el código real tipo IFC32).
+        //  2) Si no hay boletinUrl, fallback a (codigoOficial, ccaa, vigenteDesde).
+        $existing = null;
+        if ($dto->boletinUrl) {
+            $existing = $repo->findOneBy([
+                'boletinUrl' => $dto->boletinUrl,
+                'fuenteIngesta' => $fuente,
+            ]);
+        }
+        if (!$existing) {
+            $existing = $repo->findOneBy([
+                'codigoOficial' => $dto->codigoOficial,
+                'ccaa' => $dto->ccaa,
+                'vigenteDesde' => $dto->vigenteDesde,
+                'fuenteIngesta' => $fuente,
+            ]);
+        }
 
         $clave = $dto->codigoOficial . '|' . ($dto->ccaa ?? '') . '|' . ($dto->vigenteDesde?->format('Y-m-d') ?? '');
         $this->itinerariosVistosPorFuente[$fuente][$clave] = true;
-
-        $existing = $repo->findOneBy($criteria);
 
         if ($existing === null) {
             $this->itinerariosNuevos++;

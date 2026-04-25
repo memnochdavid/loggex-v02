@@ -496,19 +496,36 @@ Si al año siguiente la Junta publica una nueva Orden y se actualiza el catálog
 
 ## 7. Plan en fases
 
-**Fase 0 — Infraestructura común (1 semana de trabajo)**
+**Fase 0 — Infraestructura común (1 semana de trabajo)** ✅ **COMPLETADA**
 - Modelo de datos (entidades `Catalogo*`).
 - Comando `app:catalogo:refresh` skeleton.
 - Endpoints `/api/catalogo/*` skeleton (sin datos aún).
 - Cache Redis con tags.
 - Refactor mínimo: añadir `catalogoOrigen` nullable a `CicloFormativo`, `Modulo`, `Centro`.
 
-**Fase 1 — MVP con FP nacional (2 semanas)**
-- `TodoFpAdapter` v1: scrap del catálogo nacional. Cobertura: 185 ciclos.
-- Materialización de ciclos + módulos al seleccionar (incluye `horasTotales`, `horasSemanales`, `curso`).
-- UX en `/ciclos → Nuevo` con `AsyncSearchSelect`.
-- Demostrable end-to-end con FP.
-- Tests de regresión del scraper (snapshots vs. fixtures).
+**Fase 1 — MVP con FP nacional (2 semanas)** ⚠️ **PARCIAL**
+
+Hecho:
+- `TodoFpJsonAdapter` (bootstrap con dataset curado a mano).
+- 4 ciclos de informática (IFC22, IFC31, IFC32, IFC33) con sus 52 módulos.
+- Materialización backend + UX `/ciclos → Nuevo` con toggle catálogo/manual.
+- Pipeline end-to-end demostrado.
+
+Pendiente (lo cubren las fases 1.6 y 1.7):
+- Datos verificables contra fuente oficial (no escritos a mano).
+- Cobertura completa de los 185 ciclos.
+- Horas por módulo extraídas del BOE.
+
+**Fase 1.6 — TodoFpHttpAdapter (1-2 semanas)** ⏳ **SIGUIENTE**
+- Scraper HTTP de TodoFP que produce los 185 ciclos del catálogo nacional.
+- Cobertura de metadata: código, nombre, familia, nivel, duración total, URL del RD, lista de módulos sin horas.
+- Tests de snapshot por cada selector crítico.
+- Estrategia detallada en sección 15.1.
+
+**Fase 1.7 — BoeRdAdapter (1-2 semanas)** ⏳
+- Parser del XML/PDF del BOE para cada RD enlazado.
+- Completa `horasTotales` y `horasSemanales` por módulo.
+- Estrategia detallada en sección 15.2.
 
 **Fase 1.5 — Calendario escolar (1 semana)**
 - Entidades `CatalogoCalendarioEscolar` y `CatalogoPeriodoCalendario`.
@@ -625,18 +642,20 @@ Si al año siguiente la Junta publica una nueva Orden y se actualiza el catálog
 
 ## 9. Trabajo estimado y orden
 
-| Fase | Esfuerzo | Aporta valor |
-|---|---|---|
-| 0 — Infra | 1 semana | Sin demo, base para todo |
-| 1 — FP nacional | 2 semanas | **Demo vendible** — el caso de uso principal del proyecto |
-| 1.5 — Calendario escolar | 1 semana | Habilita reportes oficiales y elimina trabajo manual cada inicio de curso |
-| 2 — Centros | 1 semana | Mejora alta administrativa |
-| 3 — ESO + Bach | 3 semanas | Cubre la mayoría de centros no-FP |
-| 4 — Grados RUCT | 3 semanas | Habilita universidades |
-| 5 — Plan uni | indef. | Solo si hay demanda real |
-| 6 — Primaria | 1 semana | Cierra la cobertura |
+| Fase | Esfuerzo | Aporta valor | Estado |
+|---|---|---|---|
+| 0 — Infra | 1 semana | Sin demo, base para todo | ✅ Done |
+| 1 — FP nacional (bootstrap JSON) | 2 semanas | **Demo vendible** — pipeline end-to-end con datos provisionales | ⚠️ Parcial |
+| 1.6 — TodoFpHttpAdapter | 1-2 semanas | Datos oficiales: 185 ciclos verificables vs 4 a mano | ⏳ Siguiente |
+| 1.7 — BoeRdAdapter | 1-2 semanas | Horas por módulo desde el BOE | ⏳ |
+| 1.5 — Calendario escolar | 1 semana | Habilita reportes oficiales y elimina trabajo manual cada inicio de curso | ⏳ |
+| 2 — Centros | 1 semana | Mejora alta administrativa | ⏳ |
+| 3 — ESO + Bach | 3 semanas | Cubre la mayoría de centros no-FP | ⏳ |
+| 4 — Grados RUCT | 3 semanas | Habilita universidades | ⏳ |
+| 5 — Plan uni | indef. | Solo si hay demanda real | ⏳ |
+| 6 — Primaria | 1 semana | Cierra la cobertura | ⏳ |
 
-**Total bloque 0+1+1.5+2 (lo que merece la pena hacer ya):** 5 semanas.
+**Total bloque 0+1+1.6+1.7+1.5+2 (lo que merece la pena hacer ya):** 8-9 semanas.
 
 El resto se aborda según evolución del proyecto y feedback de centros piloto. La arquitectura está pensada para que cada fase añada un Adapter sin tocar las demás.
 
@@ -653,16 +672,55 @@ El resto se aborda según evolución del proyecto y feedback de centros piloto. 
 
 ## 11. Próximo paso concreto
 
-Cuando se decida arrancar:
+A fecha de **2026-04-25**, completadas Fase 0 + Fase 1 (parcial con bootstrap JSON). El siguiente trabajo es la **Fase 1.6 — TodoFpHttpAdapter** (sección 15.1).
 
-1. Crear `backend/src/Entity/Catalogo/CatalogoItinerario.php`, `CatalogoMateria.php`, `CatalogoCentro.php` con la migración Doctrine.
-2. Crear `backend/src/Catalogo/Source/CatalogoSourceAdapterInterface.php`.
-3. Crear `backend/src/Catalogo/CatalogoIngestService.php` (UPSERT idempotente).
-4. Stub del comando `app:catalogo:refresh` con `--dry-run`.
-5. Endpoint `GET /api/catalogo/itinerarios` (devolviendo lista vacía hasta que haya adapter).
-6. Tras Fase 1, añadir `CatalogoCalendarioEscolar.php` y `CatalogoPeriodoCalendario.php` y los endpoints `/api/catalogo/calendarios` (Fase 1.5).
+### Pasos para Fase 1.6 + 1.7 (bloque)
 
-A partir de ahí, cualquier adapter es trabajo aislado en paralelo. El primero en escribir es `TodoFpAdapter` (caso de uso más vendible y la fuente más estructurada de las "no-API"). Después `BoeBojaCalendarioAdapter` (el segundo mayor ahorro percibido por los admins, porque copiar el calendario del BOJA cada inicio de curso es de las cosas más tediosas de la gestión escolar).
+Decidido en log 2026-04-25 (sección 13.4): ejecutamos las dos fases juntas porque ninguna por separado entrega valor superior al estado actual.
+
+**A — Inspección y documentación** ✅ COMPLETADO
+- Inspección manual del HTML de TodoFP (3 páginas tipo) — sección 14.
+- `SELECTORS.md` con selectores y estrategia resiliente al reordenamiento de columnas.
+- Decisión: HTTP+DomCrawler suficiente, sin Panther.
+
+**B — TodoFpHttpAdapter** ⏳
+- Crear `App\Catalogo\Source\TodoFpHttpAdapter` con `HttpClient` + `DomCrawler`.
+- Implementar 2 niveles de scraping: index de familias → tablas por familia.
+- Producir `CatalogoItinerarioDto` con: nombre, etapa, familia, nivel, `boletinUrl` (RD), URL del currículo, materias = `[]`, codigoOficial = placeholder (a sobrescribir por BOE).
+- Throttle: 1 req/segundo respetando `robots.txt`.
+
+**C — Inspección manual del XML del BOE**
+- Descargar 2-3 RDs ELI XML como muestra (DAW, ASIR, SMR).
+- Identificar patrón estructural común: dónde está el `codigoOficial`, dónde la lista de módulos, dónde las horas.
+- Documentar en `backend/src/Catalogo/Source/BoeRd/BOE_XML_STRUCTURE.md`.
+
+**D — BoeRdAdapter**
+- Crear `App\Catalogo\Source\BoeRdAdapter` que itera los `CatalogoItinerario` con `boletinUrl` apuntando al BOE y `codigoOficial` placeholder.
+- Para cada uno, fetch del XML ELI, parser, update incremental: `codigoOficial`, `vigenteDesde`, materias completas (código + nombre + horas + curso).
+- También fetchea el "Currículo Ministerio" (segundo RD) si tiene horas detalladas.
+
+**E — Fixtures y tests**
+- `backend/tests/Fixtures/todofp/familias-index.html`, `familia-informatica.html`.
+- `backend/tests/Fixtures/boe/rd-686-2010.xml` (DAW), `rd-1629-2009.xml` (ASIR).
+- Tests de snapshot que detectan cambios de estructura.
+
+**F — Refresh end-to-end**
+- `app:catalogo:refresh todofp_http` → 185 itinerarios esqueleto.
+- `app:catalogo:refresh boe_rd` → módulos y códigos completos.
+- Verificar BD: 185 itinerarios con código oficial + ~2000 materias totales.
+
+**G — Limpieza del JSON**
+- Una vez los datos del scraper estén validados, borrar `fuente_ingesta='todofp_json'` de la BD.
+- Eliminar `TodoFpJsonAdapter.php` del código.
+- Eliminar `data/catalogo/todofp/itinerarios-fp.json`.
+- Documentar en sección 13.4 la fecha de retirada.
+
+### Después de 1.6+1.7
+
+- **Fase 1.5 (Calendario escolar)** — `BoeBojaCalendarioAdapter`.
+- **Fase 2 (Centros)** — adapter andaluz + estatal.
+
+Cada adapter es trabajo aislado, no bloquea a los siguientes. La infraestructura común (Fase 0) ya está, así que cualquier adapter nuevo es solo: implementar la interface, registrar en `services.yaml`, ejecutar.
 
 ---
 
@@ -828,3 +886,196 @@ Tiempo estimado de ventana de mantenimiento: **2-4 horas** para una BD de tamañ
 | 12.G (opcional, estrategia B completa) | 2-3 semanas | Cuando se quiera limpieza arqueológica del esquema, sin bloquear features. Probablemente nunca, salvo razón estratégica. |
 
 **Recomendación:** ejecutar 12.A-12.F como **prerrequisito de Fase 3**. Sin esto, importar el catálogo de ESO funciona técnicamente pero es UX inadmisible (admin de IES viendo "Nuevo módulo de FP" cuando intenta crear "Lengua Castellana"). 12.G se aplaza sine die.
+
+---
+
+## 13. Estado de implementación (snapshot abril 2026)
+
+Este apartado registra lo que está construido y operativo a fecha de **2026-04-25**. Sirve para que cualquiera (yo dentro de un mes, otro colaborador, futuro auditor) sepa exactamente qué hay sin tener que leer commits.
+
+### 13.1 Fase 0 — Infraestructura común ✅
+
+Todo el cableado base está hecho:
+
+- Entidades Doctrine: `CatalogoItinerario`, `CatalogoMateria`, `CatalogoCentro` (más enums `EtapaEducativa`, `TipoMateria`, `Titularidad`).
+- Migración `Version20260425160000` aplicada — tablas + FKs `catalogo_origen_id` en `ciclo_formativo`, `modulo`, `centro`.
+- DTOs: `CatalogoItinerarioDto`, `CatalogoMateriaDto`, `CatalogoCentroDto`.
+- `CatalogoSourceAdapterInterface` + `CatalogoSourceAdapterRegistry` (auto-tag vía `_instanceof`).
+- `CatalogoIngestService` con UPSERT idempotente, hash, dry-run y marcado de retirados.
+- Comando `app:catalogo:refresh [fuente] [--dry-run] [--list]`.
+- API REST autogenerada (read-only) con `SearchAnyFilter`: `/api/catalogo_itinerarios`, `/api/catalogo_materias`, `/api/catalogo_centros`.
+- `role_hierarchy` con `ROLE_SUPERADMIN: [ROLE_ADMIN]` para que controllers protegidos con `IsGranted('ROLE_ADMIN')` los pueda usar también un SuperAdmin.
+
+### 13.2 Fase 1 — MVP con FP nacional ⚠️ parcialmente completa
+
+**Lo que sí está hecho:**
+
+- `TodoFpJsonAdapter` (lee de `backend/data/catalogo/todofp/itinerarios-fp.json`).
+- JSON curado a mano con 4 ciclos de Informática y Comunicaciones: IFC22 (SMR), IFC31 (ASIR), IFC32 (DAW), IFC33 (DAM) — total 52 módulos.
+- `DummyFixturesAdapter` para smoke test (ya retirado de uso productivo).
+- Endpoint backend `POST /api/ciclos/from-catalogo` (controller `CatalogoMaterializationController`) que recibe el id del itinerario y crea `CicloFormativo` + sus `Modulo` automáticamente, todo con `catalogoOrigen` trazado.
+- Frontend: modal de Nuevo Ciclo con toggle **Catálogo / Manual**, `AsyncSearchSelect` filtrado a etapas FP, vista previa del itinerario seleccionado (familia, nivel, duración, número de módulos, normativa) y materialización al confirmar.
+
+**Lo que NO está hecho (por eso ⚠️):**
+
+- Los datos del JSON los **escribí yo basándome en mi conocimiento general**, no provienen de TodoFP ni del BOE. Los códigos de módulos pueden tener pequeñas inexactitudes. Las horas semanales son representativas pero no garantizadas.
+- Cobertura: 4 ciclos de 185 (~2%).
+- No hay link al BOE verificable en cada entrada.
+- No hay variantes por CCAA.
+
+**El JSON cumple su función como bootstrap** (permite probar el flujo end-to-end y demostrar la feature), pero **no es lo definitivo**. La sustitución por una fuente oficial real está documentada en las secciones 14 y 15.
+
+### 13.3 Lo que falta para cerrar Fase 1 de verdad
+
+1. Sustituir el JSON curado por scraping real de TodoFP (Fase 1.6, ver sección 15).
+2. Añadir parser BOE para extraer horas por módulo (Fase 1.7).
+3. Limpiar el JSON cuando los scrapers cubran todo. Borrar `DummyFixturesAdapter`.
+
+### 13.4 Log de decisiones
+
+**2026-04-25 — Decisión: ejecutar 1.6 + 1.7 en bloque (opción A).**
+Análisis previo en sección 14 mostró que TodoFP no expone ni el código oficial ni los módulos detallados — solo enumera ciclos y enlaza al RD del BOE. Si paramos en 1.6, los itinerarios serían "esqueletos sin código ni módulos", lo que sería **regresión** respecto al JSON actual. Por eso hacemos 1.6 + 1.7 juntas como un único entregable. Estimación: 3-4 semanas en lugar de 2+2 secuenciales (gracias a fixtures e integración compartidas). Cuando esto cierre, se elimina el `TodoFpJsonAdapter` y el JSON `itinerarios-fp.json`.
+
+**2026-04-25 — Decisión: NO usar `symfony/panther`.**
+Inspección manual del HTML de TodoFP (3 páginas tipo) confirma que el contenido relevante es estático. `Symfony\Contracts\HttpClient` + `Symfony\Component\DomCrawler` es suficiente. Evita la dependencia pesada de Chromium headless en producción.
+
+**2026-04-25 — Decisión: TodoFP es índice, BOE es fuente real del detalle.**
+TodoFP no expone código oficial (IFC32, etc.) ni tabla estructurada de módulos. El detalle vive solo en el RD del BOE. Por tanto:
+- `TodoFpHttpAdapter` produce solo metadata: nombre, etapa, familia, nivel, URL del RD del BOE, URL del currículo.
+- `BoeRdAdapter` lee el XML ELI de cada RD enlazado y completa: código oficial, módulos con códigos y nombres, horas totales/semanales por módulo, fecha de vigencia.
+- Ambos adapters trabajan secuencialmente sobre los mismos `CatalogoItinerario` (TodoFP los crea, BOE los enriquece).
+
+---
+
+## 14. Análisis de fuentes oficiales
+
+Antes de programar el scraper hay que evaluar honestamente qué nos puede dar cada fuente para no caer en falsas expectativas. Esta sección documenta el análisis.
+
+### 14.1 Comparativa por fuente
+
+| Fuente | URL canónica | Autoridad | Cobertura | Frescura | Scraping estable |
+|---|---|---|---|---|---|
+| **TodoFP** | `todofp.es` | ⭐⭐⭐⭐⭐ Ministerio | Metadata estatal de los 185 ciclos. Lista de módulos sin horas. | Lag de semanas/meses tras un RD nuevo. | ⭐⭐⭐ HTML CMS, cambia periódicamente. |
+| **BOE** | `boe.es` (ELI) | ⭐⭐⭐⭐⭐⭐ El BOE *es* la fuente. | Currículo completo: módulos + horas + competencias. | Real-time (es donde se publican). | ⭐⭐⭐⭐ XML estructurado con ELI; PDF para legibilidad humana. |
+| **BOJA** | `juntadeandalucia.es/boja` | ⭐⭐⭐⭐⭐ regional | Variantes andaluzas del currículo. | Lag pequeño tras BOE. | ⭐⭐⭐ Similar al BOE pero menos uniforme. |
+| **DOCM, DOG, …** | varios | ⭐⭐⭐⭐⭐ regional | Variantes de cada CCAA. | Variable. | ⭐⭐ Cada CCAA tiene su formato. |
+| **INCUAL** | `incual.educacion.gob.es` | ⭐⭐⭐⭐⭐ | Solo competencias profesionales (no curriculum). | Estable. | ⭐⭐ Web compleja, datos en BD propia. |
+| Datasets community (GitHub) | — | ⭐⭐ no oficial | Variable. | Variable. | ⭐⭐⭐⭐ JSON/CSV ya parseado. |
+| **datos.gob.es** | datos.gob.es | ⭐⭐⭐ aggregator | Centros sí, ciclos no en general. | Variable. | ⭐⭐⭐⭐ APIs OpenAPI cuando existen. |
+
+### 14.2 ¿Qué da TodoFP en concreto?
+
+Inventario de lo que SÍ podemos extraer scrapeando TodoFP:
+
+- ✅ Lista completa de las **28 familias profesionales**.
+- ✅ Por cada familia, lista de ciclos (FP Básica + Medio + Superior + Cursos de Especialización).
+- ✅ Por cada ciclo: **código oficial**, **nombre**, **nivel**, **familia**, **duración total en horas**.
+- ✅ **URL al BOE** del Real Decreto que regula el ciclo.
+- ✅ **Lista de módulos** con su código y nombre (pero sin horas).
+- ⚠️ Algunas páginas tienen fecha de publicación, comunidades autónomas donde se imparte, perfil profesional, etc. — útil pero opcional.
+
+Lo que TodoFP NO da:
+
+- ❌ **Horas por módulo** (totales o semanales).
+- ❌ Currículos por CCAA.
+- ❌ Catálogo de competencias profesionales (eso lo tiene INCUAL).
+- ❌ Listado de centros que ofrecen cada ciclo (eso lo tiene cada Consejería).
+
+### 14.3 Riesgos del scraping de TodoFP
+
+1. **Cambio de HTML.** En la última revisión grande (2023) cambiaron toda la estructura de URLs y selectores. Mitigación: tests de snapshot por cada selector crítico, alerta a SuperAdmin si un parser falla 3 veces seguidas.
+2. **Contenido JS-rendered.** Algunas tablas pueden depender de JS. Hay que verificar página por página si nos basta con `Symfony\HttpClient` + `DomCrawler` o necesitamos `symfony/panther` (Chromium headless). Esto duplicaría el coste operativo.
+3. **Coexistencia LOE/LOMLOE.** Hay ciclos antiguos LOE que conviven con sus equivalentes LOMLOE durante años. El scraper tiene que distinguir y marcar los antiguos como `vigenteHasta`.
+4. **Términos de uso.** TodoFP es web pública sin login y términos de uso permiten consulta personal/educativa. Para el uso interno de Loggex el riesgo legal es bajo, pero hay que documentar la atribución (*"datos basados en TodoFP del Ministerio…"*).
+
+### 14.4 Decisión
+
+Vamos con un **enfoque en capas** donde cada capa aporta progresivamente más detalle:
+
+- **Capa 1 (TodoFP HTTP)**: nos da el catálogo completo de los 185 ciclos con metadata + URL del RD.
+- **Capa 2 (BOE)**: completa horas por módulo a partir del RD enlazado.
+- **Capa 3 (BOJA / CCAA)**: variantes regionales sobre la nacional.
+
+Cada capa es opcional, se construye una a una y aporta valor incremental. Si solo tenemos la capa 1, ya tenemos un salto enorme respecto al JSON curado (185 vs 4 ciclos, todos verificables contra fuente oficial).
+
+---
+
+## 15. Arquitectura de scrapers en capas
+
+### 15.1 Capa 1 — `TodoFpHttpAdapter`
+
+**Objetivo:** producir los 185 ciclos del catálogo nacional con metadata oficial.
+
+**Implementación esperada:**
+
+- Usar `Symfony\Contracts\HttpClient\HttpClientInterface` + `Symfony\Component\DomCrawler\Crawler`.
+- Verificar antes con inspección manual si necesitamos `symfony/panther` (Chromium headless) por contenidos JS-rendered.
+- 2 niveles de scraping:
+  1. Index de familias: `https://www.todofp.es/que-estudiar/familias-profesionales.html` → ~28 URLs de familia.
+  2. Por cada familia, listar ciclos → URLs de detalle → extraer datos del ciclo.
+- Por cada ciclo, producir un `CatalogoItinerarioDto` con:
+  - `codigoOficial`, `nombre`, `etapa` (derivada del nivel), `familia`, `nivel`, `duracionTotalHoras`, `boletinUrl` (URL del RD), `vigenteDesde` (fecha del RD), `materias` con código+nombre **pero sin horas**.
+
+**Datos NO disponibles desde TodoFP** (se rellenan con NULL hasta que la capa 2 los complete):
+
+- `horasTotales` y `horasSemanales` por módulo.
+- `competencias`.
+- `descripcion` de módulos.
+- `prerequisitos`.
+
+**Tests:**
+
+- Fixtures HTML cacheados de 3-4 páginas tipo (un index de familia, dos ciclos distintos, una página con tabla JS).
+- Test de regresión por cada selector: si el HTML cambia y el selector falla, el test cae con un mensaje claro.
+
+**Frecuencia:** mensual (la sección 3.3 del documento ya lo refleja).
+
+### 15.2 Capa 2 — `BoeRdAdapter`
+
+**Objetivo:** completar `horasTotales` y `horasSemanales` por módulo, leyendo el RD enlazado en cada itinerario.
+
+**Implementación esperada:**
+
+- Para cada `CatalogoItinerario` con `boletinUrl` del BOE pero materias sin `horasTotales`, fetch del XML ELI del RD.
+- Parsear el XML buscando la tabla de horas del módulo (por `codigoOficial`).
+- Update incremental: solo escribe `horasTotales`/`horasSemanales`. No toca lo demás.
+
+**Riesgos:** la estructura del XML de los RDs varía bastante entre años. Algunos incluyen tablas en imágenes dentro de los PDFs vinculados (peor caso). Podríamos necesitar un fallback al PDF parser (`smalot/pdfparser`).
+
+**Frecuencia:** mensual, después de TodoFP. Solo procesa los itinerarios que tienen `boletinUrl` y materias con horas NULL.
+
+### 15.3 Capa 3 — Adapters por CCAA
+
+**Objetivo:** variantes regionales del currículo donde apliquen.
+
+**Implementación:** un adapter por CCAA que parsea su boletín oficial. El más urgente sería `BojaAdapter` para Andalucía. Los demás se pueden añadir cuando lleguen centros piloto de otras comunidades.
+
+Cuando una CCAA modifica horas semanales o estructura de un ciclo, se crea una nueva fila `CatalogoItinerario` con el mismo `codigoOficial` pero `ccaa` distinto. El frontend prefiere la variante de la CCAA del centro si existe.
+
+### 15.4 Convivencia entre capas y `TodoFpJsonAdapter`
+
+El `TodoFpJsonAdapter` actual sigue activo durante la transición. Convive con `TodoFpHttpAdapter` a través de la `fuenteIngesta`:
+
+- `fuenteIngesta = 'todofp_json'` para el JSON curado.
+- `fuenteIngesta = 'todofp_http'` para el scraper.
+
+La unique constraint actual es `(codigo_oficial, ccaa, vigente_desde)` — no incluye `fuenteIngesta`. Significa que dos adapters con el mismo (código, ccaa, vigente_desde) **chocan**: el segundo en correr fallaría con "duplicate key".
+
+**Resolución:** cuando `TodoFpHttpAdapter` esté operativo y validado, se ejecuta una migración:
+
+1. Borrar todas las entradas con `fuente_ingesta='todofp_json'` (`DELETE FROM catalogo_itinerario WHERE fuente_ingesta='todofp_json'`).
+2. Eliminar `TodoFpJsonAdapter` del código.
+3. Mantener el JSON solo como fuente de **overrides manuales** en casos puntuales (un ciclo que TodoFP no recoge bien, una corrección urgente). Estos overrides irían bajo otro adapter o se persistirían a mano.
+
+Mientras eso ocurre, **mantener solo uno de los dos activos al mismo tiempo** (el JSON o el HTTP, no ambos).
+
+### 15.5 Métricas de éxito de capa 1
+
+Cuando `TodoFpHttpAdapter` esté en producción, esperamos:
+
+- **185 itinerarios** en `catalogo_itinerario` con `fuente_ingesta='todofp_http'`.
+- **0 itinerarios** en `fuente_ingesta='todofp_json'` (tras la limpieza).
+- **Cada itinerario tiene `boletin_url`** apuntando al BOE.
+- **Cada itinerario tiene N materias** (al menos código y nombre).
+- **Tiempo del refresh completo:** menos de 5 minutos.
+- **Tasa de fallo de parser:** < 5% (si es mayor, replantear selectores o cambiar a Panther).
