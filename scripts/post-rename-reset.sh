@@ -39,7 +39,14 @@ echo "→ Aplicando migrations…"
 docker compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction
 
 echo "→ Restaurando 5 tablas preservadas (usuario, centro, comunicado, personalizacion, tema_visual)…"
-cat backup_preserve.sql | docker compose exec -T database mariadb -u app_user -papp_password app_db
+# Desactivamos FK checks: el migrate ya creó tablas que referencian a centro,
+# y el backup hace DROP TABLE IF EXISTS al inicio. Sin esto, el DROP de centro
+# falla por las FKs de itinerario/grupo/usuario/tema_visual hacia centro.
+{
+    echo 'SET FOREIGN_KEY_CHECKS=0;'
+    cat backup_preserve.sql
+    echo 'SET FOREIGN_KEY_CHECKS=1;'
+} | docker compose exec -T database mariadb -u app_user -papp_password app_db
 
 echo "→ Refrescando catálogo oficial (TodoFP + BOE)…"
 docker compose exec -T backend php bin/console app:catalogo:refresh
