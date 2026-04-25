@@ -59,20 +59,9 @@ services:
         arguments:
             $adapters: !tagged_iterator app.catalogo.source
 
-    # Adapter de catálogo FP basado en JSON curado (bootstrap inicial).
-    # El path al JSON se inyecta explícitamente para evitar autowire ambiguo.
-    # Tag explícito porque la declaración con arguments sobrescribe el _instanceof.
-    # NOTA: este adapter se retirará cuando TodoFpHttpAdapter + BoeRdAdapter
-    # estén validados (ver §13.4 y §15.4 de docs/catalogo-oficial.md).
-    App\Catalogo\Source\TodoFpJsonAdapter:
-        arguments:
-            $jsonPath: '%kernel.project_dir%/data/catalogo/todofp/itinerarios-fp.json'
-        tags:
-            - { name: app.catalogo.source }
-
-    # Scraper HTTP de TodoFP (Fase 1.6). Produce los 185 ciclos del catálogo
-    # nacional con metadata + URL del RD del BOE. Sin código oficial ni módulos
-    # detallados — eso lo hace BoeRdAdapter después usando boletinUrl.
+    # Scraper HTTP de TodoFP (Fase 1.6). Produce los ~229 ciclos del catálogo
+    # nacional con metadata + URL del RD del BOE. Los módulos detallados los
+    # añade BoeRdEnricher después leyendo el RD/Currículo del BOE.
     App\Catalogo\Source\TodoFpHttpAdapter:
         tags:
             - { name: app.catalogo.source }

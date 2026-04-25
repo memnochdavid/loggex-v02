@@ -978,17 +978,45 @@ Migración `Version20260425170000` aplicada. Campo `curriculo_url VARCHAR(500) D
   - Caso B (Básica): leer `boletinUrl` (el RD del título) porque ahí está todo.
 La heurística será simple: `if (curriculoUrl) use curriculoUrl else use boletinUrl`.
 
-**Pendiente para próxima sesión: implementar `BoeRdAdapter`.**
-Estado de Fase 1.7:
-- Documentación técnica: ✅ `BOE_XML_STRUCTURE.md`.
-- Modelo preparado: ✅ `curriculoUrl` en BD y rellenado en los 229 itinerarios.
-- Adapter: ⏳ pendiente.
+**2026-04-25 — Fase 1.7 cerrada: BoeRdAdapter operativo.**
+Implementado como servicio separado (`BoeRdEnricher`) + comando (`app:catalogo:enrich-boe`), no como `CatalogoSourceAdapterInterface`. Razón: BoeRd enriquece registros existentes, no produce nuevos — usar la interface confundiría la semántica.
 
-Decisión arquitectónica para la próxima sesión: el `BoeRdAdapter` puede implementarse de dos formas:
-1. **Como `CatalogoSourceAdapterInterface`** convencional, donde produce DTOs con `fuenteIngesta='todofp_http'` (la misma que TodoFP) y el ingest service lo detecta como UPDATE por boletinUrl. Esto requiere que el adapter lea de la BD para iterar los itinerarios existentes y emita DTOs enriquecidos.
-2. **Como servicio separado con comando propio** (`app:catalogo:enrich-boe`), no implementa la interface, simplemente actualiza entidades existentes en el `EntityManager` directamente. Más explícito y simple.
+Componentes:
+- `App\Catalogo\BoeRd\BoeXmlFetcher` — normaliza las 3 formas de URL del BOE (`txt.php`, ELI, PDF) a un endpoint XML único, con throttle 300ms.
+- `App\Catalogo\BoeRd\IdentificacionParser` — extrae denominación, nivel, duración, familia, fecha, número de RD del XML del título.
+- `App\Catalogo\BoeRd\ModulosTableParser` — localiza la tabla del Anexo II y extrae módulos con código, nombre, curso, horas totales y semanales.
+- `App\Catalogo\BoeRd\BoeRdEnricher` — orquesta el flujo: identifica el RD apropiado (currículo en FP Medio/Superior, RD del título en FP Básica), parsea, hace patch update sobre el `CatalogoItinerario` existente.
+- `App\Command\Catalogo\EnrichFromBoeCommand` — CLI con flags `--codigo`, `--limit`, `--force`, `--dry-run`.
 
-Opción recomendada: 2. El BoeRd no "produce" itinerarios nuevos, sino que enriquece existentes. Hacerlo con la misma interface confunde la semántica.
+**Resultados del refresh end-to-end:**
+- 228 itinerarios procesados (1 sin `boletinUrl` se queda fuera).
+- 1668 módulos extraídos con códigos oficiales del BOE.
+- Cobertura efectiva: 161 ciclos FP Medio+Superior con módulos completos, 153 con duración total.
+- Salto vs el bootstrap JSON: de 4 ciclos curados a mano a 161 verificados contra fuente oficial (40×).
+
+**Limitaciones documentadas (aceptadas en v1):**
+- **FP Básica** (34 ciclos): el RD 127/2014 regula 14 títulos básicos en un único documento con estructura atípica. La identificación queda en NULL y no se extraen módulos. Solución para v2: parser específico para RD multi-título.
+- **FP Especialización** (34 ciclos): los Cursos de Especialización tienen los módulos como secciones libres con `<strong>Duración: N horas.</strong>` por módulo, no en tabla. Solución para v2: parser por secciones.
+
+**Bugs cazados durante la implementación:**
+
+1. **Bug regex `Unknown modifier ']'`.** El delimitador `#` chocaba con `[^?#]+?` dentro del patrón en `BoeXmlFetcher::normalizeToXmlUrl`. Fix: usar `~` como delimitador.
+
+2. **Tabla con clase variable.** El parser inicial filtraba `table[@class="tabla"]`, pero ASIR usa `table[@class="tabla_ancha"]` y otros RDs pueden tener variantes. Fix: quitar el filtro de clase y confiar en la heurística de cabecera ("Módulo profesional" + horas) para identificar la tabla correcta.
+
+3. **Formato del nombre de módulo.** DAW: `0483. Sistemas informáticos`. ASIR: `0370 Planificación...` (sin punto). Regex relajada para aceptar punto opcional.
+
+4. **`Duración:` ambigua.** En SMR, la "Duración: 2.000 horas" del título estaba en un `<p>` multi-línea junto con Nivel/Familia/etc., y mi parser cogía la siguiente "Duración: 130 horas" de un módulo concreto. Fix: `findByPrefix` ahora itera líneas dentro de cada `<p>` y se limita a los primeros N párrafos del documento.
+
+5. **Columna `normativa` demasiado corta.** El RD 127/2014 (FP Básica) tiene un título de >500 caracteres. Migración `Version20260425180000` la pasó de `VARCHAR(255)` a `LONGTEXT`.
+
+6. **TodoFP refresh BORRABA datos de BOE.** El bug más serio del lote. `CatalogoIngestService::upsertItinerario` reemplazaba todas las materias y sobrescribía los campos con `null` cuando el DTO de TodoFP llegaba con `materias=[]` y campos null (lo que es siempre — TodoFP no expone esos datos). Cada refresh de TodoFP destruía el trabajo del BoeRdAdapter.
+
+   **Fix arquitectural:** `upsertItinerario` ahora hace **patch update**: solo sobrescribe campos cuando el DTO trae valor no nulo, y solo reemplaza materias si el DTO trae al menos una. Esto permite que múltiples adapters contribuyan al mismo registro sin pisarse — patrón estándar para ingestas en capas.
+
+   **Lección:** documentar explícitamente la semántica de UPSERT cuando hay múltiples adapters por entidad. Lo añadimos a los riesgos del modelo de datos para futura referencia.
+
+7. **URLs con espacios trailing.** TodoFP a veces deja `<a href="...PDF.pdf "` (con espacio). El fetcher lo trataba como caracter válido y la URL resultante era inválida. Fix: trim defensivo en `CiclosParser::extractFirstBoeUrl` y `BoeXmlFetcher::normalizeToXmlUrl`.
 
 ---
 

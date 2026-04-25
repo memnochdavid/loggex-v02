@@ -113,11 +113,16 @@ final class CatalogoIngestService
 
         if (!$this->dryRun) {
             $this->updateItinerarioEntity($existing, $dto);
-            // Las materias se reemplazan por completo al ser actualización: la
-            // fuente es la verdad. La cascada orphanRemoval limpia las viejas.
-            $existing->getMaterias()->clear();
-            foreach ($dto->materias as $matDto) {
-                $existing->addMateria($this->buildMateriaEntity($matDto));
+            // Reemplazar materias SOLO si el DTO trae materias nuevas. Si el
+            // DTO viene con materias=[] (caso TodoFpHttpAdapter, que no las
+            // expone), conservamos las existentes — así otros adapters
+            // (BoeRdAdapter) pueden enriquecer sin que TodoFP las pise en
+            // futuros refreshes.
+            if (!empty($dto->materias)) {
+                $existing->getMaterias()->clear();
+                foreach ($dto->materias as $matDto) {
+                    $existing->addMateria($this->buildMateriaEntity($matDto));
+                }
             }
         }
     }
@@ -243,22 +248,29 @@ final class CatalogoIngestService
 
     private function updateItinerarioEntity(CatalogoItinerario $entity, CatalogoItinerarioDto $dto): void
     {
-        $entity
-            ->setEtapa($dto->etapa)
-            ->setCodigoOficial($dto->codigoOficial)
-            ->setNombre($dto->nombre)
-            ->setFamilia($dto->familia)
-            ->setNivel($dto->nivel)
-            ->setDuracionTotalHoras($dto->duracionTotalHoras)
-            ->setDuracionTotalEcts($dto->duracionTotalEcts)
-            ->setCcaa($dto->ccaa)
-            ->setNormativa($dto->normativa)
-            ->setBoletinUrl($dto->boletinUrl)
-            ->setCurriculoUrl($dto->curriculoUrl)
-            ->setVigenteDesde($dto->vigenteDesde)
-            ->setVigenteHasta($dto->vigenteHasta)
-            ->setFuenteHash($dto->fuenteHash)
-            ->setIngestadoAt(new \DateTimeImmutable());
+        // Patch update: solo sobrescribimos los campos que el DTO trae con
+        // valor no nulo. Esto permite que distintos adapters (TodoFpHttpAdapter,
+        // BoeRdAdapter, etc.) contribuyan progresivamente al mismo registro sin
+        // pisarse mutuamente cuando uno no conoce un campo que otro sí.
+        // Excepción: campos que el DTO siempre trae (etapa, codigoOficial, nombre)
+        // y los de "fuente" (hash, fechaIngesta) sí se sobrescriben siempre.
+        $entity->setEtapa($dto->etapa);
+        $entity->setCodigoOficial($dto->codigoOficial);
+        $entity->setNombre($dto->nombre);
+
+        if ($dto->familia !== null)            $entity->setFamilia($dto->familia);
+        if ($dto->nivel !== null)              $entity->setNivel($dto->nivel);
+        if ($dto->duracionTotalHoras !== null) $entity->setDuracionTotalHoras($dto->duracionTotalHoras);
+        if ($dto->duracionTotalEcts !== null)  $entity->setDuracionTotalEcts($dto->duracionTotalEcts);
+        if ($dto->ccaa !== null)               $entity->setCcaa($dto->ccaa);
+        if ($dto->normativa !== null)          $entity->setNormativa($dto->normativa);
+        if ($dto->boletinUrl !== null)         $entity->setBoletinUrl($dto->boletinUrl);
+        if ($dto->curriculoUrl !== null)       $entity->setCurriculoUrl($dto->curriculoUrl);
+        if ($dto->vigenteDesde !== null)       $entity->setVigenteDesde($dto->vigenteDesde);
+        if ($dto->vigenteHasta !== null)       $entity->setVigenteHasta($dto->vigenteHasta);
+
+        $entity->setFuenteHash($dto->fuenteHash);
+        $entity->setIngestadoAt(new \DateTimeImmutable());
     }
 
     private function buildMateriaEntity(CatalogoMateriaDto $dto): CatalogoMateria

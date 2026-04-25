@@ -152,6 +152,9 @@ final class CiclosParser
      * Devuelve la primera URL de la celda que apunte al BOE (cualquier formato).
      * En filas con `<ul><li><a>RD</a></li><li><a>Modificación</a></li>` cogemos
      * el primer enlace al BOE encontrado en orden de documento (el RD original).
+     *
+     * Nota: TodoFP a veces deja espacios en blanco al final del href (regalo
+     * histórico del CMS), así que hacemos trim defensivo.
      */
     private function extractFirstBoeUrl(?\DOMNode $cell): ?string
     {
@@ -159,7 +162,7 @@ final class CiclosParser
             return null;
         }
         foreach ($cell->getElementsByTagName('a') as $a) {
-            $href = $a->getAttribute('href') ?: '';
+            $href = trim($a->getAttribute('href') ?: '');
             if ($href !== '' && str_contains($href, 'boe.es')) {
                 return $href;
             }

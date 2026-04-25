@@ -86,8 +86,10 @@ class CatalogoItinerario
     #[Groups(['catalogo:read'])]
     private ?string $ccaa = null;
 
-    /** Texto corto: "Real Decreto 686/2010 de 20 de mayo". */
-    #[ORM\Column(length: 255, nullable: true)]
+    /** Título completo del RD/Orden tal cual aparece en `<titulo>` del BOE.
+     *  Algunos títulos pasan de 1000 caracteres (RD 127/2014 de FP Básica),
+     *  por eso usamos TEXT y no VARCHAR. */
+    #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['catalogo:read'])]
     private ?string $normativa = null;
 
