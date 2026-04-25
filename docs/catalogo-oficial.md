@@ -1152,3 +1152,56 @@ Cuando `TodoFpHttpAdapter` esté en producción, esperamos:
 - **Cada itinerario tiene N materias** (al menos código y nombre).
 - **Tiempo del refresh completo:** menos de 5 minutos.
 - **Tasa de fallo de parser:** < 5% (si es mayor, replantear selectores o cambiar a Panther).
+
+## 16. Despacho por etapa: `BasicaParser` y `EspecializacionParser` (abr 2026)
+
+Tras completar el enriquecimiento de Grado Medio/Superior con `ModulosTableParser` (~115 ciclos), quedaron **68 itinerarios huérfanos** sin módulos en BD: 56 títulos de FP Básica y 12 Cursos de Especialización. Ambos fallaban porque sus RDs **no usan tabla** sino secciones `<strong>Módulo Profesional: …</strong>` / `<strong>Código: XXXX.</strong>` / `<strong>Duración: HH horas.</strong>`. La heurística previa los saltaba con `$skipIdentificacion`.
+
+### 16.1 Estructura común
+Tanto FP Básica como Especialización presentan los módulos como secciones con tres marcadores `<strong>`:
+- `<strong>Módulo Profesional: Nombre.</strong>` (variante: `<strong>Módulo:` sin "Profesional"; o nombre partido en varios `<strong>` por *italics*)
+- `<strong>Código: XXXX.</strong>`
+- `<strong>Duración: HH horas.</strong>`
+- En Especialización aparece además `<strong>Créditos ECTS: N.</strong>` (relevante).
+
+### 16.2 Diferencias y diseño
+- **FP Básica** (RD 127/2014 y similares) define **muchos títulos en un solo XML** (3 MB, 14 anexos en el RD 127). Cada título vive entre `<p class="anexo_num">ANEXO N</p>` y el siguiente `anexo_num`. → `BasicaParser` localiza el anexo por *match* permisivo del `<p class="anexo_tit">` con el `nombre` del itinerario antes de delegar la extracción.
+- **Cursos de Especialización** son un RD por curso, sin anexos a localizar. → `EspecializacionParser` parsea el documento entero.
+- Ambos delegan en `SeccionModulosParser`, una clase estable que recibe un `Crawler` de `<p>` y aplica las regex de header/código/duración/ECTS.
+
+### 16.3 Trampas reales encontradas
+- **Guion del bloque de identificación**: distintos RDs usan `–` (U+2013), `—` (U+2014), `‒` (U+2012), `-` (ASCII). Regex final: `[\x{2010}-\x{2015}\-]`.
+- **Nombre del módulo partido en `<strong>`**: en Ciberseguridad, "Hacking ético" aparece como `<strong>Módulo Profesional: </strong><strong>Hacking</strong><strong> ético.</strong>` con saltos de línea de formato XML entre ellos. Solución: `paragraphText` colapsa **todo whitespace incluido `\n` de formato a un único espacio**, y solo respeta `\n` reales que vienen de `<br>` (sustituidos por sentinel `\x01` antes del colapso).
+- **Variante "Módulo:" sin "Profesional"** (RD 127/2014, Anexo IV, módulo 3019 "Ciencias aplicadas II"): regex con `(?:\s+Profesional)?` opcional.
+- **Match del título del anexo vs. nombre del itinerario**: el `<p class="anexo_tit">` dice "Título Profesional Básico en Informática y Comunicaciones" pero la BD guarda solo "Informática y Comunicaciones". Match permisivo: contención bidireccional + sufijo "en …".
+
+### 16.4 Dispatcher en `BoeRdEnricher`
+```php
+match ($itinerario->getEtapa()) {
+    EtapaEducativa::FP_BASICA          => $this->enrichBasica($itinerario),
+    EtapaEducativa::FP_ESPECIALIZACION => $this->enrichEspecializacion($itinerario),
+    default                            => $this->enrichTabla($itinerario),
+};
+```
+La función común `applyChanges()` centraliza hash de idempotencia, dry-run, persistencia de identificación y reemplazo de materias.
+
+### 16.5 Validación con XMLs reales
+Probado contra 8 RDs distintos (RD 127/2014 multi-anexo, RD 73/2018 mono-título, Ciberseguridad 4963, Ciber TO 4962, IA Big Data, 5G, Mantenimiento Industrial Digital):
+- 5/5 anexos de FP Básica → identificación correcta (denominación, familia, 2000h) y 9-12 módulos cada uno con código + horas.
+- 5/5 Cursos de Especialización → módulos con código + horas + ECTS por módulo.
+
+Primer batch en BD: 228 itinerarios procesados, 469 módulos creados.
+
+### 16.6 Trampas adicionales descubiertas en el batch
+Tras el primer batch surgieron 6 huérfanos que requirieron tres fixes:
+
+1. **Capitalización inconsistente del header**: RDs ≥2020 usan `Módulo profesional:` (minúscula); ≤2019 usan `Módulo Profesional:`. → todas las regex llevan flag `i`.
+
+2. **RD de FP Básica mono-título sin anexos** (RD 73/2018 "Acceso y Conservación en Instalaciones Deportivas"): el RD entero describe un único título sin estructura `<p class="anexo_tit">`. → `BasicaParser` cae en fallback: si ningún anexo matchea, parsea todo el documento como `EspecializacionParser`.
+
+3. **Palabras partidas entre `<strong>` adyacentes**: `<strong>Reparació</strong>\n      <strong>n de averías…</strong>` o `<strong>Có</strong><strong>digo: 3005.</strong>`. La versión inicial de `paragraphText` colapsaba TODO whitespace a un espacio → "Reparació n" y "Có digo:". → Nuevo `paragraphText`: los text-nodes con sólo whitespace de formato XML **se descartan** (no se sustituyen por espacio); los `<strong>`/`<em>` aportan su `textContent` íntegro. Mantiene "Hacking ético" (necesita espacio real entre `<strong>`s) y arregla los partidos.
+
+4. **Basura tras el código**: `<strong>Código: 3149</strong><strong>.</strong>` produce "Código: 3149 .". Regex relajada: `^\s*Código:\s*(\d{3,5}[A-Za-z_]?)[\.\s]*$`.
+
+### 16.7 Limitaciones documentadas (pendientes de v1.1)
+- **RDs de modificación post-LOMLOE**: TodoFP a veces enlaza al RD que *modifica* el título (p. ej. RD 498/2024 que altera el anexo X "Carpintería y Mueble" del RD 127/2014). Estos RDs no contienen la definición del título sino tablas de cambios. **Causa raíz: scraper de TodoFP**, no del parser BOE. Solución v1.1: detectar amendment RDs (heurística por `<p class="articulo">Modificación…</p>`) y mapear al original.

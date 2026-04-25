@@ -41,6 +41,8 @@ final class BoeRdEnricher
         private readonly BoeXmlFetcher $fetcher,
         private readonly IdentificacionParser $identificacionParser,
         private readonly ModulosTableParser $modulosParser,
+        private readonly BasicaParser $basicaParser,
+        private readonly EspecializacionParser $especializacionParser,
         private readonly LoggerInterface $logger,
         private bool $dryRun = false,
     ) {}
@@ -74,7 +76,25 @@ final class BoeRdEnricher
 
     private function enrichOne(CatalogoItinerario $itinerario): void
     {
-        // Decidir qué URL usar para extraer módulos: currículo si existe, si no el RD del título.
+        $etapa = $itinerario->getEtapa();
+
+        // Dispatch por etapa: cada una tiene una estructura BOE distinta.
+        //  - FP Básica: RD multi-título → BasicaParser localiza el anexo.
+        //  - Especialización: RD por curso, módulos en secciones → EspecializacionParser.
+        //  - Resto (Grado Medio/Superior): currículo (Orden EDU) con tabla → IdentificacionParser + ModulosTableParser.
+        match ($etapa) {
+            EtapaEducativa::FP_BASICA => $this->enrichBasica($itinerario),
+            EtapaEducativa::FP_ESPECIALIZACION => $this->enrichEspecializacion($itinerario),
+            default => $this->enrichTabla($itinerario),
+        };
+    }
+
+    /**
+     * Pipeline para Grado Medio/Superior (y otros con currículo + tabla).
+     * Es la lógica original previa al dispatcher.
+     */
+    private function enrichTabla(CatalogoItinerario $itinerario): void
+    {
         $sourceUrl = $itinerario->getCurriculoUrl() ?: $itinerario->getBoletinUrl();
         if ($sourceUrl === null) {
             $this->logger->debug('[BoeRd] Itinerario sin URL de BOE; nada que hacer', [
@@ -83,23 +103,10 @@ final class BoeRdEnricher
             return;
         }
 
-        // 1) Identificación: del RD del título (boletinUrl), no del currículo.
-        // Limitación conocida v1: FP Básica y Cursos de Especialización tienen
-        // estructura XML atípica donde la "Duración:" del título es ambigua
-        // entre múltiples títulos del mismo RD (FP Básica) o no existe como tal
-        // (Especialización). Saltamos el parser de identificación para esas
-        // etapas — preferimos dejar los campos NULL antes que cargar datos
-        // incorrectos. Documentado en BOE_XML_STRUCTURE.md §6.
-        $skipIdentificacion = in_array(
-            $itinerario->getEtapa(),
-            [EtapaEducativa::FP_BASICA, EtapaEducativa::FP_ESPECIALIZACION],
-            true
-        );
-
         $identUrl = $itinerario->getBoletinUrl();
         $identData = null;
         $xmlIdent = null;
-        if (!$skipIdentificacion && $identUrl !== null) {
+        if ($identUrl !== null) {
             try {
                 $xmlIdent = $this->fetcher->fetchXml($identUrl);
                 $identData = $this->identificacionParser->parse($xmlIdent);
@@ -112,17 +119,98 @@ final class BoeRdEnricher
             }
         }
 
-        // 2) Módulos: del XML del currículo (o del RD si es FP Básica).
         $xmlModulos = $sourceUrl === $identUrl ? ($xmlIdent ?? $this->fetcher->fetchXml($sourceUrl)) : $this->fetcher->fetchXml($sourceUrl);
         $modulosExtraidos = $this->modulosParser->parse($xmlModulos);
 
-        // Hash de los datos relevantes — para idempotencia.
         $hashable = [
             'identificacion' => $identData,
             'modulos' => $modulosExtraidos,
             'sourceUrl' => $sourceUrl,
-            'enricherVersion' => 'boe_rd_v1',
+            'enricherVersion' => 'boe_rd_v1_tabla',
         ];
+        $this->applyChanges($itinerario, $hashable, $identData, $modulosExtraidos);
+    }
+
+    /**
+     * Pipeline para FP Básica: el `boletinUrl` apunta al RD multi-título;
+     * el `BasicaParser` localiza el anexo correspondiente al `nombre` del
+     * itinerario y extrae identificación + módulos del anexo.
+     */
+    private function enrichBasica(CatalogoItinerario $itinerario): void
+    {
+        $url = $itinerario->getBoletinUrl();
+        if ($url === null) {
+            return;
+        }
+        $xml = $this->fetcher->fetchXml($url);
+        $resultado = $this->basicaParser->parse($xml, $itinerario->getNombre() ?? '');
+
+        $identData = null;
+        if ($resultado['identificacion'] !== null) {
+            $identData = [
+                'fechaDisposicion' => null,
+                'duracionTotalHoras' => $resultado['identificacion']['duracionTotalHoras'],
+                'normativa' => $resultado['identificacion']['denominacion'] !== null
+                    ? sprintf('Título Profesional Básico en %s', $resultado['identificacion']['denominacion'])
+                    : null,
+            ];
+        }
+        $hashable = [
+            'identificacion' => $resultado['identificacion'],
+            'modulos' => $resultado['modulos'],
+            'sourceUrl' => $url,
+            'enricherVersion' => 'boe_rd_v1_basica',
+        ];
+        $this->applyChanges($itinerario, $hashable, $identData, $resultado['modulos']);
+    }
+
+    /**
+     * Pipeline para Cursos de Especialización: el RD entero corresponde al
+     * curso; se parsea entero con `EspecializacionParser`.
+     */
+    private function enrichEspecializacion(CatalogoItinerario $itinerario): void
+    {
+        $url = $itinerario->getBoletinUrl();
+        if ($url === null) {
+            return;
+        }
+        $xml = $this->fetcher->fetchXml($url);
+        $resultado = $this->especializacionParser->parse($xml);
+
+        $identData = null;
+        if ($resultado['identificacion'] !== null) {
+            $identData = [
+                'fechaDisposicion' => null,
+                'duracionTotalHoras' => $resultado['identificacion']['duracionTotalHoras'],
+                'normativa' => $resultado['identificacion']['denominacion'] !== null
+                    ? sprintf('Curso de Especialización: %s', $resultado['identificacion']['denominacion'])
+                    : null,
+                'creditosEctsTotales' => $resultado['identificacion']['creditosEctsTotales'] ?? null,
+            ];
+        }
+        $hashable = [
+            'identificacion' => $resultado['identificacion'],
+            'modulos' => $resultado['modulos'],
+            'sourceUrl' => $url,
+            'enricherVersion' => 'boe_rd_v1_especializacion',
+        ];
+        $this->applyChanges($itinerario, $hashable, $identData, $resultado['modulos']);
+    }
+
+    /**
+     * Aplica los cambios al itinerario (hash, identificación, módulos).
+     * Centraliza el flujo común a los tres pipelines.
+     *
+     * @param array $hashable estructura serializable usada para hash de idempotencia.
+     * @param ?array{fechaDisposicion?: ?\DateTimeImmutable, duracionTotalHoras?: ?int, normativa?: ?string, creditosEctsTotales?: ?int} $identData
+     * @param list<array> $modulosExtraidos
+     */
+    private function applyChanges(
+        CatalogoItinerario $itinerario,
+        array $hashable,
+        ?array $identData,
+        array $modulosExtraidos,
+    ): void {
         $newHash = hash('sha256', json_encode($hashable, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         if ($itinerario->getFuenteHash() === $newHash) {
@@ -139,27 +227,21 @@ final class BoeRdEnricher
             return;
         }
 
-        // Aplicar identificación si la tenemos.
         if ($identData !== null) {
-            if ($identData['fechaDisposicion'] !== null) {
+            if (!empty($identData['fechaDisposicion'])) {
                 $itinerario->setVigenteDesde($identData['fechaDisposicion']);
             }
-            if ($identData['duracionTotalHoras'] !== null) {
+            if (!empty($identData['duracionTotalHoras'])) {
                 $itinerario->setDuracionTotalHoras($identData['duracionTotalHoras']);
             }
-            if ($identData['normativa'] !== null) {
+            if (!empty($identData['normativa'])) {
                 $itinerario->setNormativa($identData['normativa']);
             }
-        } elseif ($skipIdentificacion) {
-            // Para etapas con estructura atípica (FP Básica, Especialización),
-            // limpiamos los campos: ejecuciones anteriores pueden haber cargado
-            // datos incorrectos que el parser actual no genera.
-            $itinerario->setDuracionTotalHoras(null);
-            $itinerario->setNormativa(null);
-            $itinerario->setVigenteDesde(null);
+            if (!empty($identData['creditosEctsTotales'])) {
+                $itinerario->setDuracionTotalEcts($identData['creditosEctsTotales']);
+            }
         }
 
-        // Reemplazar módulos solo si hemos extraído al menos uno.
         if (!empty($modulosExtraidos)) {
             $itinerario->getMaterias()->clear();
             foreach ($modulosExtraidos as $mod) {
@@ -167,9 +249,10 @@ final class BoeRdEnricher
                     ->setCodigoOficial($mod['codigoOficial'])
                     ->setNombre($mod['nombre'])
                     ->setTipo($mod['tipo'])
-                    ->setCurso($mod['curso'])
+                    ->setCurso($mod['curso'] ?? null)
                     ->setHorasTotales($mod['horasTotales'])
-                    ->setHorasSemanales($mod['horasSemanales'] !== null ? (string) $mod['horasSemanales'] : null)
+                    ->setHorasSemanales(!empty($mod['horasSemanales']) ? (string) $mod['horasSemanales'] : null)
+                    ->setEcts($mod['ects'] ?? null)
                     ->setOrden($mod['orden']);
                 $itinerario->addMateria($materia);
                 $this->modulosCreados++;
@@ -177,7 +260,6 @@ final class BoeRdEnricher
         } else {
             $this->logger->info('[BoeRd] Sin módulos extraídos; conservando estado actual', [
                 'codigo' => $itinerario->getCodigoOficial(),
-                'sourceUrl' => $sourceUrl,
             ]);
         }
 
