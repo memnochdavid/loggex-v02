@@ -7,15 +7,23 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * Parser de la tabla de ciclos en una página de familia profesional de TodoFP.
  *
- * Estrategia de selección resiliente al reordenamiento de columnas:
- *   1. Lee la cabecera de la tabla (`<th>`) y construye un mapa
- *      texto-cabecera-normalizado → índice de columna.
- *   2. Por cada fila de datos, accede a las columnas por su nombre lógico
- *      ("titulación", "real decreto", "currículo ministerio") en lugar de
- *      por posición ordinal.
+ * Estrategia de selección:
+ *   En lugar de fiarnos de la posición ordinal de las columnas, usamos las
+ *   clases CSS que TodoFP aplica de forma consistente a cada celda:
+ *     <th class="Nv">             Nivel (con icono PNG y rowspan)
+ *     <td class="Tit">            Titulación (nombre + URL detalle)
+ *     <td class="Rd">             Real Decreto (URL al BOE)
+ *     <td class="Curriculomecd">  Currículo Ministerio
+ *     <td class="Curriculoccaa">  Currículos CCAA
  *
- * Esto da resiliencia: si TodoFP añade una columna o reordena, el parser
- * sigue funcionando mientras los nombres de cabecera no cambien.
+ *   Esto da resiliencia ante reordenamiento de columnas o adición de nuevas:
+ *   mientras las clases sigan siendo las mismas, el parser funciona.
+ *
+ * Manejo de rowspan:
+ *   La columna "Nivel" usa `<th rowspan="N">`: aparece UNA vez por grupo de N
+ *   ciclos del mismo nivel. Las filas posteriores del mismo grupo no tienen
+ *   celda de nivel. El parser hereda el nivel de la fila anterior cuando no lo
+ *   encuentra explícitamente.
  */
 final class CiclosParser
 {
@@ -36,97 +44,82 @@ final class CiclosParser
             return [];
         }
 
-        // Si hubiera varias tablas, escogemos la primera con cabecera reconocible.
-        foreach ($tables as $table) {
-            $tableCrawler = new Crawler($table);
-            $columns = $this->mapHeader($tableCrawler);
-            if (!$this->hasRequiredColumns($columns)) {
+        // Iteramos tablas; la correcta es la que tiene <th class="Nv"> en su body.
+        foreach ($tables as $tableNode) {
+            $tableCrawler = new Crawler($tableNode);
+            if ($tableCrawler->filter('th.Nv, td.Nv')->count() === 0) {
                 continue;
             }
-            return $this->parseRows($tableCrawler, $columns, $baseUrl);
+            return $this->parseRows($tableCrawler, $baseUrl);
         }
 
         return [];
     }
 
     /**
-     * @return array<string, int>  texto-cabecera-normalizado → índice de columna
-     */
-    private function mapHeader(Crawler $tableCrawler): array
-    {
-        $headerCells = $tableCrawler->filter('thead th, tr:first-child th, tr:first-child td');
-        $columns = [];
-        foreach ($headerCells as $i => $cell) {
-            $text = $this->normalize($cell->textContent);
-            if ($text !== '') {
-                $columns[$text] = $i;
-            }
-        }
-        return $columns;
-    }
-
-    private function hasRequiredColumns(array $columns): bool
-    {
-        // Tras normalizar, las claves no llevan acentos ("titulación"→"titulacion").
-        return isset($columns['nivel'])
-            && isset($columns['titulacion'])
-            && (isset($columns['real decreto']) || isset($columns['rd']));
-    }
-
-    /**
      * @return list<array{...}>
      */
-    private function parseRows(Crawler $tableCrawler, array $columns, string $baseUrl): array
+    private function parseRows(Crawler $tableCrawler, string $baseUrl): array
     {
-        $idxNivel = $columns['nivel'];
-        $idxTitulacion = $columns['titulacion'];
-        $idxRd = $columns['real decreto'] ?? $columns['rd'];
-        $idxCurriculo = $columns['curriculo ministerio']
-            ?? $columns['curriculo']
-            ?? null;
-
-        $rows = $tableCrawler->filter('tbody tr');
-        if ($rows->count() === 0) {
-            // Tabla sin <tbody>: cogemos todas las <tr> excepto la cabecera.
-            $rows = $tableCrawler->filter('tr')->reduce(fn (Crawler $r, int $i) => $i > 0);
+        // Iteramos solo las <tr> que NO sean cabecera (las que están en <tbody>
+        // o todas excepto la primera si no hay <thead>).
+        $bodyRows = $tableCrawler->filter('tbody tr');
+        if ($bodyRows->count() === 0) {
+            $bodyRows = $tableCrawler->filter('tr')->reduce(fn (Crawler $r, int $i) => $i > 0);
         }
 
         $result = [];
-        foreach ($rows as $row) {
-            $cells = $row->getElementsByTagName('td');
-            if ($cells->length === 0) {
-                continue;
+        $currentNivelIcon = null;  // Para heredar entre filas con rowspan.
+
+        foreach ($bodyRows as $row) {
+            $rowCrawler = new Crawler($row);
+
+            // Buscar la celda de nivel (puede ser <th> o <td> con class="Nv").
+            // Si la fila la trae, actualizar el "nivel actual"; si no, heredar.
+            $nivelCell = $rowCrawler->filter('th.Nv, td.Nv');
+            if ($nivelCell->count() > 0) {
+                $currentNivelIcon = $this->extractFirstImgSrc($nivelCell->first()->getNode(0));
             }
 
-            $nivelIconSrc = $this->extractFirstImgSrc($cells->item($idxNivel));
-            $titulacionCell = $cells->item($idxTitulacion);
-            $rdCell = $cells->item($idxRd);
-            $curriculoCell = $idxCurriculo !== null ? $cells->item($idxCurriculo) : null;
-
-            if ($titulacionCell === null || $rdCell === null) {
+            // Titulación: texto del <a> dentro de <td class="Tit">.
+            $tituCell = $rowCrawler->filter('td.Tit');
+            if ($tituCell->count() === 0) {
+                // Fila sin titulación visible — saltarla (puede ser separadora o vacía).
                 continue;
             }
-
-            $nombre = trim($this->extractFirstAnchor($titulacionCell)['text'] ?? '');
+            $anchor = $this->extractFirstAnchor($tituCell->first()->getNode(0));
+            $nombre = trim($anchor['text'] ?? '');
             if ($nombre === '') {
                 continue;
             }
 
+            // Real Decreto: primer <a> al BOE dentro de <td class="Rd">.
+            $rdCell = $rowCrawler->filter('td.Rd');
+            $boletinRdUrl = $rdCell->count() > 0
+                ? $this->extractFirstBoeUrl($rdCell->first()->getNode(0))
+                : null;
+
+            // Currículo Ministerio: primer <a> al BOE en <td class="Curriculomecd">.
+            $curriculoCell = $rowCrawler->filter('td.Curriculomecd');
+            $curriculoUrl = $curriculoCell->count() > 0
+                ? $this->extractFirstBoeUrl($curriculoCell->first()->getNode(0))
+                : null;
+
             $result[] = [
                 'nombre' => $nombre,
-                'nivelIconSrc' => $nivelIconSrc,
-                'detalleUrl' => $this->absolutizeUrl($this->extractFirstAnchor($titulacionCell)['href'] ?? null, $baseUrl),
-                'boletinRdUrl' => $this->absolutizeUrl($this->extractFirstBoeUrl($rdCell), $baseUrl),
-                'curriculoUrl' => $curriculoCell ? $this->absolutizeUrl($this->extractFirstBoeUrl($curriculoCell), $baseUrl) : null,
+                'nivelIconSrc' => $currentNivelIcon,
+                'detalleUrl' => $this->absolutizeUrl($anchor['href'] ?? null, $baseUrl),
+                'boletinRdUrl' => $this->absolutizeUrl($boletinRdUrl, $baseUrl),
+                'curriculoUrl' => $this->absolutizeUrl($curriculoUrl, $baseUrl),
             ];
         }
 
         return $result;
     }
 
-    private function extractFirstImgSrc(?\DOMElement $cell): ?string
+    private function extractFirstImgSrc(?\DOMNode $cell): ?string
     {
-        if ($cell === null) {
+        if (!$cell instanceof \DOMElement) {
             return null;
         }
         foreach ($cell->getElementsByTagName('img') as $img) {
@@ -141,9 +134,9 @@ final class CiclosParser
     /**
      * @return array{href: ?string, text: ?string}|array{}
      */
-    private function extractFirstAnchor(?\DOMElement $cell): array
+    private function extractFirstAnchor(?\DOMNode $cell): array
     {
-        if ($cell === null) {
+        if (!$cell instanceof \DOMElement) {
             return [];
         }
         foreach ($cell->getElementsByTagName('a') as $a) {
@@ -156,17 +149,18 @@ final class CiclosParser
     }
 
     /**
-     * Devuelve la primera URL de la celda que apunte al BOE
-     * (cualquier formato: txt.php?id=BOE-A-… o /eli/es/rd/…).
+     * Devuelve la primera URL de la celda que apunte al BOE (cualquier formato).
+     * En filas con `<ul><li><a>RD</a></li><li><a>Modificación</a></li>` cogemos
+     * el primer enlace al BOE encontrado en orden de documento (el RD original).
      */
-    private function extractFirstBoeUrl(?\DOMElement $cell): ?string
+    private function extractFirstBoeUrl(?\DOMNode $cell): ?string
     {
-        if ($cell === null) {
+        if (!$cell instanceof \DOMElement) {
             return null;
         }
         foreach ($cell->getElementsByTagName('a') as $a) {
             $href = $a->getAttribute('href') ?: '';
-            if ($href !== '' && (str_contains($href, 'boe.es'))) {
+            if ($href !== '' && str_contains($href, 'boe.es')) {
                 return $href;
             }
         }
@@ -185,24 +179,5 @@ final class CiclosParser
             return rtrim($baseUrl, '/') . $url;
         }
         return rtrim($baseUrl, '/') . '/' . $url;
-    }
-
-    /**
-     * Normaliza texto para usarlo como clave del mapa de cabecera:
-     *  - lowercase
-     *  - colapsa espacios
-     *  - quita tildes (para que "currículo" y "curriculo" funcionen igual)
-     */
-    private function normalize(string $text): string
-    {
-        $text = trim($text);
-        $text = preg_replace('/\s+/u', ' ', $text);
-        $text = mb_strtolower($text, 'UTF-8');
-        // Quitar acentos comunes para tolerar "currículo"/"curriculo".
-        $text = strtr($text, [
-            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u',
-            'ñ' => 'n',
-        ]);
-        return $text;
     }
 }

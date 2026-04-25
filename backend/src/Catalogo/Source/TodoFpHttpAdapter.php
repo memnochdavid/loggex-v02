@@ -140,6 +140,7 @@ final class TodoFpHttpAdapter implements CatalogoSourceAdapterInterface
             'nivel' => $nivelTexto,
             'boletinUrl' => $row['boletinRdUrl'] ?? null,
             'curriculoUrl' => $row['curriculoUrl'] ?? null,
+            'fuenteVersion' => 'todofp_http_v1.1',  // Bump para forzar refresh tras añadir curriculoUrl.
         ];
         $hash = hash('sha256', json_encode($hashable, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
@@ -158,6 +159,7 @@ final class TodoFpHttpAdapter implements CatalogoSourceAdapterInterface
             vigenteHasta: null,
             materias: [],                // BoeRdAdapter completará.
             fuenteHash: $hash,
+            curriculoUrl: $row['curriculoUrl'] ?? null,  // Para que BoeRdAdapter sepa de dónde sacar las horas.
         );
     }
 

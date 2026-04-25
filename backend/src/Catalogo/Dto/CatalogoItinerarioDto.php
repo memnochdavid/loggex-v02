@@ -30,5 +30,7 @@ final readonly class CatalogoItinerarioDto
         /** @var CatalogoMateriaDto[] */
         public array $materias,
         public string $fuenteHash,
+        /** URL al currículo del Ministerio (Orden EDU separada). Null si la fuente no la conoce. */
+        public ?string $curriculoUrl = null,
     ) {}
 }

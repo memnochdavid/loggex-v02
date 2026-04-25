@@ -91,10 +91,19 @@ class CatalogoItinerario
     #[Groups(['catalogo:read'])]
     private ?string $normativa = null;
 
-    /** URL al BOE / BOJA / DOCM / … */
+    /** URL al BOE / BOJA / DOCM / … del RD del título. */
     #[ORM\Column(length: 500, nullable: true)]
     #[Groups(['catalogo:read'])]
     private ?string $boletinUrl = null;
+
+    /**
+     * URL al boletín del CURRÍCULO del Ministerio (Orden EDU separada en el caso
+     * de FP). Es un documento distinto del RD del título: contiene la tabla
+     * estructurada de módulos con horas y curso. Lo lee `BoeRdAdapter`.
+     */
+    #[ORM\Column(length: 500, nullable: true)]
+    #[Groups(['catalogo:read'])]
+    private ?string $curriculoUrl = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     #[Groups(['catalogo:read'])]
@@ -149,6 +158,8 @@ class CatalogoItinerario
     public function setNormativa(?string $n): self { $this->normativa = $n; return $this; }
     public function getBoletinUrl(): ?string { return $this->boletinUrl; }
     public function setBoletinUrl(?string $url): self { $this->boletinUrl = $url; return $this; }
+    public function getCurriculoUrl(): ?string { return $this->curriculoUrl; }
+    public function setCurriculoUrl(?string $url): self { $this->curriculoUrl = $url; return $this; }
     public function getVigenteDesde(): ?\DateTimeImmutable { return $this->vigenteDesde; }
     public function setVigenteDesde(?\DateTimeImmutable $d): self { $this->vigenteDesde = $d; return $this; }
     public function getVigenteHasta(): ?\DateTimeImmutable { return $this->vigenteHasta; }

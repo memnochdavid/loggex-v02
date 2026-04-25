@@ -254,6 +254,7 @@ final class CatalogoIngestService
             ->setCcaa($dto->ccaa)
             ->setNormativa($dto->normativa)
             ->setBoletinUrl($dto->boletinUrl)
+            ->setCurriculoUrl($dto->curriculoUrl)
             ->setVigenteDesde($dto->vigenteDesde)
             ->setVigenteHasta($dto->vigenteHasta)
             ->setFuenteHash($dto->fuenteHash)

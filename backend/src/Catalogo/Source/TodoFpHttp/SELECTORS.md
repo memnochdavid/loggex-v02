@@ -76,30 +76,68 @@ $familias = $crawler
   6. **Perfiles Profesionales** — texto/PDF, irrelevante para nosotros.
   7. **Dónde Estudiar** — link, irrelevante.
 
-**Estrategia de selección (resiliente al cambio de orden de columnas):**
+**Estrategia de selección (basada en clases CSS estables):**
 
-En lugar de fiarnos del orden ordinal, leer la cabecera (`<thead>` o primera `<tr>` con `<th>`) y construir un mapa `texto-cabecera → índice`. Luego, por cada fila de datos, extraer la columna correspondiente al texto buscado.
+Tras la inspección manual del HTML real (2026-04-25), descubrimos que TodoFP aplica clases CSS consistentes a cada celda. Esto es **más estable** que un mapping por texto de cabecera porque las clases están programadas en la plantilla:
 
-```php
-$headerCells = $crawler->filter('table thead th, table tr:first-child th');
-$columnIndex = [];
-foreach ($headerCells as $i => $th) {
-    $columnIndex[strtolower(trim($th->textContent))] = $i;
-}
-// Ej.: $columnIndex = ['nivel' => 0, 'titulación' => 1, 'real decreto' => 2, ...]
-```
+| Clase CSS | Significado |
+|---|---|
+| `<th class="Nv">` o `<td class="Nv">` | Celda de Nivel (con icono PNG) |
+| `<td class="Tit">` | Celda de Titulación (nombre + URL detalle) |
+| `<td class="Rd">` | Celda de Real Decreto (URL al BOE) |
+| `<td class="Curriculomecd">` | Currículo Ministerio (URL al BOE) |
+| `<td class="Curriculoccaa">` | Currículos CCAA |
+| `<td class="Pp">` | Perfiles Profesionales |
+| `<td class="Dondeestudiar">` | Dónde Estudiar |
 
-Esto da resilencia: si TodoFP añade una nueva columna o reordena, mientras el texto de la cabecera no cambie, el adapter sigue funcionando.
+**Identificación de la tabla correcta** entre múltiples `<table>` en la página:
+- La tabla buena es la única con `<th class="Nv">` o `<td class="Nv">` en su body.
 
-**Por cada fila (`<tr>` excluyendo cabecera):**
+**Manejo de `rowspan`:**
+- La celda `<th class="Nv">` lleva un `rowspan="N"` cuando hay N ciclos del mismo nivel agrupados.
+- Las filas siguientes del grupo NO tienen celda de nivel propia.
+- El parser **hereda** el `nivelIconSrc` de la fila anterior cuando no encuentra una celda `Nv` propia.
+
+**Por cada fila de datos:**
 
 | Dato | Cómo extraer |
 |---|---|
-| Nivel | `<img>` de la columna "Nivel" → leer `src`, matchear `gb.png`/`gm.png`/`gs.png`/`ce.png` → mapear a `EtapaEducativa` |
-| Nombre del ciclo | Texto del `<a>` de la columna "Titulación" |
+| Nivel | `<img>` dentro de `<th.Nv>`/`<td.Nv>` → leer `src`, matchear `gb.png`/`gm.png`/`gs.png`/`ce.png` → mapear a `EtapaEducativa` |
+| Nombre del ciclo | Texto del primer `<a>` dentro de `<td.Tit>` |
 | URL detalle TodoFP | `href` del mismo `<a>` |
-| URL del RD del BOE | Primer `<a>` con `href^="https://www.boe.es/"` en la columna "Real Decreto" |
-| URL del currículo | Primer `<a>` con `href^="https://www.boe.es/"` en la columna "Currículo Ministerio" |
+| URL del RD del BOE | Primer `<a>` con `href` que contiene `boe.es` dentro de `<td.Rd>` |
+| URL del currículo | Primer `<a>` con `href` que contiene `boe.es` dentro de `<td.Curriculomecd>` |
+
+**Ejemplo de HTML real (extracto de informatica-comunicaciones.html):**
+
+```html
+<tr class="fpb">
+    <th rowspan="2" headers="nivel" id="fpb" class="Nv">
+        <img alt="Logotipo Fp Básica" src="…/gb.png">
+    </th>
+    <td headers="titulacion fpb" class="Tit">
+        <p><a id="tit-informatica-oficina" href="/que-estudiar/familias-profesionales/informatica-comunicaciones/informatica-oficina.html">Título Profesional Básico en Informática de Oficina</a></p>
+    </td>
+    <td headers="real-decreto fpb" class="Rd">
+        <a href="https://www.boe.es/eli/es/rd/2014/05/16/356"><img …></a>
+    </td>
+    <td headers="curriculo-mecd fpb" class="Curriculomecd">
+        <a href="http://boe.es/diario_boe/txt.php?id=BOE-A-2014-9335"><img …></a>
+    </td>
+    <!-- … resto de columnas … -->
+</tr>
+<tr class="fpb">
+    <!-- (Sin th de nivel — heredado por rowspan) -->
+    <td headers="titulacion fpb" class="Tit">…</td>
+    <td headers="real-decreto fpb" class="Rd">
+        <ul>
+            <li><a href="https://www.boe.es/eli/es/rd/2014/02/28/127/con">…</a></li>
+            <li><a href="https://www.boe.es/eli/es/rd/2024/05/21/498">Modificación</a></li>
+        </ul>
+    </td>
+    <!-- … -->
+</tr>
+```
 
 **Mapeo de iconos a etapa educativa:**
 

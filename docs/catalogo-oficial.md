@@ -945,6 +945,51 @@ TodoFP no expone código oficial (IFC32, etc.) ni tabla estructurada de módulos
 - `BoeRdAdapter` lee el XML ELI de cada RD enlazado y completa: código oficial, módulos con códigos y nombres, horas totales/semanales por módulo, fecha de vigencia.
 - Ambos adapters trabajan secuencialmente sobre los mismos `CatalogoItinerario` (TodoFP los crea, BOE los enriquece).
 
+**2026-04-25 — Avance: TodoFpHttpAdapter operativo.**
+Implementado y validado en BD con un refresh real (no dry-run). 229 itinerarios persistidos (34 FP Básica + 67 FP Medio + 94 FP Superior + 34 Cursos de Especialización). El conteo > 185 incluye ciclos LOE en transición y nuevos LOMLOE; aceptado como esperado. Cada itinerario tiene `boletin_url` apuntando al BOE. El `codigo_oficial` lleva el slug de la URL de TodoFP (p. ej. `des-aplicaciones-web`) como provisional — BoeRdAdapter lo sobrescribirá con el código real (IFC32, etc.) cuando procese el RD.
+
+**Bug histórico encontrado y resuelto en `CiclosParser`:**
+La primera versión leía un mapping por texto de cabecera y fallaba en TODAS las familias (0 ciclos parseados). Al inspeccionar el HTML real:
+- La celda de Nivel es un `<th class="Nv">` (no `<td>`); el parser inicial solo recorría `<td>`.
+- El nivel usa `rowspan="N"` agrupando ciclos del mismo nivel; las filas posteriores no tienen celda Nv propia y hay que heredarla.
+- TodoFP usa clases CSS estables (`Nv`, `Tit`, `Rd`, `Curriculomecd`, `Curriculoccaa`) que son más fiables que mapping por texto.
+
+Reescrito el parser usando esas clases + manejo de rowspan. Ahora 229 ciclos parseados sin warnings. Estrategia documentada en `backend/src/Catalogo/Source/TodoFpHttp/SELECTORS.md`.
+
+**2026-04-25 — Inspección XML del BOE: hallazgos clave.**
+Inspección manual del XML del RD del título (RD 686/2010 — DAW) y del XML del currículo (Orden EDU/2887/2010) para diseñar `BoeRdAdapter`. Documentación técnica completa en `backend/src/Catalogo/Source/BoeRd/BOE_XML_STRUCTURE.md`. Hallazgos:
+
+1. **El código `IFC32` NO existe en el BOE**. Es un mnemónico coloquial (academias, dataset community), no una nomenclatura oficial. Decisión: el campo `codigoOficial` se queda con el slug derivado de la URL de TodoFP (p. ej. `des-aplicaciones-web`); BoeRdAdapter NO lo sobrescribirá. Si en el futuro se quiere añadir IFC32 como dato extra, se hará desde un dataset community separado.
+2. **La tabla con horas por módulo NO está en el RD del título**, sino en el **currículo del Ministerio** (Orden EDU separada que TodoFP enlaza en una columna distinta). Para cada ciclo necesitamos DOS URLs del BOE: la del RD del título (para fecha de vigencia, denominación, duración total) y la del currículo (para módulos+horas).
+3. **Falta persistir `curriculoUrl`** en el modelo. Ahora mismo `TodoFpHttpAdapter` lo extrae pero no lo pasa al DTO. Tarea bloqueante antes de implementar `BoeRdAdapter`:
+   - Añadir campo `curriculoUrl` (nullable, `VARCHAR(500)`) a `CatalogoItinerario`.
+   - Migración Doctrine.
+   - Modificar `CatalogoItinerarioDto` y `TodoFpHttpAdapter::buildDto()` para que viajen ambas URLs.
+   - Re-ejecutar `app:catalogo:refresh todofp_http` para llenar el campo en los 229 itinerarios existentes.
+4. La tabla del currículo tiene cabeceras con `rowspan/colspan` (Primer curso h/semana + Segundo curso 2T+1T). Hay que filtrar filas espurias ("Horario reservado para inglés", "Total en el ciclo formativo"). Heurística para curso (1 vs 2): qué columna tiene horas. Heurística para tipo de módulo (`MODULO`/`FCT`/`PROYECTO`): por palabras clave en el nombre.
+
+**2026-04-25 — Avance: `curriculoUrl` añadido al modelo y persistido.**
+Migración `Version20260425170000` aplicada. Campo `curriculo_url VARCHAR(500) DEFAULT NULL` añadido a `catalogo_itinerario`. Refresh de TodoFP procesa los 229 itinerarios y rellena el campo donde aplica. Datos verificados:
+- Los **3 ciclos LOMLOE de Informática** (SMR, ASIR, DAM, DAW) tienen ambas URLs: `boletin_url` (RD del título) + `curriculo_url` (Orden EDU del Ministerio).
+- Los **2 ciclos de FP Básica** de la familia Informática (Informática de Oficina, Informática y Comunicaciones) NO tienen `curriculo_url`. La razón: en FP Básica todo el contenido (incluyendo módulos+horas) está en el propio RD del título; no hay Orden EDU separada.
+
+→ **Implicación para `BoeRdAdapter`:** debe manejar dos casos:
+  - Caso A (Medio/Superior/Especialización): leer `curriculoUrl` para módulos+horas.
+  - Caso B (Básica): leer `boletinUrl` (el RD del título) porque ahí está todo.
+La heurística será simple: `if (curriculoUrl) use curriculoUrl else use boletinUrl`.
+
+**Pendiente para próxima sesión: implementar `BoeRdAdapter`.**
+Estado de Fase 1.7:
+- Documentación técnica: ✅ `BOE_XML_STRUCTURE.md`.
+- Modelo preparado: ✅ `curriculoUrl` en BD y rellenado en los 229 itinerarios.
+- Adapter: ⏳ pendiente.
+
+Decisión arquitectónica para la próxima sesión: el `BoeRdAdapter` puede implementarse de dos formas:
+1. **Como `CatalogoSourceAdapterInterface`** convencional, donde produce DTOs con `fuenteIngesta='todofp_http'` (la misma que TodoFP) y el ingest service lo detecta como UPDATE por boletinUrl. Esto requiere que el adapter lea de la BD para iterar los itinerarios existentes y emita DTOs enriquecidos.
+2. **Como servicio separado con comando propio** (`app:catalogo:enrich-boe`), no implementa la interface, simplemente actualiza entidades existentes en el `EntityManager` directamente. Más explícito y simple.
+
+Opción recomendada: 2. El BoeRd no "produce" itinerarios nuevos, sino que enriquece existentes. Hacerlo con la misma interface confunde la semántica.
+
 ---
 
 ## 14. Análisis de fuentes oficiales
