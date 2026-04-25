@@ -2,7 +2,24 @@
 
 Documento de arquitectura y planificación. Define cómo Loggex va a ofrecer al admin de un centro una **lista oficial y siempre actualizada** de ciclos, cursos, modalidades y asignaturas para que dar de alta un Ciclo / Curso / Asignatura sea **seleccionar de un desplegable**, no rellenar campos a mano. El objetivo es eliminar el riesgo de typo, código oficial mal escrito o currículo desactualizado.
 
-Estado: **implementado y operativo** (abril 2026). Las secciones §1–12 reflejan el diseño original (con vocabulario solo-FP); §13 documenta lo construido; §16 registra el dispatcher por etapa; §17 las vistas admin; §18 el rename a vocabulario neutro.
+Estado: **implementado y operativo** (abril 2026).
+
+## 0. Mapa rápido del documento
+
+Para evitar leer 1 400 líneas si no hace falta:
+
+| Sección | Qué contiene | Cuándo leerla |
+|---|---|---|
+| §1–§11 | Diseño original | Para entender el "porqué" arquitectónico |
+| §12 | Plan multi-etapa pendiente | Cuando llegue un centro no-FP que pida más |
+| §13 | **Snapshot del estado actual** | **Para saber qué hay hoy** |
+| §14–§15 | Análisis de fuentes oficiales y arquitectura por capas de scraping | Antes de añadir un adapter nuevo |
+| §16 | Dispatcher por etapa (`BasicaParser`, `EspecializacionParser`) | Si tocas el enriquecimiento BOE |
+| §17 | Vistas admin del catálogo (UI) | Si tocas `/admin/catalogo/*` |
+| §18 | Rename a vocabulario neutro (`CicloFormativo` → `Itinerario`, etc.) | Si encuentras refs a clases/rutas viejas |
+| §19 | Soporte de ESO (RD 217/2022 LOMLOE) | Para añadir Bachillerato u otra etapa |
+
+**Estado en una línea**: 230 itinerarios cargados (229 FP nacionales + 1 ESO), ~2 230 materias enriquecidas desde BOE, vistas admin operativas, vocabulario neutro multi-etapa, refresh idempotente vía `app:catalogo:refresh [fuente]`.
 
 > **Nomenclatura post-§18**: el doc original habla de `CicloFormativo`, `Modulo`, `Material`, `Tema`. Tras el refactor de §18 esas clases se llaman **`Itinerario`**, **`Materia`**, **`Temario`**, **`TemaVisual`** respectivamente, y las tablas siguen el mismo cambio. Las rutas `/ciclos`, `/modulos` pasan a `/itinerarios`, `/materias`. Donde hace falta, se anota la equivalencia inline; el resto se conserva como referencia histórica del diseño.
 
@@ -908,17 +925,18 @@ Todo el cableado base está hecho:
 - API REST autogenerada (read-only) con `SearchAnyFilter`: `/api/catalogo_itinerarios`, `/api/catalogo_materias`, `/api/catalogo_centros`.
 - `role_hierarchy` con `ROLE_SUPERADMIN: [ROLE_ADMIN]` para que controllers protegidos con `IsGranted('ROLE_ADMIN')` los pueda usar también un SuperAdmin.
 
-### 13.2 Fase 1 — MVP con FP nacional ✅ completa
+### 13.2 Fase 1 — MVP con FP nacional ✅ completa + ESO añadida
 
-**Cobertura final tras Fases 1.6 + 1.7 + §16:**
+**Cobertura final tras Fases 1.6 + 1.7 + §16 + §19:**
 
-| Etapa | Itinerarios | Sin módulos | Total módulos |
-|---|---|---|---|
-| FP Básica | 34 | 0 | ~340 |
-| FP Medio | 67 | ~13 | ~640 |
-| FP Superior | 94 | ~16 | ~1 040 |
-| Cursos de Especialización | 34 | 0 | ~150 |
-| **Total** | **229** | **~30 (13 %)** | **~2 200** |
+| Etapa | Itinerarios | Sin módulos | Total módulos | Fuente |
+|---|---|---|---|---|
+| FP Básica | 34 | 0 | ~340 | TodoFP + BOE |
+| FP Medio | 67 | ~13 | ~640 | TodoFP + BOE |
+| FP Superior | 94 | ~16 | ~1 040 | TodoFP + BOE |
+| Cursos de Especialización | 34 | 0 | ~150 | TodoFP + BOE |
+| ESO | 1 | 0 | 28 | RD 217/2022 |
+| **Total** | **230** | **~30 (13 %)** | **~2 230** | |
 
 Los ~30 sin módulos son ciclos cuyo currículo (Orden EDU) tiene una estructura HTML atípica que `ModulosTableParser` no cubre todavía — limitación documentada para v1.1, no bloqueante para producción.
 
@@ -932,7 +950,7 @@ Los ~30 sin módulos son ciclos cuyo currículo (Orden EDU) tiene una estructura
 - **`SeccionModulosParser`** común a Básica + Especialización: regex case-insensitive sobre `<strong>Módulo Profesional:` / `<strong>Código:` / `<strong>Duración:` con tolerancia a guiones Unicode y nombres partidos en `<strong>`s.
 - **`TodoFpJsonAdapter` retirado**: el JSON manual con 4 ciclos sirvió como bootstrap; tras la cobertura completa por scraping ya no se usa. `DummyFixturesAdapter` también retirado.
 - **Endpoint backend `POST /api/itinerarios/from-catalogo`** (controller `CatalogoMaterializationController`): recibe el id del itinerario y crea `Itinerario` + sus `Materia` automáticamente, todo con `catalogoOrigen` trazado. *(Tras §18: era `/api/ciclos/from-catalogo` con clases `CicloFormativo`/`Modulo`.)*
-- **Frontend modal de Nuevo Ciclo** con toggle **Catálogo / Manual**, `AsyncSearchSelect` filtrado a etapas FP, vista previa con familia/nivel/duración/módulos/normativa y materialización al confirmar.
+- **Frontend modal de Nuevo Itinerario** con toggle **Catálogo / Manual**, `AsyncSearchSelect` abierto a TODAS las etapas implementadas (FP + ESO; el admin discrimina tecleando), vista previa con familia/nivel/duración/módulos/normativa y materialización al confirmar.
 - **Vistas admin del catálogo** (§17): `/admin/catalogo/itinerarios`, `/.../itinerarios/:id`, `/.../materias`, `/.../centros` (SUPERADMIN-only stub), `/.../acerca` con `DataProvenanceBanner` reutilizable.
 
 ### 13.3 Lo que queda para v1.1 (no bloqueante)

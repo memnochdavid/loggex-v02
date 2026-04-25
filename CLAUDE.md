@@ -34,6 +34,13 @@ frontend/
 
 > Nota: el rename `CicloFormativo→Itinerario / Modulo→Materia / Material→Temario / Tema→TemaVisual` se ejecutó para alinear el vocabulario con el catálogo oficial y dejar las entidades neutras frente a la etapa educativa (FP, ESO, Bach, Uni). Plan completo: `docs/hoja-de-ruta-rename-fp-neutral.md`.
 
+## Catálogo oficial (estado)
+- **230 itinerarios** y **~2 230 materias** cargados desde BOE.
+- **Etapas implementadas**: FP Básica/Medio/Superior/Especialización (vía TodoFP + BOE) + ESO (RD 217/2022 LOMLOE).
+- **Vistas admin** read-only en `/admin/catalogo/*` con `DataProvenanceBanner`.
+- **Refresh manual**: `app:catalogo:refresh [todofp_http|boe_eso]` + `app:catalogo:enrich-boe` (idempotente).
+- **Doc de referencia**: `docs/catalogo-oficial.md` (con §0 mapa rápido al inicio).
+
 ## Roles de Usuario
 `ROLE_SUPERADMIN`, `ROLE_ADMIN`, `ROLE_PROFESOR`, `ROLE_ALUMNO`
 
