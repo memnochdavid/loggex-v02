@@ -81,7 +81,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
   const searchFields = [
       { value: 'aula', label: t('schedules.classroom') },
-      { value: 'imparticion.modulo.nombre', label: t('schedules.subject') },
+      { value: '(imparticion.materia ?? imparticion.modulo).nombre', label: t('schedules.subject') },
       { value: 'imparticion.profesor.nombre', label: t('schedules.teacher') },
       { value: 'diaSemana', label: t('schedules.day') }
   ];
@@ -510,10 +510,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     { header: t('schedules.classroom'), accessor: 'aula', sortable: true, sortKey: 'aula' },
     {
         header: t('schedules.subject'),
-        accessor: (row) => row.imparticion && row.imparticion.modulo
-            ? <ModuloLabel modulo={row.imparticion.modulo} />
+        accessor: (row) => row.imparticion && row.imparticion?.materia
+            ? <ModuloLabel modulo={row.imparticion?.materia} />
             : '-',
-        sortable: true, sortKey: 'imparticion.modulo.nombre'
+        sortable: true, sortKey: '(imparticion.materia ?? imparticion.modulo).nombre'
     },
     {
         header: t('schedules.group'),
@@ -717,7 +717,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     onChange={(v) => setFormData(p => ({ ...p, imparticion: v }))}
                     endpoint="/api/imparticions"
                     extraParams={isSuperAdmin && selectedCentro ? { 'grupo.centro': selectedCentro } : {}}
-                    getOptionLabel={(i) => `${i.modulo?.nombre ?? ''} — ${i.grupo?.abreviatura || i.grupo?.nombre || ''} (${i.profesor?.nombre ?? ''} ${i.profesor?.apellidos ?? ''})`}
+                    getOptionLabel={(i) => `${i.materia?.nombre ?? ''} — ${i.grupo?.abreviatura || i.grupo?.nombre || ''} (${i.profesor?.nombre ?? ''} ${i.profesor?.apellidos ?? ''})`}
                     getOptionValue={(i) => i.id || i['@id']?.split('/').pop()}
                     placeholder={t('schedules.selectSubject')}
                     required

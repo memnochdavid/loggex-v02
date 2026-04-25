@@ -271,7 +271,7 @@ const Perfil = () => {
                                         <div key={matricula.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.cycle')}</span>
-                                                <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || t('profile.unknownCycle')}</span>
+                                                <span className={styles.value}>{matricula.grupo?.itinerario?.nombre || t('profile.unknownCycle')}</span>
                                             </div>
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.course')}</span>
@@ -297,8 +297,8 @@ const Perfil = () => {
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.module')}</span>
                                                 <span className={styles.value}>
-                                                    {imp.modulo
-                                                        ? <ModuloLabel modulo={imp.modulo} />
+                                                    {(imp.materia ?? imp.modulo)
+                                                        ? <ModuloLabel modulo={(imp.materia ?? imp.modulo)} />
                                                         : t('profile.unknownModule')}
                                                 </span>
                                             </div>

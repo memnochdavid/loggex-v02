@@ -554,7 +554,7 @@ const CalificacionesGrupo = () => {
     const weightValid = weightSum === 100;
 
     const getImparticionLabel = (imp) => {
-        const modulo = imp.modulo?.nombre || imp.modulo || '';
+        const modulo = imp.materia?.nombre || (imp.materia ?? imp.modulo) || '';
         const grupo = imp.grupo?.nombre || imp.grupo || '';
         return `${modulo} — ${grupo}`;
     };
@@ -565,7 +565,7 @@ const CalificacionesGrupo = () => {
                 <CrudHeader
                     title={t('grades.title')}
                     subtitle={mediasData?.imparticion
-                        ? `${mediasData.imparticion.modulo} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
+                        ? `${mediasData.imparticion?.materia} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
                         : undefined}
                     logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >

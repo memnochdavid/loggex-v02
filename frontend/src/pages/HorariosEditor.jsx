@@ -97,8 +97,8 @@ const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
         <span className={styles.moduleName}>
-          {imparticion.modulo
-            ? <ModuloLabel modulo={imparticion.modulo} />
+          {(imparticion.materia ?? imparticion.modulo)
+            ? <ModuloLabel modulo={(imparticion.materia ?? imparticion.modulo)} />
             : '—'}
         </span>
         <span className={styles.moduleProfe}>
@@ -127,13 +127,13 @@ const SlotBlock = ({ slotId, imparticion, color, aula }) => {
       {...attributes}
     >
       <span className={styles.slotBlockTitle}>
-        {imparticion.modulo && <ModuloLabel modulo={imparticion.modulo} />}
+        {(imparticion.materia ?? imparticion.modulo) && <ModuloLabel modulo={(imparticion.materia ?? imparticion.modulo)} />}
       </span>
       <span className={styles.slotBlockProfe}>
         {(imparticion.profesor?.apellidos || '').split(' ')[0]}
       </span>
       <div className={styles.slotTooltip} role="tooltip">
-        <strong>{imparticion.modulo?.nombre || '—'}</strong>
+        <strong>{imparticion.materia?.nombre || '—'}</strong>
         <span>{profeFull}</span>
         {aula && <span className={styles.slotTooltipAula}>{aula}</span>}
       </div>
@@ -288,10 +288,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!selectedGrupo || grupos.length === 0) return;
     const gActual = grupos.find(g => String(g.id) === String(selectedGrupo));
     if (!gActual) return;
-    const cicloNombre = (gActual.ciclo?.nombre || '').toUpperCase();
+    const cicloNombre = (gActual.itinerario?.nombre || '').toUpperCase();
     const mismoTurno = (g) => {
       if (String(g.id) === String(selectedGrupo)) return false;
-      const cn = (g.ciclo?.nombre || '').toUpperCase();
+      const cn = (g.itinerario?.nombre || '').toUpperCase();
       if (cicloNombre.includes('WEB')) return cn.includes('WEB');
       if (cicloNombre.includes('MULTIPLATAFORMA')) return cn.includes('MULTIPLATAFORMA');
       return false;
@@ -360,7 +360,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Generalización: ciclo nombre contiene "DAW"? mañana; caso contrario tarde.
   const turnoGrupo = useMemo(() => {
     if (!grupo) return 'M';
-    const cicloNombre = (grupo.ciclo?.nombre || '').toUpperCase();
+    const cicloNombre = (grupo.itinerario?.nombre || '').toUpperCase();
     if (cicloNombre.includes('WEB')) return 'M';
     if (cicloNombre.includes('MULTIPLATAFORMA')) return 'T';
     return 'M';
@@ -377,7 +377,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return h;
   }, [placements]);
 
-  const totalHoras = imps.reduce((a, i) => a + (i.modulo?.horasSemanales || 0), 0);
+  const totalHoras = imps.reduce((a, i) => a + (i.materia?.horasSemanales || 0), 0);
   const colocadasTotal = Object.keys(placements).length;
   const completitud = totalHoras ? (colocadasTotal / totalHoras) * 100 : 0;
   const estado =
@@ -438,9 +438,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
     // Regla 1: horas restantes > 0 (solo para panel → celda; en swap las horas no cambian globalmente)
     if (drag.type === 'module') {
-      const total = imp.modulo?.horasSemanales || 0;
+      const total = imp.materia?.horasSemanales || 0;
       if ((horasColocadas[impId] || 0) >= total) {
-        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total, module: imp.modulo?.nombre }) };
+        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total, module: imp.materia?.nombre }) };
       }
       // Regla extra: la celda debe estar vacía
       if (placements[key]) {
@@ -597,10 +597,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const unplacedSummary = useMemo(() => {
     return imps
       .map(imp => {
-        const total = imp.modulo?.horasSemanales || 0;
+        const total = imp.materia?.horasSemanales || 0;
         const placed = horasColocadas[imp.id] || 0;
         return placed < total
-          ? { nombre: imp.modulo?.nombre || '—', faltan: total - placed, total }
+          ? { nombre: imp.materia?.nombre || '—', faltan: total - placed, total }
           : null;
       })
       .filter(Boolean);
@@ -733,10 +733,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })() : placements;
       const imp = impById[selectedImpId];
       if (!imp) return;
-      const total = imp.modulo?.horasSemanales || 0;
+      const total = imp.materia?.horasSemanales || 0;
       const ya = Object.values(effectivePlacements).filter(p => p.imparticionId === selectedImpId).length;
       if (ya >= total) {
-        setDragError(t('scheduleEditor.reasonModuleFull', { total, module: imp.modulo?.nombre }));
+        setDragError(t('scheduleEditor.reasonModuleFull', { total, module: imp.materia?.nombre }));
         window.setTimeout(() => setDragError(null), 4000);
         return;
       }
@@ -785,7 +785,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const total = imp.modulo?.horasSemanales || 0;
+    const total = imp.materia?.horasSemanales || 0;
     if ((horasColocadas[selectedImpId] || 0) >= total) return false;
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
@@ -888,7 +888,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       <SlotBlock
         slotId={key}
         imparticion={imp}
-        color={colorForModule(imp.modulo?.id || p.imparticionId)}
+        color={colorForModule(imp.materia?.id || p.imparticionId)}
         aula={p.aula}
       />
     );
@@ -959,9 +959,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <ModuleChip
                     key={imp.id}
                     imparticion={imp}
-                    horasTotales={imp.modulo?.horasSemanales || 0}
+                    horasTotales={imp.materia?.horasSemanales || 0}
                     horasColocadas={horasColocadas[imp.id] || 0}
-                    color={colorForModule(imp.modulo?.id || imp.id)}
+                    color={colorForModule(imp.materia?.id || imp.id)}
                     selected={selectedImpId === imp.id}
                     onSelect={handleSelectModule}
                   />
@@ -1046,7 +1046,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
             <DragOverlay dropAnimation={null}>
               {activeImp ? (
-                <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.modulo?.id || activeImp.id) }}>
+                <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.materia?.id || activeImp.id) }}>
                   {activeImp.modulo && <ModuloLabel modulo={activeImp.modulo} />}
                 </div>
               ) : null}

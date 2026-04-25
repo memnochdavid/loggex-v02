@@ -52,7 +52,7 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                         if (new Date(tr.fechaLimite) <= now) return;
                         if (isAlumno && tr.visible === false) return;
                         // Enriquecer con referencia a la impartición para navegar
-                        futureTasks.push({ ...tr, imparticion: { id: imp.id, modulo: imp.modulo } });
+                        futureTasks.push({ ...tr, imparticion: { id: imp.id, modulo: (imp.materia ?? imp.modulo) } });
                     });
                 });
                 futureTasks.sort((a, b) => new Date(a.fechaLimite) - new Date(b.fechaLimite));
@@ -128,7 +128,7 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                                 <span className={styles.title}>{task.titulo}</span>
                                 <span className={styles.module}>
                                     {task.imparticion?.modulo
-                                        ? <ModuloLabel modulo={task.imparticion.modulo} />
+                                        ? <ModuloLabel modulo={task.imparticion?.materia} />
                                         : t('common.unknownModule')}
                                 </span>
                             </div>

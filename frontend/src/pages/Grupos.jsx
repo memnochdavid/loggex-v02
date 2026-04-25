@@ -25,7 +25,7 @@ const Grupos = () => {
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [grupos, setGrupos] = useState([]);
-  const [ciclos, setItinerarios] = useState([]);
+  const [itinerarios, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -70,7 +70,7 @@ const Grupos = () => {
     anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     fechaInicio: '',
     fechaFin: '',
-    ciclo: '',
+    itinerario: '',
     centro: ''
   });
   const [saving, setSaving] = useState(false);
@@ -242,12 +242,13 @@ const Grupos = () => {
     if (grupo) {
       setCurrentGrupo(grupo);
       
-      let cicloId = '';
-      if (grupo.ciclo) {
-          if (typeof grupo.ciclo === 'object') {
-              cicloId = grupo.ciclo.id || (grupo.ciclo['@id'] ? grupo.ciclo['@id'].split('/').pop() : '');
-          } else if (typeof grupo.ciclo === 'string') {
-              cicloId = grupo.ciclo.split('/').pop();
+      let itinerarioId = '';
+      const itinRef = grupo.itinerario ?? (grupo.itinerario ?? grupo.ciclo); // tolerar payloads pre-rename
+      if (itinRef) {
+          if (typeof itinRef === 'object') {
+              itinerarioId = itinRef.id || (itinRef['@id'] ? itinRef['@id'].split('/').pop() : '');
+          } else if (typeof itinRef === 'string') {
+              itinerarioId = itinRef.split('/').pop();
           }
       }
 
@@ -267,7 +268,7 @@ const Grupos = () => {
         anioEscolar: grupo.anioEscolar,
         fechaInicio: grupo.fechaInicio ? grupo.fechaInicio.split('T')[0] : '',
         fechaFin: grupo.fechaFin ? grupo.fechaFin.split('T')[0] : '',
-        ciclo: cicloId,
+        itinerario: itinerarioId,
         centro: centroId
       });
     } else {
@@ -432,7 +433,7 @@ const Grupos = () => {
     },
     { 
         header: t('groups.cycle'), 
-        accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
+        accessor: (row) => (row.itinerario ?? row.ciclo)?.nombre ?? '-',
         sortable: false 
     },
     { 
@@ -485,7 +486,7 @@ const Grupos = () => {
                 ariaLabel={t('common.allCycles')}
                 options={[
                     { value: '', label: t('common.allCycles') },
-                    ...ciclos.map(c => ({
+                    ...itinerarios.map(c => ({
                         value: String(c.id || c['@id']?.split('/').pop()),
                         label: c.nombre,
                     })),

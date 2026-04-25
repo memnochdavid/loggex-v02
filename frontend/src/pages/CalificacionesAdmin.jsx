@@ -168,7 +168,8 @@ const CalificacionesAdmin = () => {
     const groupedByCiclo = useMemo(() => {
         const result = {};
         filteredGrupos.forEach(g => {
-            const ciclo = g.grupo.ciclo;
+            const itin = g.grupo?.itinerario ?? g.grupo?.ciclo;
+            const ciclo = itin?.nombre ?? '?';
             if (!result[ciclo]) result[ciclo] = [];
             result[ciclo].push({
                 id: g.grupo.id,

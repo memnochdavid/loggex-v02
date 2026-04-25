@@ -200,7 +200,7 @@ const UserProfileView = ({ user: initialUser }) => {
                                 <div key={matricula.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.cycle')}</span>
-                                        <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || t('userProfile.unknownCycle')}</span>
+                                        <span className={styles.value}>{matricula.grupo?.itinerario?.nombre || t('userProfile.unknownCycle')}</span>
                                     </div>
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.course')}</span>
@@ -226,8 +226,8 @@ const UserProfileView = ({ user: initialUser }) => {
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.module')}</span>
                                         <span className={styles.value}>
-                                            {imp.modulo
-                                                ? <ModuloLabel modulo={imp.modulo} />
+                                            {(imp.materia ?? imp.modulo)
+                                                ? <ModuloLabel modulo={(imp.materia ?? imp.modulo)} />
                                                 : t('userProfile.unknownModule')}
                                         </span>
                                     </div>

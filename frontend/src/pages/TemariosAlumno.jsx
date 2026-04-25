@@ -192,7 +192,7 @@ const TemariosAlumno = () => {
             const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
             
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
-            const title = `${imp.modulo.nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
+            const title = `${(imp.materia ?? imp.modulo).nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
 
             const grupoId = typeof imp.grupo === 'string'
                 ? imp.grupo.split('/').pop()

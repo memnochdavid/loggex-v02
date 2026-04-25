@@ -25,7 +25,7 @@ const Itinerarios = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-  const [ciclos, setItinerarios] = useState([]);
+  const [itinerarios, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -479,7 +479,7 @@ const Itinerarios = () => {
 
         <DataTable
             columns={columns}
-            data={ciclos}
+            data={itinerarios}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}

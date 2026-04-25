@@ -160,7 +160,7 @@ const useImparticiones = () => {
                 const items = data['hydra:member'] || data.member || [];
 
                 const mapped = items.map(imp => {
-                    const nombreModulo = imp.modulo?.nombre || t('common.unknownModule');
+                    const nombreModulo = imp.materia?.nombre || t('common.unknownModule');
                     const nombreGrupo = imp.grupo?.abreviatura || imp.grupo?.nombre || t('common.unknownGroup');
                     const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
 

@@ -111,8 +111,8 @@ const MisProfesores = () => {
                                 });
                             }
                             // Añadir asignatura a la lista del profesor
-                            if (imp.modulo) {
-                                profesoresMap.get(prof.id).grupos.push(imp.modulo.nombre);
+                            if ((imp.materia ?? imp.modulo)) {
+                                profesoresMap.get(prof.id).grupos.push((imp.materia ?? imp.modulo).nombre);
                             }
                         }
                     });

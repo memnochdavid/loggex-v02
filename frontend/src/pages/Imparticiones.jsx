@@ -84,7 +84,7 @@ const Imparticiones = () => {
 
   // El antiguo `filteredModulos` (cascada Grupo→Módulo en cliente) se ha sustituido
   // por extraParams del AsyncSearchSelect: el módulo se filtra en servidor por
-  // ?ciclo=<grupo.ciclo>&curso=<grupo.curso>, derivado del state grupoFilter.
+  // ?ciclo=<(grupo.itinerario ?? grupo.ciclo)>&curso=<grupo.curso>, derivado del state grupoFilter.
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -232,7 +232,7 @@ const Imparticiones = () => {
       const grupoId = extractId(imparticion.grupo);
       setFormData({
         profesor: extractId(imparticion.profesor),
-        modulo: extractId(imparticion.modulo),
+        modulo: extractId((imparticion.materia ?? imparticion.modulo)),
         grupo: grupoId
       });
 
@@ -247,7 +247,7 @@ const Imparticiones = () => {
           .then(g => {
             if (!g) return;
             setGrupoFilter({
-              ciclo: extractId(g.ciclo),
+              ciclo: extractId((g.itinerario ?? g.ciclo)),
               curso: g.curso != null ? String(g.curso) : ''
             });
           })

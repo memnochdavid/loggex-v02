@@ -31,7 +31,7 @@ const ModuleHeader = ({ mod, isExpanded, onExpand, getGradeClass, formatGrade, s
         <div className={styles.moduleHeaderRow}>
             <div className={styles.moduleHeaderMain}>
                 <div className={styles.moduleName}>
-                    {mod.imparticion.modulo}
+                    {mod.imparticion?.materia}
                     <span className="accordionHeaderCount" style={{ marginLeft: 'var(--space-2)' }}>
                         {filteredCount}
                     </span>

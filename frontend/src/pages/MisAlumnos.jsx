@@ -132,7 +132,7 @@ const MisAlumnos = () => {
                                 ...g, // Datos del grupo base
                                 id: impId, // ID de la impartición (para la key del acordeón)
                                 grupoId: gId, // ID real del grupo
-                                moduloNombre: imp.modulo?.nombre, // Nombre de la asignatura
+                                moduloNombre: imp.materia?.nombre, // Nombre de la asignatura
                                 alumnos: []
                             };
                         }

@@ -347,7 +347,7 @@ const CalificacionesDetalle = () => {
                         </h1>
                         {mediaData?.imparticion && (
                             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                {mediaData.imparticion.modulo} — {mediaData.imparticion.grupo} — {mediaData.imparticion.profesor}
+                                {mediaData.imparticion?.materia} — {mediaData.imparticion.grupo} — {mediaData.imparticion.profesor}
                             </div>
                         )}
                     </div>
