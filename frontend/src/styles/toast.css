@@ -3,58 +3,145 @@
  * Sobrescribe las CSS variables internas de sonner con las variables
  * del tema activo — así cualquier cambio de paleta del centro se
  * refleja automáticamente en los toasts.
+ *
+ * Las CSS vars referenciadas (--widget-bg, --text-main, --border-color,
+ * --border-radius, --elements-blur, --toast-*, --text-muted,
+ * --widget-item-hover-bg) las inyecta theme.js con sus propios defaults,
+ * por eso aquí no se duplican fallbacks literales.
  * ====================================================================== */
 
 [data-sonner-toaster] {
-    /* Toast neutro (message / loading) */
-    --normal-bg: var(--widget-bg, #ffffff);
-    --normal-text: var(--text-main, #334155);
-    --normal-border: var(--border-color, #e2e8f0);
+    --normal-bg: var(--widget-bg);
+    --normal-text: var(--text-main);
+    --normal-border: var(--border-color);
 
-    /* Success */
-    --success-bg: color-mix(in srgb, var(--toast-success, #10b981) 10%, var(--widget-bg, #ffffff));
-    --success-text: var(--toast-success, #10b981);
-    --success-border: color-mix(in srgb, var(--toast-success, #10b981) 35%, transparent);
+    --success-bg: color-mix(in srgb, var(--toast-success) 8%, var(--widget-bg));
+    --success-text: var(--toast-success);
+    --success-border: color-mix(in srgb, var(--toast-success) 28%, transparent);
 
-    /* Error */
-    --error-bg: color-mix(in srgb, var(--toast-error, #ef4444) 10%, var(--widget-bg, #ffffff));
-    --error-text: var(--toast-error, #ef4444);
-    --error-border: color-mix(in srgb, var(--toast-error, #ef4444) 35%, transparent);
+    --error-bg: color-mix(in srgb, var(--toast-error) 8%, var(--widget-bg));
+    --error-text: var(--toast-error);
+    --error-border: color-mix(in srgb, var(--toast-error) 28%, transparent);
 
-    /* Warning */
-    --warning-bg: color-mix(in srgb, var(--toast-warning, #f59e0b) 10%, var(--widget-bg, #ffffff));
-    --warning-text: var(--toast-warning, #f59e0b);
-    --warning-border: color-mix(in srgb, var(--toast-warning, #f59e0b) 35%, transparent);
+    --warning-bg: color-mix(in srgb, var(--toast-warning) 8%, var(--widget-bg));
+    --warning-text: var(--toast-warning);
+    --warning-border: color-mix(in srgb, var(--toast-warning) 28%, transparent);
 
-    /* Info */
-    --info-bg: color-mix(in srgb, var(--toast-info, #6366f1) 10%, var(--widget-bg, #ffffff));
-    --info-text: var(--toast-info, #6366f1);
-    --info-border: color-mix(in srgb, var(--toast-info, #6366f1) 35%, transparent);
+    --info-bg: color-mix(in srgb, var(--toast-info) 8%, var(--widget-bg));
+    --info-text: var(--toast-info);
+    --info-border: color-mix(in srgb, var(--toast-info) 28%, transparent);
 
     font-family: inherit;
+    --width: 380px;
+    --gap: 12px;
 }
 
 [data-sonner-toaster] [data-sonner-toast] {
-    border-radius: var(--border-radius, 0.5rem) !important;
+    border-radius: var(--border-radius) !important;
     font-family: inherit;
-    backdrop-filter: var(--elements-blur, none);
-    -webkit-backdrop-filter: var(--elements-blur, none);
+    padding: 14px 16px !important;
+    gap: 12px !important;
+    border: 1px solid var(--border-color);
+    backdrop-filter: var(--elements-blur, blur(12px)) saturate(140%);
+    -webkit-backdrop-filter: var(--elements-blur, blur(12px)) saturate(140%);
+    /* Sombra multicapa: un halo difuso amplio + un borde de luz fino. El glow del color */
+    /* semántico se añade por tipo más abajo para no contaminar el toast neutro. */
+    box-shadow:
+        0 1px 0 0 color-mix(in srgb, var(--text-main) 6%, transparent) inset,
+        0 1px 2px color-mix(in srgb, var(--text-main) 8%, transparent),
+        0 8px 24px -8px color-mix(in srgb, var(--text-main) 18%, transparent),
+        0 24px 48px -16px color-mix(in srgb, var(--text-main) 14%, transparent) !important;
+    transition: transform 180ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-sonner-toaster] [data-sonner-toast]:hover {
+    transform: translateY(-1px);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"] {
+    box-shadow:
+        0 1px 0 0 color-mix(in srgb, var(--toast-success) 18%, transparent) inset,
+        0 1px 2px color-mix(in srgb, var(--toast-success) 12%, transparent),
+        0 8px 24px -8px color-mix(in srgb, var(--toast-success) 22%, transparent),
+        0 24px 48px -16px color-mix(in srgb, var(--text-main) 14%, transparent) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+    box-shadow:
+        0 1px 0 0 color-mix(in srgb, var(--toast-error) 18%, transparent) inset,
+        0 1px 2px color-mix(in srgb, var(--toast-error) 12%, transparent),
+        0 8px 24px -8px color-mix(in srgb, var(--toast-error) 22%, transparent),
+        0 24px 48px -16px color-mix(in srgb, var(--text-main) 14%, transparent) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"] {
+    box-shadow:
+        0 1px 0 0 color-mix(in srgb, var(--toast-warning) 18%, transparent) inset,
+        0 1px 2px color-mix(in srgb, var(--toast-warning) 12%, transparent),
+        0 8px 24px -8px color-mix(in srgb, var(--toast-warning) 22%, transparent),
+        0 24px 48px -16px color-mix(in srgb, var(--text-main) 14%, transparent) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="info"] {
+    box-shadow:
+        0 1px 0 0 color-mix(in srgb, var(--toast-info) 18%, transparent) inset,
+        0 1px 2px color-mix(in srgb, var(--toast-info) 12%, transparent),
+        0 8px 24px -8px color-mix(in srgb, var(--toast-info) 22%, transparent),
+        0 24px 48px -16px color-mix(in srgb, var(--text-main) 14%, transparent) !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-icon] {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-content] {
+    gap: 4px;
 }
 
 [data-sonner-toaster] [data-sonner-toast] [data-title] {
     font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
 }
 
 [data-sonner-toaster] [data-sonner-toast] [data-description] {
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    opacity: 0.92;
 }
 
+/* Botón de cierre — mismo lenguaje visual que el closeButton de ModalView:
+ * fondo transparente, sin borde, rotación 90° en hover usando los mismos
+ * tokens de tema (--modal-close-btn-*) y de animación (--dur-*, --ease-*). */
 [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
-    background: var(--widget-bg, #ffffff) !important;
-    border-color: var(--border-color, #e2e8f0) !important;
-    color: var(--text-main, #334155) !important;
+    background: var(--modal-close-btn-bg, transparent) !important;
+    border: none !important;
+    color: var(--modal-close-btn-text, var(--text-muted)) !important;
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: var(--radius-sm, 4px) !important;
+    opacity: 0;
+    transition:
+        opacity var(--dur-base, 220ms) var(--ease-standard, ease),
+        background-color var(--dur-base, 220ms) var(--ease-standard, ease),
+        color var(--dur-base, 220ms) var(--ease-standard, ease),
+        transform var(--dur-fast, 150ms) var(--ease-out-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+[data-sonner-toaster] [data-sonner-toast]:hover [data-close-button] {
+    opacity: 1;
 }
 
 [data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
-    background: var(--widget-item-hover-bg, #f1f5f9) !important;
+    background: var(--modal-close-btn-hover-bg, var(--widget-item-hover-bg)) !important;
+    color: var(--modal-close-btn-hover-text, var(--text-main)) !important;
+    transform: rotate(90deg);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:active {
+    transform: rotate(90deg) scale(0.92);
 }

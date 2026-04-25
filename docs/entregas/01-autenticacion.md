@@ -1,13 +1,3 @@
-# TFG — Entrega Parcial 1: Módulo de Autenticación (Home, Registro y Login)
-
-**Proyecto:** Loggex v02 — Plataforma de gestión académica para centros educativos
-**Autor:** David Duque Díaz
-**Fecha:** 2026-04-24
-**Asignatura:** Trabajo de Fin de Grado
-**Tutor:** Manuel Prieto Macías
-
----
-
 ## 1. Introducción
 
 Este documento recoge la primera entrega parcial del TFG, centrada en la validación del módulo de autenticación (login) y de la página de inicio (home) del dashboard. Dado que Loggex es una plataforma B2B destinada a centros educativos, **no existe autorregistro público**: las altas de usuarios las realiza un administrador del centro desde el panel de gestión. Este apartado se documenta más abajo como equivalente al "formulario de registro" que pide el enunciado.
@@ -16,7 +6,7 @@ Este documento recoge la primera entrega parcial del TFG, centrada en la validac
 
 El enunciado asume una aplicación Symfony monolítica con Twig y `base.html.twig`. En este TFG se ha optado por una **arquitectura desacoplada**:
 
-- **Backend:** Symfony 7 + **API Platform 3** expone una API REST JSON-LD.
+- **Backend:** Symfony 8 + **API Platform 3** expone una API REST JSON-LD.
 - **Frontend:** **React 19 + Vite 7 + React Router 7** como Single Page Application.
 
 Esta decisión se tomó en la fase de diseño por tres motivos: (a) separación clara de responsabilidades, (b) la API queda reutilizable para futuras apps móviles, y (c) se gana una experiencia de usuario más fluida (navegación sin recargas, actualizaciones en tiempo real vía Mercure). El equivalente funcional de `base.html.twig` es el layout React definido en `frontend/src/App.jsx` junto al componente `Sidebar`, que envuelve todas las rutas protegidas.
@@ -32,9 +22,9 @@ La home es un **dashboard post-login** con widgets contextuales según el rol de
 **Ruta frontend:** `/` — protegida por `<PrivateRoute>`
 **Componente:** `frontend/src/pages/Home.jsx`
 
-<!-- CAPTURA 1: Home completa con el usuario autenticado (vista general del dashboard, con sidebar a la izquierda y bento grid de widgets) -->
+![Vista general de la home: sidebar a la izquierda, stat ribbon superior y bento grid de widgets contextuales (tablón de anuncios, horario del día, mensajes recientes, tareas pendientes).](images/home-dashboard.png)
 
-<!-- CAPTURA 2 (opcional, recomendada): Stat ribbon en detalle (mensajes sin leer, tareas pendientes, próxima clase, eventos de la semana) -->
+*Captura sacada con GoFullPage, extensión de Chrome. No se ve exactamente así, pero te puedes hacer una idea.*
 
 ---
 
@@ -56,13 +46,36 @@ Como se ha indicado en la introducción, **Loggex no permite autorregistro públ
 - `telefono`, `nif`, `avatar` (opcionales)
 - `centro` (solo asignable por superadmin; el admin de centro lo hereda automáticamente)
 
-<!-- CAPTURA 3: Panel /usuarios con el modal de "Nuevo usuario" abierto y vacío -->
+<table class="figure-pair">
+<tr>
+<td>
 
-<!-- CAPTURA 4: El mismo modal con datos válidos rellenados, antes de enviar (se puede usar datos ficticios, p. ej. email prueba.tfg@loggex.local) -->
+![Modal "Nuevo Usuario" recién abierto, sin datos.](images/usuario-modal-vacio.png)
 
-<!-- CAPTURA 5: Mensaje de éxito tras crear el usuario (toast/notificación "Usuario guardado correctamente" y el nuevo registro visible en la tabla de usuarios) -->
+</td>
+<td>
 
-<!-- CAPTURA 6 (opcional): Intento de crear un usuario con email ya existente o faltando campos → mensaje de error devuelto por el backend -->
+![El mismo modal con datos válidos rellenados, listo para enviar.](images/usuario-modal-datos.png)
+
+</td>
+</tr>
+</table>
+
+Una vez creado el usuario, vemos que aparece en la vista CRUD de usuarios:
+
+![Fila del nuevo usuario "Iván El Trolazo" en la tabla `/usuarios`, con avatar, datos de contacto y rol asignado.](images/usuarios-datatable-nuevo.png)
+
+Si queremos, podemos usar SQL para hacer la consulta:
+
+```sql
+select * from usuario where apellidos like "El Trolazo"
+```
+
+![Resultado en la herramienta de base de datos integrada de PhpStorm: id, email, password (hasheado con bcrypt `$2y$13$…`), nombre, apellidos, rol_app y centro_id.](images/dbeaver-usuario-bcrypt.png)
+
+![Toast de confirmación "Usuario creado" en la cabecera del centro tras un alta correcta.](images/toast-usuario-creado.png)
+
+![Toast de error "Ya existe un usuario con ese email — No se ha podido crear el usuario" al intentar reutilizar un email existente.](images/toast-email-duplicado.png)
 
 ---
 
@@ -74,13 +87,22 @@ Como se ha indicado en la introducción, **Loggex no permite autorregistro públ
 
 El formulario pide `email` y `password`. Tras un login exitoso, el AuthContext almacena los datos del usuario y React Router redirige a la ruta previa (o a `/` si el usuario entró directamente).
 
-<!-- CAPTURA 7: Formulario de login vacío (con el branding/tematización del centro si aplica) -->
+<table class="figure-pair">
+<tr>
+<td>
 
-<!-- CAPTURA 8: Formulario de login con credenciales rellenadas, antes de enviar -->
+![Formulario de login con credenciales válidas rellenadas, listo para enviar.](images/login-vacio.png)
 
-<!-- CAPTURA 9: Dashboard / home tras login exitoso (puede ser la misma que la CAPTURA 1, o una distinta mostrando la transición) -->
+</td>
+<td>
 
-<!-- CAPTURA 10 (opcional): Mensaje de error con credenciales incorrectas ("Email o contraseña incorrectos") -->
+![Mismo formulario tras un intento con credenciales inválidas: aparece el mensaje "Error al iniciar sesión" sobre el campo de email.](images/login-error.png)
+
+</td>
+</tr>
+</table>
+
+![Cabecera del dashboard tras un login exitoso: saludo dinámico al usuario y stat ribbon con su resumen del día.](images/post-login-saludo.png)
 
 ---
 
@@ -88,20 +110,17 @@ El formulario pide `email` y `password`. Tras un login exitoso, el AuthContext a
 
 Para demostrar que el registro persiste correctamente en MariaDB, se aporta la consulta directa sobre la tabla `usuario`.
 
-**Cliente sugerido:** `docker compose exec database mariadb -u app_user -papp_password app_db` o bien DBeaver conectado a `localhost:3307`.
+**Cliente sugerido:** `docker compose exec database mariadb -u app_user -papp_password app_db` o bien la herramienta de base de datos integrada de PhpStorm conectada a `localhost:3307`.
 
-**Consulta recomendada para la captura:**
+**Consulta para ver todos los usuarios existentes:**
 
 ```sql
-SELECT id, email, nombre, apellidos, rol_app, created_at
-FROM usuario
-ORDER BY id DESC
-LIMIT 10;
+select * from usuario
 ```
 
-<!-- CAPTURA 11: Resultado de la SELECT anterior en el cliente de BD, mostrando el usuario recién creado en la CAPTURA 5 -->
+Vemos cantidad de resultados, debido a los fixtures existentes:
 
-<!-- CAPTURA 12 (opcional pero muy valorada): SELECT id, email, password FROM usuario WHERE email = 'prueba.tfg@...' — para demostrar que la contraseña está hasheada (formato $2y$... de bcrypt) y no en claro -->
+![Resultado completo de la consulta en la herramienta de base de datos integrada de PhpStorm: muchas filas correspondientes a los fixtures cargados, con sus contraseñas hasheadas con bcrypt visibles en la columna `password`.](images/dbeaver-todos-usuarios.png)
 
 ---
 
@@ -125,6 +144,10 @@ La entidad implementa las interfaces estándar de Symfony Security (`UserInterfa
 | `centro` | ManyToOne → `Centro` | nullable solo para superadmin |
 
 La entidad expone operaciones REST vía atributos `#[ApiResource]` de API Platform (GET, GetCollection, POST, PUT, DELETE con soft-delete). Usa además los traits `TimestampableTrait` (campos `createdAt`/`updatedAt` automáticos) y `SoftDeletableTrait` (marcado lógico `deleted = true` en lugar de DELETE físico).
+
+![Vista de `/about/er`: visualización dinámica del modelo entidad-relación del proyecto, con desglose de cada entidad, sus campos y sus relaciones en vivo.](images/entity-relacion-vista.png)
+
+*Captura sacada con GoFullPage, extensión de Chrome. No se ve exactamente así, pero te puedes hacer una idea. Esta vista de `/about/er` se ha añadido específicamente para la exposición del TFG; permite explorar el modelo entidad-relación de forma totalmente dinámica y ver las relaciones entre las entidades en vivo, con desglose y todo lujo de detalles. Si el proyecto se llevase a producción comercial, sería una funcionalidad que se ocultaría o eliminaría.*
 
 ### 4.2. Controladores y rutas
 
@@ -205,7 +228,7 @@ access_control:
 
 - **`password_hashers: auto`** → Symfony elige automáticamente el mejor algoritmo disponible (actualmente bcrypt, con migración automática a algoritmos más modernos si se configuran en el futuro).
 - **`json_login`** → en lugar del form login clásico de Twig, el firewall acepta un cuerpo JSON `{ "email": "...", "password": "..." }`, perfecto para una SPA.
-- **Stateful (sesión) en lugar de stateless (JWT)** → aunque LexikJWTBundle está instalado (`backend/config/packages/lexik_jwt_authentication.yaml`), el firewall principal es stateful. Ver la píldora 5.3 para la justificación.
+- **Stateful (sesión) en lugar de stateless (JWT)** → el firewall principal autentica con cookie de sesión HttpOnly. JWT sí se usa en el proyecto, pero en otro plano: como mecanismo de autorización del hub Mercure (eventos en tiempo real). LexikJWTBundle está instalado pero inactivo, preparado para una futura API pública. Ver la píldora 5.3 para el detalle.
 
 ### 4.6. Infraestructura y base de datos
 
@@ -259,9 +282,13 @@ La integración de 2FA en Symfony está resuelta por el bundle **`scheb/2fa-bund
 
 La integración encaja limpiamente con el firewall existente: tras el `json_login`, el bundle inserta una "fase de verificación 2FA" antes de autorizar el acceso completo. Para Loggex, la implementación natural sería añadir un campo `totp_secret` a la entidad `User` y un endpoint adicional `POST /api/login/2fa-verify` que el frontend invocaría como segundo paso.
 
-### 5.3. Sesiones vs JWT
+### 5.3. Sesiones, JWT y el rol de cada uno
 
-Loggex tiene LexikJWTBundle instalado pero **usa sesión + cookie HttpOnly**. Esta decisión se tomó por seguridad:
+JWT en Loggex no es una decisión binaria de "se usa o no se usa": cumple **dos roles distintos** y conviene separarlos. La regla aplicada en todo el proyecto ha sido *usar JWT donde el protocolo lo exige y prescindir de él donde se puede elegir algo más seguro frente a XSS*.
+
+#### a) Autenticación de usuarios → cookie de sesión HttpOnly (no JWT)
+
+El firewall `main` de `security.yaml` es **stateful**: tras el `json_login` el navegador recibe una cookie de sesión HttpOnly y todas las llamadas a `/api/...` viajan con `credentials: 'include'`. Ningún endpoint del proyecto exige `Authorization: Bearer <token>`.
 
 | Aspecto | Cookie de sesión (elegido) | JWT en localStorage |
 |---|---|---|
@@ -270,7 +297,43 @@ Loggex tiene LexikJWTBundle instalado pero **usa sesión + cookie HttpOnly**. Es
 | Revocación inmediata | **Trivial** (invalidar sesión en servidor) | Requiere blacklist o tokens de vida muy corta |
 | Escalable horizontalmente | Requiere store compartido (Redis) | Nativo (stateless) |
 
-Para una SPA de uso interno como Loggex, donde el front y back están en el mismo dominio y el coste de un Redis compartido es asumible, la **cookie HttpOnly gana por protección frente a XSS**. JWT seguiría siendo preferible para APIs públicas consumidas por terceros o para arquitecturas de microservicios distribuidos.
+Para una SPA de uso interno como Loggex, donde front y back viven en el mismo dominio y existe un Redis compartido, la **cookie HttpOnly gana por protección frente a XSS**. JWT seguiría siendo preferible para APIs públicas consumidas por terceros o para arquitecturas de microservicios distribuidos.
+
+#### b) Mercure (eventos en tiempo real) → JWT, sin alternativa por especificación
+
+Loggex utiliza **Mercure** (`dunglas/mercure`) para empujar al frontend cambios en vivo (mensajes, comunicados, calificaciones nuevas…). El protocolo Mercure se basa en Server-Sent Events y **toda su autorización va en JWT firmado** — no hay otra forma de hacerlo. Hay dos flujos:
+
+- **Publicador (backend → hub):** cuando una entidad cambia y debe notificarse, el backend firma un JWT con el claim `mercure.publish: ["*"]` usando `MERCURE_JWT_SECRET` (`backend/.env`) y lo envía al hub. Sin ese token el hub rechaza el `POST`.
+- **Suscriptor (frontend → hub):** para recibir eventos privados (los topics dirigidos a este usuario o a su centro), el backend emite una cookie HttpOnly `mercureAuthorization` con un JWT que contiene `mercure.subscribe: ["topic1", "topic2", …]` listando los topics que ese usuario tiene derecho a escuchar. El navegador la envía sola al conectar al hub.
+
+Detalle relevante: este JWT usa **HS256 con un secreto compartido** (`MERCURE_JWT_SECRET`), distinto del par **RS256** que tiene configurado LexikJWT (`JWT_SECRET_KEY` / `JWT_PUBLIC_KEY` en `.env`). La razón es que Mercure y el backend confían entre sí (viven en el mismo despliegue), por lo que la simetría de HS256 resulta más simple y barata. RS256 tendría sentido cuando un cliente no confiable necesita verificar el token sin poder firmarlo, escenario que en Loggex hoy no se da.
+
+Es importante notar también que la cookie `mercureAuthorization` que transporta este JWT al hub **también es HttpOnly**, de modo que la elección de "no exponer tokens al JavaScript del navegador" se mantiene coherente en toda la aplicación.
+
+#### c) LexikJWTBundle → instalado pero inactivo
+
+`LexikJWTAuthenticationBundle` aparece en `config/bundles.php` y se han generado las claves RS256 en `backend/config/jwt/`. Sin embargo, ningún firewall lo activa hoy. Se dejó preparado para un escenario futuro previsible: **exponer la API a clientes no acoplados a la sesión web** (una app móvil del centro, integraciones de terceros, un Single Sign-On cross-dominio). Cuando llegue ese caso, bastará con añadir un firewall paralelo `api_jwt` con `pattern: ^/api/external` y `stateless: true`, sin tocar nada del flujo actual.
+
+En resumen: en Loggex se usa **cookie HttpOnly para autenticar usuarios**, **JWT (HS256) por exigencia del protocolo de Mercure**, y se reserva **JWT (RS256) vía LexikJWT** para una eventual apertura de la API a terceros.
+
+#### d) ¿No usar JWT para autenticar perjudica la seguridad?
+
+No: en este proyecto la decisión de **no usar JWT para autenticar mejora la postura de seguridad**, no la empeora. La intuición de "JWT = más moderno = más seguro" es un mito muy extendido que conviene desmontar.
+
+JWT no es un mecanismo de seguridad: es un **formato de credencial**. Sus propiedades reales dependen de (a) dónde lo guarda el cliente, (b) cómo lo transmite, (c) cómo se revoca. Lo que cambia entre "sesión" y "JWT" no es la robustez criptográfica — Symfony firma ambos con algoritmos sólidos — sino *dónde vive la credencial en el navegador* y *quién puede invalidarla*.
+
+| Vector | Sesión + cookie HttpOnly (Loggex) | JWT en localStorage (alternativa típica) |
+|---|---|---|
+| **Robo por XSS** | Imposible: el JS no puede leer cookies HttpOnly | Trivial: cualquier `<script>` inyectado lee `localStorage` y exfiltra el token |
+| **Revocación tras compromiso** | Instantánea (borra la sesión y caduca) | El token sigue válido hasta su `exp`; requiere blacklist (que rompe el "stateless") o tokens de vida corta con refresh (más superficie de ataque) |
+| **Logout real** | Destruye la sesión en servidor | El token sigue siendo válido fuera del cliente que lo "olvidó" |
+| **CSRF** | Mitigado con `SameSite=Lax` + CORS estricto | No aplica si viaja en `Authorization: Bearer` |
+
+OWASP lleva años recomendando **no almacenar credenciales en `localStorage`** precisamente por el primer vector: en una SPA con dependencias npm, una sola vulnerabilidad XSS (propia o de una librería transitiva) convierte el robo de tokens en trivial. La cookie HttpOnly cierra ese vector por construcción.
+
+JWT sería preferible (o imprescindible) en escenarios que **no aplican a Loggex hoy**: clientes en otro dominio donde las cookies resultan incómodas, microservicios que verifican credenciales sin llamar a un servicio central de sesión, o autenticación en el edge a gran escala sin store compartido. Para el día en que aparezca un cliente externo, LexikJWT ya está preparado para activar un firewall stateless paralelo (ver apartado c).
+
+La coherencia que persigue el proyecto es clara: **ninguna credencial vive en el JavaScript del navegador**. Ni la sesión de usuario (cookie HttpOnly), ni el token de Mercure (cookie `mercureAuthorization` también HttpOnly). Esa postura es estrictamente más segura que la de la mayoría de SPAs que delegan en `localStorage`.
 
 ---
 

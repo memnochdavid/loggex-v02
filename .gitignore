@@ -27,3 +27,6 @@ token-github.txt
 
 # Cert raíz de Caddy extraído localmente (específico de cada máquina)
 caddy-root.crt
+
+# Entregas TFG (documentos personales, capturas y PDFs generados)
+docs/entregas/

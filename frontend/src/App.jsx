@@ -274,7 +274,7 @@ function App() {
       <UIProvider>
         <RouterProvider router={router} />
         <Toaster
-          position="top-right"
+          position="bottom-right"
           richColors
           closeButton
           expand={false}

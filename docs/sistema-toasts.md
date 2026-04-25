@@ -15,7 +15,7 @@ Antes del refactor, la app usaba `alert()` nativo del navegador (56 ocurrencias 
 
 El nuevo sistema usa la librería **sonner** (~5 KB gzipped) con un wrapper propio que:
 
-- Muestra notificaciones no bloqueantes en la esquina superior derecha.
+- Muestra notificaciones no bloqueantes en la esquina inferior derecha.
 - Distingue entre `success` / `error` / `warning` / `info` / `loading` con colores semánticos.
 - **Hereda el tema activo del centro** (radio, colores, fondo) vía CSS variables.
 - Soporta título + descripción para un patrón UX consistente.
@@ -202,7 +202,7 @@ Montado en `App.jsx` dentro de los providers:
 
 ```jsx
 <Toaster
-    position="top-right"
+    position="bottom-right"
     richColors
     closeButton
     expand={false}
@@ -210,7 +210,7 @@ Montado en `App.jsx` dentro de los providers:
 />
 ```
 
-- **`position`** — esquina de la pantalla. Otras: `top-left`, `bottom-right`, `top-center`, etc.
+- **`position`** — esquina de la pantalla. Otras: `top-left`, `top-right`, `bottom-center`, etc.
 - **`richColors`** — activa los colores semánticos usando las CSS vars overrideadas.
 - **`closeButton`** — muestra la X para cerrar manualmente.
 - **`duration`** — 4 s antes de auto-descartar (excepto `loading`, que es persistente hasta que lo resuelvas).
