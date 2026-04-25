@@ -52,6 +52,16 @@ echo "→ Refrescando catálogo oficial (TodoFP + BOE)…"
 docker compose exec -T backend php bin/console app:catalogo:refresh
 docker compose exec -T backend php bin/console app:catalogo:enrich-boe
 
+# La cache de metadata de Doctrine (var/cache/dev/doctrine/...) y el opcache
+# de Apache memorizan el mapping con los nombres de clase ANTERIORES. Sin un
+# restart, el primer login post-rename peta con:
+#   MappingException: target-entity App\Entity\CicloFormativo cannot be found
+#   in 'App\Entity\Centro#ciclos'
+echo "→ Limpiando cache a fondo y reiniciando backend (libera opcache de Apache)…"
+docker compose exec -T backend rm -rf var/cache/dev var/cache/prod
+docker compose exec -T backend php bin/console cache:clear
+docker compose restart backend
+
 echo
 echo "✅ Reset completo. Verificación:"
 docker compose exec -T database mysql -uapp_user -papp_password app_db -e "
