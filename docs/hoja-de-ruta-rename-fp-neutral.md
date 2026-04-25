@@ -197,7 +197,7 @@ Marcar cada checkbox al finalizar la fase. Permite retomar el refactor en sesion
 - [x] Fase C — Inventario completo en `/tmp/rename-inventory.md` *(11 archivos backend con refs, 4 entidades + 4 repos a renombrar; 4 pages frontend; 5 archivos i18n)*
 - [x] Fase D — Backend renombrado *(11 archivos físicos via `git mv`, ~50 archivos modificados por sed `/tmp/rename-backend.sh`, 0 errores `php -l`, 0 referencias residuales a CicloFormativo/Modulo/Material/Tema)*. **Pendiente squash:** las 5 migraciones viejas borradas; falta ejecutar `make:migration` en el container para generar la unificada (se hará en Fase F antes del migrate)
 - [x] Fase E — Frontend renombrado *(4 archivos page renombrados con `git mv`; `/tmp/rename-frontend.sh` aplicó imports, rutas SPA, llamadas `/api/*`, `data-tour`, claves i18n en 5 locales; passes posteriores cubrieron `Modulos`/`Modulo` bare en `App.jsx` y `erModel.js`, tour ids, refs `t('sidebar.cycles…')`. JSON locales validados con `node -e JSON.parse`)*
-- [ ] Fase F — DB drop + migrate + restore + catálogo refresh ejecutados
+- [ ] Fase F — DB drop + migrate + restore + catálogo refresh ejecutados *(script `scripts/post-rename-reset.sh` listo; pendiente ejecución `sudo bash scripts/post-rename-reset.sh`)*
 - [ ] Fase G — Verificación end-to-end manual
 - [ ] Fase H — Commit final + docs actualizados
 

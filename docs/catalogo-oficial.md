@@ -898,7 +898,7 @@ Este apartado registra lo que está construido y operativo a fecha de **2026-04-
 Todo el cableado base está hecho:
 
 - Entidades Doctrine: `CatalogoItinerario`, `CatalogoMateria`, `CatalogoCentro` (más enums `EtapaEducativa`, `TipoMateria`, `Titularidad`).
-- Migración `Version20260425160000` aplicada — tablas + FKs `catalogo_origen_id` en `ciclo_formativo`, `modulo`, `centro`.
+- Migración `Version20260425160000` aplicada — tablas + FKs `catalogo_origen_id` en `ciclo_formativo`, `modulo`, `centro`. *(Tras §18, esas tablas se llaman `itinerario`, `materia`, `centro` y la migración fue squasheada.)*
 - DTOs: `CatalogoItinerarioDto`, `CatalogoMateriaDto`, `CatalogoCentroDto`.
 - `CatalogoSourceAdapterInterface` + `CatalogoSourceAdapterRegistry` (auto-tag vía `_instanceof`).
 - `CatalogoIngestService` con UPSERT idempotente, hash, dry-run y marcado de retirados.
@@ -913,7 +913,7 @@ Todo el cableado base está hecho:
 - `TodoFpJsonAdapter` (lee de `backend/data/catalogo/todofp/itinerarios-fp.json`).
 - JSON curado a mano con 4 ciclos de Informática y Comunicaciones: IFC22 (SMR), IFC31 (ASIR), IFC32 (DAW), IFC33 (DAM) — total 52 módulos.
 - `DummyFixturesAdapter` para smoke test (ya retirado de uso productivo).
-- Endpoint backend `POST /api/ciclos/from-catalogo` (controller `CatalogoMaterializationController`) que recibe el id del itinerario y crea `CicloFormativo` + sus `Modulo` automáticamente, todo con `catalogoOrigen` trazado.
+- Endpoint backend `POST /api/itinerarios/from-catalogo` (controller `CatalogoMaterializationController`) que recibe el id del itinerario y crea `Itinerario` + sus `Materia` automáticamente, todo con `catalogoOrigen` trazado. *(Tras §18: era `/api/ciclos/from-catalogo` con clases `CicloFormativo`/`Modulo`.)*
 - Frontend: modal de Nuevo Ciclo con toggle **Catálogo / Manual**, `AsyncSearchSelect` filtrado a etapas FP, vista previa del itinerario seleccionado (familia, nivel, duración, número de módulos, normativa) y materialización al confirmar.
 
 **Lo que NO está hecho (por eso ⚠️):**
@@ -1240,3 +1240,36 @@ Hidratación: los listings consumen `application/ld+json` y leen `hydra:member` 
 4. Listing Materias.
 5. Stub Centros.
 6. **(Fase 2)** Botones de actualización manual: disparan `app:catalogo:refresh` y `app:catalogo:enrich-boe` vía Symfony Messenger; UI muestra progreso. Out of scope hasta tener el listing y el detalle estables.
+
+## 18. Rename a vocabulario neutro (abr 2026)
+
+Tras llegar al snapshot de §13 con el catálogo nacional al 100 % y la UI admin desplegada (§17), se ejecutó un refactor de **renombrado puramente nominal** sobre las entidades del centro para alinearlas con el vocabulario que ya usaba el catálogo y eliminar la terminología solo-FP que las contaminaba.
+
+**Plan completo y bitácora:** `docs/hoja-de-ruta-rename-fp-neutral.md` (8 fases A→H con checkboxes para retomar entre sesiones).
+
+### 18.1 Renombres aplicados
+
+| Antes | Después | Razón |
+|---|---|---|
+| `CicloFormativo` | `Itinerario` | Neutro entre etapas; alinea con `CatalogoItinerario` |
+| `Modulo` | `Materia` | Alinea con `CatalogoMateria` |
+| `Material` | `Temario` | El UI ya lo llamaba "Temario" en español; libera "Materia" |
+| `Tema` | `TemaVisual` | Es el tema visual del centro; el rename evita confusión con el contenido pedagógico (que ahora se llama Temario) |
+
+Se renombraron archivos físicos (`git mv`), clases, repositorios, columnas Doctrine y tablas, propiedades, getters/setters, serializer groups, rutas API, rutas SPA, claves de traducción en 5 idiomas, `data-tour` ids y refs en `erModel`. **No se tocó la forma de los datos** (campos, validaciones, lógica) — eso es la sub-fase 12.B+ del refactor multi-etapa, que queda pendiente para cuando aparezca un centro no-FP real.
+
+### 18.2 Estrategia de datos
+- 5 tablas se conservan tras el rename: `usuario`, `centro`, `personalizacion`, `comunicado`, `tema_visual` (esta última con el nombre nuevo). Extraídas de `backup_tfg_full.sql` con un AWK filtrado a `backup_preserve.sql`.
+- El resto (itinerarios, materias, grupos, matrículas, imparticiones, etc.) eran fixtures desechables → `doctrine:schema:drop` y se regeneran.
+- El catálogo oficial (`catalogo_*`) se vuelve a poblar ejecutando `app:catalogo:refresh` + `app:catalogo:enrich-boe` (~5 min, idempotente).
+- Migraciones del centro squasheadas: las 5 viejas borradas, una sola nueva generada por `make:migration` desde el estado final de las entidades.
+
+Todo automatizado en `scripts/post-rename-reset.sh` (drop → migrate → restore preservados → catálogo refresh).
+
+### 18.3 Relación con §12
+Este rename equivale a haber ejecutado las sub-fases **12.B + 12.C + 12.G** del plan original de multi-etapa, omitiendo la 12.A (hook `useTerminologia`) por innecesaria. La motivación fue aprovechar que los datos del centro eran fixtures desechables — la próxima vez la sub-fase 12.G no será gratis.
+
+Lo que queda de §12 para más adelante (cuando llegue un centro no-FP):
+- Hacer opcionales los campos solo-FP (`familia`, `horasSemanales` obligatorias, `tipo` con valores FCT/Proyecto, etc.).
+- Validación condicional por etapa.
+- i18n keys generalizadas con copys por etapa.

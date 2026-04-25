@@ -28,7 +28,11 @@ frontend/
 ```
 
 ## Entidades Principales
-User, Centro, CicloFormativo, Modulo, Grupo, Matricula, Imparticion, Horario, Festivo, Personalizacion, Asistencia, Calificacion, Tarea, Entrega, Material, Tema, Mensaje, Comunicado
+**Centro:** User, Centro, Itinerario, Materia, Grupo, Matricula, Imparticion, Horario, Festivo, Personalizacion, Asistencia, Calificacion, Tarea, Entrega, Temario, TemaVisual, Mensaje, Comunicado.
+
+**Catálogo oficial (read-only):** CatalogoItinerario, CatalogoMateria, CatalogoCentro.
+
+> Nota: el rename `CicloFormativo→Itinerario / Modulo→Materia / Material→Temario / Tema→TemaVisual` se ejecutó para alinear el vocabulario con el catálogo oficial y dejar las entidades neutras frente a la etapa educativa (FP, ESO, Bach, Uni). Plan completo: `docs/hoja-de-ruta-rename-fp-neutral.md`.
 
 ## Roles de Usuario
 `ROLE_SUPERADMIN`, `ROLE_ADMIN`, `ROLE_PROFESOR`, `ROLE_ALUMNO`
