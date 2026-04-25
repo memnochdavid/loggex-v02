@@ -111,12 +111,20 @@ final class SearchAnyFilter implements FilterInterface
 
     public function getDescription(string $resourceClass): array
     {
+        // API Platform normaliza properties flat (`['nombre', 'apellidos']`) a
+        // mapping con null valores. Detectamos ambos formatos para mostrar la
+        // descripción correcta en Swagger en lugar de "Búsqueda... sobre: , ,".
+        $fields = [];
+        foreach ($this->properties as $key => $val) {
+            $fields[] = is_int($key) ? (string) $val : (string) $key;
+        }
+
         return [
             self::QUERY_PARAMETER => [
                 'property' => self::QUERY_PARAMETER,
                 'type' => 'string',
                 'required' => false,
-                'description' => 'Búsqueda parcial (OR) sobre los campos: ' . implode(', ', $this->properties),
+                'description' => 'Búsqueda parcial (OR) sobre los campos: ' . implode(', ', $fields),
                 'openapi' => [
                     'example' => 'ivan',
                 ],

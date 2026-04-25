@@ -2,6 +2,16 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # Jerarquía de roles del proyecto.
+    # SUPERADMIN incluye los privilegios de ADMIN: cualquier IsGranted('ROLE_ADMIN')
+    # se cumple también para un SuperAdmin sin tener que enumerar ambos.
+    # NO se inclu­ye ADMIN→PROFESOR ni PROFESOR→ALUMNO porque son roles con
+    # responsabilidades distintas (un admin no es un profesor; un profesor no
+    # es un alumno). Si en el futuro algún recurso quiere "todos los roles
+    # autenticados", se usa IS_AUTHENTICATED_FULLY o se construye con OR explícito.
+    role_hierarchy:
+        ROLE_SUPERADMIN: [ROLE_ADMIN]
+
     providers:
         app_user_provider:
             entity:

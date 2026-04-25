@@ -58,3 +58,12 @@ services:
     App\Catalogo\Source\CatalogoSourceAdapterRegistry:
         arguments:
             $adapters: !tagged_iterator app.catalogo.source
+
+    # Adapter de catálogo FP basado en JSON curado (bootstrap inicial).
+    # El path al JSON se inyecta explícitamente para evitar autowire ambiguo.
+    # Tag explícito porque la declaración con arguments sobrescribe el _instanceof.
+    App\Catalogo\Source\TodoFpJsonAdapter:
+        arguments:
+            $jsonPath: '%kernel.project_dir%/data/catalogo/todofp/itinerarios-fp.json'
+        tags:
+            - { name: app.catalogo.source }

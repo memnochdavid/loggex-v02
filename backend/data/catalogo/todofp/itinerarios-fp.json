@@ -1,0 +1,122 @@
+{
+    "_metadata": {
+        "fuente": "todofp_json",
+        "version": "v1",
+        "actualizadoAt": "2026-04-25",
+        "notaImportante": "Bootstrap inicial curado a mano. Los nombres de módulos y horas son fiables. Algunos códigos exactos pueden requerir verificación contra TodoFP/BOE para uso en producción. Editar este JSON añade ciclos al catálogo; tras editar lanzar app:catalogo:refresh todofp."
+    },
+    "itinerarios": [
+        {
+            "codigoOficial": "IFC32",
+            "etapa": "fp_superior",
+            "nombre": "Desarrollo de Aplicaciones Web",
+            "familia": "Informática y Comunicaciones",
+            "nivel": "Grado Superior",
+            "duracionTotalHoras": 2000,
+            "ccaa": null,
+            "normativa": "Real Decreto 686/2010, de 20 de mayo",
+            "boletinUrl": "https://www.boe.es/eli/es/rd/2010/05/20/686",
+            "vigenteDesde": "2010-09-01",
+            "vigenteHasta": null,
+            "materias": [
+                {"codigoOficial": "0612", "nombre": "Sistemas Informáticos", "tipo": "modulo", "curso": 1, "horasTotales": 192, "horasSemanales": 6.0, "orden": 1},
+                {"codigoOficial": "0613", "nombre": "Bases de Datos", "tipo": "modulo", "curso": 1, "horasTotales": 192, "horasSemanales": 6.0, "orden": 2},
+                {"codigoOficial": "0614", "nombre": "Programación", "tipo": "modulo", "curso": 1, "horasTotales": 256, "horasSemanales": 8.0, "orden": 3},
+                {"codigoOficial": "0373", "nombre": "Lenguajes de Marcas y Sistemas de Gestión de Información", "tipo": "modulo", "curso": 1, "horasTotales": 128, "horasSemanales": 4.0, "orden": 4},
+                {"codigoOficial": "0617", "nombre": "Entornos de Desarrollo", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 5},
+                {"codigoOficial": "0493", "nombre": "Formación y Orientación Laboral", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 6},
+                {"codigoOficial": "0620", "nombre": "Desarrollo Web en Entorno Cliente", "tipo": "modulo", "curso": 2, "horasTotales": 168, "horasSemanales": 8.0, "orden": 7},
+                {"codigoOficial": "0621", "nombre": "Desarrollo Web en Entorno Servidor", "tipo": "modulo", "curso": 2, "horasTotales": 168, "horasSemanales": 8.0, "orden": 8},
+                {"codigoOficial": "0622", "nombre": "Despliegue de Aplicaciones Web", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 9},
+                {"codigoOficial": "0616", "nombre": "Diseño de Interfaces Web", "tipo": "modulo", "curso": 2, "horasTotales": 126, "horasSemanales": 6.0, "orden": 10},
+                {"codigoOficial": "0494", "nombre": "Empresa e Iniciativa Emprendedora", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 11},
+                {"codigoOficial": "0623", "nombre": "Proyecto de Desarrollo de Aplicaciones Web", "tipo": "proyecto", "curso": 2, "horasTotales": 30, "horasSemanales": null, "orden": 12},
+                {"codigoOficial": "0624", "nombre": "Formación en Centros de Trabajo", "tipo": "fct", "curso": 2, "horasTotales": 370, "horasSemanales": null, "orden": 13}
+            ]
+        },
+        {
+            "codigoOficial": "IFC33",
+            "etapa": "fp_superior",
+            "nombre": "Desarrollo de Aplicaciones Multiplataforma",
+            "familia": "Informática y Comunicaciones",
+            "nivel": "Grado Superior",
+            "duracionTotalHoras": 2000,
+            "ccaa": null,
+            "normativa": "Real Decreto 450/2010, de 16 de abril",
+            "boletinUrl": "https://www.boe.es/eli/es/rd/2010/04/16/450",
+            "vigenteDesde": "2010-09-01",
+            "vigenteHasta": null,
+            "materias": [
+                {"codigoOficial": "0483", "nombre": "Sistemas Informáticos", "tipo": "modulo", "curso": 1, "horasTotales": 192, "horasSemanales": 6.0, "orden": 1},
+                {"codigoOficial": "0484", "nombre": "Bases de Datos", "tipo": "modulo", "curso": 1, "horasTotales": 192, "horasSemanales": 6.0, "orden": 2},
+                {"codigoOficial": "0485", "nombre": "Programación", "tipo": "modulo", "curso": 1, "horasTotales": 256, "horasSemanales": 8.0, "orden": 3},
+                {"codigoOficial": "0373", "nombre": "Lenguajes de Marcas y Sistemas de Gestión de Información", "tipo": "modulo", "curso": 1, "horasTotales": 128, "horasSemanales": 4.0, "orden": 4},
+                {"codigoOficial": "0487", "nombre": "Entornos de Desarrollo", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 5},
+                {"codigoOficial": "0493", "nombre": "Formación y Orientación Laboral", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 6},
+                {"codigoOficial": "0488", "nombre": "Desarrollo de Interfaces", "tipo": "modulo", "curso": 2, "horasTotales": 126, "horasSemanales": 6.0, "orden": 7},
+                {"codigoOficial": "0489", "nombre": "Programación Multimedia y Dispositivos Móviles", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 8},
+                {"codigoOficial": "0490", "nombre": "Programación de Servicios y Procesos", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 9},
+                {"codigoOficial": "0491", "nombre": "Sistemas de Gestión Empresarial", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 10},
+                {"codigoOficial": "0486", "nombre": "Acceso a Datos", "tipo": "modulo", "curso": 2, "horasTotales": 168, "horasSemanales": 8.0, "orden": 11},
+                {"codigoOficial": "0494", "nombre": "Empresa e Iniciativa Emprendedora", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 12},
+                {"codigoOficial": "0492", "nombre": "Proyecto de Desarrollo de Aplicaciones Multiplataforma", "tipo": "proyecto", "curso": 2, "horasTotales": 30, "horasSemanales": null, "orden": 13},
+                {"codigoOficial": "0495", "nombre": "Formación en Centros de Trabajo", "tipo": "fct", "curso": 2, "horasTotales": 370, "horasSemanales": null, "orden": 14}
+            ]
+        },
+        {
+            "codigoOficial": "IFC31",
+            "etapa": "fp_superior",
+            "nombre": "Administración de Sistemas Informáticos en Red",
+            "familia": "Informática y Comunicaciones",
+            "nivel": "Grado Superior",
+            "duracionTotalHoras": 2000,
+            "ccaa": null,
+            "normativa": "Real Decreto 1629/2009, de 30 de octubre",
+            "boletinUrl": "https://www.boe.es/eli/es/rd/2009/10/30/1629",
+            "vigenteDesde": "2010-09-01",
+            "vigenteHasta": null,
+            "materias": [
+                {"codigoOficial": "0369", "nombre": "Implantación de Sistemas Operativos", "tipo": "modulo", "curso": 1, "horasTotales": 256, "horasSemanales": 8.0, "orden": 1},
+                {"codigoOficial": "0370", "nombre": "Planificación y Administración de Redes", "tipo": "modulo", "curso": 1, "horasTotales": 192, "horasSemanales": 6.0, "orden": 2},
+                {"codigoOficial": "0371", "nombre": "Fundamentos de Hardware", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 3},
+                {"codigoOficial": "0372", "nombre": "Gestión de Bases de Datos", "tipo": "modulo", "curso": 1, "horasTotales": 160, "horasSemanales": 5.0, "orden": 4},
+                {"codigoOficial": "0373", "nombre": "Lenguajes de Marcas y Sistemas de Gestión de Información", "tipo": "modulo", "curso": 1, "horasTotales": 128, "horasSemanales": 4.0, "orden": 5},
+                {"codigoOficial": "0524", "nombre": "Formación y Orientación Laboral", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 6},
+                {"codigoOficial": "0374", "nombre": "Administración de Sistemas Operativos", "tipo": "modulo", "curso": 2, "horasTotales": 147, "horasSemanales": 7.0, "orden": 7},
+                {"codigoOficial": "0375", "nombre": "Servicios de Red e Internet", "tipo": "modulo", "curso": 2, "horasTotales": 147, "horasSemanales": 7.0, "orden": 8},
+                {"codigoOficial": "0376", "nombre": "Implantación de Aplicaciones Web", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 9},
+                {"codigoOficial": "0377", "nombre": "Administración de Sistemas Gestores de Bases de Datos", "tipo": "modulo", "curso": 2, "horasTotales": 105, "horasSemanales": 5.0, "orden": 10},
+                {"codigoOficial": "0378", "nombre": "Seguridad y Alta Disponibilidad", "tipo": "modulo", "curso": 2, "horasTotales": 105, "horasSemanales": 5.0, "orden": 11},
+                {"codigoOficial": "0525", "nombre": "Empresa e Iniciativa Emprendedora", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 12},
+                {"codigoOficial": "0379", "nombre": "Proyecto de Administración de Sistemas Informáticos en Red", "tipo": "proyecto", "curso": 2, "horasTotales": 30, "horasSemanales": null, "orden": 13},
+                {"codigoOficial": "0380", "nombre": "Formación en Centros de Trabajo", "tipo": "fct", "curso": 2, "horasTotales": 370, "horasSemanales": null, "orden": 14}
+            ]
+        },
+        {
+            "codigoOficial": "IFC22",
+            "etapa": "fp_medio",
+            "nombre": "Sistemas Microinformáticos y Redes",
+            "familia": "Informática y Comunicaciones",
+            "nivel": "Grado Medio",
+            "duracionTotalHoras": 2000,
+            "ccaa": null,
+            "normativa": "Real Decreto 1691/2007, de 14 de diciembre",
+            "boletinUrl": "https://www.boe.es/eli/es/rd/2007/12/14/1691",
+            "vigenteDesde": "2008-09-01",
+            "vigenteHasta": null,
+            "materias": [
+                {"codigoOficial": "0221", "nombre": "Montaje y Mantenimiento de Equipo", "tipo": "modulo", "curso": 1, "horasTotales": 224, "horasSemanales": 7.0, "orden": 1},
+                {"codigoOficial": "0222", "nombre": "Sistemas Operativos Monopuesto", "tipo": "modulo", "curso": 1, "horasTotales": 160, "horasSemanales": 5.0, "orden": 2},
+                {"codigoOficial": "0223", "nombre": "Aplicaciones Ofimáticas", "tipo": "modulo", "curso": 1, "horasTotales": 256, "horasSemanales": 8.0, "orden": 3},
+                {"codigoOficial": "0226", "nombre": "Redes Locales", "tipo": "modulo", "curso": 1, "horasTotales": 224, "horasSemanales": 7.0, "orden": 4},
+                {"codigoOficial": "0229", "nombre": "Formación y Orientación Laboral", "tipo": "modulo", "curso": 1, "horasTotales": 96, "horasSemanales": 3.0, "orden": 5},
+                {"codigoOficial": "0224", "nombre": "Sistemas Operativos en Red", "tipo": "modulo", "curso": 2, "horasTotales": 147, "horasSemanales": 7.0, "orden": 6},
+                {"codigoOficial": "0225", "nombre": "Aplicaciones Web", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 7},
+                {"codigoOficial": "0227", "nombre": "Seguridad Informática", "tipo": "modulo", "curso": 2, "horasTotales": 105, "horasSemanales": 5.0, "orden": 8},
+                {"codigoOficial": "0228", "nombre": "Servicios en Red", "tipo": "modulo", "curso": 2, "horasTotales": 147, "horasSemanales": 7.0, "orden": 9},
+                {"codigoOficial": "0230", "nombre": "Empresa e Iniciativa Emprendedora", "tipo": "modulo", "curso": 2, "horasTotales": 84, "horasSemanales": 4.0, "orden": 10},
+                {"codigoOficial": "0231", "nombre": "Formación en Centros de Trabajo", "tipo": "fct", "curso": 2, "horasTotales": 410, "horasSemanales": null, "orden": 11}
+            ]
+        }
+    ]
+}

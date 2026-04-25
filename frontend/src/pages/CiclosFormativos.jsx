@@ -69,6 +69,13 @@ const CiclosFormativos = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Modo de creación: 'catalogo' usa AsyncSearchSelect contra el catálogo oficial
+  // y materializa el ciclo + sus módulos en backend. 'manual' es el formulario
+  // tradicional. En modo edición no aplica (siempre manual). Default: catálogo.
+  const [createMode, setCreateMode] = useState('catalogo');
+  const [selectedCatalogoItinerarioId, setSelectedCatalogoItinerarioId] = useState('');
+  const [selectedCatalogoItinerario, setSelectedCatalogoItinerario] = useState(null);
+
   // Cargar centros para el selector (solo si es SuperAdmin)
   useEffect(() => {
     if (isSuperAdmin) {
@@ -231,6 +238,10 @@ const CiclosFormativos = () => {
         nivel: 'Superior',
         centro: isSuperAdmin ? '' : (user.centro ? user.centro.id : '')
       });
+      // Reset del modo creación: por defecto catálogo (es la vía recomendada).
+      setCreateMode('catalogo');
+      setSelectedCatalogoItinerarioId('');
+      setSelectedCatalogoItinerario(null);
     }
     setIsModalOpen(true);
   }, [isSuperAdmin, user.centro]);
@@ -252,12 +263,63 @@ const CiclosFormativos = () => {
     e.preventDefault();
     setSaving(true);
 
+    // Caso especial: creación desde el catálogo oficial. Llama al endpoint
+    // /api/ciclos/from-catalogo que materializa el ciclo + sus módulos.
+    if (!currentCiclo && createMode === 'catalogo') {
+      try {
+        if (!selectedCatalogoItinerarioId) {
+          toast.warning(t('cycles.catalogo.selectRequired', { defaultValue: 'Selecciona un itinerario del catálogo o cambia a modo manual.' }));
+          setSaving(false);
+          return;
+        }
+
+        const payload = {
+          catalogoItinerarioId: parseInt(selectedCatalogoItinerarioId, 10),
+        };
+        if (isSuperAdmin && formData.centro) {
+          payload.centroId = parseInt(formData.centro, 10);
+        }
+
+        const response = await fetch(getApiUrl('/api/ciclos/from-catalogo'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const message = await parseErrorResponse(response);
+          throw new Error(message);
+        }
+
+        const data = await response.json();
+        fetchCiclosData({
+          page: currentPage, itemsPerPage, searchTerm, searchField,
+          selectedCentro, sortColumn, sortDirection, isSuperAdmin
+        });
+        handleCloseModal();
+        toast.success(t('cycles.catalogo.createdSuccess', {
+          defaultValue: 'Ciclo creado desde el catálogo con {{count}} módulos',
+          count: data.modulosCreados ?? 0,
+        }));
+      } catch (err) {
+        console.error('Error creando ciclo desde catálogo:', err);
+        toast.error(err.message, {
+          description: t('cycles.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' }),
+        });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Flujo manual (creación tradicional o edición).
     try {
       const id = currentCiclo ? getCicloId(currentCiclo) : null;
-      const url = currentCiclo 
+      const url = currentCiclo
         ? getApiUrl(`/api/ciclo_formativos/${id}`)
         : getApiUrl('/api/ciclo_formativos');
-      
+
       const method = currentCiclo ? 'PUT' : 'POST';
 
       const payload = {
@@ -438,48 +500,142 @@ const CiclosFormativos = () => {
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('cycles.nameLabel')}</label>
-                <input
-                    type="text"
-                    name="nombre"
-                    value={formData.nombre}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    required
-                    placeholder={t('cycles.namePlaceholder')}
-                />
-            </div>
-
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('cycles.level')}</label>
-                <select
-                    name="nivel"
-                    value={formData.nivel}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                >
-                    <option value="Básico">{t('cycles.levelBasic')}</option>
-                    <option value="Medio">{t('cycles.levelMiddle')}</option>
-                    <option value="Superior">{t('cycles.levelHigher')}</option>
-                    <option value="Curso de Especialización">{t('cycles.levelSpecialization')}</option>
-                </select>
-            </div>
-
-            {isSuperAdmin && (
+            {/* Toggle de modo (solo en creación). Edición siempre es manual. */}
+            {!currentCiclo && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('cycles.centerLabel')}</label>
-                    <AsyncSearchSelect
-                        name="centro"
-                        value={formData.centro}
-                        onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
-                        endpoint="/api/centros"
-                        getOptionLabel={(c) => c.nombre}
-                        getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
-                        placeholder={t('common.selectCenter')}
-                        required
-                    />
+                    <div className={styles.modeToggle} role="tablist" aria-label={t('cycles.modeToggleAria', { defaultValue: 'Modo de creación' })}>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={createMode === 'catalogo'}
+                            className={`${styles.modeToggleBtn} ${createMode === 'catalogo' ? styles.modeToggleActive : ''}`}
+                            onClick={() => setCreateMode('catalogo')}
+                        >
+                            {t('cycles.modeCatalogo', { defaultValue: 'Catálogo oficial' })}
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={createMode === 'manual'}
+                            className={`${styles.modeToggleBtn} ${createMode === 'manual' ? styles.modeToggleActive : ''}`}
+                            onClick={() => setCreateMode('manual')}
+                        >
+                            {t('cycles.modeManual', { defaultValue: 'Manual' })}
+                        </button>
+                    </div>
                 </div>
+            )}
+
+            {/* MODO CATÁLOGO: AsyncSearchSelect contra /api/catalogo_itinerarios + preview + centro */}
+            {!currentCiclo && createMode === 'catalogo' ? (
+                <>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('cycles.catalogo.searchLabel', { defaultValue: 'Buscar en el catálogo oficial' })}
+                        </label>
+                        <AsyncSearchSelect
+                            name="catalogoItinerario"
+                            value={selectedCatalogoItinerarioId}
+                            onChange={(id, item) => {
+                                setSelectedCatalogoItinerarioId(id);
+                                setSelectedCatalogoItinerario(item);
+                            }}
+                            endpoint="/api/catalogo_itinerarios"
+                            extraParams={{ etapa: ['fp_basica', 'fp_medio', 'fp_superior', 'fp_especializacion'] }}
+                            getOptionLabel={(i) => `${i.codigoOficial} — ${i.nombre}`}
+                            getOptionValue={(i) => i.id}
+                            placeholder={t('cycles.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del ciclo…' })}
+                            required
+                        />
+                    </div>
+
+                    {selectedCatalogoItinerario && (
+                        <div className={styles.catalogoPreview}>
+                            {selectedCatalogoItinerario.familia && (
+                                <p><strong>{t('cycles.catalogo.familyLabel', { defaultValue: 'Familia' })}:</strong> {selectedCatalogoItinerario.familia}</p>
+                            )}
+                            {selectedCatalogoItinerario.nivel && (
+                                <p><strong>{t('cycles.catalogo.levelLabel', { defaultValue: 'Nivel' })}:</strong> {selectedCatalogoItinerario.nivel}</p>
+                            )}
+                            {selectedCatalogoItinerario.duracionTotalHoras && (
+                                <p><strong>{t('cycles.catalogo.durationLabel', { defaultValue: 'Duración total' })}:</strong> {selectedCatalogoItinerario.duracionTotalHoras} h</p>
+                            )}
+                            <p>
+                                <strong>{t('cycles.catalogo.modulesLabel', { defaultValue: 'Módulos' })}:</strong>{' '}
+                                {selectedCatalogoItinerario.materias?.length ?? 0}{' '}
+                                <em>({t('cycles.catalogo.modulesAuto', { defaultValue: 'se crearán automáticamente' })})</em>
+                            </p>
+                            {selectedCatalogoItinerario.normativa && (
+                                <p className={styles.catalogoMeta}>
+                                    <strong>{t('cycles.catalogo.regulationLabel', { defaultValue: 'Normativa' })}:</strong> {selectedCatalogoItinerario.normativa}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {isSuperAdmin && (
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>{t('cycles.centerLabel')}</label>
+                            <AsyncSearchSelect
+                                name="centro"
+                                value={formData.centro}
+                                onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                                endpoint="/api/centros"
+                                getOptionLabel={(c) => c.nombre}
+                                getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                                placeholder={t('common.selectCenter')}
+                                required
+                            />
+                        </div>
+                    )}
+                </>
+            ) : (
+                /* MODO MANUAL (creación libre o edición) */
+                <>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>{t('cycles.nameLabel')}</label>
+                        <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleInputChange}
+                            className={styles.input}
+                            required
+                            placeholder={t('cycles.namePlaceholder')}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>{t('cycles.level')}</label>
+                        <select
+                            name="nivel"
+                            value={formData.nivel}
+                            onChange={handleInputChange}
+                            className={styles.select}
+                        >
+                            <option value="Básico">{t('cycles.levelBasic')}</option>
+                            <option value="Medio">{t('cycles.levelMiddle')}</option>
+                            <option value="Superior">{t('cycles.levelHigher')}</option>
+                            <option value="Curso de Especialización">{t('cycles.levelSpecialization')}</option>
+                        </select>
+                    </div>
+
+                    {isSuperAdmin && (
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>{t('cycles.centerLabel')}</label>
+                            <AsyncSearchSelect
+                                name="centro"
+                                value={formData.centro}
+                                onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                                endpoint="/api/centros"
+                                getOptionLabel={(c) => c.nombre}
+                                getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                                placeholder={t('common.selectCenter')}
+                                required
+                            />
+                        </div>
+                    )}
+                </>
             )}
         </ModalView>
         </div>

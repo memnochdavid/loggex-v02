@@ -459,3 +459,84 @@
         animation: none;
     }
 }
+
+/* ==========================================================================
+ * Toggle "Catálogo / Manual" en el modal de creación de Ciclos.
+ * Coherente con el resto de inputs (mismos tokens de input-bg, focus, etc.).
+ * ========================================================================== */
+
+.modeToggle {
+    display: flex;
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    gap: 3px;
+}
+
+.modeToggleBtn {
+    flex: 1;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard);
+}
+
+.modeToggleBtn:hover:not(.modeToggleActive) {
+    color: var(--text-main);
+    background-color: var(--input-hover-bg);
+}
+
+.modeToggleActive {
+    background-color: var(--bg-card-solid);
+    color: var(--color-primary-700);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+}
+
+.modeToggleBtn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+/* Preview del itinerario seleccionado del catálogo (familia, horas, módulos…). */
+
+.catalogoPreview {
+    margin: 0 0 var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
+    background-color: color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-card-solid));
+    border: 1px solid color-mix(in srgb, var(--color-primary-500) 20%, var(--border-color));
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-main);
+}
+
+.catalogoPreview p {
+    margin: var(--space-1) 0;
+    line-height: 1.5;
+}
+
+.catalogoPreview strong {
+    color: var(--text-main);
+}
+
+.catalogoPreview em {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.catalogoMeta {
+    margin-top: var(--space-2) !important;
+    padding-top: var(--space-2);
+    border-top: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+}

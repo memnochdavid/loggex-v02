@@ -65,7 +65,18 @@ const AsyncSearchSelect = ({
     const buildUrl = useCallback((q) => {
         const url = new URL(endpoint, window.location.origin);
         Object.entries(extraParams).forEach(([k, v]) => {
-            if (v !== null && v !== undefined && v !== '') url.searchParams.set(k, v);
+            if (v === null || v === undefined || v === '') return;
+            // Soporte para arrays (?etapa[]=a&etapa[]=b) — útil para filtros con
+            // múltiples valores válidos como "etapa de FP, cualquier nivel".
+            if (Array.isArray(v)) {
+                v.forEach(val => {
+                    if (val !== null && val !== undefined && val !== '') {
+                        url.searchParams.append(`${k}[]`, String(val));
+                    }
+                });
+            } else {
+                url.searchParams.set(k, v);
+            }
         });
         if (q) url.searchParams.set('q', q);
         url.searchParams.set('itemsPerPage', String(itemsPerPage));
