@@ -1284,3 +1284,38 @@ Lo que queda de §12 para más adelante (cuando llegue un centro no-FP):
 - Hacer opcionales los campos solo-FP (`familia`, `horasSemanales` obligatorias, `tipo` con valores FCT/Proyecto, etc.).
 - Validación condicional por etapa.
 - i18n keys generalizadas con copys por etapa.
+
+## 19. Soporte de ESO (LOMLOE) — abr 2026
+
+Tras cerrar el rename de §18, se ejecutó la primera ampliación multi-etapa: añadir Educación Secundaria Obligatoria al catálogo oficial. Plan completo en `docs/hoja-de-ruta-eso.md` (Fases A–F).
+
+### 19.1 Cobertura
+- 1 itinerario en el catálogo: `ESO-LOMLOE-2022` ("Educación Secundaria Obligatoria"), etapa `eso`, basado en el RD 217/2022.
+- 28 materias del Anexo IV: 12 distribuidas en cursos 1–3 (sin `curso` específico, lo decide cada CCAA) + 16 del cuarto curso (5 obligatorias + 10 optativas marcadas con `*` + Religión).
+- Tipos asignados automáticamente: TRONCAL para obligatorias, OPTATIVA para las marcadas con `*`, ESPECIFICA para Religión.
+
+### 19.2 Componentes nuevos
+- `App\Catalogo\Source\BoeEsoAdapter`: implementa `CatalogoSourceAdapterInterface`, `source()='boe_eso'`. Se autoregistra vía `_instanceof`.
+- `App\Catalogo\Source\BoeEso\EsoCurriculumParser`: parsea el Anexo IV del RD 217/2022 (tabla con 3 secciones marcadas por `<em>`).
+- Reusa `BoeXmlFetcher` existente para HTTP + normalización de URL del BOE.
+
+### 19.3 Cambios en el modelo del centro (Fase D)
+Sub-fase parcial del refactor multi-etapa de §12, ejecutada al implementar ESO:
+- `Materia.horasSemanales` pasa de `NOT NULL` a `nullable`. Razón: en ESO/Bach el RD nacional solo fija horas mínimas totales por etapa; el reparto curso a curso lo decide cada CCAA. El admin del centro puede dejarlo en blanco hasta confirmar.
+- `Materia.tipo` añadido (enum `TipoMateria`, nullable). Se propaga del catálogo al materializar. Permite distinguir TRONCAL/OPTATIVA/ESPECIFICA en UI.
+- `CatalogoMaterializationController.buildModulo` propaga `tipo` y deja `horasSemanales` como `null` para itinerarios no-FP (en lugar de forzar `0`).
+- Migration: `Version20260425202346` (ALTER TABLE materia ADD tipo + horas_semanales NULLABLE).
+
+### 19.4 Cambios en UX (Fase E)
+- Modal "Nuevo Itinerario" del centro: el AsyncSearchSelect ahora abierto a TODAS las etapas implementadas (FP + ESO; futuras etapas también caben). El admin discrimina tecleando el nombre.
+- `mapNivel` extiende soporte a Primaria/ESO/Bachillerato.
+- Form de Materias: nuevo select "Tipo" (opcional), input "Horas Semanales" acepta vacío, opciones de curso 1–4 (antes 1–2).
+- i18n: claves `materias.course3/4`, `materias.type`, `materias.typeUnset` añadidas.
+
+### 19.5 Bug fix descubierto
+Durante Fase E se detectó que el sed mecánico del rename §18 había convertido el VALOR del enum case `TipoMateria::MODULO = 'modulo'` en `TipoMateria::MODULO = 'materia'`, generando incoherencia entre código y datos en BD. Corregido en `TipoMateria.php` y aplicado UPDATE retrofit con `Version20260425210000`.
+
+### 19.6 Limitaciones conocidas (v1.1 ESO)
+- **Sin variantes por CCAA**. El RD nacional 217/2022 solo fija horas mínimas totales; cada autonomía publica su decreto regional con la distribución horaria por curso (Andalucía 102/2023, Madrid 65/2022, etc.). Cuando llegue un centro de ESO real, la siguiente fase es escribir `JuntaAndaluciaEsoAdapter` u otro CCAA-específico.
+- **Evaluación competencial LOMLOE**: ESO introduce evaluación por competencias clave + competencias específicas, distinto del modelo actual orientado a notas numéricas por módulo. La pantalla de calificaciones funciona con datos ESO pero con la lógica FP — un centro LOMLOE puro pediría adaptaciones.
+- **Bachillerato y otras etapas**: no implementadas. Aplica el mismo patrón (BOE adapter + cobertura nacional + variantes CCAA).
