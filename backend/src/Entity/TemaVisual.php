@@ -15,13 +15,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity]
 #[ORM\Table(name: 'tema_visual')]
 #[ORM\HasLifecycleCallbacks]
+// uriTemplate explícito: API Platform por defecto pluralizaría a `/api/tema_visuals`,
+// pero queremos `/api/temas_visuales` (plural correcto en español, igual que el frontend).
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete()
+        new Get(uriTemplate: '/temas_visuales/{id}'),
+        new GetCollection(uriTemplate: '/temas_visuales'),
+        new Post(uriTemplate: '/temas_visuales'),
+        new Put(uriTemplate: '/temas_visuales/{id}'),
+        new Delete(uriTemplate: '/temas_visuales/{id}'),
     ],
     normalizationContext: ['groups' => ['tema_visual:read', 'timestamp:read']],
     denormalizationContext: ['groups' => ['tema_visual:write']]
