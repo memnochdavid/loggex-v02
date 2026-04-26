@@ -46,8 +46,8 @@ final class CatalogoMaterializationController extends AbstractController
             );
         }
 
-        $itinerario = $this->em->getRepository(CatalogoItinerario::class)->find($itinerarioId);
-        if (!$itinerario) {
+        $catalogoItinerario = $this->em->getRepository(CatalogoItinerario::class)->find($itinerarioId);
+        if (!$catalogoItinerario) {
             return $this->json(
                 ['message' => 'No se encuentra el itinerario solicitado en el catálogo.'],
                 Response::HTTP_NOT_FOUND
@@ -66,18 +66,20 @@ final class CatalogoMaterializationController extends AbstractController
         }
 
         try {
-            $itinerario = $this->buildCiclo($itinerario, $centro);
+            $itinerario = $this->buildCiclo($catalogoItinerario, $centro);
             $this->em->persist($itinerario);
 
-            foreach ($itinerario->getMaterias() as $materia) {
-                $materia = $this->buildModulo($materia, $itinerario);
+            $materiasCreadas = 0;
+            foreach ($catalogoItinerario->getMaterias() as $catalogoMateria) {
+                $materia = $this->buildModulo($catalogoMateria, $itinerario);
                 $this->em->persist($materia);
+                $materiasCreadas++;
             }
 
             $this->em->flush();
         } catch (\Throwable $e) {
             return $this->json(
-                ['message' => 'Error al materializar el ciclo desde el catálogo: ' . $e->getMessage()],
+                ['message' => 'Error al materializar el itinerario desde el catálogo: ' . $e->getMessage()],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -87,8 +89,8 @@ final class CatalogoMaterializationController extends AbstractController
             'nombre' => $itinerario->getNombre(),
             'nivel' => $itinerario->getNivel(),
             'centroId' => $centro->getId(),
-            'catalogoItinerarioId' => $itinerario->getId(),
-            'modulosCreados' => $itinerario->getMaterias()->count(),
+            'catalogoItinerarioId' => $catalogoItinerario->getId(),
+            'modulosCreados' => $materiasCreadas,
         ], Response::HTTP_CREATED);
     }
 
