@@ -47,14 +47,19 @@ final class ModulosTableParser
         $targetTable = null;
         foreach ($tables as $tableNode) {
             $tableCrawler = new Crawler($tableNode);
-            // Algunas tablas tienen "Módulo profesional" en la 2ª fila (rowspan/colspan
-            // las parte). Combinamos las dos primeras filas para detectar.
-            $headerCombined = $tableCrawler->filterXPath('.//tr[1]')->text('', false)
-                . ' ' . $tableCrawler->filterXPath('.//tr[2]')->text('', false);
-            if (stripos($headerCombined, 'Módulo profesional') !== false
-                && (stripos($headerCombined, 'Duración') !== false
-                    || stripos($headerCombined, 'horas') !== false
-                    || stripos($headerCombined, 'h/semana') !== false)) {
+            // Algunos RDs anteponen 1-2 filas de caption ("ANEXO II", "Ciclo formativo: …")
+            // antes del encabezado real. Combinamos hasta las 3 primeras filas para detectar.
+            $headerCombined = '';
+            for ($r = 1; $r <= 3; $r++) {
+                $rowCrawler = $tableCrawler->filterXPath('.//tr[' . $r . ']');
+                if ($rowCrawler->count() > 0) {
+                    $headerCombined .= ' ' . $rowCrawler->text('', false);
+                }
+            }
+            if (mb_stripos($headerCombined, 'Módulo profesional') !== false
+                && (mb_stripos($headerCombined, 'Duración') !== false
+                    || mb_stripos($headerCombined, 'horas') !== false
+                    || mb_stripos($headerCombined, 'h/semana') !== false)) {
                 $targetTable = $tableNode;
                 break;
             }
@@ -67,63 +72,109 @@ final class ModulosTableParser
         $tableCrawler = new Crawler($targetTable);
         $rows = $tableCrawler->filterXPath('.//tr');
 
-        $materias = [];
+        $modulos = [];
         $orden = 0;
-        $headerRowsToSkip = 2;  // Las dos primeras filas son cabecera (rowspan/colspan).
 
-        foreach ($rows as $i => $rowNode) {
-            if ($i < $headerRowsToSkip) {
-                continue;
-            }
-
+        foreach ($rows as $rowNode) {
             $cells = $this->extractCells($rowNode);
             if (count($cells) < 2) {
                 continue;
             }
 
-            $primaryText = $cells[0];
-
-            if ($this->isSpuriousRow($primaryText)) {
+            if ($this->isSpuriousRow($cells[0]) || $this->isSpuriousRow($cells[1] ?? '')) {
                 continue;
             }
 
-            $parsed = $this->parsePrimaryCell($primaryText);
-            if ($parsed === null) {
-                continue;
-            }
-            [$codigo, $nombre] = $parsed;
+            $codigo = null;
+            $nombre = null;
+            $horasCells = [];
 
-            $horasTotales = $this->parseInt($cells[1] ?? '');
-            $horasSem1 = $this->parseFloat($cells[2] ?? '');  // Primer curso h/sem
-            $horasSem2 = $this->parseFloat($cells[3] ?? '');  // Segundo curso 2T h/sem
-            $horasTrim2 = $this->parseInt($cells[4] ?? '');   // Segundo curso 1T horas
-
-            // Determinar curso por columna que tenga valor.
-            $curso = null;
-            $horasSemanalesElegidas = null;
-            if ($horasSem1 !== null && $horasSem1 > 0) {
-                $curso = 1;
-                $horasSemanalesElegidas = $horasSem1;
-            } elseif ($horasSem2 !== null && $horasSem2 > 0) {
-                $curso = 2;
-                $horasSemanalesElegidas = $horasSem2;
-            } elseif ($horasTrim2 !== null && $horasTrim2 > 0) {
-                $curso = 2;
-                $horasSemanalesElegidas = null;  // Solo horas totales, sin h/sem (proyecto, FCT).
+            // Variante A (legacy Orden EDU): "0612. Nombre del módulo" en cells[0],
+            // duración + h/sem en cells[1..4].
+            $parsed = $this->parsePrimaryCell($cells[0]);
+            if ($parsed !== null) {
+                [$codigo, $nombre] = $parsed;
+                $horasCells = array_slice($cells, 1);
+            } elseif (preg_match('/^\s*(\d{3,4}[a-zA-Z_]?)\s*\.?\s*$/u', $cells[0], $m)) {
+                // Variante B (LOMLOE 2024+): código solo en cells[0], nombre en cells[1],
+                // horas en cells[2..N] (típicamente "Horas 50%", "Horas 60%", ECTS).
+                $cleaned = $this->cleanName($cells[1] ?? '');
+                if ($cleaned !== '') {
+                    $codigo = trim($m[1]);
+                    $nombre = $cleaned;
+                    $horasCells = array_slice($cells, 2);
+                }
             }
 
-            $materias[] = [
+            if ($codigo === null || $nombre === null) {
+                continue;  // Fila de cabecera, sub-cabecera o no curricular.
+            }
+
+            $horasInfo = $this->extractHoras($horasCells);
+
+            $modulos[] = [
                 'codigoOficial' => $codigo,
                 'nombre' => $nombre,
                 'tipo' => $this->detectTipo($nombre),
-                'curso' => $curso,
-                'horasTotales' => $horasTotales,
-                'horasSemanales' => $horasSemanalesElegidas,
+                'curso' => $horasInfo['curso'],
+                'horasTotales' => $horasInfo['horasTotales'],
+                'horasSemanales' => $horasInfo['horasSemanales'],
                 'orden' => ++$orden,
             ];
         }
 
-        return $materias;
+        return $modulos;
+    }
+
+    /**
+     * Determina horas totales, h/semana y curso a partir de las celdas posteriores
+     * al nombre del módulo. Soporta dos layouts:
+     *
+     *  Legacy (Orden EDU): [duración total, h/sem 1º, h/sem 2º (2T), horas 2º (1T)]
+     *  LOMLOE 2024+:       [horas modalidad A, horas modalidad B, (ects)]
+     *
+     * Heurística: las celdas legacy con `h/sem` traen valores < 50; las LOMLOE
+     * traen valores >= 50 (horas totales completas) en las dos primeras columnas.
+     *
+     * @param list<string> $cells
+     * @return array{horasTotales: ?int, horasSemanales: ?float, curso: ?int}
+     */
+    private function extractHoras(array $cells): array
+    {
+        $horasTotales = $this->parseInt($cells[0] ?? '');
+        $h1 = $this->parseFloat($cells[1] ?? '');
+        $h2 = $this->parseFloat($cells[2] ?? '');
+        $h3 = $this->parseInt($cells[3] ?? '');
+
+        // LOMLOE: dos columnas de horas totales por modalidad. Tomamos la mayor.
+        if ($horasTotales !== null && $horasTotales >= 50 && $h1 !== null && $h1 >= 50) {
+            return [
+                'horasTotales' => (int) max($horasTotales, $h1),
+                'horasSemanales' => null,
+                'curso' => null,
+            ];
+        }
+
+        // Legacy: cells[1]=h/sem 1º curso, cells[2]=h/sem 2º curso (2T), cells[3]=horas 2º curso (1T proyecto/FCT).
+        if ($h1 !== null && $h1 > 0 && $h1 < 50) {
+            return ['horasTotales' => $horasTotales, 'horasSemanales' => $h1, 'curso' => 1];
+        }
+        if ($h2 !== null && $h2 > 0 && $h2 < 50) {
+            return ['horasTotales' => $horasTotales, 'horasSemanales' => $h2, 'curso' => 2];
+        }
+        if ($h3 !== null && $h3 > 0) {
+            return ['horasTotales' => $horasTotales, 'horasSemanales' => null, 'curso' => 2];
+        }
+
+        return ['horasTotales' => $horasTotales, 'horasSemanales' => null, 'curso' => null];
+    }
+
+    private function cleanName(string $text): string
+    {
+        $text = preg_replace('/\s*\.\s*\.\s*\.\s*[\.\s]*$/u', '', $text);
+        $text = preg_replace('/\s*\(\d+\)\s*/', ' ', $text);
+        $text = preg_replace('/\s+/u', ' ', $text);
+        return trim($text, ". \t\n");
     }
 
     /**
