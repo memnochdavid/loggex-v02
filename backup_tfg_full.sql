@@ -3109,7 +3109,8 @@ LOCK TABLES `doctrine_migration_versions` WRITE;
 INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260425170216','2026-04-26 14:00:55',3718),
 ('DoctrineMigrations\\Version20260425202346','2026-04-26 14:02:33',66),
-('DoctrineMigrations\\Version20260425210000','2026-04-26 14:02:34',4);
+('DoctrineMigrations\\Version20260425210000','2026-04-26 14:02:34',4),
+('DoctrineMigrations\\Version20260426191216','2026-04-26 19:12:24',3925);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3207,7 +3208,7 @@ CREATE TABLE `grupo` (
   KEY `IDX_8C0E9BD3298137A7` (`centro_id`),
   CONSTRAINT `FK_8C0E9BD3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_8C0E9BD3B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3216,6 +3217,9 @@ CREATE TABLE `grupo` (
 
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
+INSERT INTO `grupo` VALUES
+(1,'Desarrollo de Aplicaciones Web','DAW',1,'2026-2027','2024-09-01','2025-07-31',NULL,'2026-04-26 15:59:36',0,NULL,3,3),
+(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-01','2026-07-31',NULL,'2026-04-26 15:59:42',0,NULL,3,3);
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3240,7 +3244,7 @@ CREATE TABLE `horario` (
   PRIMARY KEY (`id`),
   KEY `IDX_E25853A35396730A` (`imparticion_id`),
   CONSTRAINT `FK_E25853A35396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3275,7 +3279,7 @@ CREATE TABLE `imparticion` (
   CONSTRAINT `FK_D179FDFD9C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_D179FDFDB54DBBCB` FOREIGN KEY (`materia_id`) REFERENCES `materia` (`id`),
   CONSTRAINT `FK_D179FDFDE52BD977` FOREIGN KEY (`profesor_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3304,11 +3308,14 @@ CREATE TABLE `itinerario` (
   `deleted_at` datetime DEFAULT NULL,
   `centro_id` int(11) NOT NULL,
   `catalogo_origen_id` int(11) DEFAULT NULL,
+  `jornada_tipo_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_11ECF404298137A7` (`centro_id`),
   KEY `IDX_11ECF404438E8617` (`catalogo_origen_id`),
+  KEY `IDX_11ECF40489635E79` (`jornada_tipo_id`),
   CONSTRAINT `FK_11ECF404298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
-  CONSTRAINT `FK_11ECF404438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_itinerario` (`id`) ON DELETE SET NULL
+  CONSTRAINT `FK_11ECF404438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_itinerario` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `FK_11ECF40489635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3319,9 +3326,90 @@ CREATE TABLE `itinerario` (
 LOCK TABLES `itinerario` WRITE;
 /*!40000 ALTER TABLE `itinerario` DISABLE KEYS */;
 INSERT INTO `itinerario` VALUES
-(3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior','2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,129),
-(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,3,128);
+(3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior','2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,129,NULL),
+(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL);
 /*!40000 ALTER TABLE `itinerario` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `jornada_tipo`
+--
+
+DROP TABLE IF EXISTS `jornada_tipo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jornada_tipo` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `turno` varchar(16) NOT NULL,
+  `dias_lectivos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`dias_lectivos`)),
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL,
+  `deleted` tinyint(4) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  `centro_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_57BBA106298137A7` (`centro_id`),
+  CONSTRAINT `FK_57BBA106298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `jornada_tipo`
+--
+
+LOCK TABLES `jornada_tipo` WRITE;
+/*!40000 ALTER TABLE `jornada_tipo` DISABLE KEYS */;
+INSERT INTO `jornada_tipo` VALUES
+(1,'turno mañana estándar','manana','[1,2,3,4,5]','2026-04-26 19:39:40','2026-04-26 19:48:53',1,'2026-04-26 19:48:53',3),
+(2,'FP Mañanas','manana','[1,2,3,4,5]',NULL,'2026-04-26 20:05:26',1,'2026-04-26 20:05:26',3),
+(3,'FP Mañanas','manana','[1,2,3,4,5]','2026-04-26 20:05:11','2026-04-26 20:05:11',0,NULL,3);
+/*!40000 ALTER TABLE `jornada_tipo` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `jornada_tramo`
+--
+
+DROP TABLE IF EXISTS `jornada_tramo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jornada_tramo` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `orden` smallint(6) NOT NULL,
+  `tipo` varchar(16) NOT NULL,
+  `hora_inicio` time NOT NULL,
+  `hora_fin` time NOT NULL,
+  `etiqueta` varchar(60) DEFAULT NULL,
+  `jornada_tipo_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_jornada_tramo_orden` (`jornada_tipo_id`,`orden`),
+  KEY `IDX_4EF1F68B89635E79` (`jornada_tipo_id`),
+  CONSTRAINT `FK_4EF1F68B89635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `jornada_tramo`
+--
+
+LOCK TABLES `jornada_tramo` WRITE;
+/*!40000 ALTER TABLE `jornada_tramo` DISABLE KEYS */;
+INSERT INTO `jornada_tramo` VALUES
+(1,0,'slot','08:30:00','09:30:00',NULL,1),
+(2,1,'slot','09:30:00','10:30:00',NULL,1),
+(3,2,'slot','10:30:00','11:30:00',NULL,1),
+(4,3,'slot','11:30:00','12:30:00',NULL,1),
+(5,4,'slot','12:30:00','13:30:00',NULL,1),
+(6,5,'slot','13:30:00','14:30:00',NULL,1),
+(14,0,'slot','08:30:00','09:30:00',NULL,3),
+(15,1,'slot','09:30:00','10:30:00',NULL,3),
+(16,2,'recreo','10:30:00','10:50:00',NULL,3),
+(17,3,'slot','10:50:00','11:50:00',NULL,3),
+(18,4,'slot','11:50:00','12:50:00',NULL,3),
+(19,5,'recreo','12:50:00','13:00:00',NULL,3),
+(20,6,'slot','13:00:00','14:30:00',NULL,3);
+/*!40000 ALTER TABLE `jornada_tramo` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -3410,7 +3498,7 @@ CREATE TABLE `matricula` (
   KEY `IDX_15DF18859C833003` (`grupo_id`),
   CONSTRAINT `FK_15DF18859C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_15DF1885FC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3419,6 +3507,8 @@ CREATE TABLE `matricula` (
 
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
+INSERT INTO `matricula` VALUES
+(1,'2026-04-26 15:35:31','2026-04-26 16:01:30',1,'2026-04-26 16:01:30',57,1);
 /*!40000 ALTER TABLE `matricula` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3863,7 +3953,7 @@ INSERT INTO `usuario` VALUES
 (54,'clara@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$8VLephkdOwaGB7a7yAYA1.DtvJwu37wc15TMeAzGBHMlFp1PNPnAS','Clara','Gutiérrez Mira','+34 910-927672','70300626E','profesor','/uploads/avatar/e63758981329e99969202e3b7cee1e694f93a2d1.jpg',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (55,'sara@eag.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$cSLKFuyGmUrJv/OwIiykk.0slJzhSwm1vHHPeXuIU.9ZbcFGgu/xq','Sara','Alberti Marizza','+34 976423896','37603007P','admin','/uploads/avatar/438efc2c1de4294ac2e3bf134777ef6069eb8934.jpg','firma-55-69e4b4a21e21f.png','[\"admin-personalizar-centro\",\"alumno-entregar-tarea\",\"profesor-editor-horarios\",\"alumno-ver-calificaciones\",\"admin-crear-grupo\",\"primer-login\",\"profesor-poner-nota\"]','2026-01-31 22:12:20','2026-04-26 12:27:35',0,NULL,3),
 (56,'maria@eag.com','[\"ROLE_PROFESOR\"]','$2y$13$/8r.QIUMGYWWr8aXJXCfau4wmx7NCNCMqo250jQFPjGlT.BjabfGi','María','Cordero Acosta','+34 965 62 9033','25151901K','profesor','/uploads/avatar/afd1b2acb3a8c8c5c0ed24b089896c4b6ee3908b.jpg',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
-(57,'vega.ferrer@alvarez.es','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$God9dDDd0jN8pANHweaR0.AQfm3w4rz/p39nAYBDFpmHH0WPHiqzq','Daniel','Rosario Gálvez','922 63 5586','80834170A','alumno','/uploads/avatar/dani-698371955bacf.jpg',NULL,'[\"profesor-editor-horarios\",\"admin-personalizar-centro\",\"alumno-entregar-tarea\",\"alumno-ver-calificaciones\",\"admin-crear-grupo\",\"primer-login\"]','2026-01-31 22:12:20','2026-04-26 07:48:26',0,NULL,3),
+(57,'vega.ferrer@alvarez.es','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$God9dDDd0jN8pANHweaR0.AQfm3w4rz/p39nAYBDFpmHH0WPHiqzq','Daniel','Rosario Gálvez','922 63 5586','80834170A','alumno','/uploads/avatar/dani-698371955bacf.jpg',NULL,'[\"profesor-editor-horarios\",\"admin-personalizar-centro\",\"alumno-entregar-tarea\",\"alumno-ver-calificaciones\",\"admin-crear-grupo\",\"primer-login\",\"profesor-poner-nota\"]','2026-01-31 22:12:20','2026-04-26 15:35:41',0,NULL,3),
 (58,'javier.coronado@yahoo.es','[\"ROLE_ALUMNO\"]','$2y$13$OEk6NniM8mcZiVcW3yJtSOiLGBzLIucbB5oAxnJIkj0/BAqc7J63G','Noa','Figueroa Negrón','993 878184','74304969L','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (59,'tello.adam@torres.es','[\"ROLE_ALUMNO\"]','$2y$13$1ThREXZhftidvwXR3NBVDePCo.lHG1tfdsOsnnzqL7dMDWM7ui68q','Celia','Maldonado Treviño','983537145','05132434F','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (60,'uaguirre@estrada.com.es','[\"ROLE_ALUMNO\"]','$2y$13$BLtX/l3Sy55bSNIM5VfDXesj8te7lk6Iy71xdfFKTNkVR9tAnYPY.','Saúl','Ortega Regalado','+34 978-123247','99823086G','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
@@ -3896,4 +3986,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-26 15:27:35
+-- Dump completed on 2026-04-26 21:34:04
