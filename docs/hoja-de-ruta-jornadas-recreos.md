@@ -1,10 +1,10 @@
 # Sistema de jornadas y recreos para `/admin/horarios`
 
-> **Status**: Fases A y C implementadas y operativas. Pendiente Fase D (refactor del editor `/admin/horarios` para consumir jornadas reales). Fase B (asistente automático) aplazada hasta después de D — sin D, B no aporta valor visible. Decisiones de aulas (D12-D17) aplazadas a fase posterior.
+> **Status (2026-04-27)**: Fases A, C, G y D **implementadas y operativas**. La rejilla del editor consume la jornada del itinerario y pinta los recreos. **PERO se descubrió bug conceptual del solver** que invalida casos reales con slots de duración mixta (2h, 1h30, etc.) — ver §13 bitácora de 2026-04-27 y D24 abajo. **Lo siguiente al retomar es decidir D24 y atacarlo (Fase E ampliada)**.
 
 ## ⚡ Snapshot para retomar en otra sesión
 
-**Lo que ya funciona end-to-end:**
+### ✅ Lo que YA funciona end-to-end
 
 1. **Backend** (`backend/src/Entity/`, `Service/`, `Validator/Constraint/`):
    - Entidades `JornadaTipo` (cabecera) y `JornadaTramo` (tramos) con `OneToMany` cascade `persist+remove` y `orphanRemoval`.
@@ -13,50 +13,108 @@
    - Lado inverso `Centro.jornadaTipos`.
    - `JornadaTramoValidator` (servicio) + `JornadaCoherente` constraint Symfony enchufada a la clase `JornadaTipo` → API Platform devuelve 422 si los tramos solapan / hay huecos / no hay slots.
    - Migración aplicada: `migrations/Version20260426191216.php` (tablas `jornada_tipo`, `jornada_tramo`, FK `jornada_tipo_id` en `itinerario`).
-   - API Platform CRUD operativo bajo **`/api/jornada_tipos`** (con guion bajo, no kebab-case — siguiendo convención del proyecto: `catalogo_itinerarios`, etc.).
-   - **Workaround importante**: `JornadaTramo.jornadaTipo` lleva `cascade: ['persist']` (dirección hijo→padre) para evitar `"A new entity was found through the relationship"` al deserializar PUT/POST con tramos anidados. Si más adelante hay rarezas de update (tramos antiguos que no se borran al editar), reemplazar por un `State Processor` custom que controle la collection.
+   - API Platform CRUD operativo bajo **`/api/jornada_tipos`** (snake_case, no kebab — convención del proyecto, igual que `catalogo_itinerarios`).
+   - `HorarioSolver.php` refactorizado: lee jornada del grupo (no slots hardcoded), usa `diasLectivos` y `tramos` SLOT, los grupos paralelos se detectan por coincidencia del campo `turno` (no por nombre del itinerario).
+   - **Workaround importante**: `JornadaTramo.jornadaTipo` lleva `cascade: ['persist']` (dirección hijo→padre) para evitar `"A new entity was found through the relationship"` al deserializar PUT/POST con tramos anidados. Si más adelante hay rarezas de update (tramos antiguos que no se borran al editar), reemplazar por `State Processor` custom que controle la collection.
 
 2. **Frontend** (`frontend/src/pages/JornadasAdmin.jsx` + `.module.css`):
-   - CRUD `/admin/jornadas` con DataTable, búsqueda, filtros centro+turno.
+   - CRUD `/admin/jornadas` con DataTable, búsqueda, filtros centro+turno (DataTable usa `currentPage`+`onSort(col)`, NO `page`+`onSort(col,dir)` — bug que tuve que arreglar).
    - Modal con: nombre, centro (selector), turno (radio M/T), días lectivos (checkboxes lun-dom), **tabla editable de tramos** con flechas ↑↓ y borrar, **timeline horizontal solo-lectura** (anchos proporcionales, slots en color, recreos rayados), métricas en vivo (slots, h/día, h/sem).
    - Validaciones cliente: rechazo si no hay centro o no hay tramos antes del POST.
-   - Manejo robusto del campo `centro` recibido del backend (string IRI, objeto con `.id`, objeto JSON-LD con `@id`).
+   - Manejo robusto del campo `centro` recibido del backend (string IRI, objeto con `.id`, objeto JSON-LD con `@id`). Mismo patrón aplicado a `jornadaTipo` anidado.
    - Ruta + sidebar (icono `Clock` de lucide).
-   - Selector "Jornada" (`AsyncSearchSelect`) en el modal de Itinerario filtrando por centro; recomendado pero no obligatorio (D7 dice que el admin elige; sin jornada el editor de horarios mostrará un banner).
+   - Selector "Jornada" (`AsyncSearchSelect`) en el modal de Itinerario filtrando por centro (Fase G); recomendado pero no obligatorio (D7).
    - i18n en 5 idiomas (es/en/ca/eu/gl) bajo bloque `jornadas.*` + `sidebar.jornadas` + `itinerarios.jornadaLabel/Placeholder/Hint`.
 
-**Lo que NO está hecho aún:**
+3. **Editor `/admin/horarios`** (`frontend/src/pages/HorariosEditor.jsx` + `.module.css`):
+   - `useEffect` 1.5 carga la jornada del itinerario del grupo seleccionado vía `GET /api/jornada_tipos/{id}` (porque el GET de Grupo no anida los tramos por groups). Cache local en `jornadasPorId`.
+   - Constantes `SLOTS_MANANA`/`SLOTS_TARDE` y heurística `turnoGrupo` (DAW=mañana, DAM=tarde) **eliminadas**.
+   - `slotsDia` y `recreosDia` se derivan de `tramosOrdenados` (que ordena los tramos de la jornada por `orden`). El `turnoGrupo` ahora viene del campo `JornadaTipo.turno`.
+   - Rejilla: itera sobre `tramosOrdenados` y para cada uno pinta una fila slot droppable o un recreo no asignable (banda gris rayada que ocupa todas las columnas de días).
+   - Banner cuando `slotsDia.length === 0` (itinerario sin jornada o jornada sin slots) — explica al admin que asigne una jornada en `/itinerarios` o cree una en `/admin/jornadas`.
+   - CSS `.gridRowRecreo` + `.recreoStrip` añadidos en `HorariosEditor.module.css`.
 
-- ❌ El editor `/admin/horarios` (`HorariosEditor.jsx`) **sigue usando `SLOTS_MANANA`/`SLOTS_TARDE` hardcoded**. Asignar una jornada a un itinerario hoy NO surte efecto en la rejilla. Esa es la Fase D.
-- ❌ Asistente automático que rellene los tramos a partir de Σ horas materias del itinerario (Fase B).
-- ❌ Sistema de aulas (D12-D17 aplazadas).
+### 🐛 Bug crítico abierto (descubierto 2026-04-27)
 
-**Para retomar:**
+El solver y el editor asumen **un slot = una hora lectiva** (`for ($i = 0; $i < $horas; $i++) tasks[]=imp;`). Esto rompe en jornadas reales donde los slots tienen duración variable (ej. tu horario real de 2º DAW: 08:30-10:30 + 10:50-12:50 + 13:00-14:30 = 2h+2h+1h30).
 
-Siguiente acción concreta: arrancar **Fase D — Refactor `HorariosEditor.jsx`** (ver §8 y §9 de este doc):
-1. Cargar la jornada del grupo seleccionado vía `grupo.itinerario.jornadaTipo` con sus tramos. Endpoint: ya disponible vía `GET /api/grupos/{id}` con groups `grupo:read` + `itinerario:read` + `jornada:read` + `tramo:read`.
-2. Reemplazar las constantes `SLOTS_MANANA`/`SLOTS_TARDE` por un `slotsDia` derivado de los tramos `SLOT` de la jornada (los `RECREO` se pintan pero no aceptan drops).
-3. Eliminar la heurística `turnoGrupo` (DAW=mañana, DAM=tarde) — la jornada ya lleva `turno`.
-4. Adaptar `HorarioSolver.php` para que reciba la lista de slots de la jornada como input.
-5. Caso degradado: itinerario sin jornada → banner informativo + link a `/itinerarios` para asignar.
-6. Validar/normalizar los `Horario` ya colocados que pudieran no encajar en la nueva jornada (poco probable porque la BD venía sin horarios — D8 lo confirmó).
+Síntoma: el solver coloca exactamente N slots por imparticion, pero esos N slots pueden ocupar 1.5h, 2h o lo que sea cada uno → las horas reales colocadas no coinciden con `materia.horasSemanales`.
 
-**Convenciones a respetar al implementar Fase D:**
+**Decisión D24 abierta** (ver §3.3) sobre cómo resolverlo. **Opción A (minutos) es la recomendada**.
 
-- URL del recurso: `/api/jornada_tipos` (snake_case + plural inglés).
-- Las TIME columns vienen como `"HH:MM:SS"` del backend; helpers `normalizeHora()` y `horaToMinutos()` ya existen en `JornadasAdmin.jsx`, reutilizar/extraer a `utils/time.js` si se usan en más sitios.
-- El campo `centro` puede venir en 3 formatos (string IRI, objeto con `.id`, objeto JSON-LD con `@id`). Misma lógica para `jornadaTipo` anidado.
-- El validador `JornadaTramoValidator` ya garantiza que los tramos están ordenados, sin solapes y con cobertura contigua. El editor puede asumirlo.
+### ⏳ Lo que NO está hecho
 
-**Tasks pendientes (creadas):**
-- D.1: Cargar jornada del grupo en el editor (fetch + estado).
-- D.2: Reemplazar slots hardcoded por tramos dinámicos en la rejilla.
-- D.3: Pintar recreos como bloques no asignables.
-- D.4: Eliminar heurística `turnoGrupo`.
-- D.5: Adaptar `HorarioSolver.php` para recibir slots de la jornada.
-- D.6: Banner degradado para itinerarios sin jornada.
+- ❌ **Solver respetando duración real de slots** (D24 + Fase E ampliada).
+- ❌ **Asistente automático** que rellena tramos a partir de Σ horas materias / días lectivos / recreo (Fase B). Aplazado hasta D24 — sin la matemática correcta de slots/horas no tiene sentido autogenerar.
+- ❌ **Materias optativas / autonómicas** (no vienen del scraping BOE; el admin las añade a mano vía `/materias`). No es bug, es comportamiento esperado: el catálogo nacional solo trae materias troncales.
+- ❌ **Sistema de aulas** (D12-D17 aplazadas).
+- ❌ **Invalidación de cache** de jornada en `HorariosEditor`: si el admin edita una jornada en `/admin/jornadas`, el editor sigue mostrando la cacheada hasta recargar la página. Trivial: escuchar evento o invalidar al volver a montar.
+- ❌ **`itemsPerPageJornadas`** en `Personalizacion`: el hook `usePagination('jornadas')` cae al fallback de 20 (no se persiste preferencia).
+- ❌ **Detección de paralelismo refinada**: hoy se compara `JornadaTipo.turno` (mañana/tarde) entre grupos paralelos. Si dos jornadas distintas, ambas "MAÑANA", solo solapan parcialmente, se cuenta como solape total (pesimista). Refactor a "solape real de rangos `[horaInicio, horaFin]`" es trivial pero no urgente.
 
-(Cuando se retome la sesión: invocar las tasks D.1-D.6 con `TaskCreate` siguiendo el plan de §8.)
+### 🎯 Para retomar mañana — orden exacto
+
+1. **Releer §13 bitácora 2026-04-27** (al final del doc) para entender el contexto del bug de slots mixtos.
+2. **Cerrar D24** (§3.3): elegir opción A (minutos), B (sesiones) o C (híbrido). El usuario aún no decidió. Recomendación: **A**.
+3. Si A: **arrancar Fase E ampliada**:
+   - Refactorizar `HorarioSolver.php` para trabajar en minutos:
+     - `tasks` deja de ser "1 task por hora" y pasa a ser "1 task por imparticion con minutos pendientes".
+     - El backtracking elige slots y resta `slot.duracionMinutos` de los pendientes de la imparticion.
+     - Se acepta una imparticion como "completa" cuando su contador llega a 0 (o lo más cerca posible).
+   - Refactorizar `HorariosEditor.jsx`:
+     - El `ModuleChip` mostraba `horasColocadas/horasTotales`. Cambiar a `minutosColocados/minutosTotales` o seguir mostrando horas con decimales.
+     - `validateDrop` y `validateTap`: ya no comparan "h/sem === slots colocados" sino "minutosTotales === sum(slot.duracionMinutos colocados)".
+   - Tests del solver con jornadas mixtas (lo ideal: añadir un test PHPUnit con un caso real).
+4. **Verificar con horario real** del usuario (3 bloques: 2h/2h/1h30, total 5h30/día × 5 = 27h30/sem) que el solver ya coloca todas las horas correctamente.
+5. (Opcional) Atacar Fase B (asistente) ahora que la matemática es correcta.
+
+### 📌 Convenciones consolidadas
+
+- URL del recurso jornada: **`/api/jornada_tipos`** (snake_case).
+- TIME columns viajan como `"HH:MM:SS"` del backend.
+- Cualquier FK del backend puede venir en **3 formatos** (string IRI, objeto con `.id`, JSON-LD con `@id`). Helper recurrente:
+  ```js
+  const extractIdFromRef = (ref) => {
+    if (!ref) return '';
+    if (typeof ref === 'string') return ref.split('/').pop();
+    if (typeof ref === 'object') return String(ref.id || (ref['@id'] ? ref['@id'].split('/').pop() : ''));
+    return '';
+  };
+  ```
+- Helpers `normalizeHora()` (a `HH:MM:SS`) y `horaToMinutos()` viven en `JornadasAdmin.jsx`. Si Fase E los necesita en backend o en más sitios, extraer a `frontend/src/utils/time.js` y/o crear equivalente PHP.
+- Para itinerar slots+recreos en el editor: usar `tramosOrdenados` y llevar contador `slotIdxCounter` para mantener `slotIdx` consistente con `slotsDia` (las claves de `placements` son `${dia}_${horaInicio}`).
+- `usePagination('xxx')` lee `Personalizacion.itemsPerPageXxx` del backend. Si la columna no existe, fallback a 20. **Para añadir** una nueva clave: campo nuevo en `Personalizacion` + migración + UI en `Configuracion.jsx`.
+
+### 🗂️ Archivos clave (referencia rápida)
+
+```
+backend/src/Entity/JornadaTipo.php             entidad cabecera (con ApiResource + JornadaCoherente)
+backend/src/Entity/JornadaTramo.php            entidad tramo (cascade persist en ManyToOne)
+backend/src/Entity/TurnoJornada.php            enum MANANA|TARDE
+backend/src/Entity/TipoTramo.php               enum SLOT|RECREO
+backend/src/Entity/Itinerario.php              FK jornadaTipo añadida (líneas ~80-92, getter/setter al final)
+backend/src/Entity/Centro.php                  inverso jornadaTipos añadido
+backend/src/Repository/JornadaTipoRepository.php
+backend/src/Repository/JornadaTramoRepository.php
+backend/src/Service/JornadaTramoValidator.php  validador de coherencia (sin solapes, contiguo, ≥1 SLOT)
+backend/src/Service/HorarioSolver.php          ← REFACTORIZADO en Fase D pero con bug de slots/horas
+backend/src/Validator/Constraint/JornadaCoherente.php
+backend/src/Validator/Constraint/JornadaCoherenteValidator.php
+backend/migrations/Version20260426191216.php   migración Fase A
+
+frontend/src/pages/JornadasAdmin.jsx           CRUD + modal + timeline preview
+frontend/src/pages/JornadasAdmin.module.css
+frontend/src/pages/HorariosEditor.jsx          ← REFACTORIZADO en Fase D
+frontend/src/pages/HorariosEditor.module.css   con .gridRowRecreo y .recreoStrip
+frontend/src/pages/Itinerarios.jsx             selector "Jornada" añadido (Fase G)
+frontend/src/components/Sidebar.jsx            item "Jornadas" + icono Clock
+frontend/src/App.jsx                           ruta /admin/jornadas
+
+frontend/src/i18n/locales/{es,en,ca,eu,gl}.json   bloques jornadas.*
+
+scripts/seed_imparticiones_daw.sql             seed de imparticiones DAW 1º+2º (7 profes, 13 imparticiones)
+docs/hoja-de-ruta-jornadas-recreos.md          este documento
+```
 >
 > **Origen**: conversación 2026-04-26. El usuario reportó que los slots en `/admin/horarios` están hardcoded de hora en hora y que faltan recreos, configuración por turno y soporte para itinerarios con distinto número de horas semanales (ESO ≠ FP ≠ Bach).
 
@@ -157,6 +215,23 @@ A confirmar antes de empezar:
   - **Timeline visual horizontal**: barra de 24h con bloques arrastrables/redimensionables. Más bonito y rápido de usar, pero ~3× más trabajo (drag/resize, snap a múltiplos de 5 min, validación de solapes).
   - **Híbrido**: lista editable con preview de timeline solo-lectura debajo. Compromiso razonable.
   - **Recomendación**: **híbrido** — lista para editar + timeline solo-lectura para verificar visualmente.
+
+### 3.3 Bug del solver con slots de duración mixta (descubierto 2026-04-27)
+
+El usuario aportó su horario real de 2º DAW: 3 bloques diarios de duración variable (08:30-10:30 + 10:50-12:50 + 13:00-14:30 = 2h+2h+1h30 = 5h30/día → 27h30/sem). Esto destapó una asunción incorrecta en el solver y el editor:
+
+- `HorarioSolver::solve()` hace `for ($i = 0; $i < $horas; $i++) tasks[] = $imp;` → coloca **N slots** por imparticion, no N horas.
+- Si los slots son de 1h, todo coincide.
+- Si los slots son de 2h, una materia con `horasSemanales=6` ocupa 6 slots = 12 horas reales (el doble).
+- Si los slots son mixtos, el cómputo es impredecible.
+
+El editor frontend (`HorariosEditor.jsx`) tiene la misma asunción al calcular `horasColocadas` (cuenta slots, no minutos).
+
+- **D24** *(crítica, bloqueante de uso real del editor)*: ¿Cómo interpretar `materia.horasSemanales` cuando los slots de la jornada no son de 1h?
+  - **Opción A — minutos**: el solver y el editor pasan a trabajar en **minutos**. Cada imparticion necesita acumular `horasSemanales × 60` minutos; cada slot resta `slot.duracionMinutos` del contador. Solución correcta y robusta. Cambio mediano: ~30 líneas en `HorarioSolver.php` + ajuste cosmético en `HorariosEditor.jsx` (chip muestra horas con decimales o minutos pendientes). **Recomendación: A**.
+  - **Opción B — sesiones**: reinterpretar `horasSemanales` como "nº de sesiones/sem" sin importar duración del slot. Cambio mínimo pero rompe la semántica del campo (en el catálogo BOE son horas reales).
+  - **Opción C — híbrido**: el campo sigue siendo horas; al asignar la jornada al itinerario, el sistema calcula y muestra al admin cuántos slots/sem necesita cada materia (`ceil(horas × 60 / duracionMediaSlot)`); el admin valida o ajusta. Más complejo, no aporta sobre A.
+  - **Recomendación**: **A** — la única que respeta la semántica `horas = horas` y soporta jornadas reales con slots de cualquier duración.
 
 ### 3.1 Aulas (sub-bloque añadido 2026-04-26)
 
@@ -520,12 +595,14 @@ Cambios mínimos en el editor existente:
 | A — Backend: entidades `JornadaTipo` + `JornadaTramo` + migración + API CRUD + validador | 1-2 días | C, D, E | ✅ **Done (2026-04-26)** |
 | C — Editor visual de Jornada en `/admin/jornadas` (modal con tabla editable + timeline preview) | 1 día | D | ✅ **Done (2026-04-26)** |
 | G — Selector "Jornada" en el modal de Itinerario | 0.5 día | — | ✅ **Done (2026-04-26)** |
-| D — Refactor `HorariosEditor.jsx`: slots dinámicos + recreos visuales no asignables | 1-2 días | E, B | ⏳ **Siguiente** |
-| E — Adaptar `HorarioSolver.php` para recibir jornada como input | 1 día | — | ⏳ Bloqueado por D |
-| B — Servicio asistente automático: rellenar tramos a partir de Σ horas materias del itinerario | 0.5 día | — | ⏳ Aplazado tras D (sin D, B no aporta valor visible) |
+| D — Refactor `HorariosEditor.jsx`: slots dinámicos + recreos visuales no asignables | 1-2 días | E, B | ✅ **Done (2026-04-26/27)** |
+| **E (ampliada)** — Solver y editor en **minutos**, no en slots fijos (resolver D24) | 1 día | B | ⏳ **CRÍTICO — siguiente al retomar** |
+| B — Servicio asistente automático: rellenar tramos a partir de Σ horas materias del itinerario | 0.5 día | — | ⏳ Aplazado tras E (sin matemática correcta de slots/horas no aporta valor) |
 | F — Validador de horarios afectados al cambiar la jornada de un itinerario | 0.5 día | — | ⏳ Aplazado a v1.1 (D8 confirmó: la BD no tenía horarios actuales, no urge) |
+| H *(nueva, menor)* — Invalidación de cache de jornada en `HorariosEditor` al volver de `/admin/jornadas` | 0.5 día | — | ⏳ Pendiente, no urgente |
+| I *(nueva, menor)* — Campo `itemsPerPageJornadas` en `Personalizacion` + UI en `Configuracion` | 0.5 día | — | ⏳ Pendiente, no urgente |
 
-**Restante estimado**: 3-4 días de trabajo (Fases D + E + B).
+**Restante estimado para que el editor funcione en producción**: 1-2 días (Fase E ampliada + verificación con caso real del usuario).
 
 ---
 
@@ -551,7 +628,10 @@ Cambios mínimos en el editor existente:
 
 ## 12. Próximo paso
 
-Arrancar **Fase D — refactor `HorariosEditor.jsx`** (ver §8 y snapshot al inicio del documento). Tras D, encadenar E (solver) y B (asistente). Aulas (D12-D17) quedan para una iteración aparte cuando D-E-B estén estables.
+1. **Cerrar D24** (§3.3) — el usuario aún no eligió A/B/C. Recomendación: A (minutos).
+2. **Arrancar Fase E ampliada** — refactor del solver y el editor para que trabajen en minutos en vez de slots fijos. Sin esto, el editor no funciona con jornadas reales (caso del usuario: 3 bloques mixtos 2h/2h/1h30).
+3. Verificar con un caso real (DAW 2º con jornada 27h30/sem) que el solver coloca todo.
+4. Después: Fase B (asistente automático) y aulas (D12-D17).
 
 ---
 
@@ -581,3 +661,49 @@ Arrancar **Fase D — refactor `HorariosEditor.jsx`** (ver §8 y snapshot al ini
 - TIME columns viajan como `"HH:MM:SS"`.
 - El campo `centro` puede venir en 3 formatos (string IRI, objeto con `.id`, JSON-LD con `@id`). Mismo patrón aplica a cualquier FK serializada.
 - Helpers `normalizeHora()` y `horaToMinutos()` viven hoy en `JornadasAdmin.jsx`. Si Fase D los necesita también, extraer a `frontend/src/utils/time.js`.
+
+### 2026-04-26 noche / 2026-04-27 — Fase D cerrada + Fase G colateral + bug crítico del solver
+
+**Refactor `HorariosEditor.jsx` (Fase D):**
+- Eliminadas constantes `SLOTS_MANANA`/`SLOTS_TARDE` y heurística `turnoGrupo` (DAW=mañana / DAM=tarde).
+- Nuevo `useEffect` que carga la jornada del itinerario del grupo vía `GET /api/jornada_tipos/{id}` (cache local en `jornadasPorId`). El GET de `/api/grupos` no anida los tramos — un fetch dedicado es más limpio que tocar serializer groups en cascada.
+- `tramosOrdenados` (memo): tramos de la jornada ordenados por `orden`. Genera `slotsDia` (solo SLOTs) y `recreosDia` (solo RECREOs).
+- Rejilla iterada con contador `slotIdxCounter` para preservar la consistencia de claves `${dia}_${horaInicio}` en `placements`. Recreos pintados como banda gris rayada que ocupa todas las columnas (`gridColumn: span 5`).
+- Banner cuando `slotsDia.length === 0` (itinerario sin jornada o jornada sin slots).
+- CSS añadido en `HorariosEditor.module.css`: `.gridRowRecreo` y `.recreoStrip` con repeating-linear-gradient.
+
+**Refactor `HorarioSolver.php`:**
+- Eliminadas constantes `SLOTS_MANANA`/`SLOTS_TARDE` y método `turnoFromCiclo()`.
+- Nuevo método `slotsFromJornada(JornadaTipo)` extrae los SLOTs ordenados.
+- `solve()` lee `getJornadaTipo()` del grupo. Si null, devuelve respuesta clara con `error`.
+- `buildParallelBusy()` compara grupos paralelos por `JornadaTipo.turno` (en vez de heurística por nombre).
+
+**Selector de Jornada en Itinerario (Fase G colateral):**
+- `AsyncSearchSelect` añadido al final del modal manual, filtra por centro vía `extraParams`.
+- Helper `extractIdFromRef` unificado para los 3 formatos de FK (string/objeto/JSON-LD).
+- Validación cliente del centro antes del PUT/POST.
+
+**Bugs encontrados durante implementación:**
+1. **DataTable de JornadasAdmin con props mal nombradas** (`page` en vez de `currentPage`, `onSort(col,dir)` en vez de `onSort(col)`). Causaba aparente "navegación bloqueada" por error de React. Resuelto alineando con el patrón de `Itinerarios.jsx`.
+2. **`centro: null` al editar itinerario**: el extractor previo no cubría JSON-LD `{"@id": ...}` sin `.id`. Helper unificado `extractIdFromRef` aplicado tanto a centro como a jornada.
+3. **CrudHeader inconsistente** en JornadasAdmin (usaba prop inexistente `animation`, toolbar separado). Reorganizado a `logo={<Lottie/>}` + filtros como children, igual que el resto de CRUDs.
+4. **Selector "Jornada" oculto por scroll del modal** — el selector está al final del formulario y el usuario inicialmente no lo vio. Documentado en este doc para evitar confusión futura.
+
+**Bug crítico DESCUBIERTO al final (no resuelto, ver §3.3 D24):**
+- El usuario aportó su horario real de 2º DAW: 3 bloques de duración mixta (2h+2h+1h30 = 5h30/día → 27h30/sem). Esto destapó que el solver y el editor asumen "1 slot = 1 hora lectiva".
+- Con jornadas reales de slots variables, las horas asignadas NO coinciden con `materia.horasSemanales`.
+- Síntoma visible: el solver dejó 2h de "Sistemas informáticos" sin colocar (5h declaradas pero solo 3 slots disponibles para esa materia tras el reparto por backtracking heurístico).
+- **Decisión D24 abierta**: A (minutos), B (sesiones), C (híbrido). Recomendación A.
+
+**Datos de prueba creados en BD:**
+- Script `scripts/seed_imparticiones_daw.sql` con 13 imparticiones (6 para DAW 1º + 7 para DAW 2º) repartidas entre 7 profesores del centro EAG. Cargas: 0-11 h/sem por profe.
+- Sin esto, el editor no muestra chips en el panel lateral (no hay imparticiones que colocar).
+
+**Archivos tocados en esta sesión:**
+- `backend/src/Service/HorarioSolver.php` (refactorizado completo)
+- `frontend/src/pages/HorariosEditor.jsx` (refactorizado para consumir jornada)
+- `frontend/src/pages/HorariosEditor.module.css` (estilos recreos)
+- `frontend/src/pages/JornadasAdmin.jsx` (fix DataTable props + CrudHeader pattern)
+- `frontend/src/pages/Itinerarios.jsx` (extractIdFromRef + validación centro)
+- `scripts/seed_imparticiones_daw.sql` (nuevo, datos de prueba)
+- `docs/hoja-de-ruta-jornadas-recreos.md` (este documento, snapshot + bitácora)

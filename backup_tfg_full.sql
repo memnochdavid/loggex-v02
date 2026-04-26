@@ -3326,7 +3326,7 @@ CREATE TABLE `itinerario` (
 LOCK TABLES `itinerario` WRITE;
 /*!40000 ALTER TABLE `itinerario` DISABLE KEYS */;
 INSERT INTO `itinerario` VALUES
-(3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior','2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,129,NULL),
+(3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior',NULL,'2026-04-26 21:51:23',0,NULL,3,NULL,3),
 (4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL);
 /*!40000 ALTER TABLE `itinerario` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -3986,4 +3986,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-26 21:34:04
+-- Dump completed on 2026-04-26 21:54:06

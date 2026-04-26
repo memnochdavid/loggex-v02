@@ -218,23 +218,18 @@ const Itinerarios = () => {
     if (itinerario) {
       setCurrentItinerario(itinerario);
 
-      let centroId = '';
-      if (itinerario.centro) {
-          if (typeof itinerario.centro === 'string') {
-              centroId = itinerario.centro.split('/').pop();
-          } else if (itinerario.centro.id) {
-              centroId = itinerario.centro.id;
+      // El backend serializa FKs en uno de tres formatos según el contexto:
+      // string IRI, objeto con `.id`, u objeto JSON-LD con `@id`.
+      const extractIdFromRef = (ref) => {
+          if (!ref) return '';
+          if (typeof ref === 'string') return ref.split('/').pop();
+          if (typeof ref === 'object') {
+              return String(ref.id || (ref['@id'] ? ref['@id'].split('/').pop() : ''));
           }
-      }
-
-      let jornadaTipoId = '';
-      if (itinerario.jornadaTipo) {
-          if (typeof itinerario.jornadaTipo === 'string') {
-              jornadaTipoId = itinerario.jornadaTipo.split('/').pop();
-          } else if (itinerario.jornadaTipo.id) {
-              jornadaTipoId = itinerario.jornadaTipo.id;
-          }
-      }
+          return '';
+      };
+      const centroId = extractIdFromRef(itinerario.centro);
+      const jornadaTipoId = extractIdFromRef(itinerario.jornadaTipo);
 
       setFormData({
         nombre: itinerario.nombre,
@@ -244,10 +239,21 @@ const Itinerarios = () => {
       });
     } else {
       setCurrentItinerario(null);
+      // Resolver centro del usuario (puede venir como objeto, IRI o JSON-LD).
+      let centroDefault = '';
+      if (!isSuperAdmin && user?.centro) {
+        if (typeof user.centro === 'object' && user.centro.id) {
+          centroDefault = String(user.centro.id);
+        } else if (typeof user.centro === 'string') {
+          centroDefault = user.centro.split('/').pop();
+        } else if (typeof user.centro === 'object' && user.centro['@id']) {
+          centroDefault = user.centro['@id'].split('/').pop();
+        }
+      }
       setFormData({
         nombre: '',
         nivel: 'Superior',
-        centro: isSuperAdmin ? '' : (user.centro ? user.centro.id : ''),
+        centro: centroDefault,
         jornadaTipo: ''
       });
       // Reset del modo creación: por defecto catálogo (es la vía recomendada).
@@ -326,6 +332,11 @@ const Itinerarios = () => {
     }
 
     // Flujo manual (creación tradicional o edición).
+    if (!formData.centro) {
+      toast.error(t('itinerarios.centroRequired', { defaultValue: 'Selecciona un centro antes de guardar.' }));
+      setSaving(false);
+      return;
+    }
     try {
       const id = currentItinerario ? getItinerarioId(currentItinerario) : null;
       const url = currentItinerario
@@ -336,7 +347,7 @@ const Itinerarios = () => {
 
       const payload = {
         ...formData,
-        centro: formData.centro ? `/api/centros/${formData.centro}` : null,
+        centro: `/api/centros/${formData.centro}`,
         jornadaTipo: formData.jornadaTipo ? `/api/jornada_tipos/${formData.jornadaTipo}` : null,
       };
 

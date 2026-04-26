@@ -38,22 +38,9 @@ const DIAS = [
   { idx: 5, i18n: 'days.friday' },
 ];
 
-const SLOTS_MANANA = [
-  ['08:30:00', '09:30:00'],
-  ['09:30:00', '10:30:00'],
-  ['10:30:00', '11:30:00'],
-  ['11:30:00', '12:30:00'],
-  ['12:30:00', '13:30:00'],
-  ['13:30:00', '14:30:00'],
-];
-const SLOTS_TARDE = [
-  ['15:00:00', '16:00:00'],
-  ['16:00:00', '17:00:00'],
-  ['17:00:00', '18:00:00'],
-  ['18:00:00', '19:00:00'],
-  ['19:00:00', '20:00:00'],
-  ['20:00:00', '21:00:00'],
-];
+// Slots y recreos ahora se derivan de `JornadaTipo` del itinerario del grupo
+// (ver useEffect 1.5 + memo `jornadaActual` / `slotsDia` / `recreosDia` más abajo).
+// Se eliminaron las constantes SLOTS_MANANA/SLOTS_TARDE hardcoded.
 
 const fmtHora = (s) => s.slice(0, 5);
 
@@ -190,6 +177,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [activeDrag, setActiveDrag] = useState(null);
   // Tap-to-place: id de imparticion seleccionada (o null)
   const [selectedImpId, setSelectedImpId] = useState(null);
+  // Cache de jornadas por id: { [jornadaId]: JornadaTipoConTramos | null (no asignada) }
+  const [jornadasPorId, setJornadasPorId] = useState({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -220,6 +209,45 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, user?.centro?.id]);
+
+  // 1.5) Cargar la jornada del itinerario del grupo seleccionado.
+  // El GET /api/grupos no anida los tramos de la jornada (los serializer groups
+  // no encadenan tan profundo), así que hacemos un fetch dedicado a /api/jornada_tipos/{id}.
+  useEffect(() => {
+    if (!selectedGrupo || grupos.length === 0) return;
+    const grupoActual = grupos.find(g => String(g.id) === String(selectedGrupo));
+    if (!grupoActual) return;
+
+    const itin = grupoActual.itinerario;
+    // Resolver el id de la jornada (puede venir como objeto, IRI string o nada).
+    let jornadaId = null;
+    const jt = itin?.jornadaTipo;
+    if (jt) {
+      if (typeof jt === 'object') {
+        jornadaId = jt.id || (jt['@id'] ? jt['@id'].split('/').pop() : null);
+      } else if (typeof jt === 'string') {
+        jornadaId = jt.split('/').pop();
+      }
+    }
+
+    if (!jornadaId) {
+      // Itinerario sin jornada asignada: marcamos null para que el banner aparezca.
+      const itinId = itin?.id || (itin?.['@id'] ? itin['@id'].split('/').pop() : null);
+      if (itinId) setJornadasPorId(prev => ({ ...prev, [`itin:${itinId}`]: null }));
+      return;
+    }
+
+    if (jornadasPorId[jornadaId] !== undefined) return;  // ya cargado
+
+    fetch(getApiUrl(`/api/jornada_tipos/${jornadaId}`),
+      { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!j) return;
+        setJornadasPorId(prev => ({ ...prev, [jornadaId]: j }));
+      })
+      .catch(err => console.error('Error cargando jornada:', err));
+  }, [selectedGrupo, grupos, jornadasPorId]);
 
   // 2) Cargar imparticiones y horarios del grupo seleccionado
   useEffect(() => {
@@ -356,17 +384,58 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const grupoState = state[selectedGrupo];
   const placements = grupoState?.placements || {};
 
-  // Turno del grupo: DAW (itinerario DAW en EAG es id 3) → mañana; DAM (id 4) → tarde.
-  // Generalización: nombre del itinerario contiene "DAW"? mañana; caso contrario tarde.
-  const turnoGrupo = useMemo(() => {
-    if (!grupo) return 'M';
-    const itinerarioNombre = (grupo.itinerario?.nombre || '').toUpperCase();
-    if (itinerarioNombre.includes('WEB')) return 'M';
-    if (itinerarioNombre.includes('MULTIPLATAFORMA')) return 'T';
-    return 'M';
-  }, [grupo]);
+  // Resolver la jornada del itinerario del grupo. Cargada por el useEffect 1.5).
+  const jornadaActual = useMemo(() => {
+    if (!grupo) return null;
+    const jt = grupo.itinerario?.jornadaTipo;
+    let jornadaId = null;
+    if (jt) {
+      if (typeof jt === 'object') {
+        jornadaId = jt.id || (jt['@id'] ? jt['@id'].split('/').pop() : null);
+      } else if (typeof jt === 'string') {
+        jornadaId = jt.split('/').pop();
+      }
+    }
+    if (!jornadaId) return null;
+    return jornadasPorId[jornadaId] || null;
+  }, [grupo, jornadasPorId]);
 
-  const slotsDia = turnoGrupo === 'M' ? SLOTS_MANANA : SLOTS_TARDE;
+  // Normaliza un valor de hora ("HH:MM" / "HH:MM:SS" / ISO) a "HH:MM:SS".
+  const normHoraSlot = (v) => {
+    if (!v) return null;
+    const m = String(v).match(/(\d{2}):(\d{2})(?::(\d{2}))?/);
+    return m ? `${m[1]}:${m[2]}:${m[3] || '00'}` : null;
+  };
+
+  // Tramos ordenados de la jornada (lista plana). Si no hay jornada, lista vacía.
+  const tramosOrdenados = useMemo(() => {
+    if (!jornadaActual?.tramos) return [];
+    return [...jornadaActual.tramos]
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+      .map(t => ({
+        ...t,
+        horaInicio: normHoraSlot(t.horaInicio),
+        horaFin: normHoraSlot(t.horaFin),
+      }))
+      .filter(t => t.horaInicio && t.horaFin);
+  }, [jornadaActual]);
+
+  // Solo SLOTS asignables, en formato [horaInicio, horaFin] (compatible con el resto del código).
+  const slotsDia = useMemo(
+    () => tramosOrdenados
+      .filter(t => t.tipo === 'slot')
+      .map(t => [t.horaInicio, t.horaFin]),
+    [tramosOrdenados],
+  );
+
+  // Recreos para renderizar como bloques no asignables en la rejilla.
+  const recreosDia = useMemo(
+    () => tramosOrdenados.filter(t => t.tipo === 'recreo'),
+    [tramosOrdenados],
+  );
+
+  // Etiqueta del turno (informativa, viene de la jornada). Sin jornada, queda en blanco.
+  const turnoGrupo = jornadaActual?.turno === 'tarde' ? 'T' : 'M';
 
   // Horas colocadas por imparticion
   const horasColocadas = useMemo(() => {
@@ -950,6 +1019,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
         {!selectedGrupo || !grupoState ? (
           <div className={styles.emptyState}>{t('scheduleEditor.emptyState')}</div>
+        ) : slotsDia.length === 0 ? (
+          <div className={styles.emptyState} style={{ flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
+            <div style={{ fontWeight: 600 }}>
+              {t('scheduleEditor.noJornadaTitle', { defaultValue: 'El itinerario no tiene jornada asignada' })}
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', maxWidth: 480 }}>
+              {t('scheduleEditor.noJornadaHint', {
+                defaultValue: 'Asigna una jornada al itinerario "{{itin}}" desde /itinerarios o crea una nueva en /admin/jornadas.',
+                itin: grupo?.itinerario?.nombre || '—',
+              })}
+            </div>
+          </div>
         ) : (
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             <div className={styles.editorLayout}>
@@ -990,32 +1071,60 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     );
                   })}
                 </div>
-                {slotsDia.map((slotRange, slotIdx) => (
-                  <div key={slotIdx} className={styles.gridRow}>
-                    <div className={styles.timeLabel}>
-                      <span>{fmtHora(slotRange[0])}</span>
-                      <span className={styles.timeLabelSep}>–</span>
-                      <span>{fmtHora(slotRange[1])}</span>
-                    </div>
-                    {DIAS.map((d) => {
-                      const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
-                      const tapValid = !activeDrag && selectedImpId ? validateTap(d.idx, slotIdx) : null;
+                {(() => {
+                  // Recorremos los tramos en orden y vamos contando los slots
+                  // para mantener `slotIdx` consistente con `slotsDia` (que
+                  // los placements ya usan como clave).
+                  let slotIdxCounter = -1;
+                  return tramosOrdenados.map((tramo, tramoPos) => {
+                    if (tramo.tipo === 'recreo') {
                       return (
-                        <SlotCell
-                          key={`${d.idx}_${slotIdx}`}
-                          dia={d.idx}
-                          slot={slotIdx}
-                          content={renderSlotContent(d.idx, slotIdx)}
-                          dragActive={!!activeDrag}
-                          valid={validation ? validation.ok : null}
-                          tapMode={!!selectedImpId}
-                          tapValid={tapValid}
-                          onTap={() => handleTapCell(d.idx, slotIdx)}
-                        />
+                        <div key={`recreo-${tramoPos}`} className={`${styles.gridRow} ${styles.gridRowRecreo}`}>
+                          <div className={styles.timeLabel}>
+                            <span>{fmtHora(tramo.horaInicio)}</span>
+                            <span className={styles.timeLabelSep}>–</span>
+                            <span>{fmtHora(tramo.horaFin)}</span>
+                          </div>
+                          <div
+                            className={styles.recreoStrip}
+                            style={{ gridColumn: `span ${DIAS.length}` }}
+                            title={tramo.etiqueta || t('jornadas.tipoRecreo', { defaultValue: 'Recreo' })}
+                          >
+                            <span>{tramo.etiqueta || t('jornadas.tipoRecreo', { defaultValue: 'Recreo' })}</span>
+                          </div>
+                        </div>
                       );
-                    })}
-                  </div>
-                ))}
+                    }
+                    slotIdxCounter += 1;
+                    const slotIdx = slotIdxCounter;
+                    return (
+                      <div key={`slot-${slotIdx}`} className={styles.gridRow}>
+                        <div className={styles.timeLabel}>
+                          <span>{fmtHora(tramo.horaInicio)}</span>
+                          <span className={styles.timeLabelSep}>–</span>
+                          <span>{fmtHora(tramo.horaFin)}</span>
+                        </div>
+                        {DIAS.map((d) => {
+                          const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
+                          const tapValid = !activeDrag && selectedImpId ? validateTap(d.idx, slotIdx) : null;
+                          return (
+                            <SlotCell
+                              key={`${d.idx}_${slotIdx}`}
+                              dia={d.idx}
+                              slot={slotIdx}
+                              content={renderSlotContent(d.idx, slotIdx)}
+                              dragActive={!!activeDrag}
+                              valid={validation ? validation.ok : null}
+                              tapMode={!!selectedImpId}
+                              tapValid={tapValid}
+                              onTap={() => handleTapCell(d.idx, slotIdx)}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+                })()}
                 <div className={styles.infoBar}>
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>

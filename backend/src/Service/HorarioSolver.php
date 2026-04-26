@@ -4,22 +4,13 @@ namespace App\Service;
 
 use App\Entity\Grupo;
 use App\Entity\Imparticion;
+use App\Entity\JornadaTipo;
+use App\Entity\TipoTramo;
+use App\Entity\TurnoJornada;
 use Doctrine\ORM\EntityManagerInterface;
 
 class HorarioSolver
 {
-    private const DIAS = [1, 2, 3, 4, 5];
-
-    private const SLOTS_MANANA = [
-        ['08:30', '09:30'], ['09:30', '10:30'], ['10:30', '11:30'],
-        ['11:30', '12:30'], ['12:30', '13:30'], ['13:30', '14:30'],
-    ];
-
-    private const SLOTS_TARDE = [
-        ['15:00', '16:00'], ['16:00', '17:00'], ['17:00', '18:00'],
-        ['18:00', '19:00'], ['19:00', '20:00'], ['20:00', '21:00'],
-    ];
-
     private const TIMEOUT_SEC = 2.0;
     // Preferencia (no límite) para compactar: penaliza pasar de este umbral
     private const SOFT_SAME_MODULE_PER_DAY = 3;
@@ -36,9 +27,32 @@ class HorarioSolver
 
     public function solve(Grupo $grupo, ?int $seed = null): array
     {
-        $turno = $this->turnoFromCiclo($grupo->getItinerario()?->getNombre() ?? '');
-        $slots = $turno === 'T' ? self::SLOTS_TARDE : self::SLOTS_MANANA;
+        $jornada = $grupo->getItinerario()?->getJornadaTipo();
+        if ($jornada === null) {
+            return [
+                'complete' => false,
+                'placements' => [],
+                'unplaced' => [],
+                'debug' => [
+                    'error' => 'Sin jornada asignada al itinerario. Asigna una en /admin/jornadas.',
+                ],
+            ];
+        }
 
+        $diasLectivos = $jornada->getDiasLectivos() ?: [1, 2, 3, 4, 5];
+        $slots = $this->slotsFromJornada($jornada);
+        if (empty($slots)) {
+            return [
+                'complete' => false,
+                'placements' => [],
+                'unplaced' => [],
+                'debug' => [
+                    'error' => 'La jornada no contiene tramos de tipo SLOT.',
+                ],
+            ];
+        }
+
+        $turno = $jornada->getTurno();
         $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
         $parallelBusy = $this->buildParallelBusy($grupo, $turno);
 
@@ -71,7 +85,7 @@ class HorarioSolver
         }
 
         $cells = [];
-        foreach (self::DIAS as $d) {
+        foreach ($diasLectivos as $d) {
             foreach ($slots as $s) {
                 $cells[] = ['dia' => $d, 'hi' => $s[0], 'hf' => $s[1]];
             }
@@ -144,7 +158,11 @@ class HorarioSolver
             'placements' => $out,
             'unplaced' => $unplaced,
             'debug' => [
-                'turno' => $turno,
+                'jornadaId' => $jornada->getId(),
+                'jornadaNombre' => $jornada->getNombre(),
+                'turno' => $turno?->value,
+                'diasLectivos' => $diasLectivos,
+                'slotsPorDia' => count($slots),
                 'totalSlots' => count($cells),
                 'totalHorasAColocar' => count($tasks),
                 'imparticiones' => $tasksPerImp,
@@ -158,6 +176,27 @@ class HorarioSolver
                 'bestPartialUsed' => !$ok && count($this->bestPlacements) > 0,
             ],
         ];
+    }
+
+    /**
+     * Devuelve los slots asignables de una jornada en formato [['HH:MM', 'HH:MM'], ...]
+     * ordenados por horaInicio. Filtra los tramos de tipo RECREO.
+     *
+     * @return array<int, array{0: string, 1: string}>
+     */
+    private function slotsFromJornada(JornadaTipo $jornada): array
+    {
+        $tramos = $jornada->getTramos()->toArray();
+        usort($tramos, fn ($a, $b) => $a->getHoraInicio() <=> $b->getHoraInicio());
+        $out = [];
+        foreach ($tramos as $t) {
+            if ($t->getTipo() !== TipoTramo::SLOT) continue;
+            $hi = $t->getHoraInicio()?->format('H:i');
+            $hf = $t->getHoraFin()?->format('H:i');
+            if ($hi === null || $hf === null) continue;
+            $out[] = [$hi, $hf];
+        }
+        return $out;
     }
 
     private function backtrack(int $idx, array $tasks, array $cells, array &$placements, array &$profBusyLocal, array $parallelBusy, ?int $seed): bool
@@ -229,15 +268,27 @@ class HorarioSolver
         return false;
     }
 
-    private function buildParallelBusy(Grupo $grupo, string $turno): array
+    /**
+     * Calcula la ocupación de profesores en grupos paralelos del mismo centro
+     * cuya jornada comparte el mismo `turno` con la del grupo actual. Esto
+     * impide que un profesor se asigne en dos grupos a la vez.
+     *
+     * Nota: comparamos por `turno` (enum mañana/tarde) en lugar de solape real
+     * de rangos horarios. Es una aproximación suficiente y barata; si dos
+     * jornadas distintas pero ambas "MAÑANA" no se solapan en la práctica,
+     * se cuenta de más pero no rompe nada.
+     */
+    private function buildParallelBusy(Grupo $grupo, ?TurnoJornada $turno): array
     {
         $centro = $grupo->getCentro();
-        if (!$centro) return [];
+        if (!$centro || $turno === null) return [];
         $grupos = $this->em->getRepository(Grupo::class)->findBy(['centro' => $centro]);
         $busy = [];
         foreach ($grupos as $g) {
             if ($g->getId() === $grupo->getId()) continue;
-            if ($this->turnoFromCiclo($g->getItinerario()?->getNombre() ?? '') !== $turno) continue;
+            $jOtro = $g->getItinerario()?->getJornadaTipo();
+            if ($jOtro === null) continue;
+            if ($jOtro->getTurno() !== $turno) continue;
             $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $g]);
             foreach ($imps as $imp) {
                 $pid = $imp->getProfesor()?->getId();
@@ -251,14 +302,6 @@ class HorarioSolver
             }
         }
         return $busy;
-    }
-
-    private function turnoFromCiclo(string $nombre): string
-    {
-        $n = strtoupper($nombre);
-        if (str_contains($n, 'WEB')) return 'M';
-        if (str_contains($n, 'MULTIPLATAFORMA')) return 'T';
-        return 'M';
     }
 
     private function shuffleCopy(array $arr): array

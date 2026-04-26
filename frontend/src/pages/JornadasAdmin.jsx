@@ -79,6 +79,16 @@ const JornadasAdmin = () => {
   const prevSearchField = useRef(searchField);
   const abortController = useRef(null);
 
+  const handleItemsPerPageChange = (n) => { setItemsPerPage(n); setCurrentPage(1); };
+  const handleSort = useCallback((columnKey) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  }, [sortColumn]);
+
   const searchFields = [
     { value: 'nombre', label: t('jornadas.name', { defaultValue: 'Nombre' }) },
   ];
@@ -453,18 +463,16 @@ const JornadasAdmin = () => {
         <DataTable
           columns={columns}
           data={jornadas}
-          loading={loading}
-          page={currentPage}
-          onPageChange={setCurrentPage}
-          itemsPerPage={itemsPerPage}
-          onItemsPerPageChange={setItemsPerPage}
           totalItems={totalItems}
-          onSort={(col, dir) => { setSortColumn(col); setSortDirection(dir); }}
+          itemsPerPage={itemsPerPage}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          loading={loading}
           sortColumn={sortColumn}
           sortDirection={sortDirection}
-          emptyAnimation={
-            <Lottie animationData={crudAnimation} loop style={{ width: 220, opacity: 0.6 }} />
-          }
+          onSort={handleSort}
+          mobileBreakpoint={'600px'}
         />
       </div>
 
