@@ -1,7 +1,7 @@
 # Loggex v02 - Contexto para Claude Code
 
 ## Naturaleza del Proyecto
-Plataforma de gestión académica para centros educativos (tipo TFG). Gestión de usuarios, centros, ciclos formativos, módulos, grupos, matrículas, horarios, asistencia, tareas, materiales y mensajería.
+Plataforma de gestión académica para centros educativos (tipo TFG). Gestión de usuarios, centros, itinerarios, materias, grupos, matrículas, horarios, asistencia, tareas, temarios y mensajería.
 
 ## Stack Tecnológico
 - **Backend**: PHP 8.4 + Symfony 7/8 + API Platform 3 (API REST JSON-LD)
@@ -32,7 +32,7 @@ frontend/
 
 **Catálogo oficial (read-only):** CatalogoItinerario, CatalogoMateria, CatalogoCentro.
 
-> Nota: el rename `CicloFormativo→Itinerario / Modulo→Materia / Material→Temario / Tema→TemaVisual` se ejecutó para alinear el vocabulario con el catálogo oficial y dejar las entidades neutras frente a la etapa educativa (FP, ESO, Bach, Uni). Plan completo: `docs/hoja-de-ruta-rename-fp-neutral.md`.
+> Nota: el rename `CicloFormativo→Itinerario / Modulo→Materia / Material→Temario / Tema→TemaVisual` se ejecutó para alinear el vocabulario con el catálogo oficial y dejar las entidades neutras frente a la etapa educativa (FP, ESO, Bach, Uni). Plan completo: `docs/hoja-de-ruta-rename-fp-neutral.md`. Los copys de la UI (i18n en 5 idiomas) se actualizaron en abr-2026 para usar el vocabulario neutro: "Itinerario(s)", "Materia(s)", "Temario(s)" — incluyendo el sidebar, tutoriales y descripciones.
 
 ## Catálogo oficial (estado)
 - **230 itinerarios** y **~2 230 materias** cargados desde BOE.

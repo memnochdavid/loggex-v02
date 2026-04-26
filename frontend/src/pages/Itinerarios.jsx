@@ -299,13 +299,13 @@ const Itinerarios = () => {
         });
         handleCloseModal();
         toast.success(t('itinerarios.catalogo.createdSuccess', {
-          defaultValue: 'Ciclo creado desde el catálogo con {{count}} módulos',
+          defaultValue: 'Itinerario creado desde el catálogo con {{count}} materias',
           count: data.modulosCreados ?? 0,
         }));
       } catch (err) {
-        console.error('Error creando ciclo desde catálogo:', err);
+        console.error('Error creando itinerario desde catálogo:', err);
         toast.error(err.message, {
-          description: t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' }),
+          description: t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el itinerario' }),
         });
       } finally {
         setSaving(false);
@@ -355,15 +355,15 @@ const Itinerarios = () => {
       });
       handleCloseModal();
       toast.success(currentItinerario
-        ? t('itinerarios.updatedSuccess', { defaultValue: 'Ciclo actualizado' })
-        : t('itinerarios.createdSuccess', { defaultValue: 'Ciclo creado' }));
+        ? t('itinerarios.updatedSuccess', { defaultValue: 'Itinerario actualizado' })
+        : t('itinerarios.createdSuccess', { defaultValue: 'Itinerario creado' }));
 
     } catch (err) {
-      console.error("Error saving ciclo:", err);
+      console.error("Error saving itinerario:", err);
       toast.error(err.message, {
         description: currentItinerario
-          ? t('itinerarios.errorUpdating', { defaultValue: 'No se ha podido actualizar el ciclo' })
-          : t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el ciclo' })
+          ? t('itinerarios.errorUpdating', { defaultValue: 'No se ha podido actualizar el itinerario' })
+          : t('itinerarios.errorCreating', { defaultValue: 'No se ha podido crear el itinerario' })
       });
     } finally {
       setSaving(false);
