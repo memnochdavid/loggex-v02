@@ -8,7 +8,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
-import ModuloLabel from '../components/ModuloLabel';
+import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
@@ -56,7 +56,7 @@ const Imparticiones = () => {
   // Campos buscables
   const searchFields = [
       { value: 'profesor.nombre', label: t('teaching.teacher') },
-      { value: 'modulo.nombre', label: t('teaching.module') },
+      { value: 'materia.nombre', label: t('teaching.module') },
       { value: 'grupo.nombre', label: t('teaching.group') }
   ];
 
@@ -65,14 +65,14 @@ const Imparticiones = () => {
   const [currentImparticion, setCurrentImparticion] = useState(null);
   const [formData, setFormData] = useState({
     profesor: '',
-    modulo: '',
+    materia: '',
     grupo: ''
   });
   const [saving, setSaving] = useState(false);
 
-  // Filtro derivado del grupo seleccionado para la cascada Grupo → Módulo:
-  // un módulo elegible debe pertenecer al mismo ciclo y al mismo curso que el grupo.
-  const [grupoFilter, setGrupoFilter] = useState({ ciclo: '', curso: '' });
+  // Filtro derivado del grupo seleccionado para la cascada Grupo → Materia:
+  // una materia elegible debe pertenecer al mismo itinerario y al mismo curso que el grupo.
+  const [grupoFilter, setGrupoFilter] = useState({ itinerario: '', curso: '' });
 
   // Helper para extraer id de un valor que puede ser objeto, IRI string o id puro.
   const extractId = (raw) => {
@@ -82,9 +82,9 @@ const Imparticiones = () => {
     return String(raw);
   };
 
-  // El antiguo `filteredModulos` (cascada Grupo→Módulo en cliente) se ha sustituido
-  // por extraParams del AsyncSearchSelect: el módulo se filtra en servidor por
-  // ?ciclo=<(grupo.itinerario ?? grupo.ciclo)>&curso=<grupo.curso>, derivado del state grupoFilter.
+  // El antiguo `filteredModulos` (cascada Grupo→Materia en cliente) se ha sustituido
+  // por extraParams del AsyncSearchSelect: la materia se filtra en servidor por
+  // ?itinerario=<grupo.itinerario>&curso=<grupo.curso>, derivado del state grupoFilter.
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -102,7 +102,7 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
-  // (Antes había aquí un useEffect que precargaba profesores+módulos+grupos al
+  // (Antes había aquí un useEffect que precargaba profesores+materias+grupos al
   // montar la página. Ya no es necesario: cada AsyncSearchSelect del modal hace
   // su propia búsqueda servidor on-demand cuando el usuario teclea.)
 
@@ -232,12 +232,12 @@ const Imparticiones = () => {
       const grupoId = extractId(imparticion.grupo);
       setFormData({
         profesor: extractId(imparticion.profesor),
-        modulo: extractId((imparticion.materia ?? imparticion.modulo)),
+        materia: extractId(imparticion.materia),
         grupo: grupoId
       });
 
-      // Hidratar el filtro grupo→módulo para que el AsyncSearchSelect de módulo
-      // restrinja al ciclo+curso correctos también en modo edición.
+      // Hidratar el filtro grupo→materia para que el AsyncSearchSelect de materia
+      // restrinja al itinerario+curso correctos también en modo edición.
       if (grupoId) {
         fetch(getApiUrl(`/api/grupos/${grupoId}`), {
           headers: { Accept: 'application/ld+json' },
@@ -247,22 +247,22 @@ const Imparticiones = () => {
           .then(g => {
             if (!g) return;
             setGrupoFilter({
-              ciclo: extractId((g.itinerario ?? g.ciclo)),
+              itinerario: extractId(g.itinerario),
               curso: g.curso != null ? String(g.curso) : ''
             });
           })
           .catch(() => { /* fallo silencioso: el modal sigue funcionando, solo sin filtro de cascada */ });
       } else {
-        setGrupoFilter({ ciclo: '', curso: '' });
+        setGrupoFilter({ itinerario: '', curso: '' });
       }
     } else {
       setCurrentImparticion(null);
       setFormData({
         profesor: '',
-        modulo: '',
+        materia: '',
         grupo: ''
       });
-      setGrupoFilter({ ciclo: '', curso: '' });
+      setGrupoFilter({ itinerario: '', curso: '' });
     }
     setIsModalOpen(true);
   }, []);
@@ -277,9 +277,9 @@ const Imparticiones = () => {
     
     setFormData(prev => {
         const newData = { ...prev, [name]: value };
-        
+
         if (name === 'grupo') {
-            newData.modulo = ''; 
+            newData.materia = '';
         }
 
         return newData;
@@ -299,12 +299,12 @@ const Imparticiones = () => {
       const method = currentImparticion ? 'PUT' : 'POST';
 
       const profesorValue = String(formData.profesor);
-      const moduloValue = String(formData.modulo);
+      const materiaValue = String(formData.materia);
       const grupoValue = String(formData.grupo);
 
       const payload = {
         profesor: profesorValue.includes('/api/') ? profesorValue : `/api/users/${profesorValue}`,
-        modulo: moduloValue.includes('/api/') ? moduloValue : `/api/materias/${moduloValue}`,
+        materia: materiaValue.includes('/api/') ? materiaValue : `/api/materias/${materiaValue}`,
         grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
       };
 
@@ -395,11 +395,11 @@ const Imparticiones = () => {
         sortable: true, 
         sortKey: 'profesor.nombre' 
     },
-    { 
+    {
         header: t('teaching.module'),
-        accessor: (row) => row.modulo ? <ModuloLabel modulo={row.modulo} /> : '-',
+        accessor: (row) => row.materia ? <MateriaLabel materia={row.materia} /> : '-',
         sortable: true,
-        sortKey: 'modulo.nombre'
+        sortKey: 'materia.nombre'
     },
     { 
         header: t('teaching.group'), 
@@ -518,15 +518,15 @@ const Imparticiones = () => {
                     name="grupo"
                     value={formData.grupo}
                     onChange={(v, item) => {
-                        // Cambiar grupo: vacía el módulo y actualiza el filtro de cascada.
-                        setFormData(p => ({ ...p, grupo: v, modulo: '' }));
+                        // Cambiar grupo: vacía la materia y actualiza el filtro de cascada.
+                        setFormData(p => ({ ...p, grupo: v, materia: '' }));
                         if (item) {
                             setGrupoFilter({
-                                ciclo: extractId(item.ciclo),
+                                itinerario: extractId(item.itinerario),
                                 curso: item.curso != null ? String(item.curso) : ''
                             });
                         } else {
-                            setGrupoFilter({ ciclo: '', curso: '' });
+                            setGrupoFilter({ itinerario: '', curso: '' });
                         }
                     }}
                     endpoint="/api/grupos"
@@ -539,14 +539,14 @@ const Imparticiones = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teaching.module', { defaultValue: 'Módulo' })}</label>
+                <label className={styles.label}>{t('teaching.module', { defaultValue: 'Materia' })}</label>
                 <AsyncSearchSelect
-                    name="modulo"
-                    value={formData.modulo}
-                    onChange={(v) => setFormData(p => ({ ...p, modulo: v }))}
+                    name="materia"
+                    value={formData.materia}
+                    onChange={(v) => setFormData(p => ({ ...p, materia: v }))}
                     endpoint="/api/materias"
                     extraParams={{
-                        ...(grupoFilter.ciclo ? { ciclo: grupoFilter.ciclo } : {}),
+                        ...(grupoFilter.itinerario ? { itinerario: grupoFilter.itinerario } : {}),
                         ...(grupoFilter.curso ? { curso: grupoFilter.curso } : {}),
                     }}
                     getOptionLabel={(m) => `${m.nombre} (${m.codigoOficial}) - ${m.curso}º`}

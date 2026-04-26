@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './PendingTasksWidget.module.css';
 import { ClipboardList, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import ModuloLabel from './ModuloLabel';
+import MateriaLabel from './MateriaLabel';
 
 const PendingTasksWidget = ({ hideHeader = false }) => {
     const { t } = useTranslation();
@@ -52,7 +52,7 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                         if (new Date(tr.fechaLimite) <= now) return;
                         if (isAlumno && tr.visible === false) return;
                         // Enriquecer con referencia a la impartición para navegar
-                        futureTasks.push({ ...tr, imparticion: { id: imp.id, modulo: (imp.materia ?? imp.modulo) } });
+                        futureTasks.push({ ...tr, imparticion: { id: imp.id, materia: imp.materia } });
                     });
                 });
                 futureTasks.sort((a, b) => new Date(a.fechaLimite) - new Date(b.fechaLimite));
@@ -127,8 +127,8 @@ const PendingTasksWidget = ({ hideHeader = false }) => {
                             <div className={styles.details}>
                                 <span className={styles.title}>{task.titulo}</span>
                                 <span className={styles.module}>
-                                    {task.imparticion?.modulo
-                                        ? <ModuloLabel modulo={task.imparticion?.materia} />
+                                    {task.imparticion?.materia
+                                        ? <MateriaLabel materia={task.imparticion?.materia} />
                                         : t('common.unknownModule')}
                                 </span>
                             </div>

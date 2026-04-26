@@ -89,19 +89,19 @@ const TemariosAlumno = () => {
           .then(res => res.json())
           .then(data => {
               const items = data['hydra:member'] || data.member || [];
-              // Extraer módulos únicos
-              const uniqueModulos = [];
+              // Extraer materias únicas
+              const uniqueMaterias = [];
               const map = new Map();
               for (const item of items) {
-                  if (item.modulo && !map.has(item.modulo.id)) {
-                      map.set(item.modulo.id, true);
-                      uniqueModulos.push(item.modulo);
+                  if (item.materia && !map.has(item.materia.id)) {
+                      map.set(item.materia.id, true);
+                      uniqueMaterias.push(item.materia);
                   }
               }
-              setMaterias(uniqueModulos);
+              setMaterias(uniqueMaterias);
               setSelectedModulo('');
           })
-          .catch(err => console.error("Error cargando módulos:", err));
+          .catch(err => console.error("Error cargando materias:", err));
       } else {
           setMaterias([]);
           setSelectedModulo('');
@@ -192,7 +192,7 @@ const TemariosAlumno = () => {
             const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
             
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
-            const title = `${(imp.materia ?? imp.modulo).nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
+            const title = `${imp.materia.nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
 
             const grupoId = typeof imp.grupo === 'string'
                 ? imp.grupo.split('/').pop()

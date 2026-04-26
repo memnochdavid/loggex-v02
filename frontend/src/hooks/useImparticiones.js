@@ -97,14 +97,14 @@ const useImparticiones = () => {
                 const items = data['hydra:member'] || data.member || [];
                 const map = new Map();
                 items.forEach(item => {
-                    if (item.modulo && !map.has(item.modulo.id)) {
-                        map.set(item.modulo.id, item.modulo);
+                    if (item.materia && !map.has(item.materia.id)) {
+                        map.set(item.materia.id, item.materia);
                     }
                 });
                 setMaterias([...map.values()]);
                 setSelectedModulo('');
             })
-            .catch(err => console.error('Error cargando módulos:', err));
+            .catch(err => console.error('Error cargando materias:', err));
         } else {
             setMaterias([]);
             setSelectedModulo('');

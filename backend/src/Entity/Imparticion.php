@@ -39,13 +39,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'profesor' => 'exact',
     'profesor.nombre' => 'partial',
     'materia' => 'exact',
-    'modulo.nombre' => 'partial',
+    'materia.nombre' => 'partial',
     'grupo' => 'exact',
     'grupo.nombre' => 'partial',
-    'grupo.centro' => 'exact' // AÑADIDO: Permite filtrar imparticiones por centro del grupo
+    'grupo.centro' => 'exact'
 ])]
-#[ApiFilter(SearchAnyFilter::class, properties: ['profesor.nombre', 'profesor.apellidos', 'modulo.nombre', 'modulo.abreviatura', 'modulo.codigoOficial', 'grupo.nombre', 'grupo.abreviatura'])]
-#[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'modulo.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['profesor.nombre', 'profesor.apellidos', 'materia.nombre', 'materia.abreviatura', 'materia.codigoOficial', 'grupo.nombre', 'grupo.abreviatura'])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'materia.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Imparticion
 {
     use TimestampableTrait;

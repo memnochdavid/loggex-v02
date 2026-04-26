@@ -7,7 +7,7 @@ import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
 import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
-import ModuloLabel from './ModuloLabel';
+import MateriaLabel from './MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
@@ -324,7 +324,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                                 style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
                                             >
                                                 <div className={styles.eventModulo}>
-                                                    <ModuloLabel modulo={{
+                                                    <MateriaLabel materia={{
                                                         nombre: cellData.event.modulo,
                                                         abreviatura: cellData.event.moduloAbreviatura,
                                                     }} />
@@ -404,7 +404,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                             {event.horaInicio} - {event.horaFin}
                         </div>
                         <div className={styles.mobileEventTitle}>
-                            <ModuloLabel modulo={{
+                            <MateriaLabel materia={{
                                 nombre: event.modulo,
                                 abreviatura: event.moduloAbreviatura,
                             }} />

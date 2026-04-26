@@ -17,7 +17,7 @@ import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import ProfLoadPanel from '../components/ProfLoadPanel';
 import ModalView from '../components/ModalView';
-import ModuloLabel from '../components/ModuloLabel';
+import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download } from 'lucide-react';
@@ -57,7 +57,7 @@ const SLOTS_TARDE = [
 
 const fmtHora = (s) => s.slice(0, 5);
 
-// Paleta por módulo derivada de --color-primary (HSL shift determinístico)
+// Paleta por materia derivada de --color-primary (HSL shift determinístico)
 const colorForModule = (mid) => {
   const hue = (mid * 47) % 360;  // determinista
   return `hsl(${hue}, 55%, 48%)`;
@@ -69,7 +69,7 @@ const getId = (obj) => {
   return obj.id || obj['@id']?.split('/').pop();
 };
 
-// ─── Componente chip de módulo (draggable desde el panel) ──────────────
+// ─── Componente chip de materia (draggable desde el panel) ──────────────
 const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected, onSelect }) => {
   const id = `mod:${imparticion.id}`;
   const disabled = horasColocadas >= horasTotales;
@@ -97,8 +97,8 @@ const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
         <span className={styles.moduleName}>
-          {(imparticion.materia ?? imparticion.modulo)
-            ? <ModuloLabel modulo={(imparticion.materia ?? imparticion.modulo)} />
+          {imparticion.materia
+            ? <MateriaLabel materia={imparticion.materia} />
             : '—'}
         </span>
         <span className={styles.moduleProfe}>
@@ -127,7 +127,7 @@ const SlotBlock = ({ slotId, imparticion, color, aula }) => {
       {...attributes}
     >
       <span className={styles.slotBlockTitle}>
-        {(imparticion.materia ?? imparticion.modulo) && <ModuloLabel modulo={(imparticion.materia ?? imparticion.modulo)} />}
+        {imparticion.materia && <MateriaLabel materia={imparticion.materia} />}
       </span>
       <span className={styles.slotBlockProfe}>
         {(imparticion.profesor?.apellidos || '').split(' ')[0]}
@@ -288,12 +288,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!selectedGrupo || grupos.length === 0) return;
     const gActual = grupos.find(g => String(g.id) === String(selectedGrupo));
     if (!gActual) return;
-    const cicloNombre = (gActual.itinerario?.nombre || '').toUpperCase();
+    const itinerarioNombre = (gActual.itinerario?.nombre || '').toUpperCase();
     const mismoTurno = (g) => {
       if (String(g.id) === String(selectedGrupo)) return false;
       const cn = (g.itinerario?.nombre || '').toUpperCase();
-      if (cicloNombre.includes('WEB')) return cn.includes('WEB');
-      if (cicloNombre.includes('MULTIPLATAFORMA')) return cn.includes('MULTIPLATAFORMA');
+      if (itinerarioNombre.includes('WEB')) return cn.includes('WEB');
+      if (itinerarioNombre.includes('MULTIPLATAFORMA')) return cn.includes('MULTIPLATAFORMA');
       return false;
     };
     const paralelos = grupos.filter(mismoTurno).map(g => g.id);
@@ -356,13 +356,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const grupoState = state[selectedGrupo];
   const placements = grupoState?.placements || {};
 
-  // Turno del grupo: DAW (ciclo DAW en EAG es id 3) → mañana; DAM (id 4) → tarde.
-  // Generalización: ciclo nombre contiene "DAW"? mañana; caso contrario tarde.
+  // Turno del grupo: DAW (itinerario DAW en EAG es id 3) → mañana; DAM (id 4) → tarde.
+  // Generalización: nombre del itinerario contiene "DAW"? mañana; caso contrario tarde.
   const turnoGrupo = useMemo(() => {
     if (!grupo) return 'M';
-    const cicloNombre = (grupo.itinerario?.nombre || '').toUpperCase();
-    if (cicloNombre.includes('WEB')) return 'M';
-    if (cicloNombre.includes('MULTIPLATAFORMA')) return 'T';
+    const itinerarioNombre = (grupo.itinerario?.nombre || '').toUpperCase();
+    if (itinerarioNombre.includes('WEB')) return 'M';
+    if (itinerarioNombre.includes('MULTIPLATAFORMA')) return 'T';
     return 'M';
   }, [grupo]);
 
@@ -710,12 +710,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     performExport();
   };
 
-  // Tap-to-place: toggle selección del módulo en el panel
+  // Tap-to-place: toggle selección de la materia en el panel
   const handleSelectModule = useCallback((impId) => {
     setSelectedImpId(prev => prev === impId ? null : impId);
   }, []);
 
-  // Tap en celda: si hay módulo seleccionado, intentar colocar; si la celda está
+  // Tap en celda: si hay materia seleccionada, intentar colocar; si la celda está
   // ocupada y no hay selección, quitar el bloque.
   const handleTapCell = useCallback((diaIdx, slotIdx) => {
     const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
@@ -763,7 +763,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           dirty: true,
         },
       }));
-      // Si el módulo ya alcanzó sus horas, deseleccionamos
+      // Si la materia ya alcanzó sus horas, deseleccionamos
       if (ya + 1 >= total) setSelectedImpId(null);
       return;
     }
@@ -856,7 +856,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }));
       setSolverSeed(seed);
       if (!data.complete && data.unplaced?.length) {
-        const faltan = data.unplaced.map(u => `${u.modulo}: ${u.horasRestantes}h`).join(', ');
+        const faltan = data.unplaced.map(u => `${u.materia}: ${u.horasRestantes}h`).join(', ');
         setDragError(t('scheduleEditor.solverPartial', { items: faltan }));
         window.setTimeout(() => setDragError(null), 6000);
       }
@@ -1047,7 +1047,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             <DragOverlay dropAnimation={null}>
               {activeImp ? (
                 <div className={styles.dragOverlay} style={{ backgroundColor: colorForModule(activeImp.materia?.id || activeImp.id) }}>
-                  {activeImp.modulo && <ModuloLabel modulo={activeImp.modulo} />}
+                  {activeImp.materia && <MateriaLabel materia={activeImp.materia} />}
                 </div>
               ) : null}
             </DragOverlay>

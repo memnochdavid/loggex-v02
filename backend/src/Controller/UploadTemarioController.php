@@ -16,7 +16,7 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 
 class UploadTemarioController extends AbstractController
 {
-    #[Route('/api/materiales/upload', name: 'api_material_upload', methods: ['POST'])]
+    #[Route('/api/temarios/upload', name: 'api_temario_upload', methods: ['POST'])]
     public function upload(
         Request $request,
         EntityManagerInterface $entityManager,

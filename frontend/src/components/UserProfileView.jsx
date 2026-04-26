@@ -3,7 +3,7 @@ import styles from '../pages/Perfil.module.css'; // Reutilizar estilos de Perfil
 import { User, Mail, Phone, GraduationCap, Building, BookOpen } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
-import ModuloLabel from './ModuloLabel';
+import MateriaLabel from './MateriaLabel';
 
 const UserProfileView = ({ user: initialUser }) => {
     const { t } = useTranslation();
@@ -226,8 +226,8 @@ const UserProfileView = ({ user: initialUser }) => {
                                     <div className={styles.field}>
                                         <span className={styles.label}>{t('userProfile.module')}</span>
                                         <span className={styles.value}>
-                                            {(imp.materia ?? imp.modulo)
-                                                ? <ModuloLabel modulo={(imp.materia ?? imp.modulo)} />
+                                            {imp.materia
+                                                ? <MateriaLabel materia={imp.materia} />
                                                 : t('userProfile.unknownModule')}
                                         </span>
                                     </div>

@@ -70,7 +70,7 @@ const Itinerarios = () => {
   const [saving, setSaving] = useState(false);
 
   // Modo de creación: 'catalogo' usa AsyncSearchSelect contra el catálogo oficial
-  // y materializa el ciclo + sus módulos en backend. 'manual' es el formulario
+  // y materializa el itinerario + sus materias en backend. 'manual' es el formulario
   // tradicional. En modo edición no aplica (siempre manual). Default: catálogo.
   const [createMode, setCreateMode] = useState('catalogo');
   const [selectedCatalogoItinerarioId, setSelectedCatalogoItinerarioId] = useState('');
@@ -147,7 +147,7 @@ const Itinerarios = () => {
 
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.error("Error fetching ciclos:", err);
+      console.error("Error fetching itinerarios:", err);
       setError(err.message);
     } finally {
       if (abortController.current && !abortController.current.signal.aborted) {
@@ -213,22 +213,22 @@ const Itinerarios = () => {
       }
   }, [sortColumn]);
 
-  const handleOpenModal = useCallback((ciclo = null) => {
-    if (ciclo) {
-      setCurrentItinerario(ciclo);
-      
+  const handleOpenModal = useCallback((itinerario = null) => {
+    if (itinerario) {
+      setCurrentItinerario(itinerario);
+
       let centroId = '';
-      if (ciclo.centro) {
-          if (typeof ciclo.centro === 'string') {
-              centroId = ciclo.centro.split('/').pop();
-          } else if (ciclo.centro.id) {
-              centroId = ciclo.centro.id;
+      if (itinerario.centro) {
+          if (typeof itinerario.centro === 'string') {
+              centroId = itinerario.centro.split('/').pop();
+          } else if (itinerario.centro.id) {
+              centroId = itinerario.centro.id;
           }
       }
 
       setFormData({
-        nombre: ciclo.nombre,
-        nivel: ciclo.nivel,
+        nombre: itinerario.nombre,
+        nivel: itinerario.nivel,
         centro: centroId
       });
     } else {
@@ -264,7 +264,7 @@ const Itinerarios = () => {
     setSaving(true);
 
     // Caso especial: creación desde el catálogo oficial. Llama al endpoint
-    // /api/itinerarios/from-catalogo que materializa el ciclo + sus módulos.
+    // /api/itinerarios/from-catalogo que materializa el itinerario + sus materias.
     if (!currentItinerario && createMode === 'catalogo') {
       try {
         if (!selectedCatalogoItinerarioId) {
@@ -370,12 +370,12 @@ const Itinerarios = () => {
     }
   };
 
-  const handleDelete = useCallback(async (ciclo) => {
+  const handleDelete = useCallback(async (itinerario) => {
     if (!(await confirm({ body: t('itinerarios.confirmDelete') }))) {
       return;
     }
 
-    const id = getItinerarioId(ciclo);
+    const id = getItinerarioId(itinerario);
     if (!id) return;
 
     try {
@@ -399,12 +399,12 @@ const Itinerarios = () => {
           sortDirection,
           isSuperAdmin
       });
-      toast.success(t('itinerarios.deletedSuccess', { defaultValue: 'Ciclo eliminado' }));
+      toast.success(t('itinerarios.deletedSuccess', { defaultValue: 'Itinerario eliminado' }));
 
     } catch (err) {
-      console.error("Error deleting ciclo:", err);
+      console.error("Error deleting itinerario:", err);
       toast.error(err.message, {
-        description: t('itinerarios.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el ciclo' })
+        description: t('itinerarios.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el itinerario' })
       });
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchItinerariosData, t]);
@@ -548,7 +548,7 @@ const Itinerarios = () => {
                             extraParams={{}}
                             getOptionLabel={(i) => `${i.codigoOficial} — ${i.nombre}`}
                             getOptionValue={(i) => i.id}
-                            placeholder={t('itinerarios.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del ciclo…' })}
+                            placeholder={t('itinerarios.catalogo.searchPlaceholder', { defaultValue: 'Escribe nombre o código del itinerario…' })}
                             required
                         />
                     </div>

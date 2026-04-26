@@ -127,7 +127,7 @@ const TemariosProfesor = () => {
           const materiales = matData['hydra:member'] || matData.member || [];
 
           const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
-          let title = `${(imp.materia ?? imp.modulo).nombre} - ${imp.grupo.abreviatura || imp.grupo.nombre}`;
+          let title = `${imp.materia.nombre} - ${imp.grupo.abreviatura || imp.grupo.nombre}`;
           if (isSuperAdmin && nombreProfesor) {
               title += ` (${nombreProfesor})`;
           }

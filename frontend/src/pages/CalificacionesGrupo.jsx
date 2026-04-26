@@ -554,7 +554,7 @@ const CalificacionesGrupo = () => {
     const weightValid = weightSum === 100;
 
     const getImparticionLabel = (imp) => {
-        const modulo = imp.materia?.nombre || (imp.materia ?? imp.modulo) || '';
+        const modulo = imp.materia?.nombre || '';
         const grupo = imp.grupo?.nombre || imp.grupo || '';
         return `${modulo} — ${grupo}`;
     };

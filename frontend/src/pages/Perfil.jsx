@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import ModalView from '../components/ModalView';
 import LiquidSignaturePad from '../components/LiquidSignaturePad';
 import Button from '../components/Button';
-import ModuloLabel from '../components/ModuloLabel';
+import MateriaLabel from '../components/MateriaLabel';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -297,8 +297,8 @@ const Perfil = () => {
                                             <div className={styles.field}>
                                                 <span className={styles.label}>{t('profile.module')}</span>
                                                 <span className={styles.value}>
-                                                    {(imp.materia ?? imp.modulo)
-                                                        ? <ModuloLabel modulo={(imp.materia ?? imp.modulo)} />
+                                                    {imp.materia
+                                                        ? <MateriaLabel materia={imp.materia} />
                                                         : t('profile.unknownModule')}
                                                 </span>
                                             </div>

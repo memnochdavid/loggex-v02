@@ -8,7 +8,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
-import ModuloLabel from '../components/ModuloLabel';
+import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
@@ -92,7 +92,7 @@ const Materias = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar ciclos (filtrados por centro si se selecciona uno, o todos si es admin de centro)
+  // Cargar itinerarios (filtrados por centro si se selecciona uno, o todos si es admin de centro)
   useEffect(() => {
     let url = getApiUrl('/api/itinerarios?pagination=false');
     
@@ -140,7 +140,7 @@ const Materias = () => {
       if (params.selectedItinerario) {
           url += `&itinerario=${params.selectedItinerario}`;
       } else if (params.isSuperAdmin && params.selectedCentro) {
-          // Si no hay ciclo seleccionado pero sí centro, filtrar por centro del ciclo
+          // Si no hay itinerario seleccionado pero sí centro, filtrar por centro del itinerario
           url += `&itinerario.centro=${params.selectedCentro}`;
       }
       
@@ -238,27 +238,27 @@ const Materias = () => {
       }
   }, [sortColumn]);
 
-  const handleOpenModal = useCallback((modulo = null) => {
-    if (modulo) {
-      setCurrentMateria(modulo);
-      
-      // Extraer ID del ciclo de forma segura
+  const handleOpenModal = useCallback((materia = null) => {
+    if (materia) {
+      setCurrentMateria(materia);
+
+      // Extraer ID del itinerario de forma segura
       let itinerarioId = '';
-      if (modulo.ciclo) {
-          if (typeof modulo.ciclo === 'object') {
-              itinerarioId = modulo.ciclo.id || (modulo.ciclo['@id'] ? modulo.ciclo['@id'].split('/').pop() : '');
-          } else if (typeof modulo.ciclo === 'string') {
-              itinerarioId = modulo.ciclo.split('/').pop();
+      if (materia.itinerario) {
+          if (typeof materia.itinerario === 'object') {
+              itinerarioId = materia.itinerario.id || (materia.itinerario['@id'] ? materia.itinerario['@id'].split('/').pop() : '');
+          } else if (typeof materia.itinerario === 'string') {
+              itinerarioId = materia.itinerario.split('/').pop();
           }
       }
 
       setFormData({
-        nombre: modulo.nombre,
-        abreviatura: modulo.abreviatura || '',
-        codigoOficial: modulo.codigoOficial || '',
-        curso: modulo.curso,
-        horasSemanales: modulo.horasSemanales ?? '',
-        tipo: modulo.tipo || '',
+        nombre: materia.nombre,
+        abreviatura: materia.abreviatura || '',
+        codigoOficial: materia.codigoOficial || '',
+        curso: materia.curso,
+        horasSemanales: materia.horasSemanales ?? '',
+        tipo: materia.tipo || '',
         itinerario: itinerarioId
       });
     } else {
@@ -301,7 +301,7 @@ const Materias = () => {
       
       const method = currentMateria ? 'PUT' : 'POST';
 
-      const itinerarioValue = String(formData.itinerario ?? formData.itinerario ?? '');
+      const itinerarioValue = String(formData.itinerario ?? '');
       const horasSemRaw = formData.horasSemanales;
       const payload = {
         ...formData,
@@ -317,8 +317,6 @@ const Materias = () => {
         // Asegurar formato IRI para la relación al itinerario.
         itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
       };
-      // Limpiar el alias antiguo si venía del state inicial.
-      delete payload.ciclo;
 
       const response = await fetch(url, {
         method: method,
@@ -349,27 +347,27 @@ const Materias = () => {
       });
       handleCloseModal();
       toast.success(currentMateria
-        ? t('materias.updatedSuccess', { defaultValue: 'Módulo actualizado' })
-        : t('materias.createdSuccess', { defaultValue: 'Módulo creado' }));
+        ? t('materias.updatedSuccess', { defaultValue: 'Materia actualizada' })
+        : t('materias.createdSuccess', { defaultValue: 'Materia creada' }));
 
     } catch (err) {
-      console.error("Error saving modulo:", err);
+      console.error("Error saving materia:", err);
       toast.error(err.message, {
         description: currentMateria
-          ? t('materias.errorUpdating', { defaultValue: 'No se ha podido actualizar el módulo' })
-          : t('materias.errorCreating', { defaultValue: 'No se ha podido crear el módulo' })
+          ? t('materias.errorUpdating', { defaultValue: 'No se ha podido actualizar la materia' })
+          : t('materias.errorCreating', { defaultValue: 'No se ha podido crear la materia' })
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = useCallback(async (modulo) => {
+  const handleDelete = useCallback(async (materia) => {
     if (!(await confirm({ body: t('materias.confirmDelete') }))) {
       return;
     }
 
-    const id = getMateriaId(modulo);
+    const id = getMateriaId(materia);
     if (!id) return;
 
     try {
@@ -394,12 +392,12 @@ const Materias = () => {
           sortDirection,
           isSuperAdmin
       });
-      toast.success(t('materias.deletedSuccess', { defaultValue: 'Módulo eliminado' }));
+      toast.success(t('materias.deletedSuccess', { defaultValue: 'Materia eliminada' }));
 
     } catch (err) {
-      console.error("Error deleting modulo:", err);
+      console.error("Error deleting materia:", err);
       toast.error(err.message, {
-        description: t('materias.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el módulo' })
+        description: t('materias.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la materia' })
       });
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchMateriasData, t]);
@@ -407,7 +405,7 @@ const Materias = () => {
   const columns = useMemo(() => [
     {
       header: t('materias.name'),
-      accessor: (row) => <ModuloLabel modulo={row} />,
+      accessor: (row) => <MateriaLabel materia={row} />,
       sortable: true,
       sortKey: 'nombre'
     },
@@ -421,7 +419,7 @@ const Materias = () => {
     { header: t('materias.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
     { 
         header: t('materias.cycle'), 
-        accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
+        accessor: (row) => row.itinerario ? row.itinerario.nombre : '-',
         sortable: true, 
         sortKey: 'itinerario.nombre' 
     },
@@ -568,7 +566,7 @@ const Materias = () => {
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('materias.cycleLabel')}</label>
                 <AsyncSearchSelect
-                    name="ciclo"
+                    name="itinerario"
                     value={formData.itinerario}
                     onChange={(v) => setFormData(p => ({ ...p, itinerario: v }))}
                     endpoint="/api/itinerarios"
@@ -619,7 +617,7 @@ const Materias = () => {
                     className={styles.select}
                 >
                     <option value="">{t('materias.typeUnset', { defaultValue: '— Sin especificar —' })}</option>
-                    <option value="modulo">{t('catalogo.tipoLabel.MODULO', 'Módulo')}</option>
+                    <option value="modulo">{t('catalogo.tipoLabel.MODULO', 'Materia')}</option>
                     <option value="troncal">{t('catalogo.tipoLabel.TRONCAL', 'Troncal')}</option>
                     <option value="especifica">{t('catalogo.tipoLabel.ESPECIFICA', 'Específica')}</option>
                     <option value="optativa">{t('catalogo.tipoLabel.OPTATIVA', 'Optativa')}</option>

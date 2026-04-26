@@ -32,8 +32,8 @@ final class CatalogoMaterializationController extends AbstractController
         private readonly EntityManagerInterface $em,
     ) {}
 
-    #[Route('/api/ciclos/from-catalogo', name: 'api_ciclos_from_catalogo', methods: ['POST'])]
-    public function ciclosFromCatalogo(Request $request): JsonResponse
+    #[Route('/api/itinerarios/from-catalogo', name: 'api_itinerarios_from_catalogo', methods: ['POST'])]
+    public function itinerariosFromCatalogo(Request $request): JsonResponse
     {
         $payload = json_decode($request->getContent(), true);
         $itinerarioId = $payload['catalogoItinerarioId'] ?? null;

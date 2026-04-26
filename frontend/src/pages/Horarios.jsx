@@ -7,7 +7,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import TimeTable from '../components/TimeTable';
 import EventsSidebar from '../components/EventsSidebar';
-import ModuloLabel from '../components/ModuloLabel';
+import MateriaLabel from '../components/MateriaLabel';
 import CalendarView from '../components/CalendarView';
 import WeekStrip from '../components/WeekStrip';
 import ModalView from '../components/ModalView';
@@ -511,7 +511,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     {
         header: t('schedules.subject'),
         accessor: (row) => row.imparticion && row.imparticion?.materia
-            ? <ModuloLabel modulo={row.imparticion?.materia} />
+            ? <MateriaLabel materia={row.imparticion?.materia} />
             : '-',
         sortable: true, sortKey: '(imparticion.materia ?? imparticion.modulo).nombre'
     },
