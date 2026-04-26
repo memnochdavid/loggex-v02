@@ -41,13 +41,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'nombre' => 'partial',
     'abreviatura' => 'partial',
     'codigoOficial' => 'partial',
-    'ciclo' => 'exact', // Para filtrar por ID de ciclo
-    'ciclo.nombre' => 'partial', // Para filtrar por nombre de ciclo
-    'ciclo.centro' => 'exact', // Para filtrar por centro (SuperAdmin)
-    'curso' => 'exact' // Para filtrar por curso (1, 2, …) — usado en cascadas Grupo→Materia
+    'itinerario' => 'exact',
+    'itinerario.nombre' => 'partial',
+    'itinerario.centro' => 'exact',
+    'curso' => 'exact'
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
-#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'ciclo.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'itinerario.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Materia
 {
     use TimestampableTrait;

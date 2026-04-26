@@ -104,7 +104,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if (method_exists($user, 'getCentro') && $user->getCentro()) {
             if ($resourceClass === Materia::class) {
-                $queryBuilder->join(sprintf('%s.ciclo', $rootAlias), 'c')
+                $queryBuilder->join(sprintf('%s.itinerario', $rootAlias), 'c')
                              ->andWhere('c.centro = :current_centro')
                              ->setParameter('current_centro', $user->getCentro());
             } else {
@@ -148,7 +148,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             $qb->join(sprintf('%s.tarea', $rootAlias), 'et')
                ->join('et.imparticion', 'ei')
                ->join('ei.grupo', 'eg')
-               ->join('eg.ciclo', 'ec')
+               ->join('eg.itinerario', 'ec')
                ->andWhere('ec.centro = :centro')
                ->setParameter('centro', $user->getCentro());
             return;
@@ -178,7 +178,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                ->join('ce.tarea', 'ct')
                ->join('ct.imparticion', 'ci')
                ->join('ci.grupo', 'cg')
-               ->join('cg.ciclo', 'cc')
+               ->join('cg.itinerario', 'cc')
                ->andWhere('cc.centro = :centro')
                ->setParameter('centro', $user->getCentro());
             return;
@@ -208,7 +208,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             $qb->join(sprintf('%s.imparticion', $rootAlias), 'i')
                ->join('i.grupo', 'g')
-               ->join('g.ciclo', 'c')
+               ->join('g.itinerario', 'c')
                ->andWhere('c.centro = :centro')
                ->setParameter('centro', $user->getCentro());
             return;

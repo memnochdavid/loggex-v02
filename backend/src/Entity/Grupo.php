@@ -39,8 +39,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
     'anioEscolar' => 'exact',
-    'ciclo' => 'exact',
-    'ciclo.nombre' => 'partial',
+    'itinerario' => 'exact',
+    'itinerario.nombre' => 'partial',
     'centro' => 'exact'
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'anioEscolar'])]
