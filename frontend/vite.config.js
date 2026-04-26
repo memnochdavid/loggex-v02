@@ -46,6 +46,11 @@ export default defineConfig({
       'lottie-react',
       'react-draggable',
       'react-joyride',
+      // Sub-dep CJS de react-joyride. Su index.mjs hace
+      // `import deepmerge from './index.js'` (CJS) y, si Vite no lo
+      // pre-bundlea, el navegador lo carga como ESM nativo y revienta
+      // con "does not provide an export named 'default'".
+      '@fastify/deepmerge',
       'perfect-freehand',
       '@dnd-kit/core',
       '@dnd-kit/modifiers',
