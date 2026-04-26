@@ -522,31 +522,23 @@ Si al año siguiente la Junta publica una nueva Orden y se actualiza el catálog
 - Cache Redis con tags.
 - Refactor mínimo: añadir `catalogoOrigen` nullable a `CicloFormativo`, `Modulo`, `Centro`.
 
-**Fase 1 — MVP con FP nacional (2 semanas)** ⚠️ **PARCIAL**
+**Fase 1 — MVP con FP nacional (2 semanas)** ✅ **COMPLETADA (superada por 1.6+1.7)**
 
-Hecho:
-- `TodoFpJsonAdapter` (bootstrap con dataset curado a mano).
-- 4 ciclos de informática (IFC22, IFC31, IFC32, IFC33) con sus 52 módulos.
-- Materialización backend + UX `/ciclos → Nuevo` con toggle catálogo/manual.
-- Pipeline end-to-end demostrado.
+El bootstrap JSON cumplió su función como demo end-to-end y se retiró cuando 1.6+1.7 entregaron datos oficiales. La materialización backend + UX `/ciclos → Nuevo` con toggle catálogo/manual sigue operativa, ahora alimentada por los 229 itinerarios reales.
 
-Pendiente (lo cubren las fases 1.6 y 1.7):
-- Datos verificables contra fuente oficial (no escritos a mano).
-- Cobertura completa de los 185 ciclos.
-- Horas por módulo extraídas del BOE.
+**Fase 1.6 — TodoFpHttpAdapter (1-2 semanas)** ✅ **COMPLETADA**
+- Scraper HTTP de TodoFP operativo (`App\Catalogo\Source\TodoFpHttpAdapter`).
+- 229 itinerarios persistidos: 34 FP Básica + 67 FP Medio + 94 FP Superior + 34 Especialización.
+- Metadata: nombre, etapa, familia, nivel, `boletinUrl`, `curriculoUrl`.
+- `SELECTORS.md` documentado.
 
-**Fase 1.6 — TodoFpHttpAdapter (1-2 semanas)** ⏳ **SIGUIENTE**
-- Scraper HTTP de TodoFP que produce los 185 ciclos del catálogo nacional.
-- Cobertura de metadata: código, nombre, familia, nivel, duración total, URL del RD, lista de módulos sin horas.
-- Tests de snapshot por cada selector crítico.
-- Estrategia detallada en sección 15.1.
+**Fase 1.7 — BoeRdAdapter (1-2 semanas)** ✅ **COMPLETADA**
+- 229/229 itinerarios con módulos extraídos del BOE — **2576 materias** totales.
+- Cobertura por estructura de RD: `tabla` (mayoría), `parrafos` (LOMLOE 2019-2023 sin tabla), `logse` (RDs 1995-2005 sin códigos oficiales), más los pipelines `basica` y `especializacion` ya existentes.
+- 99.6% de las materias con `horas_totales`, 63.8% con `horas_semanales`, 72.5% con `curso`.
+- Detalle del cierre y bugs cazados en sección 13.4 (log 2026-04-26).
 
-**Fase 1.7 — BoeRdAdapter (1-2 semanas)** ⏳
-- Parser del XML/PDF del BOE para cada RD enlazado.
-- Completa `horasTotales` y `horasSemanales` por módulo.
-- Estrategia detallada en sección 15.2.
-
-**Fase 1.5 — Calendario escolar (1 semana)**
+**Fase 1.5 — Calendario escolar (1 semana)** ⏳ **SIGUIENTE**
 - Entidades `CatalogoCalendarioEscolar` y `CatalogoPeriodoCalendario`.
 - `BoeBojaCalendarioAdapter` v1: parser de la Orden anual del BOJA para Andalucía.
 - UX para importar al centro (sección 6.4).
@@ -664,10 +656,10 @@ Pendiente (lo cubren las fases 1.6 y 1.7):
 | Fase | Esfuerzo | Aporta valor | Estado |
 |---|---|---|---|
 | 0 — Infra | 1 semana | Sin demo, base para todo | ✅ Done |
-| 1 — FP nacional (bootstrap JSON) | 2 semanas | **Demo vendible** — pipeline end-to-end con datos provisionales | ⚠️ Parcial |
-| 1.6 — TodoFpHttpAdapter | 1-2 semanas | Datos oficiales: 185 ciclos verificables vs 4 a mano | ⏳ Siguiente |
-| 1.7 — BoeRdAdapter | 1-2 semanas | Horas por módulo desde el BOE | ⏳ |
-| 1.5 — Calendario escolar | 1 semana | Habilita reportes oficiales y elimina trabajo manual cada inicio de curso | ⏳ |
+| 1 — FP nacional (bootstrap JSON) | 2 semanas | **Demo vendible** — pipeline end-to-end con datos provisionales | ✅ Done (retirado en favor de 1.6+1.7) |
+| 1.6 — TodoFpHttpAdapter | 1-2 semanas | Datos oficiales: 229 itinerarios verificables (vs 4 a mano) | ✅ Done |
+| 1.7 — BoeRdAdapter | 1-2 semanas | Horas por módulo desde el BOE — 2576 materias, 100% cobertura | ✅ Done |
+| 1.5 — Calendario escolar | 1 semana | Habilita reportes oficiales y elimina trabajo manual cada inicio de curso | ⏳ Siguiente |
 | 2 — Centros | 1 semana | Mejora alta administrativa | ⏳ |
 | 3 — ESO + Bach | 3 semanas | Cubre la mayoría de centros no-FP | ⏳ |
 | 4 — Grados RUCT | 3 semanas | Habilita universidades | ⏳ |
@@ -691,53 +683,37 @@ El resto se aborda según evolución del proyecto y feedback de centros piloto. 
 
 ## 11. Próximo paso concreto
 
-A fecha de **2026-04-25**, completadas Fase 0 + Fase 1 (parcial con bootstrap JSON). El siguiente trabajo es la **Fase 1.6 — TodoFpHttpAdapter** (sección 15.1).
+A fecha de **2026-04-26**, completadas Fase 0 + Fase 1 + Fase 1.6 + Fase 1.7. Estado de la BD:
+- `catalogo_itinerario`: **229** filas (cobertura nacional FP completa).
+- `catalogo_materia`: **2576** filas, **229/229** itinerarios con módulos.
+- `catalogo_centro`: **0** filas (Fase 2 sin iniciar).
 
-### Pasos para Fase 1.6 + 1.7 (bloque)
+El siguiente trabajo es la **Fase 1.5 — Calendario escolar** (más ROI: ahorra trabajo manual recurrente al admin de un centro cada inicio de curso). Como alternativa, **Fase 2 — Centros** desbloquea el alta de centros vía catálogo oficial.
 
-Decidido en log 2026-04-25 (sección 13.4): ejecutamos las dos fases juntas porque ninguna por separado entrega valor superior al estado actual.
+### Pasos para Fase 1.5 (calendario escolar)
 
-**A — Inspección y documentación** ✅ COMPLETADO
-- Inspección manual del HTML de TodoFP (3 páginas tipo) — sección 14.
-- `SELECTORS.md` con selectores y estrategia resiliente al reordenamiento de columnas.
-- Decisión: HTTP+DomCrawler suficiente, sin Panther.
+**A — Modelo de datos**
+- Entidades `CatalogoCalendarioEscolar` y `CatalogoPeriodoCalendario` (sección 2).
+- FK `catalogoOrigen` (nullable) en `Festivo` y `PeriodoEvaluativo`.
+- Migración Doctrine.
 
-**B — TodoFpHttpAdapter** ⏳
-- Crear `App\Catalogo\Source\TodoFpHttpAdapter` con `HttpClient` + `DomCrawler`.
-- Implementar 2 niveles de scraping: index de familias → tablas por familia.
-- Producir `CatalogoItinerarioDto` con: nombre, etapa, familia, nivel, `boletinUrl` (RD), URL del currículo, materias = `[]`, codigoOficial = placeholder (a sobrescribir por BOE).
-- Throttle: 1 req/segundo respetando `robots.txt`.
+**B — `BoeBojaCalendarioAdapter` v1 (Andalucía)**
+- Scraper de la Orden anual del BOJA que fija el calendario escolar.
+- Extracción de fechas: inicio/fin de curso, trimestres, festivos autonómicos, sesiones de evaluación, periodos de recuperación.
+- Throttle, hash de fuente, marcado de calendarios viejos como `vigenteHasta`.
 
-**C — Inspección manual del XML del BOE**
-- Descargar 2-3 RDs ELI XML como muestra (DAW, ASIR, SMR).
-- Identificar patrón estructural común: dónde está el `codigoOficial`, dónde la lista de módulos, dónde las horas.
-- Documentar en `backend/src/Catalogo/Source/BoeRd/BOE_XML_STRUCTURE.md`.
+**C — UX de importación al centro**
+- Botón "Importar calendario oficial" en `/festivos` o nueva sección `/calendario`.
+- Selector de CCAA + Etapa + Curso académico con vista previa (sección 6.4).
+- Materialización: crear `Festivo` y `PeriodoEvaluativo` en el centro con `catalogoOrigen` trazado.
 
-**D — BoeRdAdapter**
-- Crear `App\Catalogo\Source\BoeRdAdapter` que itera los `CatalogoItinerario` con `boletinUrl` apuntando al BOE y `codigoOficial` placeholder.
-- Para cada uno, fetch del XML ELI, parser, update incremental: `codigoOficial`, `vigenteDesde`, materias completas (código + nombre + horas + curso).
-- También fetchea el "Currículo Ministerio" (segundo RD) si tiene horas detalladas.
+**D — Detección de calendario nuevo**
+- Aviso al admin cuando la Junta publica una nueva Orden y el catálogo se actualiza.
 
-**E — Fixtures y tests**
-- `backend/tests/Fixtures/todofp/familias-index.html`, `familia-informatica.html`.
-- `backend/tests/Fixtures/boe/rd-686-2010.xml` (DAW), `rd-1629-2009.xml` (ASIR).
-- Tests de snapshot que detectan cambios de estructura.
+### Después de 1.5
 
-**F — Refresh end-to-end**
-- `app:catalogo:refresh todofp_http` → 185 itinerarios esqueleto.
-- `app:catalogo:refresh boe_rd` → módulos y códigos completos.
-- Verificar BD: 185 itinerarios con código oficial + ~2000 materias totales.
-
-**G — Limpieza del JSON**
-- Una vez los datos del scraper estén validados, borrar `fuente_ingesta='todofp_json'` de la BD.
-- Eliminar `TodoFpJsonAdapter.php` del código.
-- Eliminar `data/catalogo/todofp/itinerarios-fp.json`.
-- Documentar en sección 13.4 la fecha de retirada.
-
-### Después de 1.6+1.7
-
-- **Fase 1.5 (Calendario escolar)** — `BoeBojaCalendarioAdapter`.
-- **Fase 2 (Centros)** — adapter andaluz + estatal.
+- **Fase 2 (Centros)** — `JuntaAndaluciaCentrosAdapter` + `RegistroEstatalCentrosAdapter`.
+- **§12 Refactor FP→multi-etapa** — bloqueador antes de Fase 3 (ESO + Bach).
 
 Cada adapter es trabajo aislado, no bloquea a los siguientes. La infraestructura común (Fase 0) ya está, así que cualquier adapter nuevo es solo: implementar la interface, registrar en `services.yaml`, ejecutar.
 
@@ -910,7 +886,9 @@ Tiempo estimado de ventana de mantenimiento: **2-4 horas** para una BD de tamañ
 
 ## 13. Estado de implementación (snapshot abril 2026)
 
-Este apartado registra lo que está construido y operativo a fecha de **2026-04-25**. Sirve para que cualquiera (yo dentro de un mes, otro colaborador, futuro auditor) sepa exactamente qué hay sin tener que leer commits.
+Este apartado registra lo que está construido y operativo a fecha de **2026-04-26**. Sirve para que cualquiera (yo dentro de un mes, otro colaborador, futuro auditor) sepa exactamente qué hay sin tener que leer commits.
+
+> **Resumen actualizado 2026-04-26:** Fases 0 + 1 + 1.6 + 1.7 cerradas. Catálogo de FP **completo**: 229/229 itinerarios con materias (2576 totales), todos verificados contra BOE. Las subsecciones 13.1–13.3 quedan como registro histórico del proceso; el log de 2026-04-26 (§13.4) documenta el cierre de Fase 1.7 al 100%.
 
 ### 13.1 Fase 0 — Infraestructura común ✅
 
@@ -1046,6 +1024,32 @@ Componentes:
    **Lección:** documentar explícitamente la semántica de UPSERT cuando hay múltiples adapters por entidad. Lo añadimos a los riesgos del modelo de datos para futura referencia.
 
 7. **URLs con espacios trailing.** TodoFP a veces deja `<a href="...PDF.pdf "` (con espacio). El fetcher lo trataba como caracter válido y la URL resultante era inválida. Fix: trim defensivo en `CiclosParser::extractFirstBoeUrl` y `BoeXmlFetcher::normalizeToXmlUrl`.
+
+**2026-04-26 — Cierre de Fase 1.7 al 100% (de 202/229 a 229/229 itinerarios con materias).**
+Ejecución del enricher BOE en limpio dejó 27 itinerarios sin módulos. Investigados uno a uno y resueltos:
+
+- **Bug en `ModulosTableParser::parse`:** la detección de cabecera usaba `stripos('MÓDULO PROFESIONAL', 'Módulo profesional')` y devolvía `false`. PHP `stripos` solo case-foldea ASCII; los caracteres multi-byte como Ó/ó no se equiparan. Fix: `mb_stripos`. Desbloqueó ~10 RDs con cabecera en mayúsculas (automoción, video-discjockey, transporte-marítimo, etc.).
+- **Captions previos al header de la tabla:** RDs como mecanizado tenían dos filas de caption ("ANEXO II", "Ciclo formativo: Mecanizado") antes del header real. La detección escanea ahora las primeras 3 filas combinadas. Eliminado el `headerRowsToSkip = 2` hardcoded — la primera fila de datos se detecta dinámicamente cuando `cells[0]` es un código numérico.
+- **Layout LOMLOE 2024+:** sanidad-ambiental y prevención-2024 usan `Código | Módulo Profesional | Horas 50% | Horas 60%` con el código y el nombre en celdas separadas. `ModulosTableParser` ahora soporta ambas variantes (legacy "0612. Nombre" en una sola celda y LOMLOE en celdas separadas). Para las dos columnas "Horas X%" se toma la mayor como `horasTotales`.
+- **`ParrafosModulosParser` (nuevo):** RDs LOMLOE 2019-2023 (familia aeromecánica×5, RD 570/2023 técnico-seguridad, RD 178/2021 movilidad) describen los módulos como párrafos secuenciales: `<p>Módulo Profesional: NAME</p>` → `<p>Equivalencia ECTS: N</p>` → `<p>Código: NNNN</p>` → más adelante `<p>Duración: NNN horas</p>`. Parser de máquina de estados que recorre los párrafos del XML del RD del título.
+- **`LegacyLogseModulosParser` (nuevo):** RDs LOGSE 1995-2005 (cuidados-aux-enfermería, dietética, joyería, óptica-anteojería, prevención-2003) no tenían tabla ni códigos oficiales (los introdujo la LOE en 2006). Patrón: `<p>Módulo profesional N: NAME</p>` … `<p>CONTENIDOS (duración NNN horas)</p>`. Genera códigos sintéticos `MP1`, `MP2`, …, `FCT` únicos dentro del itinerario.
+- **Cascada de fallbacks en `BoeRdEnricher::enrichTabla`:** `tabla` → `parrafos` → `logse`, sobre el RD del título y la URL del currículo si difieren. La versión del enricher se serializa en `fuenteHash` (`boe_rd_v1_tabla` / `_parrafos` / `_logse`) para invalidar caché tras cambios de parser. Trazabilidad: el método de extracción usado queda implícito en el hash.
+- **Parche puntual en BD:** `servicios-funerarios.boletin_url` ← `BOE-A-2025-14086` (RD 533/2025, publicado tan reciente que TodoFP aún no lo enlazaba). El próximo refresh de `todofp_http` debería recoger la URL automáticamente cuando el ministerio actualice la página.
+
+**Resultado final del refresh BOE:**
+- 229/229 itinerarios con materias (100%).
+- 2576 materias totales.
+- 2567 con `horas_totales` (99.6%).
+- 1643 con `horas_semanales` (63.8%).
+- 1867 con `curso` (72.5%).
+- 221 con `ects` (los Cursos de Especialización; donde aplica).
+- 213 itinerarios con `duracion_total_horas` (16 sin: deuda menor del `IdentificacionParser`, no bloqueante).
+
+**Lecciones:**
+
+1. **Multi-byte case-fold:** en proyectos con texto en español (acentos), usar siempre `mb_stripos`/`mb_strtolower`. PHP `stripos` solo cubre ASCII.
+2. **No hay un único formato de RD del BOE:** la legislación educativa española tiene al menos 4 estructuras documentales convivientes (LOMLOE 2024+, LOMLOE 2019-2023, LOE-LOMCE 2006-2018, LOGSE 1995-2005). El cierre del 100% requiere parsers específicos por época, no un único parser "universal".
+3. **Cascada > monolito:** el enricher con cascada de parsers (`tabla → parrafos → logse`) es más mantenible que un parser con `if/else` ramificado por estructura. Cada parser tiene una responsabilidad clara y se puede testear/sustituir aisladamente.
 
 ---
 

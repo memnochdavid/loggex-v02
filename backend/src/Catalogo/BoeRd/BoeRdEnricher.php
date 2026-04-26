@@ -43,6 +43,8 @@ final class BoeRdEnricher
         private readonly ModulosTableParser $modulosParser,
         private readonly BasicaParser $basicaParser,
         private readonly EspecializacionParser $especializacionParser,
+        private readonly ParrafosModulosParser $parrafosParser,
+        private readonly LegacyLogseModulosParser $logseParser,
         private readonly LoggerInterface $logger,
         private bool $dryRun = false,
     ) {}
@@ -121,12 +123,40 @@ final class BoeRdEnricher
 
         $xmlModulos = $sourceUrl === $identUrl ? ($xmlIdent ?? $this->fetcher->fetchXml($sourceUrl)) : $this->fetcher->fetchXml($sourceUrl);
         $modulosExtraidos = $this->modulosParser->parse($xmlModulos);
+        $parserUsado = 'tabla';
+
+        // Fallback en cascada: cuando la tabla no encaja, probamos parsers de párrafos.
+        //  · ParrafosModulosParser  → LOMLOE 2019+ (Módulo Profesional / Código / Duración).
+        //  · LegacyLogseModulosParser → LOGSE 1995-2005 (Módulo profesional N: ... CONTENIDOS (duración N horas)).
+        // Sobre cada XML candidato (RD del título y URL de currículo, si difieren).
+        if (empty($modulosExtraidos)) {
+            $candidatosXml = [];
+            if ($xmlIdent !== null) {
+                $candidatosXml[] = $xmlIdent;
+            }
+            if ($xmlModulos !== ($xmlIdent ?? null)) {
+                $candidatosXml[] = $xmlModulos;
+            }
+            foreach ([
+                ['parrafos', fn(string $x) => $this->parrafosParser->parse($x)],
+                ['logse', fn(string $x) => $this->logseParser->parse($x)],
+            ] as [$tag, $parser]) {
+                foreach ($candidatosXml as $xml) {
+                    $extraidos = $parser($xml);
+                    if (!empty($extraidos)) {
+                        $modulosExtraidos = $extraidos;
+                        $parserUsado = $tag;
+                        break 2;
+                    }
+                }
+            }
+        }
 
         $hashable = [
             'identificacion' => $identData,
             'modulos' => $modulosExtraidos,
             'sourceUrl' => $sourceUrl,
-            'enricherVersion' => 'boe_rd_v1_tabla',
+            'enricherVersion' => 'boe_rd_v1_' . $parserUsado,
         ];
         $this->applyChanges($itinerario, $hashable, $identData, $modulosExtraidos);
     }
