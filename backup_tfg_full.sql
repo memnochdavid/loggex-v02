@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.16-MariaDB-ubu2204
+-- Server version	10.11.15-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -3309,7 +3309,7 @@ CREATE TABLE `itinerario` (
   KEY `IDX_11ECF404438E8617` (`catalogo_origen_id`),
   CONSTRAINT `FK_11ECF404298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_11ECF404438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_itinerario` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3318,6 +3318,9 @@ CREATE TABLE `itinerario` (
 
 LOCK TABLES `itinerario` WRITE;
 /*!40000 ALTER TABLE `itinerario` DISABLE KEYS */;
+INSERT INTO `itinerario` VALUES
+(3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior','2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,129),
+(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,3,128);
 /*!40000 ALTER TABLE `itinerario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3347,7 +3350,7 @@ CREATE TABLE `materia` (
   KEY `IDX_6DF05284438E8617` (`catalogo_origen_id`),
   CONSTRAINT `FK_6DF05284438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_materia` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_6DF05284B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3356,6 +3359,34 @@ CREATE TABLE `materia` (
 
 LOCK TABLES `materia` WRITE;
 /*!40000 ALTER TABLE `materia` DISABLE KEYS */;
+INSERT INTO `materia` VALUES
+(1,'Sistemas informáticos','0483',NULL,1,5,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1315,'modulo'),
+(2,'Bases de Datos','0484',NULL,1,5,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1316,'modulo'),
+(3,'Programación','0485',NULL,1,7,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1317,'modulo'),
+(4,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,4,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1318,'modulo'),
+(5,'Entornos de desarrollo','0487',NULL,1,3,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1319,'modulo'),
+(6,'Formación y Orientación Laboral','0617',NULL,1,3,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1320,'modulo'),
+(7,'Desarrollo web en entorno cliente','0612',NULL,2,6,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1321,'modulo'),
+(8,'Desarrollo web en entorno servidor','0613',NULL,2,8,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1322,'modulo'),
+(9,'Despliegue de aplicaciones web','0614',NULL,2,5,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1323,'modulo'),
+(10,'Diseño de interfaces web','0615',NULL,2,6,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1324,'modulo'),
+(11,'Proyecto de desarrollo de aplicaciones web','0616',NULL,2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1325,'proyecto'),
+(12,'Empresa e iniciativa emprendedora','0618',NULL,2,3,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1326,'modulo'),
+(13,'Formación en Centros de Trabajo','0619',NULL,2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1327,'fct'),
+(14,'Sistemas informáticos','0483',NULL,1,5,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1301,'modulo'),
+(15,'Bases de Datos','0484',NULL,1,5,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1302,'modulo'),
+(16,'Programación','0485',NULL,1,7,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1303,'modulo'),
+(17,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,4,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1304,'modulo'),
+(18,'Entornos de desarrollo','0487',NULL,1,3,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1305,'modulo'),
+(19,'Formación y Orientación Laboral','0493',NULL,1,3,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1306,'modulo'),
+(20,'Acceso a datos','0486',NULL,2,6,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1307,'modulo'),
+(21,'Desarrollo de interfaces','0488',NULL,2,6,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1308,'modulo'),
+(22,'Programación multimedia y dispositivos móviles','0489',NULL,2,4,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1309,'modulo'),
+(23,'Programación de servicios y procesos','0490',NULL,2,4,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1310,'modulo'),
+(24,'Sistemas de gestión empresarial','0491',NULL,2,5,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1311,'modulo'),
+(25,'Proyecto de desarrollo de aplicaciones multiplataforma','0492',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1312,'proyecto'),
+(26,'Empresa e iniciativa emprendedora','0494',NULL,2,3,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1313,'modulo'),
+(27,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1314,'fct');
 /*!40000 ALTER TABLE `materia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3865,4 +3896,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-26 14:14:51
+-- Dump completed on 2026-04-26 15:27:35
