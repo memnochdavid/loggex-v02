@@ -502,7 +502,10 @@ const Imparticiones = () => {
                     onChange={(v) => setFormData(p => ({ ...p, profesor: v }))}
                     endpoint="/api/users"
                     extraParams={{
-                        rol_app: 'profesor',
+                        // Incluye admins porque pueden impartir docencia (rol funcional, no solo gestor).
+                        // `rol_app` es un único string en User, por lo que un admin que también enseña
+                        // se almacena como 'admin'; sin esto no aparecería en el selector de profesor.
+                        rol_app: ['profesor', 'admin'],
                         ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {})
                     }}
                     getOptionLabel={(p) => `${p.nombre} ${p.apellidos}`}
