@@ -35,6 +35,8 @@ Limitaciones:
 
 El backend valida solapes y carga semanal del profe (≤ 40h) sobre el id del slot, pero NO sabe nada de recreos ni de configuración de jornada — esa lógica vive solo en el frontend.
 
+> **Principio de diseño global**: el sistema de jornadas es **agnóstico de etapa educativa**. El número y el tipo de itinerarios soportados es indiferente: cualquier itinerario (FP, ESO, Bachillerato, Primaria, Universidad o cualquier otro que aparezca en el futuro) se configura mediante los mismos parámetros de jornada. El editor no contiene ramas `if (etapa === 'ESO')` ni asume duraciones / horas de ninguna etapa concreta. Toda la lógica trabaja con la `JornadaTipo` asignada al itinerario, sin más.
+
 ---
 
 ## 2. Decisiones acordadas
@@ -43,7 +45,7 @@ Cerradas en la conversación, se consideran punto de partida pero pueden revisar
 
 | # | Decisión | Razón |
 |---|---|---|
-| D1 | Configuración a nivel de **itinerario**, no de centro ni de grupo individual | ESO, FP y Bach del mismo centro tienen jornadas distintas. Por grupo es overkill. |
+| D1 | Configuración a nivel de **itinerario**, no de centro ni de grupo individual | Cada itinerario tiene su propia jornada. El sistema no asume etapas concretas: ESO/FP/Bach se citan solo como ejemplos representativos. El editor de horarios trabaja con los **parámetros** de la jornada (horas, slots, recreo, días lectivos), no con la etiqueta de etapa — así soporta cualquier itinerario actual o futuro sin código específico por tipo. |
 | D2 | El admin **elige turno** mañana/tarde explícitamente (no heurística por nombre) | Eliminar la frágil regla actual. |
 | D3 | Soportar **dos modos de recreo**, eligibles: ÚNICO o DISTRIBUIDO | Ambos casos existen en centros reales. |
 | D4 | El editor de jornada vive en `/admin/horarios` (modal o pestaña), NO en `/configuracion` | Es donde se sufre el problema; reduce clicks. |
@@ -73,6 +75,17 @@ El usuario añadió que el **aula también debe poder determinarse**, no inferir
 - **D16**: ¿Capacidad del aula vs número de alumnos matriculados? Se puede validar al colocar (banner amarillo si aula < alumnos del grupo). **Recomendación: sí, banner amarillo no bloqueante** — útil para evitar errores de planificación, no necesario para el MVP.
 - **D17**: ¿Aulas compartidas entre centros? Un IES con dos sedes podría tener aulas distintas por sede. **Recomendación: no en MVP**; cada `Aula` cuelga de un único `Centro`.
 
+### 3.2 Turno como etiqueta vs como dato lógico (sub-bloque añadido 2026-04-26)
+
+El usuario observa que, si la jornada se configura libremente (hora inicio/fin de extremo a extremo), el `turno` mañana/tarde es redundante: se puede inferir del rango horario. Hoy en el editor se usa para detectar grupos paralelos y validar doble booking de profesor, pero esa lógica puede sustituirse por **detección directa de solape temporal** entre jornadas (más robusta, no depende de etiquetas).
+
+- **D18**: ¿Eliminamos el campo `turno` de `JornadaTipo` y trabajamos con **solape de rangos horarios**? Tres opciones:
+  - **A — Eliminar `turno`**: el concepto desaparece del modelo. La detección de paralelismo entre grupos pasa a basarse en si sus jornadas se solapan en `[horaInicio, horaFin]`. El editor pinta la jornada que toque sin clasificar; si el admin quiere etiquetar visualmente "mañana"/"tarde" en la UI, se deriva auto (ej. inicio < 14:00 → "mañana"). **Recomendación**: esta. Es la más limpia.
+  - **B — `turno` opcional auto-derivado**: el campo existe pero el backend lo calcula al guardar (`if horaInicio.hour < 14: 'MANANA' else 'TARDE'`). Permite filtrar/reportar sin que el admin lo elija. Híbrido aceptable.
+  - **C — Mantener `turno` explícito**: el admin lo elige en el modal (estado actual del documento). Más cercano al modelo mental "trabajo de mañana / de tarde", pero introduce la posibilidad de incoherencias (jornada 09:00-15:00 marcada "tarde").
+
+  Si elegimos A o B, las secciones 4.1 (modelo) y 7 (UX) cambian: desaparece el radio "Turno" del modal y se reemplaza por una etiqueta derivada en la vista previa.
+
 ---
 
 ## 4. Modelo propuesto
@@ -84,7 +97,7 @@ JornadaTipo
   ├── id
   ├── nombre               string   "FP Superior Mañana", "ESO Mañana", "Bach Tarde"…
   ├── centro               FK Centro (nullable=false)
-  ├── turno                enum     MANANA | TARDE
+  ├── turno                enum     MANANA | TARDE   ← pendiente D18 (puede desaparecer)
   ├── horaInicio           TIME     08:30
   ├── duracionSlotMinutos  int      50, 55, 60…
   ├── slotsPorDia          int      5, 6, 7…
