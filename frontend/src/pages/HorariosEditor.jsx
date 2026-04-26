@@ -930,7 +930,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               .filter(g => !selectedYear || g.anioEscolar === selectedYear)
               .map(g => ({
                 value: String(g.id),
-                label: g.nombre,
+                label: `${g.curso}º ${g.nombre}`,
               }))}
           />
           <Button
