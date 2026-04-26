@@ -159,7 +159,8 @@
     "logout": "Log Out",
     "scheduleAdmin": "Schedules (admin)",
     "pin": "Pin",
-    "unpin": "Unpin"
+    "unpin": "Unpin",
+    "jornadas": "Schedules templates"
   },
   "userAvatar": {
     "menuLabel": "User menu",
@@ -307,7 +308,10 @@
     "errorUpdating": "Could not update itinerary",
     "catalogo": {
       "createdSuccess": "Itinerary created from catalog with {{count}} subjects"
-    }
+    },
+    "jornadaLabel": "Schedule template",
+    "jornadaPlaceholder": "Pick a schedule template (recommended)…",
+    "jornadaHint": "Without one, the timetable editor uses default slots. Create one in /admin/jornadas to customize."
   },
   "groups": {
     "title": "Groups",
@@ -1268,5 +1272,41 @@
     "title": "Dates",
     "tabHolidays": "Holidays",
     "tabEvaluations": "Evaluations"
+  },
+  "jornadas": {
+    "title": "Schedule templates",
+    "subtitle": "Daily timetable templates per itinerary.",
+    "name": "Name",
+    "namePlaceholder": "E.g. Higher VT Morning",
+    "centro": "Center",
+    "turno": "Shift",
+    "turnoManana": "Morning",
+    "turnoTarde": "Afternoon",
+    "allTurnos": "All shifts",
+    "diasLectivos": "School days",
+    "tramos": "Timeline blocks",
+    "tramosCount": "Blocks",
+    "tramosEmpty": "No blocks yet. Add slots and breaks below.",
+    "tramoTipo": "Type",
+    "tramoInicio": "Start",
+    "tramoFin": "End",
+    "tramoEtiqueta": "Label",
+    "tipoSlot": "Slot",
+    "tipoRecreo": "Break",
+    "addSlot": "Add slot",
+    "addRecreo": "Add break",
+    "timelinePreview": "Preview",
+    "metricaSlots": "Slots",
+    "metricaHorasDia": "Hours/day",
+    "metricaHorasSem": "Hours/week",
+    "newTitle": "New schedule template",
+    "editTitle": "Edit schedule template",
+    "confirmDelete": "Delete this schedule template?",
+    "createdSuccess": "Schedule template created",
+    "updatedSuccess": "Schedule template updated",
+    "deletedSuccess": "Schedule template deleted",
+    "errorCreating": "Could not create schedule template",
+    "errorUpdating": "Could not update schedule template",
+    "errorDelete": "Could not delete schedule template"
   }
 }

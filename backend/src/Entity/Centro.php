@@ -100,6 +100,9 @@ class Centro
     #[Groups(['centro:read'])]
     private Collection $temasVisuales;
 
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: JornadaTipo::class)]
+    private Collection $jornadaTipos;
+
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
@@ -111,6 +114,7 @@ class Centro
         $this->grupos = new ArrayCollection();
         $this->festivos = new ArrayCollection();
         $this->temasVisuales = new ArrayCollection();
+        $this->jornadaTipos = new ArrayCollection();
     }
 
     public function getId(): ?int

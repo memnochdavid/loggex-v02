@@ -1,8 +1,87 @@
 # Sistema de jornadas y recreos para `/admin/horarios`
 
-> **Status**: en discusión. Documento vivo. No tocar código hasta que el usuario dé visto bueno explícito al diseño completo.
+> **Status**: Fases A y C implementadas y operativas. Pendiente Fase D (refactor del editor `/admin/horarios` para consumir jornadas reales). Fase B (asistente automático) aplazada hasta después de D — sin D, B no aporta valor visible. Decisiones de aulas (D12-D17) aplazadas a fase posterior.
+
+## ⚡ Snapshot para retomar en otra sesión
+
+**Lo que ya funciona end-to-end:**
+
+1. **Backend** (`backend/src/Entity/`, `Service/`, `Validator/Constraint/`):
+   - Entidades `JornadaTipo` (cabecera) y `JornadaTramo` (tramos) con `OneToMany` cascade `persist+remove` y `orphanRemoval`.
+   - Enums `TurnoJornada` (MANANA|TARDE) y `TipoTramo` (SLOT|RECREO).
+   - FK `Itinerario.jornadaTipo` (nullable, `inversedBy='itinerarios'`).
+   - Lado inverso `Centro.jornadaTipos`.
+   - `JornadaTramoValidator` (servicio) + `JornadaCoherente` constraint Symfony enchufada a la clase `JornadaTipo` → API Platform devuelve 422 si los tramos solapan / hay huecos / no hay slots.
+   - Migración aplicada: `migrations/Version20260426191216.php` (tablas `jornada_tipo`, `jornada_tramo`, FK `jornada_tipo_id` en `itinerario`).
+   - API Platform CRUD operativo bajo **`/api/jornada_tipos`** (con guion bajo, no kebab-case — siguiendo convención del proyecto: `catalogo_itinerarios`, etc.).
+   - **Workaround importante**: `JornadaTramo.jornadaTipo` lleva `cascade: ['persist']` (dirección hijo→padre) para evitar `"A new entity was found through the relationship"` al deserializar PUT/POST con tramos anidados. Si más adelante hay rarezas de update (tramos antiguos que no se borran al editar), reemplazar por un `State Processor` custom que controle la collection.
+
+2. **Frontend** (`frontend/src/pages/JornadasAdmin.jsx` + `.module.css`):
+   - CRUD `/admin/jornadas` con DataTable, búsqueda, filtros centro+turno.
+   - Modal con: nombre, centro (selector), turno (radio M/T), días lectivos (checkboxes lun-dom), **tabla editable de tramos** con flechas ↑↓ y borrar, **timeline horizontal solo-lectura** (anchos proporcionales, slots en color, recreos rayados), métricas en vivo (slots, h/día, h/sem).
+   - Validaciones cliente: rechazo si no hay centro o no hay tramos antes del POST.
+   - Manejo robusto del campo `centro` recibido del backend (string IRI, objeto con `.id`, objeto JSON-LD con `@id`).
+   - Ruta + sidebar (icono `Clock` de lucide).
+   - Selector "Jornada" (`AsyncSearchSelect`) en el modal de Itinerario filtrando por centro; recomendado pero no obligatorio (D7 dice que el admin elige; sin jornada el editor de horarios mostrará un banner).
+   - i18n en 5 idiomas (es/en/ca/eu/gl) bajo bloque `jornadas.*` + `sidebar.jornadas` + `itinerarios.jornadaLabel/Placeholder/Hint`.
+
+**Lo que NO está hecho aún:**
+
+- ❌ El editor `/admin/horarios` (`HorariosEditor.jsx`) **sigue usando `SLOTS_MANANA`/`SLOTS_TARDE` hardcoded**. Asignar una jornada a un itinerario hoy NO surte efecto en la rejilla. Esa es la Fase D.
+- ❌ Asistente automático que rellene los tramos a partir de Σ horas materias del itinerario (Fase B).
+- ❌ Sistema de aulas (D12-D17 aplazadas).
+
+**Para retomar:**
+
+Siguiente acción concreta: arrancar **Fase D — Refactor `HorariosEditor.jsx`** (ver §8 y §9 de este doc):
+1. Cargar la jornada del grupo seleccionado vía `grupo.itinerario.jornadaTipo` con sus tramos. Endpoint: ya disponible vía `GET /api/grupos/{id}` con groups `grupo:read` + `itinerario:read` + `jornada:read` + `tramo:read`.
+2. Reemplazar las constantes `SLOTS_MANANA`/`SLOTS_TARDE` por un `slotsDia` derivado de los tramos `SLOT` de la jornada (los `RECREO` se pintan pero no aceptan drops).
+3. Eliminar la heurística `turnoGrupo` (DAW=mañana, DAM=tarde) — la jornada ya lleva `turno`.
+4. Adaptar `HorarioSolver.php` para que reciba la lista de slots de la jornada como input.
+5. Caso degradado: itinerario sin jornada → banner informativo + link a `/itinerarios` para asignar.
+6. Validar/normalizar los `Horario` ya colocados que pudieran no encajar en la nueva jornada (poco probable porque la BD venía sin horarios — D8 lo confirmó).
+
+**Convenciones a respetar al implementar Fase D:**
+
+- URL del recurso: `/api/jornada_tipos` (snake_case + plural inglés).
+- Las TIME columns vienen como `"HH:MM:SS"` del backend; helpers `normalizeHora()` y `horaToMinutos()` ya existen en `JornadasAdmin.jsx`, reutilizar/extraer a `utils/time.js` si se usan en más sitios.
+- El campo `centro` puede venir en 3 formatos (string IRI, objeto con `.id`, objeto JSON-LD con `@id`). Misma lógica para `jornadaTipo` anidado.
+- El validador `JornadaTramoValidator` ya garantiza que los tramos están ordenados, sin solapes y con cobertura contigua. El editor puede asumirlo.
+
+**Tasks pendientes (creadas):**
+- D.1: Cargar jornada del grupo en el editor (fetch + estado).
+- D.2: Reemplazar slots hardcoded por tramos dinámicos en la rejilla.
+- D.3: Pintar recreos como bloques no asignables.
+- D.4: Eliminar heurística `turnoGrupo`.
+- D.5: Adaptar `HorarioSolver.php` para recibir slots de la jornada.
+- D.6: Banner degradado para itinerarios sin jornada.
+
+(Cuando se retome la sesión: invocar las tasks D.1-D.6 con `TaskCreate` siguiendo el plan de §8.)
 >
 > **Origen**: conversación 2026-04-26. El usuario reportó que los slots en `/admin/horarios` están hardcoded de hora en hora y que faltan recreos, configuración por turno y soporte para itinerarios con distinto número de horas semanales (ESO ≠ FP ≠ Bach).
+
+## 0. Estado de decisiones (snapshot 2026-04-26)
+
+| # | Decisión | Resolución |
+|---|---|---|
+| D1 | Granularidad: por itinerario | ✓ por itinerario, agnóstico de etapa |
+| D2 | Turno explícito | ✓ |
+| D3 | Recreo único + distribuido | ✓ ambos modos |
+| D4 | Editor en `/admin/horarios` | ✓ |
+| D5 | Entidad `JornadaTipo` | ✓ |
+| D6 | Restricciones de profe se conservan | ✓ |
+| D7 | Itinerario sin jornada → **el admin la elige**, sin fallback automático | ✓ admin obligado a elegir |
+| D8 | BD sin horarios actuales → **no hay migración** que hacer | ✓ |
+| D9 | `JornadaTipo` se puede compartir entre itinerarios | ✓ |
+| D10 (rev.) | Lista libre de tramos (`JornadaTramo[]`) | ✓ |
+| D11 | `diasLectivos` = lun-vie (default), configurable | ✓ |
+| D18 | `turno` se mantiene; necesario para mostrar al profe si su jornada cubre mañana+tarde | ✓ campo conservado |
+| D19 | Plantilla única para todos los días lectivos | ✓ A |
+| D20 | UI: **timeline visual horizontal** (drag/resize) | ✓ |
+| D21 | Asistente automático + edición manual | ✓ B (híbrido) |
+| D22 | Si las horas no encajan, **redondear hacia arriba** con aviso | ✓ A |
+| D23 | Recálculo de la jornada **bajo demanda** | ✓ A |
+| D12-D17 | Aulas (entidad, FK, validaciones, capacidad) | aplazadas a fase posterior |
 
 ---
 
@@ -61,8 +140,23 @@ A confirmar antes de empezar:
 - **D7**: ¿Default por centro? Si un itinerario no tiene `jornadaTipo` asignada, ¿usamos la primera jornada del centro, una global hardcoded, o forzamos a que el admin la elija?
 - **D8**: Migración de los horarios existentes — al asignar por primera vez una jornada custom a un itinerario, los `Horario` ya colocados pueden quedar fuera de slot. ¿Mostrar lista de afectados al admin y dejar que decida (mantener / borrar / mover) o aplicar siempre y avisar?
 - **D9**: ¿Permitir que dos itinerarios distintos compartan la misma `JornadaTipo`? (más DRY, menos duplicación; pero requiere que el editor de Itinerario tenga selector).
-- **D10**: ¿La `JornadaTipo` admite slots de duración mixta dentro del mismo día (ej. primer slot 50 min, último 60 min)? **Recomendación: no**, complica el modelo y el solver. Un único valor `duracionSlotMinutos` para toda la jornada.
+- **D10** *(revisada 2026-04-26)*: el usuario pide **flexibilidad máxima** en los slots. Esto invalida la recomendación inicial de un único `duracionSlotMinutos`. El modelo pasa a una **lista libre de tramos** (`JornadaTramo[]`) donde cada tramo declara su `tipo` (`SLOT` o `RECREO`), `horaInicio` y `horaFin`. Eso permite:
+  - Slots de duraciones distintas en el mismo día (50 min, 60 min, 90 min en talleres).
+  - Recreos en cualquier posición, no solo "tras slot N".
+  - Patios cortos y largos mezclados.
+  - Cualquier topología que el centro necesite, sin asumir uniformidad.
+
+  Implicación: las secciones 4.1 (modelo) y 6 (generador) se simplifican (la lista ya viene tal cual de BD, no hay que generar nada) pero la 7 (UX) se complica (necesita editor de timeline tipo "añadir tramo" / "arrastrar / redimensionar").
 - **D11**: ¿`diasLectivos` configurable o siempre lun-vie? Algunos centros tienen jornada de 4 días (FCT). **Recomendación: configurable** desde el principio (campo barato).
+- **D19** *(nueva, derivada de D10 revisada)*: ¿una **única plantilla de tramos** se aplica a todos los días lectivos, o se permiten **tramos distintos por día de la semana**? Casos reales: un viernes con jornada reducida (4 slots en vez de 6), o un miércoles con bloque extra-curricular al final.
+  - **Opción A — plantilla única**: la `JornadaTipo` tiene una sola lista `tramos[]`; aplica idéntica de lunes a viernes (o los días marcados en `diasLectivos`). Simple, suficiente para la mayoría de centros.
+  - **Opción B — tramos por día**: la `JornadaTipo` tiene un mapa `tramosPorDia: { 1: [...], 2: [...], 5: [...] }`. Cubre cualquier caso pero el editor se vuelve más complejo (5 timelines en vez de 1) y el modelo gana una capa.
+  - **Recomendación**: empezar por **A** (plantilla única) y dejar B documentada como futura ampliación si aparece la demanda. La mayoría de centros tienen jornada uniforme; la opción B es overengineering hasta que se demuestre necesaria.
+- **D20** *(nueva)*: ¿UI del editor de tramos? Tres alternativas:
+  - **Lista editable vertical**: tabla con filas `[tipo, horaInicio, horaFin, ↑↓×]`, "Añadir slot" / "Añadir recreo" abajo. La más sencilla de implementar, suficiente para el MVP.
+  - **Timeline visual horizontal**: barra de 24h con bloques arrastrables/redimensionables. Más bonito y rápido de usar, pero ~3× más trabajo (drag/resize, snap a múltiplos de 5 min, validación de solapes).
+  - **Híbrido**: lista editable con preview de timeline solo-lectura debajo. Compromiso razonable.
+  - **Recomendación**: **híbrido** — lista para editar + timeline solo-lectura para verificar visualmente.
 
 ### 3.1 Aulas (sub-bloque añadido 2026-04-26)
 
@@ -98,23 +192,27 @@ JornadaTipo
   ├── nombre               string   "FP Superior Mañana", "ESO Mañana", "Bach Tarde"…
   ├── centro               FK Centro (nullable=false)
   ├── turno                enum     MANANA | TARDE   ← pendiente D18 (puede desaparecer)
-  ├── horaInicio           TIME     08:30
-  ├── duracionSlotMinutos  int      50, 55, 60…
-  ├── slotsPorDia          int      5, 6, 7…
   ├── diasLectivos         json     [1,2,3,4,5]   (1=lunes … 5=viernes)
-  ├── recreoModo           enum     UNICO | DISTRIBUIDO | NINGUNO
-  ├── recreoMinutos        int      total acumulado de recreo (p.ej. 30)
-  ├── recreoBloques        int      si DISTRIBUIDO: cuántos bloques (2 → 2×15 min)
-  ├── recreoPosicion       int      si UNICO: tras qué slot (1..slotsPorDia-1)
+  ├── tramos               OneToMany → JornadaTramo (orden por `orden` ASC)
   ├── createdAt / updatedAt   timestampable
   └── deleted / deletedAt     softDelete
+
+JornadaTramo
+  ├── id
+  ├── jornadaTipo          FK JornadaTipo (nullable=false, cascade=remove)
+  ├── orden                int       posición en la secuencia (0..N)
+  ├── tipo                 enum      SLOT | RECREO
+  ├── horaInicio           TIME      08:30
+  ├── horaFin              TIME      09:30
+  ├── etiqueta             string    nullable; "Bloque mañana", "Patio largo"…
+  └── (composite UNIQUE)             (jornada_tipo_id, orden)
 ```
 
-`horaFin` se **deriva**, no se almacena:
-
-```
-horaFin = horaInicio + (slotsPorDia * duracionSlotMinutos) + recreoMinutos
-```
+Notas del modelo:
+- **No** hay `duracionSlotMinutos` ni `slotsPorDia` (refactor por D10 revisada): cada tramo lleva su propia duración derivada de `horaFin - horaInicio`.
+- **No** hay configuración de recreo en la `JornadaTipo`: los recreos son tramos como cualquier otro, simplemente con `tipo=RECREO`.
+- `horaInicio` global de la jornada = `min(tramos.horaInicio)`; `horaFin` global = `max(tramos.horaFin)`. Ambos derivados.
+- Validación al guardar: los tramos de una jornada no pueden solaparse y deben cubrir un rango contiguo (no huecos sin declarar — si hay hueco intencionado, se modela como tramo `RECREO`).
 
 ### 4.2 Relación con `Itinerario`
 
@@ -206,6 +304,58 @@ Validaciones existentes que **se conservan**:
 
 Cambian de fuente: ahora los `dia_hora` salen de la jornada generada, no de las constantes.
 
+### 5.2 Cálculo automático de la jornada (asistente)
+
+> **Decisión de diseño solicitada por el usuario (2026-04-26)**: la jornada de un itinerario debe poderse **calcular automáticamente** a partir de los datos que ya tiene el sistema, no construirse a mano slot a slot por defecto. Quedan abiertas D21-D23 para definir el alcance exacto.
+
+**Entradas disponibles para el cálculo:**
+
+| Dato | Origen |
+|---|---|
+| Suma de horas semanales del itinerario | `Σ materia.horasSemanales` para todas las materias del itinerario |
+| Días lectivos | `JornadaTipo.diasLectivos` (configurable, default lun-vie) |
+| Duración base del slot | parámetro del asistente, default 60 min |
+| Minutos totales de recreo al día | parámetro del asistente, default 30 min |
+| Hora de inicio | parámetro del asistente, default 08:30 (mañana) o 15:00 (tarde) |
+| Modo de recreo | UNICO (un bloque a mitad) o DISTRIBUIDO (N bloques uniformes) |
+
+**Algoritmo:**
+
+```
+1. horasSemanaItinerario  = Σ materia.horasSemanales
+2. horasDiaLectivas       = horasSemanaItinerario / count(diasLectivos)
+3. slotsPorDia            = ceil( horasDiaLectivas × 60 / duracionSlotMinutos )
+4. minutosLectivosDia     = slotsPorDia × duracionSlotMinutos
+5. minutosTotalesDia      = minutosLectivosDia + minutosRecreoTotal
+6. tramos = generador.intercalarRecreo(slotsPorDia, duracionSlotMinutos, recreoModo, minutosRecreoTotal)
+7. ajustar tramos para que el primer tramo arranque en horaInicio
+8. persistir tramos en JornadaTramo[]
+```
+
+**Validaciones automáticas tras el cálculo:**
+
+- `horasDiaLectivas` no entero → banner amarillo: *"El reparto exacto da X.Y h/día. Se redondea a slotsPorDia=N (Z h/día); sobran W min/sem por cubrir."*
+- `minutosTotalesDia > maxJornadaDiaria` (configurable, default 8h en mañana / 7h en tarde) → banner rojo, exige reducir horas o ampliar días lectivos.
+- Restricciones de profesor (≤40 h/sem, no doble booking) se aplican como hoy, sobre los slots generados — no requieren cambios en el solver actual.
+
+**Decisiones nuevas:**
+
+- **D21**: ¿el asistente es la **única** vía o convive con el editor manual de tramos (D10)?
+  - **Opción A — solo asistente**: el admin elige `(diasLectivos, duracionSlot, minutosRecreo, horaInicio, modoRecreo)` y el sistema genera los tramos cerrados. No se permiten ediciones manuales por tramo.
+  - **Opción B — asistente + ajuste manual**: el asistente genera los tramos como punto de partida; el admin puede después editar/añadir/borrar tramos individualmente (vuelve la lista libre de D10).
+  - **Recomendación**: **B**. El asistente cubre el 90% de los casos; la edición manual cubre el 10% raro (taller de 90 min, jornada con bloque extra-curricular).
+
+- **D22**: si la suma de horas no encaja exactamente en slots enteros (ej. 28 h/sem ÷ 5 días = 5.6 h/día), ¿qué hace el asistente?
+  - **Opción A — redondear hacia arriba**: añadir slots extra hasta cubrir; sobran minutos libres por semana. Más conservador.
+  - **Opción B — distribución desigual**: 4 días de 6h + 1 día de 4h. Más eficiente pero rompe la regla "todos los días iguales" (D19=A).
+  - **Opción C — pedir al admin**: mostrar las dos opciones y dejar que decida.
+  - **Recomendación**: **A** por defecto, con aviso amarillo explícito. Si en la práctica resulta molesto, se reabre.
+
+- **D23**: ¿el asistente se ejecuta una sola vez al crear la jornada, o **se recalcula** cuando cambian las horas de las materias del itinerario?
+  - **Opción A — una sola vez**: el admin recalcula manualmente (botón "Volver a calcular"). Más predecible.
+  - **Opción B — recálculo automático**: cualquier cambio en `materia.horasSemanales` dispara recálculo. Riesgo: pisa ajustes manuales del admin.
+  - **Recomendación**: **A**. Cambios en materias muestran un aviso *"Las horas del itinerario cambiaron de X a Y h/sem. Recalcular jornada"* con botón explícito.
+
 ### 5.1 Validaciones nuevas relacionadas con aulas (si D14/D16 = sí)
 
 | Caso | UI | Bloquea |
@@ -216,48 +366,65 @@ Cambian de fuente: ahora los `dia_hora` salen de la jornada generada, no de las 
 
 ---
 
-## 6. Generador de slots (servicio compartido)
+## 6. Lectura de tramos (sin generador)
 
-Tanto el editor visual como el solver necesitan la misma lista de slots para una jornada. Se implementa como **servicio único**, idealmente en backend (PHP) y se sirve al frontend como JSON:
+Con el modelo refactorizado por D10 revisada, ya no hace falta generar nada: los tramos viven literalmente en BD como `JornadaTramo[]`. El editor y el solver leen la lista ordenada por `orden` ASC y la usan tal cual.
 
-```php
-class JornadaSlotGenerator {
-    public function generate(JornadaTipo $j): array {
-        // Devuelve lista ordenada: [{tipo: 'slot'|'recreo', horaInicio, horaFin, idx?}]
-    }
+Endpoint:
+```
+GET /api/jornada-tipos/{id}    # incluye `tramos` anidados (Groups: jornada:read + tramo:read)
+```
+
+Salida ejemplo (jornada con recreo único de 30 min tras tramo 3, slots de 60 min):
+
+```json
+{
+  "id": 1,
+  "nombre": "FP Superior Mañana",
+  "diasLectivos": [1,2,3,4,5],
+  "tramos": [
+    { "orden": 0, "tipo": "SLOT",   "horaInicio": "08:30", "horaFin": "09:30" },
+    { "orden": 1, "tipo": "SLOT",   "horaInicio": "09:30", "horaFin": "10:30" },
+    { "orden": 2, "tipo": "SLOT",   "horaInicio": "10:30", "horaFin": "11:30" },
+    { "orden": 3, "tipo": "RECREO", "horaInicio": "11:30", "horaFin": "12:00", "etiqueta": "Patio" },
+    { "orden": 4, "tipo": "SLOT",   "horaInicio": "12:00", "horaFin": "13:00" },
+    { "orden": 5, "tipo": "SLOT",   "horaInicio": "13:00", "horaFin": "14:00" },
+    { "orden": 6, "tipo": "SLOT",   "horaInicio": "14:00", "horaFin": "15:00" }
+  ]
 }
 ```
 
-Salida ejemplo (ÚNICO, recreo de 30 min tras slot 3, slots de 60 min):
+Salida ejemplo (jornada heterogénea: 50 min los primeros, 60 los últimos, dos patios cortos):
 
 ```json
-[
-  { "tipo": "slot",   "idx": 1, "horaInicio": "08:30", "horaFin": "09:30" },
-  { "tipo": "slot",   "idx": 2, "horaInicio": "09:30", "horaFin": "10:30" },
-  { "tipo": "slot",   "idx": 3, "horaInicio": "10:30", "horaFin": "11:30" },
-  { "tipo": "recreo", "horaInicio": "11:30", "horaFin": "12:00", "minutos": 30 },
-  { "tipo": "slot",   "idx": 4, "horaInicio": "12:00", "horaFin": "13:00" },
-  { "tipo": "slot",   "idx": 5, "horaInicio": "13:00", "horaFin": "14:00" },
-  { "tipo": "slot",   "idx": 6, "horaInicio": "14:00", "horaFin": "15:00" }
-]
+{
+  "tramos": [
+    { "orden": 0, "tipo": "SLOT",   "horaInicio": "08:30", "horaFin": "09:20" },
+    { "orden": 1, "tipo": "SLOT",   "horaInicio": "09:20", "horaFin": "10:10" },
+    { "orden": 2, "tipo": "RECREO", "horaInicio": "10:10", "horaFin": "10:25", "etiqueta": "Patio corto" },
+    { "orden": 3, "tipo": "SLOT",   "horaInicio": "10:25", "horaFin": "11:15" },
+    { "orden": 4, "tipo": "SLOT",   "horaInicio": "11:15", "horaFin": "12:15" },
+    { "orden": 5, "tipo": "RECREO", "horaInicio": "12:15", "horaFin": "12:30", "etiqueta": "Patio corto" },
+    { "orden": 6, "tipo": "SLOT",   "horaInicio": "12:30", "horaFin": "13:30" },
+    { "orden": 7, "tipo": "SLOT",   "horaInicio": "13:30", "horaFin": "14:30" }
+  ]
+}
 ```
 
-Salida ejemplo (DISTRIBUIDO, 30 min en 2 bloques de 15, repartidos uniformemente):
+Helper PHP que aún tiene utilidad (validador, no generador):
 
-```json
-[
-  { "tipo": "slot",   "idx": 1, "horaInicio": "08:30", "horaFin": "09:30" },
-  { "tipo": "slot",   "idx": 2, "horaInicio": "09:30", "horaFin": "10:30" },
-  { "tipo": "recreo", "horaInicio": "10:30", "horaFin": "10:45", "minutos": 15 },
-  { "tipo": "slot",   "idx": 3, "horaInicio": "10:45", "horaFin": "11:45" },
-  { "tipo": "slot",   "idx": 4, "horaInicio": "11:45", "horaFin": "12:45" },
-  { "tipo": "recreo", "horaInicio": "12:45", "horaFin": "13:00", "minutos": 15 },
-  { "tipo": "slot",   "idx": 5, "horaInicio": "13:00", "horaFin": "14:00" },
-  { "tipo": "slot",   "idx": 6, "horaInicio": "14:00", "horaFin": "15:00" }
-]
+```php
+class JornadaTramoValidator {
+    /**
+     * Verifica que los tramos:
+     *  - estén ordenados por horaInicio ASC
+     *  - no se solapen entre sí
+     *  - cubran un rango contiguo (no huecos sin tramo declarado)
+     *  - tengan al menos un tramo de tipo SLOT
+     */
+    public function validate(array $tramos): array { /* devuelve errores */ }
+}
 ```
-
-Algoritmo de reparto del recreo distribuido: dividir los `slotsPorDia` en `recreoBloques + 1` segmentos de tamaño aproximadamente igual; intercalar un bloque de recreo entre cada par de segmentos. Si los slots no se dividen exactamente, sesgar los recreos hacia el centro de la jornada.
 
 ---
 
@@ -266,40 +433,53 @@ Algoritmo de reparto del recreo distribuido: dividir los `slotsPorDia` en `recre
 Modal o pestaña dentro de `/admin/horarios` (D4). Bocetо:
 
 ```
-┌─ Configurar jornada ────────────────────────────────────┐
-│                                                          │
-│  Nombre        [ FP Superior Mañana          ]          │
-│                                                          │
-│  Turno         (◉) Mañana    ( ) Tarde                  │
-│                                                          │
-│  Hora inicio   [ 08:30 ]                                │
-│  Duración slot [ 60 ▾ ] min                             │
-│  Slots por día [ 6   ]   →  Hora fin: 14:30 (calc)      │
-│  Días lectivos [✓]L [✓]M [✓]X [✓]J [✓]V [ ]S            │
-│                                                          │
-│  ── Recreo ───────────────────────────────────           │
-│  Modo:  ( ) Sin recreo                                  │
-│         (◉) Único bloque                                │
-│         ( ) Distribuido en N bloques                    │
-│                                                          │
-│  Minutos de recreo total:  [ 30 ]                       │
-│  Posición:                 tras slot [ 3 ▾ ]            │
-│                                                          │
-│  ── Vista previa de la jornada ─────────────             │
-│  08:30-09:30  Slot 1                                    │
-│  09:30-10:30  Slot 2                                    │
-│  10:30-11:30  Slot 3                                    │
-│  11:30-12:00  RECREO (30 min)                           │
-│  12:00-13:00  Slot 4                                    │
-│  13:00-14:00  Slot 5                                    │
-│  14:00-15:00  Slot 6                                    │
-│  ────────────────                                        │
-│  Horas lectivas/sem: 30  ·  Materias del itinerario: 28 │
-│  ✓ La jornada cubre las horas de las materias           │
-│                                                          │
-│       [ Cancelar ]              [ Guardar jornada ]     │
-└──────────────────────────────────────────────────────────┘
+┌─ Configurar jornada ────────────────────────────────────────────┐
+│                                                                  │
+│  Nombre         [ FP Superior Mañana                  ]         │
+│  Días lectivos  [✓]L [✓]M [✓]X [✓]J [✓]V [ ]S                   │
+│                                                                  │
+│  ── Asistente automático ─────────────────────────────────       │
+│  Itinerario:    Desarrollo de Aplicaciones Web                  │
+│  Σ horas/sem:   30 h  (calculado de las materias del itinerario)│
+│  Hora inicio    [ 08:30 ]                                       │
+│  Duración slot  [ 60 ▾ ] min                                    │
+│  Recreo total   [ 30 ] min   Modo  (◉) único  ( ) distribuido  │
+│  Posición       tras slot [ 3 ▾ ]                               │
+│                                                                  │
+│  → Cálculo: 6 slots × 60 min + 30 min recreo = 6h30 / día       │
+│            Total semanal: 30 h. ✓ Cubre las materias            │
+│                                                                  │
+│  [ Generar tramos ]   ← rellena la tabla de abajo               │
+│                                                                  │
+│  ── Tramos de la jornada (editables manualmente) ─────────       │
+│  ┌──────────────────────────────────────────────────────┐      │
+│  │ # │ Tipo   │ Inicio │ Fin   │ Etiqueta     │ Acción │      │
+│  ├──────────────────────────────────────────────────────┤      │
+│  │ 0 │ Slot   │ 08:30  │ 09:30 │              │ ↑↓ × │      │
+│  │ 1 │ Slot   │ 09:30  │ 10:30 │              │ ↑↓ × │      │
+│  │ 2 │ Slot   │ 10:30  │ 11:30 │              │ ↑↓ × │      │
+│  │ 3 │ Recreo │ 11:30  │ 12:00 │ Patio        │ ↑↓ × │      │
+│  │ 4 │ Slot   │ 12:00  │ 13:00 │              │ ↑↓ × │      │
+│  │ 5 │ Slot   │ 13:00  │ 14:00 │              │ ↑↓ × │      │
+│  │ 6 │ Slot   │ 14:00  │ 15:00 │              │ ↑↓ × │      │
+│  └──────────────────────────────────────────────────────┘      │
+│  [ + Añadir slot ]   [ + Añadir recreo ]                        │
+│                                                                  │
+│  ── Timeline (vista previa) ──────────────────────────────       │
+│  08:30 ████████████████████████ 11:30 ░░░░ 12:00 ████████ 15:00│
+│        S0   S1   S2             RECREO    S4  S5  S6           │
+│                                                                  │
+│       [ Cancelar ]                       [ Guardar jornada ]    │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+Flujo (D21=B híbrido + D20 híbrido):
+
+1. El admin abre el modal con la suma de horas del itinerario ya calculada arriba.
+2. Ajusta los parámetros del asistente y pulsa "Generar tramos".
+3. La tabla y el timeline se rellenan automáticamente.
+4. El admin puede editar tramos individuales (cambiar duración, añadir extras, mover orden) si la jornada real tiene casos atípicos.
+5. Al guardar, los tramos se persisten en `JornadaTramo[]` tal como están en la tabla — el cálculo automático no queda atado al modelo, solo es punto de partida.
 
 Asignación al itinerario: en el modal de Itinerario aparece un nuevo selector "Jornada" (AsyncSearchSelect contra `/api/jornada-tipos?centro=X`).
 
@@ -335,17 +515,17 @@ Cambios mínimos en el editor existente:
 
 ## 9. Plan en sub-fases
 
-| Fase | Esfuerzo | Bloquea a |
-|---|---|---|
-| A — Backend: entidad `JornadaTipo` + migración + endpoint CRUD | 1-2 días | C, D, E |
-| B — Servicio `JornadaSlotGenerator` (PHP) + endpoint que devuelve slots por id | 0.5 día | D |
-| C — Editor visual de Jornada (modal en `/admin/horarios`) con vista previa en vivo | 1 día | D |
-| D — Refactor `HorariosEditor.jsx`: slots dinámicos + recreos visuales no asignables | 1-2 días | E |
-| E — Adaptar `HorarioSolver.php` para recibir jornada como input | 1 día | — |
-| F — Validador de horarios afectados al cambiar la jornada de un itinerario | 0.5 día | — |
-| G — Selector "Jornada" en el modal de Itinerario | 0.5 día | — |
+| Fase | Esfuerzo | Bloquea a | Estado |
+|---|---|---|---|
+| A — Backend: entidades `JornadaTipo` + `JornadaTramo` + migración + API CRUD + validador | 1-2 días | C, D, E | ✅ **Done (2026-04-26)** |
+| C — Editor visual de Jornada en `/admin/jornadas` (modal con tabla editable + timeline preview) | 1 día | D | ✅ **Done (2026-04-26)** |
+| G — Selector "Jornada" en el modal de Itinerario | 0.5 día | — | ✅ **Done (2026-04-26)** |
+| D — Refactor `HorariosEditor.jsx`: slots dinámicos + recreos visuales no asignables | 1-2 días | E, B | ⏳ **Siguiente** |
+| E — Adaptar `HorarioSolver.php` para recibir jornada como input | 1 día | — | ⏳ Bloqueado por D |
+| B — Servicio asistente automático: rellenar tramos a partir de Σ horas materias del itinerario | 0.5 día | — | ⏳ Aplazado tras D (sin D, B no aporta valor visible) |
+| F — Validador de horarios afectados al cambiar la jornada de un itinerario | 0.5 día | — | ⏳ Aplazado a v1.1 (D8 confirmó: la BD no tenía horarios actuales, no urge) |
 
-**Total estimado**: 5-7 días de trabajo.
+**Restante estimado**: 3-4 días de trabajo (Fases D + E + B).
 
 ---
 
@@ -371,4 +551,33 @@ Cambios mínimos en el editor existente:
 
 ## 12. Próximo paso
 
-Cerrar D7-D11 con el usuario. Cuando todas las decisiones estén verdes, abrir tareas concretas para Fase A y empezar.
+Arrancar **Fase D — refactor `HorariosEditor.jsx`** (ver §8 y snapshot al inicio del documento). Tras D, encadenar E (solver) y B (asistente). Aulas (D12-D17) quedan para una iteración aparte cuando D-E-B estén estables.
+
+---
+
+## 13. Bitácora de implementación
+
+### 2026-04-26 — Fases A + C + G cerradas
+
+**Backend (Fase A):**
+- 9 archivos nuevos en `backend/src/Entity/`, `Repository/`, `Service/`, `Validator/Constraint/`.
+- Migración `Version20260426191216` aplicada.
+- URL del recurso quedó en `/api/jornada_tipos` (snake_case + plural inglés, convención del proyecto).
+
+**Frontend (Fase C):**
+- `frontend/src/pages/JornadasAdmin.jsx` + `.module.css`: CRUD completo con tabla editable de tramos + timeline horizontal preview.
+- Sidebar: nuevo item "Jornadas" con icono `Clock`, ruta `/admin/jornadas`.
+- Modal de Itinerario gana selector "Jornada" (Fase G colateral).
+- i18n en 5 idiomas, claves `jornadas.*` + `sidebar.jornadas` + `itinerarios.jornadaLabel/Placeholder/Hint`.
+
+**Bugs encontrados durante implementación:**
+1. **404 en POST**: el frontend usaba `/api/jornada-tipos` (kebab-case) pero API Platform autogenera `/api/jornada_tipos` (snake_case). Resuelto cambiando el frontend.
+2. **`centro: null`** al guardar: validación cliente añadida + extracción robusta del centro del usuario logueado (objeto, IRI o JSON-LD).
+3. **`centro: null`** al editar: extracción del centro recibido del backend ampliada para cubrir formato JSON-LD `{"@id": "..."}`.
+4. **`A new entity was found through the relationship 'App\Entity\JornadaTramo#jornadaTipo'`**: añadido `cascade: ['persist']` al `ManyToOne` de `JornadaTramo`. Workaround pragmático; si más adelante hay problemas con update de tramos al editar, sustituir por State Processor custom.
+
+**Convenciones consolidadas para Fase D y siguientes:**
+- URL del recurso jornada: `/api/jornada_tipos`.
+- TIME columns viajan como `"HH:MM:SS"`.
+- El campo `centro` puede venir en 3 formatos (string IRI, objeto con `.id`, JSON-LD con `@id`). Mismo patrón aplica a cualquier FK serializada.
+- Helpers `normalizeHora()` y `horaToMinutos()` viven hoy en `JornadasAdmin.jsx`. Si Fase D los necesita también, extraer a `frontend/src/utils/time.js`.

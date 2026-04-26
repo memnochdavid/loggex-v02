@@ -159,7 +159,8 @@
     "logout": "Pechar Sesión",
     "scheduleAdmin": "Horarios (administración)",
     "pin": "Ancorar",
-    "unpin": "Desancorar"
+    "unpin": "Desancorar",
+    "jornadas": "Xornadas"
   },
   "userAvatar": {
     "menuLabel": "Menú de usuario",
@@ -307,7 +308,10 @@
     "errorUpdating": "Non se puido actualizar o itinerario",
     "catalogo": {
       "createdSuccess": "Itinerario creado desde o catálogo con {{count}} materias"
-    }
+    },
+    "jornadaLabel": "Xornada",
+    "jornadaPlaceholder": "Selecciona unha xornada (recomendado)…",
+    "jornadaHint": "Sen xornada o editor de horarios usa franxas por defecto. Crea unha en /admin/jornadas para personalizala."
   },
   "groups": {
     "title": "Grupos",
@@ -1268,5 +1272,41 @@
     "title": "Datas",
     "tabHolidays": "Festivos",
     "tabEvaluations": "Avaliacións"
+  },
+  "jornadas": {
+    "title": "Xornadas",
+    "subtitle": "Modelos de horario lectivo por itinerario.",
+    "name": "Nome",
+    "namePlaceholder": "Ex.: FP Superior Mañá",
+    "centro": "Centro",
+    "turno": "Quenda",
+    "turnoManana": "Mañá",
+    "turnoTarde": "Tarde",
+    "allTurnos": "Todas as quendas",
+    "diasLectivos": "Días lectivos",
+    "tramos": "Tramos da xornada",
+    "tramosCount": "Tramos",
+    "tramosEmpty": "Aínda non hai tramos. Engade franxas e recreos abaixo.",
+    "tramoTipo": "Tipo",
+    "tramoInicio": "Inicio",
+    "tramoFin": "Fin",
+    "tramoEtiqueta": "Etiqueta",
+    "tipoSlot": "Franxa",
+    "tipoRecreo": "Recreo",
+    "addSlot": "Engadir franxa",
+    "addRecreo": "Engadir recreo",
+    "timelinePreview": "Vista previa",
+    "metricaSlots": "Franxas",
+    "metricaHorasDia": "Horas/día",
+    "metricaHorasSem": "Horas/sem.",
+    "newTitle": "Nova xornada",
+    "editTitle": "Editar xornada",
+    "confirmDelete": "Seguro que queres eliminar esta xornada?",
+    "createdSuccess": "Xornada creada",
+    "updatedSuccess": "Xornada actualizada",
+    "deletedSuccess": "Xornada eliminada",
+    "errorCreating": "Non se puido crear a xornada",
+    "errorUpdating": "Non se puido actualizar a xornada",
+    "errorDelete": "Non se puido eliminar a xornada"
   }
 }

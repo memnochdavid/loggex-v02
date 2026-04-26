@@ -65,7 +65,8 @@ const Itinerarios = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     nivel: 'Superior', // Default
-    centro: ''
+    centro: '',
+    jornadaTipo: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -226,17 +227,28 @@ const Itinerarios = () => {
           }
       }
 
+      let jornadaTipoId = '';
+      if (itinerario.jornadaTipo) {
+          if (typeof itinerario.jornadaTipo === 'string') {
+              jornadaTipoId = itinerario.jornadaTipo.split('/').pop();
+          } else if (itinerario.jornadaTipo.id) {
+              jornadaTipoId = itinerario.jornadaTipo.id;
+          }
+      }
+
       setFormData({
         nombre: itinerario.nombre,
         nivel: itinerario.nivel,
-        centro: centroId
+        centro: centroId,
+        jornadaTipo: jornadaTipoId
       });
     } else {
       setCurrentItinerario(null);
       setFormData({
         nombre: '',
         nivel: 'Superior',
-        centro: isSuperAdmin ? '' : (user.centro ? user.centro.id : '')
+        centro: isSuperAdmin ? '' : (user.centro ? user.centro.id : ''),
+        jornadaTipo: ''
       });
       // Reset del modo creación: por defecto catálogo (es la vía recomendada).
       setCreateMode('catalogo');
@@ -324,7 +336,8 @@ const Itinerarios = () => {
 
       const payload = {
         ...formData,
-        centro: formData.centro ? `/api/centros/${formData.centro}` : null
+        centro: formData.centro ? `/api/centros/${formData.centro}` : null,
+        jornadaTipo: formData.jornadaTipo ? `/api/jornada_tipos/${formData.jornadaTipo}` : null,
       };
 
       const response = await fetch(url, {
@@ -630,7 +643,7 @@ const Itinerarios = () => {
                             <AsyncSearchSelect
                                 name="centro"
                                 value={formData.centro}
-                                onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                                onChange={(v) => setFormData(p => ({ ...p, centro: v, jornadaTipo: '' }))}
                                 endpoint="/api/centros"
                                 getOptionLabel={(c) => c.nombre}
                                 getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
@@ -639,6 +652,30 @@ const Itinerarios = () => {
                             />
                         </div>
                     )}
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('itinerarios.jornadaLabel', { defaultValue: 'Jornada' })}
+                        </label>
+                        <AsyncSearchSelect
+                            name="jornadaTipo"
+                            value={formData.jornadaTipo}
+                            onChange={(v) => setFormData(p => ({ ...p, jornadaTipo: v }))}
+                            endpoint="/api/jornada_tipos"
+                            extraParams={(() => {
+                                const centroId = isSuperAdmin ? formData.centro : (user.centro?.id || '');
+                                return centroId ? { centro: centroId } : {};
+                            })()}
+                            getOptionLabel={(j) => `${j.nombre} (${j.turno === 'manana' ? 'M' : 'T'})`}
+                            getOptionValue={(j) => j.id || j['@id']?.split('/').pop()}
+                            placeholder={t('itinerarios.jornadaPlaceholder', { defaultValue: 'Selecciona una jornada (recomendado)…' })}
+                        />
+                        {!formData.jornadaTipo && (
+                            <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                                {t('itinerarios.jornadaHint', { defaultValue: 'Sin jornada el editor de horarios usa slots por defecto. Crea una en /admin/jornadas para personalizarla.' })}
+                            </small>
+                        )}
+                    </div>
                 </>
             )}
         </ModalView>

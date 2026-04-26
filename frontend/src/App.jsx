@@ -29,6 +29,7 @@ import Imparticiones from './pages/Imparticiones';
 import Horarios from './pages/Horarios';
 import HorariosEditor from './pages/HorariosEditor';
 import HorariosAdmin from './pages/HorariosAdmin';
+import JornadasAdmin from './pages/JornadasAdmin';
 import Fechas from './pages/Fechas';
 import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
@@ -170,6 +171,12 @@ const router = createBrowserRouter(
                 <Route path="/admin/horarios" element={
                   <PrivateRoute>
                     <HorariosAdmin />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/jornadas" element={
+                  <PrivateRoute>
+                    <JornadasAdmin />
                   </PrivateRoute>
                 } />
 

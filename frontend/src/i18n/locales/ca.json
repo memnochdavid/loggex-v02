@@ -159,7 +159,8 @@
     "logout": "Tancar sessió",
     "scheduleAdmin": "Horaris (administració)",
     "pin": "Ancorar",
-    "unpin": "Desancorar"
+    "unpin": "Desancorar",
+    "jornadas": "Jornades"
   },
   "userAvatar": {
     "menuLabel": "Menú d'usuari",
@@ -307,7 +308,10 @@
     "errorUpdating": "No s'ha pogut actualitzar l'itinerari",
     "catalogo": {
       "createdSuccess": "Itinerari creat des del catàleg amb {{count}} matèries"
-    }
+    },
+    "jornadaLabel": "Jornada",
+    "jornadaPlaceholder": "Selecciona una jornada (recomanat)…",
+    "jornadaHint": "Sense jornada l'editor d'horaris usa franges per defecte. Crea'n una a /admin/jornadas per personalitzar-la."
   },
   "groups": {
     "title": "Grups",
@@ -1268,5 +1272,41 @@
     "title": "Dates",
     "tabHolidays": "Festius",
     "tabEvaluations": "Avaluacions"
+  },
+  "jornadas": {
+    "title": "Jornades",
+    "subtitle": "Plantilles d'horari lectiu per itinerari.",
+    "name": "Nom",
+    "namePlaceholder": "Ex.: FP Superior Matí",
+    "centro": "Centre",
+    "turno": "Torn",
+    "turnoManana": "Matí",
+    "turnoTarde": "Tarda",
+    "allTurnos": "Tots els torns",
+    "diasLectivos": "Dies lectius",
+    "tramos": "Trams de la jornada",
+    "tramosCount": "Trams",
+    "tramosEmpty": "Encara no hi ha trams. Afegeix franges i descansos a sota.",
+    "tramoTipo": "Tipus",
+    "tramoInicio": "Inici",
+    "tramoFin": "Fi",
+    "tramoEtiqueta": "Etiqueta",
+    "tipoSlot": "Franja",
+    "tipoRecreo": "Esbarjo",
+    "addSlot": "Afegir franja",
+    "addRecreo": "Afegir esbarjo",
+    "timelinePreview": "Vista prèvia",
+    "metricaSlots": "Franges",
+    "metricaHorasDia": "Hores/dia",
+    "metricaHorasSem": "Hores/setm.",
+    "newTitle": "Nova jornada",
+    "editTitle": "Editar jornada",
+    "confirmDelete": "Segur que vols eliminar aquesta jornada?",
+    "createdSuccess": "Jornada creada",
+    "updatedSuccess": "Jornada actualitzada",
+    "deletedSuccess": "Jornada eliminada",
+    "errorCreating": "No s'ha pogut crear la jornada",
+    "errorUpdating": "No s'ha pogut actualitzar la jornada",
+    "errorDelete": "No s'ha pogut eliminar la jornada"
   }
 }

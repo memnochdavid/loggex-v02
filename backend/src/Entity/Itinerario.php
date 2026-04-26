@@ -77,6 +77,18 @@ class Itinerario
     #[Groups(['itinerario:read'])]
     private ?CatalogoItinerario $catalogoOrigen = null;
 
+    /**
+     * Jornada lectiva asignada al itinerario. Nullable: D7 — el admin debe elegir
+     * una explícitamente, no hay fallback automático. Mientras esté null, el editor
+     * de horarios mostrará un aviso pidiendo asignar jornada.
+     *
+     * Una misma JornadaTipo puede ser compartida por varios itinerarios (D9).
+     */
+    #[ORM\ManyToOne(inversedBy: 'itinerarios')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['itinerario:read', 'itinerario:write', 'grupo:read'])]
+    private ?JornadaTipo $jornadaTipo = null;
+
     #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Materia::class)]
     private Collection $materias;
 
@@ -193,6 +205,17 @@ class Itinerario
     public function setCatalogoOrigen(?CatalogoItinerario $origen): static
     {
         $this->catalogoOrigen = $origen;
+        return $this;
+    }
+
+    public function getJornadaTipo(): ?JornadaTipo
+    {
+        return $this->jornadaTipo;
+    }
+
+    public function setJornadaTipo(?JornadaTipo $jornadaTipo): static
+    {
+        $this->jornadaTipo = $jornadaTipo;
         return $this;
     }
 }

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
-import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info } from 'lucide-react';
+import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info, Clock } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ConfirmLogoutModal from './ConfirmLogoutModal';
 import { useTranslation } from 'react-i18next';
@@ -84,6 +84,7 @@ const Sidebar = () => {
         // Rutas más específicas primero
         '/horarios': 'general',
         '/admin/horarios': 'administracion',
+        '/admin/jornadas': 'administracion',
         '/mensajes': 'general',
         '/perfil': 'general',
         
@@ -328,6 +329,10 @@ const Sidebar = () => {
                     <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={handleNavClose} data-tour="sidebar-admin-horarios">
                         <Calendar size={20} />
                         <span>{t('sidebar.schedule')}</span>
+                    </NavLink>
+                    <NavLink to="/admin/jornadas" className={getNavLinkClass} title={t('sidebar.jornadas', { defaultValue: 'Jornadas' })} onClick={handleNavClose} data-tour="sidebar-admin-jornadas">
+                        <Clock size={20} />
+                        <span>{t('sidebar.jornadas', { defaultValue: 'Jornadas' })}</span>
                     </NavLink>
                     {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
                         <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={handleNavClose}>

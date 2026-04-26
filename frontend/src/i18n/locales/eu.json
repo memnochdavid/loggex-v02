@@ -159,7 +159,8 @@
     "logout": "Saioa itxi",
     "scheduleAdmin": "Ordutegiak (administrazioa)",
     "pin": "Ainguratu",
-    "unpin": "Askatu"
+    "unpin": "Askatu",
+    "jornadas": "Lan-egunak"
   },
   "userAvatar": {
     "menuLabel": "Erabiltzaile menua",
@@ -307,7 +308,10 @@
     "errorUpdating": "Ezin izan da itinerarioa eguneratu",
     "catalogo": {
       "createdSuccess": "Itinerarioa katalogotik sortuta {{count}} ikasgairekin"
-    }
+    },
+    "jornadaLabel": "Lan-eguna",
+    "jornadaPlaceholder": "Aukeratu lan-egun bat (gomendatua)…",
+    "jornadaHint": "Lan-egunik gabe ordutegiaren editoreak lehenetsitako orduak erabiltzen ditu. Sortu bat /admin/jornadas atalean pertsonalizatzeko."
   },
   "groups": {
     "title": "Taldeak",
@@ -1268,5 +1272,41 @@
     "title": "Datak",
     "tabHolidays": "Jaiegunak",
     "tabEvaluations": "Ebaluazioak"
+  },
+  "jornadas": {
+    "title": "Lan-egunak",
+    "subtitle": "Ibilbide bakoitzeko ordutegi-txantiloiak.",
+    "name": "Izena",
+    "namePlaceholder": "Adib.: LH Goi Maila Goiza",
+    "centro": "Ikastetxea",
+    "turno": "Txanda",
+    "turnoManana": "Goiza",
+    "turnoTarde": "Arratsaldea",
+    "allTurnos": "Txanda guztiak",
+    "diasLectivos": "Eskola-egunak",
+    "tramos": "Lan-egunaren tarteak",
+    "tramosCount": "Tarteak",
+    "tramosEmpty": "Oraindik ez dago tarterik. Erantsi orduak eta atsedenaldiak behean.",
+    "tramoTipo": "Mota",
+    "tramoInicio": "Hasiera",
+    "tramoFin": "Amaiera",
+    "tramoEtiqueta": "Etiketa",
+    "tipoSlot": "Ordua",
+    "tipoRecreo": "Atsedenaldia",
+    "addSlot": "Erantsi ordua",
+    "addRecreo": "Erantsi atsedenaldia",
+    "timelinePreview": "Aurrebista",
+    "metricaSlots": "Orduak",
+    "metricaHorasDia": "Ordu/egun",
+    "metricaHorasSem": "Ordu/aste",
+    "newTitle": "Lan-egun berria",
+    "editTitle": "Editatu lan-eguna",
+    "confirmDelete": "Ziur lan-egun hau ezabatu nahi duzula?",
+    "createdSuccess": "Lan-eguna sortuta",
+    "updatedSuccess": "Lan-eguna eguneratuta",
+    "deletedSuccess": "Lan-eguna ezabatuta",
+    "errorCreating": "Ezin izan da lan-eguna sortu",
+    "errorUpdating": "Ezin izan da lan-eguna eguneratu",
+    "errorDelete": "Ezin izan da lan-eguna ezabatu"
   }
 }
