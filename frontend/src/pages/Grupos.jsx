@@ -578,7 +578,7 @@ const Grupos = () => {
                     className={styles.input}
                     placeholder={t('groups.aulaDefaultPlaceholder', { defaultValue: 'ej. Aula 12, Lab Hardware…' })}
                 />
-                <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                <small className={styles.helpText}>
                     {t('groups.aulaDefaultHint', {
                         defaultValue: 'Aula habitual del grupo. Se aplica a todos sus horarios salvo que la imparticion concreta tenga aula propia. Si vacío, se usa "Aula " + abreviatura.',
                     })}

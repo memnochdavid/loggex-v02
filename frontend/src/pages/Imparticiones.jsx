@@ -645,7 +645,7 @@ const Imparticiones = () => {
                     className={styles.input}
                     placeholder={t('teaching.aulaEspecificaPlaceholder', { defaultValue: 'ej. Lab Hardware, Aula Música…' })}
                 />
-                <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                <small className={styles.helpText}>
                     {t('teaching.aulaEspecificaHint', {
                         defaultValue: 'Solo si esta materia se imparte en un aula distinta a la del grupo. Si vacío, se usa el aula por defecto del grupo.',
                     })}

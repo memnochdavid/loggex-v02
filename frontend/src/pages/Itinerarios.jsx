@@ -777,26 +777,25 @@ const Itinerarios = () => {
                                 <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select>
-                        <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                        <small className={styles.helpText}>
                             {t('itinerarios.ccaaHint', { defaultValue: 'Aplica overlay del decreto autonómico (BOJA, DOGC, BOCM…) sobre el catálogo nacional. Si seleccionas una CCAA, recuerda re-sincronizar los grupos del itinerario.' })}
                         </small>
                     </div>
 
                     {currentItinerario && formData.ccaa && (
                         <div className={styles.formGroup}>
-                            <button
+                            <Button
                                 type="button"
-                                className={styles.btnSecondary || ''}
+                                variant="secondary"
                                 onClick={() => handleAplicarOverlay(currentItinerario)}
                                 disabled={applyingOverlay}
-                                style={{ padding: '0.5rem 1rem', borderRadius: 6, cursor: 'pointer' }}
                             >
                                 {applyingOverlay
                                     ? t('itinerarios.applyingOverlay', { defaultValue: 'Aplicando overlay…' })
                                     : t('itinerarios.applyOverlay', { defaultValue: 'Aplicar overlay CCAA a los grupos del itinerario' })
                                 }
-                            </button>
-                            <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                            </Button>
+                            <small className={styles.helpText}>
                                 {t('itinerarios.applyOverlayHint', { defaultValue: 'Re-sincroniza materias y horas de cada grupo según el overlay vigente. Las materias manuales se conservan.' })}
                             </small>
                         </div>
@@ -820,7 +819,7 @@ const Itinerarios = () => {
                             placeholder={t('itinerarios.jornadaPlaceholder', { defaultValue: 'Selecciona una jornada (recomendado)…' })}
                         />
                         {!formData.jornadaTipo && (
-                            <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                            <small className={styles.helpText}>
                                 {t('itinerarios.jornadaHint', { defaultValue: 'Sin jornada el editor de horarios usa slots por defecto. Crea una en /admin/jornadas para personalizarla.' })}
                             </small>
                         )}
