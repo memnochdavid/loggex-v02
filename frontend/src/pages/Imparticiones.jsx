@@ -27,16 +27,21 @@ const Imparticiones = () => {
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [imparticiones, setImparticiones] = useState([]);
-  // Las listas auxiliares (profesores/materias/grupos) ya no se cargan upfront:
-  // los AsyncSearchSelect del modal hacen búsqueda on-demand contra la API.
   const [centros, setCentros] = useState([]);
-  
+  // Listas para los filtros del CrudHeader (no se usan en el modal: allí siguen
+  // siendo AsyncSearchSelect on-demand). Aquí se cargan upfront porque ThemedSelect
+  // necesita la lista completa para renderizar las opciones.
+  const [grupos, setGrupos] = useState([]);
+  const [profesores, setProfesores] = useState([]);
+
   // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [selectedProfesor, setSelectedProfesor] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,6 +108,28 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
+  // Cargar grupos y profesores para los filtros del CrudHeader. Se recarga
+  // cuando cambia el centro (SuperAdmin); para no-superadmin la extension
+  // CurrentUserExtension del backend ya filtra por centro automáticamente.
+  useEffect(() => {
+    const centroParam = isSuperAdmin && selectedCentro ? `&centro=${selectedCentro}` : '';
+    fetch(getApiUrl(`/api/grupos?pagination=false${centroParam}`), {
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => setGrupos(data['hydra:member'] || data.member || []))
+    .catch(err => console.error("Error cargando grupos:", err));
+
+    fetch(getApiUrl(`/api/users?pagination=false&rol_app[]=profesor&rol_app[]=admin${centroParam}`), {
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => setProfesores(data['hydra:member'] || data.member || []))
+    .catch(err => console.error("Error cargando profesores:", err));
+  }, [isSuperAdmin, selectedCentro]);
+
   // (Antes había aquí un useEffect que precargaba profesores+materias+grupos al
   // montar la página. Ya no es necesario: cada AsyncSearchSelect del modal hace
   // su propia búsqueda servidor on-demand cuando el usuario teclea.)
@@ -127,9 +154,15 @@ const Imparticiones = () => {
 
     try {
       let url = getApiUrl(`/api/imparticions?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
-      
+
       if (params.selectedCentro) {
           url += `&grupo.centro=${params.selectedCentro}`;
+      }
+      if (params.selectedGrupo) {
+          url += `&grupo=${params.selectedGrupo}`;
+      }
+      if (params.selectedProfesor) {
+          url += `&profesor=${params.selectedProfesor}`;
       }
 
       if (params.searchTerm) {
@@ -184,6 +217,8 @@ const Imparticiones = () => {
           searchTerm,
           searchField,
           selectedCentro,
+          selectedGrupo,
+          selectedProfesor,
           sortColumn,
           sortDirection
       };
@@ -207,6 +242,8 @@ const Imparticiones = () => {
       searchTerm,
       searchField,
       selectedCentro,
+      selectedGrupo,
+      selectedProfesor,
       sortColumn,
       sortDirection,
       fetchImparticionesData
@@ -405,11 +442,15 @@ const Imparticiones = () => {
         sortable: true,
         sortKey: 'materia.nombre'
     },
-    { 
-        header: t('teaching.group'), 
-        accessor: (row) => row.grupo ? (row.grupo.abreviatura || row.grupo.nombre) : '-', 
-        sortable: true, 
-        sortKey: 'grupo.nombre' 
+    {
+        header: t('teaching.group'),
+        accessor: (row) => {
+            if (!row.grupo) return '-';
+            const label = row.grupo.abreviatura || row.grupo.nombre;
+            return row.grupo.curso ? `${row.grupo.curso}º ${label}` : label;
+        },
+        sortable: true,
+        sortKey: 'grupo.nombre'
     },
     { 
         header: t('common.actions'), 
@@ -444,7 +485,7 @@ const Imparticiones = () => {
             {isSuperAdmin && (
                 <ThemedSelect
                     value={selectedCentro}
-                    onChange={setSelectedCentro}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedGrupo(''); setSelectedProfesor(''); }}
                     minWidth={200}
                     ariaLabel={t('common.allCenters')}
                     options={[
@@ -453,16 +494,44 @@ const Imparticiones = () => {
                     ]}
                 />
             )}
-            
-            <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
+
+            <ThemedSelect
+                value={selectedGrupo}
+                onChange={setSelectedGrupo}
+                minWidth={200}
+                ariaLabel={t('teaching.allGroups', { defaultValue: 'Todos los grupos' })}
+                options={[
+                    { value: '', label: t('teaching.allGroups', { defaultValue: 'Todos los grupos' }) },
+                    ...grupos.map(g => ({
+                        value: String(g.id || g['@id']?.split('/').pop()),
+                        label: `${g.curso ? g.curso + 'º ' : ''}${g.abreviatura || g.nombre}`,
+                    })),
+                ]}
+            />
+
+            <ThemedSelect
+                value={selectedProfesor}
+                onChange={setSelectedProfesor}
+                minWidth={220}
+                ariaLabel={t('teaching.allTeachers', { defaultValue: 'Todos los profesores' })}
+                options={[
+                    { value: '', label: t('teaching.allTeachers', { defaultValue: 'Todos los profesores' }) },
+                    ...profesores.map(p => ({
+                        value: String(p.id || p['@id']?.split('/').pop()),
+                        label: `${p.nombre} ${p.apellidos}`,
+                    })),
+                ]}
+            />
+
+            <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
                 placeholder={t('common.search')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
             />
-            
+
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
                 {t('common.new')}
