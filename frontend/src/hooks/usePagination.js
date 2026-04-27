@@ -1,58 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
+
+const STORAGE_KEY = 'itemsPerPageGlobal';
 
 /**
- * Hook para gestionar la paginación con valores por defecto personalizados
- * @param {string} viewName - Nombre de la vista (usuarios, centros, ciclos, grupos, modulos, matriculas, imparticiones, horarios)
- * @param {number} defaultFallback - Valor por defecto si no hay configuración (20)
+ * Hook compartido para el tamaño de página de las tablas CRUD.
+ * Persiste en localStorage bajo una única clave global, así todas las vistas
+ * comparten el mismo valor y se evitan discrepancias entre tablas.
+ *
+ * @param {string} [_viewName] - Mantenido por compatibilidad con los call sites
+ *                               existentes; ya no se usa para distinguir vistas.
+ * @param {number} [defaultFallback=20] - Valor por defecto si no hay nada en localStorage.
  */
-export const usePagination = (viewName, defaultFallback = 20) => {
-    const { user } = useAuth();
-    
-    // Obtener configuración del usuario
-    const getPersonalizedItemsPerPage = () => {
-        if (!user) return defaultFallback;
-        
-        let personalizacion = null;
-        
-        if (user.centro && user.centro.personalizacion) {
-            personalizacion = user.centro.personalizacion;
-        } else if (user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
-             // Caso SuperAdmin con centro global ficticio
-             personalizacion = user.centro.personalizacion;
-        }
-
-        if (personalizacion) {
-            // Mapear nombre de vista a propiedad de personalización
-            const key = `itemsPerPage${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`;
-            if (personalizacion[key]) {
-                return Number(personalizacion[key]); // Asegurar que es número
-            }
-        }
-        
-        return defaultFallback;
+export const usePagination = (_viewName, defaultFallback = 20) => {
+    const readFromStorage = () => {
+        if (typeof window === 'undefined') return defaultFallback;
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultFallback;
     };
 
-    const [itemsPerPage, setItemsPerPage] = useState(getPersonalizedItemsPerPage());
-    
-    // Referencia para evitar actualizaciones innecesarias
-    const currentItemsPerPageRef = useRef(itemsPerPage);
+    const [itemsPerPage, setItemsPerPage] = useState(readFromStorage);
 
-    // Actualizar si cambia el usuario o su configuración (ej: al guardar en Configuración)
-    useEffect(() => {
-        const newValue = getPersonalizedItemsPerPage();
-        // Solo actualizamos si el valor es realmente diferente
-        if (newValue !== currentItemsPerPageRef.current) {
-            currentItemsPerPageRef.current = newValue;
-            setItemsPerPage(newValue);
+    const setAndPersist = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) return;
+        setItemsPerPage(numeric);
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(STORAGE_KEY, String(numeric));
         }
-    }, [user]); // Dependencia user es correcta, pero filtramos dentro
-
-    // Wrapper para setItemsPerPage que actualiza también la ref
-    const setAndTrackItemsPerPage = (value) => {
-        currentItemsPerPageRef.current = value;
-        setItemsPerPage(value);
     };
 
-    return [itemsPerPage, setAndTrackItemsPerPage];
+    return [itemsPerPage, setAndPersist];
 };

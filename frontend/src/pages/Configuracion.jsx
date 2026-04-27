@@ -16,7 +16,6 @@ import {
     Calendar,
     Clock,
     Table,
-    List,
     Layers,
     Trash2,
     Check,
@@ -390,21 +389,6 @@ const Configuracion = () => {
                     maxLength={7}
                 />
             </div>
-        </div>
-    );
-
-    const renderNumberInput = (label, name) => (
-        <div className={styles.colorItem}>
-            <label className={styles.label}>{label}</label>
-            <input
-                type="number"
-                name={name}
-                value={settings[name] || 20}
-                onChange={handleChange}
-                className={styles.colorTextInput}
-                min="1"
-                max="100"
-            />
         </div>
     );
 
@@ -808,21 +792,6 @@ const Configuracion = () => {
                     </div>
                 );
 
-            case 'pagination':
-                return (
-                    <div className={styles.previewBox}>
-                        <DataTable
-                            columns={MOCK_DT_COLUMNS}
-                            data={MOCK_DT_DATA}
-                            totalItems={50}
-                            itemsPerPage={settings.itemsPerPageUsuarios || 20}
-                            currentPage={1}
-                            onPageChange={() => {}}
-                            loading={false}
-                        />
-                    </div>
-                );
-
             case 'eventos':
                 return (
                     <div className={styles.previewBox}>
@@ -1013,7 +982,6 @@ const Configuracion = () => {
         {id: 'datatable', label: t('config.tabs.datatable'), icon: <Table size={18}/>},
         {id: 'accordion', label: t('config.tabs.accordion'), icon: <Layers size={18}/>},
         {id: 'modal', label: t('config.tabs.modal'), icon: <Maximize size={18}/>},
-        {id: 'pagination', label: t('config.tabs.pagination'), icon: <List size={18}/>},
         {id: 'themes', label: t('config.tabs.themes'), icon: <Palette size={18}/>},
     ];
 
@@ -1469,19 +1437,6 @@ const Configuracion = () => {
                                     {renderColorInput(t('config.modalTab.closeText'), 'modalCloseButtonTextColor')}
                                     {renderColorInput(t('config.modalTab.closeHoverBg'), 'modalCloseButtonHoverBgColor')}
                                     {renderColorInput(t('config.modalTab.closeHoverText'), 'modalCloseButtonHoverTextColor')}
-                                </div>
-                            )}
-
-                            {activeTab === 'pagination' && (
-                                <div className={styles.grid}>
-                                    {renderNumberInput(t('config.paginationTab.usersPerPage'), 'itemsPerPageUsuarios')}
-                                    {renderNumberInput(t('config.paginationTab.centersPerPage'), 'itemsPerPageCentros')}
-                                    {renderNumberInput(t('config.paginationTab.cyclesPerPage'), 'itemsPerPageCiclos')}
-                                    {renderNumberInput(t('config.paginationTab.groupsPerPage'), 'itemsPerPageGrupos')}
-                                    {renderNumberInput(t('config.paginationTab.modulesPerPage'), 'itemsPerPageModulos')}
-                                    {renderNumberInput(t('config.paginationTab.enrollmentsPerPage'), 'itemsPerPageMatriculas')}
-                                    {renderNumberInput(t('config.paginationTab.teachingPerPage'), 'itemsPerPageImparticiones')}
-                                    {renderNumberInput(t('config.paginationTab.schedulesPerPage'), 'itemsPerPageHorarios')}
                                 </div>
                             )}
 

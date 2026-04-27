@@ -534,7 +534,7 @@ const Imparticiones = () => {
                     }}
                     endpoint="/api/grupos"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
-                    getOptionLabel={(g) => g.abreviatura || g.nombre}
+                    getOptionLabel={(g) => `${g.curso}º ${g.abreviatura || g.nombre}`}
                     getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
                     placeholder={t('common.selectGroup')}
                     required
