@@ -731,6 +731,45 @@ Cambios mínimos en el editor existente:
 
 ---
 
+### 2026-04-27 noche — PARCHE TEMPORAL: jornadas "pre Calendario Real" + observación arquitectónica sobre distribución temporal
+
+**⚠ ESTO ES UN PARCHE TEMPORAL.** Se eliminará cuando esté implementado el modelado de distribución temporal de materias (ver "Deuda arquitectónica" abajo).
+
+**Contexto:** tras la Fase 3 CCAA opción B parcial (datos LOMLOE puros del BOJA), el banner pre-resolución pinta rojo en TODOS los grupos del centro EAG porque las materias suman 32h (DAW 1º) y 33h (DAW 2º) frente a la jornada actual de 27.5h. El usuario observa que hay materias que NO responden a un horario semanal monolítico — Proyecto Intermodular, FCT y Horas de libre configuración se imparten en bloques concentrados o en empresa, fuera del horario lectivo regular del centro.
+
+Hasta que se modele la distribución temporal correctamente, se crean dos jornadas con capacidad amplia para "absorber" todo el currículo LOMLOE puro y permitir continuar validando otros aspectos del editor:
+
+```sql
+-- Jornadas creadas (centro 3 EAG):
+-- id 4: 'FP Mañanas pre Calendario Real' — 7 slots × 60min × 5 días = 35h/sem (08:00-15:30 con recreo 11:00-11:30)
+-- id 5: 'FP Tardes pre Calendario Real'  — 7 slots × 60min × 5 días = 35h/sem (15:00-22:30 con recreo 18:00-18:30)
+```
+
+Para usarlas: editar el itinerario en `/admin/itinerarios` y elegir la jornada "pre Calendario Real" en el selector. El banner pasará de rojo a verde/amarillo y se podrá probar el editor con el currículo LOMLOE completo.
+
+**Deuda arquitectónica abierta — modelado de distribución temporal de materias:**
+
+El modelo actual `Materia.minutosSemanales` asume que toda materia se imparte de forma regular semanal durante todo el curso (32 semanas × X h/sem). Esto es falso para varias categorías:
+
+| Tipo | Distribución real | Cómo lo cuenta hoy el modelo |
+|---|---|---|
+| Troncales (Sistemas, BD…) | regular semanal todo el curso | ✓ correcto |
+| Proyecto Intermodular (1713) | bloque concentrado: ej. 7h × 5d × ~12 sem al final del 2º | ✗ cuenta como 2h/sem todo el año |
+| FCT (0619/0495) | en empresa, sin horas en el centro | parcial (`minutosSemanales=0` lo neutraliza) |
+| Horas libre configuración | bolsa que el centro distribuye (refuerzos, ampliación, optatividad) | ✗ cuenta como asignatura cualquiera |
+
+Tres opciones para resolverlo correctamente:
+
+1. **(A) Flag mínimo `entraEnHorarioSemanal`** en `Materia` (default true). 30 min. Resuelve el "no cabe" inmediatamente: Proyecto/FCT/Libre config con `false` → solver/planner las ignoran.
+2. **(B) Enum `tipoDistribucion`** (`REGULAR_SEMANAL` / `BLOQUE_CONCENTRADO` / `EN_EMPRESA` / `LIBRE_CONFIGURACION`) + `fechaInicio`/`fechaFin` opcionales. ~2h. Modela bloques concentrados (4mar–28may).
+3. **(C) Entidad nueva `MateriaTemporada`** con `desde`/`hasta`/`horasSemanales` propias. ~3-4h. Generaliza N temporadas por materia.
+
+Recomendación: **(A) ya** + **(B) cuando llegue el módulo de Calendario / FCT / Boletines** (que necesitará fechas reales). (C) solo si aparece la casuística de varias temporadas en el mismo curso.
+
+Mientras tanto, las jornadas "pre Calendario Real" permiten avanzar sin quedar bloqueados por este modelo simplificado.
+
+---
+
 ### 2026-04-27 tarde-noche — Cascada de aula, TimeTable dinámico y limpieza de deuda histórica
 
 Tras cerrar Fase 3 CCAA (opción A), sesión de hardening de la vista `/horarios` y de la gestión de aulas. Empezó como un "no aparece nada en /horarios" del usuario y destapó tres bugs históricos no relacionados con CCAA, más una mejora de UX que había quedado pendiente.

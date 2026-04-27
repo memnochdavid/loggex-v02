@@ -18,6 +18,8 @@ Tras eso, varias rutas paralelas según prioridad:
 3. **§14 sub-fases L/M/N** (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
 
+**⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). Ver `docs/hoja-de-ruta-jornadas-recreos.md` entrada "PARCHE TEMPORAL: jornadas pre Calendario Real" — opciones (A) flag, (B) enum tipoDistribución, (C) entidad MateriaTemporada. Las jornadas se eliminarán al implementar el modelo correcto.
+
 **Bugs de datos detectados durante la sesión** (anotados en bitácora correspondiente):
 - `materia.minutos_semanales` revertido a horas para algunas filas DAW 1º. Re-aplicado `UPDATE *60`.
 - `Itinerario.catalogoOrigen` se nullificaba en cada PUT del modal porque la propiedad no estaba en `itinerario:write`. Bug histórico corregido (afectaba potencialmente a todas las ediciones de itinerario desde la UI, no solo a CCAA).
