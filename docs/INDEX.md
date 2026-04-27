@@ -6,7 +6,9 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E: banner verde, 27.5h exactos cuadrando con BOJA Andalucía (Web cliente 6h, Web servidor 7.5h, Despliegue 3.5h, Diseño 5h, Inglés profesional GS 2h, IPE II 3.5h).
+**Fase 3 opción B (parcial) ✅ Done (2026-04-27 noche)** — datos LOMLOE oficiales del BOJA persistidos en MinIO + provider que los lee. PDFs auditables en `catalogo/ccaa/AN/source/`, extracto verificado en `catalogo/ccaa/AN/curated/horarios.json`. Banner rojo en EAG (LOMLOE = 32-33h vs jornada 27.5h) — feedback honesto: el centro adapta jornada al currículo, no al revés.
+
+**Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E con datos hard-coded aproximados antes de pasar a B real.
 
 **Próxima acción**: **asignar profesores** a las imparticiones autonómicas creadas por el resync (Inglés profesional GS, IPE II en grupo DAW 2º) en `/admin/imparticiones`. Sin profesor, "Sugerir horario" no podrá colocarlas.
 

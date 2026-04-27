@@ -547,6 +547,99 @@ Tras aplicar la migración, repoblar el catálogo y verificar `materia.minutos_s
 - (c) **Implementar Fase 3 CCAA (`BojaAndAdapter`)** — solución definitiva. Materializa DAW Andalucía con horas BOJA reales que cuadran con la jornada. **Recomendada.**
 - (d) Sub-fase O nueva en §14 jornadas: heurística de distribución equitativa de round-up + banner. Complementa (c), no la sustituye.
 
+### 2026-04-27 noche — Fase 3 opción B (parcial): datos LOMLOE reales del BOJA en MinIO
+
+Tras la implementación A con datos hard-coded y aproximados, el usuario pidió "datos reales — el centro se adapta a la normativa, no al revés". Sesión dedicada a recolectar y persistir el currículo LOMLOE oficial.
+
+**Recolección de fuentes oficiales (verificadas):**
+- `BOJA 149/2011` (Orden 16/06/2011 — currículo DAW Andalucía): https://www.juntadeandalucia.es/boja/2011/149/d23.pdf
+- `BOJA 142/2011` (Orden 16/06/2011 — currículo DAM Andalucía): https://www.juntadeandalucia.es/boja/2011/142/d20.pdf
+- `Resolución 26/06/2024` DG FP Andalucía (instrucciones LOMLOE curso 2024/25 — anexa transversales): https://www.juntadeandalucia.es/educacion/portals/delegate/content/6f11c33a-cf6d-4a7c-b7d7-f43a1dd18d8e/
+
+Las dos primeras descargadas y parseadas con `pdftotext -layout` (Anexo II tiene la tabla de horas semanales por módulo y curso). La Resolución 2024 (PDF 4.9 MB, 243 páginas) parseada igual; tabla de transversales LOMLOE GS en página 54.
+
+**Datos verificados extraídos:**
+
+DAW Andalucía pre-LOMLOE (BOJA 149/2011 Anexo II — totales 30h/sem cada curso):
+- 1º: Sistemas 6h, BD 6h, Programación 8h, Lenguajes 4h, Entornos 3h, FOL 3h.
+- 2º: Web cliente 6h, Web servidor 8h, Despliegue 3h, Diseño 6h, Empresa 4h, Libre config 3h. (+ Proyecto y FCT sin slot semanal regular).
+
+DAM Andalucía pre-LOMLOE (BOJA 142/2011 Anexo II — totales 30h/sem cada curso):
+- 1º: idéntico a DAW 1º (FOL=0493 en lugar de 0617).
+- 2º: Acceso a datos 5h, Interfaces 7h, Multimedia 4h, Servicios y procesos 3h, SGE 4h, Empresa 4h, Libre config 3h.
+
+Transversales LOMLOE GS (Resolución 26/06/2024 DG FP, página 54):
+- 1º: IPE I (1709) 3h, Digitalización GS (1665) 1h, Sostenibilidad (1708) 1h.
+- 2º: Inglés profesional GS (0179) 2h, IPE II (1710) 3h, Proyecto Intermodular (1713) 2h, Optativa 3h.
+
+En LOMLOE: FOL → IPE I; Empresa → IPE II; Proyecto del RD → Proyecto Intermodular.
+
+**Backend nuevo:**
+- `App\Command\Catalogo\IngestCcaaSourceCommand` — `app:catalogo:ccaa:ingest --ccaa=AN --source-dir=...`. Sube PDFs a `catalogo/ccaa/AN/source/` y JSON a `catalogo/ccaa/AN/curated/horarios.json` vía Flysystem (bucket MinIO `loggex-data`). Idempotente.
+- `App\Catalogo\Ccaa\Provider\BojaAndJsonProvider` — implementa `CcaaCurriculumProviderInterface` leyendo el JSON desde MinIO. `source()='boja_and_json'`. Emite overrides BOJA + transversales LOMLOE (replicados por itinerario). Devuelve iterables vacíos si el JSON no existe (no rompe en CI).
+
+**Backend modificado:**
+- `CatalogoMateriaCcaa.boletinOficialRef` y `CatalogoItinerarioCcaa.boletinOficialRef` ampliados de VARCHAR(100) a VARCHAR(255) — los nombres de fuentes concatenadas no cabían.
+
+**Estructura MinIO:**
+```
+loggex-data/catalogo/ccaa/AN/
+  ├── source/   ← 3 PDFs originales (BOJA 149/2011, BOJA 142/2011, Resolución 2024) — auditables
+  └── curated/horarios.json   ← extracto verificado que lee el provider
+```
+
+**Validación E2E (2026-04-27 noche, DAW 1º + DAW 2º):**
+
+Tras `app:catalogo:ccaa:seed --source=boja_and_json` (29 nuevas + 10 actualizadas) y "Aplicar overlay CCAA" desde `/admin/itinerarios`:
+
+| Curso | Σ horas LOMLOE | Jornada EAG | Banner |
+|---|---:|---:|---|
+| DAW 1º | 32h (5 troncales BOJA 27h + IPE I 3h + Digit 1h + Sostenib 1h) | 27.5h | 🔴 +4.5h sin cubrir |
+| DAW 2º | 33h (4 troncales BOJA 23h + Libre 3h + Inglés 2h + IPE II 3h + Proyecto Interm 2h) | 27.5h | 🔴 +5.5h sin cubrir |
+
+Esto es **el feedback honesto que el usuario pidió**: con LOMLOE puro el centro EAG real necesita jornada >32h. Es decisión del centro adaptar jornada, no del software inventar números.
+
+**Bugs resueltos durante la implementación:**
+
+1. `boletin_oficial_ref VARCHAR(100)` insuficiente — ALTER a 255 + acortar refs en provider (`BOJA 149/2011 (DAW)` en vez de "Orden de 16 de junio de 2011 — Currículo Técnico Superior...").
+2. **Duplicados de versiones del overlay** — el seed crea filas nuevas cuando `vigenteDesde` cambia (correcto por D10 versionado), pero NO cierra las viejas con `vigenteHasta`. Quick-fix SQL: `UPDATE catalogo_materia_ccaa SET vigente_hasta = '2024-08-31' WHERE vigente_desde < '2024-09-01' AND vigente_hasta IS NULL`. Deuda anotada: que el seed detecte automáticamente versiones obsoletas y las cierre.
+3. **Materias autonómicas legacy duplicadas en grupos** — el resync solo soft-deleta las del catálogo (con `catalogoOrigen NOT NULL`); las autonómicas (códigos AN-IPE-I, AN-IPE-II, AN-DIG, AN-IP-GS, AN-SOS del primer hard-coded) quedaron como "manuales" y no se eliminaron al aplicar el nuevo overlay. Limpiadas con SQL ad-hoc. Deuda anotada: el resync debería detectar autonómicas obsoletas (autonómicas que ya no aparecen en `resolved`) y eliminarlas también.
+
+**Archivos tocados:**
+
+Backend:
+- `backend/src/Command/Catalogo/IngestCcaaSourceCommand.php` (nuevo)
+- `backend/src/Catalogo/Ccaa/Provider/BojaAndJsonProvider.php` (nuevo)
+- `backend/src/Entity/Catalogo/CatalogoMateriaCcaa.php` (boletinOficialRef → 255)
+- `backend/src/Entity/Catalogo/CatalogoItinerarioCcaa.php` (boletinOficialRef → 255)
+
+MinIO (vía ingest):
+- `catalogo/ccaa/AN/source/boja-149-2011-orden-daw.pdf` (314 KB)
+- `catalogo/ccaa/AN/source/boja-142-2011-orden-dam.pdf` (357 KB)
+- `catalogo/ccaa/AN/source/resolucion-2024-06-26-dgfp.pdf` (4.78 MB)
+- `catalogo/ccaa/AN/curated/horarios.json` (9 KB)
+
+SQL:
+- `ALTER TABLE catalogo_materia_ccaa MODIFY boletin_oficial_ref VARCHAR(255)`.
+- `ALTER TABLE catalogo_itinerario_ccaa MODIFY boletin_oficial_ref VARCHAR(255)`.
+- Cierre de versiones obsoletas + limpieza de autonómicas legacy.
+
+**Deudas anotadas (no urgentes):**
+- Seed inteligente que cierre versiones obsoletas automáticamente cuando aparece nueva `vigenteDesde`.
+- Resync que detecte y elimine autonómicas obsoletas (mismo criterio que las del catálogo).
+- Cron anual que descargue y verifique los PDFs BOJA contra el JSON curado (`app:catalogo:ccaa:check-updates --ccaa=AN`). Roadmap futuro: vive en `hoja-de-ruta-redis-workers.md` cuando llegue Symfony Scheduler.
+- DAM no validado E2E (no hay itinerario DAM creado en la BD del centro EAG real).
+
+**Diferencia entre Fase 3 opción A vs B (parcial):**
+
+| | A (hard-coded) | B-parcial (JSON en MinIO, esta sesión) | B-completa (futuro) |
+|---|---|---|---|
+| Fuente | datos inventados/aproximados | PDFs oficiales BOJA descargados a mano | scraper periódico automático |
+| Trazabilidad | comentarios PHP | JSON con `fuentes[]` + URLs + páginas + PDFs auditables en MinIO | igual + diff automático |
+| Actualización | editar PHP + redeploy | regenerar JSON, `ingest` + `seed` | cron lo hace solo |
+
+---
+
 ### 2026-04-27 madrugada — Fase 3 implementada (BojaAndHardcodedProvider) y validada E2E con DAW 2º
 
 Tras cerrar la sub-fase O del solver, se aborda Fase 3 CCAA. Decisión D-nueva: implementar provider hard-coded (opción A) como MVP, dejando arquitectura abierta para sustituir por scraper PDF (opción B = objetivo final).
