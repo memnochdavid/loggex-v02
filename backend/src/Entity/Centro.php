@@ -93,6 +93,17 @@ class Centro
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Ccaa $ccaa = null;
 
+    /**
+     * Provincia del centro (50 + Ceuta + Melilla, identificada por código INE).
+     * Sirve para resolver festivos provinciales y locales aplicables. NULL
+     * permitido si el admin no la rellena; en ese caso solo se aplican festivos
+     * nacionales y autonómicos (si CCAA está rellena).
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, referencedColumnName: 'codigo')]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?Provincia $provincia = null;
+
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: User::class)]
     private Collection $usuarios;
 
@@ -205,6 +216,17 @@ class Centro
     public function setCcaa(?Ccaa $ccaa): static
     {
         $this->ccaa = $ccaa;
+        return $this;
+    }
+
+    public function getProvincia(): ?Provincia
+    {
+        return $this->provincia;
+    }
+
+    public function setProvincia(?Provincia $provincia): static
+    {
+        $this->provincia = $provincia;
         return $this;
     }
 

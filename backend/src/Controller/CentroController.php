@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Ccaa;
 use App\Entity\Centro;
+use App\Entity\Provincia;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,6 +54,21 @@ class CentroController extends AbstractController
             $centro->setActivo($isActive);
         }
 
+        // CCAA: string vacío → null. Valor → enum.
+        if ($request->request->has('ccaa')) {
+            $ccaaCode = $request->request->get('ccaa');
+            $centro->setCcaa($ccaaCode ? Ccaa::tryFrom($ccaaCode) : null);
+        }
+
+        // Provincia: código INE (string) → entidad. Vacío → null.
+        if ($request->request->has('provincia')) {
+            $provCode = $request->request->get('provincia');
+            $provincia = $provCode
+                ? $entityManager->getRepository(Provincia::class)->find($provCode)
+                : null;
+            $centro->setProvincia($provincia);
+        }
+
         if ($logoFile) {
             $destination = $this->getParameter('kernel.project_dir') . '/public/uploads/logo-centro';
 
@@ -87,6 +104,8 @@ class CentroController extends AbstractController
                 'telefono' => $centro->getTelefono(),
                 'activo' => $centro->isActivo(),
                 'logo' => $centro->getLogo(),
+                'ccaa' => $centro->getCcaa()?->value,
+                'provincia' => $centro->getProvincia()?->getCodigo(),
             ]
         ]);
     }
