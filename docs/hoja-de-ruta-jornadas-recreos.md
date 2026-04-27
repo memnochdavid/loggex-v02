@@ -806,3 +806,23 @@ Implementación: el solver añade `'roundup' => true` al placement cuando `pendi
 Tras J-N, "Sugerir horario" es de calidad de producción para cualquier jornada y cualquier centro. La capa CCAA arregla la fuente; estas sub-fases arreglan la experiencia.
 
 **Camino crítico**: J primero (bloquea a las demás por la fuente del dato). K y M son independientes entre sí. L y N son cosméticos pero importantes para confianza del admin.
+
+### 14.7. Sub-fase O *(añadida 2026-04-27 noche)* — distribución equitativa de round-up
+
+**Problema descubierto en validación end-to-end** (EAG/DAW 1º con jornada 5 slots `60+60+60+60+90`): cuando las horas de las materias no encajan exacto en los slots disponibles, el solver coloca todo respetando D22=A (round-up por slot) pero la heurística `sameDayScore` apila los round-ups en pocas materias, dejando huérfanas a las últimas del orden de procesamiento. Caso real:
+- BD 6/5h (+1h), Lenguajes 5/4h (+1h), FOL 1.5/3h (**−1.5h**).
+- Total cuadra (27.5h sobre 27h target = +0.5h global), pero distribución desigual.
+
+**Causa**: 20 slots de 60min disponibles + 5 slots de 90min, pero las materias necesitan 27 slots de 60min equivalentes → obligatorio que algunas tomen el slot de 90min y sobrepasen, comiéndose slots de 60min que necesitarían otras.
+
+**Solución (sub-fase O)**:
+1. Detectar pre-resolución si la combinación `Σ minutos materia` vs `slots disponibles por duración` es factible exacto. Si no, calcular el round-up total inevitable.
+2. Distribuir el round-up entre el menor número de materias posible (preferiblemente las de más horas, donde un +30min es proporcionalmente menor).
+3. Banner amarillo en el editor: *"La jornada y las materias no encajan exactos. Algunas materias se redondearán: BD +30min, Programación +30min."*
+4. Si una materia quedaría sin sus minutos completos por exhaustación de slots compatibles, banner rojo y abort: *"FOL no puede cubrir sus 3h con los slots restantes. Ajusta la jornada o las horas."*
+
+| Sub-fase | Esfuerzo | Bloquea a | Estado |
+|---|---|---|---|
+| **O** — Distribución equitativa de round-up + banner pre-resolución | 1 día | — | ⏳ Complementaria a CCAA Fase 3 |
+
+**Nota**: la solución *correcta* al desajuste no es refinar el solver sino ajustar la fuente de horas (capa CCAA). Por eso O complementa pero no sustituye a Fase 3 CCAA. Decisión D11 pendiente al retomar (ver `docs/INDEX.md` y `docs/hoja-de-ruta-curriculum-ccaa.md`).

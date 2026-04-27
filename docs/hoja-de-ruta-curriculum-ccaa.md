@@ -23,9 +23,12 @@
 - **D10**: **versionado por fecha** en `CatalogoMateriaCcaa` y `CatalogoItinerarioCcaa`: `vigenteDesde DATE NOT NULL` + `vigenteHasta DATE NULL` (NULL = vigente hoy). Permite consultas históricas y auditoría comercial. Resolver siempre filtra por `vigenteHasta IS NULL OR vigenteHasta >= today`. Razón: coste cero de mantener; beneficio cuando llegue el segundo decreto autonómico.
 
 ### Lo siguiente al retomar — orden exacto
-1. **Ejecutar la migración** `Version20260427150000` en la BD: `docker compose exec backend php bin/console doctrine:migrations:migrate`. Tras ello: `cache:clear`. Verificar que `materia.minutos_semanales` y `catalogo_materia.minutos_semanales` están rellenos correctamente (multiplicados x60 vs el valor previo).
-2. **Probar end-to-end** en `/admin/horarios` y `/admin/materias` que la conversión horas↔minutos funciona en la UI.
-3. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA.
+
+> **PRIORIDAD ABSOLUTA antes de cualquier código** (registro 2026-04-27 noche, ver `docs/INDEX.md` sección "Primera acción al retomar"): decidir entre opciones **(a)/(b)/(c)/(d)** para resolver el desajuste solver/jornada detectado al validar end-to-end (FOL queda en 1.5/3h en DAW 1º). Recomendación: (c) = arrancar Fase 3 CCAA. Una vez decidida la opción, registrar como **D11** abajo en este doc.
+
+1. **Ejecutar la migración** `Version20260427150000` en la BD si no se ha hecho ya: `docker exec loggex-backend php bin/console doctrine:migrations:migrate`. Tras ello: `cache:clear`. Verificar que `materia.minutos_semanales` y `catalogo_materia.minutos_semanales` están rellenos correctamente (multiplicados x60 vs el valor previo). En la BD del usuario ya está aplicado al cierre de 2026-04-27.
+2. **Probar end-to-end** en `/admin/horarios` y `/admin/materias` que la conversión horas↔minutos funciona en la UI. **Resultado obtenido 2026-04-27 noche**: solver corre pero el reparto deja FOL sin cubrir (ver D11 pendiente arriba).
+3. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA. **Es la opción (c) del D11 pendiente.**
 4. **UI selector "Comunidad Autónoma"** en modal de Itinerario y filtro en `/admin/catalogo/*` — Fase 4.
 5. **Validación previa al solver** (capacity check, banner rojo si Σ minutos > capacidad jornada). Esto va en `hoja-de-ruta-jornadas-recreos.md` §14 sub-fase K, no aquí.
 
@@ -519,3 +522,21 @@ D6-D10 cerradas con las recomendaciones del doc tal cual (sin ajustes). Implemen
 **Deuda detectada (no urgente):**
 - Algunos `catalogo_materia.minutos_semanales` quedaron con valores anómalos tras `enrich-boe --force` (max=2700 = 45h/sem, probable confusión de algún parser entre horas totales y semanales en un caso raro). 1605/2580 filas pobladas (62%); el resto son NULL legítimo (proyecto, FCT). Deuda menor del scraper BOE; no afecta al solver del centro.
 - `backend/src/Command/ImportOldDataCommand.php` referencia tablas `modulo` y `ciclo_formativo` ya inexistentes (rename FP-neutral). Roto independientemente de este refactor; pendiente de borrar o adaptar.
+
+**Validación end-to-end del solver (2026-04-27 noche, EAG/DAW 1º):**
+
+Tras aplicar la migración, repoblar el catálogo y verificar `materia.minutos_semanales` exactos, se probó "Sugerir horario" con DAW 1º. **Resultado**: badge "Completo · 27.5/27h" pero el reparto interno desigual:
+
+| Materia | Declarada | Colocada | Δ |
+|---|---:|---:|---:|
+| Bases de Datos | 5h | 6h | +1h |
+| Lenguajes de marcas | 4h | 5h | +1h |
+| FOL | 3h | 1.5h | **−1.5h** |
+
+**Causa raíz** (matemática, no bug del solver): la jornada `1h+1h+1h+1h+1h30 = 5h30/día = 27.5h/sem` ofrece 20 slots de 60min + 5 slots de 90min, pero las materias DAW 1º (todas múltiplos de 60min) requieren 27 slots de 60min equivalentes. Es obligatorio que algunas materias absorban un slot de 90min en su última asignación, redondeando hacia arriba (D22=A) e invadiendo capacidad que correspondería a otras. La heurística `sameDayScore` apila los round-ups en pocas materias, dejando huérfanas a las del final del orden de procesamiento.
+
+**Decisión D11 abierta** — primera acción al retomar (ver INDEX.md):
+- (a) Cambiar `jornada_tipo_id=3` a 3 bloques `2h+2h+1h30`. Workaround.
+- (b) Editar horas en `/admin/materias` para que sumen 27.5h exactos. Pragmático para test sin tocar arquitectura.
+- (c) **Implementar Fase 3 CCAA (`BojaAndAdapter`)** — solución definitiva. Materializa DAW Andalucía con horas BOJA reales que cuadran con la jornada. **Recomendada.**
+- (d) Sub-fase O nueva en §14 jornadas: heurística de distribución equitativa de round-up + banner. Complementa (c), no la sustituye.

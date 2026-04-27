@@ -4,6 +4,30 @@
 
 ---
 
+## 🚨 Primera acción al retomar la próxima sesión
+
+**Decidir cómo resolver el desajuste solver/jornada detectado el 2026-04-27 noche.** Antes de cualquier otro trabajo.
+
+**Síntoma observado** (caso EAG, DAW 1º, jornada `1h+1h+1h+1h+1h30`):
+- BD muestra 6/5h, Lenguajes 5/4h → overshoot de +1h cada una (round-up D22=A apilado).
+- FOL queda en 1.5/3h → la última materia del orden de procesamiento se queda sin cubrir 1.5h.
+- Total cuadra (27.5h sobre 27h target = +0.5h global), pero el reparto es desigual.
+
+**Causa raíz:** las materias DAW 1º suman 27 slots equivalentes de 60min, pero la jornada solo ofrece 20 slots de 60min + 5 slots de 90min. Necesidad obligatoria de usar slots de 90min para algunas materias múltiplo-de-60min, lo que fuerza round-ups que se acumulan en pocas materias mientras la última se queda sin slots libres.
+
+**Opciones (decidir y registrar como D11 al arrancar):**
+
+- **(a) Cambiar `jornada_tipo_id=3` a 3 bloques `2h+2h+1h30`** (lo que usa tu centro real). Workaround temporal; el desajuste matemático persiste con otras materias.
+- **(b) Editar `/admin/materias` para que las horas DAW 1º sumen 27.5h exactos** (ej. FOL pasa de 3h a 3.5h). Pragmático para probar el solver "perfecto" sin tocar arquitectura.
+- **(c) Implementar Fase 3 CCAA — `BojaAndAdapter`**: materializa DAW Andalucía con horas BOJA reales (Web servidor 7.5h, Diseño 5h, Despliegue 3.5h, +Inglés profesional 2h, +IPE II 3.5h, etc.) que cuadran exactos con la jornada 27.5h. **Solución definitiva**, ya estaba en el camino crítico.
+- **(d) Sub-fase O nueva en §14 del solver**: heurística que distribuye el round-up equitativamente o emite banner antes de resolver cuando detecta desajuste matemático irrecuperable. No arregla la causa pero evita huérfanos como FOL.
+
+**Recomendación de la sesión 2026-04-27**: **(c)**. Es la siguiente fase del camino crítico (Bloque 1 del INDEX). (a) y (b) son parches. (d) es complementario (puede hacerse después).
+
+Una vez decidida la opción, registrar como **D11 en `hoja-de-ruta-curriculum-ccaa.md`** y arrancar la implementación correspondiente. Si se elige (c), el doc tiene §5.2 con el detalle del adapter BOJA.
+
+---
+
 ## ⚠️ REGLA OBLIGATORIA — dejar constancia de cada punto completado
 
 **Cada tarea, sub-fase, decisión cerrada, fix relevante o cambio de alcance DEBE registrarse en la bitácora del doc correspondiente antes de cerrar la sesión.** Sin excepciones. Sin esto, los roadmaps mienten y la próxima sesión arranca con información obsoleta.
