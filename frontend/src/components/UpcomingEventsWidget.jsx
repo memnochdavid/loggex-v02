@@ -119,7 +119,7 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
                         >
                             <div className={styles.time}>{event.horaInicio.substring(0, 5)}</div>
                             <div className={styles.details}>
-                                <span className={styles.subject}>{event.modulo}</span>
+                                <span className={styles.subject}>{event.materia}</span>
                                 <span className={styles.group}>{event.grupo}</span>
                             </div>
                         </li>

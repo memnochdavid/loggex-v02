@@ -374,7 +374,7 @@ const Home = () => {
                 <ModalView
                     isOpen={!!selectedEvent}
                     onClose={handleCloseModal}
-                    title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.modulo }) : selectedEvent.modulo) : ''}
+                    title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.materia }) : selectedEvent.materia) : ''}
                     size={isTakingAttendance ? 'large' : 'small'}
                     cancelText={isTakingAttendance ? t('common.cancel') : t('common.close')}
                     footer={isTakingAttendance ? (

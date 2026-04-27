@@ -228,7 +228,7 @@ const CalificacionesAdmin = () => {
                 <tbody>
                     {item.modulos.map((mod, idx) => (
                         <tr key={idx}>
-                            <td>{mod.modulo}</td>
+                            <td>{mod.materia}</td>
                             <td style={{ color: 'var(--text-muted)' }}>{mod.profesor}</td>
                             <td className={`${styles.gradeCell} ${getGradeClass(mod.mediaGrupo)}`}>
                                 {formatGrade(mod.mediaGrupo)}

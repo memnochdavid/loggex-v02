@@ -82,7 +82,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
   const searchFields = [
       { value: 'aula', label: t('schedules.classroom') },
-      { value: '(imparticion.materia ?? imparticion.modulo).nombre', label: t('schedules.subject') },
+      { value: 'imparticion.materia.nombre', label: t('schedules.subject') },
       { value: 'imparticion.profesor.nombre', label: t('schedules.teacher') },
       { value: 'diaSemana', label: t('schedules.day') }
   ];
@@ -522,7 +522,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
         accessor: (row) => row.imparticion && row.imparticion?.materia
             ? <MateriaLabel materia={row.imparticion?.materia} />
             : '-',
-        sortable: true, sortKey: '(imparticion.materia ?? imparticion.modulo).nombre'
+        sortable: true, sortKey: 'imparticion.materia.nombre'
     },
     {
         header: t('schedules.group'),

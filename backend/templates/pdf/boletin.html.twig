@@ -208,7 +208,7 @@
             <tbody>
                 {% for mod in boletin.modulos %}
                 <tr>
-                    <td class="module-name">{{ mod.modulo }}</td>
+                    <td class="module-name">{{ mod.materia }}</td>
                     <td class="center">{{ mod.faltasPct is not null ? mod.faltasPct ~ '%' : '-' }}</td>
                     {% for periodo in periodos %}
                         {% set nota = mod.notasPorPeriodo[periodo.id] is defined ? mod.notasPorPeriodo[periodo.id] : null %}
