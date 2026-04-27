@@ -39,7 +39,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'imparticion.profesor' => 'exact',
     'aula' => 'partial',
     'diaSemana' => 'exact',
-    'imparticion.modulo.nombre' => 'partial',
+    'imparticion.materia.nombre' => 'partial',
     'imparticion.profesor.nombre' => 'partial',
     'imparticion.profesor.apellidos' => 'partial'
 ])]
@@ -48,7 +48,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'horaInicio',
     'id',
     'aula',
-    'imparticion.modulo.nombre',
+    'imparticion.materia.nombre',
     'imparticion.profesor.nombre'
 ], arguments: ['orderParameterName' => 'order'])]
 class Horario

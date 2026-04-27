@@ -20,7 +20,7 @@ const colorForModule = (mid) => {
     return `hsl(${hue}, 55%, 48%)`;
 };
 
-const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [] }) => {
+const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = [], tareas = [] }) => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
@@ -105,23 +105,42 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
     };
 
     // Definir tramos horarios explícitos
-    const morningSlots = useMemo(() => [
-        { start: '08:30', end: '09:30' },
-        { start: '09:30', end: '10:30' },
-        { start: '10:30', end: '11:30' },
-        { start: '11:30', end: '12:30' },
-        { start: '12:30', end: '13:30' },
-        { start: '13:30', end: '14:30' }
-    ], []);
+    // Slots dinámicos: si el endpoint manda la unión de tramos de las jornadas
+    // reales del usuario (alumno=1 grupo=1 jornada; profesor=N grupos=N jornadas
+    // deduplicadas por hi-hf), los usamos. Si no viene `slots`, fallback a los
+    // hardcoded por compatibilidad con vistas que aún no llaman al endpoint
+    // nuevo. Split mañana/tarde por start < 15:00.
+    const morningSlots = useMemo(() => {
+        if (Array.isArray(slots) && slots.length > 0) {
+            return slots
+                .filter(s => parseInt(s.horaInicio.split(':')[0], 10) < 15)
+                .map(s => ({ start: s.horaInicio, end: s.horaFin }));
+        }
+        return [
+            { start: '08:30', end: '09:30' },
+            { start: '09:30', end: '10:30' },
+            { start: '10:30', end: '11:30' },
+            { start: '11:30', end: '12:30' },
+            { start: '12:30', end: '13:30' },
+            { start: '13:30', end: '14:30' },
+        ];
+    }, [slots]);
 
-    const afternoonSlots = useMemo(() => [
-        { start: '15:00', end: '16:00' },
-        { start: '16:00', end: '17:00' },
-        { start: '17:00', end: '18:00' },
-        { start: '18:00', end: '19:00' },
-        { start: '19:00', end: '20:00' },
-        { start: '20:00', end: '21:00' }
-    ], []);
+    const afternoonSlots = useMemo(() => {
+        if (Array.isArray(slots) && slots.length > 0) {
+            return slots
+                .filter(s => parseInt(s.horaInicio.split(':')[0], 10) >= 15)
+                .map(s => ({ start: s.horaInicio, end: s.horaFin }));
+        }
+        return [
+            { start: '15:00', end: '16:00' },
+            { start: '16:00', end: '17:00' },
+            { start: '17:00', end: '18:00' },
+            { start: '18:00', end: '19:00' },
+            { start: '19:00', end: '20:00' },
+            { start: '20:00', end: '21:00' },
+        ];
+    }, [slots]);
 
     // Detectar turnos
     const hasAfternoon = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
@@ -136,6 +155,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
 
     // Función para procesar eventos y calcular rowSpan (pura, sin hooks)
     const processEvents = (slots) => {
+        if (!slots || slots.length === 0) return [];
         const grid = Array(slots.length).fill(null).map(() => Array(days.length).fill(null));
 
         // 1. Marcar festivos
@@ -185,7 +205,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                     while (k < slots.length) {
                         const next = grid[k][d];
                         if (next && !next.skip && !next.isFestivo &&
-                            next.event.modulo === current.event.modulo &&
+                            next.event.materia === current.event.materia &&
                             next.event.grupo === current.event.grupo &&
                             next.event.aula === current.event.aula
                         ) {
@@ -325,14 +345,17 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                             >
                                                 <div className={styles.eventModulo}>
                                                     <MateriaLabel materia={{
-                                                        nombre: cellData.event.modulo,
+                                                        nombre: cellData.event.materia,
                                                         abreviatura: cellData.event.moduloAbreviatura,
                                                     }} />
                                                 </div>
                                                 <div className={styles.eventGroupSmall}>
-                                                    {cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== ''
-                                                        ? cellData.event.grupoAbreviatura
-                                                        : cellData.event.grupo}
+                                                    {[
+                                                        cellData.event.grupoCurso ? `${cellData.event.grupoCurso}º` : null,
+                                                        (cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== '')
+                                                            ? cellData.event.grupoAbreviatura
+                                                            : cellData.event.grupo,
+                                                    ].filter(Boolean).join(' ')}
                                                 </div>
                                             </div>
                                         )}
@@ -405,12 +428,15 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                         </div>
                         <div className={styles.mobileEventTitle}>
                             <MateriaLabel materia={{
-                                nombre: event.modulo,
+                                nombre: event.materia,
                                 abreviatura: event.moduloAbreviatura,
                             }} />
                         </div>
                         <div className={styles.mobileEventSubtitle}>
-                            {event.grupo} • {event.aula}
+                            {[
+                                event.grupoCurso ? `${event.grupoCurso}º` : null,
+                                (event.grupoAbreviatura && event.grupoAbreviatura.trim() !== '') ? event.grupoAbreviatura : event.grupo,
+                            ].filter(Boolean).join(' ')} • {event.aula}
                         </div>
                     </div>
                 ))
@@ -520,7 +546,7 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
             <ModalView
                 isOpen={!!selectedEvent}
                 onClose={handleCloseModal}
-                title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.modulo }) : selectedEvent.modulo) : ''}
+                title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.materia }) : selectedEvent.materia) : ''}
                 size={isTakingAttendance ? "large" : "small"}
                 cancelText={isTakingAttendance ? t('common.cancel') : t('common.close')}
                 // Footer personalizado para el modo de asistencia
@@ -558,7 +584,9 @@ const TimeTable = ({ events = [], title, selectedDate, festivos = [], tareas = [
                                 <Users size={18} className={styles.icon} />
                                 <div>
                                     <span className={styles.label}>{t('timetable.groupLabel')}</span>
-                                    <span className={styles.value}>{selectedEvent.grupo}</span>
+                                    <span className={styles.value}>
+                                        {selectedEvent.grupoCurso ? `${selectedEvent.grupoCurso}º ` : ''}{selectedEvent.grupo}
+                                    </span>
                                     {selectedEvent.grupoAbreviatura && (
                                         <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
                                     )}

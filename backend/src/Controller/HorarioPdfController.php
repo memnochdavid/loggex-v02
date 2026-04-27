@@ -131,7 +131,7 @@ class HorarioPdfController extends AbstractController
             $dql = "SELECT h, i, m, g, p
                     FROM App\\Entity\\Horario h
                     JOIN h.imparticion i
-                    JOIN i.modulo m
+                    JOIN i.materia m
                     JOIN i.grupo g
                     JOIN g.matriculas mat
                     LEFT JOIN i.profesor p
@@ -150,7 +150,7 @@ class HorarioPdfController extends AbstractController
             $dql = "SELECT h, i, m, g, p
                     FROM App\\Entity\\Horario h
                     JOIN h.imparticion i
-                    JOIN i.modulo m
+                    JOIN i.materia m
                     JOIN i.grupo g
                     LEFT JOIN i.profesor p
                     WHERE i.profesor = :userId AND h.deleted = false";
@@ -172,7 +172,7 @@ class HorarioPdfController extends AbstractController
         $dql = "SELECT h, i, m, g, p
                 FROM App\\Entity\\Horario h
                 JOIN h.imparticion i
-                JOIN i.modulo m
+                JOIN i.materia m
                 JOIN i.grupo g
                 LEFT JOIN i.profesor p
                 WHERE g.id = :grupoId AND h.deleted = false";

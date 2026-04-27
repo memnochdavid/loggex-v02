@@ -38,7 +38,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'imparticion' => 'exact',
     'imparticion.grupo' => 'exact',
     'imparticion.grupo.centro' => 'exact',
-    'imparticion.modulo' => 'exact'
+    'imparticion.materia' => 'exact'
 ])]
 class Asistencia
 {

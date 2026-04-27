@@ -43,6 +43,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
+  const [myScheduleSlots, setMyScheduleSlots] = useState(null);  // null = no hay jornada conocida → fallback hardcoded en TimeTable
   // Alineación del calendar con el grid del TimeTable: si hay mañana+tarde,
   // el TimeTable muestra tabs encima del grid → offset al calendar para que
   // sus días queden a la altura del grid, no de los tabs.
@@ -188,7 +189,15 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
           Promise.all([fetchSchedule, fetchFestivos, fetchTareas])
           .then(([scheduleData, festivosData, tareasData]) => {
-              setMySchedule(scheduleData);
+              // Endpoint puede devolver array (formato viejo) o {events, slots}
+              // (formato nuevo, post-Fase 3 CCAA). Compat retroactiva.
+              if (Array.isArray(scheduleData)) {
+                  setMySchedule(scheduleData);
+                  setMyScheduleSlots(null);
+              } else {
+                  setMySchedule(scheduleData?.events || []);
+                  setMyScheduleSlots(scheduleData?.slots?.length ? scheduleData.slots : null);
+              }
               
               let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
               if (isSuperAdmin && selectedCentro) {
@@ -624,6 +633,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     <div className={styles.timeTableWrapper}>
                         <TimeTable
                             events={mySchedule}
+                            slots={myScheduleSlots}
                             festivos={festivos}
                             tareas={tareas}
                             title="Mi Horario"

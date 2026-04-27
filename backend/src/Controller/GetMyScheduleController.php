@@ -51,7 +51,7 @@ class GetMyScheduleController extends AbstractController
             $dql = "SELECT h, i, m, g, p
                     FROM App\Entity\Horario h
                     JOIN h.imparticion i
-                    JOIN i.modulo m
+                    JOIN i.materia m
                     JOIN i.grupo g
                     JOIN g.matriculas mat
                     LEFT JOIN i.profesor p
@@ -67,7 +67,7 @@ class GetMyScheduleController extends AbstractController
             $dql = "SELECT h, i, m, g
                     FROM App\Entity\Horario h
                     JOIN h.imparticion i
-                    JOIN i.modulo m
+                    JOIN i.materia m
                     JOIN i.grupo g
                     WHERE i.profesor = :userId AND h.deleted = false";
 
@@ -89,7 +89,14 @@ class GetMyScheduleController extends AbstractController
             }
         }
 
-        $data = [];
+        $events = [];
+        // Recolectamos también los slots de las jornadas presentes para que el
+        // TimeTable las renderice correctamente (sin esto, los slots hardcoded
+        // del frontend no coinciden con jornadas reales como 60+60+60+60+90).
+        // Indexamos por "HH:MM-HH:MM" para deduplicar entre jornadas distintas
+        // (caso profesor con grupos en jornadas mixtas).
+        $slotsByKey = [];
+
         foreach ($horarios as $h) {
             $grupo = $h->getImparticion()->getGrupo();
             $profesorNombre = 'Sin asignar';
@@ -97,7 +104,7 @@ class GetMyScheduleController extends AbstractController
                 $profesorNombre = $h->getImparticion()->getProfesor()->getNombre() . ' ' . $h->getImparticion()->getProfesor()->getApellidos();
             }
 
-            $data[] = [
+            $events[] = [
                 'id' => $h->getId(),
                 'diaSemana' => $h->getDiaSemana(),
                 'horaInicio' => $h->getHoraInicio()->format('H:i'),
@@ -108,11 +115,33 @@ class GetMyScheduleController extends AbstractController
                 'moduloId' => $h->getImparticion()->getMateria()->getId(),
                 'grupo' => $grupo->getNombre(),
                 'grupoAbreviatura' => $grupo->getAbreviatura(),
+                'grupoCurso' => $grupo->getCurso(),
                 'profesor' => $profesorNombre,
                 'imparticionId' => $h->getImparticion()->getId()
             ];
+
+            $jornada = $grupo->getItinerario()?->getJornadaTipo();
+            if ($jornada !== null) {
+                foreach ($jornada->getTramos() as $t) {
+                    if ($t->getTipo() !== \App\Entity\TipoTramo::SLOT) continue;
+                    $hi = $t->getHoraInicio()?->format('H:i');
+                    $hf = $t->getHoraFin()?->format('H:i');
+                    if ($hi === null || $hf === null) continue;
+                    $slotsByKey["{$hi}-{$hf}"] = [
+                        'horaInicio' => $hi,
+                        'horaFin' => $hf,
+                        'duracionMinutos' => $t->getDuracionMinutos(),
+                    ];
+                }
+            }
         }
 
-        return $data;
+        $slots = array_values($slotsByKey);
+        usort($slots, fn ($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+
+        return [
+            'events' => $events,
+            'slots' => $slots,
+        ];
     }
 }
