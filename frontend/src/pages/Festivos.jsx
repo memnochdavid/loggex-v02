@@ -35,6 +35,7 @@ const Festivos = ({ embedded = false, tabs = null }) => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
+  const [selectedAmbito, setSelectedAmbito] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,7 +115,10 @@ const Festivos = ({ embedded = false, tabs = null }) => {
       if (params.selectedCentro) {
           url += `&centro=${params.selectedCentro}`;
       }
-      
+      if (params.selectedAmbito) {
+          url += `&ambito=${params.selectedAmbito}`;
+      }
+
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -163,6 +167,7 @@ const Festivos = ({ embedded = false, tabs = null }) => {
           searchTerm,
           searchField,
           selectedCentro,
+          selectedAmbito,
           sortColumn,
           sortDirection
       };
@@ -181,13 +186,14 @@ const Festivos = ({ embedded = false, tabs = null }) => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      selectedCentro, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedAmbito,
+      sortColumn,
+      sortDirection,
       fetchFestivosData
   ]);
 
@@ -258,6 +264,9 @@ const Festivos = ({ embedded = false, tabs = null }) => {
         nombre: formData.nombre,
         fechaInicio: formData.fechaInicio,
         fechaFin: formData.fechaFin || null,
+        // La UI solo crea/edita festivos LOCALES — los nacionales/autonómicos
+        // /provinciales vienen del seed BOE (read-only en la tabla).
+        ambito: 'local',
       };
 
       if (isSuperAdmin) {
@@ -369,16 +378,34 @@ const Festivos = ({ embedded = false, tabs = null }) => {
         sortable: true, 
         sortKey: 'fechaFin' 
     },
-    { 
-        header: t('holidays.center'), 
-        accessor: (row) => row.centro ? (row.centro.nombre || t('common.loading')) : t('holidays.global'), 
-        sortable: false 
-    },
-    { 
-        header: t('common.actions'), 
+    {
+        header: t('holidays.ambito', { defaultValue: 'Ámbito' }),
         accessor: (row) => {
-            const isGlobal = !row.centro;
-            const canEditRow = isSuperAdmin || (!isGlobal && isAdmin);
+            const ambito = row.ambito || 'local';
+            const variantes = {
+                nacional:   { txt: t('holidays.ambitoNacional', { defaultValue: 'Nacional' }), cls: styles.badgeNacional },
+                autonomico: { txt: row.ccaa ? `${t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' })} (${row.ccaa})` : t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }), cls: styles.badgeAutonomico },
+                provincial: { txt: row.provincia?.codigo ? `${t('holidays.ambitoProvincial', { defaultValue: 'Provincial' })} (${row.provincia.codigo})` : t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }), cls: styles.badgeProvincial },
+                local:      { txt: t('holidays.ambitoLocal', { defaultValue: 'Local' }), cls: styles.badgeLocal },
+            };
+            const meta = variantes[ambito] || variantes.local;
+            return <span className={`${styles.badge} ${meta.cls}`}>{meta.txt}</span>;
+        },
+        sortable: true,
+        sortKey: 'ambito',
+    },
+    {
+        header: t('holidays.center'),
+        accessor: (row) => row.centro ? (row.centro.nombre || t('common.loading')) : '—',
+        sortable: false
+    },
+    {
+        header: t('common.actions'),
+        accessor: (row) => {
+            // Solo los festivos LOCALES son editables; nacionales/autonómicos/
+            // provinciales vienen del seed BOE y son read-only por diseño.
+            const isLocal = (row.ambito || 'local') === 'local';
+            const canEditRow = isLocal && (isSuperAdmin || isAdmin);
 
             return (
                 <div className={styles.actions}>
@@ -425,6 +452,19 @@ const Festivos = ({ embedded = false, tabs = null }) => {
                 ]}
             />
         )}
+        <ThemedSelect
+            value={selectedAmbito}
+            onChange={setSelectedAmbito}
+            minWidth={180}
+            ariaLabel={t('holidays.allAmbitos', { defaultValue: 'Todos los ámbitos' })}
+            options={[
+                { value: '', label: t('holidays.allAmbitos', { defaultValue: 'Todos los ámbitos' }) },
+                { value: 'nacional', label: t('holidays.ambitoNacional', { defaultValue: 'Nacional' }) },
+                { value: 'autonomico', label: t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }) },
+                { value: 'provincial', label: t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }) },
+                { value: 'local', label: t('holidays.ambitoLocal', { defaultValue: 'Local' }) },
+            ]}
+        />
         <SearchBar
             value={searchTerm}
             onChange={setSearchTerm}

@@ -8,6 +8,23 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
 import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
+import ThemedSelect from '../components/ThemedSelect';
+
+// Códigos ISO 3166-2:ES de las 19 entidades autonómicas. Idéntico a CCAA_OPTIONS
+// de Itinerarios/CatalogoItinerarios — duplicado intencional hasta que se
+// extraiga a constante compartida.
+const CCAA_OPTIONS = [
+  { value: 'AN', label: 'Andalucía' }, { value: 'AR', label: 'Aragón' },
+  { value: 'AS', label: 'Asturias' }, { value: 'CB', label: 'Cantabria' },
+  { value: 'CE', label: 'Ceuta' }, { value: 'CL', label: 'Castilla y León' },
+  { value: 'CM', label: 'Castilla-La Mancha' }, { value: 'CN', label: 'Canarias' },
+  { value: 'CT', label: 'Cataluña' }, { value: 'EX', label: 'Extremadura' },
+  { value: 'GA', label: 'Galicia' }, { value: 'IB', label: 'Illes Balears' },
+  { value: 'MC', label: 'Murcia' }, { value: 'MD', label: 'Madrid' },
+  { value: 'ML', label: 'Melilla' }, { value: 'NC', label: 'Navarra' },
+  { value: 'PV', label: 'País Vasco' }, { value: 'RI', label: 'La Rioja' },
+  { value: 'VC', label: 'C. Valenciana' },
+];
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -58,8 +75,12 @@ const Centros = () => {
         cif: '',
         direccion: '',
         telefono: '',
-        activo: true
+        activo: true,
+        ccaa: '',
+        provincia: '',  // código INE
     });
+    // Lista de provincias cargada upfront (52 fijas, no cambia).
+    const [provincias, setProvincias] = useState([]);
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -128,7 +149,22 @@ const Centros = () => {
                 setLoading(false);
             }
         }
-    }, []); 
+    }, []);
+
+    // Carga única de provincias (52 fijas, no cambian).
+    useEffect(() => {
+        fetch(getApiUrl('/api/provincias?pagination=false'), {
+            headers: { 'Accept': 'application/ld+json' },
+            credentials: 'include',
+        })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                const items = data['hydra:member'] || data.member || [];
+                setProvincias(items);
+            })
+            .catch(err => console.error('Error cargando provincias:', err));
+    }, []);
 
     // Efecto ÚNICO para cambios
     useEffect(() => {
@@ -187,12 +223,21 @@ const Centros = () => {
         setLogoFile(null);
         if (centro) {
             setCurrentCentro(centro);
+            // Provincia puede venir como objeto Provincia (con `codigo`) o IRI string.
+            let provinciaCodigo = '';
+            if (centro.provincia) {
+                provinciaCodigo = typeof centro.provincia === 'string'
+                    ? centro.provincia.split('/').pop()
+                    : (centro.provincia.codigo || '');
+            }
             setFormData({
                 nombre: centro.nombre,
                 cif: centro.cif,
                 direccion: centro.direccion,
                 telefono: centro.telefono || '',
-                activo: centro.activo
+                activo: centro.activo,
+                ccaa: centro.ccaa || '',
+                provincia: provinciaCodigo,
             });
             setLogoPreview(centro.logo ? getLogoUrl(centro.logo) : null);
         } else {
@@ -202,7 +247,9 @@ const Centros = () => {
                 cif: '',
                 direccion: '',
                 telefono: '',
-                activo: true
+                activo: true,
+                ccaa: '',
+                provincia: '',
             });
             setLogoPreview(null);
         }
@@ -254,6 +301,8 @@ const Centros = () => {
             data.append('direccion', formData.direccion);
             data.append('telefono', formData.telefono);
             data.append('activo', formData.activo ? 'true' : 'false');
+            data.append('ccaa', formData.ccaa || '');
+            data.append('provincia', formData.provincia || '');
 
             if (logoFile) {
                 data.append('logo', logoFile);
@@ -505,6 +554,42 @@ const Centros = () => {
                             required
                             placeholder={t('centers.addressPlaceholder')}
                         />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.ccaa', { defaultValue: 'Comunidad Autónoma' })}
+                        </label>
+                        <ThemedSelect
+                            value={formData.ccaa}
+                            onChange={(v) => setFormData(p => ({ ...p, ccaa: v, provincia: '' }))}
+                            options={[
+                                { value: '', label: t('centers.ccaaNone', { defaultValue: '— Sin asignar —' }) },
+                                ...CCAA_OPTIONS,
+                            ]}
+                        />
+                        <small className={styles.helpText}>
+                            {t('centers.ccaaHint', { defaultValue: 'Determina los festivos autonómicos aplicables. Cambiarla resetea la provincia.' })}
+                        </small>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.provincia', { defaultValue: 'Provincia' })}
+                        </label>
+                        <ThemedSelect
+                            value={formData.provincia}
+                            onChange={(v) => setFormData(p => ({ ...p, provincia: v }))}
+                            options={[
+                                { value: '', label: t('centers.provinciaNone', { defaultValue: '— Sin asignar —' }) },
+                                ...provincias
+                                    .filter(p => !formData.ccaa || p.ccaa === formData.ccaa)
+                                    .map(p => ({ value: p.codigo, label: `${p.nombre} (${p.codigo})` })),
+                            ]}
+                        />
+                        <small className={styles.helpText}>
+                            {t('centers.provinciaHint', { defaultValue: 'Filtrada por CCAA seleccionada. Necesaria para festivos provinciales y locales.' })}
+                        </small>
                     </div>
 
                     <div className={styles.formGroup}>
