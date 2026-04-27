@@ -1,0 +1,93 @@
+{
+  "version": "2024-09-01",
+  "ccaa": "AN",
+  "fuentes": [
+    {
+      "id": "boja-149-2011",
+      "nombre": "Orden de 16 de junio de 2011 — Currículo Técnico Superior en Desarrollo de Aplicaciones Web",
+      "url": "https://www.juntadeandalucia.es/boja/2011/149/d23.pdf",
+      "fecha": "2011-07-31",
+      "minioPath": "catalogo/ccaa/AN/source/boja-149-2011-orden-daw.pdf",
+      "extraido": "Anexo II — Distribución horaria semanal por cursos académicos"
+    },
+    {
+      "id": "boja-142-2011",
+      "nombre": "Orden de 16 de junio de 2011 — Currículo Técnico Superior en Desarrollo de Aplicaciones Multiplataforma",
+      "url": "https://www.juntadeandalucia.es/boja/2011/142/d20.pdf",
+      "fecha": "2011-07-21",
+      "minioPath": "catalogo/ccaa/AN/source/boja-142-2011-orden-dam.pdf",
+      "extraido": "Anexo II — Distribución horaria semanal por cursos académicos"
+    },
+    {
+      "id": "resolucion-2024-06-26",
+      "nombre": "Resolución de 26 de junio de 2024 DG FP Andalucía — Instrucciones curso 2024/25 LOMLOE",
+      "url": "https://www.juntadeandalucia.es/educacion/portals/delegate/content/6f11c33a-cf6d-4a7c-b7d7-f43a1dd18d8e/",
+      "fecha": "2024-06-26",
+      "minioPath": "catalogo/ccaa/AN/source/resolucion-2024-06-26-dgfp.pdf",
+      "extraido": "Tabla 'Distribución horaria en ciclos formativos de Grado Superior de módulos profesionales asociados a las habilidades y capacidades transversales' (página 54)"
+    }
+  ],
+  "transversalesLomloeGs": [
+    { "codigo": "1709", "nombre": "Itinerario Personal para la Empleabilidad I", "curso": 1, "horasSemanales": 3, "fuente": "resolucion-2024-06-26", "sustituyeFol": true },
+    { "codigo": "1665", "nombre": "Digitalización aplicada al sistema productivo (GS)", "curso": 1, "horasSemanales": 1, "fuente": "resolucion-2024-06-26" },
+    { "codigo": "1708", "nombre": "Sostenibilidad aplicada al sistema productivo", "curso": 1, "horasSemanales": 1, "fuente": "resolucion-2024-06-26" },
+    { "codigo": "0179", "nombre": "Inglés profesional GS", "curso": 2, "horasSemanales": 2, "fuente": "resolucion-2024-06-26" },
+    { "codigo": "1710", "nombre": "Itinerario Personal para la Empleabilidad II", "curso": 2, "horasSemanales": 3, "fuente": "resolucion-2024-06-26", "sustituyeEmpresa": true },
+    { "codigo": "1713", "nombre": "Proyecto Intermodular", "curso": 2, "horasSemanales": 2, "fuente": "resolucion-2024-06-26", "sustituyeProyectoRd": true }
+  ],
+  "itinerarios": [
+    {
+      "codigoOficial": "des-aplicaciones-web",
+      "nombre": "Técnico Superior en Desarrollo de Aplicaciones Web",
+      "totalHorasSemanalesCurso1": 30,
+      "totalHorasSemanalesCurso2": 30,
+      "modulosBoja": [
+        { "codigo": "0483", "nombre": "Sistemas informáticos", "curso": 1, "horasSemanales": 6, "horasTotales": 192, "fuente": "boja-149-2011" },
+        { "codigo": "0484", "nombre": "Bases de datos", "curso": 1, "horasSemanales": 6, "horasTotales": 192, "fuente": "boja-149-2011" },
+        { "codigo": "0485", "nombre": "Programación", "curso": 1, "horasSemanales": 8, "horasTotales": 256, "fuente": "boja-149-2011" },
+        { "codigo": "0373", "nombre": "Lenguajes de marcas y sistemas de gestión de información", "curso": 1, "horasSemanales": 4, "horasTotales": 128, "fuente": "boja-149-2011" },
+        { "codigo": "0487", "nombre": "Entornos de desarrollo", "curso": 1, "horasSemanales": 3, "horasTotales": 96, "fuente": "boja-149-2011" },
+        { "codigo": "0617", "nombre": "Formación y orientación laboral", "curso": 1, "horasSemanales": 3, "horasTotales": 96, "fuente": "boja-149-2011", "sustituidaEnLomloePor": "1709" },
+        { "codigo": "0612", "nombre": "Desarrollo web en entorno cliente", "curso": 2, "horasSemanales": 6, "horasTotales": 126, "fuente": "boja-149-2011" },
+        { "codigo": "0613", "nombre": "Desarrollo web en entorno servidor", "curso": 2, "horasSemanales": 8, "horasTotales": 168, "fuente": "boja-149-2011" },
+        { "codigo": "0614", "nombre": "Despliegue de aplicaciones web", "curso": 2, "horasSemanales": 3, "horasTotales": 63, "fuente": "boja-149-2011" },
+        { "codigo": "0615", "nombre": "Diseño de interfaces web", "curso": 2, "horasSemanales": 6, "horasTotales": 126, "fuente": "boja-149-2011" },
+        { "codigo": "0616", "nombre": "Proyecto de desarrollo de aplicaciones web", "curso": 2, "horasSemanales": null, "horasTotales": 40, "fuente": "boja-149-2011", "nota": "Carga total 40h, sin slot semanal regular (trabajo individual)", "sustituidaEnLomloePor": "1713" },
+        { "codigo": "0618", "nombre": "Empresa e iniciativa emprendedora", "curso": 2, "horasSemanales": 4, "horasTotales": 84, "fuente": "boja-149-2011", "sustituidaEnLomloePor": "1710" },
+        { "codigo": "0619", "nombre": "Formación en centros de trabajo", "curso": 2, "horasSemanales": null, "horasTotales": 370, "fuente": "boja-149-2011", "nota": "FCT: práctica en empresa último trimestre, sin slot semanal regular" },
+        { "codigo": "AN-LIBRE-DAW-2", "nombre": "Horas de libre configuración", "curso": 2, "horasSemanales": 3, "horasTotales": 63, "fuente": "boja-149-2011", "esLibreConfiguracion": true }
+      ]
+    },
+    {
+      "codigoOficial": "des-aplicaciones-multiplataforma",
+      "nombre": "Técnico Superior en Desarrollo de Aplicaciones Multiplataforma",
+      "totalHorasSemanalesCurso1": 30,
+      "totalHorasSemanalesCurso2": 30,
+      "modulosBoja": [
+        { "codigo": "0483", "nombre": "Sistemas informáticos", "curso": 1, "horasSemanales": 6, "horasTotales": 192, "fuente": "boja-142-2011" },
+        { "codigo": "0484", "nombre": "Bases de datos", "curso": 1, "horasSemanales": 6, "horasTotales": 192, "fuente": "boja-142-2011" },
+        { "codigo": "0485", "nombre": "Programación", "curso": 1, "horasSemanales": 8, "horasTotales": 256, "fuente": "boja-142-2011" },
+        { "codigo": "0373", "nombre": "Lenguajes de marcas y sistemas de gestión de información", "curso": 1, "horasSemanales": 4, "horasTotales": 128, "fuente": "boja-142-2011" },
+        { "codigo": "0487", "nombre": "Entornos de desarrollo", "curso": 1, "horasSemanales": 3, "horasTotales": 96, "fuente": "boja-142-2011" },
+        { "codigo": "0493", "nombre": "Formación y orientación laboral", "curso": 1, "horasSemanales": 3, "horasTotales": 96, "fuente": "boja-142-2011", "sustituidaEnLomloePor": "1709" },
+        { "codigo": "0486", "nombre": "Acceso a datos", "curso": 2, "horasSemanales": 5, "horasTotales": 105, "fuente": "boja-142-2011" },
+        { "codigo": "0488", "nombre": "Desarrollo de interfaces", "curso": 2, "horasSemanales": 7, "horasTotales": 147, "fuente": "boja-142-2011" },
+        { "codigo": "0489", "nombre": "Programación multimedia y dispositivos móviles", "curso": 2, "horasSemanales": 4, "horasTotales": 84, "fuente": "boja-142-2011" },
+        { "codigo": "0490", "nombre": "Programación de servicios y procesos", "curso": 2, "horasSemanales": 3, "horasTotales": 63, "fuente": "boja-142-2011" },
+        { "codigo": "0491", "nombre": "Sistemas de gestión empresarial", "curso": 2, "horasSemanales": 4, "horasTotales": 84, "fuente": "boja-142-2011" },
+        { "codigo": "0492", "nombre": "Proyecto de desarrollo de aplicaciones multiplataforma", "curso": 2, "horasSemanales": null, "horasTotales": 40, "fuente": "boja-142-2011", "nota": "Carga total 40h, sin slot semanal regular", "sustituidaEnLomloePor": "1713" },
+        { "codigo": "0494", "nombre": "Empresa e iniciativa emprendedora", "curso": 2, "horasSemanales": 4, "horasTotales": 84, "fuente": "boja-142-2011", "sustituidaEnLomloePor": "1710" },
+        { "codigo": "0495", "nombre": "Formación en centros de trabajo", "curso": 2, "horasSemanales": null, "horasTotales": 370, "fuente": "boja-142-2011", "nota": "FCT: práctica en empresa último trimestre" },
+        { "codigo": "AN-LIBRE-DAM-2", "nombre": "Horas de libre configuración", "curso": 2, "horasSemanales": 3, "horasTotales": 63, "fuente": "boja-142-2011", "esLibreConfiguracion": true }
+      ]
+    }
+  ],
+  "notasVerificacion": [
+    "DAW pre-LOMLOE (BOJA 149/2011 Anexo II) suma 30h/sem en cada curso. Verificado contra TOTALES en línea 'TOTALES 960 30 1.040 30'.",
+    "DAM pre-LOMLOE (BOJA 142/2011 Anexo II) suma 30h/sem en cada curso. Verificado contra TOTALES igual al de DAW.",
+    "Transversales LOMLOE GS (Resolución 26/06/2024 página 54): IPE I 3h, Digitalización 1h, Sostenibilidad 1h en 1º; Inglés profesional GS 2h, IPE II 3h, Proyecto Intermodular 2h, Optativa 3h en 2º.",
+    "EN LOMLOE: 0617/0493 FOL → 1709 IPE I (cambia código y nombre); 0618/0494 Empresa → 1710 IPE II; 0616/0492 Proyecto del RD → 1713 Proyecto Intermodular.",
+    "Las 'horas de libre configuración' (3h en 2º curso) son slots que el centro distribuye a discreción — pueden absorber Optativa LOMLOE u otros.",
+    "Suma estricta LOMLOE GS = 24-25h troncales BOJA + 5h transversales 1º o + 10h transversales 2º. La distribución exacta requiere lectura del Decreto LOMLOE específico por familia profesional cuando se publique (a fecha 2024-06 aún no había Decreto LOMLOE específico para informática en Andalucía)."
+  ]
+}
