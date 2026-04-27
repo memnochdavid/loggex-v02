@@ -18,6 +18,7 @@ Para evitar leer 1 400 líneas si no hace falta:
 | §17 | Vistas admin del catálogo (UI) | Si tocas `/admin/catalogo/*` |
 | §18 | Rename a vocabulario neutro (`CicloFormativo` → `Itinerario`, etc.) | Si encuentras refs a clases/rutas viejas |
 | §19 | Soporte de ESO (RD 217/2022 LOMLOE) | Para añadir Bachillerato u otra etapa |
+| §20 | Currículo por CCAA (overlay sobre nacional) | Para entender cómo se ajusta el catálogo a Andalucía/Cataluña/etc. |
 
 **Estado en una línea**: 230 itinerarios cargados (229 FP nacionales + 1 ESO), ~2 230 materias enriquecidas desde BOE, vistas admin operativas, vocabulario neutro multi-etapa, refresh idempotente vía `app:catalogo:refresh [fuente]`.
 
@@ -1341,3 +1342,35 @@ Durante Fase E se detectó que el sed mecánico del rename §18 había convertid
 - **Sin variantes por CCAA**. El RD nacional 217/2022 solo fija horas mínimas totales; cada autonomía publica su decreto regional con la distribución horaria por curso (Andalucía 102/2023, Madrid 65/2022, etc.). Cuando llegue un centro de ESO real, la siguiente fase es escribir `JuntaAndaluciaEsoAdapter` u otro CCAA-específico.
 - **Evaluación competencial LOMLOE**: ESO introduce evaluación por competencias clave + competencias específicas, distinto del modelo actual orientado a notas numéricas por módulo. La pantalla de calificaciones funciona con datos ESO pero con la lógica FP — un centro LOMLOE puro pediría adaptaciones.
 - **Bachillerato y otras etapas**: no implementadas. Aplica el mismo patrón (BOE adapter + cobertura nacional + variantes CCAA).
+
+---
+
+## 20. Currículo por CCAA (overlay sobre nacional)
+
+Roadmap dedicado: **`docs/hoja-de-ruta-curriculum-ccaa.md`**.
+
+Resumen de qué cambia respecto al modelo nacional descrito en §1–§19:
+
+- El catálogo **nacional** (BOE, BOJA-ESO, RD 217/2022...) sigue siendo la **fuente de verdad base**.
+- Encima se monta una **capa overlay por CCAA** (`CatalogoMateriaCcaa`, `CatalogoItinerarioCcaa`) que:
+  - Sobrescribe horas (ej. Web servidor: 8h BOE → 7.5h BOJA Andalucía).
+  - Sobrescribe nombres si el decreto autonómico los renombra.
+  - Añade materias autonómicas que NO existen en el currículo nacional (ej. Inglés profesional GS, Itinerario Personal Empleabilidad II).
+- Cada `Itinerario` (de centro) lleva un campo `ccaa` nullable. NULL = currículo nacional puro. Con CCAA → overlay aplicado al materializar.
+- Versionado por fecha (`vigenteDesde / vigenteHasta`) para auditoría histórica de cambios normativos.
+- Adapter pionero: **`BojaAndAdapter`** (Andalucía). Resto de CCAA en sesiones futuras por demografía: CT > MD > VC > PV > GA > resto.
+
+Decisiones cerradas (`hoja-de-ruta-curriculum-ccaa.md` §2):
+- D1 = enum PHP backed (no tabla).
+- D2 = overlay (no reemplazo).
+- D3 = refactor `horasSemanales` → `minutosSemanales` (preciso sin DECIMAL).
+- D4 = Andalucía piloto.
+- D5 = `itinerario.ccaa` nullable.
+
+Decisiones abiertas (D6-D10 en el roadmap dedicado): materias autonómicas en mismo modelo, override de nombre del itinerario, multi-CCAA por centro, default al crear, versionado.
+
+**Cómo encaja con §13 estado actual**: la implementación CCAA NO ha empezado. El catálogo nacional sigue funcionando. La capa CCAA es aditiva — itinerarios sin CCAA siguen comportándose exactamente igual.
+
+**Cómo encaja con §16 dispatcher por etapa**: los adapters CCAA son pares de los adapters nacionales (`BoeAdapter`, `TodoFpAdapter`, `BoeEsoAdapter`). Mismo patrón, fuente distinta. Al refrescar el catálogo, primero corren los nacionales (cargan/actualizan `catalogo_materia`) y luego los CCAA (cargan/actualizan `catalogo_materia_ccaa` con FK a las nacionales).
+
+**Cómo encaja con §17 vistas admin**: los `/admin/catalogo/*` ganan filtro CCAA. El banner `DataProvenanceBanner` añade segunda línea cuando aplica overlay ("Fuente: BOE - RD 686/2010 + adaptación BOJA Decreto 156/2022").

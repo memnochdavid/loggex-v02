@@ -1,5 +1,9 @@
 # Loggex v02 - Contexto para Claude Code
 
+## ⚠️ Antes de empezar trabajo planificado: lee `docs/INDEX.md`
+
+Es el índice maestro de todas las hojas de ruta con su estado real, los caminos críticos para producto comercial y la **regla obligatoria de bitácora**: cada punto completado se anota en el doc correspondiente antes de cerrar la sesión, sin excepciones.
+
 ## Naturaleza del Proyecto
 Plataforma de gestión académica para centros educativos (tipo TFG). Gestión de usuarios, centros, itinerarios, materias, grupos, matrículas, horarios, asistencia, tareas, temarios y mensajería.
 
@@ -40,6 +44,7 @@ frontend/
 - **Vistas admin** read-only en `/admin/catalogo/*` con `DataProvenanceBanner`.
 - **Refresh manual**: `app:catalogo:refresh [todofp_http|boe_eso]` + `app:catalogo:enrich-boe` (idempotente).
 - **Doc de referencia**: `docs/catalogo-oficial.md` (con §0 mapa rápido al inicio).
+- **Currículo por CCAA** (overlay): plan aprobado, sin código aún. Cubrirá Andalucía piloto y resto de CCAA en sesiones futuras. Roadmap dedicado: `docs/hoja-de-ruta-curriculum-ccaa.md`. El solver y editor de horarios trabajan en minutos (D24=A); el endurecimiento del solver para producción está en `docs/hoja-de-ruta-jornadas-recreos.md` §14.
 
 ## Roles de Usuario
 `ROLE_SUPERADMIN`, `ROLE_ADMIN`, `ROLE_PROFESOR`, `ROLE_ALUMNO`

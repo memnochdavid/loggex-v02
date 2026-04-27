@@ -56,16 +56,18 @@ class HorarioSolver
         $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
         $parallelBusy = $this->buildParallelBusy($grupo, $turno);
 
-        // Expandir a "una tarea por hora a colocar"
+        // Una tarea por imparticion, con minutos pendientes; el backtracking elige
+        // cuántos slots (de duración variable) consume hasta llegar a 0.
+        // Si los slots no encajan exactos, se "redondea hacia arriba" (D22=A): el
+        // último slot puede sobrepasar y la imparticion se da por completa.
         $tasks = [];
         foreach ($imps as $imp) {
             $horas = $imp->getMateria()?->getHorasSemanales() ?? 0;
-            for ($i = 0; $i < $horas; $i++) {
-                $tasks[] = $imp;
-            }
+            if ($horas <= 0) continue;
+            $tasks[] = ['imp' => $imp, 'pending' => $horas * 60, 'total' => $horas * 60];
         }
 
-        // Heurística: colocar primero imparticiones cuyo profesor tiene más
+        // Heurística: empezar por imparticiones cuyo profesor tiene más
         // huecos bloqueados por grupos paralelos (más restringidas).
         $busyPerProf = [];
         foreach ($parallelBusy as $pids) {
@@ -74,8 +76,8 @@ class HorarioSolver
             }
         }
         usort($tasks, function ($a, $b) use ($busyPerProf) {
-            $pa = $a->getProfesor()?->getId();
-            $pb = $b->getProfesor()?->getId();
+            $pa = $a['imp']->getProfesor()?->getId();
+            $pb = $b['imp']->getProfesor()?->getId();
             return ($busyPerProf[$pb] ?? 0) <=> ($busyPerProf[$pa] ?? 0);
         });
 
@@ -87,7 +89,7 @@ class HorarioSolver
         $cells = [];
         foreach ($diasLectivos as $d) {
             foreach ($slots as $s) {
-                $cells[] = ['dia' => $d, 'hi' => $s[0], 'hf' => $s[1]];
+                $cells[] = ['dia' => $d, 'hi' => $s[0], 'hf' => $s[1], 'min' => $s[2]];
             }
         }
 
@@ -107,20 +109,22 @@ class HorarioSolver
             $placements = $this->bestPlacements;
         }
 
-        $placedPerImp = [];
+        $placedMinPerImp = [];
         foreach ($placements as $p) {
             $iid = $p['imp']->getId();
-            $placedPerImp[$iid] = ($placedPerImp[$iid] ?? 0) + 1;
+            $placedMinPerImp[$iid] = ($placedMinPerImp[$iid] ?? 0) + (int) $p['min'];
         }
         $unplaced = [];
         foreach ($imps as $imp) {
-            $total = $imp->getMateria()?->getHorasSemanales() ?? 0;
-            $placed = $placedPerImp[$imp->getId()] ?? 0;
-            if ($placed < $total) {
+            $totalMin = ($imp->getMateria()?->getHorasSemanales() ?? 0) * 60;
+            $placedMin = $placedMinPerImp[$imp->getId()] ?? 0;
+            if ($placedMin < $totalMin) {
+                $faltanMin = $totalMin - $placedMin;
                 $unplaced[] = [
                     'imparticionId' => $imp->getId(),
                     'materia' => $imp->getMateria()?->getNombre(),
-                    'horasRestantes' => $total - $placed,
+                    'minutosRestantes' => $faltanMin,
+                    'horasRestantes' => round($faltanMin / 60, 2),
                 ];
             }
         }
@@ -139,19 +143,24 @@ class HorarioSolver
 
         // Info para depuración
         $tasksPerImp = [];
+        $totalMinAColocar = 0;
         foreach ($imps as $imp) {
+            $horas = $imp->getMateria()?->getHorasSemanales() ?? 0;
+            $totalMinAColocar += $horas * 60;
             $tasksPerImp[] = [
                 'imparticionId' => $imp->getId(),
                 'materia' => $imp->getMateria()?->getNombre(),
                 'profesor' => trim(($imp->getProfesor()?->getNombre() ?? '').' '.($imp->getProfesor()?->getApellidos() ?? '')),
                 'profesorId' => $imp->getProfesor()?->getId(),
-                'horasSemanales' => $imp->getMateria()?->getHorasSemanales() ?? 0,
+                'horasSemanales' => $horas,
+                'minutosTotales' => $horas * 60,
             ];
         }
         $parallelBusySummary = [];
         foreach ($parallelBusy as $k => $pids) {
             $parallelBusySummary[$k] = array_values(array_unique($pids));
         }
+        $minutosColocados = array_sum($placedMinPerImp);
 
         return [
             'complete' => $ok,
@@ -164,7 +173,8 @@ class HorarioSolver
                 'diasLectivos' => $diasLectivos,
                 'slotsPorDia' => count($slots),
                 'totalSlots' => count($cells),
-                'totalHorasAColocar' => count($tasks),
+                'totalMinutosAColocar' => $totalMinAColocar,
+                'minutosColocados' => $minutosColocados,
                 'imparticiones' => $tasksPerImp,
                 'parallelBusyCellsCount' => count($parallelBusy),
                 'parallelBusy' => $parallelBusySummary,
@@ -179,10 +189,11 @@ class HorarioSolver
     }
 
     /**
-     * Devuelve los slots asignables de una jornada en formato [['HH:MM', 'HH:MM'], ...]
-     * ordenados por horaInicio. Filtra los tramos de tipo RECREO.
+     * Devuelve los slots asignables de una jornada en formato
+     * [['HH:MM', 'HH:MM', duracionMinutos], ...] ordenados por horaInicio.
+     * Filtra los tramos de tipo RECREO.
      *
-     * @return array<int, array{0: string, 1: string}>
+     * @return array<int, array{0: string, 1: string, 2: int}>
      */
     private function slotsFromJornada(JornadaTipo $jornada): array
     {
@@ -194,12 +205,12 @@ class HorarioSolver
             $hi = $t->getHoraInicio()?->format('H:i');
             $hf = $t->getHoraFin()?->format('H:i');
             if ($hi === null || $hf === null) continue;
-            $out[] = [$hi, $hf];
+            $out[] = [$hi, $hf, $t->getDuracionMinutos()];
         }
         return $out;
     }
 
-    private function backtrack(int $idx, array $tasks, array $cells, array &$placements, array &$profBusyLocal, array $parallelBusy, ?int $seed): bool
+    private function backtrack(int $idx, array &$tasks, array $cells, array &$placements, array &$profBusyLocal, array $parallelBusy, ?int $seed): bool
     {
         $this->nodesExplored++;
         if ($idx > $this->maxDepth) $this->maxDepth = $idx;
@@ -214,12 +225,18 @@ class HorarioSolver
         if ($idx >= count($tasks)) {
             return true;
         }
-        $imp = $tasks[$idx];
+        // Si la imparticion actual ya tiene cubiertos sus minutos, pasamos a la siguiente.
+        // (D22=A: el último slot colocado puede haber sobrepasado el total y aún se acepta.)
+        if ($tasks[$idx]['pending'] <= 0) {
+            return $this->backtrack($idx + 1, $tasks, $cells, $placements, $profBusyLocal, $parallelBusy, $seed);
+        }
+
+        $imp = $tasks[$idx]['imp'];
         $pid = $imp->getProfesor()?->getId();
         $moduloId = $imp->getMateria()?->getId();
 
         // Ordenar candidatas: prioriza días donde ya hay bloques del mismo módulo
-        // (hasta MAX_SAME_MODULE_PER_DAY), luego el resto.
+        // (hasta SOFT_SAME_MODULE_PER_DAY), luego el resto.
         $candidates = $cells;
         if ($seed !== null) {
             mt_srand($seed + $idx * 31);
@@ -250,13 +267,17 @@ class HorarioSolver
             if ($pid && isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) continue;
             if ($pid && isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true)) continue;
 
-            $placements[$key] = ['imp' => $imp, 'hi' => $c['hi'], 'hf' => $c['hf'], 'dia' => $c['dia']];
+            $placements[$key] = ['imp' => $imp, 'hi' => $c['hi'], 'hf' => $c['hf'], 'dia' => $c['dia'], 'min' => $c['min']];
             if ($pid) $profBusyLocal[$key][] = $pid;
+            $tasks[$idx]['pending'] -= $c['min'];
 
-            if ($this->backtrack($idx + 1, $tasks, $cells, $placements, $profBusyLocal, $parallelBusy, $seed)) {
+            // Recurse en el MISMO idx: si pending llegó a 0/negativo, la cabecera
+            // saltará a idx+1; si no, seguirá colocando slots para esta imparticion.
+            if ($this->backtrack($idx, $tasks, $cells, $placements, $profBusyLocal, $parallelBusy, $seed)) {
                 return true;
             }
 
+            $tasks[$idx]['pending'] += $c['min'];
             unset($placements[$key]);
             if ($pid && isset($profBusyLocal[$key])) {
                 $profBusyLocal[$key] = array_values(array_filter($profBusyLocal[$key], fn ($x) => $x !== $pid));

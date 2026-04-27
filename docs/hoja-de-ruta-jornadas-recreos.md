@@ -1,6 +1,6 @@
 # Sistema de jornadas y recreos para `/admin/horarios`
 
-> **Status (2026-04-27)**: Fases A, C, G y D **implementadas y operativas**. La rejilla del editor consume la jornada del itinerario y pinta los recreos. **PERO se descubrió bug conceptual del solver** que invalida casos reales con slots de duración mixta (2h, 1h30, etc.) — ver §13 bitácora de 2026-04-27 y D24 abajo. **Lo siguiente al retomar es decidir D24 y atacarlo (Fase E ampliada)**.
+> **Status (2026-04-27 tarde)**: Fases A, C, G, D y **E ampliada** ✅ implementadas. **D24 cerrada** con opción A (minutos): `HorarioSolver.php` y `HorariosEditor.jsx` trabajan ahora en minutos, soportando jornadas con slots de duración mixta (2h, 1h30, etc.). Pendiente verificación end-to-end con horario real de 2º DAW (27h30/sem, bloques 2h+2h+1h30). Tras eso, dos hilos paralelos: **Fase B (asistente automático)** y **§14 endurecimiento del solver para producción** (refactor a `minutosSemanales`, validación previa de capacidad, heurística bloques largos, paralelismo refinado, round-up explícito). El refactor `horasSemanales`→`minutosSemanales` es además la Fase 2 de `docs/hoja-de-ruta-curriculum-ccaa.md`, donde se redacta la migración. **La capa CCAA arregla la fuente de horas**; §14 arregla la experiencia.
 
 ## ⚡ Snapshot para retomar en otra sesión
 
@@ -34,39 +34,28 @@
    - Banner cuando `slotsDia.length === 0` (itinerario sin jornada o jornada sin slots) — explica al admin que asigne una jornada en `/itinerarios` o cree una en `/admin/jornadas`.
    - CSS `.gridRowRecreo` + `.recreoStrip` añadidos en `HorariosEditor.module.css`.
 
-### 🐛 Bug crítico abierto (descubierto 2026-04-27)
+### ✅ Bug crítico cerrado (D24 = A, 2026-04-27 tarde)
 
-El solver y el editor asumen **un slot = una hora lectiva** (`for ($i = 0; $i < $horas; $i++) tasks[]=imp;`). Esto rompe en jornadas reales donde los slots tienen duración variable (ej. tu horario real de 2º DAW: 08:30-10:30 + 10:50-12:50 + 13:00-14:30 = 2h+2h+1h30).
+D24 resuelta con **opción A (minutos)**. El solver y el editor pasan a trabajar en minutos en vez de slots fijos:
 
-Síntoma: el solver coloca exactamente N slots por imparticion, pero esos N slots pueden ocupar 1.5h, 2h o lo que sea cada uno → las horas reales colocadas no coinciden con `materia.horasSemanales`.
-
-**Decisión D24 abierta** (ver §3.3) sobre cómo resolverlo. **Opción A (minutos) es la recomendada**.
+- `HorarioSolver.php`: una task por imparticion con `pending = horasSemanales*60`. El backtracking elige slots y resta `slot.duracionMinutos`; cuando `pending <= 0` la imparticion se da por completa (D22=A: el último slot puede sobrepasar y aún se acepta). `slotsFromJornada` ahora devuelve `[hi, hf, duracionMinutos]`. Los `unplaced` reportan `minutosRestantes` y `horasRestantes`.
+- `HorariosEditor.jsx`: nuevo memo `slotMinutosByHi` (mapa `horaInicio` → minutos del slot). `horasColocadas` se sustituye por `minutosColocados`. `validateDrop`/`validateTap`/`handleTapCell` comparan minutos. `ModuleChip` muestra horas con decimales (ej. "5.5/5.5"). `unplacedSummary` reporta horas decimales. `profeCarga` agrega minutos y los expone como horas decimales al `ProfLoadPanel` (que mantiene su contrato `total/max=40`). `otherGroupsMinutes` (antes `otherGroupsHours`) suma duración real de los `Horario` ajenos en lugar de contar registros.
 
 ### ⏳ Lo que NO está hecho
 
-- ❌ **Solver respetando duración real de slots** (D24 + Fase E ampliada).
-- ❌ **Asistente automático** que rellena tramos a partir de Σ horas materias / días lectivos / recreo (Fase B). Aplazado hasta D24 — sin la matemática correcta de slots/horas no tiene sentido autogenerar.
+- ❌ **Asistente automático** que rellena tramos a partir de Σ horas materias / días lectivos / recreo (Fase B). Es lo siguiente ahora que la matemática de minutos está correcta.
 - ❌ **Materias optativas / autonómicas** (no vienen del scraping BOE; el admin las añade a mano vía `/materias`). No es bug, es comportamiento esperado: el catálogo nacional solo trae materias troncales.
 - ❌ **Sistema de aulas** (D12-D17 aplazadas).
 - ❌ **Invalidación de cache** de jornada en `HorariosEditor`: si el admin edita una jornada en `/admin/jornadas`, el editor sigue mostrando la cacheada hasta recargar la página. Trivial: escuchar evento o invalidar al volver a montar.
-- ❌ **`itemsPerPageJornadas`** en `Personalizacion`: el hook `usePagination('jornadas')` cae al fallback de 20 (no se persiste preferencia).
 - ❌ **Detección de paralelismo refinada**: hoy se compara `JornadaTipo.turno` (mañana/tarde) entre grupos paralelos. Si dos jornadas distintas, ambas "MAÑANA", solo solapan parcialmente, se cuenta como solape total (pesimista). Refactor a "solape real de rangos `[horaInicio, horaFin]`" es trivial pero no urgente.
 
-### 🎯 Para retomar mañana — orden exacto
+### 🎯 Para retomar — orden exacto
 
-1. **Releer §13 bitácora 2026-04-27** (al final del doc) para entender el contexto del bug de slots mixtos.
-2. **Cerrar D24** (§3.3): elegir opción A (minutos), B (sesiones) o C (híbrido). El usuario aún no decidió. Recomendación: **A**.
-3. Si A: **arrancar Fase E ampliada**:
-   - Refactorizar `HorarioSolver.php` para trabajar en minutos:
-     - `tasks` deja de ser "1 task por hora" y pasa a ser "1 task por imparticion con minutos pendientes".
-     - El backtracking elige slots y resta `slot.duracionMinutos` de los pendientes de la imparticion.
-     - Se acepta una imparticion como "completa" cuando su contador llega a 0 (o lo más cerca posible).
-   - Refactorizar `HorariosEditor.jsx`:
-     - El `ModuleChip` mostraba `horasColocadas/horasTotales`. Cambiar a `minutosColocados/minutosTotales` o seguir mostrando horas con decimales.
-     - `validateDrop` y `validateTap`: ya no comparan "h/sem === slots colocados" sino "minutosTotales === sum(slot.duracionMinutos colocados)".
-   - Tests del solver con jornadas mixtas (lo ideal: añadir un test PHPUnit con un caso real).
-4. **Verificar con horario real** del usuario (3 bloques: 2h/2h/1h30, total 5h30/día × 5 = 27h30/sem) que el solver ya coloca todas las horas correctamente.
-5. (Opcional) Atacar Fase B (asistente) ahora que la matemática es correcta.
+1. **Verificar end-to-end con horario real** del usuario (3 bloques: 2h/2h/1h30, total 5h30/día × 5 = 27h30/sem). Esperado: el solver coloca exactamente las horas declaradas en cada `materia.horasSemanales`, sin duplicar ni dejar fuera, y el editor muestra correctamente `X.Y / Z` horas en cada `ModuleChip`. Si alguna materia ronda fracciones que no encajan exacto en los slots de la jornada, el último slot sobrepasa por D22=A — banner amarillo opcional.
+2. (Opcional) **Test PHPUnit** del solver con jornada mixta como caso de regresión.
+3. **Fase B (asistente automático)**: ahora que la matemática en minutos está correcta, generar tramos a partir de Σ horas/itinerario / días lectivos / duración base / recreo. Ver §5.2 + D21-D23.
+4. **Limpieza menor (Fase H)**: invalidación de cache de jornada en el editor cuando el admin la edita en `/admin/jornadas`.
+5. Aulas (D12-D17) cuando convenga.
 
 ### 📌 Convenciones consolidadas
 
@@ -596,13 +585,13 @@ Cambios mínimos en el editor existente:
 | C — Editor visual de Jornada en `/admin/jornadas` (modal con tabla editable + timeline preview) | 1 día | D | ✅ **Done (2026-04-26)** |
 | G — Selector "Jornada" en el modal de Itinerario | 0.5 día | — | ✅ **Done (2026-04-26)** |
 | D — Refactor `HorariosEditor.jsx`: slots dinámicos + recreos visuales no asignables | 1-2 días | E, B | ✅ **Done (2026-04-26/27)** |
-| **E (ampliada)** — Solver y editor en **minutos**, no en slots fijos (resolver D24) | 1 día | B | ⏳ **CRÍTICO — siguiente al retomar** |
-| B — Servicio asistente automático: rellenar tramos a partir de Σ horas materias del itinerario | 0.5 día | — | ⏳ Aplazado tras E (sin matemática correcta de slots/horas no aporta valor) |
+| **E (ampliada)** — Solver y editor en **minutos**, no en slots fijos (D24=A) | 1 día | B | ✅ **Done (2026-04-27)** |
+| B — Servicio asistente automático: rellenar tramos a partir de Σ horas materias del itinerario | 0.5 día | — | ⏳ Siguiente — desbloqueada por E |
 | F — Validador de horarios afectados al cambiar la jornada de un itinerario | 0.5 día | — | ⏳ Aplazado a v1.1 (D8 confirmó: la BD no tenía horarios actuales, no urge) |
 | H *(nueva, menor)* — Invalidación de cache de jornada en `HorariosEditor` al volver de `/admin/jornadas` | 0.5 día | — | ⏳ Pendiente, no urgente |
-| I *(nueva, menor)* — Campo `itemsPerPageJornadas` en `Personalizacion` + UI en `Configuracion` | 0.5 día | — | ⏳ Pendiente, no urgente |
+| ~~I~~ ~~`itemsPerPageJornadas` en `Personalizacion` + UI en `Configuracion`~~ | — | — | ❌ Obsoleta: la paginación pasó a `localStorage` global el 2026-04-27 |
 
-**Restante estimado para que el editor funcione en producción**: 1-2 días (Fase E ampliada + verificación con caso real del usuario).
+**Restante estimado para producción**: verificación end-to-end con caso real (~1h) + Fase B asistente (0.5 día).
 
 ---
 
@@ -628,10 +617,9 @@ Cambios mínimos en el editor existente:
 
 ## 12. Próximo paso
 
-1. **Cerrar D24** (§3.3) — el usuario aún no eligió A/B/C. Recomendación: A (minutos).
-2. **Arrancar Fase E ampliada** — refactor del solver y el editor para que trabajen en minutos en vez de slots fijos. Sin esto, el editor no funciona con jornadas reales (caso del usuario: 3 bloques mixtos 2h/2h/1h30).
-3. Verificar con un caso real (DAW 2º con jornada 27h30/sem) que el solver coloca todo.
-4. Después: Fase B (asistente automático) y aulas (D12-D17).
+1. **Verificar end-to-end Fase E ampliada** con DAW 2º (jornada 27h30/sem en bloques 2h/2h/1h30). Esperado: solver y editor coinciden con `materia.horasSemanales` materia a materia.
+2. **Fase B (asistente automático)**: generar tramos a partir de Σ horas/itinerario, días lectivos, duración base de slot y minutos de recreo (§5.2 + D21-D23).
+3. Aulas (D12-D17) cuando convenga.
 
 ---
 
@@ -707,3 +695,114 @@ Cambios mínimos en el editor existente:
 - `frontend/src/pages/Itinerarios.jsx` (extractIdFromRef + validación centro)
 - `scripts/seed_imparticiones_daw.sql` (nuevo, datos de prueba)
 - `docs/hoja-de-ruta-jornadas-recreos.md` (este documento, snapshot + bitácora)
+
+### 2026-04-27 tarde — Fase E ampliada cerrada (D24 = A, minutos)
+
+**Solver `HorarioSolver.php`:**
+- `slotsFromJornada()` devuelve ahora `[hi, hf, duracionMinutos]` en lugar de `[hi, hf]`. Los `cells` llevan `min` por celda.
+- `tasks` cambia de "una entrada por hora a colocar" a "una entrada por imparticion con `pending = horasSemanales*60` minutos pendientes". `&$tasks` se pasa por referencia al `backtrack` para mutar `pending` durante la recursión.
+- `backtrack()`: si `pending <= 0` para la imparticion en `idx`, salta a `idx+1`. Si no, prueba candidatos (con la misma heurística de `sameDayScore` para compactar) y por cada cell colocada resta `c['min']` de pending; recurse en el MISMO `idx` para que la imparticion pueda ocupar varios slots hasta cubrir sus minutos. D22=A (round-up): el último slot puede sobrepasar.
+- `unplaced` reporta `minutosRestantes` y `horasRestantes` (decimales). Debug expone `totalMinutosAColocar` y `minutosColocados`.
+- Cada `placement` lleva `'min'` para que el cálculo de `placedMinPerImp` sea trivial.
+
+**Editor `HorariosEditor.jsx`:**
+- Helpers `parseHmsToMin('HH:MM:SS')` y `minToHoras(min)` añadidos a nivel módulo.
+- `ModuleChip`: API cambia de `horasTotales/horasColocadas` a `minutosTotales/minutosColocados`. Internamente formatea `X.Y/Z` (decimal) — pasa de "5/5" a "5.5/5.5" cuando los slots no son enteros.
+- Memo nuevo `slotMinutosByHi`: mapa `horaInicio` → minutos del slot, derivado de `tramosOrdenados`.
+- `horasColocadas` (count) → `minutosColocados` (suma duración real). Total y `colocadasTotal` ahora en horas decimales.
+- `validateDrop`/`validateTap`/`handleTapCell` comparan minutos. La heurística "ya alcanzó sus horas → deselecciona" pasa a comprobar `yaMin + tapDur >= totalMin`.
+- `unplacedSummary` reporta `faltan` y `total` en horas decimales.
+- `profeCarga` agrega minutos internamente y los expone como horas decimales para mantener intacto el contrato del `ProfLoadPanel` (`max=40`, total/max en horas).
+- `otherGroupsHours` → `otherGroupsMinutes`: suma `(horaFin-horaInicio)` en minutos por horario en vez de contar registros.
+
+**Otros menores en la misma sesión:**
+- Listado de grupos en select de formularios reformateado a `[curso]º [abreviatura | nombre]` (`Imparticiones.jsx`).
+- Paginación de las tablas CRUD movida de `Personalizacion.itemsPerPageX` a una única clave `localStorage.itemsPerPageGlobal`. Eliminada la pestaña "Paginación" en `/configuracion`. Backend (campos `Personalizacion.*`, traducciones) se deja dormido. Esto cierra la tarea I (ya tachada en §9).
+
+**Pendiente de verificación:** end-to-end con horario real DAW 2º (27h30/sem en bloques 2h/2h/1h30) — los números deben cuadrar materia a materia.
+
+**Archivos tocados en esta sesión:**
+- `backend/src/Service/HorarioSolver.php` (refactor minutos)
+- `frontend/src/pages/HorariosEditor.jsx` (refactor minutos + chip + profeCarga + otherGroupsMinutes)
+- `frontend/src/pages/Imparticiones.jsx` (label de grupo `Xº abrev/nombre`)
+- `frontend/src/hooks/usePagination.js` (localStorage global)
+- `frontend/src/pages/Configuracion.jsx` (eliminada tab Paginación)
+- `docs/hoja-de-ruta-jornadas-recreos.md` (snapshot + §9 + §12 + §13 actualizados)
+
+---
+
+## 14. Endurecimiento del solver para producción
+
+> Validación con caso real (EAG/DAW Andalucía, 2026-04-27 tarde) destapó que la matemática del solver es correcta pero la **fuente de horas** y la **interfaz de validación previa** no están a la altura de un producto comercial. Esta sección recoge las mejoras pendientes para que "Sugerir horario" sea fiable en cualquier centro real. La capa CCAA que arregla la fuente vive en doc aparte: ver `docs/hoja-de-ruta-curriculum-ccaa.md`.
+
+### 14.1. Refactor `horasSemanales: int` → `minutosSemanales: int`
+
+**Problema**: hoy `Materia.horasSemanales` es `int`, así que centros con bloques de 90min, 75min o 105min (ej. 1h30 = 1.5h) no caben sin redondear. La fuente del solver ya trabaja en minutos internamente, pero la columna fuente no.
+
+**Solución**: rename + migración Doctrine. Ver `docs/hoja-de-ruta-curriculum-ccaa.md` Fase 2 — la migración se redacta allí porque la capa CCAA depende de ella.
+
+**Impacto en este doc**: el solver ya está OK (D24=A en minutos). Solo cambia la lectura: `(int) ($imp->getMateria()->getMinutosSemanales())` en vez de `getHorasSemanales() * 60`. La UI sigue mostrando horas decimales con el helper `minToHoras()`.
+
+### 14.2. Validación previa de capacidad
+
+**Problema**: hoy se pulsa "Sugerir horario" y el solver hace lo que puede. Si las horas no caben (28h en jornada de 27.5h), el editor muestra `unplaced` post-hoc — no avisa antes. En producción esto desorienta al admin.
+
+**Solución**: nuevo banner en `HorariosEditor.jsx`, calculado en cliente al cambiar de grupo, ANTES de pulsar resolver:
+
+```
+Σ minutos de las materias del grupo:           1680 (= 28h)
+Capacidad de la jornada (slots × días):        1650 (= 27.5h)
+Diferencia:                                    -30  (= -0.5h)
+
+❌ Banner rojo: "El itinerario requiere 28h/sem pero la jornada cubre solo
+   27.5h/sem. Reduce 0.5h en alguna materia o amplía la jornada."
+```
+
+Tres estados:
+
+| Δ | Color | Mensaje | Bloquea "Sugerir"? |
+|---|---|---|---|
+| Σ < capacidad | amarillo | "Sobran X min/sem libres en la jornada" | No |
+| Σ == capacidad | verde | "La jornada cubre exactamente las horas del itinerario" | No |
+| Σ > capacidad | rojo | "Faltan X min/sem para cubrir el itinerario. Reduce horas o amplía la jornada" | Sí (botón disabled hasta que se ajuste) |
+
+Esto convierte `27.5/27 (round-up)` en una situación **anormal explícitamente avisada** al admin y le evita llegar al solver con datos imposibles.
+
+### 14.3. Heurística de bloques largos para materias grandes
+
+**Problema**: cuando una jornada tiene slots de duración mixta (1h+1h+1h30) y una materia tiene `minutos >= 120`, el solver puede partirla en 2 slots de 1h cuando pedagógicamente debería ir en bloques largos consecutivos. La heurística actual `sameDayScore` solo busca compactar en el mismo día; no prioriza bloque largo.
+
+**Solución**: en `HorarioSolver::backtrack`, cuando la imparticion tiene `pending >= 90`:
+- Antes de iterar sobre todos los candidatos, hacer una pasada que prefiera el slot largo del día (`slot.duracionMinutos >= 90`) sobre los slots de 1h.
+- Implementación: añadir un segundo nivel de ordenación a `usort` de candidatos: además de `sameDayScore`, dar bonus a `c['min']` si `pending >= 90`.
+
+### 14.4. Detección de paralelismo refinada
+
+**Problema (R5 viejo)**: hoy `buildParallelBusy()` compara `JornadaTipo.turno` (mañana/tarde) entre grupos paralelos. Si dos jornadas distintas, ambas "MAÑANA", solo solapan parcialmente, se cuenta como solape total (pesimista). Falsos positivos = cells marcadas como busy que en realidad no lo son → solver más restringido sin razón.
+
+**Solución**: comparar **solape real de rangos** `[horaInicio, horaFin]` entre los slots concretos de las jornadas de los grupos paralelos. Trivial:
+- `cellOcupadaPorOtroGrupo(grupoOtro, dia, hi, hf) = ∃ slot del horario de grupoOtro tal que dia coincide y rangos solapan`.
+- Eliminar la comparación de `turno`. El campo se mantiene como etiqueta UI pero no se usa en lógica.
+
+### 14.5. Round-up D22=A explícito en la UI
+
+**Problema**: cuando el solver coloca un slot de 1h30 a una materia que solo tenía `pending=60min` (1h restante), la materia queda completa con +30min extra. Hoy el chip muestra `5.5/5` que técnicamente es correcto pero confunde — el admin no sabe si es bug, redondeo intencional o sobrecarga real.
+
+**Solución**: marcar visualmente el slot que sobrepasó (último colocado de esa materia que dejó `pending < 0`) con un asterisco discreto y tooltip:
+> "Bloque colocado por redondeo hacia arriba: la materia requiere 5h y este bloque suma 1h30, sobrando 30min sobre el plan. Configurable en preferencias del centro."
+
+Implementación: el solver añade `'roundup' => true` al placement cuando `pending < 0` tras la asignación. La UI lee ese flag y aplica clase CSS.
+
+### 14.6. Plan en sub-fases (continuación)
+
+| Sub-fase | Esfuerzo | Bloquea a | Estado |
+|---|---|---|---|
+| **J** — Refactor `horasSemanales` → `minutosSemanales` (cross-ref CCAA Fase 2) | 0.5 día | K, L | ⏳ |
+| **K** — Validación previa de capacidad en editor (banner verde/amarillo/rojo) | 0.5 día | — | ⏳ |
+| **L** — Heurística de bloques largos en backtrack | 0.5 día | — | ⏳ |
+| **M** — Paralelismo refinado por solape real de rangos | 0.5 día | — | ⏳ |
+| **N** — Round-up D22=A explícito en chip (asterisco + tooltip) | 0.25 día | — | ⏳ |
+
+Tras J-N, "Sugerir horario" es de calidad de producción para cualquier jornada y cualquier centro. La capa CCAA arregla la fuente; estas sub-fases arreglan la experiencia.
+
+**Camino crítico**: J primero (bloquea a las demás por la fuente del dato). K y M son independientes entre sí. L y N son cosméticos pero importantes para confianza del admin.

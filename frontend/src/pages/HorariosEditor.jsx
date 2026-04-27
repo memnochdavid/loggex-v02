@@ -44,6 +44,16 @@ const DIAS = [
 
 const fmtHora = (s) => s.slice(0, 5);
 
+// "HH:MM:SS" o "HH:MM" → minutos desde medianoche.
+const parseHmsToMin = (hms) => {
+  if (!hms) return 0;
+  const [h = '0', m = '0'] = String(hms).split(':');
+  return (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+};
+
+// Convierte minutos a horas decimales (1 decimal); 90 → 1.5, 60 → 1.
+const minToHoras = (min) => Math.round((min / 60) * 10) / 10;
+
 // Paleta por materia derivada de --color-primary (HSL shift determinístico)
 const colorForModule = (mid) => {
   const hue = (mid * 47) % 360;  // determinista
@@ -57,16 +67,18 @@ const getId = (obj) => {
 };
 
 // ─── Componente chip de materia (draggable desde el panel) ──────────────
-const ModuleChip = ({ imparticion, horasTotales, horasColocadas, color, selected, onSelect }) => {
+const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, selected, onSelect }) => {
   const id = `mod:${imparticion.id}`;
-  const disabled = horasColocadas >= horasTotales;
+  const done = minutosColocados >= minutosTotales;
+  const disabled = done;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: { type: 'module', imparticionId: imparticion.id },
     disabled,
   });
 
-  const done = horasColocadas >= horasTotales;
+  const horasColocadas = minToHoras(minutosColocados);
+  const horasTotales = minToHoras(minutosTotales);
 
   return (
     <div
@@ -167,7 +179,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Mapa de ocupación de profesores en grupos paralelos: "dia_hora" → Set<profesorId>
   const [parallelBusy, setParallelBusy] = useState({});
   // Horas semanales de cada profe en otros grupos (no el actual): { profId: N }
-  const [otherGroupsHours, setOtherGroupsHours] = useState({});
+  const [otherGroupsMinutes, setOtherGroupsMinutes] = useState({});
   const [dragError, setDragError] = useState(null);
   // Estado por grupo: { [gid]: { placements: { "dia_slot": {imparticionId, aula, hid?} }, dirty: bool } }
   const [state, setState] = useState({});
@@ -355,27 +367,30 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       setParallelBusy(busy);
     });
 
-    // Horas semanales de cada profe en OTROS grupos (no el actual)
+    // Minutos semanales de cada profe en OTROS grupos (no el actual). Sumamos
+    // duración real de cada horario (horaFin-horaInicio), no número de slots,
+    // para que cuadre con jornadas de slots heterogéneos.
     const paralelosYRestoIds = grupos.filter(g => String(g.id) !== String(selectedGrupo)).map(g => g.id);
-    if (paralelosYRestoIds.length === 0) { setOtherGroupsHours({}); return; }
+    if (paralelosYRestoIds.length === 0) { setOtherGroupsMinutes({}); return; }
     const bust2 = Date.now();
     Promise.all(paralelosYRestoIds.map(gid =>
       fetch(getApiUrl(`/api/horarios?imparticion.grupo=${gid}&itemsPerPage=500&_=${bust2}`),
         { headers: { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache' },
           credentials: 'include', cache: 'no-store' }).then(r => r.json())
     )).then(results => {
-      const hours = {};
+      const minutes = {};
       results.forEach(d => {
         const items = d['hydra:member'] || d.member || [];
         items.forEach(h => {
           const pid = h.imparticion?.profesor?.id
             ?? h.imparticion?.profesor?.['@id']?.split('/').pop();
           if (!pid) return;
+          const dur = Math.max(0, parseHmsToMin(h.horaFin) - parseHmsToMin(h.horaInicio));
           const key = String(pid);
-          hours[key] = (hours[key] || 0) + 1;
+          minutes[key] = (minutes[key] || 0) + dur;
         });
       });
-      setOtherGroupsHours(hours);
+      setOtherGroupsMinutes(minutes);
     });
   }, [selectedGrupo, grupos]);
 
@@ -428,6 +443,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     [tramosOrdenados],
   );
 
+  // Mapa horaInicio (HH:MM:SS) → duración en minutos del slot. Permite
+  // calcular minutos colocados sin volver a parsear cada placement.
+  const slotMinutosByHi = useMemo(() => {
+    const m = {};
+    tramosOrdenados.forEach(t => {
+      if (t.tipo !== 'slot') return;
+      m[t.horaInicio] = Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
+    });
+    return m;
+  }, [tramosOrdenados]);
+
   // Recreos para renderizar como bloques no asignables en la rejilla.
   const recreosDia = useMemo(
     () => tramosOrdenados.filter(t => t.tipo === 'recreo'),
@@ -437,20 +463,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Etiqueta del turno (informativa, viene de la jornada). Sin jornada, queda en blanco.
   const turnoGrupo = jornadaActual?.turno === 'tarde' ? 'T' : 'M';
 
-  // Horas colocadas por imparticion
-  const horasColocadas = useMemo(() => {
-    const h = {};
+  // Minutos colocados por imparticion (suma duración real de los slots ocupados,
+  // no número de slots — los slots pueden tener duración mixta 60/90/120 min).
+  const minutosColocados = useMemo(() => {
+    const m = {};
     Object.values(placements).forEach(p => {
-      h[p.imparticionId] = (h[p.imparticionId] || 0) + 1;
+      const dur = slotMinutosByHi[p.horaInicio] || 0;
+      m[p.imparticionId] = (m[p.imparticionId] || 0) + dur;
     });
-    return h;
-  }, [placements]);
+    return m;
+  }, [placements, slotMinutosByHi]);
 
-  const totalHoras = imps.reduce((a, i) => a + (i.materia?.horasSemanales || 0), 0);
-  const colocadasTotal = Object.keys(placements).length;
-  const completitud = totalHoras ? (colocadasTotal / totalHoras) * 100 : 0;
+  const totalMinutos = imps.reduce((a, i) => a + (i.materia?.horasSemanales || 0) * 60, 0);
+  const colocadosMinutos = Object.values(placements).reduce(
+    (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
+  );
+  const totalHoras = minToHoras(totalMinutos);
+  const colocadasTotal = minToHoras(colocadosMinutos);
+  const completitud = totalMinutos ? (colocadosMinutos / totalMinutos) * 100 : 0;
   const estado =
-    colocadasTotal === totalHoras && totalHoras > 0 ? 'complete' :
+    colocadosMinutos >= totalMinutos && totalMinutos > 0 ? 'complete' :
     completitud >= 80 ? 'draft' : 'incomplete';
 
   const estadoBadge = {
@@ -466,16 +498,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return m;
   }, [imps]);
 
-  // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales)
+  // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales).
+  // Trabajamos en minutos internamente y exponemos horas decimales al panel
+  // (ProfLoadPanel sigue comparando contra `max=40` en horas).
   const profeCarga = useMemo(() => {
-    // Horas del grupo actual desde placements
-    const currentHoursPerProf = {};
+    const currentMinPerProf = {};
     Object.values(placements).forEach(p => {
       const imp = impById[p.imparticionId];
       const pid = imp?.profesor?.id;
-      if (pid) currentHoursPerProf[pid] = (currentHoursPerProf[pid] || 0) + 1;
+      if (!pid) return;
+      const dur = slotMinutosByHi[p.horaInicio] || 0;
+      currentMinPerProf[pid] = (currentMinPerProf[pid] || 0) + dur;
     });
-    // Unificar profes (los del grupo actual)
     const profesUnicos = new Map();
     imps.forEach(i => {
       if (i.profesor?.id && !profesUnicos.has(i.profesor.id)) {
@@ -484,18 +518,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
     const result = [];
     profesUnicos.forEach((profe, pid) => {
-      const enOtros = otherGroupsHours[pid] || 0;
-      const enActual = currentHoursPerProf[pid] || 0;
+      const enOtrosMin = otherGroupsMinutes[pid] || 0;
+      const enActualMin = currentMinPerProf[pid] || 0;
       result.push({
         profe,
-        enOtros,
-        enActual,
-        total: enOtros + enActual,
+        enOtros: minToHoras(enOtrosMin),
+        enActual: minToHoras(enActualMin),
+        total: minToHoras(enOtrosMin + enActualMin),
       });
     });
     result.sort((a, b) => b.total - a.total);
     return result;
-  }, [placements, impById, imps, otherGroupsHours]);
+  }, [placements, impById, imps, otherGroupsMinutes, slotMinutosByHi]);
 
   // Validación de drop: devuelve {ok, reason}
   const validateDrop = useCallback((drag, diaIdx, slotIdx) => {
@@ -505,11 +539,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const imp = impById[impId];
     if (!imp) return { ok: false, reason: t('scheduleEditor.reasonUnknownImp') };
 
-    // Regla 1: horas restantes > 0 (solo para panel → celda; en swap las horas no cambian globalmente)
+    // Regla 1: minutos restantes > 0 (solo para panel → celda; en swap los minutos no cambian globalmente)
     if (drag.type === 'module') {
-      const total = imp.materia?.horasSemanales || 0;
-      if ((horasColocadas[impId] || 0) >= total) {
-        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total, module: imp.materia?.nombre }) };
+      const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+      if ((minutosColocados[impId] || 0) >= totalMin) {
+        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalMin), module: imp.materia?.nombre }) };
       }
       // Regla extra: la celda debe estar vacía
       if (placements[key]) {
@@ -525,7 +559,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
 
     return { ok: true };
-  }, [slotsDia, impById, horasColocadas, placements, parallelBusy]);
+  }, [slotsDia, impById, minutosColocados, placements, parallelBusy]);
 
   // Drag handlers
   const onDragStart = useCallback((e) => {
@@ -616,7 +650,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
       });
     }
-  }, [selectedGrupo, placements, imps, horasColocadas, slotsDia, grupo]);
+  }, [selectedGrupo, placements, imps, minutosColocados, slotsDia, grupo]);
 
   // Estado para el modal de conflicto y el de confirmación de publicación incompleta
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -666,14 +700,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const unplacedSummary = useMemo(() => {
     return imps
       .map(imp => {
-        const total = imp.materia?.horasSemanales || 0;
-        const placed = horasColocadas[imp.id] || 0;
-        return placed < total
-          ? { nombre: imp.materia?.nombre || '—', faltan: total - placed, total }
-          : null;
+        const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+        const placedMin = minutosColocados[imp.id] || 0;
+        if (placedMin >= totalMin) return null;
+        return {
+          nombre: imp.materia?.nombre || '—',
+          faltan: minToHoras(totalMin - placedMin),
+          total: minToHoras(totalMin),
+        };
       })
       .filter(Boolean);
-  }, [imps, horasColocadas]);
+  }, [imps, minutosColocados]);
 
   // Ejecuta el guardado real (batch). Devuelve true si OK.
   const performBatchSave = async () => {
@@ -802,10 +839,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })() : placements;
       const imp = impById[selectedImpId];
       if (!imp) return;
-      const total = imp.materia?.horasSemanales || 0;
-      const ya = Object.values(effectivePlacements).filter(p => p.imparticionId === selectedImpId).length;
-      if (ya >= total) {
-        setDragError(t('scheduleEditor.reasonModuleFull', { total, module: imp.materia?.nombre }));
+      const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+      const yaMin = Object.values(effectivePlacements)
+        .filter(p => p.imparticionId === selectedImpId)
+        .reduce((acc, p) => acc + (slotMinutosByHi[p.horaInicio] || 0), 0);
+      if (yaMin >= totalMin) {
+        setDragError(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalMin), module: imp.materia?.nombre }));
         window.setTimeout(() => setDragError(null), 4000);
         return;
       }
@@ -816,6 +855,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         window.setTimeout(() => setDragError(null), 4000);
         return;
       }
+      const tapDur = slotMinutosByHi[slotsDia[slotIdx][0]] || 0;
       setState(prev => ({
         ...prev,
         [selectedGrupo]: {
@@ -832,8 +872,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           dirty: true,
         },
       }));
-      // Si la materia ya alcanzó sus horas, deseleccionamos
-      if (ya + 1 >= total) setSelectedImpId(null);
+      // Si la materia ya alcanzó sus minutos totales, deseleccionamos.
+      if (yaMin + tapDur >= totalMin) setSelectedImpId(null);
       return;
     }
 
@@ -845,7 +885,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
       });
     }
-  }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, grupo, t]);
+  }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, slotMinutosByHi, grupo, t]);
 
   // Validación ligera para pintar tap-mode
   const validateTap = useCallback((diaIdx, slotIdx) => {
@@ -854,12 +894,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const total = imp.materia?.horasSemanales || 0;
-    if ((horasColocadas[selectedImpId] || 0) >= total) return false;
+    const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+    if ((minutosColocados[selectedImpId] || 0) >= totalMin) return false;
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
     return true;
-  }, [selectedImpId, slotsDia, placements, impById, horasColocadas, parallelBusy]);
+  }, [selectedImpId, slotsDia, placements, impById, minutosColocados, parallelBusy]);
 
   // ESC deselecciona
   useEffect(() => {
@@ -1040,8 +1080,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <ModuleChip
                     key={imp.id}
                     imparticion={imp}
-                    horasTotales={imp.materia?.horasSemanales || 0}
-                    horasColocadas={horasColocadas[imp.id] || 0}
+                    minutosTotales={(imp.materia?.horasSemanales || 0) * 60}
+                    minutosColocados={minutosColocados[imp.id] || 0}
                     color={colorForModule(imp.materia?.id || imp.id)}
                     selected={selectedImpId === imp.id}
                     onSelect={handleSelectModule}

@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -3208,7 +3208,7 @@ CREATE TABLE `grupo` (
   KEY `IDX_8C0E9BD3298137A7` (`centro_id`),
   CONSTRAINT `FK_8C0E9BD3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_8C0E9BD3B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3218,8 +3218,10 @@ CREATE TABLE `grupo` (
 LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
-(1,'Desarrollo de Aplicaciones Web','DAW',1,'2026-2027','2024-09-01','2025-07-31',NULL,'2026-04-26 15:59:36',0,NULL,3,3),
-(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-01','2026-07-31',NULL,'2026-04-26 15:59:42',0,NULL,3,3);
+(1,'Desarrollo de Aplicaciones Web','DAW',1,'2025-2026','2025-09-01','2026-06-30',NULL,'2026-04-27 08:36:08',0,NULL,3,3),
+(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-01','2026-06-30',NULL,'2026-04-27 08:34:42',0,NULL,3,3),
+(3,'Desarrollo de Aplicaciones Multiplataforma','DAM',1,'2025-2026','2025-09-01','2026-06-30','2026-04-27 08:34:17','2026-04-27 08:34:17',0,NULL,6,3),
+(4,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026','2025-09-01','2026-06-30','2026-04-27 08:35:44','2026-04-27 08:35:44',0,NULL,6,3);
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3316,7 +3318,7 @@ CREATE TABLE `itinerario` (
   CONSTRAINT `FK_11ECF404298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_11ECF404438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_itinerario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_11ECF40489635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3327,7 +3329,9 @@ LOCK TABLES `itinerario` WRITE;
 /*!40000 ALTER TABLE `itinerario` DISABLE KEYS */;
 INSERT INTO `itinerario` VALUES
 (3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior',NULL,'2026-04-26 21:51:23',0,NULL,3,NULL,3),
-(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL);
+(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL),
+(5,'Técnico Superior en Documentación y Administración Sanitarias','Superior','2026-04-27 08:22:44','2026-04-27 08:31:55',1,'2026-04-27 08:31:55',3,173,NULL),
+(6,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,3,128,NULL);
 /*!40000 ALTER TABLE `itinerario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3351,7 +3355,7 @@ CREATE TABLE `jornada_tipo` (
   PRIMARY KEY (`id`),
   KEY `IDX_57BBA106298137A7` (`centro_id`),
   CONSTRAINT `FK_57BBA106298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3363,7 +3367,8 @@ LOCK TABLES `jornada_tipo` WRITE;
 INSERT INTO `jornada_tipo` VALUES
 (1,'turno mañana estándar','manana','[1,2,3,4,5]','2026-04-26 19:39:40','2026-04-26 19:48:53',1,'2026-04-26 19:48:53',3),
 (2,'FP Mañanas','manana','[1,2,3,4,5]',NULL,'2026-04-26 20:05:26',1,'2026-04-26 20:05:26',3),
-(3,'FP Mañanas','manana','[1,2,3,4,5]','2026-04-26 20:05:11','2026-04-26 20:05:11',0,NULL,3);
+(3,'FP Mañanas','manana','[1,2,3,4,5]','2026-04-26 20:05:11','2026-04-26 20:05:11',0,NULL,3),
+(4,'FP Tardes','tarde','[1,2,3,4,5]','2026-04-27 08:30:51','2026-04-27 08:30:51',0,NULL,3);
 /*!40000 ALTER TABLE `jornada_tipo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3386,7 +3391,7 @@ CREATE TABLE `jornada_tramo` (
   UNIQUE KEY `uniq_jornada_tramo_orden` (`jornada_tipo_id`,`orden`),
   KEY `IDX_4EF1F68B89635E79` (`jornada_tipo_id`),
   CONSTRAINT `FK_4EF1F68B89635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3408,7 +3413,14 @@ INSERT INTO `jornada_tramo` VALUES
 (17,3,'slot','10:50:00','11:50:00',NULL,3),
 (18,4,'slot','11:50:00','12:50:00',NULL,3),
 (19,5,'recreo','12:50:00','13:00:00',NULL,3),
-(20,6,'slot','13:00:00','14:30:00',NULL,3);
+(20,6,'slot','13:00:00','14:30:00',NULL,3),
+(21,0,'slot','15:00:00','16:00:00',NULL,4),
+(22,1,'slot','16:00:00','17:00:00',NULL,4),
+(23,2,'recreo','17:00:00','17:20:00',NULL,4),
+(24,3,'slot','17:20:00','18:20:00',NULL,4),
+(25,4,'slot','18:20:00','19:20:00',NULL,4),
+(26,5,'recreo','19:20:00','19:30:00',NULL,4),
+(27,6,'slot','19:30:00','21:00:00',NULL,4);
 /*!40000 ALTER TABLE `jornada_tramo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3438,7 +3450,7 @@ CREATE TABLE `materia` (
   KEY `IDX_6DF05284438E8617` (`catalogo_origen_id`),
   CONSTRAINT `FK_6DF05284438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_materia` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_6DF05284B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3474,7 +3486,35 @@ INSERT INTO `materia` VALUES
 (24,'Sistemas de gestión empresarial','0491',NULL,2,5,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1311,'modulo'),
 (25,'Proyecto de desarrollo de aplicaciones multiplataforma','0492',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1312,'proyecto'),
 (26,'Empresa e iniciativa emprendedora','0494',NULL,2,3,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1313,'modulo'),
-(27,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1314,'fct');
+(27,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1314,'fct'),
+(28,'Gestión de pacientes','1515',NULL,1,2,'2026-04-27 08:22:44','2026-04-27 08:31:20',1,'2026-04-27 08:31:20',5,1708,'modulo'),
+(29,'Terminología clínica y patología','1516',NULL,1,5,'2026-04-27 08:22:44','2026-04-27 08:31:23',1,'2026-04-27 08:31:23',5,1709,'modulo'),
+(30,'Extracción de diagnósticos y procedimientos','1517',NULL,1,5,'2026-04-27 08:22:44','2026-04-27 08:31:24',1,'2026-04-27 08:31:24',5,1710,'modulo'),
+(31,'Archivo y documentación sanitarios','1518',NULL,1,3,'2026-04-27 08:22:44','2026-04-27 08:31:27',1,'2026-04-27 08:31:27',5,1711,'modulo'),
+(32,'Sistemas de información y clasificación sanitarios','1519',NULL,1,4,'2026-04-27 08:22:44','2026-04-27 08:31:29',1,'2026-04-27 08:31:29',5,1712,'modulo'),
+(33,'Ofimática y proceso de la información','0649',NULL,1,5,'2026-04-27 08:22:44','2026-04-27 08:31:31',1,'2026-04-27 08:31:31',5,1713,'modulo'),
+(34,'Formación y orientación laboral','1525',NULL,1,3,'2026-04-27 08:22:44','2026-04-27 08:31:33',1,'2026-04-27 08:31:33',5,1714,'modulo'),
+(35,'Codificación sanitaria','1520',NULL,2,9,'2026-04-27 08:22:44','2026-04-27 08:31:35',1,'2026-04-27 08:31:35',5,1715,'modulo'),
+(36,'Atención psicosocial al paciente/usuario','1521',NULL,2,4,'2026-04-27 08:22:44','2026-04-27 08:31:38',1,'2026-04-27 08:31:38',5,1716,'modulo'),
+(37,'Validación y explotación de datos','1522',NULL,2,6,'2026-04-27 08:22:44','2026-04-27 08:31:40',1,'2026-04-27 08:31:40',5,1717,'modulo'),
+(38,'Gestión administrativa sanitaria','1523',NULL,2,6,'2026-04-27 08:22:44','2026-04-27 08:31:42',1,'2026-04-27 08:31:42',5,1718,'modulo'),
+(39,'Empresa e iniciativa emprendedora','1526',NULL,2,3,'2026-04-27 08:22:44','2026-04-27 08:31:43',1,'2026-04-27 08:31:43',5,1719,'modulo'),
+(40,'Formación en centros de trabajo','1527',NULL,2,0,'2026-04-27 08:22:44','2026-04-27 08:31:45',1,'2026-04-27 08:31:45',5,1720,'fct'),
+(41,'Proyecto de documentación y administración sanitarias','1524',NULL,2,0,'2026-04-27 08:22:44','2026-04-27 08:31:47',1,'2026-04-27 08:31:47',5,1721,'proyecto'),
+(42,'Sistemas informáticos','0483',NULL,1,5,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1301,'modulo'),
+(43,'Bases de Datos','0484',NULL,1,5,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1302,'modulo'),
+(44,'Programación','0485',NULL,1,7,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1303,'modulo'),
+(45,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,4,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1304,'modulo'),
+(46,'Entornos de desarrollo','0487',NULL,1,3,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1305,'modulo'),
+(47,'Formación y Orientación Laboral','0493',NULL,1,3,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1306,'modulo'),
+(48,'Acceso a datos','0486',NULL,2,6,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1307,'modulo'),
+(49,'Desarrollo de interfaces','0488',NULL,2,6,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1308,'modulo'),
+(50,'Programación multimedia y dispositivos móviles','0489',NULL,2,4,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1309,'modulo'),
+(51,'Programación de servicios y procesos','0490',NULL,2,4,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1310,'modulo'),
+(52,'Sistemas de gestión empresarial','0491',NULL,2,5,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1311,'modulo'),
+(53,'Proyecto de desarrollo de aplicaciones multiplataforma','0492',NULL,2,0,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1312,'proyecto'),
+(54,'Empresa e iniciativa emprendedora','0494',NULL,2,3,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1313,'modulo'),
+(55,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-27 08:32:30','2026-04-27 08:32:30',0,NULL,6,1314,'fct');
 /*!40000 ALTER TABLE `materia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3986,4 +4026,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-26 21:54:06
+-- Dump completed on 2026-04-27  9:27:05
