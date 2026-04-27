@@ -382,14 +382,19 @@ const Festivos = ({ embedded = false, tabs = null }) => {
         header: t('holidays.ambito', { defaultValue: 'Ámbito' }),
         accessor: (row) => {
             const ambito = row.ambito || 'local';
-            const variantes = {
-                nacional:   { txt: t('holidays.ambitoNacional', { defaultValue: 'Nacional' }), cls: styles.badgeNacional },
-                autonomico: { txt: row.ccaa ? `${t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' })} (${row.ccaa})` : t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }), cls: styles.badgeAutonomico },
-                provincial: { txt: row.provincia?.codigo ? `${t('holidays.ambitoProvincial', { defaultValue: 'Provincial' })} (${row.provincia.codigo})` : t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }), cls: styles.badgeProvincial },
-                local:      { txt: t('holidays.ambitoLocal', { defaultValue: 'Local' }), cls: styles.badgeLocal },
+            // Estilo unificado con /admin/catalogo/itinerarios: todos los badges
+            // usan `.badge` (color primary). La variante neutra (gris) marca
+            // los LOCALES — manuales del admin — frente al resto que viene del
+            // seed BOE. La discriminación semántica del ámbito (nacional/
+            // autonómico/provincial) va en el texto: "Autonómico (AN)" etc.
+            const labels = {
+                nacional:   t('holidays.ambitoNacional',   { defaultValue: 'Nacional' }),
+                autonomico: row.ccaa ? `${t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' })} (${row.ccaa})` : t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }),
+                provincial: row.provincia?.codigo ? `${t('holidays.ambitoProvincial', { defaultValue: 'Provincial' })} (${row.provincia.codigo})` : t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }),
+                local:      t('holidays.ambitoLocal',      { defaultValue: 'Local' }),
             };
-            const meta = variantes[ambito] || variantes.local;
-            return <span className={`${styles.badge} ${meta.cls}`}>{meta.txt}</span>;
+            const cls = ambito === 'local' ? `${styles.badge} ${styles.badgeNeutral}` : styles.badge;
+            return <span className={cls}>{labels[ambito] || labels.local}</span>;
         },
         sortable: true,
         sortKey: 'ambito',
