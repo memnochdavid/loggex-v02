@@ -547,6 +547,37 @@ Tras aplicar la migración, repoblar el catálogo y verificar `materia.minutos_s
 - (c) **Implementar Fase 3 CCAA (`BojaAndAdapter`)** — solución definitiva. Materializa DAW Andalucía con horas BOJA reales que cuadran con la jornada. **Recomendada.**
 - (d) Sub-fase O nueva en §14 jornadas: heurística de distribución equitativa de round-up + banner. Complementa (c), no la sustituye.
 
+### 2026-04-27 noche — DAM completo en LOMLOE + asignación de profesores DAW LOMLOE
+
+Sesión de cierre del flujo CCAA en el centro EAG real. Tras crear el itinerario DAM y los grupos DAM 1º + DAM 2º + matricular 5 alumnos en cada uno (vía SQL directo), se completa la cobertura LOMLOE.
+
+**Asignación de profesores DAW LOMLOE pendientes** (4 imparticiones autonómicas creadas por el resync sin profe):
+- 1665 Digitalización GS (1h DAW 1º) → María Cordero.
+- 1708 Sostenibilidad (1h DAW 1º) → Sara Alberti (perfil transversal con FOL/IPE I).
+- 1713 Proyecto Intermodular (2h DAW 2º) → María Cordero.
+- AN-LIBRE-DAW-2 Libre configuración (3h DAW 2º) → Walter Donovan (perfil web compatible para ampliar contenido).
+
+**DAM con overlay LOMLOE aplicado:**
+- `Itinerario(5).ccaa = AN` por SQL.
+- Aplicado overlay desde la UI (botón "Aplicar overlay CCAA"). Resync creó las 7 autonómicas LOMLOE en cada grupo DAM y desactivó las sustituidas (FOL DAM 0493, Empresa 0494, Proyecto del RD 0492).
+- **Mismo bug de duplicación que tuvimos en DAW**: las autonómicas LOMLOE oficiales (1709, 1710, 1665, 1708, 0179, 1713) coexistieron con las legacy AN-* del primer hardcoded para DAM en `catalogo_materia_ccaa`. El resolver devolvió ambas → duplicados visibles en banner pre-resolución de `/admin/horarios`.
+  - Limpieza por SQL: cerradas las legacy con `vigente_hasta = '2024-08-31'` (excepto AN-LIBRE-* que es válido), soft-delete de imparticiones y materias creadas con códigos AN-* duplicados (excepto AN-LIBRE-DAM-2).
+- Asignados profesores DAM LOMLOE (mismo criterio de continuidad que DAW):
+  - 1709 IPE I + 1708 Sostenibilidad + 0179 Inglés profesional GS → Sara.
+  - 1665 Digitalización GS + 1710 IPE II + 1713 Proyecto Intermodular → María.
+  - AN-LIBRE-DAM-2 → Walter.
+
+**Validación E2E:** banner verde en `/admin/horarios` para DAM 1º (32h LOMLOE) y DAM 2º (33h LOMLOE) con jornada `FP Mañanas pre Calendario Real` (35h). Cargas finales de los 7 profesores entre 12 y 25h/sem.
+
+**Total entidades en BD del centro EAG:**
+- 2 itinerarios (DAW + DAM), ambos con overlay LOMLOE AN.
+- 4 grupos (DAW 1º+2º + DAM 1º+2º), 5 alumnos cada uno (20 total).
+- 33 imparticiones vivas con profesor asignado.
+
+**Deuda residual anotada (D-nueva):** el bug de duplicación de autonómicas legacy AN-* tras aplicar overlay a un nuevo itinerario es **recurrente** (segunda vez que se manifiesta). El comando `app:catalogo:ccaa:seed` debería detectar overrides obsoletas (mismo `(ccaa, codigo)` con vigente_desde anterior y mismo nombre que una nueva) y cerrarlas automáticamente con `vigente_hasta`. Apuntado para futura sesión de saneamiento del seed.
+
+---
+
 ### 2026-04-27 noche — Fase 3 opción B (parcial): datos LOMLOE reales del BOJA en MinIO
 
 Tras la implementación A con datos hard-coded y aproximados, el usuario pidió "datos reales — el centro se adapta a la normativa, no al revés". Sesión dedicada a recolectar y persistir el currículo LOMLOE oficial.
