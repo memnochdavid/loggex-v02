@@ -6,16 +6,23 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**Calendario escolar Fases 1+2+3 ✅ Done (2026-04-27 noche)** — modelo `Provincia`/`AmbitoFestivo` + 17 nacionales y 118 autonómicos cargados desde PDFs oficiales BOE 2025-26 + UI Centros (selector Provincia cascada CCAA) y Festivos (columna Ámbito + filtro + badges themed). Doc dedicado: **`hoja-de-ruta-calendario-escolar.md`**.
+
 **Fase 3 opción B (parcial) ✅ Done (2026-04-27 noche)** — datos LOMLOE oficiales del BOJA persistidos en MinIO + provider que los lee. PDFs auditables en `catalogo/ccaa/AN/source/`, extracto verificado en `catalogo/ccaa/AN/curated/horarios.json`. Banner rojo en EAG (LOMLOE = 32-33h vs jornada 27.5h) — feedback honesto: el centro adapta jornada al currículo, no al revés.
 
 **Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E con datos hard-coded aproximados antes de pasar a B real.
 
-**Próxima acción**: **asignar profesores** a las imparticiones autonómicas creadas por el resync (Inglés profesional GS, IPE II en grupo DAW 2º) en `/admin/imparticiones`. Sin profesor, "Sugerir horario" no podrá colocarlas.
+**Próxima acción** — elegir entre 4 rutas según prioridad:
 
-Tras eso, varias rutas paralelas según prioridad:
-1. **Ampliar `BojaAndHardcodedProvider`** a DAW 1º + DAM 1º + DAM 2º AN. Datos verificados contra BOJA — NO inventar.
-2. **Fase 3 opción B (objetivo final)**: scraper PDF del BOJA. Arquitectura ya preparada con `CcaaCurriculumProviderInterface`.
-3. **§14 sub-fases L/M/N** (cosméticos del solver).
+1. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales (cierra el agujero de los 2 festivos locales por centro).
+2. **Calendario Fase 5** (~3h) — calendario lectivo del centro (fechas curso, vacaciones), prerrequisito de Boletines/FCT.
+3. **Calendario Fase 6 / Jornadas opción A-B-C** — distribución temporal de materias (Proyecto Intermodular, FCT, Libre config) para quitar el parche de jornadas `pre Calendario Real`.
+4. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, Proyecto Intermodular) en `/admin/imparticiones` para poder pulsar "Sugerir horario" en DAW LOMLOE.
+
+Otras rutas más amplias:
+- Ampliar `BojaAndHardcodedProvider` a DAW 1º + DAM 1º+2º AN (datos verificados contra BOJA — NO inventar).
+- Fase 3 opción B completa: scraper PDF del BOJA.
+- §14 sub-fases L/M/N (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
 
 **⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). Ver `docs/hoja-de-ruta-jornadas-recreos.md` entrada "PARCHE TEMPORAL: jornadas pre Calendario Real" — opciones (A) flag, (B) enum tipoDistribución, (C) entidad MateriaTemporada. Las jornadas se eliminarán al implementar el modelo correcto.
@@ -89,6 +96,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | Doc | Hecho | Pendiente |
 |---|---|---|
 | `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos) | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
+| `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3** ✅ (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos) | Fase 4 (Municipio + UI locales), Fase 5 (calendario lectivo), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE) |
 | `hoja-de-ruta-calificaciones.md` | Aparentemente Fases A-D (existen `seed_calificaciones.sql`, vistas `CalificacionesAdmin/Detalle/Grupo.jsx`) | **Auditar y cerrar bitácora**; Fase E (boletines PDF) |
 | `home-widgets-roadmap.md` | TablonWidget, NotificationList | Resto de widgets marcados 🔴 |
 | `modernizacion-ui.md` | Manual vivo de modernización; varios plugins documentados | Sigue activo, registrar cada modernización nueva |
