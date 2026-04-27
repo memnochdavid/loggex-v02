@@ -100,8 +100,8 @@ class CatalogoMateriaCcaa
     #[Groups(['catalogo:read'])]
     private ?TipoMateria $tipo = null;
 
-    /** Referencia al boletín oficial (ej. "BOJA Decreto 156/2022 art. 7"). */
-    #[ORM\Column(length: 100, nullable: true)]
+    /** Referencia al boletín oficial (ej. "BOJA 149/2011 anexo II + Resolución DG FP 26/06/2024"). */
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['catalogo:read'])]
     private ?string $boletinOficialRef = null;
 

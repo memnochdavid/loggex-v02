@@ -73,8 +73,8 @@ class CatalogoItinerarioCcaa
     #[Groups(['catalogo:read'])]
     private ?string $codigo = null;
 
-    /** Referencia al boletín oficial del decreto (ej. "BOJA Decreto 156/2022"). */
-    #[ORM\Column(length: 100, nullable: true)]
+    /** Referencia al boletín oficial del decreto (ej. "BOJA 149/2011"). */
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['catalogo:read'])]
     private ?string $boletinOficialRef = null;
 
