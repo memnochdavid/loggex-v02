@@ -4,8 +4,8 @@
 
 ## ⚡ Snapshot para retomar
 
-### Estado al cierre (2026-04-27)
-- **Plan aprobado**, sin código todavía. D1-D5 cerradas.
+### Estado al cierre (2026-04-27 noche)
+- **Fase 1 + Fase 2 implementadas en código** (sin migración aún ejecutada en BD del usuario; pendiente `doctrine:migrations:migrate`). D1-D10 todas cerradas.
 - Catálogo nacional (BOE) operativo en `/admin/catalogo/*` con 230 itinerarios y ~2 230 materias (ver `docs/catalogo-oficial.md` §13).
 - Solver `HorarioSolver.php` y editor `HorariosEditor.jsx` ya trabajan en minutos tras D24 = A (`docs/hoja-de-ruta-jornadas-recreos.md` §13 entrada 2026-04-27 tarde).
 - Caso real validado: centro EAG en Andalucía usa jornada 3 bloques `2h+2h+1h30 = 5h30/día = 27h30/sem` y materias con horas `7.5/5.5/3.5` que NO encajan en `int horasSemanales`.
@@ -13,16 +13,21 @@
 ### Decisiones cerradas
 - **D1**: `Ccaa` se modela como **enum PHP backed string** (17 CCAA + Ceuta + Melilla = 19 valores estables, no cambian con el tiempo). Razón: enum-en-código permite type-safety en queries/tests sin tabla extra.
 - **D2**: **Overlay** — el catálogo nacional sigue siendo fuente de verdad. CCAA es una capa que añade overrides (horas, nombre alternativo) y materias autonómicas propias. La mayoría de troncales coinciden con BOE; solo cambian horas y se suman optativas.
-- **D3**: refactor `materia.horasSemanales: int` → `materia.minutosSemanales: int`. Misma columna física pero unidad coherente con el solver. Migración Doctrine que multiplique x60 los valores existentes. La UI sigue mostrando horas decimales (`5.5h`, `3.5h`).
+- **D3**: refactor `materia.horasSemanales: int` → `materia.minutosSemanales: int` (y mismo cambio en `catalogo_materia.horasSemanales: decimal` → `catalogo_materia.minutosSemanales: int` por coherencia). Migración Doctrine que multiplique los valores existentes (`*60` para `materia`, `ROUND(*60)` para `catalogo_materia` decimal). La UI sigue mostrando horas decimales (`5.5h`, `3.5h`) con el helper `minToHoras`.
 - **D4**: cobertura inicial = **Andalucía** (BOJA). Resto en sesiones futuras por demografía (CAT > MAD > VAL > PV > GAL).
-- **D5**: `itinerario.ccaa` y `catalogo_itinerario.ccaa` son **nullable**. NULL = currículo nacional puro (BOE). Itinerario con `ccaa = AND` resuelve materias = nacional + overrides Andalucía.
+- **D5**: `itinerario.ccaa` y `catalogo_itinerario.ccaa` son **nullable**. NULL = currículo nacional puro (BOE). Itinerario con `ccaa = AN` resuelve materias = nacional + overrides Andalucía.
+- **D6**: materias autonómicas y overrides viven en la **misma tabla** `CatalogoMateriaCcaa`. Si `catalogo_materia_id IS NULL`, es autonómica pura (Inglés profesional GS, IPE II) con `nombre/codigo/minutosSemanales/curso/tipo` propios. Si NOT NULL, es override de la materia nacional. Razón: DRY; el flag se infiere de la FK, no hay que mantener una entidad aparte.
+- **D7**: el nombre del itinerario también puede variar por CCAA. Se modela con `CatalogoItinerarioCcaa` (FK `CatalogoItinerario` + `Ccaa` + `nombre`/`codigo` override). Si para una `(itinerario, ccaa)` no hay registro, se usa el nacional. Razón: caso raro pero existe (algunos decretos autonómicos renombran o asignan códigos propios).
+- **D8**: la CCAA es atributo del **itinerario, no del centro**. Un mismo centro puede tener itinerarios con CCAAs distintas (ej. IES en Ceuta con familias profesionales bajo currículo nacional y otras bajo CCAA específica). Razón: máxima flexibilidad, complejidad cero (la FK ya está en `Itinerario`).
+- **D9**: default al crear itinerario = **CCAA del centro** si está rellena (`Centro.ccaa`); si el centro no tiene CCAA, el admin elige explícitamente. Sin default a NULL silencioso (causaría errores en producción). Razón: cubre el caso 99% (un centro suele estar en una CCAA) sin perder flexibilidad para los multi-CCAA.
+- **D10**: **versionado por fecha** en `CatalogoMateriaCcaa` y `CatalogoItinerarioCcaa`: `vigenteDesde DATE NOT NULL` + `vigenteHasta DATE NULL` (NULL = vigente hoy). Permite consultas históricas y auditoría comercial. Resolver siempre filtra por `vigenteHasta IS NULL OR vigenteHasta >= today`. Razón: coste cero de mantener; beneficio cuando llegue el segundo decreto autonómico.
 
 ### Lo siguiente al retomar — orden exacto
-1. Implementar Fase 1 (modelo + migración) — ver §6.
-2. Refactor `horasSemanales` → `minutosSemanales` (Fase 2). Bloquea al resto: el seed de Andalucía con horas decimales no entra hasta que la columna esté en minutos.
-3. Adapter Andalucía piloto (BOJA, FP DAW). Punto cero del scraping CCAA.
-4. UI selector "Comunidad Autónoma" en modal de Itinerario y filtro en `/admin/catalogo/*`.
-5. Validación previa al solver (capacity check, banner rojo si Σ minutos > capacidad jornada). Esto va en `hoja-de-ruta-jornadas-recreos.md` §11, no aquí.
+1. **Ejecutar la migración** `Version20260427150000` en la BD: `docker compose exec backend php bin/console doctrine:migrations:migrate`. Tras ello: `cache:clear`. Verificar que `materia.minutos_semanales` y `catalogo_materia.minutos_semanales` están rellenos correctamente (multiplicados x60 vs el valor previo).
+2. **Probar end-to-end** en `/admin/horarios` y `/admin/materias` que la conversión horas↔minutos funciona en la UI.
+3. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA.
+4. **UI selector "Comunidad Autónoma"** en modal de Itinerario y filtro en `/admin/catalogo/*` — Fase 4.
+5. **Validación previa al solver** (capacity check, banner rojo si Σ minutos > capacidad jornada). Esto va en `hoja-de-ruta-jornadas-recreos.md` §14 sub-fase K, no aquí.
 
 ---
 
@@ -75,17 +80,17 @@ Loggex apunta a venderse a centros de cualquier CCAA. Hardcodear es deuda técni
 | D4 | Cobertura inicial CCAA | Solo Andalucía como piloto | Centro de pruebas del usuario (EAG) está en AND |
 | D5 | `itinerario.ccaa` | nullable (NULL = nacional puro) | Preserva itinerarios actuales sin migración de datos |
 
-### Decisiones aún abiertas (a cerrar antes de Fase 3)
+### Decisiones cerradas adicionales (D6-D10, 2026-04-27)
 
-- **D6**: ¿Las materias autonómicas (Inglés profesional GS, IPE II) viven en `CatalogoMateriaCcaa` con `catalogo_materia_id = NULL` y campos propios (nombre/codigo/horas), o se crea una entidad aparte `CatalogoMateriaAutonomica`? **Recomendación**: en la misma tabla con FK nullable. Más DRY; el flag se infiere de `catalogo_materia_id IS NULL`.
-- **D7**: ¿El nombre del itinerario también puede variar por CCAA? Algunos decretos renombran ("Técnico Superior en DAW" sigue igual, pero hay casos de variantes regionales). **Recomendación**: nombre nacional como fuente; si BOJA renombra, se almacena como `CatalogoItinerarioCcaa.nombre` (override). Si NULL, se usa el nacional.
-- **D8**: ¿Permitimos que un centro tenga **distintos itinerarios con distintas CCAA**? (un IES en Ceuta podría usar mayoritariamente currículo nacional pero algunas familias profesionales con normativa autonómica). **Recomendación**: sí — la CCAA es atributo del itinerario, no del centro. Mucho más flexible y no añade complejidad.
-- **D9**: ¿Cómo se decide la CCAA por defecto al crear un itinerario? Tres opciones:
-  - (a) Sin default — el admin elige siempre. Más explícito.
-  - (b) Default = CCAA del centro (campo nuevo `Centro.ccaa`). Cómodo pero requiere capturar CCAA del centro.
-  - (c) Default = NULL (nacional puro). Conservador, no rompe el flujo actual.
-  - **Recomendación**: (b) si el campo `Centro.ccaa` es trivial; en otro caso (a). NUNCA (c) en producción — induciría a errores silenciosos.
-- **D10**: ¿Versionado del overlay CCAA? Los decretos cambian; un BOJA de 2018 difiere del de 2022. ¿Marcamos `CatalogoMateriaCcaa.vigenteDesde / vigenteHasta` o solo conservamos el último? **Recomendación**: `vigenteDesde DATE NOT NULL` + `vigenteHasta DATE NULL`. Permite consultar "qué impartía AND en 2020" — útil para histórico y para auditoría comercial. Pero al resolver siempre `vigenteHasta IS NULL OR vigenteHasta > today`.
+Originalmente abiertas; cerradas en la sesión 2026-04-27 al arrancar Fase 1. Se aceptaron las recomendaciones tal cual.
+
+| # | Decisión | Resolución |
+|---|---|---|
+| D6 | Modelado de materias autonómicas | Misma tabla `CatalogoMateriaCcaa`, FK `catalogo_materia_id` nullable |
+| D7 | Override de nombre del itinerario por CCAA | Sí, vía `CatalogoItinerarioCcaa` |
+| D8 | Multi-CCAA por centro | Permitido (CCAA es atributo del itinerario) |
+| D9 | Default CCAA al crear itinerario | CCAA del centro si está rellena, o elección explícita |
+| D10 | Versionado por fecha | `vigenteDesde NOT NULL` + `vigenteHasta NULL` |
 
 ---
 
@@ -176,6 +181,12 @@ Si una CCAA no tiene override del nombre, no existe registro y el resolver usa e
 class CatalogoItinerario {
     // existente
     // sin cambios — el catálogo nacional sigue siendo nacional
+    //
+    // NOTA (2026-04-27): la columna `ccaa: ?string` ya existía como etiqueta libre
+    // (siempre NULL en los 230 registros actuales). Se mantiene como string por
+    // compatibilidad. NO se usa para la lógica overlay; esa vive en
+    // CatalogoMateriaCcaa y CatalogoItinerarioCcaa. Si en el futuro se decide
+    // unificar a enum Ccaa, será refactor menor (todos los datos son NULL).
 }
 
 class Itinerario {
@@ -340,9 +351,9 @@ Fragilidad esperada: PDFs del BOJA con tablas formateadas a mano; igual que con 
 
 | Fase | Esfuerzo | Bloquea a | Estado |
 |---|---|---|---|
-| **1** — Modelo: enum `Ccaa`, FK `Itinerario.ccaa`, FK `Centro.ccaa`, tablas `catalogo_*_ccaa`, migración | 1 día | 2, 3, 4 | ⏳ Siguiente |
-| **2** — Refactor `horasSemanales` → `minutosSemanales` en `materia` (+ `catalogo_materia` si aplica) + ajustes en solver/editor (que ya leen minutos, pero la columna fuente cambia) | 0.5 día | 3 | ⏳ |
-| **3** — Adapter `BojaAndAdapter` (Andalucía piloto): comando `app:catalogo:refresh boja_and`. Empezar por DAW como caso de validación | 1.5 días | 4, 5 | ⏳ |
+| **1** — Modelo: enum `Ccaa`, FK `Itinerario.ccaa`, FK `Centro.ccaa`, tablas `catalogo_*_ccaa`, migración | 1 día | 2, 3, 4 | ✅ Done (2026-04-27) — pendiente ejecutar migración en BD |
+| **2** — Refactor `horasSemanales` → `minutosSemanales` en `materia` (+ `catalogo_materia` si aplica) + ajustes en solver/editor (que ya leen minutos, pero la columna fuente cambia) | 0.5 día | 3 | ✅ Done (2026-04-27) — combinada con Fase 1 en una sola migración |
+| **3** — Adapter `BojaAndAdapter` (Andalucía piloto): comando `app:catalogo:refresh boja_and`. Empezar por DAW como caso de validación | 1.5 días | 4, 5 | ⏳ Siguiente |
 | **4** — UI: selector "Comunidad Autónoma" en modal de Itinerario; filtro CCAA en `/admin/catalogo/itinerarios` y `/admin/catalogo/materias`; banner provenance ampliado | 1 día | — | ⏳ |
 | **5** — Validación previa al solver: capacity check `Σ minutos / capacidadJornada` con banner verde/amarillo/rojo en `/admin/horarios`. Movido a `hoja-de-ruta-jornadas-recreos.md` §11 (cross-ref) | 0.5 día | — | ⏳ |
 | **6** — Adapters CCAA por demografía: CT (DOGC), MD (BOCM), VC (DOGV), PV (BOPV), GA (DOG) | 5 días (1 por CCAA) | — | ⏳ Diferida |
@@ -459,3 +470,52 @@ El editor actual permite añadir materias manuales con `tipo='modulo'` y horas l
 - D6-D10 propuestas con recomendaciones; pendientes de cierre formal antes de Fase 3.
 - Doc redactado y atado a `catalogo-oficial.md`, `hoja-de-ruta-jornadas-recreos.md` y `CLAUDE.md`.
 - **Sin código todavía**: la implementación arranca cuando se confirme el orden de fases.
+
+### 2026-04-27 noche — Fases 1 + 2 cerradas en una sola pasada
+
+D6-D10 cerradas con las recomendaciones del doc tal cual (sin ajustes). Implementación combinada de Fase 1 (modelo CCAA) y Fase 2 (refactor minutosSemanales) porque comparten migración Doctrine y desbloquean al unísono el resto del camino crítico.
+
+**Backend nuevo:**
+- `App\Entity\Ccaa` — enum PHP backed string con 19 cases (ISO 3166-2:ES) y método `nombre()` para UI.
+- `App\Entity\Catalogo\CatalogoItinerarioCcaa` — override de nombre/codigo del itinerario, con `vigenteDesde NOT NULL` y `vigenteHasta NULL`. ApiResource read-only.
+- `App\Entity\Catalogo\CatalogoMateriaCcaa` — overlay de horas/nombre/tipo + materias autonómicas puras (FK `catalogoMateria` nullable según D6). Helper `esAutonomicaPura()`.
+
+**Backend modificado:**
+- `Centro.ccaa` (nullable, enumType=Ccaa::class) — D9b default para itinerarios del centro.
+- `Itinerario.ccaa` (nullable) — D5; expuesto en `itinerario:read`/`itinerario:write`/`grupo:read`.
+- `Materia.horasSemanales` (int) → `Materia.minutosSemanales` (int).
+- `CatalogoMateria.horasSemanales` (DECIMAL(4,2) string PHP) → `CatalogoMateria.minutosSemanales` (int).
+- `CatalogoMateriaDto.horasSemanales: ?float` → `CatalogoMateriaDto.minutosSemanales: ?int`.
+- `HorarioSolver.php` — lee directo `getMinutosSemanales()` sin multiplicar.
+- `CatalogoMaterializationController::buildModulo` — propaga `minutosSemanales` directamente, sin `ceil(decimal*60)`.
+- `CatalogoIngestService::buildMateriaEntity` — setMinutosSemanales del DTO.
+- `BoeRdEnricher` — multiplica `horasSemanales` (float del parser) por 60 al persistir en la entidad.
+- `BoeEsoAdapter` — DTO con `minutosSemanales: null`.
+- Los parsers internos (`ModulosTableParser`, `SeccionModulosParser`, `ParrafosModulosParser`, `LegacyLogseModulosParser`) siguen produciendo `horasSemanales: ?float` en sus arrays internos — es lo que extraen del BOE; la conversión a minutos vive en el sitio único de persistencia (`BoeRdEnricher`).
+
+**Frontend modificado:**
+- `HorariosEditor.jsx` — `imp.materia.minutosSemanales` directo (antes `horasSemanales * 60`).
+- `Materias.jsx` — formulario sigue mostrando horas decimales en la UI (input con `step="0.25"`); conversión x60 al enviar y /60 al cargar. Documentado el contrato en comentario.
+- `CatalogoItinerarioDetail.jsx` — columna "Horas semanales" muestra `(minutosSemanales/60).toFixed(2)` con `h` sufijo.
+- `erModel.js` — `Materia.horasSemanales` renombrado a `minutosSemanales`.
+
+**Migración:**
+- `Version20260427150000`: rename `horas_semanales` → `minutos_semanales` con `UPDATE *60` en `materia` y `ROUND(*60)` en `catalogo_materia`; nuevas columnas `centro.ccaa` y `itinerario.ccaa`; nuevas tablas `catalogo_itinerario_ccaa` y `catalogo_materia_ccaa` con FKs e índices según §3.
+
+**Pendiente al retomar:**
+- Ejecutar la migración en BD del usuario y verificar que los datos cuadran.
+- Fase 3: adapter `BojaAndAdapter`.
+
+**Deuda detectada:** `backend/src/Command/ImportOldDataCommand.php` referencia tablas `modulo` y `ciclo_formativo` que ya no existen tras el rename FP-neutral. El comando está roto independientemente de este refactor; pendiente de borrar o adaptar en sesión futura.
+
+**No tocado intencionadamente:**
+- `CatalogoItinerario.ccaa` ya existía como `?string` (siempre NULL en los 230 registros) — etiqueta libre legacy. Se mantiene como string; no es la fuente de la lógica overlay (ver §3.4 nota).
+
+**Aplicación en BD del usuario (post-implementación):**
+- Migración aplicada vía `force_update.bat` (que llama a `doctrine:schema:update --complete`) en lugar de `doctrine:migrations:migrate`. Doctrine detectó como **rename de columna** el cambio `materia.horas_semanales (INT)` → `materia.minutos_semanales (INT)` y conservó los datos sin multiplicar por 60. Corrección aplicada con `UPDATE materia SET minutos_semanales = minutos_semanales * 60 WHERE minutos_semanales <= 30` (la guarda <= 30 es idempotente — cualquier valor ya en minutos es ≥ 60).
+- Para `catalogo_materia` el cambio fue de tipo (DECIMAL → INT), Doctrine NO detectó rename y dropeó la columna vieja. Repoblación con `app:catalogo:enrich-boe --force` (re-procesa los 229 itinerarios desde BOE; los parsers ya escriben minutos correctamente).
+- La migración `Version20260427150000` se registró manualmente con `doctrine:migrations:version --add` para evitar que un futuro `migrations:migrate` intente re-crear las tablas.
+
+**Deuda detectada (no urgente):**
+- Algunos `catalogo_materia.minutos_semanales` quedaron con valores anómalos tras `enrich-boe --force` (max=2700 = 45h/sem, probable confusión de algún parser entre horas totales y semanales en un caso raro). 1605/2580 filas pobladas (62%); el resto son NULL legítimo (proyecto, FCT). Deuda menor del scraper BOE; no afecta al solver del centro.
+- `backend/src/Command/ImportOldDataCommand.php` referencia tablas `modulo` y `ciclo_formativo` ya inexistentes (rename FP-neutral). Roto independientemente de este refactor; pendiente de borrar o adaptar.

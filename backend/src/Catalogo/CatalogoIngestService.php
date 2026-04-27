@@ -281,7 +281,7 @@ final class CatalogoIngestService
             ->setTipo($dto->tipo)
             ->setCurso($dto->curso)
             ->setHorasTotales($dto->horasTotales)
-            ->setHorasSemanales($dto->horasSemanales !== null ? (string) $dto->horasSemanales : null)
+            ->setMinutosSemanales($dto->minutosSemanales)
             ->setEcts($dto->ects)
             ->setDistribucionAnual($dto->distribucionAnual)
             ->setObligatoria($dto->obligatoria)

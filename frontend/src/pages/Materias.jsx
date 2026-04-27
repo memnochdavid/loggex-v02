@@ -65,6 +65,9 @@ const Materias = () => {
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentMateria, setCurrentMateria] = useState(null);
+  // formData.horasSemanales se mantiene en HORAS DECIMALES en la UI (1.5, 3.5)
+  // pero la API trabaja en `minutosSemanales` (int). Conversión x60 al enviar y
+  // /60 al recibir; ver mapToApi y mapFromApi.
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
@@ -257,7 +260,7 @@ const Materias = () => {
         abreviatura: materia.abreviatura || '',
         codigoOficial: materia.codigoOficial || '',
         curso: materia.curso,
-        horasSemanales: materia.horasSemanales ?? '',
+        horasSemanales: materia.minutosSemanales != null ? (materia.minutosSemanales / 60) : '',
         tipo: materia.tipo || '',
         itinerario: itinerarioId
       });
@@ -303,15 +306,17 @@ const Materias = () => {
 
       const itinerarioValue = String(formData.itinerario ?? '');
       const horasSemRaw = formData.horasSemanales;
+      // El formulario captura horas decimales; la API espera minutos enteros.
+      // Permitir vacío para itinerarios no-FP (ESO/Bachillerato) donde el reparto
+      // curso a curso lo decide cada CCAA y aún puede no estar definido.
+      const minutosSemanales = horasSemRaw === '' || horasSemRaw === null || horasSemRaw === undefined
+        ? null
+        : Math.round(parseFloat(horasSemRaw) * 60);
+      const { horasSemanales: _drop, ...rest } = formData;
       const payload = {
-        ...formData,
+        ...rest,
         curso: parseInt(formData.curso),
-        // Permitir h.semanales vacío para itinerarios no-FP (ESO/Bachillerato)
-        // donde el reparto curso a curso lo decide cada CCAA y aún puede no
-        // estar definido cuando se crea la materia.
-        horasSemanales: horasSemRaw === '' || horasSemRaw === null || horasSemRaw === undefined
-          ? null
-          : parseInt(horasSemRaw),
+        minutosSemanales,
         // tipo es enum nullable; '' del select equivale a sin valor.
         tipo: formData.tipo === '' ? null : formData.tipo,
         // Asegurar formato IRI para la relación al itinerario.
@@ -601,8 +606,9 @@ const Materias = () => {
                     value={formData.horasSemanales}
                     onChange={handleInputChange}
                     className={styles.input}
-                    min="1"
+                    min="0.25"
                     max="30"
+                    step="0.25"
                 />
             </div>
 

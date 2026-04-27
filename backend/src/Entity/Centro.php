@@ -84,6 +84,15 @@ class Centro
     #[Groups(['centro:read', 'centro:write'])]
     private ?string $telefono = null;
 
+    /**
+     * CCAA del centro. Default para itinerarios nuevos del centro (D9). NULL
+     * permitido: en ese caso el admin elige CCAA explícitamente al crear cada
+     * itinerario, o los itinerarios quedan con CCAA = NULL (currículo nacional).
+     */
+    #[ORM\Column(type: 'string', length: 2, nullable: true, enumType: Ccaa::class)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?Ccaa $ccaa = null;
+
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: User::class)]
     private Collection $usuarios;
 
@@ -185,6 +194,17 @@ class Centro
     public function setDireccion(string $direccion): static
     {
         $this->direccion = $direccion;
+        return $this;
+    }
+
+    public function getCcaa(): ?Ccaa
+    {
+        return $this->ccaa;
+    }
+
+    public function setCcaa(?Ccaa $ccaa): static
+    {
+        $this->ccaa = $ccaa;
         return $this;
     }
 

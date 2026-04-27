@@ -44,7 +44,7 @@ frontend/
 - **Vistas admin** read-only en `/admin/catalogo/*` con `DataProvenanceBanner`.
 - **Refresh manual**: `app:catalogo:refresh [todofp_http|boe_eso]` + `app:catalogo:enrich-boe` (idempotente).
 - **Doc de referencia**: `docs/catalogo-oficial.md` (con §0 mapa rápido al inicio).
-- **Currículo por CCAA** (overlay): plan aprobado, sin código aún. Cubrirá Andalucía piloto y resto de CCAA en sesiones futuras. Roadmap dedicado: `docs/hoja-de-ruta-curriculum-ccaa.md`. El solver y editor de horarios trabajan en minutos (D24=A); el endurecimiento del solver para producción está en `docs/hoja-de-ruta-jornadas-recreos.md` §14.
+- **Currículo por CCAA** (overlay): Fases 1+2 ✅ implementadas (modelo + refactor `materia.horasSemanales` → `materia.minutosSemanales`). Fase 3 (adapter BOJA Andalucía piloto) es lo siguiente. Roadmap dedicado: `docs/hoja-de-ruta-curriculum-ccaa.md`. El solver y editor de horarios trabajan en minutos (D24=A); el endurecimiento del solver para producción está en `docs/hoja-de-ruta-jornadas-recreos.md` §14.
 
 ## Roles de Usuario
 `ROLE_SUPERADMIN`, `ROLE_ADMIN`, `ROLE_PROFESOR`, `ROLE_ALUMNO`

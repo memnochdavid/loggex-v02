@@ -17,7 +17,7 @@ final readonly class CatalogoMateriaDto
         public TipoMateria $tipo,
         public ?int $curso = null,
         public ?int $horasTotales = null,
-        public ?float $horasSemanales = null,
+        public ?int $minutosSemanales = null,
         public ?int $ects = null,
         public ?string $distribucionAnual = null,
         public bool $obligatoria = true,

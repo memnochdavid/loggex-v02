@@ -121,24 +121,22 @@ final class CatalogoMaterializationController extends AbstractController
 
     private function buildModulo(CatalogoMateria $materia, Itinerario $itinerario): Materia
     {
-        // CatalogoMateria → Materia: el campo horasSemanales del catálogo es decimal,
-        // el del Materia del centro es int. Redondeamos al alza para no perder horas.
+        // CatalogoMateria → Materia: ambos campos son ahora int de minutos
+        // (refactor 2026-04-27, ver hoja-de-ruta-curriculum-ccaa.md Fase 2).
         // Si el catálogo no lo especifica:
         //   - FP (FCT, proyecto): usar 0 — no hay carga semanal regular pero no es null.
         //   - ESO/Bach: dejar null. El admin lo completa cuando sepa el reparto CCAA.
-        $horasSemanales = $materia->getHorasSemanales();
+        $minutosSemanales = $materia->getMinutosSemanales();
         $isFp = in_array($itinerario->getCatalogoOrigen()?->getEtapa()?->value ?? '', [
             'fp_basica', 'fp_medio', 'fp_superior', 'fp_especializacion',
         ], true);
-        $horasInt = $horasSemanales !== null
-            ? (int) ceil((float) $horasSemanales)
-            : ($isFp ? 0 : null);
+        $minutosFinal = $minutosSemanales ?? ($isFp ? 0 : null);
 
         return (new Materia())
             ->setNombre($materia->getNombre())
             ->setCodigoOficial($materia->getCodigoOficial())
             ->setCurso($materia->getCurso() ?? 1)
-            ->setHorasSemanales($horasInt)
+            ->setMinutosSemanales($minutosFinal)
             ->setTipo($materia->getTipo())
             ->setItinerario($itinerario)
             ->setCatalogoOrigen($materia);

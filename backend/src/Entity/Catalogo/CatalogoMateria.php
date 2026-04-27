@@ -17,8 +17,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
  * CatalogoItinerario. Read-only desde la API.
  *
  * Las unidades de medida varían por etapa (sección 2.4 del doc):
- *  - FP                 → horasTotales + horasSemanales obligatorios
- *  - ESO/Bach/Primaria  → horasSemanales obligatorias, horasTotales opcional
+ *  - FP                 → horasTotales + minutosSemanales obligatorios
+ *  - ESO/Bach/Primaria  → minutosSemanales obligatorias, horasTotales opcional
  *  - Universidad        → ects obligatorio
  */
 #[ORM\Entity]
@@ -73,10 +73,10 @@ class CatalogoMateria
     #[Groups(['catalogo:read'])]
     private ?int $horasTotales = null;
 
-    /** Carga semanal en horas (decimal porque RD a veces dan p. ej. 3.5). */
-    #[ORM\Column(type: 'decimal', precision: 4, scale: 2, nullable: true)]
+    /** Carga semanal en MINUTOS. Soporta cualquier duración real (1h30=90, 50min, etc.). */
+    #[ORM\Column(nullable: true)]
     #[Groups(['catalogo:read'])]
-    private ?string $horasSemanales = null;
+    private ?int $minutosSemanales = null;
 
     /** Créditos ECTS (universidad). NULL si no aplica. */
     #[ORM\Column(nullable: true)]
@@ -123,8 +123,8 @@ class CatalogoMateria
     public function setCurso(?int $c): self { $this->curso = $c; return $this; }
     public function getHorasTotales(): ?int { return $this->horasTotales; }
     public function setHorasTotales(?int $h): self { $this->horasTotales = $h; return $this; }
-    public function getHorasSemanales(): ?string { return $this->horasSemanales; }
-    public function setHorasSemanales(?string $h): self { $this->horasSemanales = $h; return $this; }
+    public function getMinutosSemanales(): ?int { return $this->minutosSemanales; }
+    public function setMinutosSemanales(?int $m): self { $this->minutosSemanales = $m; return $this; }
     public function getEcts(): ?int { return $this->ects; }
     public function setEcts(?int $e): self { $this->ects = $e; return $this; }
     public function getDistribucionAnual(): ?string { return $this->distribucionAnual; }

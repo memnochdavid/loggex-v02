@@ -80,15 +80,18 @@ class Materia
     private ?int $curso = null;
 
     /**
-     * Horas lectivas semanales. Obligatorio en FP (donde el currículo
-     * nacional las define). En ESO/Bachillerato es opcional: el RD nacional
-     * solo fija horas mínimas totales por etapa, y el reparto curso a curso
-     * lo decide cada CCAA. El admin puede dejarlo en blanco hasta confirmar
-     * el reparto regional.
+     * Carga lectiva semanal en MINUTOS. Permite valores que no encajan en horas
+     * enteras (90 min, 75 min, 1h30 = 90, etc.) — frecuente en jornadas reales
+     * con bloques mixtos. La UI muestra horas decimales (helper `minToHoras`).
+     *
+     * Obligatorio en FP (donde el currículo nacional las define). En
+     * ESO/Bachillerato es opcional: el RD nacional solo fija horas mínimas
+     * totales por etapa, y el reparto curso a curso lo decide cada CCAA. El
+     * admin puede dejarlo en blanco hasta confirmar el reparto regional.
      */
     #[ORM\Column(nullable: true)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
-    private ?int $horasSemanales = null;
+    private ?int $minutosSemanales = null;
 
     /**
      * Tipo de materia (TRONCAL, ESPECIFICA, OPTATIVA, MODULO, FCT, …) — re-usa
@@ -168,14 +171,14 @@ class Materia
         return $this;
     }
 
-    public function getHorasSemanales(): ?int
+    public function getMinutosSemanales(): ?int
     {
-        return $this->horasSemanales;
+        return $this->minutosSemanales;
     }
 
-    public function setHorasSemanales(?int $horasSemanales): static
+    public function setMinutosSemanales(?int $minutosSemanales): static
     {
-        $this->horasSemanales = $horasSemanales;
+        $this->minutosSemanales = $minutosSemanales;
         return $this;
     }
 

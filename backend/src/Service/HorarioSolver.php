@@ -62,9 +62,9 @@ class HorarioSolver
         // último slot puede sobrepasar y la imparticion se da por completa.
         $tasks = [];
         foreach ($imps as $imp) {
-            $horas = $imp->getMateria()?->getHorasSemanales() ?? 0;
-            if ($horas <= 0) continue;
-            $tasks[] = ['imp' => $imp, 'pending' => $horas * 60, 'total' => $horas * 60];
+            $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+            if ($minutos <= 0) continue;
+            $tasks[] = ['imp' => $imp, 'pending' => $minutos, 'total' => $minutos];
         }
 
         // Heurística: empezar por imparticiones cuyo profesor tiene más
@@ -116,7 +116,7 @@ class HorarioSolver
         }
         $unplaced = [];
         foreach ($imps as $imp) {
-            $totalMin = ($imp->getMateria()?->getHorasSemanales() ?? 0) * 60;
+            $totalMin = $imp->getMateria()?->getMinutosSemanales() ?? 0;
             $placedMin = $placedMinPerImp[$imp->getId()] ?? 0;
             if ($placedMin < $totalMin) {
                 $faltanMin = $totalMin - $placedMin;
@@ -145,15 +145,15 @@ class HorarioSolver
         $tasksPerImp = [];
         $totalMinAColocar = 0;
         foreach ($imps as $imp) {
-            $horas = $imp->getMateria()?->getHorasSemanales() ?? 0;
-            $totalMinAColocar += $horas * 60;
+            $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+            $totalMinAColocar += $minutos;
             $tasksPerImp[] = [
                 'imparticionId' => $imp->getId(),
                 'materia' => $imp->getMateria()?->getNombre(),
                 'profesor' => trim(($imp->getProfesor()?->getNombre() ?? '').' '.($imp->getProfesor()?->getApellidos() ?? '')),
                 'profesorId' => $imp->getProfesor()?->getId(),
-                'horasSemanales' => $horas,
-                'minutosTotales' => $horas * 60,
+                'minutosTotales' => $minutos,
+                'horasSemanales' => round($minutos / 60, 2),
             ];
         }
         $parallelBusySummary = [];

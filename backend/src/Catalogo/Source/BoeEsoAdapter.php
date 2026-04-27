@@ -69,7 +69,7 @@ final class BoeEsoAdapter implements CatalogoSourceAdapterInterface
                 tipo: $m['tipo'],
                 curso: $m['curso'],
                 horasTotales: $m['horasTotales'],
-                horasSemanales: null,    // No expuesto en RD nacional; CCAA lo decide.
+                minutosSemanales: null,    // No expuesto en RD nacional; CCAA lo decide.
                 ects: null,
                 obligatoria: $m['obligatoria'],
                 orden: $m['orden'],

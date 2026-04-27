@@ -141,7 +141,7 @@ export const ER_ENTITIES = [
             { name: 'codigoOficial',  type: 'string(50)',  nullable: true },
             { name: 'abreviatura',    type: 'string(16)',  nullable: true },
             { name: 'curso',          type: 'int' },
-            { name: 'horasSemanales', type: 'int' },
+            { name: 'minutosSemanales', type: 'int' },
         ], { timestamps: true, softDelete: true }),
     },
     {

@@ -89,6 +89,18 @@ class Itinerario
     #[Groups(['itinerario:read', 'itinerario:write', 'grupo:read'])]
     private ?JornadaTipo $jornadaTipo = null;
 
+    /**
+     * Comunidad Autónoma cuya normativa aplica al itinerario (D5). NULL = currículo
+     * nacional puro (BOE). Si NOT NULL, el resolver de materias aplica la capa
+     * overlay correspondiente (`CatalogoMateriaCcaa`, `CatalogoItinerarioCcaa`).
+     *
+     * Default al crear: si `Centro.ccaa` está rellena, se preselecciona; si no,
+     * el admin elige explícitamente (D9).
+     */
+    #[ORM\Column(type: 'string', length: 2, nullable: true, enumType: Ccaa::class)]
+    #[Groups(['itinerario:read', 'itinerario:write', 'grupo:read'])]
+    private ?Ccaa $ccaa = null;
+
     #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Materia::class)]
     private Collection $materias;
 
@@ -216,6 +228,17 @@ class Itinerario
     public function setJornadaTipo(?JornadaTipo $jornadaTipo): static
     {
         $this->jornadaTipo = $jornadaTipo;
+        return $this;
+    }
+
+    public function getCcaa(): ?Ccaa
+    {
+        return $this->ccaa;
+    }
+
+    public function setCcaa(?Ccaa $ccaa): static
+    {
+        $this->ccaa = $ccaa;
         return $this;
     }
 }

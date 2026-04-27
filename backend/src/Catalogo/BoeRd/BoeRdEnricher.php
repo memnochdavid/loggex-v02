@@ -281,7 +281,7 @@ final class BoeRdEnricher
                     ->setTipo($mod['tipo'])
                     ->setCurso($mod['curso'] ?? null)
                     ->setHorasTotales($mod['horasTotales'])
-                    ->setHorasSemanales(!empty($mod['horasSemanales']) ? (string) $mod['horasSemanales'] : null)
+                    ->setMinutosSemanales(!empty($mod['horasSemanales']) ? (int) round(((float) $mod['horasSemanales']) * 60) : null)
                     ->setEcts($mod['ects'] ?? null)
                     ->setOrden($mod['orden']);
                 $itinerario->addMateria($materia);

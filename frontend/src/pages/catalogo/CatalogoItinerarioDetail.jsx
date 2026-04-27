@@ -68,7 +68,7 @@ const CatalogoItinerarioDetail = () => {
         },
         { header: t('catalogo.itinerarioDetail.moduleColumns.curso'), accessor: (m) => m.curso ?? '—' },
         { header: t('catalogo.itinerarioDetail.moduleColumns.horas'), accessor: (m) => formatHoras(m.horasTotales) ?? '—' },
-        { header: t('catalogo.itinerarioDetail.moduleColumns.horasSem'), accessor: (m) => m.horasSemanales ?? '—' },
+        { header: t('catalogo.itinerarioDetail.moduleColumns.horasSem'), accessor: (m) => m.minutosSemanales != null ? `${(m.minutosSemanales / 60).toFixed(2).replace(/\.?0+$/, '')}h` : '—' },
         { header: t('catalogo.itinerarioDetail.moduleColumns.ects'), accessor: (m) => m.ects ?? '—' },
     ];
 

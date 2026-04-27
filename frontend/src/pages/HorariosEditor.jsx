@@ -474,7 +474,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return m;
   }, [placements, slotMinutosByHi]);
 
-  const totalMinutos = imps.reduce((a, i) => a + (i.materia?.horasSemanales || 0) * 60, 0);
+  const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
@@ -541,7 +541,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
     // Regla 1: minutos restantes > 0 (solo para panel → celda; en swap los minutos no cambian globalmente)
     if (drag.type === 'module') {
-      const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+      const totalMin = (imp.materia?.minutosSemanales || 0);
       if ((minutosColocados[impId] || 0) >= totalMin) {
         return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalMin), module: imp.materia?.nombre }) };
       }
@@ -700,7 +700,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const unplacedSummary = useMemo(() => {
     return imps
       .map(imp => {
-        const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+        const totalMin = (imp.materia?.minutosSemanales || 0);
         const placedMin = minutosColocados[imp.id] || 0;
         if (placedMin >= totalMin) return null;
         return {
@@ -839,7 +839,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })() : placements;
       const imp = impById[selectedImpId];
       if (!imp) return;
-      const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+      const totalMin = (imp.materia?.minutosSemanales || 0);
       const yaMin = Object.values(effectivePlacements)
         .filter(p => p.imparticionId === selectedImpId)
         .reduce((acc, p) => acc + (slotMinutosByHi[p.horaInicio] || 0), 0);
@@ -894,7 +894,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const totalMin = (imp.materia?.horasSemanales || 0) * 60;
+    const totalMin = (imp.materia?.minutosSemanales || 0);
     if ((minutosColocados[selectedImpId] || 0) >= totalMin) return false;
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
@@ -1080,7 +1080,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <ModuleChip
                     key={imp.id}
                     imparticion={imp}
-                    minutosTotales={(imp.materia?.horasSemanales || 0) * 60}
+                    minutosTotales={(imp.materia?.minutosSemanales || 0)}
                     minutosColocados={minutosColocados[imp.id] || 0}
                     color={colorForModule(imp.materia?.id || imp.id)}
                     selected={selectedImpId === imp.id}

@@ -797,7 +797,7 @@ Implementación: el solver añade `'roundup' => true` al placement cuando `pendi
 
 | Sub-fase | Esfuerzo | Bloquea a | Estado |
 |---|---|---|---|
-| **J** — Refactor `horasSemanales` → `minutosSemanales` (cross-ref CCAA Fase 2) | 0.5 día | K, L | ⏳ |
+| **J** — Refactor `horasSemanales` → `minutosSemanales` (cross-ref CCAA Fase 2) | 0.5 día | K, L | ✅ Done (2026-04-27) — combinada con CCAA Fase 1 |
 | **K** — Validación previa de capacidad en editor (banner verde/amarillo/rojo) | 0.5 día | — | ⏳ |
 | **L** — Heurística de bloques largos en backtrack | 0.5 día | — | ⏳ |
 | **M** — Paralelismo refinado por solape real de rangos | 0.5 día | — | ⏳ |
