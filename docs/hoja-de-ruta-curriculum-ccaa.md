@@ -4,11 +4,11 @@
 
 ## ⚡ Snapshot para retomar
 
-### Estado al cierre (2026-04-27 noche)
-- **Fase 1 + Fase 2 implementadas en código** (sin migración aún ejecutada en BD del usuario; pendiente `doctrine:migrations:migrate`). D1-D10 todas cerradas.
-- Catálogo nacional (BOE) operativo en `/admin/catalogo/*` con 230 itinerarios y ~2 230 materias (ver `docs/catalogo-oficial.md` §13).
-- Solver `HorarioSolver.php` y editor `HorariosEditor.jsx` ya trabajan en minutos tras D24 = A (`docs/hoja-de-ruta-jornadas-recreos.md` §13 entrada 2026-04-27 tarde).
-- Caso real validado: centro EAG en Andalucía usa jornada 3 bloques `2h+2h+1h30 = 5h30/día = 27h30/sem` y materias con horas `7.5/5.5/3.5` que NO encajan en `int horasSemanales`.
+### Estado al cierre (2026-04-27 madrugada)
+- **Fase 1 + Fase 2** ✅ implementadas (modelo CCAA + minutosSemanales).
+- **Fase 3 (opción A) ✅ implementada y validada E2E**: provider `BojaAndHardcodedProvider` con datos del Decreto 156/2022 BOJA hard-coded para DAW 2º. Comando `app:catalogo:ccaa:seed`, servicio `CcaaResolverService` con algoritmo overlay, endpoint `POST /api/v1/grupos/{id}/resync-ccaa`, UI en `Itinerarios.jsx` con selector + botón "Aplicar overlay". Caso EAG/DAW 2º: banner verde, 27.5h exactos.
+- **Fase 3 (opción B) — objetivo final pendiente**: scraper PDF real del BOJA. Arquitectura ya preparada (interface `CcaaCurriculumProviderInterface` agnóstica a la fuente).
+- D1-D11 cerradas.
 
 ### Decisiones cerradas
 - **D1**: `Ccaa` se modela como **enum PHP backed string** (17 CCAA + Ceuta + Melilla = 19 valores estables, no cambian con el tiempo). Razón: enum-en-código permite type-safety en queries/tests sin tabla extra.
@@ -24,12 +24,13 @@
 
 ### Lo siguiente al retomar — orden exacto
 
-> **D11 cerrada 2026-04-27 noche** con orden **(d) primero → (c) después**. Análisis matemático mostró que el desajuste mínimo teórico en EAG es 30min y el solver actual produce 3.5h agregadas — hay margen de mejora ~7× sin tocar la fuente. Sub-fase O genérica primero (cualquier centro), Fase 3 CCAA después (caso EAG cuadra exacto).
+> **Fase 3 cerrada 2026-04-27 madrugada** con `BojaAndHardcodedProvider` (opción A). DAW 2º AN cuadra exacto a 27.5h validado E2E. Próximo: ampliar provider a DAW 1º + DAM 1º + DAM 2º cuando se verifiquen datos del BOJA.
 
-1. **Sub-fase O (`hoja-de-ruta-jornadas-recreos.md` §14.7)** — pre-asignación ILP en el solver + banner pre-resolución. Esfuerzo ~1 día. **En curso.**
-2. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA. Tras O.
-3. **UI selector "Comunidad Autónoma"** en modal de Itinerario y filtro en `/admin/catalogo/*` — Fase 4.
-4. (Sub-fase K de §14 queda integrada dentro de O — el banner pre-resolución cubre ambos casos.)
+1. **Completar provider hard-coded** con DAW 1º, DAM 1º, DAM 2º AN — datos verificados contra BOJA + Órdenes específicas. NO inventar.
+2. **Asignar profesores** a las imparticiones autonómicas (Inglés profesional, IPE II) creadas por el resync — necesario antes de "Sugerir horario" en DAW 2º.
+3. **Fase 4 — UI extras**: filtro CCAA en `/admin/catalogo/*` + banner provenance ampliado.
+4. **Fase 3 B (objetivo final)** — `BojaAndScraperProvider` que sustituye al hard-coded sin tocar comando/resolver/UI.
+5. **Fase 6 — Más CCAA** (CT/MD/VC/PV/GA), una por sesión.
 
 ---
 
@@ -545,6 +546,89 @@ Tras aplicar la migración, repoblar el catálogo y verificar `materia.minutos_s
 - (b) Editar horas en `/admin/materias` para que sumen 27.5h exactos. Pragmático para test sin tocar arquitectura.
 - (c) **Implementar Fase 3 CCAA (`BojaAndAdapter`)** — solución definitiva. Materializa DAW Andalucía con horas BOJA reales que cuadran con la jornada. **Recomendada.**
 - (d) Sub-fase O nueva en §14 jornadas: heurística de distribución equitativa de round-up + banner. Complementa (c), no la sustituye.
+
+### 2026-04-27 madrugada — Fase 3 implementada (BojaAndHardcodedProvider) y validada E2E con DAW 2º
+
+Tras cerrar la sub-fase O del solver, se aborda Fase 3 CCAA. Decisión D-nueva: implementar provider hard-coded (opción A) como MVP, dejando arquitectura abierta para sustituir por scraper PDF (opción B = objetivo final).
+
+**Backend nuevo:**
+- `App\Catalogo\Ccaa\CcaaCurriculumProviderInterface` — contrato. `source()`, `ccaa()`, `fetchOverrides()`, `fetchItinerarioOverrides()`. Cualquier futuro adapter (BojaAndScraperProvider, DogcCtScraperProvider...) lo implementa sin tocar comando/resolver/UI.
+- `App\Catalogo\Ccaa\Dto\MateriaOverrideDto` — DTO inmutable con override (catalogoMateriaCodigo NOT NULL) o autonómica pura (catalogoMateriaCodigo NULL).
+- `App\Catalogo\Ccaa\Dto\ItinerarioOverrideDto` — DTO para overrides de nombre/código del itinerario.
+- `App\Catalogo\Ccaa\CcaaProviderRegistry` — registro tagged_iterator con todos los providers. Localización por `Ccaa` o por `source()`.
+- `App\Catalogo\Ccaa\Provider\BojaAndHardcodedProvider` — datos del Decreto 156/2022 verificados a mano. Cobertura actual: **DAW 2º** completo (caso EAG validado). DAM 1º+2º y DAW 1º quedan como TODO con comentario claro: añadir cuando se verifique contra BOJA, NO inventar.
+- `App\Service\CcaaResolverService` — algoritmo overlay §4. Casos: sin CCAA → catálogo nacional; con CCAA → overrides + autonómicas; override `minutos=0` → materia desactivada (LOMLOE: Empresa→IPE II en DAW 2º). Si el catálogo nacional dice `null/0` y no hay override, el ResolvedMateria devuelve `null` para preservar valor existente del admin (sin destruir datos).
+- `App\Command\Catalogo\SeedCcaaCommand` — `php bin/console app:catalogo:ccaa:seed --ccaa=AN`. Idempotente (match por (ccaa, itinerario, materia, vigenteDesde) + autonómicas por código). Modo `--dry-run` y `--list`.
+- `App\Controller\GrupoResyncCcaaController` — `POST /api/v1/grupos/{id}/resync-ccaa`. Re-aplica overlay sobre las imparticiones del grupo: actualiza minutos/nombre por (`codigoOficial`+`curso`), crea Materia+Imparticion para autonómicas (sin profesor; admin asigna después), soft-deletea imparticiones de materias del catálogo que ya no aplican (preservando manuales). Filtra por curso del grupo para no contaminar otros cursos.
+
+**Backend modificado:**
+- `Imparticion.profesor` → nullable (entidad + ALTER TABLE). Permite crear imparticiones autonómicas sin profesor durante el resync.
+- `Itinerario.catalogoOrigen` → grupo `itinerario:write` añadido. **Bug raíz crítico**: ApiPlatform en PUT estaba nullificando la FK porque la propiedad solo estaba en `read`. Cada edición del modal de Itinerarios borraba `catalogo_origen_id`. Ahora se preserva.
+- `services.yaml` — `_instanceof` para `CcaaCurriculumProviderInterface` con tag `app.catalogo.ccaa.provider` + iterator inyectable en `CcaaProviderRegistry`.
+
+**Frontend modificado (`Itinerarios.jsx`):**
+- Constante `CCAA_OPTIONS` con las 19 CCAA (ISO 3166-2:ES) hard-coded.
+- `formData.ccaa` cargado desde `itinerario.ccaa` o pre-rellenado con `Centro.ccaa` (D9b).
+- `formData.catalogoOrigen` cargado/enviado para preservar la FK.
+- Selector "Comunidad Autónoma" en el modal con hint sobre el overlay.
+- Botón "Aplicar overlay CCAA a los grupos del itinerario" que llama al endpoint resync por cada grupo. Modal de confirmación + toast con stats (creadas/actualizadas/desactivadas/sinCambios/errores).
+
+**Validación end-to-end (2026-04-27 madrugada, EAG/DAW 2º):**
+
+Tras seedear AN (`Materias nuevas: 6`), asignar `Itinerario.ccaa = AN` + `catalogoOrigen = 129`, y aplicar overlay sobre los 2 grupos:
+
+| Materia DAW 2º | BOE | BOJA AN | Resultado |
+|---|---:|---:|---:|
+| Web cliente | 6h | 6h | sin cambios |
+| Web servidor | 8h | 7.5h | actualizada |
+| Despliegue | 5h | 3.5h | actualizada |
+| Diseño interfaces | 6h | 5h | actualizada |
+| Empresa | 3h | desactivada | imparticion soft-deleted |
+| **+ Inglés profesional GS** | — | 2h | autonómica creada (sin profesor) |
+| **+ IPE II** | — | 3.5h | autonómica creada (sin profesor) |
+| **Σ** | 28h | **27.5h** | encaja exacto |
+
+`/admin/horarios` con DAW 2º → banner **verde**: *"La jornada cubre exactamente las 27.5h/sem del itinerario."* Caso EAG validado.
+
+**Bugs descubiertos durante la implementación (corregidos):**
+
+1. `Materia::getImparticiones()` no tenía getter pese a tener la collection. Sustituido por query directa contra Imparticion.
+2. `setDeletedAt(\DateTimeImmutable)` rompe porque `SoftDeletableTrait` mapea `\DateTime` (no immutable). Eliminado el `setDeletedAt` redundante (el trait ya lo gestiona en `setDeleted(true)`).
+3. `Imparticion.profesor_id NOT NULL` impedía crear imparticiones autonómicas. Cambio a nullable (entidad + ALTER TABLE).
+4. **PUT del modal nullificaba `catalogo_origen_id`** porque la propiedad no estaba en `itinerario:write`. Bug histórico. Corregido.
+5. Resolver devolvía `minutos=0` para materias del catálogo nacional con `null` en BD, lo que dañaba datos existentes del admin. Cambiado a `null` (preserva).
+
+**Deudas anotadas (no urgentes):**
+
+- Hard-coded solo cubre DAW 2º. DAW 1º, DAM 1º, DAM 2º quedan como TODO en el provider con comentario claro: añadir cuando se verifiquen los datos contra BOJA. No inventar.
+- Las imparticiones autonómicas (Inglés profesional GS, IPE II) se crean sin profesor. El admin debe asignar manualmente en `/admin/imparticiones` antes de "Sugerir horario" (sino, el solver no puede colocar a profesor=null).
+- Algunas filas de `materia.minutos_semanales` revirtieron a horas (5, 7, 4...) durante la sesión. Re-aplicado el `UPDATE *60`. Vigilar si vuelve a ocurrir tras un futuro `enrich-boe --force`.
+- El cache de `capacityByGrupo` en frontend se invalida solo al re-montar `HorariosEditor`. Navegar entre páginas funciona; refresh manual no es necesario en la práctica.
+
+**Archivos tocados en esta sesión:**
+
+Backend:
+- `backend/src/Catalogo/Ccaa/CcaaCurriculumProviderInterface.php` (nuevo)
+- `backend/src/Catalogo/Ccaa/Dto/MateriaOverrideDto.php` (nuevo)
+- `backend/src/Catalogo/Ccaa/Dto/ItinerarioOverrideDto.php` (nuevo)
+- `backend/src/Catalogo/Ccaa/CcaaProviderRegistry.php` (nuevo)
+- `backend/src/Catalogo/Ccaa/Provider/BojaAndHardcodedProvider.php` (nuevo)
+- `backend/src/Service/CcaaResolverService.php` (nuevo)
+- `backend/src/Command/Catalogo/SeedCcaaCommand.php` (nuevo)
+- `backend/src/Controller/GrupoResyncCcaaController.php` (nuevo)
+- `backend/src/Entity/Imparticion.php` (profesor nullable)
+- `backend/src/Entity/Itinerario.php` (catalogoOrigen en write group)
+- `backend/config/services.yaml` (tag + registry)
+
+Frontend:
+- `frontend/src/pages/Itinerarios.jsx` (CCAA_OPTIONS, selector CCAA, formData.catalogoOrigen, handleAplicarOverlay, toast con errores)
+
+Docs:
+- `docs/INDEX.md` (Bloque 2 cerrado)
+- `docs/hoja-de-ruta-curriculum-ccaa.md` (esta entrada)
+- `docs/hoja-de-ruta-jornadas-recreos.md` (snapshot actualizado)
+
+---
 
 ### 2026-04-27 madrugada — D11 cerrada con (d) primero, (c) después
 

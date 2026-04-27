@@ -731,6 +731,82 @@ Cambios mínimos en el editor existente:
 
 ---
 
+### 2026-04-27 tarde-noche — Cascada de aula, TimeTable dinámico y limpieza de deuda histórica
+
+Tras cerrar Fase 3 CCAA (opción A), sesión de hardening de la vista `/horarios` y de la gestión de aulas. Empezó como un "no aparece nada en /horarios" del usuario y destapó tres bugs históricos no relacionados con CCAA, más una mejora de UX que había quedado pendiente.
+
+**Bugs históricos corregidos (deuda residual del rename `Modulo → Materia` de abril):**
+- `GetMyScheduleController.php` y `HorarioPdfController.php` tenían DQL con `JOIN i.modulo m` (5 ocurrencias). Causaba 500 en `/api/my-schedule` y `/api/horario/pdf`. La página `/horarios` quedaba completamente rota; nadie lo había detectado porque ningún profesor había abierto su horario tras el rename. Cambiado a `i.materia m`.
+- `Asistencia.php` y `Horario.php` tenían filtros API con `imparticion.modulo[.nombre]`. Ajustado a `imparticion.materia[.nombre]`.
+- `TimeTable.jsx` referenciaba `event.modulo` (campo viejo del endpoint) en 4 sitios: comparación de fusión vertical, label de la card, label móvil y título del modal. Todos a `event.materia`.
+
+**TimeTable con slots dinámicos (deuda Fase F del solver):**
+
+`TimeTable.jsx` tenía slots hardcoded `08:30, 09:30, ..., 14:30` que no coincidían con ninguna jornada real (caso EAG 60+60+60+60+90 → slots `11:50, 13:00`...). Resultado: events colocados pero invisibles porque `events.find(e => e.horaInicio === slot.start)` nunca matcheaba.
+
+- `GetMyScheduleController` cambia respuesta de `array<event>` → `{events, slots}`. `slots` es la unión deduplicada de tramos SLOT (`tipo === SLOT`) de las jornadas de los grupos del usuario.
+  - Alumno: 1 jornada → sus slots.
+  - Profesor multi-grupo: unión de N jornadas, deduplicada por `HH:MM-HH:MM` y ordenada por horaInicio. Si jornadas mañana + tarde, ambas secciones aparecen.
+- `Horarios.jsx` extrae events y slots, pasa slots como prop opcional a `TimeTable`. Compat retroactiva: si llega array (formato viejo), se trata como events sin slots.
+- `TimeTable.jsx` acepta `slots` opcional. Si viene, divide por `start < 15:00` (mañana) vs `>= 15:00` (tarde) y usa esos. Si no, fallback hardcoded.
+- Guard añadido en `processEvents` para slots vacíos (`grid[0][d]` crasheaba con jornada solo-mañana porque afternoonSlots = []).
+
+**Cascada de aula (sub-fase nueva, granularidad por imparticion + grupo + slot):**
+
+Hasta ahora `Horario.aula` se rellenaba con `"Aula " + grupo.abreviatura` hardcoded en el solver. El admin no podía cambiarlo desde la UI. Implementada cascada de 3+1 niveles:
+
+```
+Aula efectiva  ←  Imparticion.aulaEspecifica  (override por materia, ej. Lab Linux para Lenguajes)
+                ←  Grupo.aulaDefault            (aula habitual del grupo)
+                ←  "Aula " + abreviatura        (fallback final)
+                ←  + override puntual por slot vía Horario.aula (γ — UI futura)
+```
+
+- **Backend:** nuevos campos `Grupo.aulaDefault: ?string` (en `grupo:read/write`) y `Imparticion.aulaEspecifica: ?string` (en `imparticion:read/write`). ALTER TABLE manual + backfill (`UPDATE grupo SET aula_default = CONCAT('Aula ', abreviatura)`).
+- **Helper `Imparticion::resolveAula(): string`** con la cascada. Usado por `HorarioSolver::solve()` al inicializar placements. Espejo en JS (`resolveAulaJs`) en `HorariosEditor.jsx` para colocaciones manuales (drag-drop y tap).
+- **UI:** input "Aula por defecto" en modal de `/admin/grupos`, input "Aula específica (override)" en modal de `/admin/imparticiones`, ambos con hint claro de la cascada.
+- `HorariosEditor.jsx` muestra el aula efectiva del grupo en el infoBar (antes mostraba la abreviatura).
+
+**Mejora UX `/horarios` modal:**
+- El header del modal de detalle del slot estaba vacío porque leía `selectedEvent.modulo` (no existe). Ahora muestra `selectedEvent.materia`.
+- El grupo ahora aparece como "1º Desarrollo de Aplicaciones Web (DAW)" — endpoint añade `grupoCurso` y TimeTable lo prefija en cards desktop, móvil y modal.
+
+**Bug en el cache TTL del schedule (anotado, no fixed):**
+- `GetMyScheduleController` cachea respuesta 5min con `CacheInvalidationSubscriber` que invalida vía postUpdate Doctrine. UPDATE SQL directos a `horario`/`imparticion` no disparan el subscriber → cache obsoleto. Workaround: borrar `var/cache/dev/pools/`.
+- Solución correcta: añadir `app:cache:clear-schedule --user=N` o invalidar globalmente cuando se ejecuta seed/SQL directo. Deuda menor.
+
+**Archivos tocados:**
+
+Backend:
+- `backend/src/Controller/GetMyScheduleController.php` (rename modulo→materia + respuesta {events,slots} + grupoCurso)
+- `backend/src/Controller/HorarioPdfController.php` (rename modulo→materia)
+- `backend/src/Service/HorarioSolver.php` (usa `imp->resolveAula()`)
+- `backend/src/Entity/Grupo.php` (`aulaDefault`)
+- `backend/src/Entity/Imparticion.php` (`aulaEspecifica` + `resolveAula()`)
+- `backend/src/Entity/Asistencia.php` (filtro API rename)
+- `backend/src/Entity/Horario.php` (filtros API rename)
+
+Frontend:
+- `frontend/src/pages/Horarios.jsx` (procesa nuevo formato + pasa slots a TimeTable)
+- `frontend/src/components/TimeTable.jsx` (slots dinámicos, rename event.modulo→materia, label "1º DAW", guard slots vacíos)
+- `frontend/src/pages/HorariosEditor.jsx` (helper `resolveAulaJs` + infoBar usa aulaDefault)
+- `frontend/src/pages/Grupos.jsx` (input aulaDefault + hint)
+- `frontend/src/pages/Imparticiones.jsx` (input aulaEspecifica + hint)
+
+SQL:
+- `ALTER TABLE grupo ADD COLUMN aula_default VARCHAR(100) NULL` + backfill.
+- `ALTER TABLE imparticion ADD COLUMN aula_especifica VARCHAR(100) NULL`.
+- `UPDATE horario h JOIN imparticion i JOIN grupo g SET h.aula = COALESCE(i.aula_especifica, g.aula_default, 'Aula ' + abreviatura)` para refrescar aulas existentes tras configurar aulaDefault.
+
+**Validado E2E con sara@eag.com**: vista `/horarios` muestra los 3 horarios FOL con label "1º DAW", aula "Aula 4" (correcta tras config), modal con materia correcta como título.
+
+**Pendientes (deuda anotada, no urgente):**
+- Cuarto nivel γ — UI para editar `Horario.aula` por slot directamente desde el editor de `/admin/horarios` (popup en celda).
+- Cache invalidator para SQL directos: comando `app:cache:clear-schedule [--user=N]`.
+- `Imparticiones.jsx` y `Grupos.jsx` aún no muestran columna "aula" en el listado, solo en el modal. Mejora UX menor.
+
+---
+
 ### 2026-04-27 madrugada — Sub-fase O implementada (CapacityPlanner ILP + banner pre-resolución)
 
 D11 cerrada con (d) primero → (c) después tras conversación con el usuario y análisis matemático de paridad. Implementación completa de la sub-fase O en una sola pasada.

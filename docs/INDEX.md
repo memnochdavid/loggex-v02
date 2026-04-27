@@ -6,11 +6,19 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**Sub-fase O ✅ Done (2026-04-27 madrugada).** Validada E2E con EAG/DAW 1º: el banner amarillo predijo "FOL +30min" (óptimo teórico por paridad) y el solver lo colocó exacto. Mejora: 3.5h → 30min de desajuste agregado (factor 7×).
+**Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E: banner verde, 27.5h exactos cuadrando con BOJA Andalucía (Web cliente 6h, Web servidor 7.5h, Despliegue 3.5h, Diseño 5h, Inglés profesional GS 2h, IPE II 3.5h).
 
-**Próxima acción**: **CCAA Fase 3 — `BojaAndAdapter`** (`hoja-de-ruta-curriculum-ccaa.md` §5.2). Aborda la fuente de horas para que centros de Andalucía con horas BOJA reales (DAW Andalucía 7.5/5/3.5h + Inglés profesional 2h + IPE II 3.5h = 27.5h exactos) cuadren sin redondeo. Esfuerzo ~1.5 días. Tras eso: §14 sub-fases L/M/N (cosméticos del solver) y Jornadas Fase B (asistente automático de tramos).
+**Próxima acción**: **asignar profesores** a las imparticiones autonómicas creadas por el resync (Inglés profesional GS, IPE II en grupo DAW 2º) en `/admin/imparticiones`. Sin profesor, "Sugerir horario" no podrá colocarlas.
 
-**Bug de datos detectado en la sesión** (anotado en bitácora de `hoja-de-ruta-jornadas-recreos.md`): el UPDATE `materia.minutos_semanales = horas * 60` se había revertido para algunas filas. Re-aplicado con `UPDATE materia SET minutos_semanales = minutos_semanales * 60 WHERE deleted=0 AND minutos_semanales BETWEEN 1 AND 30`. Vigilar si vuelve a ocurrir tras un `enrich-boe --force` o similar — si sí, blindar el comando para que escriba siempre minutos.
+Tras eso, varias rutas paralelas según prioridad:
+1. **Ampliar `BojaAndHardcodedProvider`** a DAW 1º + DAM 1º + DAM 2º AN. Datos verificados contra BOJA — NO inventar.
+2. **Fase 3 opción B (objetivo final)**: scraper PDF del BOJA. Arquitectura ya preparada con `CcaaCurriculumProviderInterface`.
+3. **§14 sub-fases L/M/N** (cosméticos del solver).
+4. **Jornadas Fase B** (asistente automático de tramos).
+
+**Bugs de datos detectados durante la sesión** (anotados en bitácora correspondiente):
+- `materia.minutos_semanales` revertido a horas para algunas filas DAW 1º. Re-aplicado `UPDATE *60`.
+- `Itinerario.catalogoOrigen` se nullificaba en cada PUT del modal porque la propiedad no estaba en `itinerario:write`. Bug histórico corregido (afectaba potencialmente a todas las ediciones de itinerario desde la UI, no solo a CCAA).
 
 ---
 
@@ -115,14 +123,12 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 1. **§14 sub-fase O** ✅ — pre-asignación ILP (`CapacityPlanner` + banner verde/amarillo/rojo). Validado E2E con EAG/DAW 1º: factor 7× de mejora sobre el solver previo.
 2. **§14 sub-fase K** — banner Σ minutos vs capacidad: cubierta por el banner de O.
 
-### Bloque 2 — Catálogo correcto en cualquier CCAA *(alto, post-O)*
+### Bloque 2 — Catálogo correcto en cualquier CCAA *(✅ MVP cerrado 2026-04-27)*
 
-Sin esto, el horario de un centro real no cuadra exacto. Caso EAG/DAW Andalucía: BOE = 28h, jornada efectiva = 27.5h, incluye 2 optativas autonómicas. Tras la sub-fase O el solver distribuye lo mejor posible y explica el desajuste; CCAA Fase 3 elimina el desajuste cuando las horas BOJA cuadran exactas.
-
-3. **CCAA Fase 3** — adapter BOJA Andalucía piloto (`BojaAndAdapter`).
-4. **CCAA Fase 4** — UI selector CCAA + filtros catálogo + provenance ampliado.
-
-Estimación: ~3 sesiones. Doc primario: `hoja-de-ruta-curriculum-ccaa.md` §5.2.
+3. **CCAA Fase 3 opción A** ✅ — `BojaAndHardcodedProvider` con DAW 2º AN. Validado E2E (banner verde 27.5h exactos).
+4. **CCAA Fase 3 opción B (objetivo final)** ⏳ — `BojaAndScraperProvider` parser PDF real. Arquitectura ya preparada.
+5. **Ampliar provider** a DAW 1º + DAM 1º + DAM 2º AN ⏳ — datos verificados manualmente.
+6. **CCAA Fase 4** ⏳ — filtros CCAA en `/admin/catalogo/*` + banner provenance ampliado.
 
 ### Bloque 3 — Solver y editor pulidos *(medio)*
 
