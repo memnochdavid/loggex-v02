@@ -72,9 +72,12 @@ class Itinerario
      * de TodoFP (o equivalente), aquí queda el origen para detectar futuros cambios
      * normativos. Nullable: ciclos manuales son válidos.
      */
+    // En `itinerario:write` para que ApiPlatform preserve la FK en PUT del modal.
+    // Sin esto, el deserializer nullifica catalogo_origen_id en cada edición del
+    // itinerario y el resync CCAA pierde la referencia al CatalogoItinerario.
     #[ORM\ManyToOne(targetEntity: CatalogoItinerario::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['itinerario:read'])]
+    #[Groups(['itinerario:read', 'itinerario:write'])]
     private ?CatalogoItinerario $catalogoOrigen = null;
 
     /**

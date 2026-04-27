@@ -54,6 +54,15 @@ const parseHmsToMin = (hms) => {
 // Convierte minutos a horas decimales (1 decimal); 90 → 1.5, 60 → 1.
 const minToHoras = (min) => Math.round((min / 60) * 10) / 10;
 
+// Espejo en JS de Imparticion::resolveAula() del backend (cascada del aula).
+// Mantener sincronizados ambos lados; el backend es la fuente de verdad cuando
+// el solver inicia un placement, este helper se usa al colocar manualmente.
+const resolveAulaJs = (imp, grupo) => {
+  return imp?.aulaEspecifica
+    || grupo?.aulaDefault
+    || (grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : 'Aula');
+};
+
 // Paleta por materia derivada de --color-primary (HSL shift determinístico)
 const colorForModule = (mid) => {
   const hue = (mid * 47) % 360;  // determinista
@@ -608,7 +617,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             ...prev[selectedGrupo].placements,
             [key]: {
               imparticionId: a.imparticionId,
-              aula: grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : 'Aula',
+              aula: resolveAulaJs(imps.find(i => i.id === a.imparticionId), grupo),
               horaInicio: slotsDia[o.slot][0],
               horaFin: slotsDia[o.slot][1],
             },
@@ -882,7 +891,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             ...effectivePlacements,
             [key]: {
               imparticionId: selectedImpId,
-              aula: grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : 'Aula',
+              aula: resolveAulaJs(imps.find(i => i.id === selectedImpId), grupo),
               horaInicio: slotsDia[slotIdx][0],
               horaFin: slotsDia[slotIdx][1],
             },
@@ -1244,7 +1253,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 })()}
                 <div className={styles.infoBar}>
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
-                  <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.abreviatura || grupo?.nombre || '—'}</span>
+                  <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.aulaDefault || (grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : '—')}</span>
                   <div className={styles.infoBarActions}>
                     <Button
                       onClick={() => runSolver(null)}

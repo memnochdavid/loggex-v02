@@ -162,14 +162,16 @@ class HorarioSolver
             }
         }
 
-        $aula = $grupo->getAbreviatura() ? 'Aula ' . $grupo->getAbreviatura() : 'Aula';
+        // Cascada de aula: aulaEspecifica de la imparticion → aulaDefault del
+        // grupo → "Aula " + abreviatura. El admin puede sobrescribirla por slot
+        // editando manualmente Horario.aula en /admin/horarios (cuarto nivel).
         $out = [];
         foreach ($placements as $p) {
             $out[] = [
                 'diaSemana' => $p['dia'],
                 'horaInicio' => $p['hi'] . ':00',
                 'horaFin' => $p['hf'] . ':00',
-                'aula' => $aula,
+                'aula' => $p['imp']->resolveAula(),
                 'imparticionId' => $p['imp']->getId(),
             ];
         }

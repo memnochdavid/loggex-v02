@@ -50,14 +50,21 @@ services:
     # Auto-tag de adapters del catálogo oficial. Cualquier clase que implemente
     # CatalogoSourceAdapterInterface se etiqueta para ser descubierta por el
     # comando `app:catalogo:refresh` y por el ingest service.
+    # Idéntico patrón para los providers CCAA (capa overlay).
     _instanceof:
         App\Catalogo\Source\CatalogoSourceAdapterInterface:
             tags: ['app.catalogo.source']
+        App\Catalogo\Ccaa\CcaaCurriculumProviderInterface:
+            tags: ['app.catalogo.ccaa.provider']
 
     # Iterador inyectable de todos los adapters tagueados.
     App\Catalogo\Source\CatalogoSourceAdapterRegistry:
         arguments:
             $adapters: !tagged_iterator app.catalogo.source
+
+    App\Catalogo\Ccaa\CcaaProviderRegistry:
+        arguments:
+            $providers: !tagged_iterator app.catalogo.ccaa.provider
 
     # Scraper HTTP de TodoFP (Fase 1.6). Produce los ~229 ciclos del catálogo
     # nacional con metadata + URL del RD del BOE. Los módulos detallados los

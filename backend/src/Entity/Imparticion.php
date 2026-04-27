@@ -57,8 +57,10 @@ class Imparticion
     #[Groups(['imparticion:read', 'horario:read', 'tarea:read'])]
     private ?int $id = null;
 
+    // Nullable: el resync CCAA crea imparticiones para materias autonómicas
+    // sin profesor, que el admin asigna después en /admin/imparticiones.
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?User $profesor = null;
 
@@ -71,6 +73,15 @@ class Imparticion
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Grupo $grupo = null;
+
+    /**
+     * Aula específica para esta materia/profesor (override). Si está rellena,
+     * prevalece sobre Grupo.aulaDefault. Caso típico: laboratorio para
+     * "Lenguajes de marcas", aula de música para una asignatura ESO.
+     */
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
+    private ?string $aulaEspecifica = null;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]
     private Collection $horarios;
@@ -129,6 +140,40 @@ class Imparticion
     {
         $this->grupo = $grupo;
         return $this;
+    }
+
+    public function getAulaEspecifica(): ?string
+    {
+        return $this->aulaEspecifica;
+    }
+
+    public function setAulaEspecifica(?string $aulaEspecifica): static
+    {
+        $this->aulaEspecifica = $aulaEspecifica;
+        return $this;
+    }
+
+    /**
+     * Cascada del aula efectiva para los placements del horario:
+     *   1. Si la imparticion tiene `aulaEspecifica` → esa.
+     *   2. Si no, si el grupo tiene `aulaDefault` → esa.
+     *   3. Si no, fallback automático: "Aula " + grupo.abreviatura → "Aula".
+     *
+     * El cuarto nivel (override puntual por slot) vive en `Horario.aula` y
+     * lo gestiona el editor: el solver inicializa con esta cascada, pero el
+     * admin puede sobrescribirlo manualmente sin que la cascada lo restablezca.
+     */
+    public function resolveAula(): string
+    {
+        if ($this->aulaEspecifica) {
+            return $this->aulaEspecifica;
+        }
+        $aulaGrupo = $this->grupo?->getAulaDefault();
+        if ($aulaGrupo) {
+            return $aulaGrupo;
+        }
+        $abrev = $this->grupo?->getAbreviatura();
+        return $abrev ? 'Aula ' . $abrev : 'Aula';
     }
 
     /**

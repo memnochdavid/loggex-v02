@@ -18,6 +18,31 @@ import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
+// Códigos ISO 3166-2:ES con su nombre. Cubren las 19 entidades autonómicas.
+// Si la lista crece o cambia (no debería: están fijadas constitucionalmente)
+// mover a un endpoint backend. Mientras tanto hard-coded para evitar fetch extra.
+const CCAA_OPTIONS = [
+  { value: 'AN', label: 'Andalucía' },
+  { value: 'AR', label: 'Aragón' },
+  { value: 'AS', label: 'Asturias' },
+  { value: 'CB', label: 'Cantabria' },
+  { value: 'CE', label: 'Ceuta' },
+  { value: 'CL', label: 'Castilla y León' },
+  { value: 'CM', label: 'Castilla-La Mancha' },
+  { value: 'CN', label: 'Canarias' },
+  { value: 'CT', label: 'Cataluña' },
+  { value: 'EX', label: 'Extremadura' },
+  { value: 'GA', label: 'Galicia' },
+  { value: 'IB', label: 'Illes Balears' },
+  { value: 'MC', label: 'Murcia' },
+  { value: 'MD', label: 'Madrid' },
+  { value: 'ML', label: 'Melilla' },
+  { value: 'NC', label: 'Navarra' },
+  { value: 'PV', label: 'País Vasco' },
+  { value: 'RI', label: 'La Rioja' },
+  { value: 'VC', label: 'C. Valenciana' },
+];
+
 
 const Itinerarios = () => {
   const { t } = useTranslation();
@@ -66,9 +91,11 @@ const Itinerarios = () => {
     nombre: '',
     nivel: 'Superior', // Default
     centro: '',
-    jornadaTipo: ''
+    jornadaTipo: '',
+    ccaa: '',
   });
   const [saving, setSaving] = useState(false);
+  const [applyingOverlay, setApplyingOverlay] = useState(false);
 
   // Modo de creación: 'catalogo' usa AsyncSearchSelect contra el catálogo oficial
   // y materializa el itinerario + sus materias en backend. 'manual' es el formulario
@@ -230,31 +257,38 @@ const Itinerarios = () => {
       };
       const centroId = extractIdFromRef(itinerario.centro);
       const jornadaTipoId = extractIdFromRef(itinerario.jornadaTipo);
+      const catalogoOrigenId = extractIdFromRef(itinerario.catalogoOrigen);
 
       setFormData({
         nombre: itinerario.nombre,
         nivel: itinerario.nivel,
         centro: centroId,
-        jornadaTipo: jornadaTipoId
+        jornadaTipo: jornadaTipoId,
+        ccaa: itinerario.ccaa || '',
+        catalogoOrigen: catalogoOrigenId,
       });
     } else {
       setCurrentItinerario(null);
       // Resolver centro del usuario (puede venir como objeto, IRI o JSON-LD).
       let centroDefault = '';
+      let ccaaDefault = '';
       if (!isSuperAdmin && user?.centro) {
         if (typeof user.centro === 'object' && user.centro.id) {
           centroDefault = String(user.centro.id);
+          ccaaDefault = user.centro.ccaa || '';
         } else if (typeof user.centro === 'string') {
           centroDefault = user.centro.split('/').pop();
         } else if (typeof user.centro === 'object' && user.centro['@id']) {
           centroDefault = user.centro['@id'].split('/').pop();
+          ccaaDefault = user.centro.ccaa || '';
         }
       }
       setFormData({
         nombre: '',
         nivel: 'Superior',
         centro: centroDefault,
-        jornadaTipo: ''
+        jornadaTipo: '',
+        ccaa: ccaaDefault,
       });
       // Reset del modo creación: por defecto catálogo (es la vía recomendada).
       setCreateMode('catalogo');
@@ -349,6 +383,10 @@ const Itinerarios = () => {
         ...formData,
         centro: `/api/centros/${formData.centro}`,
         jornadaTipo: formData.jornadaTipo ? `/api/jornada_tipos/${formData.jornadaTipo}` : null,
+        ccaa: formData.ccaa || null,
+        // Preserva la FK al catálogo si existe; necesario para que el resync CCAA
+        // pueda resolver overrides (sin esto, el PUT borra la FK).
+        catalogoOrigen: formData.catalogoOrigen ? `/api/catalogo_itinerarios/${formData.catalogoOrigen}` : null,
       };
 
       const response = await fetch(url, {
@@ -391,6 +429,66 @@ const Itinerarios = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Re-sincroniza los grupos del itinerario aplicando el overlay CCAA vigente.
+  // Llama al endpoint /api/v1/grupos/{id}/resync-ccaa por cada grupo y acumula
+  // estadísticas para mostrar en el toast.
+  const handleAplicarOverlay = async (itinerario) => {
+    const itinId = getItinerarioId(itinerario);
+    if (!itinId) return;
+    if (!(await confirm({
+      body: t('itinerarios.confirmApplyOverlay', {
+        defaultValue: 'Esto re-sincronizará todos los grupos del itinerario con el overlay CCAA. Las materias del catálogo que no apliquen se desactivarán y se crearán las autonómicas. Las materias manuales se conservan. ¿Continuar?'
+      })
+    }))) return;
+
+    setApplyingOverlay(true);
+    try {
+      const gruposRes = await fetch(getApiUrl(`/api/grupos?itinerario=${itinId}&pagination=false`),
+        { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' });
+      const gruposData = await gruposRes.json();
+      const grupos = gruposData['hydra:member'] || gruposData.member || [];
+
+      if (grupos.length === 0) {
+        toast.info(t('itinerarios.applyOverlayNoGroups', { defaultValue: 'El itinerario no tiene grupos. Solo se actualizó el itinerario.' }));
+        return;
+      }
+
+      const totals = { actualizadas: 0, creadas: 0, desactivadas: 0, sinCambios: 0, manualesIgnoradas: 0, errores: 0 };
+      for (const g of grupos) {
+        try {
+          const r = await fetch(getApiUrl(`/api/v1/grupos/${g.id}/resync-ccaa`), {
+            method: 'POST', credentials: 'include',
+          });
+          if (!r.ok) { totals.errores++; continue; }
+          const data = await r.json();
+          for (const k of Object.keys(totals)) {
+            if (data.stats?.[k] !== undefined) totals[k] += data.stats[k];
+          }
+        } catch (err) {
+          console.error('Resync ccaa error:', err);
+          totals.errores++;
+        }
+      }
+
+      if (totals.errores > 0) {
+        toast.error(t('itinerarios.applyOverlayErrors', {
+          defaultValue: 'Overlay aplicado parcialmente: {{e}} grupos fallaron (revisa logs del backend). Creadas: {{c}}, actualizadas: {{u}}, desactivadas: {{d}}.',
+          e: totals.errores, c: totals.creadas, u: totals.actualizadas, d: totals.desactivadas,
+        }));
+      } else {
+        toast.success(t('itinerarios.applyOverlayDone', {
+          defaultValue: 'Overlay aplicado a {{groups}} grupos. Creadas: {{c}}, actualizadas: {{u}}, desactivadas: {{d}}, sin cambios: {{n}}.',
+          groups: grupos.length, c: totals.creadas, u: totals.actualizadas, d: totals.desactivadas, n: totals.sinCambios,
+        }));
+      }
+    } catch (err) {
+      console.error('Error aplicando overlay:', err);
+      toast.error(err.message || t('itinerarios.applyOverlayError', { defaultValue: 'Error aplicando overlay CCAA.' }));
+    } finally {
+      setApplyingOverlay(false);
     }
   };
 
@@ -661,6 +759,46 @@ const Itinerarios = () => {
                                 placeholder={t('common.selectCenter')}
                                 required
                             />
+                        </div>
+                    )}
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('itinerarios.ccaaLabel', { defaultValue: 'Comunidad Autónoma' })}
+                        </label>
+                        <select
+                            name="ccaa"
+                            value={formData.ccaa}
+                            onChange={handleInputChange}
+                            className={styles.select}
+                        >
+                            <option value="">{t('itinerarios.ccaaNational', { defaultValue: '— Sin CCAA (currículo nacional puro) —' })}</option>
+                            {CCAA_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                        <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                            {t('itinerarios.ccaaHint', { defaultValue: 'Aplica overlay del decreto autonómico (BOJA, DOGC, BOCM…) sobre el catálogo nacional. Si seleccionas una CCAA, recuerda re-sincronizar los grupos del itinerario.' })}
+                        </small>
+                    </div>
+
+                    {currentItinerario && formData.ccaa && (
+                        <div className={styles.formGroup}>
+                            <button
+                                type="button"
+                                className={styles.btnSecondary || ''}
+                                onClick={() => handleAplicarOverlay(currentItinerario)}
+                                disabled={applyingOverlay}
+                                style={{ padding: '0.5rem 1rem', borderRadius: 6, cursor: 'pointer' }}
+                            >
+                                {applyingOverlay
+                                    ? t('itinerarios.applyingOverlay', { defaultValue: 'Aplicando overlay…' })
+                                    : t('itinerarios.applyOverlay', { defaultValue: 'Aplicar overlay CCAA a los grupos del itinerario' })
+                                }
+                            </button>
+                            <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                                {t('itinerarios.applyOverlayHint', { defaultValue: 'Re-sincroniza materias y horas de cada grupo según el overlay vigente. Las materias manuales se conservan.' })}
+                            </small>
                         </div>
                     )}
 

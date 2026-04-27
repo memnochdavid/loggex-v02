@@ -66,6 +66,7 @@ const Grupos = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
+    aulaDefault: '',
     curso: 1,
     anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     fechaInicio: '',
@@ -264,6 +265,7 @@ const Grupos = () => {
       setFormData({
         nombre: grupo.nombre,
         abreviatura: grupo.abreviatura || '',
+        aulaDefault: grupo.aulaDefault || '',
         curso: grupo.curso,
         anioEscolar: grupo.anioEscolar,
         fechaInicio: grupo.fechaInicio ? grupo.fechaInicio.split('T')[0] : '',
@@ -276,6 +278,7 @@ const Grupos = () => {
       setFormData({
         nombre: '',
         abreviatura: '',
+        aulaDefault: '',
         curso: 1,
         anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
         fechaInicio: '',
@@ -322,7 +325,8 @@ const Grupos = () => {
         itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
         centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null,
         fechaInicio: formData.fechaInicio || null,
-        fechaFin: formData.fechaFin || null
+        fechaFin: formData.fechaFin || null,
+        aulaDefault: formData.aulaDefault?.trim() || null,
       };
       delete payload.ciclo;
 
@@ -560,6 +564,25 @@ const Grupos = () => {
                     className={styles.input}
                     placeholder={t('groups.abbreviationPlaceholder')}
                 />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('groups.aulaDefault', { defaultValue: 'Aula por defecto' })}
+                </label>
+                <input
+                    type="text"
+                    name="aulaDefault"
+                    value={formData.aulaDefault}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder={t('groups.aulaDefaultPlaceholder', { defaultValue: 'ej. Aula 12, Lab Hardware…' })}
+                />
+                <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                    {t('groups.aulaDefaultHint', {
+                        defaultValue: 'Aula habitual del grupo. Se aplica a todos sus horarios salvo que la imparticion concreta tenga aula propia. Si vacío, se usa "Aula " + abreviatura.',
+                    })}
+                </small>
             </div>
 
             <div className={styles.formGroup}>

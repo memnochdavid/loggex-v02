@@ -66,7 +66,8 @@ const Imparticiones = () => {
   const [formData, setFormData] = useState({
     profesor: '',
     materia: '',
-    grupo: ''
+    grupo: '',
+    aulaEspecifica: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -233,7 +234,8 @@ const Imparticiones = () => {
       setFormData({
         profesor: extractId(imparticion.profesor),
         materia: extractId(imparticion.materia),
-        grupo: grupoId
+        grupo: grupoId,
+        aulaEspecifica: imparticion.aulaEspecifica || '',
       });
 
       // Hidratar el filtro grupo→materia para que el AsyncSearchSelect de materia
@@ -260,7 +262,8 @@ const Imparticiones = () => {
       setFormData({
         profesor: '',
         materia: '',
-        grupo: ''
+        grupo: '',
+        aulaEspecifica: '',
       });
       setGrupoFilter({ itinerario: '', curso: '' });
     }
@@ -305,7 +308,8 @@ const Imparticiones = () => {
       const payload = {
         profesor: profesorValue.includes('/api/') ? profesorValue : `/api/users/${profesorValue}`,
         materia: materiaValue.includes('/api/') ? materiaValue : `/api/materias/${materiaValue}`,
-        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
+        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`,
+        aulaEspecifica: formData.aulaEspecifica?.trim() || null,
       };
 
       const response = await fetch(url, {
@@ -558,6 +562,25 @@ const Imparticiones = () => {
                     disabled={!formData.grupo}
                     required
                 />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('teaching.aulaEspecifica', { defaultValue: 'Aula específica (override)' })}
+                </label>
+                <input
+                    type="text"
+                    name="aulaEspecifica"
+                    value={formData.aulaEspecifica}
+                    onChange={(e) => setFormData(p => ({ ...p, aulaEspecifica: e.target.value }))}
+                    className={styles.input}
+                    placeholder={t('teaching.aulaEspecificaPlaceholder', { defaultValue: 'ej. Lab Hardware, Aula Música…' })}
+                />
+                <small className={styles.helpText} style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                    {t('teaching.aulaEspecificaHint', {
+                        defaultValue: 'Solo si esta materia se imparte en un aula distinta a la del grupo. Si vacío, se usa el aula por defecto del grupo.',
+                    })}
+                </small>
             </div>
         </ModalView>
         </div>

@@ -64,6 +64,15 @@ class Grupo
     #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?string $abreviatura = null;
 
+    /**
+     * Aula por defecto del grupo. Se aplica a los placements del horario salvo
+     * que la imparticion concreta tenga `aulaEspecifica` (override por materia).
+     * Si NULL, fallback final del solver: "Aula " + abreviatura.
+     */
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['grupo:read', 'grupo:write', 'imparticion:read'])]
+    private ?string $aulaDefault = null;
+
     #[ORM\Column]
     #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])]
     private ?int $curso = null;
@@ -126,6 +135,17 @@ class Grupo
     public function setAbreviatura(?string $abreviatura): static
     {
         $this->abreviatura = $abreviatura;
+        return $this;
+    }
+
+    public function getAulaDefault(): ?string
+    {
+        return $this->aulaDefault;
+    }
+
+    public function setAulaDefault(?string $aulaDefault): static
+    {
+        $this->aulaDefault = $aulaDefault;
         return $this;
     }
 
