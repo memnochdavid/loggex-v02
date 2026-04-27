@@ -191,6 +191,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [selectedImpId, setSelectedImpId] = useState(null);
   // Cache de jornadas por id: { [jornadaId]: JornadaTipoConTramos | null (no asignada) }
   const [jornadasPorId, setJornadasPorId] = useState({});
+  // Cache de capacity-check por grupo: { [grupoId]: { feasible, totalMinutos, capacidadMinutos, desajuste, asignacion, roundups, huerfanos, ... } }
+  const [capacityByGrupo, setCapacityByGrupo] = useState({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -260,6 +262,22 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })
       .catch(err => console.error('Error cargando jornada:', err));
   }, [selectedGrupo, grupos, jornadasPorId]);
+
+  // 1.6) Capacity-check del grupo seleccionado (sub-fase O, §14.7).
+  // Pre-calcula el ILP de asignación slots→materias antes de pulsar "Sugerir".
+  // Devuelve feasible/desajuste/roundups/huerfanos para el banner pre-resolución.
+  useEffect(() => {
+    if (!selectedGrupo) return;
+    if (capacityByGrupo[selectedGrupo] !== undefined) return;
+    fetch(getApiUrl(`/api/v1/horarios/capacity-check/${selectedGrupo}`),
+      { headers: { 'Accept': 'application/json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(c => {
+        if (!c) return;
+        setCapacityByGrupo(prev => ({ ...prev, [selectedGrupo]: c }));
+      })
+      .catch(err => console.error('Error capacity-check:', err));
+  }, [selectedGrupo, capacityByGrupo]);
 
   // 2) Cargar imparticiones y horarios del grupo seleccionado
   useEffect(() => {
@@ -1073,6 +1091,65 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </div>
         ) : (
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+            {capacityByGrupo[selectedGrupo] && (() => {
+              const cap = capacityByGrupo[selectedGrupo];
+              const totalH = (cap.totalMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
+              const capH = (cap.capacidadMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
+              if (!cap.feasible) {
+                return (
+                  <div className={`${styles.capacityBanner} ${styles.capacityBannerRed}`} role="alert">
+                    <Ban size={16} />
+                    <div>
+                      <b>{t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' })}</b>
+                      <div>
+                        {t('scheduleEditor.capacityInfeasibleBody', {
+                          defaultValue: 'Las materias suman {{total}}h/sem pero la jornada solo cubre {{cap}}h/sem. Reduce horas en /admin/materias o amplía la jornada en /admin/jornadas.',
+                          total: totalH, cap: capH,
+                        })}
+                      </div>
+                      {cap.huerfanos?.length > 0 && (
+                        <ul className={styles.capacityList}>
+                          {cap.huerfanos.map(h => (
+                            <li key={h.impId}>{h.materia} ({h.horasRestantes}h sin cubrir)</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              if (cap.roundups?.length > 0) {
+                return (
+                  <div className={`${styles.capacityBanner} ${styles.capacityBannerYellow}`}>
+                    <Sparkles size={16} />
+                    <div>
+                      <b>{t('scheduleEditor.capacityRoundupTitle', { defaultValue: 'Encaje con redondeo inevitable' })}</b>
+                      <div>
+                        {t('scheduleEditor.capacityRoundupBody', {
+                          defaultValue: 'La jornada y las materias no cuadran exactos. Las siguientes materias se redondearán hacia arriba:',
+                        })}
+                      </div>
+                      <ul className={styles.capacityList}>
+                        {cap.roundups.map(r => (
+                          <li key={r.impId}>{r.materia}: <b>+{r.deltaMin}min</b></li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className={`${styles.capacityBanner} ${styles.capacityBannerGreen}`}>
+                  <Sparkles size={16} />
+                  <span>
+                    {t('scheduleEditor.capacityExactBody', {
+                      defaultValue: 'La jornada cubre exactamente las {{total}}h/sem del itinerario.',
+                      total: totalH,
+                    })}
+                  </span>
+                </div>
+              );
+            })()}
             <div className={styles.editorLayout}>
               <aside className={styles.modulesPanel}>
                 <h3 className={styles.panelTitle}>{t('scheduleEditor.panelModules', { count: imps.length })}</h3>
@@ -1171,15 +1248,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <div className={styles.infoBarActions}>
                     <Button
                       onClick={() => runSolver(null)}
-                      disabled={!selectedGrupo || !grupoState || solving || saving}
+                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[selectedGrupo]?.feasible === false}
                       variant="secondary"
+                      title={capacityByGrupo[selectedGrupo]?.feasible === false ? t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' }) : undefined}
                     >
                       <Sparkles size={14} style={{ marginRight: 4 }} />
                       {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
                     </Button>
                     <Button
                       onClick={() => runSolver(Date.now())}
-                      disabled={!selectedGrupo || !grupoState || solving || saving}
+                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[selectedGrupo]?.feasible === false}
                       variant="secondary"
                       title={t('scheduleEditor.solverSuggestAnotherHint')}
                     >

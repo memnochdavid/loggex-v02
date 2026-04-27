@@ -1,6 +1,6 @@
 # Sistema de jornadas y recreos para `/admin/horarios`
 
-> **Status (2026-04-27 tarde)**: Fases A, C, G, D y **E ampliada** ✅ implementadas. **D24 cerrada** con opción A (minutos): `HorarioSolver.php` y `HorariosEditor.jsx` trabajan ahora en minutos, soportando jornadas con slots de duración mixta (2h, 1h30, etc.). Pendiente verificación end-to-end con horario real de 2º DAW (27h30/sem, bloques 2h+2h+1h30). Tras eso, dos hilos paralelos: **Fase B (asistente automático)** y **§14 endurecimiento del solver para producción** (refactor a `minutosSemanales`, validación previa de capacidad, heurística bloques largos, paralelismo refinado, round-up explícito). El refactor `horasSemanales`→`minutosSemanales` es además la Fase 2 de `docs/hoja-de-ruta-curriculum-ccaa.md`, donde se redacta la migración. **La capa CCAA arregla la fuente de horas**; §14 arregla la experiencia.
+> **Status (2026-04-27 madrugada)**: Fases A, C, G, D, **E ampliada (D24=A)**, **§14 sub-fase J** y **§14 sub-fase O** ✅ implementadas. **D11 cerrada** y validada E2E: EAG/DAW 1º pasa de 3.5h de desajuste agregado (FOL huérfano) a 30min en una sola materia (FOL +30min, óptimo teórico por paridad). El `CapacityPlanner` ILP separa el problema cuantitativo del topológico; el banner pre-resolución verde/amarillo/rojo avisa al admin antes de pulsar "Sugerir". Siguiente: **CCAA Fase 3 (`BojaAndAdapter`)** para que las horas BOJA cuadren exactas en centros de Andalucía. Después: Fase B (asistente automático) y §14 sub-fases L/M/N (cosméticos del solver).
 
 ## ⚡ Snapshot para retomar en otra sesión
 
@@ -731,6 +731,74 @@ Cambios mínimos en el editor existente:
 
 ---
 
+### 2026-04-27 madrugada — Sub-fase O implementada (CapacityPlanner ILP + banner pre-resolución)
+
+D11 cerrada con (d) primero → (c) después tras conversación con el usuario y análisis matemático de paridad. Implementación completa de la sub-fase O en una sola pasada.
+
+**Backend nuevo:**
+- `App\Service\CapacityPlanner` — pre-asignación cuantitativa por ILP. Genera combos por materia (`Σ d_j·x_j ∈ [m, m+maxD)`), backtracking con poda por mejor coste (`bestCost`), corte temprano si `bestCost === 0`, timeout 1.5s. Devuelve `feasible`, `asignacion[impId][duracion]=count`, `roundups[]`, `huerfanos[]`, `desajuste`, `slotsDisponibles`.
+- `HorarioSolverController::capacityCheck` — `GET /api/v1/horarios/capacity-check/{grupoId}` que invoca el planner y devuelve el resultado para el banner pre-resolución.
+
+**Backend modificado:**
+- `HorarioSolver.php`:
+  - Constructor inyecta `CapacityPlanner $planner`.
+  - `solve()` invoca primero `$this->planner->plan($grupo)`. Si `!feasible`, devuelve directo con `complete=false` + diagnóstico.
+  - `tasks[]` cambia de `pending` (minutos) a `cuotas[duracion]=count` pre-asignadas por el planner.
+  - `backtrack()`: condición de avance pasa de `pending <= 0` a `array_sum(cuotas) === 0`. Filtro de candidatos por `cuotas[$c['min']] > 0`. Cada asignación decrementa `cuotas[$c['min']]`, no `pending`.
+  - El cómputo de `unplaced` ahora se basa en la cuota asignada por el planner (no en `materia.minutosSemanales`), así el round-up D22=A se considera "esperado" si el planner lo previó.
+
+**Frontend modificado (`HorariosEditor.jsx` + `.module.css`):**
+- Nuevo state `capacityByGrupo` cacheado por grupoId.
+- `useEffect` 1.6 que hace `GET /api/v1/horarios/capacity-check/{grupoId}` al cambiar de grupo.
+- Banner pre-resolución antes del `editorLayout` con tres estados:
+  - 🟢 verde — `feasible && !roundups.length`: "La jornada cubre exactamente las {{total}}h/sem".
+  - 🟡 amarillo — `feasible && roundups.length`: "Encaje con redondeo inevitable" + lista de materias afectadas con `+Xmin`.
+  - 🔴 rojo — `!feasible`: "El itinerario no cabe en la jornada" + lista de huérfanos. Botones "Sugerir" disabled.
+- CSS `.capacityBanner` + `.capacityBannerGreen/Yellow/Red` + `.capacityList` (color-mix sobre `--color-success/warning/error`).
+- Traducciones inline con `defaultValue` (i18n delegado al usuario para una iteración posterior si quiere bloque `scheduleEditor.capacity*` formal).
+
+**Validación end-to-end exitosa (2026-04-27 madrugada, EAG/DAW 1º, jornada 60+60+60+60+90):**
+
+Tras `docker compose restart backend` (necesario por `opcache.validate_timestamps=0`), el banner amarillo apareció con:
+
+> *"Encaje con redondeo inevitable. Las siguientes materias se redondearán hacia arriba: Formación y Orientación Laboral: +30min"*
+
+Footer del editor tras "Sugerir horario": **"Completo · 27.5/27h"**.
+
+**Comparativa antes vs ahora:**
+
+| Métrica | Solver previo (sin O) | Solver con sub-fase O |
+|---|---:|---:|
+| Desajuste agregado | 3.5h (BD +1h, Lenguajes +1h, FOL −1.5h) | 0.5h (FOL +30min) |
+| Materias huérfanas | 1 (FOL a 1.5/3h) | 0 |
+| Materias con sobrepaso desordenado | 2 | 1 (controlada por el ILP) |
+| Mejora vs suelo teórico | — | óptima (30min = mínimo por paridad) |
+
+El factor 7× de reducción coincide con el cálculo previo (paridad: Σ b_i = 5 impar → mínimo 1 materia con b impar → ±30min). El solver es ahora predecible: el banner predice exactamente lo que el solver luego coloca.
+
+**Bug detectado en BD durante la primera prueba (no del CapacityPlanner):**
+
+Las materias DAW 1º tenían `materia.minutos_semanales` con valores en horas (5, 7, 4, 3) en lugar de minutos (300, 420, 240, 180). El UPDATE `*60` documentado en bitácora del 27-abr noche se había revertido o nunca se aplicó completo a estas filas. Banner inicial reportó deltas de +55/+57min en TODAS las materias (correctamente, porque el ILP ve "5 minutos requeridos" + slot de 60min = +55). Re-aplicación del UPDATE:
+
+```sql
+UPDATE materia SET minutos_semanales = minutos_semanales * 60
+WHERE deleted = 0 AND minutos_semanales BETWEEN 1 AND 30;
+```
+
+Tras el UPDATE, la prueba quedó como descrita arriba.
+
+**Archivos tocados en esta sesión:**
+- `backend/src/Service/CapacityPlanner.php` (nuevo)
+- `backend/src/Service/HorarioSolver.php` (consume cuotas)
+- `backend/src/Controller/HorarioSolverController.php` (endpoint capacity-check)
+- `frontend/src/pages/HorariosEditor.jsx` (state + useEffect 1.6 + banner + disable Sugerir)
+- `frontend/src/pages/HorariosEditor.module.css` (estilos banner)
+- `docs/INDEX.md` (D11 cerrada + caminos críticos reordenados)
+- `docs/hoja-de-ruta-curriculum-ccaa.md` (D11 en §2 + bitácora + snapshot)
+- `docs/hoja-de-ruta-jornadas-recreos.md` (snapshot + §14.7 formalizada como ILP)
+
+---
+
 ## 14. Endurecimiento del solver para producción
 
 > Validación con caso real (EAG/DAW Andalucía, 2026-04-27 tarde) destapó que la matemática del solver es correcta pero la **fuente de horas** y la **interfaz de validación previa** no están a la altura de un producto comercial. Esta sección recoge las mejoras pendientes para que "Sugerir horario" sea fiable en cualquier centro real. La capa CCAA que arregla la fuente vive en doc aparte: ver `docs/hoja-de-ruta-curriculum-ccaa.md`.
@@ -807,22 +875,91 @@ Tras J-N, "Sugerir horario" es de calidad de producción para cualquier jornada 
 
 **Camino crítico**: J primero (bloquea a las demás por la fuente del dato). K y M son independientes entre sí. L y N son cosméticos pero importantes para confianza del admin.
 
-### 14.7. Sub-fase O *(añadida 2026-04-27 noche)* — distribución equitativa de round-up
+### 14.7. Sub-fase O *(añadida 2026-04-27 noche, formalizada como ILP 2026-04-27 madrugada)* — pre-asignación ILP
 
-**Problema descubierto en validación end-to-end** (EAG/DAW 1º con jornada 5 slots `60+60+60+60+90`): cuando las horas de las materias no encajan exacto en los slots disponibles, el solver coloca todo respetando D22=A (round-up por slot) pero la heurística `sameDayScore` apila los round-ups en pocas materias, dejando huérfanas a las últimas del orden de procesamiento. Caso real:
-- BD 6/5h (+1h), Lenguajes 5/4h (+1h), FOL 1.5/3h (**−1.5h**).
-- Total cuadra (27.5h sobre 27h target = +0.5h global), pero distribución desigual.
+**Problema descubierto en validación end-to-end** (EAG/DAW 1º con jornada 5 slots `60+60+60+60+90`): el solver coloca todo respetando D22=A pero la heurística `sameDayScore` apila los round-ups en pocas materias, dejando huérfanas a las últimas del orden de procesamiento. Caso real: BD 6/5h, Lenguajes 5/4h, FOL 1.5/3h.
 
-**Causa**: 20 slots de 60min disponibles + 5 slots de 90min, pero las materias necesitan 27 slots de 60min equivalentes → obligatorio que algunas tomen el slot de 90min y sobrepasen, comiéndose slots de 60min que necesitarían otras.
+**Causa raíz**: 20 slots de 60min + 5 slots de 90min disponibles, materias requieren 27 slots de 60min equivalentes. Algunas materias deben absorber un slot de 90min sobre múltiplo de 60.
 
-**Solución (sub-fase O)**:
-1. Detectar pre-resolución si la combinación `Σ minutos materia` vs `slots disponibles por duración` es factible exacto. Si no, calcular el round-up total inevitable.
-2. Distribuir el round-up entre el menor número de materias posible (preferiblemente las de más horas, donde un +30min es proporcionalmente menor).
-3. Banner amarillo en el editor: *"La jornada y las materias no encajan exactos. Algunas materias se redondearán: BD +30min, Programación +30min."*
-4. Si una materia quedaría sin sus minutos completos por exhaustación de slots compatibles, banner rojo y abort: *"FOL no puede cubrir sus 3h con los slots restantes. Ajusta la jornada o las horas."*
+**Suelo matemático (D11 cerrada con análisis de paridad)**: para `60·a + 90·b = m` con `m` múltiplo de 60, `b` debe ser par. Pero Σ b_i = 5 (impar) → mínimo 1 materia con b impar → desajuste mínimo teórico = **30 min** en una sola materia. Solver actual produce 3.5h agregadas: margen de mejora ~7×.
+
+**Solución: ILP previo al backtracking topológico**
+
+Nuevo servicio `App\Service\CapacityPlanner` que separa el problema en dos fases independientes:
+
+1. **Fase cuantitativa (CapacityPlanner)** — decide *cuántos* slots de cada duración recibe cada materia.
+2. **Fase topológica (HorarioSolver)** — decide *en qué día y posición* van esos slots ya pre-asignados. Ya no inventa: ejecuta.
+
+#### Modelo
+
+Variables: `x_ij ∈ ℕ` = nº de slots de duración `d_j` asignados a la materia `i`.
+
+Restricciones:
+- **Conservación**: `Σ_i x_ij = N_j` para cada duración (todos los slots se reparten o se marcan como vacíos explícitos).
+- **No-huérfanos**: `Σ_j d_j · x_ij ≥ m_i` para toda materia (D22=A: el último slot puede sobrepasar).
+- **Mínimo desajuste**: minimizar `Σ_i (Σ_j d_j · x_ij − m_i)` (sobrepaso total).
+- **Equilibrio**: empate entre soluciones → preferir distribuir el round-up sobre la materia más grande.
+
+Tamaño esperado: ≤30 materias × ≤5 duraciones distintas = ≤150 variables. Trivial por backtracking exhaustivo con poda; no hace falta solver externo.
+
+#### Algoritmo
+
+```
+generateCombosForMateria(m_i, [d_1, ..., d_k]) → lista de combinaciones (x_i1, ..., x_ik)
+    tales que Σ d_j·x_ij ∈ [m_i, m_i + max_d_j)
+    (cubre o sobrepasa por menos que el slot más grande)
+
+backtrack(materias_idx, combos, slots_disponibles):
+    si materias_idx == len(materias): return solución actual
+    para cada combo en combos[materias_idx]:
+        si combo "cabe" en slots_disponibles:
+            restar combo de slots_disponibles
+            recurse(materias_idx + 1)
+            si encontró solución mejor que la guardada: actualizar
+            sumar combo de vuelta
+    return mejor solución
+```
+
+#### Salida
+
+```
+{
+  feasible: true|false,
+  totalMinutos: 1620,
+  capacidadMinutos: 1650,
+  asignacion: {
+    impId_1: { 60: 5, 90: 0 },     // BD: 5×60 = 300min = 5h exactos
+    impId_2: { 60: 4, 90: 0 },     // Lenguajes: 4×60 = 240min = 4h exactos
+    impId_3: { 60: 2, 90: 1 },     // FOL: 2×60+1×90 = 210min = 3.5h (+30min round-up)
+    ...
+  },
+  roundups: [
+    { impId: 3, materia: "FOL", deltaMin: 30, motivo: "paridad slots 90min" }
+  ],
+  huerfanos: []
+}
+```
+
+#### Banner pre-resolución en `HorariosEditor.jsx`
+
+Tres estados:
+
+| Caso | Color | Mensaje | Bloquea "Sugerir"? |
+|---|---|---|---|
+| `feasible=true && roundups=[]` | 🟢 verde | "La jornada cubre exactamente las horas del itinerario." | No |
+| `feasible=true && roundups≠[]` | 🟡 amarillo | "Algunas materias se redondearán: FOL +30min (paridad de slots de 90min)." | No |
+| `feasible=false` | 🔴 rojo | "El itinerario requiere 28h/sem pero la jornada cubre 27.5h. Reduce horas o amplía la jornada." | Sí (botón disabled) |
+
+#### Endpoint
+
+`GET /api/v1/horarios/capacity-check/{grupoId}` — invoca `CapacityPlanner` y devuelve la salida arriba. El editor lo llama al cambiar de grupo (cache por grupoId). El `POST /api/v1/horarios/solver/{grupoId}` actual pasa por el planner internamente.
+
+#### Integración con `HorarioSolver`
+
+`HorarioSolver::solve()` invoca `CapacityPlanner::plan()` antes del backtracking. Si infactible, devuelve directamente con `complete=false` y la asignación pre-calculada como diagnóstico. Si factible, el backtracking actual recibe el `x_ij` como restricción dura: candidatos `c['min']` filtrados por las duraciones permitidas para esa materia, y cada asignación decrementa el contador correspondiente.
 
 | Sub-fase | Esfuerzo | Bloquea a | Estado |
 |---|---|---|---|
-| **O** — Distribución equitativa de round-up + banner pre-resolución | 1 día | — | ⏳ Complementaria a CCAA Fase 3 |
+| **O** — Pre-asignación ILP (`CapacityPlanner`) + banner pre-resolución | 1 día | CCAA Fase 3 deja de ser bloqueante para producto comercial mínimo | ✅ Done (2026-04-27 madrugada) — validado E2E con EAG/DAW 1º, factor 7× de mejora |
 
-**Nota**: la solución *correcta* al desajuste no es refinar el solver sino ajustar la fuente de horas (capa CCAA). Por eso O complementa pero no sustituye a Fase 3 CCAA. Decisión D11 pendiente al retomar (ver `docs/INDEX.md` y `docs/hoja-de-ruta-curriculum-ccaa.md`).
+**Nota**: la solución *óptima* al desajuste sigue siendo ajustar la fuente de horas (capa CCAA Fase 3) para que el caso EAG cuadre exacto. Pero el ILP de O hace que el solver sea predecible y el banner sea honesto en cualquier centro, lo que es prerrequisito para cerrar D11 y vender el producto.

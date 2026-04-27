@@ -21,8 +21,10 @@ class HorarioSolver
     private int $nodesExplored = 0;
     private int $maxDepth = 0;
 
-    public function __construct(private EntityManagerInterface $em)
-    {
+    public function __construct(
+        private EntityManagerInterface $em,
+        private CapacityPlanner $planner,
+    ) {
     }
 
     public function solve(Grupo $grupo, ?int $seed = null): array
@@ -52,19 +54,45 @@ class HorarioSolver
             ];
         }
 
+        // Pre-asignación cuantitativa (sub-fase O, §14.7): el CapacityPlanner decide
+        // cuántos slots de cada duración recibe cada imparticion ANTES del backtracking
+        // topológico. Si la combinatoria es infactible (capacidad < total), el solver
+        // se detiene aquí con el diagnóstico del planner — no hay nada que el
+        // backtracking pueda hacer al respecto.
+        $capacity = $this->planner->plan($grupo);
+        if (!$capacity['feasible']) {
+            return [
+                'complete' => false,
+                'placements' => [],
+                'unplaced' => $capacity['huerfanos'],
+                'capacity' => $capacity,
+                'debug' => [
+                    'error' => 'El itinerario no cabe en la jornada según CapacityPlanner.',
+                    'capacity' => $capacity,
+                ],
+            ];
+        }
+
         $turno = $jornada->getTurno();
         $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
         $parallelBusy = $this->buildParallelBusy($grupo, $turno);
 
-        // Una tarea por imparticion, con minutos pendientes; el backtracking elige
-        // cuántos slots (de duración variable) consume hasta llegar a 0.
-        // Si los slots no encajan exactos, se "redondea hacia arriba" (D22=A): el
-        // último slot puede sobrepasar y la imparticion se da por completa.
+        // Una tarea por imparticion con cuotas por duración (preasignadas por el
+        // planner). El backtracking ya no inventa el reparto cuantitativo: solo
+        // decide día y posición. Cuando todas las cuotas llegan a 0 la imparticion
+        // está completa. El round-up acordado (D22=A) ya está incorporado en las
+        // cuotas (el planner generó combos con sum >= minutos).
         $tasks = [];
         foreach ($imps as $imp) {
             $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
             if ($minutos <= 0) continue;
-            $tasks[] = ['imp' => $imp, 'pending' => $minutos, 'total' => $minutos];
+            $cuotas = $capacity['asignacion'][$imp->getId()] ?? [];
+            if (empty($cuotas) || array_sum($cuotas) === 0) continue;
+            $tasks[] = [
+                'imp' => $imp,
+                'cuotas' => $cuotas,
+                'total' => $minutos,
+            ];
         }
 
         // Heurística: empezar por imparticiones cuyo profesor tiene más
@@ -114,12 +142,17 @@ class HorarioSolver
             $iid = $p['imp']->getId();
             $placedMinPerImp[$iid] = ($placedMinPerImp[$iid] ?? 0) + (int) $p['min'];
         }
+        // Tras pre-asignación cuantitativa, "completo" significa que cada imparticion
+        // recibió todos los slots de su cuota — no que sus minutos cuadren exacto con
+        // los declarados (puede haber round-up D22=A si el planner devolvió delta>0).
         $unplaced = [];
         foreach ($imps as $imp) {
-            $totalMin = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+            $cuotaImp = $capacity['asignacion'][$imp->getId()] ?? [];
+            $minutosCuota = 0;
+            foreach ($cuotaImp as $d => $c) $minutosCuota += $d * $c;
             $placedMin = $placedMinPerImp[$imp->getId()] ?? 0;
-            if ($placedMin < $totalMin) {
-                $faltanMin = $totalMin - $placedMin;
+            if ($placedMin < $minutosCuota) {
+                $faltanMin = $minutosCuota - $placedMin;
                 $unplaced[] = [
                     'imparticionId' => $imp->getId(),
                     'materia' => $imp->getMateria()?->getNombre(),
@@ -166,6 +199,7 @@ class HorarioSolver
             'complete' => $ok,
             'placements' => $out,
             'unplaced' => $unplaced,
+            'capacity' => $capacity,
             'debug' => [
                 'jornadaId' => $jornada->getId(),
                 'jornadaNombre' => $jornada->getNombre(),
@@ -225,9 +259,10 @@ class HorarioSolver
         if ($idx >= count($tasks)) {
             return true;
         }
-        // Si la imparticion actual ya tiene cubiertos sus minutos, pasamos a la siguiente.
-        // (D22=A: el último slot colocado puede haber sobrepasado el total y aún se acepta.)
-        if ($tasks[$idx]['pending'] <= 0) {
+        // Si todas las cuotas de la imparticion están agotadas, pasamos a la siguiente.
+        // Las cuotas son la pre-asignación cuantitativa del CapacityPlanner: ya
+        // incluyen el round-up D22=A si lo hay.
+        if (array_sum($tasks[$idx]['cuotas']) === 0) {
             return $this->backtrack($idx + 1, $tasks, $cells, $placements, $profBusyLocal, $parallelBusy, $seed);
         }
 
@@ -262,6 +297,10 @@ class HorarioSolver
         });
 
         foreach ($candidates as $c) {
+            // Filtro de cuota: la imparticion solo puede coger slots de duraciones
+            // para las que el planner asignó cupo restante.
+            if (($tasks[$idx]['cuotas'][$c['min']] ?? 0) <= 0) continue;
+
             $key = $c['dia'] . '_' . $c['hi'];
             if (isset($placements[$key])) continue;
             if ($pid && isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) continue;
@@ -269,15 +308,16 @@ class HorarioSolver
 
             $placements[$key] = ['imp' => $imp, 'hi' => $c['hi'], 'hf' => $c['hf'], 'dia' => $c['dia'], 'min' => $c['min']];
             if ($pid) $profBusyLocal[$key][] = $pid;
-            $tasks[$idx]['pending'] -= $c['min'];
+            $tasks[$idx]['cuotas'][$c['min']]--;
 
-            // Recurse en el MISMO idx: si pending llegó a 0/negativo, la cabecera
-            // saltará a idx+1; si no, seguirá colocando slots para esta imparticion.
+            // Recurse en el MISMO idx: si la cuota llegó a 0 en todas las
+            // duraciones, la cabecera saltará a idx+1; si no, seguirá colocando
+            // slots para esta imparticion.
             if ($this->backtrack($idx, $tasks, $cells, $placements, $profBusyLocal, $parallelBusy, $seed)) {
                 return true;
             }
 
-            $tasks[$idx]['pending'] += $c['min'];
+            $tasks[$idx]['cuotas'][$c['min']]++;
             unset($placements[$key]);
             if ($pid && isset($profBusyLocal[$key])) {
                 $profBusyLocal[$key] = array_values(array_filter($profBusyLocal[$key], fn ($x) => $x !== $pid));

@@ -6,25 +6,11 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**Decidir cómo resolver el desajuste solver/jornada detectado el 2026-04-27 noche.** Antes de cualquier otro trabajo.
+**Sub-fase O ✅ Done (2026-04-27 madrugada).** Validada E2E con EAG/DAW 1º: el banner amarillo predijo "FOL +30min" (óptimo teórico por paridad) y el solver lo colocó exacto. Mejora: 3.5h → 30min de desajuste agregado (factor 7×).
 
-**Síntoma observado** (caso EAG, DAW 1º, jornada `1h+1h+1h+1h+1h30`):
-- BD muestra 6/5h, Lenguajes 5/4h → overshoot de +1h cada una (round-up D22=A apilado).
-- FOL queda en 1.5/3h → la última materia del orden de procesamiento se queda sin cubrir 1.5h.
-- Total cuadra (27.5h sobre 27h target = +0.5h global), pero el reparto es desigual.
+**Próxima acción**: **CCAA Fase 3 — `BojaAndAdapter`** (`hoja-de-ruta-curriculum-ccaa.md` §5.2). Aborda la fuente de horas para que centros de Andalucía con horas BOJA reales (DAW Andalucía 7.5/5/3.5h + Inglés profesional 2h + IPE II 3.5h = 27.5h exactos) cuadren sin redondeo. Esfuerzo ~1.5 días. Tras eso: §14 sub-fases L/M/N (cosméticos del solver) y Jornadas Fase B (asistente automático de tramos).
 
-**Causa raíz:** las materias DAW 1º suman 27 slots equivalentes de 60min, pero la jornada solo ofrece 20 slots de 60min + 5 slots de 90min. Necesidad obligatoria de usar slots de 90min para algunas materias múltiplo-de-60min, lo que fuerza round-ups que se acumulan en pocas materias mientras la última se queda sin slots libres.
-
-**Opciones (decidir y registrar como D11 al arrancar):**
-
-- **(a) Cambiar `jornada_tipo_id=3` a 3 bloques `2h+2h+1h30`** (lo que usa tu centro real). Workaround temporal; el desajuste matemático persiste con otras materias.
-- **(b) Editar `/admin/materias` para que las horas DAW 1º sumen 27.5h exactos** (ej. FOL pasa de 3h a 3.5h). Pragmático para probar el solver "perfecto" sin tocar arquitectura.
-- **(c) Implementar Fase 3 CCAA — `BojaAndAdapter`**: materializa DAW Andalucía con horas BOJA reales (Web servidor 7.5h, Diseño 5h, Despliegue 3.5h, +Inglés profesional 2h, +IPE II 3.5h, etc.) que cuadran exactos con la jornada 27.5h. **Solución definitiva**, ya estaba en el camino crítico.
-- **(d) Sub-fase O nueva en §14 del solver**: heurística que distribuye el round-up equitativamente o emite banner antes de resolver cuando detecta desajuste matemático irrecuperable. No arregla la causa pero evita huérfanos como FOL.
-
-**Recomendación de la sesión 2026-04-27**: **(c)**. Es la siguiente fase del camino crítico (Bloque 1 del INDEX). (a) y (b) son parches. (d) es complementario (puede hacerse después).
-
-Una vez decidida la opción, registrar como **D11 en `hoja-de-ruta-curriculum-ccaa.md`** y arrancar la implementación correspondiente. Si se elige (c), el doc tiene §5.2 con el detalle del adapter BOJA.
+**Bug de datos detectado en la sesión** (anotado en bitácora de `hoja-de-ruta-jornadas-recreos.md`): el UPDATE `materia.minutos_semanales = horas * 60` se había revertido para algunas filas. Re-aplicado con `UPDATE materia SET minutos_semanales = minutos_semanales * 60 WHERE deleted=0 AND minutos_semanales BETWEEN 1 AND 30`. Vigilar si vuelve a ocurrir tras un `enrich-boe --force` o similar — si sí, blindar el comando para que escriba siempre minutos.
 
 ---
 
@@ -124,40 +110,42 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 > Orden recomendado para llegar a "Loggex se vende a un centro real sin parches manuales".
 
-### Bloque 1 — Catálogo correcto en cualquier CCAA *(crítico)*
+### Bloque 1 — Solver predecible para cualquier jornada *(✅ cerrado 2026-04-27)*
 
-Sin esto, el horario de un centro real no cuadra. Caso EAG/DAW Andalucía lo demuestra: BOE = 28h, jornada efectiva = 27.5h, incluye 2 optativas autonómicas que no existen en el catálogo nacional.
+1. **§14 sub-fase O** ✅ — pre-asignación ILP (`CapacityPlanner` + banner verde/amarillo/rojo). Validado E2E con EAG/DAW 1º: factor 7× de mejora sobre el solver previo.
+2. **§14 sub-fase K** — banner Σ minutos vs capacidad: cubierta por el banner de O.
 
-1. **CCAA Fase 1** — modelo + migración (enum, FKs, tablas overlay).
-2. **CCAA Fase 2** = **§14 sub-fase J** — refactor `horasSemanales` → `minutosSemanales`.
-3. **CCAA Fase 3** — adapter BOJA Andalucía piloto.
+### Bloque 2 — Catálogo correcto en cualquier CCAA *(alto, post-O)*
+
+Sin esto, el horario de un centro real no cuadra exacto. Caso EAG/DAW Andalucía: BOE = 28h, jornada efectiva = 27.5h, incluye 2 optativas autonómicas. Tras la sub-fase O el solver distribuye lo mejor posible y explica el desajuste; CCAA Fase 3 elimina el desajuste cuando las horas BOJA cuadran exactas.
+
+3. **CCAA Fase 3** — adapter BOJA Andalucía piloto (`BojaAndAdapter`).
 4. **CCAA Fase 4** — UI selector CCAA + filtros catálogo + provenance ampliado.
-5. **§14 sub-fase K** — validación previa de capacidad en editor (banner verde/amarillo/rojo).
 
-Estimación: ~5 sesiones. Doc primario: `hoja-de-ruta-curriculum-ccaa.md`.
+Estimación: ~3 sesiones. Doc primario: `hoja-de-ruta-curriculum-ccaa.md` §5.2.
 
-### Bloque 2 — Solver y editor pulidos *(alto)*
+### Bloque 3 — Solver y editor pulidos *(medio)*
 
-6. **§14 sub-fase L** — heurística bloques largos.
-7. **§14 sub-fase M** — paralelismo refinado por solape de rangos.
-8. **§14 sub-fase N** — round-up D22=A explícito en chip (asterisco + tooltip).
-9. **Jornadas Fase B** — asistente automático de tramos (genera la jornada a partir de Σ horas materias).
+5. **§14 sub-fase L** — heurística bloques largos.
+6. **§14 sub-fase M** — paralelismo refinado por solape de rangos.
+7. **§14 sub-fase N** — round-up D22=A explícito en chip (asterisco + tooltip).
+8. **Jornadas Fase B** — asistente automático de tramos (genera la jornada a partir de Σ horas materias).
 
 Estimación: ~2 sesiones. Docs: `hoja-de-ruta-jornadas-recreos.md` (§14 + Fase B).
 
-### Bloque 3 — Cierre del ciclo evaluativo *(alto)*
+### Bloque 4 — Cierre del ciclo evaluativo *(alto)*
 
-10. **Calificaciones — Auditar A-D** y cerrar bitácora.
-11. **Calificaciones Fase E** — boletines de notas en PDF.
+9. **Calificaciones — Auditar A-D** y cerrar bitácora.
+10. **Calificaciones Fase E** — boletines de notas en PDF.
 
 Estimación: ~1.5 sesiones. Doc: `hoja-de-ruta-calificaciones.md`.
 
-### Bloque 4 — Resto de CCAAs *(medio, incremental)*
+### Bloque 5 — Resto de CCAAs *(medio, incremental)*
 
-12. CCAA Fase 6 — adapters demográficos: CT, MD, VC, PV, GA (1 sesión por CCAA).
-13. CCAA Fase 7 — resto de CCAAs por demanda.
+11. CCAA Fase 6 — adapters demográficos: CT, MD, VC, PV, GA (1 sesión por CCAA).
+12. CCAA Fase 7 — resto de CCAAs por demanda.
 
-### Bloque 5 — Diferibles *(bajo)*
+### Bloque 6 — Diferibles *(bajo)*
 
 - `hoja-de-ruta-redis-workers.md` — solo si volúmenes lo justifican.
 - `hoja-de-ruta-mejoras-tecnicas.md` — deuda técnica progresiva.

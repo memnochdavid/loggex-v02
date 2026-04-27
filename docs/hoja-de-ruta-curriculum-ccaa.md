@@ -24,13 +24,12 @@
 
 ### Lo siguiente al retomar — orden exacto
 
-> **PRIORIDAD ABSOLUTA antes de cualquier código** (registro 2026-04-27 noche, ver `docs/INDEX.md` sección "Primera acción al retomar"): decidir entre opciones **(a)/(b)/(c)/(d)** para resolver el desajuste solver/jornada detectado al validar end-to-end (FOL queda en 1.5/3h en DAW 1º). Recomendación: (c) = arrancar Fase 3 CCAA. Una vez decidida la opción, registrar como **D11** abajo en este doc.
+> **D11 cerrada 2026-04-27 noche** con orden **(d) primero → (c) después**. Análisis matemático mostró que el desajuste mínimo teórico en EAG es 30min y el solver actual produce 3.5h agregadas — hay margen de mejora ~7× sin tocar la fuente. Sub-fase O genérica primero (cualquier centro), Fase 3 CCAA después (caso EAG cuadra exacto).
 
-1. **Ejecutar la migración** `Version20260427150000` en la BD si no se ha hecho ya: `docker exec loggex-backend php bin/console doctrine:migrations:migrate`. Tras ello: `cache:clear`. Verificar que `materia.minutos_semanales` y `catalogo_materia.minutos_semanales` están rellenos correctamente (multiplicados x60 vs el valor previo). En la BD del usuario ya está aplicado al cierre de 2026-04-27.
-2. **Probar end-to-end** en `/admin/horarios` y `/admin/materias` que la conversión horas↔minutos funciona en la UI. **Resultado obtenido 2026-04-27 noche**: solver corre pero el reparto deja FOL sin cubrir (ver D11 pendiente arriba).
-3. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA. **Es la opción (c) del D11 pendiente.**
-4. **UI selector "Comunidad Autónoma"** en modal de Itinerario y filtro en `/admin/catalogo/*` — Fase 4.
-5. **Validación previa al solver** (capacity check, banner rojo si Σ minutos > capacidad jornada). Esto va en `hoja-de-ruta-jornadas-recreos.md` §14 sub-fase K, no aquí.
+1. **Sub-fase O (`hoja-de-ruta-jornadas-recreos.md` §14.7)** — pre-asignación ILP en el solver + banner pre-resolución. Esfuerzo ~1 día. **En curso.**
+2. **Adapter Andalucía piloto** (BOJA, FP DAW) — Fase 3. Punto cero del scraping CCAA. Tras O.
+3. **UI selector "Comunidad Autónoma"** en modal de Itinerario y filtro en `/admin/catalogo/*` — Fase 4.
+4. (Sub-fase K de §14 queda integrada dentro de O — el banner pre-resolución cubre ambos casos.)
 
 ---
 
@@ -94,6 +93,12 @@ Originalmente abiertas; cerradas en la sesión 2026-04-27 al arrancar Fase 1. Se
 | D8 | Multi-CCAA por centro | Permitido (CCAA es atributo del itinerario) |
 | D9 | Default CCAA al crear itinerario | CCAA del centro si está rellena, o elección explícita |
 | D10 | Versionado por fecha | `vigenteDesde NOT NULL` + `vigenteHasta NULL` |
+
+### D11 — orden de ataque tras desajuste solver/jornada (cerrada 2026-04-27 noche)
+
+| # | Decisión | Resolución | Razón |
+|---|---|---|---|
+| D11 | ¿Resolver el desajuste con (a) cambiar jornada, (b) ajustar horas materias, (c) Fase 3 CCAA, o (d) sub-fase O ILP? | **(d) primero, (c) después** | Análisis matemático: con jornada `60+60+60+60+90` y materias múltiplo de 60min, el desajuste mínimo teórico es 30min en una sola materia (paridad). El solver actual produce 3.5h agregadas → margen ~7× sin tocar fuente. Sub-fase O es genérica para cualquier centro; Fase 3 CCAA solo arregla el caso EAG concreto. (a) y (b) se descartan como parches. |
 
 ---
 
@@ -540,3 +545,17 @@ Tras aplicar la migración, repoblar el catálogo y verificar `materia.minutos_s
 - (b) Editar horas en `/admin/materias` para que sumen 27.5h exactos. Pragmático para test sin tocar arquitectura.
 - (c) **Implementar Fase 3 CCAA (`BojaAndAdapter`)** — solución definitiva. Materializa DAW Andalucía con horas BOJA reales que cuadran con la jornada. **Recomendada.**
 - (d) Sub-fase O nueva en §14 jornadas: heurística de distribución equitativa de round-up + banner. Complementa (c), no la sustituye.
+
+### 2026-04-27 madrugada — D11 cerrada con (d) primero, (c) después
+
+Tras plantear D11, conversación con el usuario sobre la viabilidad heurística de redistribuir slots con jornada fija. Análisis matemático formal del caso EAG/DAW 1º:
+
+- Sistema `60·a + 90·b = m` con `m` múltiplo de 60 fuerza `b` par. Pero Σ b_i = 5 (impar) → mínimo una materia con b impar → mínimo desajuste teórico = **30 min**.
+- Solver actual produce **3.5h agregadas** (BD +1h, Lenguajes +1h, FOL −1.5h). Margen de mejora ~7×.
+
+**Plan acordado:**
+
+1. **Sub-fase O primero (`hoja-de-ruta-jornadas-recreos.md` §14.7 — formalizada como ILP)**: nuevo `CapacityPlanner` que pre-asigna `x_ij` (cuántos slots de cada duración por materia) minimizando `Σ |Σ_j d_j·x_ij − m_i|` antes del backtracking topológico. Banner verde/amarillo/rojo en `HorariosEditor.jsx` calculado al cambiar de grupo. Genérico para cualquier centro (no solo Andalucía).
+2. **CCAA Fase 3 después**: una vez O resuelve la combinatoria genérica, el caso EAG concreto sigue mostrando banner rojo porque BOE 28h > jornada 27.5h. Fase 3 BOJA cuadra exacto a 27.5h.
+
+(a) y (b) se descartan como parches. Detalle del razonamiento en `docs/INDEX.md` "Primera acción al retomar".
