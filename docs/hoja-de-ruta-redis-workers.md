@@ -1,5 +1,22 @@
 # Hoja de Ruta: Redis + Mercure + Workers para Tiempo Real
 
+## ⚡ Snapshot para retomar (2026-04-27)
+
+**Implementado parcialmente:**
+- Bundle `symfony/mercure-bundle` instalado y registrado.
+- Contenedor `mercure` corriendo en Docker.
+- `MercurePublishSubscriber` escucha `Mensaje::postPersist/postUpdate` y publica eventos `new_message` / `message_read` a topics `/users/{id}/messages` y `/users/{id}/notifications`.
+- `Symfony Messenger` con cola async para `PublishMercureUpdate` (no bloquea HTTP).
+- Frontend: hook `useMercure(topics, onEvent)` con EventSource, reconexión automática y cookie firmada vía `/api/me/mercure-subscribe`.
+- Consumido por: `NotificationList`, `Mensajes.jsx`, `useUnreadMessages.js`.
+
+**Deuda principal — live updates CRUD:**
+- Hoy cuando el admin edita Itinerario, Grupo, Imparticion, Matricula, Festivo, Materia, Calificacion, Tarea, Entrega, etc., **otros usuarios viendo esa misma vista NO ven el cambio hasta hacer F5**. El usuario percibe esto como bug porque "Mercure ya está" — pero en realidad solo cubre mensajería.
+
+Ver §"Deuda — Live updates CRUD para todas las vistas con persistencia" más abajo.
+
+---
+
 ## Problema Actual
 
 Toda la "reactividad" de Loggex se basa en **polling directo a la BD** desde el frontend:
@@ -520,3 +537,99 @@ Fase 4 (Monitorización)
 | Conexiones HTTP por usuario | 4 intervalos concurrentes | 1 SSE persistente |
 | Banda ancha consumida | Alta (respuestas repetidas) | Mínima (solo deltas) |
 | Complejidad de deploy | Baja (solo PHP + MariaDB) | Media (+ Redis + Mercure + Workers) |
+
+---
+
+## Deuda — Live updates CRUD para todas las vistas con persistencia
+
+**Detectada 2026-04-27** tras observación del usuario: "he tenido que refrescar la página para ver los cambios. pensaba que mercure se ocupaba de mantener todo actualizado en tiempo real".
+
+**Estado actual** (ver Snapshot arriba): el `MercurePublishSubscriber` solo cubre `Mensaje`. Para cualquier otra entidad (Itinerario, Grupo, Imparticion, Matricula, Festivo, Materia, Centro, Calificacion, Tarea, Entrega, Temario, Comunicado…), si el admin/profesor hace un cambio:
+1. Si lo hizo via API REST → Doctrine emite eventos pero no hay listener para esa entidad → no se publica al hub.
+2. Si lo hizo via SQL directo (caso del seed) → Doctrine ni se entera → ningún evento.
+3. Otros usuarios viendo esa misma vista en otro navegador NO se enteran. Tienen que hacer F5.
+
+**Caso de uso concreto que motivó la deuda**: superadmin matricula 20 alumnos vía SQL para test; admin de centro tiene `/admin/matriculas` abierta y no ve los nuevos. El usuario espera que la lista se actualice sola.
+
+### Alcance esperado por el usuario
+
+Toda vista que muestre datos persistidos del backend debe refrescarse automáticamente cuando esos datos cambian, **sin importar quién los modifique** (admin actual, otro admin, comando CLI, seed SQL).
+
+### Diseño propuesto
+
+Sistema **declarativo** que minimice el código por entidad:
+
+#### Backend — `#[LivePublish]` atributo PHP
+
+Atributo que marca una entidad como "live" con metadata de topics:
+
+```php
+#[ORM\Entity]
+#[LivePublish(
+    topicsOnPersist: ['/admin/itinerarios', '/centros/{centro_id}/itinerarios'],
+    topicsOnUpdate: ['/admin/itinerarios', '/itinerarios/{id}'],
+    topicsOnRemove: ['/admin/itinerarios'],
+    payloadGroups: ['itinerario:read'],
+)]
+class Itinerario { ... }
+```
+
+Un `LivePublishSubscriber` genérico (postPersist/postUpdate/postRemove en todas las entidades con el atributo) lee la metadata, expande placeholders (`{id}`, `{centro_id}`...) con valores de la entidad, serializa el payload con los grupos indicados y despacha `PublishMercureUpdate` por cada topic.
+
+#### Backend — fallback para SQL directo
+
+Comando `app:mercure:invalidate --topics=...` que dispara publicaciones manualmente. Pensado para usar tras seeds o migraciones SQL. Documentar en MEMORY.md la regla: "tras `mysql -e 'INSERT/UPDATE...'` que afecte a entidades live, ejecutar el comando para que los clientes conectados se enteren".
+
+#### Frontend — hook `useLiveCollection(endpoint, topic)`
+
+Reemplaza `useEffect + fetch` en cada vista con una sola línea:
+
+```js
+const { items, total, loading, refetch } = useLiveCollection(
+  `/api/itinerarios?centro=${centroId}`,
+  `/centros/${centroId}/itinerarios`,
+);
+```
+
+El hook hace fetch inicial + abre EventSource al topic + al recibir evento hace refetch (debounced 200ms para agrupar ráfagas). Maneja paginación y filtros automáticamente.
+
+#### Cobertura objetivo (priorización)
+
+Por orden de impacto en UX percibida:
+
+| Vista | Entidad principal | Topics | Prioridad |
+|---|---|---|---|
+| `/admin/imparticiones` | Imparticion | `/admin/centros/{centro_id}/imparticiones` | Alta |
+| `/admin/matriculas` | Matricula | `/admin/centros/{centro_id}/matriculas` | Alta |
+| `/admin/grupos` | Grupo | `/admin/centros/{centro_id}/grupos` | Alta |
+| `/admin/itinerarios` | Itinerario | `/admin/centros/{centro_id}/itinerarios` | Alta |
+| `/admin/horarios` | Horario | `/admin/grupos/{id}/horarios` | Alta — múltiples profes editando |
+| `/horarios` (vista personal) | Horario | `/users/{id}/schedule` | Media |
+| `/admin/festivos` | Festivo | `/centros/{centro_id}/festivos` | Media |
+| `/admin/tareas` y entregas | Tarea, Entrega | `/grupos/{id}/tareas`, `/users/{id}/entregas` | Media |
+| `/admin/calificaciones` | Calificacion | `/grupos/{id}/calificaciones`, `/users/{id}/calificaciones` | Media |
+| `/admin/usuarios` | User | `/admin/centros/{centro_id}/usuarios` | Baja |
+| `/admin/centros` | Centro | `/admin/centros` | Baja (cambios poco frecuentes) |
+| `/admin/catalogo/*` | CatalogoItinerario, CatalogoMateria | `/catalogo` | Baja (read-only del seed) |
+
+#### Esfuerzo estimado
+
+- Atributo PHP `#[LivePublish]` + subscriber genérico + comando manual: **~1 sesión** (~4h).
+- Hook `useLiveCollection`: **~2h**.
+- Migración por vista: **~30 min cada una**, ordenado por prioridad.
+
+Total para cobertura completa de vistas alta+media: **~3 sesiones**.
+
+### Mientras tanto
+
+Hasta que se implemente, **toda nueva vista CRUD que se cree debe**:
+1. Documentar explícitamente que requiere F5 manual hasta que llegue Mercure live.
+2. Considerar si vale la pena un polling local en `useEffect` con `setInterval` corto (no recomendado por carga BD; usar solo si la vista lo justifica).
+3. Asumir que los seeds SQL directos NO disparan ninguna actualización para nadie.
+
+### Deuda relacionada
+
+- **Cron anual fetch BOE** (calendario laboral) que vive aquí cuando llegue Symfony Scheduler.
+- **Notificaciones tipo "el admin acaba de matricular un alumno en tu grupo"** se beneficia del mismo sistema con un topic adicional por usuario afectado.
+
+---

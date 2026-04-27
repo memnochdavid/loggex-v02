@@ -27,6 +27,12 @@ Otras rutas más amplias:
 
 **⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). Ver `docs/hoja-de-ruta-jornadas-recreos.md` entrada "PARCHE TEMPORAL: jornadas pre Calendario Real" — opciones (A) flag, (B) enum tipoDistribución, (C) entidad MateriaTemporada. Las jornadas se eliminarán al implementar el modelo correcto.
 
+**⚠ DEUDA — Live updates CRUD para todas las vistas con persistencia:** Mercure está conectado pero **solo cubre la entidad `Mensaje`** (chat + notificaciones). Cualquier otra entidad CRUD (Itinerario, Grupo, Imparticion, Matricula, Festivo, Materia, Calificacion, Tarea, Entrega…) **requiere F5 manual** para reflejar cambios hechos por otros usuarios o por SQL directo (seeds). Detectada 2026-04-27 tras observación del usuario "pensaba que Mercure se ocupaba de mantener todo en tiempo real". Diseño propuesto: atributo PHP `#[LivePublish]` declarativo + subscriber Doctrine genérico + hook React `useLiveCollection`. Esfuerzo total cobertura completa: ~3 sesiones. Detalle en **`docs/hoja-de-ruta-redis-workers.md`** §"Deuda — Live updates CRUD para todas las vistas con persistencia".
+
+**Mientras tanto, regla obligatoria al crear nuevas vistas CRUD**:
+- Toda vista nueva que muestre datos persistidos debe asumir que requiere F5 hasta que llegue Mercure live. No prometer "tiempo real" en UX si no está cubierto.
+- Tras `mysql -e 'INSERT/UPDATE...'` o seeds directos, los clientes conectados NO se enteran. Avisar al usuario que recargue.
+
 **Bugs de datos detectados durante la sesión** (anotados en bitácora correspondiente):
 - `materia.minutos_semanales` revertido a horas para algunas filas DAW 1º. Re-aplicado `UPDATE *60`.
 - `Itinerario.catalogoOrigen` se nullificaba en cada PUT del modal porque la propiedad no estaba en `itinerario:write`. Bug histórico corregido (afectaba potencialmente a todas las ediciones de itinerario desde la UI, no solo a CCAA).
