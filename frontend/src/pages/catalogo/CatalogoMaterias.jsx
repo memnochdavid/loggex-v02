@@ -19,6 +19,28 @@ import styles from './Catalogo.module.css';
 const TIPOS = ['MODULO', 'TRONCAL', 'ESPECIFICA', 'OPTATIVA', 'LIBRE_CONFIGURACION', 'ASIGNATURA', 'FCT', 'PROYECTO'];
 const CURSOS = ['1', '2', '3', '4'];
 
+const CCAA_OPTIONS = [
+    { value: 'AN', label: 'Andalucía' },
+    { value: 'AR', label: 'Aragón' },
+    { value: 'AS', label: 'Asturias' },
+    { value: 'CB', label: 'Cantabria' },
+    { value: 'CE', label: 'Ceuta' },
+    { value: 'CL', label: 'Castilla y León' },
+    { value: 'CM', label: 'Castilla-La Mancha' },
+    { value: 'CN', label: 'Canarias' },
+    { value: 'CT', label: 'Cataluña' },
+    { value: 'EX', label: 'Extremadura' },
+    { value: 'GA', label: 'Galicia' },
+    { value: 'IB', label: 'Illes Balears' },
+    { value: 'MC', label: 'Murcia' },
+    { value: 'MD', label: 'Madrid' },
+    { value: 'ML', label: 'Melilla' },
+    { value: 'NC', label: 'Navarra' },
+    { value: 'PV', label: 'País Vasco' },
+    { value: 'RI', label: 'La Rioja' },
+    { value: 'VC', label: 'C. Valenciana' },
+];
+
 const CatalogoMaterias = () => {
     const { t } = useTranslation();
 
@@ -34,6 +56,10 @@ const CatalogoMaterias = () => {
     const [filterTipo, setFilterTipo] = useState('');
     const [filterCurso, setFilterCurso] = useState('');
     const [filterItinerarioId, setFilterItinerarioId] = useState('');
+    const [filterCcaa, setFilterCcaa] = useState(''); // '' | 'nacional' | 'AN' | 'CT' | ...
+    // mapa catalogoMateriaId → Set<ccaa> con overlays vigentes (vigenteHasta=NULL).
+    // Solo overrides (catalogoMateria NOT NULL); autonómicas puras se ignoran aquí.
+    const [overlaysPorMateria, setOverlaysPorMateria] = useState({});
 
     const [sortColumn, setSortColumn] = useState('nombre');
     const [sortDirection, setSortDirection] = useState('asc');
@@ -102,6 +128,37 @@ const CatalogoMaterias = () => {
         return () => { if (debounceTimeout.current) clearTimeout(debounceTimeout.current); };
     }, [currentPage, itemsPerPage, searchTerm, filterTipo, filterCurso, filterItinerarioId, sortColumn, sortDirection, fetchData]);
 
+    // Carga única al montar: mapa de overlays CCAA agrupados por catalogoMateria.
+    // Solo overrides (catalogoMateria NOT NULL); autonómicas puras se exponen
+    // en CatalogoItinerarioDetail, no en este listado nacional. Filtros de
+    // vigentes y catalogoMateria-no-null se hacen en cliente (no hay
+    // ExistsFilter declarado en backend).
+    useEffect(() => {
+        const url = getApiUrl('/api/catalogo_materia_ccaas?pagination=false');
+        fetch(url, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                const list = data['hydra:member'] || data.member || [];
+                const mapa = {};
+                for (const ov of list) {
+                    if (ov.vigenteHasta) continue;     // solo vigentes hoy
+                    const matRef = ov.catalogoMateria;
+                    if (!matRef) continue;             // omitir autonómicas puras
+                    const matId = typeof matRef === 'string'
+                        ? matRef.split('/').pop()
+                        : (matRef.id ?? matRef['@id']?.split('/').pop());
+                    if (!matId) continue;
+                    if (!mapa[matId]) mapa[matId] = new Set();
+                    if (ov.ccaa) mapa[matId].add(ov.ccaa);
+                }
+                const out = {};
+                for (const k of Object.keys(mapa)) out[k] = [...mapa[k]].sort();
+                setOverlaysPorMateria(out);
+            })
+            .catch(err => console.error('Error cargando overlays CCAA:', err));
+    }, []);
+
     const handleSort = useCallback((columnKey) => {
         if (sortColumn === columnKey) setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
         else { setSortColumn(columnKey); setSortDirection('asc'); }
@@ -147,6 +204,22 @@ const CatalogoMaterias = () => {
                         {name || `#${id}`}
                         <ExternalLink size={12} aria-hidden="true" />
                     </Link>
+                );
+            },
+        },
+        {
+            header: t('catalogo.materias.columnCcaa', { defaultValue: 'Overlays CCAA' }),
+            accessor: (m) => {
+                const overlays = overlaysPorMateria[m.id] || [];
+                if (overlays.length === 0) return <span className={styles.badgeNeutral}>—</span>;
+                return (
+                    <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                        {overlays.map(c => (
+                            <span key={c} className={styles.badge} title={CCAA_OPTIONS.find(o => o.value === c)?.label || c}>
+                                {c}
+                            </span>
+                        ))}
+                    </span>
                 );
             },
         },
@@ -207,13 +280,33 @@ const CatalogoMaterias = () => {
                             placeholder={t('catalogo.materias.filterAll')}
                         />
                     </div>
+
+                    <div className={styles.toolbarField}>
+                        <label className={styles.toolbarLabel}>{t('catalogo.materias.filterCcaa', { defaultValue: 'Overlay CCAA' })}</label>
+                        <ThemedSelect
+                            value={filterCcaa}
+                            onChange={(v) => { setFilterCcaa(v); setCurrentPage(1); }}
+                            options={[
+                                { value: '', label: t('catalogo.materias.filterAll') },
+                                { value: 'nacional', label: t('catalogo.materias.filterCcaaNacional', { defaultValue: 'Solo nacional (sin overlay)' }) },
+                                ...CCAA_OPTIONS.map(o => ({ value: o.value, label: `${o.label} (${o.value})` })),
+                            ]}
+                        />
+                    </div>
                 </div>
 
                 {error && <div className={crudStyles.errorContainer}>{error}</div>}
 
                 <DataTable
                     columns={columns}
-                    data={items}
+                    data={(() => {
+                        // Filtro derivado por CCAA en cliente (sobre la página visible).
+                        if (!filterCcaa) return items;
+                        if (filterCcaa === 'nacional') {
+                            return items.filter(m => (overlaysPorMateria[m.id] || []).length === 0);
+                        }
+                        return items.filter(m => (overlaysPorMateria[m.id] || []).includes(filterCcaa));
+                    })()}
                     totalItems={totalItems}
                     itemsPerPage={itemsPerPage}
                     currentPage={currentPage}
