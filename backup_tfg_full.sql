@@ -3085,21 +3085,21 @@ INSERT INTO `catalogo_materia_ccaa` VALUES
 (9,'AN',NULL,NULL,180,2,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,129,1323),
 (10,'AN',NULL,NULL,360,2,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,129,1324),
 (11,'AN',NULL,NULL,0,2,NULL,'Resolución DG FP 26/06/2024','2024-09-01',NULL,129,1326),
-(12,'AN','Itinerario Personal para la Empleabilidad I','AN-IPE-I',180,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,129,NULL),
-(13,'AN','Digitalización aplicada al sistema productivo','AN-DIG',60,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,129,NULL),
-(14,'AN','Inglés profesional para Grado Superior','AN-IP-GS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,129,NULL),
-(15,'AN','Itinerario Personal para la Empleabilidad II','AN-IPE-II',180,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,129,NULL),
-(16,'AN','Sostenibilidad aplicada al sistema productivo','AN-SOS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,129,NULL),
+(12,'AN','Itinerario Personal para la Empleabilidad I','AN-IPE-I',180,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',129,NULL),
+(13,'AN','Digitalización aplicada al sistema productivo','AN-DIG',60,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',129,NULL),
+(14,'AN','Inglés profesional para Grado Superior','AN-IP-GS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',129,NULL),
+(15,'AN','Itinerario Personal para la Empleabilidad II','AN-IPE-II',180,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',129,NULL),
+(16,'AN','Sostenibilidad aplicada al sistema productivo','AN-SOS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',129,NULL),
 (17,'AN',NULL,NULL,0,1,NULL,'Resolución DG FP 26/06/2024','2024-09-01',NULL,128,1306),
 (18,'AN',NULL,NULL,180,2,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,128,1310),
 (19,'AN',NULL,NULL,240,2,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,128,1311),
 (20,'AN',NULL,NULL,0,2,NULL,'Resolución DG FP 26/06/2024','2024-09-01',NULL,128,1312),
 (21,'AN',NULL,NULL,0,2,NULL,'Resolución DG FP 26/06/2024','2024-09-01',NULL,128,1313),
-(22,'AN','Itinerario Personal para la Empleabilidad I','AN-IPE-I',180,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,128,NULL),
-(23,'AN','Digitalización aplicada al sistema productivo','AN-DIG',60,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,128,NULL),
-(24,'AN','Inglés profesional para Grado Superior','AN-IP-GS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,128,NULL),
-(25,'AN','Itinerario Personal para la Empleabilidad II','AN-IPE-II',180,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,128,NULL),
-(26,'AN','Sostenibilidad aplicada al sistema productivo','AN-SOS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01',NULL,128,NULL),
+(22,'AN','Itinerario Personal para la Empleabilidad I','AN-IPE-I',180,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',128,NULL),
+(23,'AN','Digitalización aplicada al sistema productivo','AN-DIG',60,1,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',128,NULL),
+(24,'AN','Inglés profesional para Grado Superior','AN-IP-GS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',128,NULL),
+(25,'AN','Itinerario Personal para la Empleabilidad II','AN-IPE-II',180,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',128,NULL),
+(26,'AN','Sostenibilidad aplicada al sistema productivo','AN-SOS',120,2,'modulo','Resolución 26/06/2024 DG FP Andalucía','2024-09-01','2024-08-31',128,NULL),
 (27,'AN',NULL,NULL,360,1,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,129,1315),
 (28,'AN',NULL,NULL,360,1,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,129,1316),
 (29,'AN',NULL,NULL,480,1,NULL,'BOJA 149/2011 (DAW) + BOJA 142/2011 (DAM)','2024-09-01',NULL,129,1317),
@@ -3154,9 +3154,12 @@ CREATE TABLE `centro` (
   `deleted_at` datetime DEFAULT NULL,
   `catalogo_origen_id` int(11) DEFAULT NULL,
   `ccaa` varchar(2) DEFAULT NULL,
+  `provincia_id` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_2675036B438E8617` (`catalogo_origen_id`),
-  CONSTRAINT `FK_2675036B438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_centro` (`id`) ON DELETE SET NULL
+  KEY `fk_centro_provincia` (`provincia_id`),
+  CONSTRAINT `FK_2675036B438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_centro` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_centro_provincia` FOREIGN KEY (`provincia_id`) REFERENCES `provincia` (`codigo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3167,8 +3170,8 @@ CREATE TABLE `centro` (
 LOCK TABLES `centro` WRITE;
 /*!40000 ALTER TABLE `centro` DISABLE KEYS */;
 INSERT INTO `centro` VALUES
-(3,'Escuela Arte Granada','B18000000',1,NULL,'logoEAG-69820676cd526.png','Av. Dr. Oloriz, 6, Beiro, 18012 Granada','958 27 80 60','2026-01-31 22:12:20','2026-02-03 14:30:14',0,NULL,NULL,NULL),
-(4,'IES Tecnológico','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20','2026-03-21 08:36:25',0,NULL,NULL,NULL);
+(3,'Escuela Arte Granada','B18000000',1,NULL,'logoEAG-69820676cd526.png','Av. Dr. Oloriz, 6, Beiro, 18012 Granada','958 27 80 60','2026-01-31 22:12:20','2026-02-03 14:30:14',0,NULL,NULL,NULL,NULL),
+(4,'IES Tecnológico','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20','2026-03-21 08:36:25',0,NULL,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `centro` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3295,10 +3298,15 @@ CREATE TABLE `festivo` (
   `deleted` tinyint(4) NOT NULL DEFAULT 0,
   `deleted_at` datetime DEFAULT NULL,
   `centro_id` int(11) DEFAULT NULL,
+  `ambito` varchar(16) NOT NULL DEFAULT 'local',
+  `ccaa` varchar(2) DEFAULT NULL,
+  `provincia_id` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `IDX_9472C78A298137A7` (`centro_id`),
-  CONSTRAINT `FK_9472C78A298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `fk_festivo_provincia` (`provincia_id`),
+  CONSTRAINT `FK_9472C78A298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
+  CONSTRAINT `fk_festivo_provincia` FOREIGN KEY (`provincia_id`) REFERENCES `provincia` (`codigo`)
+) ENGINE=InnoDB AUTO_INCREMENT=136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3307,6 +3315,142 @@ CREATE TABLE `festivo` (
 
 LOCK TABLES `festivo` WRITE;
 /*!40000 ALTER TABLE `festivo` DISABLE KEYS */;
+INSERT INTO `festivo` VALUES
+(1,'Año Nuevo','2025-01-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(2,'Epifanía del Señor','2025-01-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(3,'Viernes Santo','2025-04-18',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(4,'Fiesta del Trabajo','2025-05-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(5,'Asunción de la Virgen','2025-08-15',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(6,'Todos los Santos','2025-11-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(7,'Día de la Constitución Española','2025-12-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(8,'Inmaculada Concepción','2025-12-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(9,'Natividad del Señor','2025-12-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(10,'Día de Andalucía','2025-02-28',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AN',NULL),
+(11,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AN',NULL),
+(12,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AR',NULL),
+(13,'San Jorge/Día de Aragón','2025-04-23',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AR',NULL),
+(14,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AS',NULL),
+(15,'Día de les Illes Balears','2025-03-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(16,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(17,'Día de Asturias','2025-09-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(18,'San Esteban','2025-12-26',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(19,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CN',NULL),
+(20,'Día de Canarias','2025-05-30',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CN',NULL),
+(21,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CB',NULL),
+(22,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(23,'Día de Castilla-La Mancha','2025-05-31',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(24,'Día de las Instituciones de Cantabria','2025-07-28',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(25,'La Bien Aparecida','2025-09-15',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(26,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(27,'Fiesta de Castilla y León','2025-04-23',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(28,'Fiesta del Corpus Christi','2025-06-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(29,'Lunes de Pascua','2025-04-21',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(30,'San Esteban','2025-12-26',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(31,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(32,'San Juan','2025-06-24',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(33,'Fiesta Nacional de Cataluña','2025-09-11',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(34,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(35,'Día de las Letras Gallegas','2025-05-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(36,'Día de Extremadura','2025-09-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(37,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(38,'Fiesta de la Comunidad de Madrid','2025-05-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(39,'Santiago Apóstol/Día Nacional de Galicia','2025-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(40,'San José','2025-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(41,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(42,'Santiago Apóstol/Día Nacional de Galicia','2025-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(43,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(44,'Lunes de Pascua','2025-04-21',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(45,'Día de la Región de Murcia','2025-06-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(46,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(47,'Lunes de Pascua','2025-04-21',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(48,'Santiago Apóstol/Día Nacional de Galicia','2025-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(49,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(50,'Lunes de Pascua','2025-04-21',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(51,'Santiago Apóstol/Día Nacional de Galicia','2025-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(52,'San José','2025-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(53,'Lunes de Pascua','2025-04-21',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(54,'Día de la Rioja','2025-06-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(55,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(56,'San Juan','2025-06-24',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(57,'Día de la Comunitat Valenciana','2025-10-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(58,'Fiesta del Eid Fitr','2025-03-31',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(59,'Jueves Santo','2025-04-17',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(60,'Fiesta del Sacrificio - Eidul Adha','2025-06-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(61,'Fiesta del Sacrificio - Aid Al Adha','2025-06-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(62,'Nuestra Señora de África','2025-08-05',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(63,'Año Nuevo','2026-01-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(64,'Epifanía del Señor','2026-01-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(65,'Viernes Santo','2026-04-03',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(66,'Fiesta del Trabajo','2026-05-01',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(67,'Asunción de la Virgen','2026-08-15',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(68,'Fiesta Nacional de España','2026-10-12',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(69,'Inmaculada Concepción','2026-12-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(70,'Natividad del Señor','2026-12-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'nacional',NULL,NULL),
+(71,'Día de Andalucía','2026-02-28',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AN',NULL),
+(72,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AN',NULL),
+(73,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AN',NULL),
+(74,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AR',NULL),
+(75,'San Jorge/Día de Aragón','2026-04-23',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AR',NULL),
+(76,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AR',NULL),
+(77,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AS',NULL),
+(78,'Día de Asturias','2026-09-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AS',NULL),
+(79,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','AS',NULL),
+(80,'Lunes siguiente al Día de les Illes Balears','2026-03-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(81,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(82,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(83,'San Esteban','2026-12-26',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','IB',NULL),
+(84,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CN',NULL),
+(85,'Día de Canarias','2026-05-30',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CN',NULL),
+(86,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CN',NULL),
+(87,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CB',NULL),
+(88,'Día de las Instituciones de Cantabria','2026-07-28',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CB',NULL),
+(89,'La Bien Aparecida','2026-09-15',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CB',NULL),
+(90,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(91,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(92,'Corpus Christi','2026-06-04',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(93,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CM',NULL),
+(94,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(95,'Fiesta de Castilla y León','2026-04-23',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(96,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CL',NULL),
+(97,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(98,'San Juan','2026-06-24',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(99,'Fiesta Nacional de Cataluña','2026-09-11',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(100,'San Esteban','2026-12-26',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CT',NULL),
+(101,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(102,'Día de Extremadura','2026-09-08',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(103,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','EX',NULL),
+(104,'San José','2026-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(105,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(106,'San Juan','2026-06-24',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(107,'Santiago Apóstol/Día Nacional de Galicia','2026-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','GA',NULL),
+(108,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(109,'Fiesta de la Comunidad de Madrid','2026-05-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(110,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MD',NULL),
+(111,'San José','2026-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(112,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(113,'Día de la Región de Murcia','2026-06-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','MC',NULL),
+(114,'San José','2026-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(115,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(116,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(117,'Día siguiente a Todos los Santos','2026-11-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','NC',NULL),
+(118,'San José','2026-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(119,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(120,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(121,'Santiago Apóstol/Día Nacional de Galicia','2026-07-25',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','PV',NULL),
+(122,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(123,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(124,'Día de la Rioja','2026-06-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','RI',NULL),
+(125,'San José','2026-03-19',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(126,'Lunes de Pascua','2026-04-06',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(127,'San Juan','2026-06-24',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(128,'Día de la Comunitat Valenciana','2026-10-09',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','VC',NULL),
+(129,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(130,'Fiesta Sacrificio-Eidul Adha','2026-05-27',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(131,'Nuestra Señora de África','2026-08-05',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(132,'Día de Ceuta','2026-09-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','CE',NULL),
+(133,'Fiesta del Eid Fitr','2026-03-20',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(134,'Jueves Santo','2026-04-02',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL),
+(135,'Fiesta Sacrificio-Aid al Adha','2026-05-27',NULL,'2026-04-27 18:00:10','2026-04-27 18:00:10',0,NULL,NULL,'autonomico','ML',NULL);
 /*!40000 ALTER TABLE `festivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3337,7 +3481,7 @@ CREATE TABLE `grupo` (
   KEY `IDX_8C0E9BD3298137A7` (`centro_id`),
   CONSTRAINT `FK_8C0E9BD3298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_8C0E9BD3B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3348,7 +3492,9 @@ LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
 (1,'Desarrollo de Aplicaciones Web','DAW',1,'2025-2026','2025-09-01','2026-07-31',NULL,'2026-04-27 15:16:50',0,NULL,3,3,'Aula 4'),
-(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-01','2026-07-31',NULL,'2026-04-27 15:16:37',0,NULL,3,3,'Aula 5');
+(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-01','2026-07-31',NULL,'2026-04-27 15:16:37',0,NULL,3,3,'Aula 5'),
+(3,'Desarrollo de Aplicaciones Multiplataforma','DAM',1,'2025-2026',NULL,NULL,'2026-04-27 18:45:37',NULL,0,NULL,5,3,'Aula 6'),
+(4,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026',NULL,NULL,'2026-04-27 18:45:37',NULL,0,NULL,5,3,'Aula 7');
 /*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3550,7 +3696,7 @@ CREATE TABLE `imparticion` (
   CONSTRAINT `FK_D179FDFD9C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_D179FDFDB54DBBCB` FOREIGN KEY (`materia_id`) REFERENCES `materia` (`id`),
   CONSTRAINT `FK_D179FDFDE52BD977` FOREIGN KEY (`profesor_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3579,12 +3725,38 @@ INSERT INTO `imparticion` VALUES
 (35,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',NULL,36,1,NULL),
 (36,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',NULL,37,2,NULL),
 (37,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,55,38,1,NULL),
-(38,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,NULL,39,1,NULL),
-(39,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,NULL,40,1,NULL),
-(40,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,NULL,41,2,NULL),
+(38,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,56,39,1,NULL),
+(39,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,55,40,1,NULL),
+(40,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,53,41,2,NULL),
 (41,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,55,42,2,NULL),
 (42,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,56,43,2,NULL),
-(43,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,NULL,44,2,NULL);
+(43,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,56,44,2,NULL),
+(44,'2026-04-27 18:45:37',NULL,0,NULL,50,45,3,NULL),
+(45,'2026-04-27 18:45:37',NULL,0,NULL,51,46,3,NULL),
+(46,'2026-04-27 18:45:37',NULL,0,NULL,52,47,3,NULL),
+(47,'2026-04-27 18:45:37',NULL,0,NULL,53,48,3,NULL),
+(48,'2026-04-27 18:45:37',NULL,0,NULL,54,49,3,NULL),
+(49,'2026-04-27 18:45:37','2026-04-27 19:07:55',1,'2026-04-27 19:07:54',55,50,3,NULL),
+(50,'2026-04-27 18:45:37',NULL,0,NULL,50,51,4,NULL),
+(51,'2026-04-27 18:45:37',NULL,0,NULL,51,52,4,NULL),
+(52,'2026-04-27 18:45:37',NULL,0,NULL,53,53,4,NULL),
+(53,'2026-04-27 18:45:37',NULL,0,NULL,54,54,4,NULL),
+(54,'2026-04-27 18:45:37',NULL,0,NULL,52,55,4,NULL),
+(55,'2026-04-27 18:45:37','2026-04-27 19:07:55',1,'2026-04-27 19:07:55',56,56,4,NULL),
+(56,'2026-04-27 18:45:37','2026-04-27 19:07:55',1,'2026-04-27 19:07:55',55,57,4,NULL),
+(57,'2026-04-27 18:45:37',NULL,0,NULL,56,58,4,NULL),
+(58,'2026-04-27 19:07:54','2026-04-27 19:07:54',1,'2026-04-27 19:22:55',NULL,59,3,NULL),
+(59,'2026-04-27 19:07:54','2026-04-27 19:07:54',1,'2026-04-27 19:22:55',NULL,60,3,NULL),
+(60,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,55,61,3,NULL),
+(61,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,56,62,3,NULL),
+(62,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,55,63,3,NULL),
+(63,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',NULL,64,4,NULL),
+(64,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',NULL,65,4,NULL),
+(65,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',NULL,66,4,NULL),
+(66,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,53,67,4,NULL),
+(67,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,55,68,4,NULL),
+(68,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,56,69,4,NULL),
+(69,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,56,70,4,NULL);
 /*!40000 ALTER TABLE `imparticion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3614,7 +3786,7 @@ CREATE TABLE `itinerario` (
   CONSTRAINT `FK_11ECF404298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`),
   CONSTRAINT `FK_11ECF404438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_itinerario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_11ECF40489635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3625,7 +3797,8 @@ LOCK TABLES `itinerario` WRITE;
 /*!40000 ALTER TABLE `itinerario` DISABLE KEYS */;
 INSERT INTO `itinerario` VALUES
 (3,'Técnico Superior en Desarrollo de Aplicaciones Web','Superior',NULL,'2026-04-27 16:59:39',0,NULL,3,129,4,'AN'),
-(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL,NULL);
+(4,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior','2026-04-26 15:24:35','2026-04-26 15:55:54',1,'2026-04-26 15:55:54',3,128,NULL,NULL),
+(5,'Técnico Superior en Desarrollo de Aplicaciones Multiplataforma','Superior',NULL,'2026-04-27 19:08:04',0,NULL,3,128,5,'AN');
 /*!40000 ALTER TABLE `itinerario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3754,7 +3927,7 @@ CREATE TABLE `materia` (
   KEY `IDX_6DF05284438E8617` (`catalogo_origen_id`),
   CONSTRAINT `FK_6DF05284438E8617` FOREIGN KEY (`catalogo_origen_id`) REFERENCES `catalogo_materia` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_6DF05284B824E717` FOREIGN KEY (`itinerario_id`) REFERENCES `itinerario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3764,45 +3937,71 @@ CREATE TABLE `materia` (
 LOCK TABLES `materia` WRITE;
 /*!40000 ALTER TABLE `materia` DISABLE KEYS */;
 INSERT INTO `materia` VALUES
-(1,'Sistemas informáticos','0483',NULL,1,360,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1315,'modulo'),
-(2,'Bases de Datos','0484',NULL,1,360,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1316,'modulo'),
-(3,'Programación','0485',NULL,1,480,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1317,'modulo'),
-(4,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,240,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1318,'modulo'),
-(5,'Entornos de desarrollo','0487',NULL,1,180,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1319,'modulo'),
-(6,'Formación y Orientación Laboral','0617',NULL,1,180,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1320,'modulo'),
-(7,'Desarrollo web en entorno cliente','0612',NULL,2,360,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1321,'modulo'),
-(8,'Desarrollo web en entorno servidor','0613',NULL,2,480,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1322,'modulo'),
-(9,'Despliegue de aplicaciones web','0614',NULL,2,180,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1323,'modulo'),
-(10,'Diseño de interfaces web','0615',NULL,2,360,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1324,'modulo'),
-(11,'Proyecto de desarrollo de aplicaciones web','0616',NULL,2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1325,'proyecto'),
-(12,'Empresa e iniciativa emprendedora','0618',NULL,2,180,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1326,'modulo'),
-(13,'Formación en Centros de Trabajo','0619',NULL,2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1327,'fct'),
-(14,'Sistemas informáticos','0483',NULL,1,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1301,'modulo'),
-(15,'Bases de Datos','0484',NULL,1,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1302,'modulo'),
-(16,'Programación','0485',NULL,1,420,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1303,'modulo'),
-(17,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1304,'modulo'),
-(18,'Entornos de desarrollo','0487',NULL,1,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1305,'modulo'),
-(19,'Formación y Orientación Laboral','0493',NULL,1,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1306,'modulo'),
-(20,'Acceso a datos','0486',NULL,2,360,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1307,'modulo'),
-(21,'Desarrollo de interfaces','0488',NULL,2,360,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1308,'modulo'),
-(22,'Programación multimedia y dispositivos móviles','0489',NULL,2,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1309,'modulo'),
-(23,'Programación de servicios y procesos','0490',NULL,2,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1310,'modulo'),
-(24,'Sistemas de gestión empresarial','0491',NULL,2,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1311,'modulo'),
-(25,'Proyecto de desarrollo de aplicaciones multiplataforma','0492',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1312,'proyecto'),
-(26,'Empresa e iniciativa emprendedora','0494',NULL,2,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1313,'modulo'),
-(27,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1314,'fct'),
-(33,'Inglés profesional para Grado Superior','AN-IP-GS',NULL,2,120,'2026-04-27 14:25:47','2026-04-27 14:25:47',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
-(34,'Itinerario Personal para la Empleabilidad II','AN-IPE-II',NULL,2,180,'2026-04-27 14:25:47','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
-(35,'Itinerario Personal para la Empleabilidad I','AN-IPE-I',NULL,1,180,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
-(36,'Digitalización aplicada al sistema productivo','AN-DIG',NULL,1,60,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
-(37,'Sostenibilidad aplicada al sistema productivo','AN-SOS',NULL,2,120,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
-(38,'Itinerario Personal para la Empleabilidad I','1709',NULL,1,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
-(39,'Digitalización aplicada al sistema productivo (GS)','1665',NULL,1,60,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
-(40,'Sostenibilidad aplicada al sistema productivo','1708',NULL,1,60,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
-(41,'Horas de libre configuración','AN-LIBRE-DAW-2',NULL,2,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'libre_configuracion'),
-(42,'Inglés profesional GS','0179',NULL,2,120,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
-(43,'Itinerario Personal para la Empleabilidad II','1710',NULL,2,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
-(44,'Proyecto Intermodular','1713',NULL,2,120,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo');
+(1,'Sistemas informáticos','0483','SI',1,360,NULL,'2026-04-27 17:45:00',0,NULL,3,NULL,'modulo'),
+(2,'Bases de Datos','0484','BD',1,360,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1316,'modulo'),
+(3,'Programación','0485','PR',1,480,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1317,'modulo'),
+(4,'Lenguajes de marcas y sistemas de gestión de información','0373','LM',1,240,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1318,'modulo'),
+(5,'Entornos de desarrollo','0487','ED',1,180,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1319,'modulo'),
+(6,'Formación y Orientación Laboral','0617','FOL',1,180,'2026-04-26 15:24:01','2026-04-27 14:15:27',0,NULL,3,1320,'modulo'),
+(7,'Desarrollo web en entorno cliente','0612','DWEC',2,360,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1321,'modulo'),
+(8,'Desarrollo web en entorno servidor','0613','DWES',2,480,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1322,'modulo'),
+(9,'Despliegue de aplicaciones web','0614','DAW',2,180,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1323,'modulo'),
+(10,'Diseño de interfaces web','0615','DIW',2,360,'2026-04-26 15:24:01','2026-04-27 16:27:31',0,NULL,3,1324,'modulo'),
+(11,'Proyecto de desarrollo de aplicaciones web','0616','PDAW',2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1325,'proyecto'),
+(12,'Empresa e iniciativa emprendedora','0618','EIE',2,180,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1326,'modulo'),
+(13,'Formación en Centros de Trabajo','0619','FCT',2,0,'2026-04-26 15:24:01','2026-04-26 15:24:01',0,NULL,3,1327,'fct'),
+(14,'Sistemas informáticos','0483','SI',1,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1301,'modulo'),
+(15,'Bases de Datos','0484','BD',1,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1302,'modulo'),
+(16,'Programación','0485','PR',1,420,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1303,'modulo'),
+(17,'Lenguajes de marcas y sistemas de gestión de información','0373','LM',1,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1304,'modulo'),
+(18,'Entornos de desarrollo','0487','ED',1,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1305,'modulo'),
+(19,'Formación y Orientación Laboral','0493','FOL',1,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1306,'modulo'),
+(20,'Acceso a datos','0486','AD',2,360,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1307,'modulo'),
+(21,'Desarrollo de interfaces','0488','DI',2,360,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1308,'modulo'),
+(22,'Programación multimedia y dispositivos móviles','0489','PMDM',2,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1309,'modulo'),
+(23,'Programación de servicios y procesos','0490','PSP',2,240,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1310,'modulo'),
+(24,'Sistemas de gestión empresarial','0491','SGE',2,300,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1311,'modulo'),
+(25,'Proyecto de desarrollo de aplicaciones multiplataforma','0492','PDAM',2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1312,'proyecto'),
+(26,'Empresa e iniciativa emprendedora','0494','EIE',2,180,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1313,'modulo'),
+(27,'Formación en Centros de Trabajo','0495','FCT',2,0,'2026-04-26 15:24:35','2026-04-26 15:24:35',0,NULL,4,1314,'fct'),
+(33,'Inglés profesional para Grado Superior','AN-IP-GS','ING',2,120,'2026-04-27 14:25:47','2026-04-27 14:25:47',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
+(34,'Itinerario Personal para la Empleabilidad II','AN-IPE-II','IPEI2',2,180,'2026-04-27 14:25:47','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
+(35,'Itinerario Personal para la Empleabilidad I','AN-IPE-I','IPEI1',1,180,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
+(36,'Digitalización aplicada al sistema productivo','AN-DIG','DIG',1,60,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
+(37,'Sostenibilidad aplicada al sistema productivo','AN-SOS','SOST',2,120,'2026-04-27 15:55:37','2026-04-27 15:55:37',1,'2026-04-27 16:30:42',3,NULL,'modulo'),
+(38,'Itinerario Personal para la Empleabilidad I','1709','IPEI1',1,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(39,'Digitalización aplicada al sistema productivo (GS)','1665','DIG',1,60,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(40,'Sostenibilidad aplicada al sistema productivo','1708','SOST',1,60,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(41,'Horas de libre configuración','AN-LIBRE-DAW-2','Libre',2,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'libre_configuracion'),
+(42,'Inglés profesional GS','0179','ING',2,120,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(43,'Itinerario Personal para la Empleabilidad II','1710','IPEI2',2,180,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(44,'Proyecto Intermodular','1713','PRO',2,120,'2026-04-27 16:27:31','2026-04-27 16:27:31',0,NULL,3,NULL,'modulo'),
+(45,'Sistemas informáticos','0483',NULL,1,360,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1301,'modulo'),
+(46,'Bases de Datos','0484',NULL,1,360,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1302,'modulo'),
+(47,'Programación','0485',NULL,1,480,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1303,'modulo'),
+(48,'Lenguajes de marcas y sistemas de gestión de información','0373',NULL,1,240,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1304,'modulo'),
+(49,'Entornos de desarrollo','0487',NULL,1,180,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1305,'modulo'),
+(50,'Formación y Orientación Laboral','0493',NULL,1,180,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1306,'modulo'),
+(51,'Acceso a datos','0486',NULL,2,300,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1307,'modulo'),
+(52,'Desarrollo de interfaces','0488',NULL,2,420,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1308,'modulo'),
+(53,'Programación multimedia y dispositivos móviles','0489',NULL,2,240,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1309,'modulo'),
+(54,'Programación de servicios y procesos','0490',NULL,2,180,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1310,'modulo'),
+(55,'Sistemas de gestión empresarial','0491',NULL,2,240,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1311,'modulo'),
+(56,'Proyecto de desarrollo de aplicaciones multiplataforma','0492',NULL,2,0,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1312,'proyecto'),
+(57,'Empresa e iniciativa emprendedora','0494',NULL,2,240,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1313,'modulo'),
+(58,'Formación en Centros de Trabajo','0495',NULL,2,0,'2026-04-27 18:38:03','2026-04-27 18:38:03',0,NULL,5,1314,'fct'),
+(59,'Itinerario Personal para la Empleabilidad I','AN-IPE-I',NULL,1,180,'2026-04-27 19:07:54','2026-04-27 19:07:54',1,'2026-04-27 19:22:55',5,NULL,'modulo'),
+(60,'Digitalización aplicada al sistema productivo','AN-DIG',NULL,1,60,'2026-04-27 19:07:54','2026-04-27 19:07:54',1,'2026-04-27 19:22:55',5,NULL,'modulo'),
+(61,'Itinerario Personal para la Empleabilidad I','1709',NULL,1,180,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,5,NULL,'modulo'),
+(62,'Digitalización aplicada al sistema productivo (GS)','1665',NULL,1,60,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,5,NULL,'modulo'),
+(63,'Sostenibilidad aplicada al sistema productivo','1708',NULL,1,60,'2026-04-27 19:07:54','2026-04-27 19:07:54',0,NULL,5,NULL,'modulo'),
+(64,'Inglés profesional para Grado Superior','AN-IP-GS',NULL,2,120,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',5,NULL,'modulo'),
+(65,'Itinerario Personal para la Empleabilidad II','AN-IPE-II',NULL,2,180,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',5,NULL,'modulo'),
+(66,'Sostenibilidad aplicada al sistema productivo','AN-SOS',NULL,2,120,'2026-04-27 19:07:55','2026-04-27 19:07:55',1,'2026-04-27 19:22:55',5,NULL,'modulo'),
+(67,'Horas de libre configuración','AN-LIBRE-DAM-2',NULL,2,180,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,5,NULL,'libre_configuracion'),
+(68,'Inglés profesional GS','0179',NULL,2,120,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,5,NULL,'modulo'),
+(69,'Itinerario Personal para la Empleabilidad II','1710',NULL,2,180,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,5,NULL,'modulo'),
+(70,'Proyecto Intermodular','1713',NULL,2,120,'2026-04-27 19:07:55','2026-04-27 19:07:55',0,NULL,5,NULL,'modulo');
 /*!40000 ALTER TABLE `materia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3826,7 +4025,7 @@ CREATE TABLE `matricula` (
   KEY `IDX_15DF18859C833003` (`grupo_id`),
   CONSTRAINT `FK_15DF18859C833003` FOREIGN KEY (`grupo_id`) REFERENCES `grupo` (`id`),
   CONSTRAINT `FK_15DF1885FC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3836,7 +4035,27 @@ CREATE TABLE `matricula` (
 LOCK TABLES `matricula` WRITE;
 /*!40000 ALTER TABLE `matricula` DISABLE KEYS */;
 INSERT INTO `matricula` VALUES
-(1,'2026-04-26 15:35:31','2026-04-26 16:01:30',1,'2026-04-26 16:01:30',57,1);
+(1,'2026-04-26 15:35:31','2026-04-26 16:01:30',1,'2026-04-26 16:01:30',57,1),
+(2,'2026-04-27 18:45:37',NULL,0,NULL,57,1),
+(3,'2026-04-27 18:45:37',NULL,0,NULL,58,1),
+(4,'2026-04-27 18:45:37',NULL,0,NULL,59,1),
+(5,'2026-04-27 18:45:37',NULL,0,NULL,60,1),
+(6,'2026-04-27 18:45:37',NULL,0,NULL,61,1),
+(7,'2026-04-27 18:45:37',NULL,0,NULL,62,2),
+(8,'2026-04-27 18:45:37',NULL,0,NULL,63,2),
+(9,'2026-04-27 18:45:37',NULL,0,NULL,64,2),
+(10,'2026-04-27 18:45:37',NULL,0,NULL,65,2),
+(11,'2026-04-27 18:45:37',NULL,0,NULL,66,2),
+(12,'2026-04-27 18:45:37',NULL,0,NULL,67,3),
+(13,'2026-04-27 18:45:37',NULL,0,NULL,68,3),
+(14,'2026-04-27 18:45:37',NULL,0,NULL,69,3),
+(15,'2026-04-27 18:45:37',NULL,0,NULL,70,3),
+(16,'2026-04-27 18:45:37',NULL,0,NULL,71,3),
+(17,'2026-04-27 18:45:37',NULL,0,NULL,72,4),
+(18,'2026-04-27 18:45:37',NULL,0,NULL,73,4),
+(19,'2026-04-27 18:45:37',NULL,0,NULL,74,4),
+(20,'2026-04-27 18:45:37',NULL,0,NULL,75,4),
+(21,'2026-04-27 18:45:37',NULL,0,NULL,76,4);
 /*!40000 ALTER TABLE `matricula` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -4122,6 +4341,83 @@ INSERT INTO `ponderacion_imparticion` VALUES
 UNLOCK TABLES;
 
 --
+-- Table structure for table `provincia`
+--
+
+DROP TABLE IF EXISTS `provincia`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `provincia` (
+  `codigo` varchar(2) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `ccaa` varchar(2) NOT NULL,
+  PRIMARY KEY (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `provincia`
+--
+
+LOCK TABLES `provincia` WRITE;
+/*!40000 ALTER TABLE `provincia` DISABLE KEYS */;
+INSERT INTO `provincia` VALUES
+('01','Álava','PV'),
+('02','Albacete','CM'),
+('03','Alicante','VC'),
+('04','Almería','AN'),
+('05','Ávila','CL'),
+('06','Badajoz','EX'),
+('07','Illes Balears','IB'),
+('08','Barcelona','CT'),
+('09','Burgos','CL'),
+('10','Cáceres','EX'),
+('11','Cádiz','AN'),
+('12','Castellón','VC'),
+('13','Ciudad Real','CM'),
+('14','Córdoba','AN'),
+('15','A Coruña','GA'),
+('16','Cuenca','CM'),
+('17','Girona','CT'),
+('18','Granada','AN'),
+('19','Guadalajara','CM'),
+('20','Gipuzkoa','PV'),
+('21','Huelva','AN'),
+('22','Huesca','AR'),
+('23','Jaén','AN'),
+('24','León','CL'),
+('25','Lleida','CT'),
+('26','La Rioja','RI'),
+('27','Lugo','GA'),
+('28','Madrid','MD'),
+('29','Málaga','AN'),
+('30','Murcia','MC'),
+('31','Navarra','NC'),
+('32','Ourense','GA'),
+('33','Asturias','AS'),
+('34','Palencia','CL'),
+('35','Las Palmas','CN'),
+('36','Pontevedra','GA'),
+('37','Salamanca','CL'),
+('38','Santa Cruz de Tenerife','CN'),
+('39','Cantabria','CB'),
+('40','Segovia','CL'),
+('41','Sevilla','AN'),
+('42','Soria','CL'),
+('43','Tarragona','CT'),
+('44','Teruel','AR'),
+('45','Toledo','CM'),
+('46','Valencia','VC'),
+('47','Valladolid','CL'),
+('48','Bizkaia','PV'),
+('49','Zamora','CL'),
+('50','Zaragoza','AR'),
+('51','Ceuta','CE'),
+('52','Melilla','ML');
+/*!40000 ALTER TABLE `provincia` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `tarea`
 --
 
@@ -4318,4 +4614,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-27 17:00:37
+-- Dump completed on 2026-04-27 19:29:20
