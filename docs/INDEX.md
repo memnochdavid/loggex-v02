@@ -14,12 +14,13 @@
 
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
-1. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
-2. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
-3. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 1.
-4. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
-5. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
-6. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
+1. **Modalidad de imparticion** (~3 sesiones) — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). **Cierra la limitación detectada con 2º DAM AN** (33h currículo no caben en 30h jornada porque incluye 5h "no regulares" de Proyecto Intermodular + Libre configuración que el modelo trata como presenciales). Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar 2º DAM/DAW LOMLOE en producción**.
+2. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
+3. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
+4. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 2.
+5. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
+6. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
+7. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
 **PDF multi-página por rango ✅ Done (2026-04-28 noche):** el botón "Exportar PDF" de `/admin/horarios` genera un PDF con **una página por cada `PeriodoLectivo`** del grupo, ordenadas cronológicamente. Cada página repite la cabecera (logo + título + fecha) y añade una sub-cabecera con nombre+fechas del rango. Backend: `HorarioPdfController::horarioGrupo()` agrupa horarios por PL y construye array `paginas[]`. Twig refactorizado en 2 macros (`headerBlock`, `grillaBlock`) con branching multi/single-page para mantener compatibilidad con `/horario/me`.
 
 Otras rutas más amplias:
@@ -27,6 +28,8 @@ Otras rutas más amplias:
 - Fase 3 opción B completa: scraper PDF del BOJA.
 - §14 sub-fases L/M/N (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
+
+**🆕 Limitación detectada con 2º DAM AN (2026-04-28 noche):** la jornada lectiva normal (30h presencial) no acoge el currículo LOMLOE de 2º DAM (33h/sem) porque el modelo trata todas las materias como `PRESENCIAL`, incluidas las **5h "no regulares"** (Proyecto Intermodular 2h + Horas de libre configuración 3h) que NO son clase semanal en aula. Plan: añadir enum `Modalidad` (`PRESENCIAL/FCT/NO_REGULAR/AUTONOMA`) para separar placement físico de carga curricular. Doc dedicado: **`hoja-de-ruta-modalidad-imparticion.md`** (~3 sesiones). Bloqueante real para soportar 2º DAM/DAW LOMLOE sin parches en centros reales.
 
 **✅ PARCHE TEMPORAL ELIMINADO (2026-04-28 noche):** las jornadas `id 4 Mañanas` y `id 5 Tardes pre Calendario Real` (35h/sem) **borradas de BD** tras cerrar Fase 5 entera de PeriodoLectivo. Itinerarios DAW/DAM ahora apuntan a la jornada normal `id=3 "FP Mañanas"` (27.5h slots + 2.5h recreos = 30h presencial). 164 horarios fantasma (slots inexistentes en jornada normal) soft-deleted. Bitácora completa: `docs/hoja-de-ruta-periodos-lectivos.md` §6 (Sub-fase D). Doc histórico marcado SUPERSEDED: `docs/hoja-de-ruta-jornadas-recreos.md` §"PARCHE TEMPORAL".
 
@@ -135,6 +138,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
+| `hoja-de-ruta-modalidad-imparticion.md` | ~3 sesiones (Fases 1-6) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Detectado con 2º DAM AN (déficit 5.5-6h ficticio). Bloquea soporte LOMLOE FP completo en producción. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
@@ -171,6 +175,10 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 4. **CCAA Fase 3 opción B (objetivo final)** ⏳ — `BojaAndScraperProvider` parser PDF real. Arquitectura ya preparada.
 5. **Ampliar provider** a DAW 1º + DAM 1º + DAM 2º AN ⏳ — datos verificados manualmente.
 6. **CCAA Fase 4** ⏳ — filtros CCAA en `/admin/catalogo/*` + banner provenance ampliado.
+
+### Bloque 2.5 — Modalidad de imparticion *(🔴 sin empezar — bloqueante para 2º curso FP)*
+
+7. **Modalidad enum** ⏳ — `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico de carga curricular. Sin esto, 2º DAM/DAW LOMLOE no caben en jornada normal aunque el currículo sea correcto. Doc: `hoja-de-ruta-modalidad-imparticion.md` (~3 sesiones, Fases 1-6).
 
 ### Bloque 3 — Solver y editor pulidos *(medio)*
 
@@ -230,6 +238,11 @@ Estimación: ~1.5 sesiones. Doc: `hoja-de-ruta-calificaciones.md`.
    │ hoja-de-ruta-jornadas-recreos.md    │  solver + editor de horarios
    │  (Fases A,C,D,G,E ✅ + B,F,H + §14) │
    └─────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────┐
+   │ hoja-de-ruta-modalidad-imparticion.md    │  separar placement físico
+   │  (🔴 sin empezar, ~3 sesiones)           │  vs carga curricular (FP/ESO/Uni)
+   └──────────────────────────────────────────┘
 
    ┌─────────────────────────────────────┐
    │ hoja-de-ruta-calificaciones.md      │  ciclo evaluativo, boletines
