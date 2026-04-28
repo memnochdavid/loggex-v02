@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './AccordionView.module.css';
 import { ChevronDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen }) => {
+const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen, persistScrollKey }) => {
   const { t } = useTranslation();
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
   // Inicializamos el estado local con defaultOpen si está presente
@@ -11,7 +11,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
 
   // Determinar si está abierto (controlado o local)
   const isExpanded = isOpen !== undefined ? isOpen : localIsOpen;
-  
+
   // Función de toggle (controlada o local)
   const handleToggle = () => {
       if (onToggle) {
@@ -19,6 +19,31 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
       } else {
           setLocalIsOpen(!localIsOpen);
       }
+  };
+
+  // Persistencia de scroll del contenido abierto. Cuando el consumidor pasa
+  // `persistScrollKey`, guardamos `scrollTop` en sessionStorage con clave
+  // `${persistScrollKey}_${item.id}_scroll`. Al remontar (típico tras
+  // navegación con `Layout` por página), restauramos. Sin esto, el scroll
+  // del sidebar se rebobina y oculta el item recién pulsado.
+  const contentRef = useRef(null);
+  const storageKey = persistScrollKey ? `${persistScrollKey}_${item.id}_scroll` : null;
+
+  useEffect(() => {
+    if (!storageKey || !isExpanded) return;
+    const el = contentRef.current;
+    if (!el) return;
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored !== null) el.scrollTop = parseInt(stored, 10) || 0;
+    } catch {} // sessionStorage puede fallar en privado/iframes
+  }, [storageKey, isExpanded]);
+
+  const handleScroll = (e) => {
+    if (!storageKey) return;
+    try {
+      sessionStorage.setItem(storageKey, String(e.currentTarget.scrollTop));
+    } catch {}
   };
 
   return (
@@ -48,7 +73,11 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
         </div>
       </div>
       <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''} accordionContentWrapper`}>
-        <div className={`${styles.accordionContent} accordionContent`}>
+        <div
+          ref={contentRef}
+          onScroll={storageKey ? handleScroll : undefined}
+          className={`${styles.accordionContent} accordionContent`}
+        >
             <div className={`${styles.accordionInner} accordionInner`}>
                 {children}
             </div>
@@ -58,7 +87,7 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   );
 };
 
-const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll }) => {
+const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll, persistScrollKey }) => {
   /* expandedId puede ser:
        · undefined  → modo no controlado (cada item mantiene su propio estado)
        · null       → modo controlado, ninguno abierto
@@ -84,6 +113,7 @@ const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, o
           onAdd={onAdd}
           canAdd={canAdd}
           defaultOpen={defaultOpenAll}
+          persistScrollKey={persistScrollKey}
         >
           {renderItem(item)}
         </AccordionItem>

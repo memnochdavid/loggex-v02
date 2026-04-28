@@ -419,6 +419,7 @@ const JornadasAdmin = () => {
       <div className={styles.container}>
         <CrudHeader
           title={t('jornadas.title', { defaultValue: 'Jornadas' })}
+          subtitle={t('jornadas.subtitle')}
           logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
           {isSuperAdmin && (

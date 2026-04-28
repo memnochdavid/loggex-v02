@@ -562,6 +562,7 @@ const Itinerarios = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title={t('itinerarios.title')}
+ subtitle={t('itinerarios.subtitle')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

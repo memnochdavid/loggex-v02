@@ -195,7 +195,7 @@ const MisFaltas = () => {
 
         return (
             <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span>{t('myAbsences.absencesCount')} <b>{item.faltas}</b></span>
                     <span>{t('myAbsences.lateCount')} <b>{item.retrasos}</b></span>
                     <span>{t('myAbsences.justifiedCount')} <b>{item.justificadas}</b></span>
@@ -215,7 +215,7 @@ const MisFaltas = () => {
                                     {new Date(detalle.fecha).toLocaleDateString()} a las {formatTime(detalle.hora)}
                                 </span>
                                 {detalle.comentario && (
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
                                         "{detalle.comentario}"
                                     </div>
                                 )}
@@ -231,6 +231,7 @@ const MisFaltas = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('myAbsences.title')}
+ subtitle={t('myAbsences.subtitle')}
                             logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

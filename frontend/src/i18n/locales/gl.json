@@ -245,6 +245,7 @@
   },
   "users": {
     "title": "Xestión de Usuarios",
+    "subtitle": "Crea, edita e desactiva as contas do centro.",
     "avatar": "Avatar",
     "firstName": "Nome",
     "lastName": "Apelidos",
@@ -266,6 +267,7 @@
   },
   "centers": {
     "title": "Centros Educativos",
+    "subtitle": "Centros educativos rexistrados na plataforma.",
     "logo": "Logotipo",
     "name": "Nome",
     "cif": "CIF",
@@ -288,6 +290,7 @@
   },
   "itinerarios": {
     "title": "Itinerarios",
+    "subtitle": "Itinerarios académicos do centro e materias asociadas.",
     "searchPlaceholder": "Buscar itinerario...",
     "name": "Nome",
     "level": "Nivel",
@@ -315,6 +318,7 @@
   },
   "groups": {
     "title": "Grupos",
+    "subtitle": "Crea grupos de cada itinerario e curso.",
     "searchPlaceholder": "Buscar grupo...",
     "name": "Nome",
     "course": "Curso",
@@ -340,6 +344,7 @@
   },
   "materias": {
     "title": "Materias",
+    "subtitle": "Materias do centro: nome, abreviatura e horas semanais.",
     "searchPlaceholder": "Buscar materia...",
     "name": "Nome",
     "abbreviation": "Abreviatura",
@@ -363,6 +368,7 @@
   },
   "enrollments": {
     "title": "Matrículas",
+    "subtitle": "Matricula aos teus alumnos en grupos.",
     "searchPlaceholder": "Buscar matrícula...",
     "student": "Alumno",
     "group": "Grupo",
@@ -374,6 +380,7 @@
   },
   "teaching": {
     "title": "Asignación de Docencia",
+    "subtitle": "Asigna profesores a cada materia e grupo.",
     "teacher": "Profesor",
     "module": "Materia",
     "group": "Grupo",
@@ -388,6 +395,7 @@
   },
   "schedules": {
     "title": "Horarios",
+    "subtitle": "O teu horario semanal de clases.",
     "calendarView": "Vista Calendario",
     "listView": "Vista Lista (Xestión)",
     "showCalendar": "Ver Calendario e Eventos",
@@ -416,6 +424,7 @@
   },
   "holidays": {
     "title": "Festivos",
+    "subtitle": "Festivos nacionais, autonómicos e locais do calendario.",
     "searchPlaceholder": "Buscar festivo...",
     "name": "Nome",
     "startDate": "Data Inicio",
@@ -466,6 +475,7 @@
   },
   "deliveries": {
     "title": "Entregas",
+    "subtitle": "Entregas de tarefas pendentes e enviadas.",
     "editTask": "Editar tarefa",
     "selectCenter": "Selecciona un centro para ver as entregas.",
     "noSubjects": "Non se atoparon asignaturas cos filtros actuais.",
@@ -523,6 +533,7 @@
   },
   "messages": {
     "title": "Mensaxería",
+    "subtitle": "Conversas con profesores, alumnos e administración.",
     "searchPlaceholder": "Buscar conversa...",
     "startConversation": "Inicia a conversa",
     "you": "Ti: ",
@@ -543,18 +554,21 @@
   },
   "faculty": {
     "title": "Claustro de Profesores",
+    "subtitle": "Compañeiros de claustro do teu centro.",
     "searchPlaceholder": "Buscar profesor...",
     "selectCenter": "Selecciona un centro para ver o claustro.",
     "noTeachers": "Non se atoparon profesores."
   },
   "classmates": {
     "title": "Os meus Compañeiros",
+    "subtitle": "Compañeiros do teu grupo e curso.",
     "searchPlaceholder": "Buscar compañeiro...",
     "selectGroup": "Selecciona un grupo para ver os alumnos.",
     "noClassmates": "Non se atoparon compañeiros."
   },
   "myStudents": {
     "title": "Os meus Alumnos",
+    "subtitle": "Alumnos dos grupos onde impartes.",
     "selectCenter": "Selecciona un centro para ver os alumnos.",
     "noStudents": "Non se atoparon alumnos.",
     "noStudentsInGroup": "Non hai alumnos neste grupo.",
@@ -562,6 +576,7 @@
   },
   "myAbsences": {
     "title": "Faltas de Asistencia",
+    "subtitle": "Faltas e atrasos de asistencia rexistrados.",
     "selectStudent": "Seleccionar Alumno",
     "selectStudentMsg": "Selecciona un alumno para ver as súas faltas.",
     "noAbsences": "Non hai faltas rexistradas cos filtros actuais.",
@@ -578,12 +593,14 @@
   },
   "myTeachers": {
     "title": "Os meus Profesores",
+    "subtitle": "Profesores que che imparten clase este curso.",
     "searchPlaceholder": "Buscar profesor...",
     "selectGroup": "Selecciona un grupo para ver os profesores.",
     "noTeachers": "Non se atoparon profesores."
   },
   "studentMaterials": {
     "title": "Os meus Temarios",
+    "subtitle": "Apuntamentos e materiais das túas materias.",
     "selectCenter": "Selecciona un centro para ver os temarios.",
     "noMaterials": "Non se atoparon temarios.",
     "noMaterialsAvailable": "Non hai temarios dispoñibles.",
@@ -591,6 +608,7 @@
   },
   "teacherMaterials": {
     "title": "Os meus Temarios",
+    "subtitle": "Sube e organiza o material das túas materias.",
     "noMaterials": "Non subiches temarios aínda.",
     "selectCenter": "Selecciona un centro para ver os temarios.",
     "noSubjects": "Non se atoparon asignaturas cos filtros actuais.",
@@ -784,6 +802,7 @@
   },
   "config": {
     "title": "Personalización",
+    "subtitle": "Personaliza tema, logos, idioma e outras opcións do centro.",
     "subtitleCenter": "Axusta a aparencia para {{centerName}}",
     "subtitleGlobal": "Axusta a aparencia global do sistema",
     "noAccess": "Esta configuración só está dispoñible para usuarios asignados a un centro ou administradores globais.",
@@ -1090,6 +1109,8 @@
   },
   "grades": {
     "title": "Cualificacións",
+    "adminSubtitle": "Estatísticas globais de cualificacións do centro.",
+    "subtitle": "Cualificacións do grupo por materia e avaliación.",
     "myGradesTitle": "As Miñas Cualificacións",
     "adminTitle": "Resumo de Cualificacións",
     "weightConfig": "Configuración de Ponderacións",
@@ -1205,6 +1226,7 @@
   },
   "scheduleEditor": {
     "title": "Editor de horarios",
+    "subtitle": "Distribúe as materias na grella semanal por grupo e rango.",
     "tabEditor": "Editor gráfico",
     "tabList": "Lista",
     "selectYear": "Seleccionar curso académico",
@@ -1397,6 +1419,8 @@
   },
   "dates": {
     "title": "Datas",
+    "evaluationsSubtitle": "Períodos de avaliación do curso.",
+    "subtitle": "Festivos, avaliacións e outras datas clave do curso.",
     "tabHolidays": "Festivos",
     "tabEvaluations": "Avaliacións"
   },

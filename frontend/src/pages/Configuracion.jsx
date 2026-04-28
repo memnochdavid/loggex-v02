@@ -990,6 +990,8 @@ const Configuracion = () => {
             <div className={styles.container}>
                 <CrudHeader
                     title={t('config.title')}
+
+                    subtitle={t('config.subtitle')}
                     subtitle={user.centro && user.centro.id !== 'global' ? t('config.subtitleCenter', { centerName: user.centro.nombre }) : t('config.subtitleGlobal')
                     }
                     logo={<Lottie animationData={configAnimation} loop={true} style={{width: 60, height: 60}}/>}>

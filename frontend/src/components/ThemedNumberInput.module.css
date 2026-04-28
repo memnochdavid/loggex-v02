@@ -14,7 +14,7 @@
 
 .wrap:focus-within {
     border-color: var(--input-focus-border, var(--color-primary-500, var(--color-primary)));
-    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100, color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent)));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100, color-mix(in srgb, var(--color-primary) 15%, transparent)));
 }
 
 .wrap.disabled {

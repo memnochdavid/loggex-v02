@@ -644,6 +644,8 @@ const Entregas = () => {
       <div className={styles.container}>
         <CrudHeader
           title={t('deliveries.title')}
+
+          subtitle={t('deliveries.subtitle')}
           logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
           {isSuperAdmin && <SuperAdminFilters filters={filters} selectClassName={styles.select} />}

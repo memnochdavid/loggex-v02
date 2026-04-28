@@ -564,6 +564,8 @@ const CalificacionesGrupo = () => {
             <div className={styles.container}>
                 <CrudHeader
                     title={t('grades.title')}
+
+                    subtitle={t('grades.subtitle')}
                     subtitle={mediasData?.imparticion
                         ? `${mediasData.imparticion?.materia} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
                         : undefined}

@@ -110,15 +110,15 @@
 }
 
 .gradeFail {
-    color: var(--color-error, #ef4444);
+    color: var(--color-error);
 }
 
 .gradePass {
-    color: var(--color-warning, #f59e0b);
+    color: var(--color-warning);
 }
 
 .gradeGood {
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
 }
 
 .gradeNa {
@@ -264,11 +264,11 @@
 }
 
 .weightBarTask {
-    background-color: var(--color-info, #3b82f6);
+    background-color: var(--color-info);
 }
 
 .weightBarPractice {
-    background-color: var(--color-success, #22c55e);
+    background-color: var(--color-success);
 }
 
 .weightTotal {
@@ -282,11 +282,11 @@
 }
 
 .weightTotalOk {
-    color: var(--color-success, #22c55e);
+    color: var(--color-success);
 }
 
 .weightTotalError {
-    color: var(--color-error, #ef4444);
+    color: var(--color-error);
 }
 
 /* Stacked bar (proporción visual) */
@@ -574,8 +574,8 @@
 }
 
 .badgePractica {
-    background-color: color-mix(in srgb, var(--color-success, #22c55e) 14%, transparent);
-    color: var(--color-success, #15803d);
+    background-color: color-mix(in srgb, var(--color-success) 14%, transparent);
+    color: var(--color-success);
 }
 
 /* Enlace clickable */
@@ -825,9 +825,9 @@
 }
 
 .barFillExam { background-color: var(--color-primary-500); }
-.barFillTask { background-color: var(--color-info, #3b82f6); }
-.barFillPractice { background-color: var(--color-success, #22c55e); }
-.barFillFinal { background-color: var(--color-warning, #f59e0b); }
+.barFillTask { background-color: var(--color-info); }
+.barFillPractice { background-color: var(--color-success); }
+.barFillFinal { background-color: var(--color-warning); }
 
 .barValue {
     min-width: 45px;

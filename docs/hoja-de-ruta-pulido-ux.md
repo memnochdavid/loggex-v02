@@ -1,6 +1,6 @@
 # Pulido UX — ajustes y bugs detectados
 
-> **Status (2026-04-28)**: 🟡 en curso. 4 ítems cerrados (#2, #3, #6, #7). Quedan #1, #4, #5 y #8.
+> **Status (2026-04-28)**: ✅ **Done**. Los 8 ítems cerrados en una sola sesión. #8 promovido a `hoja-de-ruta-cambio-turno.md` por no existir la feature.
 
 ---
 
@@ -10,14 +10,14 @@
 
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
-| 1 | Subtítulos descriptivos en headers de todas las vistas | UX | 🔴 pendiente |
+| 1 | Subtítulos descriptivos en headers de todas las vistas | UX | ✅ 2026-04-28 (24 vistas + 5 idiomas) |
 | 2 | `admin/horarios` columna Grupo: formato `"[curso]º [abreviatura]"` | UX | ✅ 2026-04-28 |
 | 3 | DataTable columna Acciones: `justify-content: flex-end` (cabecera + filas) | UX | ✅ 2026-04-28 |
-| 4 | Sidebar AccordionView: preservar scroll interno al navegar | Bug UX | 🔴 pendiente |
-| 5 | Auditar hardcodes en banners/toasts de vistas nuevas de catálogos | Deuda | 🔴 pendiente |
+| 4 | Sidebar AccordionView: preservar scroll interno al navegar | Bug UX | ✅ 2026-04-28 |
+| 5 | Auditar hardcodes en banners/toasts de vistas nuevas de catálogos | Deuda | ✅ 2026-04-28 (62 fallback hex eliminados + 2 inline `#64748b`) |
 | 6 | `/horarios` (profe): no muestra el turno de tarde aunque PDF sí | **Bug funcional** | ✅ 2026-04-28 |
 | 7 | `admin/horarios` panel Materias: badge "Completo · 25/27.5h" inconsistente al pasar entre rangos | **Bug funcional** | ✅ 2026-04-28 |
-| 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | 🔴 pendiente |
+| 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | ✅ 2026-04-28 (no existía → promovido a `hoja-de-ruta-cambio-turno.md`) |
 
 **Total**: ~1.5-2 sesiones (sin contar #8 si toca implementar desde cero).
 
@@ -263,7 +263,7 @@ El centro tiene profesores con jornada de mañana o de tarde. El profe debe pode
 | D-A | ¿Subtítulos (#1) van en `PageHeader` común o cada vista los pasa? | Componente común con prop `subtitle` opcional. Default vacío. |
 | D-B | ¿La columna Acciones (#3) se identifica por `id` de columna o por `type: 'actions'`? | Por `type: 'actions'` (más declarativo). |
 | D-C | ¿Scroll del sidebar (#4) se persiste por sesión o por sesión + por usuario? | Por sesión (sessionStorage). Simple. |
-| D-D | ¿#8 entra en este doc o se promueve a hoja de ruta propia? | Si toca implementar desde cero, doc propio (`hoja-de-ruta-cambio-turno.md`). Si solo verificar, queda aquí. |
+| D-D | ¿#8 entra en este doc o se promueve a hoja de ruta propia? | **Cerrada 2026-04-28**: feature no existía → promovido a `hoja-de-ruta-cambio-turno.md` (Fase 1 ~1 sesión, Fase 2 diferida). |
 
 ### Cerradas
 
@@ -288,3 +288,21 @@ Cross-ref con: `sistema-toasts.md` §12 (refactor toasts unificado debe coordina
 **#2 (columna Grupo `[curso]º [abrev]`)** — `Horarios.jsx` columna Grupo ya mostraba `abreviatura || nombre`; añadido prefijo `${grupo.curso}º ` cuando existe. Backfill API: añadido `'horario:read'` al grupo de serialización del campo `Grupo.curso` (antes solo en `imparticion:read`/`matricula:read`/`grupo:read`).
 
 **#3 (DataTable Acciones alineadas al final)** — extraído helper `isActionsCol(col)` reusando la heurística existente (`accessor === 'actions'`, header literal `'Acciones'` o traducción `t('common.actions')`). Aplicadas clases `actionsCol`/`actionsCell` al `<th>`/`<td>` correspondientes. Reglas CSS: `text-align: right` + `justify-content: flex-end` en `.thContent` (flex con icon de orden) y en hijos directos de `.actionsCell` (los wrappers `<div>` con los iconos suelen ser flex). Sin estilos inline; respeta el tema.
+
+### 2026-04-28 — Cierre de #1, #4, #5 y #8 (doc cerrado)
+
+**#5 (auditoría de hardcodes)** — limpieza de **62 fallback hex muertos** del patrón `var(--color-X, #XXXXXX)` en 7 archivos: 40 en `HorariosEditor.module.css`, 12 en `Calificaciones.module.css`, 3 en `ProfLoadPanel.module.css`, 3 en `ShowProgress.jsx`, 2 en `Home.module.css`, 1 en `PendingTasksWidget.module.css`, 1 en `ThemedNumberInput.module.css`. Las variables `--color-success/warning/error/danger/primary/info` están definidas siempre en `index.css`, así que los fallbacks eran código muerto. Adicionalmente, 2 `color: '#64748b'` inline en `MisFaltas.jsx` migrados a `var(--text-muted)`. **Sin tocar** Configuracion previews (intencional: representan placeholders neutros, no la app real) ni Perfil firma `#fff` (representa "papel" donde se ve la firma; deuda menor anotada).
+
+**#4 (sidebar scroll interno)** — añadido prop `persistScrollKey` al `AccordionView`. Cuando el consumidor lo pasa (`Sidebar` lo usa con valor `"sidebar"`), cada `AccordionItem` abre con `useEffect` que restaura `scrollTop` desde `sessionStorage[\`${key}_${itemId}_scroll\`]`, y un `onScroll` que persiste la nueva posición. Solución inocua para tutoriales: Joyride scrollea hacia el target después de nuestra restauración (último gana), así que mantiene compatibilidad. Try/catch alrededor de sessionStorage por modo privado/iframes.
+
+**#1 (subtítulos descriptivos en headers)** — `CrudHeader` ya soportaba `subtitle` como prop opcional con su CSS module. Aplicado a 24 vistas:
+- 17 vistas vía script Python (Itinerarios, Grupos, Materias, Matriculas, Imparticiones, Centros, Mensajes, Configuracion, Claustro, MisAlumnos, Companeros, MisProfesores, MisFaltas, Entregas, CalificacionesGrupo, TemariosAlumno, TemariosProfesor).
+- 7 vistas con título dinámico vía Edit manual (Usuarios, CalificacionesAdmin, Festivos, HorariosEditor, Horarios, JornadasAdmin, Evaluaciones).
+- 4 vistas de catálogo (CatalogoItinerarios, CatalogoMaterias, CatalogoCentros, CatalogoAcerca) ya tenían subtitle.
+- Pendiente residual: `CatalogoItinerarioDetail.jsx` (título dinámico per-itinerario, no encaja con clave estática). Anotado para sesión futura cuando se decida si llevar subtítulo descriptivo o el contexto del itinerario.
+
+i18n: 24 claves nuevas en 5 idiomas (es/en/ca/eu/gl) inyectadas vía script Python con `OrderedDict` para mantener orden de inserción tras `title`. Validación JSON de las 5 locales OK.
+
+**#8 (cambio de turno)** — verificación: feature no existe en código (ni entidad ni UI). Promovido a `hoja-de-ruta-cambio-turno.md` con plan Fase 1 (~1 sesión: modelo + endpoints + UI básica) y Fase 2 diferida (reasignación automática). D-D cerrada.
+
+**Cierre del doc (2026-04-28 noche)**: los 8 ítems atendidos en una sola sesión.

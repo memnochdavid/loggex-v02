@@ -426,6 +426,7 @@ const Usuarios = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title={t('users.title')}
+                    subtitle={t('users.subtitle')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

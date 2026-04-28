@@ -420,6 +420,7 @@ const Matriculas = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title={t('enrollments.title')}
+ subtitle={t('enrollments.subtitle')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

@@ -68,20 +68,20 @@
 
 .statusComplete {
     background: var(--color-success-100, color-mix(in srgb, var(--color-success) 10%, transparent));
-    color: var(--color-success, #16a34a);
-    border-color: var(--color-success, #16a34a);
+    color: var(--color-success);
+    border-color: var(--color-success);
 }
 
 .statusDraft {
     background: var(--color-warning-100, color-mix(in srgb, var(--color-warning) 10%, transparent));
-    color: var(--color-warning, #ca8a04);
-    border-color: var(--color-warning, #ca8a04);
+    color: var(--color-warning);
+    border-color: var(--color-warning);
 }
 
 .statusIncomplete {
     background: var(--color-error-100, color-mix(in srgb, var(--color-error) 10%, transparent));
-    color: var(--color-error, #dc2626);
-    border-color: var(--color-error, #dc2626);
+    color: var(--color-error);
+    border-color: var(--color-error);
 }
 
 /* Layout principal: panel + parrilla */
@@ -172,7 +172,7 @@
     opacity: 0.5;
     cursor: not-allowed;
     background: var(--color-success-50, color-mix(in srgb, var(--color-success) 5%, transparent));
-    border-color: var(--color-success, #16a34a);
+    border-color: var(--color-success);
 }
 
 .moduleChipSelected {
@@ -347,19 +347,19 @@
 
 .slotDropActive {
     background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 12%, transparent));
-    outline: 2px dashed var(--color-primary, #6366f1);
+    outline: 2px dashed var(--color-primary);
     outline-offset: -3px;
 }
 
 .slotDropValid {
     background: var(--color-success-50, color-mix(in srgb, var(--color-success) 8%, transparent));
-    outline: 1px dashed var(--color-success, #16a34a);
+    outline: 1px dashed var(--color-success);
     outline-offset: -2px;
 }
 
 .slotDropInvalid {
     background: var(--color-error-50, color-mix(in srgb, var(--color-error) 10%, transparent));
-    outline: 1px dashed var(--color-error, #dc2626);
+    outline: 1px dashed var(--color-error);
     outline-offset: -2px;
     cursor: not-allowed;
 }
@@ -484,21 +484,21 @@
 }
 
 .capacityBannerGreen {
-    background: color-mix(in srgb, var(--color-success, #16a34a) 10%, transparent);
-    color: var(--color-success, #16a34a);
-    border-color: color-mix(in srgb, var(--color-success, #16a34a) 28%, transparent);
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    color: var(--color-success);
+    border-color: color-mix(in srgb, var(--color-success) 28%, transparent);
 }
 
 .capacityBannerYellow {
-    background: color-mix(in srgb, var(--color-warning, #d97706) 12%, transparent);
-    color: var(--color-warning, #d97706);
-    border-color: color-mix(in srgb, var(--color-warning, #d97706) 32%, transparent);
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+    border-color: color-mix(in srgb, var(--color-warning) 32%, transparent);
 }
 
 .capacityBannerRed {
-    background: color-mix(in srgb, var(--color-error, #dc2626) 12%, transparent);
-    color: var(--color-error, #dc2626);
-    border-color: color-mix(in srgb, var(--color-error, #dc2626) 32%, transparent);
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+    color: var(--color-error);
+    border-color: color-mix(in srgb, var(--color-error) 32%, transparent);
 }
 
 .capacityList {
@@ -511,9 +511,9 @@
 .capacityHintAnnual {
     margin-top: var(--space-2);
     padding: var(--space-2) var(--space-3);
-    background: color-mix(in srgb, var(--color-success, #16a34a) 10%, transparent);
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
     color: var(--text-main);
-    border-left: 3px solid color-mix(in srgb, var(--color-success, #16a34a) 60%, transparent);
+    border-left: 3px solid color-mix(in srgb, var(--color-success) 60%, transparent);
     border-radius: 4px;
     font-size: var(--text-xs);
     line-height: 1.5;
@@ -647,7 +647,7 @@
 }
 
 .plPillActionDanger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-danger, #dc2626) 70%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 70%, transparent);
     color: white;
     opacity: 1;
 }
@@ -664,21 +664,21 @@
 }
 
 .plBanner_ok {
-    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
     color: var(--text-main);
-    border-bottom-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+    border-bottom-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
 }
 
 .plBanner_warn {
-    background: color-mix(in srgb, var(--color-warning, #d97706) 14%, var(--bg-card));
+    background: color-mix(in srgb, var(--color-warning) 14%, var(--bg-card));
     color: var(--text-main);
-    border-bottom-color: color-mix(in srgb, var(--color-warning, #d97706) 35%, var(--border-color));
+    border-bottom-color: color-mix(in srgb, var(--color-warning) 35%, var(--border-color));
 }
 
 .plBanner_error {
-    background: color-mix(in srgb, var(--color-danger, #dc2626) 14%, var(--bg-card));
+    background: color-mix(in srgb, var(--color-danger) 14%, var(--bg-card));
     color: var(--text-main);
-    border-bottom-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+    border-bottom-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
 }
 
 .plBannerStats {
@@ -868,18 +868,18 @@
 }
 
 .extendModalPreview_ok {
-    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
-    border-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
 }
 
 .extendModalPreview_warn {
-    background: color-mix(in srgb, var(--color-warning, #d97706) 12%, var(--bg-card));
-    border-color: color-mix(in srgb, var(--color-warning, #d97706) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--color-warning) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-warning) 35%, var(--border-color));
 }
 
 .extendModalPreview_error {
-    background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, var(--bg-card));
-    border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
 }
 
 .extendModalPreviewLabel {
@@ -979,13 +979,13 @@
 }
 
 .pliSummaryGreen {
-    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
-    border-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
 }
 
 .pliSummaryRed {
-    background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, var(--bg-card));
-    border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
 }
 
 .pliSummaryStat {
@@ -1176,7 +1176,7 @@
     z-index: 2000;
     max-width: 360px;
     padding: var(--space-3) var(--space-4);
-    background: var(--color-error, #dc2626);
+    background: var(--color-error);
     color: #fff;
     border-radius: var(--radius-md, 8px);
     box-shadow: 0 10px 24px color-mix(in srgb, var(--color-gray-900) 18%, transparent);
@@ -1196,7 +1196,7 @@
     pointer-events: none;
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-sm);
-    background: var(--color-primary, #6366f1);
+    background: var(--color-primary);
     color: #fff;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);

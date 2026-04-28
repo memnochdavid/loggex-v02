@@ -468,6 +468,7 @@ const Grupos = () => {
     <Layout>
         <div className={styles.container}>
         <CrudHeader title={t('groups.title')}
+ subtitle={t('groups.subtitle')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

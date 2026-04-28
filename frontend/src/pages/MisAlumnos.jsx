@@ -279,6 +279,7 @@ const MisAlumnos = () => {
         <Layout>
             <div className={styles.container}>
                 <CrudHeader title={t('myStudents.title')}
+ subtitle={t('myStudents.subtitle')}
                             logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

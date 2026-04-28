@@ -245,6 +245,7 @@
   },
   "users": {
     "title": "Gestió d'usuaris",
+    "subtitle": "Crea, edita i desactiva els comptes del centre.",
     "avatar": "Avatar",
     "firstName": "Nom",
     "lastName": "Cognoms",
@@ -266,6 +267,7 @@
   },
   "centers": {
     "title": "Centres educatius",
+    "subtitle": "Centres educatius registrats a la plataforma.",
     "logo": "Logotip",
     "name": "Nom",
     "cif": "CIF",
@@ -288,6 +290,7 @@
   },
   "itinerarios": {
     "title": "Itineraris",
+    "subtitle": "Itineraris acadèmics del centre i matèries associades.",
     "searchPlaceholder": "Cercar itinerari...",
     "name": "Nom",
     "level": "Nivell",
@@ -315,6 +318,7 @@
   },
   "groups": {
     "title": "Grups",
+    "subtitle": "Crea grups de cada itinerari i curs.",
     "searchPlaceholder": "Cercar grup...",
     "name": "Nom",
     "course": "Curs",
@@ -340,6 +344,7 @@
   },
   "materias": {
     "title": "Matèries",
+    "subtitle": "Matèries del centre: nom, abreviatura i hores setmanals.",
     "searchPlaceholder": "Cercar matèria...",
     "name": "Nom",
     "abbreviation": "Abreviatura",
@@ -363,6 +368,7 @@
   },
   "enrollments": {
     "title": "Matrícules",
+    "subtitle": "Matricula els teus alumnes en grups.",
     "searchPlaceholder": "Cercar matrícula...",
     "student": "Alumne",
     "group": "Grup",
@@ -374,6 +380,7 @@
   },
   "teaching": {
     "title": "Assignació de docència",
+    "subtitle": "Assigna professors a cada matèria i grup.",
     "teacher": "Professor",
     "module": "Matèria",
     "group": "Grup",
@@ -388,6 +395,7 @@
   },
   "schedules": {
     "title": "Horaris",
+    "subtitle": "El teu horari setmanal de classes.",
     "calendarView": "Vista calendari",
     "listView": "Vista llista (Gestió)",
     "showCalendar": "Veure calendari i esdeveniments",
@@ -416,6 +424,7 @@
   },
   "holidays": {
     "title": "Festius",
+    "subtitle": "Festius nacionals, autonòmics i locals del calendari.",
     "searchPlaceholder": "Cercar festiu...",
     "name": "Nom",
     "startDate": "Data inici",
@@ -466,6 +475,7 @@
   },
   "deliveries": {
     "title": "Lliuraments",
+    "subtitle": "Lliuraments de tasques pendents i enviades.",
     "editTask": "Editar tasca",
     "selectCenter": "Selecciona un centre per veure els lliuraments.",
     "noSubjects": "No s'han trobat assignatures amb els filtres actuals.",
@@ -523,6 +533,7 @@
   },
   "messages": {
     "title": "Missatgeria",
+    "subtitle": "Converses amb professors, alumnes i administració.",
     "searchPlaceholder": "Cercar conversa...",
     "startConversation": "Inicia la conversa",
     "you": "Tu: ",
@@ -543,18 +554,21 @@
   },
   "faculty": {
     "title": "Claustre de professors",
+    "subtitle": "Companys de claustre del teu centre.",
     "searchPlaceholder": "Cercar professor...",
     "selectCenter": "Selecciona un centre per veure el claustre.",
     "noTeachers": "No s'han trobat professors."
   },
   "classmates": {
     "title": "Els meus companys",
+    "subtitle": "Companys del teu grup i curs.",
     "searchPlaceholder": "Cercar company...",
     "selectGroup": "Selecciona un grup per veure els alumnes.",
     "noClassmates": "No s'han trobat companys."
   },
   "myStudents": {
     "title": "Els meus alumnes",
+    "subtitle": "Alumnes dels grups on impartixes.",
     "selectCenter": "Selecciona un centre per veure els alumnes.",
     "noStudents": "No s'han trobat alumnes.",
     "noStudentsInGroup": "No hi ha alumnes en aquest grup.",
@@ -562,6 +576,7 @@
   },
   "myAbsences": {
     "title": "Faltes d'assistència",
+    "subtitle": "Faltes i retards d'assistència registrats.",
     "selectStudent": "Seleccionar Alumne",
     "selectStudentMsg": "Selecciona un alumne per veure les seves faltes.",
     "noAbsences": "No hi ha faltes registrades amb els filtres actuals.",
@@ -578,12 +593,14 @@
   },
   "myTeachers": {
     "title": "Els meus professors",
+    "subtitle": "Professors que t'impartixen classe aquest curs.",
     "searchPlaceholder": "Cercar professor...",
     "selectGroup": "Selecciona un grup per veure els professors.",
     "noTeachers": "No s'han trobat professors."
   },
   "studentMaterials": {
     "title": "Els meus temaris",
+    "subtitle": "Apunts i materials de les teves matèries.",
     "selectCenter": "Selecciona un centre per veure els temaris.",
     "noMaterials": "No s'han trobat temaris.",
     "noMaterialsAvailable": "No hi ha temaris disponibles.",
@@ -591,6 +608,7 @@
   },
   "teacherMaterials": {
     "title": "Els meus temaris",
+    "subtitle": "Puja i organitza el material de les teves matèries.",
     "noMaterials": "No has pujat temaris encara.",
     "selectCenter": "Selecciona un centre per veure els temaris.",
     "noSubjects": "No s'han trobat assignatures amb els filtres actuals.",
@@ -784,6 +802,7 @@
   },
   "config": {
     "title": "Personalització",
+    "subtitle": "Personalitza tema, logotips, idioma i altres opcions del centre.",
     "subtitleCenter": "Ajusta l'aparença per a {{centerName}}",
     "subtitleGlobal": "Ajusta l'aparença global del sistema",
     "noAccess": "Aquesta configuració només està disponible per a usuaris assignats a un centre o administradors globals.",
@@ -1090,6 +1109,8 @@
   },
   "grades": {
     "title": "Qualificacions",
+    "adminSubtitle": "Estadístiques globals de qualificacions del centre.",
+    "subtitle": "Qualificacions del grup per matèria i avaluació.",
     "myGradesTitle": "Les Meves Qualificacions",
     "adminTitle": "Resum de Qualificacions",
     "weightConfig": "Configuració de Ponderacions",
@@ -1205,6 +1226,7 @@
   },
   "scheduleEditor": {
     "title": "Editor d'horaris",
+    "subtitle": "Distribueix les matèries a la graella setmanal per grup i rang.",
     "tabEditor": "Editor gràfic",
     "tabList": "Llista",
     "selectYear": "Seleccionar any escolar",
@@ -1397,6 +1419,8 @@
   },
   "dates": {
     "title": "Dates",
+    "evaluationsSubtitle": "Períodes d'avaluació del curs.",
+    "subtitle": "Festius, avaluacions i altres dates clau del curs.",
     "tabHolidays": "Festius",
     "tabEvaluations": "Avaluacions"
   },

@@ -245,6 +245,7 @@
   },
   "users": {
     "title": "Erabiltzaileen Kudeaketa",
+    "subtitle": "Sortu, editatu eta desaktibatu zentroaren kontuak.",
     "avatar": "Avatarra",
     "firstName": "Izena",
     "lastName": "Abizenak",
@@ -266,6 +267,7 @@
   },
   "centers": {
     "title": "Ikastetxeak",
+    "subtitle": "Plataforman izena emanda dauden ikastetxeak.",
     "logo": "Logoa",
     "name": "Izena",
     "cif": "IFK",
@@ -288,6 +290,7 @@
   },
   "itinerarios": {
     "title": "Itinerarioak",
+    "subtitle": "Zentroaren ibilbide akademikoak eta lotutako ikasgaiak.",
     "searchPlaceholder": "Bilatu itinerarioa...",
     "name": "Izena",
     "level": "Maila",
@@ -315,6 +318,7 @@
   },
   "groups": {
     "title": "Taldeak",
+    "subtitle": "Sortu ibilbide eta ikasturte bakoitzeko taldeak.",
     "searchPlaceholder": "Bilatu taldea...",
     "name": "Izena",
     "course": "Kurtsoa",
@@ -340,6 +344,7 @@
   },
   "materias": {
     "title": "Ikasgaiak",
+    "subtitle": "Zentroko ikasgaiak: izena, laburtzapena eta asteko orduak.",
     "searchPlaceholder": "Bilatu ikasgaia...",
     "name": "Izena",
     "abbreviation": "Laburdura",
@@ -363,6 +368,7 @@
   },
   "enrollments": {
     "title": "Matrikulak",
+    "subtitle": "Matrikulatu zure ikasleak taldeetan.",
     "searchPlaceholder": "Bilatu matrikula...",
     "student": "Ikaslea",
     "group": "Taldea",
@@ -374,6 +380,7 @@
   },
   "teaching": {
     "title": "Irakaskuntza Esleipena",
+    "subtitle": "Esleitu irakasleak ikasgai eta talde bakoitzari.",
     "teacher": "Irakaslea",
     "module": "Ikasgaia",
     "group": "Taldea",
@@ -388,6 +395,7 @@
   },
   "schedules": {
     "title": "Ordutegiak",
+    "subtitle": "Zure asteko klase-ordutegia.",
     "calendarView": "Egutegi Ikuspegia",
     "listView": "Zerrenda Ikuspegia (Kudeaketa)",
     "showCalendar": "Ikusi Egutegia eta Gertaerak",
@@ -416,6 +424,7 @@
   },
   "holidays": {
     "title": "Jaiegunak",
+    "subtitle": "Egutegiko jai-egun nazionalak, autonomikoak eta lokalak.",
     "searchPlaceholder": "Bilatu jaieguna...",
     "name": "Izena",
     "startDate": "Hasiera Data",
@@ -466,6 +475,7 @@
   },
   "deliveries": {
     "title": "Bidalketak",
+    "subtitle": "Egiteko eta bidalitako lanen entregak.",
     "editTask": "Ataza editatu",
     "selectCenter": "Aukeratu ikastetxe bat bidalketak ikusteko.",
     "noSubjects": "Ez da irakasgairik aurkitu egungo iragazkiekin.",
@@ -523,6 +533,7 @@
   },
   "messages": {
     "title": "Mezularitza",
+    "subtitle": "Irakasleekin, ikasleekin eta administrazioarekin elkarrizketak.",
     "searchPlaceholder": "Bilatu elkarrizketa...",
     "startConversation": "Hasi elkarrizketa",
     "you": "Zu: ",
@@ -543,18 +554,21 @@
   },
   "faculty": {
     "title": "Irakasleen Klaustroa",
+    "subtitle": "Zure zentroko irakasleria.",
     "searchPlaceholder": "Bilatu irakaslea...",
     "selectCenter": "Aukeratu ikastetxe bat klaustroa ikusteko.",
     "noTeachers": "Ez da irakaslerik aurkitu."
   },
   "classmates": {
     "title": "Nire Ikaskideak",
+    "subtitle": "Zure talde eta ikasturteko ikasleak.",
     "searchPlaceholder": "Bilatu ikaskidea...",
     "selectGroup": "Aukeratu talde bat ikasleak ikusteko.",
     "noClassmates": "Ez da ikaskiderik aurkitu."
   },
   "myStudents": {
     "title": "Nire Ikasleak",
+    "subtitle": "Irakasten dituzun taldeetako ikasleak.",
     "selectCenter": "Aukeratu ikastetxe bat ikasleak ikusteko.",
     "noStudents": "Ez da ikaslerik aurkitu.",
     "noStudentsInGroup": "Ez dago ikaslerik talde honetan.",
@@ -562,6 +576,7 @@
   },
   "myAbsences": {
     "title": "Huts-egiteak",
+    "subtitle": "Erregistratutako absentziak eta atzerapenak.",
     "selectStudent": "Aukeratu Ikaslea",
     "selectStudentMsg": "Aukeratu ikasle bat bere huts-egiteak ikusteko.",
     "noAbsences": "Ez dago huts-egiterik erregistratuta egungo iragazkiekin.",
@@ -578,12 +593,14 @@
   },
   "myTeachers": {
     "title": "Nire Irakasleak",
+    "subtitle": "Aurtengo ikasturtean klasea ematen dizuten irakasleak.",
     "searchPlaceholder": "Bilatu irakaslea...",
     "selectGroup": "Aukeratu talde bat irakasleak ikusteko.",
     "noTeachers": "Ez da irakaslerik aurkitu."
   },
   "studentMaterials": {
     "title": "Nire Gai-zerrendak",
+    "subtitle": "Zure ikasgaietako apunteak eta materialak.",
     "selectCenter": "Aukeratu ikastetxe bat gai-zerrendak ikusteko.",
     "noMaterials": "Ez da gai-zerrendarik aurkitu.",
     "noMaterialsAvailable": "Ez dago gai-zerrendarik eskuragarri.",
@@ -591,6 +608,7 @@
   },
   "teacherMaterials": {
     "title": "Nire Gai-zerrendak",
+    "subtitle": "Igo eta antolatu zure ikasgaietako materiala.",
     "noMaterials": "Oraindik ez duzu gai-zerrendarik igo.",
     "selectCenter": "Aukeratu ikastetxe bat gai-zerrendak ikusteko.",
     "noSubjects": "Ez da irakasgairik aurkitu egungo iragazkiekin.",
@@ -784,6 +802,7 @@
   },
   "config": {
     "title": "Pertsonalizazioa",
+    "subtitle": "Pertsonalizatu zentroaren gaia, logotipoak, hizkuntza eta beste aukerak.",
     "subtitleCenter": "Doitu {{centerName}}-rako itxura",
     "subtitleGlobal": "Doitu sistemaren itxura globala",
     "noAccess": "Konfigurazio hau ikastetxe bati esleitutako erabiltzaileentzat edo administratzaile globalentzat bakarrik dago eskuragarri.",
@@ -1090,6 +1109,8 @@
   },
   "grades": {
     "title": "Kalifikazioak",
+    "adminSubtitle": "Zentroko kalifikazioen estatistika orokorrak.",
+    "subtitle": "Taldearen kalifikazioak ikasgaika eta ebaluazioka.",
     "myGradesTitle": "Nire Kalifikazioak",
     "adminTitle": "Kalifikazioen Laburpena",
     "weightConfig": "Ponderazioen Konfigurazioa",
@@ -1205,6 +1226,7 @@
   },
   "scheduleEditor": {
     "title": "Ordutegi editorea",
+    "subtitle": "Banatu ikasgaiak asteko sareta talde eta tartez.",
     "tabEditor": "Editore grafikoa",
     "tabList": "Zerrenda",
     "selectYear": "Ikasturtea aukeratu",
@@ -1397,6 +1419,8 @@
   },
   "dates": {
     "title": "Datak",
+    "evaluationsSubtitle": "Ikasturteko ebaluazio-aldiak.",
+    "subtitle": "Jaiegunak, ebaluazioak eta ikasturteko beste data garrantzitsuak.",
     "tabHolidays": "Jaiegunak",
     "tabEvaluations": "Ebaluazioak"
   },

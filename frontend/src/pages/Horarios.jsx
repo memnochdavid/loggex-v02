@@ -555,6 +555,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const content = (
     <>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
+                    subtitle={t('schedules.subtitle')}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     middle={tabs}
         >

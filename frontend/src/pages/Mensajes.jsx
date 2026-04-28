@@ -333,6 +333,7 @@ const Mensajes = () => {
             <div className={styles.container}>
                 <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
                     <CrudHeader title={t('messages.title')}
+ subtitle={t('messages.subtitle')}
                                 logo={<Lottie animationData={messageAnimation} loop={true}
                                               style={{width: 60, height: 60}}/>}
                     />

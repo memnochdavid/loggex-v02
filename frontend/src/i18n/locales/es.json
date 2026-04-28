@@ -494,6 +494,7 @@
   },
   "users": {
     "title": "Gestión de Usuarios",
+    "subtitle": "Crea, edita y desactiva las cuentas del centro.",
     "avatar": "Avatar",
     "firstName": "Nombre",
     "lastName": "Apellidos",
@@ -515,6 +516,7 @@
   },
   "centers": {
     "title": "Centros Educativos",
+    "subtitle": "Centros educativos registrados en la plataforma.",
     "logo": "Logo",
     "name": "Nombre",
     "cif": "CIF",
@@ -537,6 +539,7 @@
   },
   "itinerarios": {
     "title": "Itinerarios",
+    "subtitle": "Itinerarios académicos del centro y materias asociadas.",
     "searchPlaceholder": "Buscar itinerario...",
     "name": "Nombre",
     "level": "Nivel",
@@ -600,6 +603,7 @@
   },
   "groups": {
     "title": "Grupos",
+    "subtitle": "Crea grupos de cada itinerario y curso.",
     "searchPlaceholder": "Buscar grupo...",
     "name": "Nombre",
     "course": "Curso",
@@ -625,6 +629,7 @@
   },
   "materias": {
     "title": "Materias",
+    "subtitle": "Materias del centro: nombre, abreviatura y horas semanales.",
     "searchPlaceholder": "Buscar materia...",
     "name": "Nombre",
     "abbreviation": "Abreviatura",
@@ -652,6 +657,7 @@
   },
   "enrollments": {
     "title": "Matrículas",
+    "subtitle": "Matricula a tus alumnos en grupos.",
     "searchPlaceholder": "Buscar matrícula...",
     "student": "Alumno",
     "group": "Grupo",
@@ -663,6 +669,7 @@
   },
   "teaching": {
     "title": "Asignación de Docencia",
+    "subtitle": "Asigna profesores a cada materia y grupo.",
     "teacher": "Profesor",
     "module": "Materia",
     "group": "Grupo",
@@ -677,6 +684,7 @@
   },
   "schedules": {
     "title": "Horarios",
+    "subtitle": "Tu horario semanal de clases.",
     "calendarView": "Vista Calendario",
     "listView": "Vista Lista (Gestión)",
     "showCalendar": "Ver Calendario y Eventos",
@@ -705,6 +713,7 @@
   },
   "holidays": {
     "title": "Festivos",
+    "subtitle": "Festivos nacionales, autonómicos y locales del calendario.",
     "searchPlaceholder": "Buscar festivo...",
     "name": "Nombre",
     "startDate": "Fecha Inicio",
@@ -755,6 +764,7 @@
   },
   "deliveries": {
     "title": "Entregas",
+    "subtitle": "Entregas de tareas pendientes y enviadas.",
     "editTask": "Editar tarea",
     "selectCenter": "Selecciona un centro para ver las entregas.",
     "noSubjects": "No se encontraron asignaturas con los filtros actuales.",
@@ -812,6 +822,7 @@
   },
   "messages": {
     "title": "Mensajería",
+    "subtitle": "Conversaciones con profesores, alumnos y administración.",
     "searchPlaceholder": "Buscar conversación...",
     "startConversation": "Inicia la conversación",
     "you": "Tú: ",
@@ -832,18 +843,21 @@
   },
   "faculty": {
     "title": "Claustro de Profesores",
+    "subtitle": "Compañeros de claustro de tu centro.",
     "searchPlaceholder": "Buscar profesor...",
     "selectCenter": "Selecciona un centro para ver el claustro.",
     "noTeachers": "No se encontraron profesores."
   },
   "classmates": {
     "title": "Mis Compañeros",
+    "subtitle": "Compañeros de tu grupo y curso.",
     "searchPlaceholder": "Buscar compañero...",
     "selectGroup": "Selecciona un grupo para ver los alumnos.",
     "noClassmates": "No se encontraron compañeros."
   },
   "myStudents": {
     "title": "Mis Alumnos",
+    "subtitle": "Alumnos de los grupos donde impartes.",
     "selectCenter": "Selecciona un centro para ver los alumnos.",
     "noStudents": "No se encontraron alumnos.",
     "noStudentsInGroup": "No hay alumnos en este grupo.",
@@ -851,6 +865,7 @@
   },
   "myAbsences": {
     "title": "Faltas de Asistencia",
+    "subtitle": "Faltas y retrasos de asistencia registrados.",
     "selectStudent": "Seleccionar Alumno",
     "selectStudentMsg": "Selecciona un alumno para ver sus faltas.",
     "noAbsences": "No hay faltas registradas con los filtros actuales.",
@@ -867,12 +882,14 @@
   },
   "myTeachers": {
     "title": "Mis Profesores",
+    "subtitle": "Profesores que te imparten clase este curso.",
     "searchPlaceholder": "Buscar profesor...",
     "selectGroup": "Selecciona un grupo para ver los profesores.",
     "noTeachers": "No se encontraron profesores."
   },
   "studentMaterials": {
     "title": "Mis Temarios",
+    "subtitle": "Apuntes y materiales de tus materias.",
     "selectCenter": "Selecciona un centro para ver los temarios.",
     "noMaterials": "No se encontraron temarios.",
     "noMaterialsAvailable": "No hay temarios disponibles.",
@@ -880,6 +897,7 @@
   },
   "teacherMaterials": {
     "title": "Mis Temarios",
+    "subtitle": "Sube y organiza el material de tus materias.",
     "noMaterials": "No has subido temarios aún.",
     "selectCenter": "Selecciona un centro para ver los temarios.",
     "noSubjects": "No se encontraron asignaturas con los filtros actuales.",
@@ -1082,6 +1100,7 @@
   },
   "config": {
     "title": "Personalización",
+    "subtitle": "Personaliza tema, logos, idioma y otras opciones del centro.",
     "subtitleCenter": "Ajusta la apariencia para {{centerName}}",
     "subtitleGlobal": "Ajusta la apariencia global del sistema",
     "noAccess": "Esta configuración solo está disponible para usuarios asignados a un centro o administradores globales.",
@@ -1388,6 +1407,8 @@
   },
   "grades": {
     "title": "Calificaciones",
+    "adminSubtitle": "Estadísticas globales de calificaciones del centro.",
+    "subtitle": "Calificaciones del grupo por materia y evaluación.",
     "myGradesTitle": "Mis Calificaciones",
     "adminTitle": "Resumen de Calificaciones",
     "weightConfig": "Configuración de Ponderaciones",
@@ -1503,6 +1524,7 @@
   },
   "scheduleEditor": {
     "title": "Editor de horarios",
+    "subtitle": "Distribuye las materias en la rejilla semanal por grupo y rango.",
     "tabEditor": "Editor gráfico",
     "tabList": "Lista",
     "selectYear": "Seleccionar año escolar",
@@ -1695,6 +1717,8 @@
   },
   "dates": {
     "title": "Fechas",
+    "evaluationsSubtitle": "Periodos de evaluación del curso.",
+    "subtitle": "Festivos, evaluaciones y otras fechas clave del curso.",
     "tabHolidays": "Festivos",
     "tabEvaluations": "Evaluaciones"
   }

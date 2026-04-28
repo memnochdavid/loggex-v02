@@ -102,7 +102,7 @@
 }
 
 .urgent {
-    color: var(--color-error, #b91c1c);
+    color: var(--color-error);
     background-color: color-mix(in srgb, var(--color-error) 6%, transparent);
     font-weight: 500;
 }

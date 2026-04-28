@@ -281,6 +281,7 @@ const TemariosProfesor = () => {
     <Layout>
       <div className={styles.container}>
         <CrudHeader title={t('teacherMaterials.title')}
+ subtitle={t('teacherMaterials.subtitle')}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

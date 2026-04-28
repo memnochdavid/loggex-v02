@@ -76,10 +76,10 @@
     transition: width var(--dur-base) var(--ease-out-quart);
 }
 
-.barOk   { background: var(--color-success, #10b981); }
+.barOk   { background: var(--color-success); }
 .barMid  { background: var(--color-primary-500, #6366f1); }
-.barHigh { background: var(--color-warning, #f59e0b); }
-.barOver { background: var(--color-error, #ef4444); }
+.barHigh { background: var(--color-warning); }
+.barOver { background: var(--color-error); }
 
 .counter {
     grid-column: 2 / 3;

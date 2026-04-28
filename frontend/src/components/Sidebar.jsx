@@ -427,6 +427,7 @@ const Sidebar = () => {
                                 renderHeader={(item) => <span>{item.title}</span>}
                                 expandedId={expandedAccordion}
                                 onToggle={handleAccordionToggle}
+                                persistScrollKey="sidebar"
                             />
                         </div>
                     </nav>

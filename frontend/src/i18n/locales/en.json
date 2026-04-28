@@ -245,6 +245,7 @@
   },
   "users": {
     "title": "User Management",
+    "subtitle": "Create, edit and deactivate the center accounts.",
     "avatar": "Avatar",
     "firstName": "First Name",
     "lastName": "Last Name",
@@ -266,6 +267,7 @@
   },
   "centers": {
     "title": "Educational Centers",
+    "subtitle": "Educational centers registered in the platform.",
     "logo": "Logo",
     "name": "Name",
     "cif": "Tax ID",
@@ -288,6 +290,7 @@
   },
   "itinerarios": {
     "title": "Itineraries",
+    "subtitle": "Academic itineraries of the center and associated subjects.",
     "searchPlaceholder": "Search itinerary...",
     "name": "Name",
     "level": "Level",
@@ -315,6 +318,7 @@
   },
   "groups": {
     "title": "Groups",
+    "subtitle": "Create groups for each itinerary and course.",
     "searchPlaceholder": "Search group...",
     "name": "Name",
     "course": "Year",
@@ -340,6 +344,7 @@
   },
   "materias": {
     "title": "Subjects",
+    "subtitle": "Center subjects: name, abbreviation and weekly hours.",
     "searchPlaceholder": "Search subject...",
     "name": "Name",
     "abbreviation": "Abbrev.",
@@ -363,6 +368,7 @@
   },
   "enrollments": {
     "title": "Enrollments",
+    "subtitle": "Enroll your students in groups.",
     "searchPlaceholder": "Search enrollment...",
     "student": "Student",
     "group": "Group",
@@ -374,6 +380,7 @@
   },
   "teaching": {
     "title": "Teaching Assignment",
+    "subtitle": "Assign teachers to each subject and group.",
     "teacher": "Teacher",
     "module": "Subject",
     "group": "Group",
@@ -388,6 +395,7 @@
   },
   "schedules": {
     "title": "Schedules",
+    "subtitle": "Your weekly class schedule.",
     "calendarView": "Calendar View",
     "listView": "List View (Management)",
     "showCalendar": "View Calendar & Events",
@@ -416,6 +424,7 @@
   },
   "holidays": {
     "title": "Holidays",
+    "subtitle": "National, regional and local holidays of the calendar.",
     "searchPlaceholder": "Search holiday...",
     "name": "Name",
     "startDate": "Start Date",
@@ -466,6 +475,7 @@
   },
   "deliveries": {
     "title": "Deliveries",
+    "subtitle": "Pending and submitted task deliveries.",
     "editTask": "Edit task",
     "selectCenter": "Select a center to view deliveries.",
     "noSubjects": "No subjects found with current filters.",
@@ -523,6 +533,7 @@
   },
   "messages": {
     "title": "Messaging",
+    "subtitle": "Conversations with teachers, students and administration.",
     "searchPlaceholder": "Search conversation...",
     "startConversation": "Start the conversation",
     "you": "You: ",
@@ -543,18 +554,21 @@
   },
   "faculty": {
     "title": "Teaching Staff",
+    "subtitle": "Faculty members of your center.",
     "searchPlaceholder": "Search teacher...",
     "selectCenter": "Select a center to view the staff.",
     "noTeachers": "No teachers found."
   },
   "classmates": {
     "title": "My Classmates",
+    "subtitle": "Classmates from your group and course.",
     "searchPlaceholder": "Search classmate...",
     "selectGroup": "Select a group to view students.",
     "noClassmates": "No classmates found."
   },
   "myStudents": {
     "title": "My Students",
+    "subtitle": "Students of the groups you teach.",
     "selectCenter": "Select a center to view students.",
     "noStudents": "No students found.",
     "noStudentsInGroup": "No students in this group.",
@@ -562,6 +576,7 @@
   },
   "myAbsences": {
     "title": "Attendance Records",
+    "subtitle": "Recorded absences and delays.",
     "selectStudent": "Select Student",
     "selectStudentMsg": "Select a student to view their absences.",
     "noAbsences": "No absences recorded with current filters.",
@@ -578,12 +593,14 @@
   },
   "myTeachers": {
     "title": "My Teachers",
+    "subtitle": "Teachers who teach you this course.",
     "searchPlaceholder": "Search teacher...",
     "selectGroup": "Select a group to view teachers.",
     "noTeachers": "No teachers found."
   },
   "studentMaterials": {
     "title": "My Syllabi",
+    "subtitle": "Notes and materials of your subjects.",
     "selectCenter": "Select a center to view syllabi.",
     "noMaterials": "No syllabi found.",
     "noMaterialsAvailable": "No syllabi available.",
@@ -591,6 +608,7 @@
   },
   "teacherMaterials": {
     "title": "My Syllabi",
+    "subtitle": "Upload and organize your subjects' materials.",
     "noMaterials": "You haven't uploaded any syllabi yet.",
     "selectCenter": "Select a center to view syllabi.",
     "noSubjects": "No subjects found with current filters.",
@@ -784,6 +802,7 @@
   },
   "config": {
     "title": "Customization",
+    "subtitle": "Customize theme, logos, language and other center options.",
     "subtitleCenter": "Adjust the appearance for {{centerName}}",
     "subtitleGlobal": "Adjust the global system appearance",
     "noAccess": "This configuration is only available for users assigned to a center or global administrators.",
@@ -1090,6 +1109,8 @@
   },
   "grades": {
     "title": "Grades",
+    "adminSubtitle": "Global statistics of the center grades.",
+    "subtitle": "Group grades by subject and evaluation.",
     "myGradesTitle": "My Grades",
     "adminTitle": "Grades Summary",
     "weightConfig": "Weight Configuration",
@@ -1205,6 +1226,7 @@
   },
   "scheduleEditor": {
     "title": "Schedule editor",
+    "subtitle": "Distribute subjects in the weekly grid by group and range.",
     "tabEditor": "Graphic editor",
     "tabList": "List",
     "selectYear": "Select school year",
@@ -1397,6 +1419,8 @@
   },
   "dates": {
     "title": "Dates",
+    "evaluationsSubtitle": "Course evaluation periods.",
+    "subtitle": "Holidays, evaluations and other key dates of the course.",
     "tabHolidays": "Holidays",
     "tabEvaluations": "Evaluations"
   },
