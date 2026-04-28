@@ -701,6 +701,113 @@
     font-size: 0.92em;
 }
 
+.plBannerExtendBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--primary-color);
+    background: var(--primary-color);
+    color: var(--button-primary-text-color, white);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    transition: filter 0.15s;
+    white-space: nowrap;
+}
+
+.plBannerExtendBtn:hover {
+    filter: brightness(1.1);
+}
+
+/* Modal "Extender curso" — Fase 5 sub-B */
+.extendModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.extendModalIntro {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--text-main);
+}
+
+.extendModalTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.extendModalTable thead th {
+    background: var(--bg-subtle, var(--bg-card));
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.extendModalTable tbody td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.extendModalTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.extendModalTable code {
+    background: var(--bg-subtle, var(--bg-card));
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    color: var(--text-muted);
+}
+
+.extendModalNoChange {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.92em;
+}
+
+.extendModalPreview {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--bg-subtle, var(--bg-card));
+    font-size: var(--text-sm);
+    flex-wrap: wrap;
+}
+
+.extendModalPreview_ok {
+    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+}
+
+.extendModalPreview_warn {
+    background: color-mix(in srgb, var(--color-warning, #d97706) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-warning, #d97706) 35%, var(--border-color));
+}
+
+.extendModalPreview_error {
+    background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+}
+
+.extendModalPreviewLabel {
+    color: var(--text-muted);
+}
+
 .plPillAdd {
     display: inline-flex;
     align-items: center;
@@ -819,6 +926,12 @@
 .pliSummaryStat strong {
     font-size: 1.1em;
     font-weight: 700;
+}
+
+.pliSummaryStatSub {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    line-height: 1;
 }
 
 .pliSummaryArrow {

@@ -76,9 +76,13 @@ const getId = (obj) => {
 };
 
 // ─── Componente chip de materia (draggable desde el panel) ──────────────
+// Contador en horas ANUALES (Fase 5 sub-A): minutosTotales = currículo anual,
+// minutosColocados = Σ placements del grupo × ocurrencias del día_semana en
+// cada rango. El admin coloca placements en cualquier rango hasta que el chip
+// llegue al 100% del objetivo anual.
 const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, selected, onSelect }) => {
   const id = `mod:${imparticion.id}`;
-  const done = minutosColocados >= minutosTotales;
+  const done = minutosColocados >= minutosTotales && minutosTotales > 0;
   const disabled = done;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
@@ -101,6 +105,7 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
         e.stopPropagation();
         onSelect?.(imparticion.id);
       }}
+      title={`${horasColocadas}h / ${horasTotales}h anuales`}
     >
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
@@ -113,7 +118,7 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
           {imparticion.profesor ? `${imparticion.profesor.nombre || ''} ${imparticion.profesor.apellidos || ''}`.trim() : '—'}
         </span>
       </div>
-      <span className={styles.moduleCounter}>{horasColocadas}/{horasTotales}</span>
+      <span className={styles.moduleCounter}>{horasColocadas}/{horasTotales}h</span>
     </div>
   );
 };
@@ -236,6 +241,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [pliByPl, setPliByPl] = useState({});
   const [pliLoading, setPliLoading] = useState(false);
   const [pliRowSaving, setPliRowSaving] = useState({});
+  // Horarios persistidos del grupo entero (todos los PLs) — para que el chip
+  // lateral pueda contar "horas anuales colocadas" sumando placements de TODOS
+  // los rangos (Fase 5 sub-A). { [grupoId]: Horario[] }. El state local del
+  // editor (placements) se compone encima para el PL activo.
+  const [allHorariosByGroup, setAllHorariosByGroup] = useState({});
+  // Modal "Extender curso" (Fase 5 sub-B): se dispara desde el botón del banner
+  // anual cuando faltan horas para cumplir currículo. Aplica PATCH al último PL
+  // y al Grupo en cascada.
+  const [extendModalOpen, setExtendModalOpen] = useState(false);
+  const [extendingCourse, setExtendingCourse] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -266,6 +281,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, user?.centro?.id]);
+
+  // Helper local: formatea una fecha (ISO YYYY-MM-DD o "...T00:00:00...") al
+  // formato español dd/mm/yyyy. Devuelve cadena vacía si la entrada es inválida.
+  const fmtDateEs = (s) => {
+    if (!s) return '';
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return String(s);
+    return `${m[3]}/${m[2]}/${m[1]}`;
+  };
 
   // Helper local: extrae id de una FK que puede llegar como objeto, IRI string u objeto JSON-LD.
   const extractFkId = (ref) => {
@@ -377,6 +401,24 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })
       .catch(err => console.error('Error cargando PeriodoLectivos:', err));
   }, [selectedGrupo, plByGrupo, selectedPlByGrupo]);
+
+  // 1.5.d) Cargar TODOS los horarios persistidos del grupo (todos los PLs).
+  // Necesario para Fase 5 sub-A: el ModuleChip lateral suma horas anuales
+  // colocadas a través de TODOS los rangos del grupo. Refetch tras cualquier
+  // save (ver `refetchAllHorariosForGroup` y handleSave).
+  useEffect(() => {
+    if (!selectedGrupo) return;
+    if (allHorariosByGroup[selectedGrupo] !== undefined) return;
+    fetch(getApiUrl(`/api/horarios?imparticion.grupo=${selectedGrupo}&itemsPerPage=500`),
+      { headers: { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const items = d['hydra:member'] || d.member || [];
+        setAllHorariosByGroup(prev => ({ ...prev, [selectedGrupo]: items }));
+      })
+      .catch(err => console.error('Error cargando horarios globales:', err));
+  }, [selectedGrupo, allHorariosByGroup]);
 
   // 1.6) Capacity-check del (grupo, PL) seleccionado (sub-fase O, §14.7).
   // Pre-calcula el ILP de asignación slots→materias antes de pulsar "Sugerir".
@@ -599,6 +641,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   // Minutos colocados por imparticion (suma duración real de los slots ocupados,
   // no número de slots — los slots pueden tener duración mixta 60/90/120 min).
+  // OJO: este es SEMANAL del PL activo (lo usan solver/CapacityPlanner). Para
+  // el chip lateral usamos `minutosAnualesColocadosByImp` (Fase 5 sub-A).
   const minutosColocados = useMemo(() => {
     const m = {};
     Object.values(placements).forEach(p => {
@@ -607,6 +651,67 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
     return m;
   }, [placements, slotMinutosByHi]);
+
+  // Semanas por PL del grupo (lookup table) — usado por los memos anuales.
+  // Calcula `(fechaFin - fechaInicio + 1) / 7` igual que el resto del código.
+  const semanasByPlId = useMemo(() => {
+    const m = {};
+    (plByGrupo[selectedGrupo] || []).forEach(pl => {
+      if (!pl.fechaInicio || !pl.fechaFin) return;
+      const ini = new Date(pl.fechaInicio.slice(0, 10));
+      const fin = new Date(pl.fechaFin.slice(0, 10));
+      const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
+      m[pl.id] = days / 7;
+    });
+    return m;
+  }, [plByGrupo, selectedGrupo]);
+
+  // Minutos ANUALES colocados por imparticion (Fase 5 sub-A): suma a través
+  // de TODOS los rangos del grupo. Por cada placement: `slot duración × semanas
+  // del PL` (asume cada día_semana ocurre 1× por semana del rango).
+  // - PL activo: usa `placements` (state local, incluye ediciones sin guardar).
+  // - Otros PLs: usa `allHorariosByGroup` (datos persistidos).
+  // Tras un save, `refetchAllHorariosForGroup` actualiza la fuente persistida.
+  const minutosAnualesColocadosByImp = useMemo(() => {
+    const acc = {};
+    if (!selectedGrupo) return acc;
+    // Otros PLs (persistidos)
+    const all = allHorariosByGroup[selectedGrupo] || [];
+    all.forEach(h => {
+      const plId = extractFkId(h.periodoLectivo);
+      if (!plId) return;
+      if (selectedPlId && String(plId) === String(selectedPlId)) return;  // skip activo (lo cubre el state local)
+      const semanas = semanasByPlId[plId] || 0;
+      if (semanas <= 0) return;
+      const dur = parseHmsToMin(h.horaFin) - parseHmsToMin(h.horaInicio);
+      if (dur <= 0) return;
+      const impId = Number(getId(h.imparticion));
+      if (!impId) return;
+      acc[impId] = (acc[impId] || 0) + dur * semanas;
+    });
+    // PL activo (state local)
+    const semanasActivo = selectedPlId ? (semanasByPlId[selectedPlId] || 0) : 0;
+    if (semanasActivo > 0) {
+      Object.values(placements).forEach(p => {
+        const dur = slotMinutosByHi[p.horaInicio] || 0;
+        if (dur <= 0) return;
+        acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanasActivo;
+      });
+    }
+    return acc;
+  }, [selectedGrupo, allHorariosByGroup, semanasByPlId, selectedPlId, placements, slotMinutosByHi]);
+
+  // Objetivo anual por imparticion (Fase 5 sub-A): `materia.minutosSemanales × 36`
+  // semanas LOMLOE de referencia (D-L). Cuando llegue Fase 7 con calendario
+  // lectivo del centro, sustituir 36 por el cálculo real.
+  const SEMANAS_REFERENCIA_ANUAL = 36;
+  const minutosAnualesObjetivoByImp = useMemo(() => {
+    const m = {};
+    imps.forEach(imp => {
+      m[imp.id] = (imp.materia?.minutosSemanales || 0) * SEMANAS_REFERENCIA_ANUAL;
+    });
+    return m;
+  }, [imps]);
 
   const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
   const colocadosMinutos = Object.values(placements).reduce(
@@ -698,14 +803,112 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     };
   }, [selectedGrupo, plByGrupo, imps, impById]);
 
+  // Sugerencia de extensión de curso (Fase 5 sub-B): cuando el banner anual
+  // muestra que faltan horas (tone warn/error), calcula cuántos días lectivos
+  // habría que extender el curso para que el banner pase a verde. El cálculo:
+  //   - jornadaSemanal = Σ slot durations × 5 días (del PL activo, asumido
+  //     representativo del centro)
+  //   - extraSemanas = ceil(faltanHoras / jornadaSemanal_en_horas)
+  //   - extraDays = extraSemanas × 7 (días naturales)
+  //   - lastPl = PL del grupo con mayor fechaFin (= "el último rango")
+  //   - newLastPlFin = lastPl.fechaFin + extraDays
+  //   - newGrupoFin = lastPl.fechaFin + extraDays (sincronizamos por arriba)
+  //   - preview de newDiff: lo que aporta el último PL en horas extra (Σ
+  //     minEffective del último PL × extraSemanas) sumado al planificado actual.
+  // Devuelve null si: banner ok, jornada vacía, no hay PLs, o si Grupo no
+  // tiene fechaFin (caso edge, no debería pasar en producción).
+  const extendCourseSuggestion = useMemo(() => {
+    if (!horasAnualesBanner) return null;
+    if (horasAnualesBanner.tone === 'ok') return null;        // ya cuadrado o sobran
+    const faltanHoras = -horasAnualesBanner.diff;             // tone warn/error → diff < 0
+    if (faltanHoras <= 0) return null;
+    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
+    const jornadaSemanaMin = slotsMinTotal * 5;
+    if (jornadaSemanaMin <= 0) return null;
+    const jornadaSemanaH = jornadaSemanaMin / 60;
+    const extraSemanas = Math.ceil(faltanHoras / jornadaSemanaH);
+    if (extraSemanas <= 0) return null;
+    const extraDays = extraSemanas * 7;
+    const pls = plByGrupo[selectedGrupo] || [];
+    if (pls.length === 0) return null;
+    // Último PL por fechaFin (lex sort funciona con ISO YYYY-MM-DD)
+    const lastPl = [...pls].sort((a, b) => (b.fechaFin || '').localeCompare(a.fechaFin || ''))[0];
+    if (!lastPl?.fechaFin) return null;
+    const oldLastPlFinISO = lastPl.fechaFin.slice(0, 10);
+    const oldLastPlFinDate = new Date(oldLastPlFinISO);
+    const newLastPlFinDate = new Date(oldLastPlFinDate);
+    newLastPlFinDate.setDate(newLastPlFinDate.getDate() + extraDays);
+    const newLastPlFinISO = newLastPlFinDate.toISOString().slice(0, 10);
+    const oldGrupoFinISO = grupo?.fechaFin ? grupo.fechaFin.slice(0, 10) : null;
+    // Grupo.fechaFin se sincroniza por arriba: si el grupo ya termina DESPUÉS
+    // del nuevo último rango, no lo tocamos (sería adelantar el curso, bug).
+    // Sólo lo extendemos si el último rango ahora se pasa de la fecha actual
+    // del grupo.
+    const newGrupoFinISO = (oldGrupoFinISO && oldGrupoFinISO >= newLastPlFinISO)
+      ? oldGrupoFinISO
+      : newLastPlFinISO;
+    const grupoNeedsPatch = oldGrupoFinISO !== newGrupoFinISO;
+    // Σ min/sem efectivos del último PL: lo que aporta una semana extra de ese
+    // rango al planificado anual.
+    const lastPlPlis = lastPl.imparticiones || [];
+    const sumLastPlMin = lastPlPlis.reduce((acc, pli) => {
+      if (pli.deleted) return acc;
+      if (pli.minutosSemanales != null) return acc + pli.minutosSemanales;
+      const impId = extractFkId(pli.imparticion);
+      const imp = impById[impId];
+      return acc + (imp?.materia?.minutosSemanales || 0);
+    }, 0);
+    const extraHoras = (sumLastPlMin * extraSemanas) / 60;
+    const newPlanned = horasAnualesBanner.plannedHoras + extraHoras;
+    const newDiff = Math.round(newPlanned - horasAnualesBanner.curriculumHoras);
+    let newTone;
+    if (Math.abs(newDiff) <= 5) newTone = 'ok';
+    else if (newDiff > 0) newTone = 'ok';
+    else if (-newDiff <= 15) newTone = 'warn';
+    else newTone = 'error';
+    return {
+      faltanHoras,
+      extraSemanas,
+      extraDays,
+      lastPl,
+      lastPlNombre: lastPl.nombre || `#${lastPl.id}`,
+      oldLastPlFinISO,
+      newLastPlFinISO,
+      oldGrupoFinISO,
+      newGrupoFinISO,
+      grupoNeedsPatch,
+      newDiff,
+      newDiffSigned: newDiff > 0 ? `+${newDiff}` : `${newDiff}`,
+      newTone,
+    };
+  }, [horasAnualesBanner, slotMinutosByHi, plByGrupo, selectedGrupo, grupo, impById]);
+
+  // Semanas del rango activo en el modal (Fase 5 sub-A): se usa para convertir
+  // entre min/sem ↔ horas anuales. Cálculo: ceil((fechaFin - fechaInicio) / 7).
+  // Si el PL no tiene fechas válidas, fallback a 1 (evita división por cero;
+  // muestra valores inflados pero al menos no crashea).
+  const pliModalSemanasRango = useMemo(() => {
+    if (!pliModalPlId) return 0;
+    const pl = (plByGrupo[selectedGrupo] || []).find(p => String(p.id) === String(pliModalPlId));
+    if (!pl?.fechaInicio || !pl?.fechaFin) return 0;
+    const ini = new Date(pl.fechaInicio.slice(0, 10));
+    const fin = new Date(pl.fechaFin.slice(0, 10));
+    const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
+    return days / 7;
+  }, [pliModalPlId, plByGrupo, selectedGrupo]);
+
   // Filas del modal "Materias del rango" (Fase 4): join de imparticiones del
   // grupo con los PLIs del PL seleccionado en el modal. Cada fila incluye:
   // - imp: la Imparticion (siempre presente)
   // - pli: el PLI vivo en el rango (null si la materia no está activa)
   // - isActive: derivado de pli !== null
   // - isOverride: pli existe y minutosSemanales != null
-  // - effectiveMin: minutos efectivos (override o default heredado de Materia)
-  // - defaultMin: el default de la materia (para el placeholder/reset)
+  // - effectiveMin: minutos semanales efectivos (override o default heredado de Materia)
+  // - defaultMin: el default semanal de la materia (para el placeholder/reset)
+  // - effectiveHorasAnualesRango: horas anuales que esta imparticion aporta en
+  //   este rango concreto (Fase 5 sub-A). Es la cifra que el admin edita.
+  // - defaultHorasAnualesRango: horas anuales que daría el default heredado en
+  //   las semanas de este rango (placeholder).
   const pliModalRows = useMemo(() => {
     if (!pliModalPlId) return [];
     const plis = pliByPl[pliModalPlId] || [];
@@ -714,6 +917,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const impId = extractFkId(pli.imparticion);
       if (impId) byImpId[String(impId)] = pli;
     });
+    const semanas = pliModalSemanasRango || 0;
+    const minToHorasRango = (m) => semanas > 0 ? Math.round((m * semanas / 60) * 10) / 10 : 0;
     return imps.map(imp => {
       const pli = byImpId[String(imp.id)] || null;
       const defaultMin = imp.materia?.minutosSemanales || 0;
@@ -722,24 +927,41 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const effectiveMin = isActive
         ? (pli.minutosSemanales != null ? pli.minutosSemanales : defaultMin)
         : 0;
-      return { imp, pli, isActive, isOverride, effectiveMin, defaultMin };
+      return {
+        imp,
+        pli,
+        isActive,
+        isOverride,
+        effectiveMin,
+        defaultMin,
+        effectiveHorasAnualesRango: minToHorasRango(effectiveMin),
+        defaultHorasAnualesRango: minToHorasRango(defaultMin),
+      };
     });
-  }, [pliModalPlId, pliByPl, imps]);
+  }, [pliModalPlId, pliByPl, imps, pliModalSemanasRango]);
 
   const pliModalSummary = useMemo(() => {
     if (!pliModalPlId) return null;
+    // Σ semanal del rango: con qué peso semanal está el rango planificado.
     const planMin = pliModalRows.reduce((acc, r) => acc + (r.isActive ? r.effectiveMin : 0), 0);
     // Cap semanal de la jornada del rango: Σ slot durations × 5 días.
     const slotsMin = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
     const capMin = slotsMin * 5;
+    // Conversión a horas anuales para el rango (Fase 5 sub-A): peso semanal × semanas.
+    const semanas = pliModalSemanasRango || 0;
+    const planAnualH = semanas > 0 ? Math.round((planMin * semanas / 60) * 10) / 10 : 0;
+    const capAnualH = semanas > 0 ? Math.round((capMin * semanas / 60) * 10) / 10 : 0;
     return {
       planMin,
       capMin,
       planH: Math.round((planMin / 60) * 10) / 10,
       capH: Math.round((capMin / 60) * 10) / 10,
+      planAnualH,
+      capAnualH,
+      semanas: Math.round(semanas * 10) / 10,
       fits: capMin > 0 ? planMin <= capMin : null,
     };
-  }, [pliModalPlId, pliModalRows, slotMinutosByHi]);
+  }, [pliModalPlId, pliModalRows, slotMinutosByHi, pliModalSemanasRango]);
 
   // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales).
   // Trabajamos en minutos internamente y exponemos horas decimales al panel
@@ -782,11 +1004,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const imp = impById[impId];
     if (!imp) return { ok: false, reason: t('scheduleEditor.reasonUnknownImp') };
 
-    // Regla 1: minutos restantes > 0 (solo para panel → celda; en swap los minutos no cambian globalmente)
+    // Regla 1: horas anuales restantes > 0 (Fase 5 sub-A — antes era semanal del
+    // PL activo; ahora bloqueamos sólo cuando se han colocado las horas anuales
+    // completas del currículo en cualquier rango del grupo).
     if (drag.type === 'module') {
-      const totalMin = (imp.materia?.minutosSemanales || 0);
-      if ((minutosColocados[impId] || 0) >= totalMin) {
-        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalMin), module: imp.materia?.nombre }) };
+      const totalAnualMin = minutosAnualesObjetivoByImp[impId] || 0;
+      const colocadasAnualMin = minutosAnualesColocadosByImp[impId] || 0;
+      if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
+        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }) };
       }
       // Regla extra: la celda debe estar vacía
       if (placements[key]) {
@@ -999,6 +1224,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           dirty: false,
         },
       }));
+      // Refrescar la fuente persistida de horarios globales (alimenta el chip
+      // lateral en horas anuales — Fase 5 sub-A).
+      refetchAllHorariosForGroup(selectedGrupo);
       return true;
     } catch (err) {
       toast.error(err.message, {
@@ -1083,12 +1311,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })() : placements;
       const imp = impById[selectedImpId];
       if (!imp) return;
-      const totalMin = (imp.materia?.minutosSemanales || 0);
-      const yaMin = Object.values(effectivePlacements)
-        .filter(p => p.imparticionId === selectedImpId)
-        .reduce((acc, p) => acc + (slotMinutosByHi[p.horaInicio] || 0), 0);
-      if (yaMin >= totalMin) {
-        setDragError(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalMin), module: imp.materia?.nombre }));
+      // Tap-mode: misma regla anual que el drag (Fase 5 sub-A).
+      const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
+      const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
+      if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
+        setDragError(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }));
         window.setTimeout(() => setDragError(null), 4000);
         return;
       }
@@ -1116,8 +1343,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           dirty: true,
         },
       }));
-      // Si la materia ya alcanzó sus minutos totales, deseleccionamos.
-      if (yaMin + tapDur >= totalMin) setSelectedImpId(null);
+      // Si la materia, tras este tap, alcanza el objetivo anual, deseleccionamos.
+      // Aproximación: añadimos al colocado anual el tap como `tapDur × semanas activo`.
+      const semanasActivo = selectedPlId ? (semanasByPlId[selectedPlId] || 0) : 0;
+      if (totalAnualMin > 0 && colocadasAnualMin + tapDur * semanasActivo >= totalAnualMin) {
+        setSelectedImpId(null);
+      }
       return;
     }
 
@@ -1131,19 +1362,21 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, slotMinutosByHi, grupo, t]);
 
-  // Validación ligera para pintar tap-mode
+  // Validación ligera para pintar tap-mode (Fase 5 sub-A: usa cuota anual igual
+  // que el drag y el handler de tap; estaban desincronizados con el modelo).
   const validateTap = useCallback((diaIdx, slotIdx) => {
     if (!selectedImpId) return null;
     const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const totalMin = (imp.materia?.minutosSemanales || 0);
-    if ((minutosColocados[selectedImpId] || 0) >= totalMin) return false;
+    const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
+    const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
+    if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) return false;
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
     return true;
-  }, [selectedImpId, slotsDia, placements, impById, minutosColocados, parallelBusy]);
+  }, [selectedImpId, slotsDia, placements, impById, minutosAnualesObjetivoByImp, minutosAnualesColocadosByImp, parallelBusy]);
 
   // ESC deselecciona
   useEffect(() => {
@@ -1153,19 +1386,42 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return () => window.removeEventListener('keydown', h);
   }, [selectedImpId]);
 
-  // Abrir modal "Nuevo rango lectivo": pre-rellena nombre y fechas con defaults
-  // razonables (continuación del último rango si existe, sino sept-jun del curso).
+  // Abrir modal "Nuevo rango lectivo": pre-rellena con defaults sensatos.
+  // - `fechaInicio`: día siguiente al último PL si existe, sino `Grupo.fechaInicio`.
+  // - `fechaFin`: depende del estado del banner anual:
+  //     · Banner ok (cubre currículo): default = `Grupo.fechaFin` (el rango
+  //       llega al fin de curso, el admin lo recortará si quiere).
+  //     · Banner warn/error (faltan horas): default = `extendCourseSuggestion.
+  //       newLastPlFinISO`, es decir el rango cubre exactamente las semanas que
+  //       faltan para cuadrar el currículo. Crear el rango = atajo de "extender
+  //       curso" pero con un PL nuevo en vez de extender el último.
   const openCreatePlModal = () => {
     const existing = (selectedGrupo && plByGrupo[selectedGrupo]) || [];
+    const grupoFin = grupo?.fechaFin ? grupo.fechaFin.slice(0, 10) : '';
+    const grupoIni = grupo?.fechaInicio ? grupo.fechaInicio.slice(0, 10) : '';
     let inicio = '';
-    let fin = '';
+    let fin = grupoFin;
     if (existing.length > 0) {
       // Fecha inicio del nuevo rango = día siguiente al fechaFin del último.
       const last = [...existing].sort((a, b) => a.fechaFin.localeCompare(b.fechaFin)).at(-1);
       const lastFin = new Date(last.fechaFin);
       const dayAfter = new Date(lastFin); dayAfter.setDate(dayAfter.getDate() + 1);
       inicio = dayAfter.toISOString().slice(0, 10);
-      fin = last.fechaFin.slice(0, 4) + '-06-30';  // hasta junio del año del último fin
+      // Si el banner anual sugiere extender (faltan horas), el default es la
+      // fecha que cubre exactamente las semanas faltantes — cubrir lo necesario,
+      // ni más ni menos. El admin ajustará si quiere otra cosa.
+      if (extendCourseSuggestion?.newLastPlFinISO) {
+        fin = extendCourseSuggestion.newLastPlFinISO;
+      }
+      // Edge case: el último rango ya se pasa del fin del curso (Grupo.fechaFin
+      // < inicio sugerido). Dejamos `fin` vacío para que el admin escriba algo
+      // sensato a mano en vez de proponer una duración negativa.
+      if (fin && fin < inicio) {
+        fin = '';
+      }
+    } else {
+      // Primer rango del grupo: si conocemos las fechas del grupo, usarlas.
+      inicio = grupoIni;
     }
     setPlForm({
       nombre: '',
@@ -1266,6 +1522,35 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         });
         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: created.id }));
         setPlPickerOpen(false);
+        // Si el rango recién creado se pasa de `Grupo.fechaFin`, auto-extender
+        // el grupo para que abarque al rango (mismo principio que el botón
+        // "Extender curso"). Si el grupo no tiene fechaFin, lo fijamos al
+        // fechaFin del rango. Best-effort: si el PATCH falla, no abortamos
+        // la creación (el rango ya se creó).
+        const newPlFin = plForm.fechaFin;
+        const oldGrupoFin = grupo?.fechaFin ? grupo.fechaFin.slice(0, 10) : null;
+        if (newPlFin && (!oldGrupoFin || newPlFin > oldGrupoFin)) {
+          try {
+            const rg = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+              credentials: 'include',
+              body: JSON.stringify({ fechaFin: newPlFin }),
+            });
+            if (rg.ok) {
+              const updatedGrupo = await rg.json().catch(() => null);
+              if (updatedGrupo) {
+                setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updatedGrupo } : g));
+              } else {
+                setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: newPlFin } : g));
+              }
+            } else {
+              console.warn('Auto-extend Grupo.fechaFin falló:', rg.status);
+            }
+          } catch (e) {
+            console.warn('Auto-extend Grupo.fechaFin error:', e);
+          }
+        }
         toast.success(t('scheduleEditor.rangoCreated', { defaultValue: 'Rango lectivo creado' }));
       }
     } catch (err) {
@@ -1375,6 +1660,24 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       setPlByGrupo(prev => ({ ...prev, [gid]: items }));
     } catch (err) {
       console.error('Error refetch PLs:', err);
+    }
+  };
+
+  // Refetch de TODOS los horarios persistidos del grupo (Fase 5 sub-A): usado
+  // tras un save batch para que el chip lateral con horas anuales colocadas
+  // refleje la verdad persistida (incluyendo placements del PL activo que
+  // antes vivían sólo en state local).
+  const refetchAllHorariosForGroup = async (gid) => {
+    if (!gid) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/horarios?imparticion.grupo=${gid}&itemsPerPage=500`),
+        { headers: { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache' }, credentials: 'include' });
+      if (!res.ok) return;
+      const d = await res.json();
+      const items = d['hydra:member'] || d.member || [];
+      setAllHorariosByGroup(prev => ({ ...prev, [gid]: items }));
+    } catch (err) {
+      console.error('Error refetch horarios globales:', err);
     }
   };
 
@@ -1521,6 +1824,68 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       toast.error(t('scheduleEditor.pliSaveError', { defaultValue: 'No se pudo guardar el cambio' }));
     } finally {
       markRowSaving(impId, false);
+    }
+  };
+
+  // ── Extender curso (Fase 5 sub-B) ────────────────────────────────────
+  // PATCH secuencial: primero el PL (extiende su fechaFin), luego el Grupo
+  // (extiende su fechaFin para abarcar el nuevo último rango). Si el PL falla,
+  // no tocamos el Grupo. Si el Grupo falla tras el PL OK, queda inconsistente
+  // (PL extendido pero Grupo no): aceptable porque la cadena de jornada usa
+  // PL.fechaFin para el solver y banners — el desalineamiento es cosmético y
+  // recuperable manualmente.
+  const handleConfirmExtendCourse = async () => {
+    if (!extendCourseSuggestion || !selectedGrupo) return;
+    const sug = extendCourseSuggestion;
+    setExtendingCourse(true);
+    try {
+      const r1 = await fetch(getApiUrl(`/api/periodo_lectivos/${sug.lastPl.id}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify({ fechaFin: sug.newLastPlFinISO }),
+      });
+      if (!r1.ok) {
+        const txt = await r1.text().catch(() => '');
+        throw new Error(`PL: ${r1.status}: ${txt.slice(0, 200)}`);
+      }
+      // Sólo PATCH al Grupo si la fecha realmente cambia (caso típico: el Grupo
+      // ya termina más tarde que el último rango → no tocamos nada).
+      let updatedGrupo = null;
+      if (sug.grupoNeedsPatch) {
+        const r2 = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify({ fechaFin: sug.newGrupoFinISO }),
+        });
+        if (!r2.ok) {
+          const txt = await r2.text().catch(() => '');
+          // PL ya extendido, no rollback automático — alerta y log.
+          console.warn('Grupo PATCH falló tras PL OK:', r2.status, txt);
+          toast.error(t('scheduleEditor.extendCourseGrupoError', { defaultValue: 'El rango se extendió pero la fecha del grupo no se pudo actualizar. Revisa /admin/grupos.' }));
+        } else {
+          updatedGrupo = await r2.json().catch(() => null);
+        }
+      }
+      // Refrescar caches: PLs (banner anual + strip), grupos (memo grupo),
+      // capacity-check (la jornada efectiva no cambió, pero por si acaso).
+      await refetchPlsForGroup(selectedGrupo);
+      if (updatedGrupo) {
+        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updatedGrupo } : g));
+      } else if (sug.grupoNeedsPatch) {
+        // Patch local optimista para que el banner refleje la fecha nueva
+        // aunque la respuesta del PATCH no se pudiera parsear.
+        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: sug.newGrupoFinISO } : g));
+      }
+      invalidateCapacityForPl(selectedGrupo, sug.lastPl.id);
+      setExtendModalOpen(false);
+      toast.success(t('scheduleEditor.extendCourseSuccess', { defaultValue: 'Curso extendido' }));
+    } catch (err) {
+      console.error('Error extendiendo curso:', err);
+      toast.error(t('scheduleEditor.extendCourseError', { defaultValue: 'No se pudo extender el curso' }));
+    } finally {
+      setExtendingCourse(false);
     }
   };
 
@@ -1757,7 +2122,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
                       }
                     }}
-                    title={`${pl.fechaInicio?.slice(0, 10)} → ${pl.fechaFin?.slice(0, 10)}`}
+                    title={`${fmtDateEs(pl.fechaInicio)} → ${fmtDateEs(pl.fechaFin)}`}
                   >
                     <div className={styles.plPillBody}>
                       <span className={styles.plPillName}>{pl.nombre}</span>
@@ -1854,6 +2219,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   semanasTotal: horasAnualesBanner.semanasTotal,
                 })}
               </span>
+              {extendCourseSuggestion && (
+                <button
+                  type="button"
+                  className={styles.plBannerExtendBtn}
+                  onClick={() => setExtendModalOpen(true)}
+                  title={t('scheduleEditor.extendCourseTitle', { defaultValue: 'Extender el curso para cuadrar el currículo' })}
+                >
+                  <CalendarClock size={13} style={{ marginRight: 4 }} />
+                  {t('scheduleEditor.extendCourseButton', {
+                    defaultValue: 'Extender el curso {{days}} días',
+                    days: extendCourseSuggestion.extraDays,
+                  })}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1949,8 +2328,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <ModuleChip
                     key={imp.id}
                     imparticion={imp}
-                    minutosTotales={(imp.materia?.minutosSemanales || 0)}
-                    minutosColocados={minutosColocados[imp.id] || 0}
+                    minutosTotales={minutosAnualesObjetivoByImp[imp.id] || 0}
+                    minutosColocados={minutosAnualesColocadosByImp[imp.id] || 0}
                     color={colorForModule(imp.materia?.id || imp.id)}
                     selected={selectedImpId === imp.id}
                     onSelect={handleSelectModule}
@@ -2331,20 +2710,22 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               {pliModalSummary && (
                 <div className={`${styles.pliSummary} ${pliModalSummary.fits === false ? styles.pliSummaryRed : (pliModalSummary.fits === true ? styles.pliSummaryGreen : '')}`}>
                   <div className={styles.pliSummaryStat}>
-                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryPlan', { defaultValue: 'Σ planificado' })}</span>
-                    <strong>{pliModalSummary.planH}h/sem</strong>
+                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryPlanAnual', { defaultValue: 'Σ planificado en el rango' })}</span>
+                    <strong>{pliModalSummary.planAnualH}h</strong>
+                    <span className={styles.pliSummaryStatSub}>≈ {pliModalSummary.planH}h/sem</span>
                   </div>
                   <span className={styles.pliSummaryArrow}>vs</span>
                   <div className={styles.pliSummaryStat}>
-                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryCap', { defaultValue: 'Jornada del rango' })}</span>
-                    <strong>{pliModalSummary.capH}h/sem</strong>
+                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryCapAnual', { defaultValue: 'Cap. del rango ({{semanas}} sem)', semanas: pliModalSummary.semanas })}</span>
+                    <strong>{pliModalSummary.capAnualH}h</strong>
+                    <span className={styles.pliSummaryStatSub}>= {pliModalSummary.capH}h/sem</span>
                   </div>
                   <span className={styles.pliSummaryHint}>
                     {pliModalSummary.fits === true && (
                       <><CheckCircle2 size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.pliSummaryFits', { defaultValue: 'La semana cuadra.' })}</>
                     )}
                     {pliModalSummary.fits === false && (
-                      <><Ban size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.pliSummaryNoFit', { defaultValue: 'La semana no cabe — reduce minutos o desactiva materias.' })}</>
+                      <><Ban size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.pliSummaryNoFit', { defaultValue: 'La semana no cabe — reduce horas o desactiva materias.' })}</>
                     )}
                   </span>
                 </div>
@@ -2356,14 +2737,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                       <th className={styles.pliColActive}>{t('scheduleEditor.pliColActive', { defaultValue: 'Activa' })}</th>
                       <th>{t('scheduleEditor.pliColMateria', { defaultValue: 'Materia' })}</th>
                       <th>{t('scheduleEditor.pliColProfesor', { defaultValue: 'Profesor' })}</th>
-                      <th className={styles.pliColMinutos}>{t('scheduleEditor.pliColMinutos', { defaultValue: 'Min/sem' })}</th>
+                      <th className={styles.pliColMinutos}>
+                        {t('scheduleEditor.pliColHorasAnuales', { defaultValue: 'Horas anuales (en este rango)' })}
+                      </th>
                       <th className={styles.pliColReset}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {pliModalRows.map(row => {
                       const saving = !!pliRowSaving[row.imp.id];
-                      const inputKey = `${row.pli?.id || 'noPli'}_${row.pli?.minutosSemanales ?? 'null'}_${row.imp.id}`;
+                      // Key compuesta: fuerza re-mount del input tras cada save para
+                      // sincronizar defaultValue con el backend (uncontrolled pattern).
+                      const inputKey = `${row.pli?.id || 'noPli'}_${row.pli?.minutosSemanales ?? 'null'}_${row.imp.id}_${pliModalSemanasRango}`;
                       return (
                         <tr key={row.imp.id} className={`${row.isActive ? '' : styles.pliRowInactive} ${saving ? styles.pliRowSaving : ''}`}>
                           <td className={styles.pliColActive}>
@@ -2395,31 +2780,40 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               key={inputKey}
                               type="number"
                               min="0"
-                              step="5"
+                              step="0.5"
                               className={styles.pliMinutosInput}
-                              defaultValue={row.isOverride ? row.pli.minutosSemanales : ''}
-                              placeholder={row.defaultMin > 0 ? String(row.defaultMin) : '0'}
-                              disabled={!row.isActive || saving}
+                              defaultValue={row.isOverride ? row.effectiveHorasAnualesRango : ''}
+                              placeholder={row.defaultHorasAnualesRango > 0 ? String(row.defaultHorasAnualesRango) : '0'}
+                              disabled={!row.isActive || saving || pliModalSemanasRango <= 0}
                               onBlur={(e) => {
-                                if (!row.pli) return;
+                                if (!row.pli || pliModalSemanasRango <= 0) return;
                                 const raw = e.target.value.trim();
                                 if (raw === '') {
                                   if (row.isOverride) updatePliMinutos(row.pli, null);
                                   return;
                                 }
-                                const n = parseInt(raw, 10);
-                                if (!Number.isFinite(n) || n < 0) return;
+                                const horas = parseFloat(raw.replace(',', '.'));
+                                if (!Number.isFinite(horas) || horas < 0) return;
+                                // Convertir a min/sem (BD trabaja en minutos semanales).
+                                const minSem = Math.round(horas * 60 / pliModalSemanasRango);
                                 const current = row.pli.minutosSemanales;
-                                if (current === n) return;  // no-op si igual al guardado
-                                if (current == null && n === row.defaultMin) return;  // no-op si igual al default heredado
-                                updatePliMinutos(row.pli, n);
+                                if (current === minSem) return;  // no-op si igual al guardado
+                                if (current == null && minSem === row.defaultMin) return;  // no-op si igual al default
+                                updatePliMinutos(row.pli, minSem);
                               }}
                             />
                             {row.isActive && (
                               <span className={styles.pliMinutosHint}>
                                 {row.isOverride
-                                  ? t('scheduleEditor.pliOverrideHint', { defaultValue: 'override · default {{min}}', min: row.defaultMin })
-                                  : t('scheduleEditor.pliInheritedHint', { defaultValue: 'heredado de Materia' })}
+                                  ? t('scheduleEditor.pliHorasOverrideHint', {
+                                      defaultValue: '≈ {{minSem}} min/sem · default {{defH}}h',
+                                      minSem: row.effectiveMin,
+                                      defH: row.defaultHorasAnualesRango,
+                                    })
+                                  : t('scheduleEditor.pliHorasInheritedHint', {
+                                      defaultValue: 'heredado · {{minSem}} min/sem media',
+                                      minSem: row.effectiveMin,
+                                    })}
                               </span>
                             )}
                           </td>
@@ -2449,6 +2843,90 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+        </ModalView>
+
+        {/* Modal "Extender curso" — Fase 5 sub-B (D-J) */}
+        <ModalView
+          isOpen={extendModalOpen}
+          onClose={() => setExtendModalOpen(false)}
+          title={t('scheduleEditor.extendCourseModalTitle', { defaultValue: 'Extender el curso' })}
+          size="medium"
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setExtendModalOpen(false)} disabled={extendingCourse}>
+                {t('common.cancel', { defaultValue: 'Cancelar' })}
+              </Button>
+              <Button type="button" onClick={handleConfirmExtendCourse} disabled={extendingCourse}>
+                {extendingCourse
+                  ? t('scheduleEditor.extendCourseSubmitting', { defaultValue: 'Aplicando…' })
+                  : t('scheduleEditor.extendCourseSubmit', { defaultValue: 'Confirmar y aplicar' })}
+              </Button>
+            </>
+          }
+        >
+          {extendCourseSuggestion && (
+            <div className={styles.extendModalBody}>
+              <p className={styles.extendModalIntro}>
+                {t('scheduleEditor.extendCourseIntro', {
+                  defaultValue: 'Te faltan {{horas}}h anuales para cumplir el currículo. Para cuadrar, hace falta extender el curso {{days}} días lectivos ({{semanas}} sem completas).',
+                  horas: extendCourseSuggestion.faltanHoras,
+                  days: extendCourseSuggestion.extraDays,
+                  semanas: extendCourseSuggestion.extraSemanas,
+                })}
+              </p>
+              <table className={styles.extendModalTable}>
+                <thead>
+                  <tr>
+                    <th>{t('scheduleEditor.extendCourseColEntity', { defaultValue: 'Entidad' })}</th>
+                    <th>{t('scheduleEditor.extendCourseColField', { defaultValue: 'Campo' })}</th>
+                    <th>{t('scheduleEditor.extendCourseColBefore', { defaultValue: 'Antes' })}</th>
+                    <th>{t('scheduleEditor.extendCourseColAfter', { defaultValue: 'Después' })}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{t('scheduleEditor.extendCourseRowPl', { defaultValue: 'Rango "{{nombre}}"', nombre: extendCourseSuggestion.lastPlNombre })}</td>
+                    <td><code>fechaFin</code></td>
+                    <td>{fmtDateEs(extendCourseSuggestion.oldLastPlFinISO)}</td>
+                    <td><strong>{fmtDateEs(extendCourseSuggestion.newLastPlFinISO)}</strong></td>
+                  </tr>
+                  {extendCourseSuggestion.grupoNeedsPatch ? (
+                    <tr>
+                      <td>{t('scheduleEditor.extendCourseRowGroup', { defaultValue: 'Grupo "{{nombre}}"', nombre: grupo ? `${grupo.curso}º ${grupo.nombre}` : '—' })}</td>
+                      <td><code>fechaFin</code></td>
+                      <td>{fmtDateEs(extendCourseSuggestion.oldGrupoFinISO) || '—'}</td>
+                      <td><strong>{fmtDateEs(extendCourseSuggestion.newGrupoFinISO)}</strong></td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className={styles.extendModalNoChange}>
+                        {t('scheduleEditor.extendCourseGrupoUnchanged', {
+                          defaultValue: 'Grupo "{{nombre}}" — fechaFin ya es {{fecha}}, no necesita cambios.',
+                          nombre: grupo ? `${grupo.curso}º ${grupo.nombre}` : '—',
+                          fecha: fmtDateEs(extendCourseSuggestion.oldGrupoFinISO),
+                        })}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              <div className={`${styles.extendModalPreview} ${styles[`extendModalPreview_${extendCourseSuggestion.newTone}`]}`}>
+                <span className={styles.extendModalPreviewLabel}>
+                  {t('scheduleEditor.extendCoursePreviewLabel', { defaultValue: 'Tras extender, el banner anual quedará en:' })}
+                </span>
+                <strong>{extendCourseSuggestion.newDiffSigned}h</strong>
+                {extendCourseSuggestion.newTone === 'ok' && (
+                  <span><CheckCircle2 size={14} style={{ marginLeft: 6 }} />{t('scheduleEditor.extendCoursePreviewOk', { defaultValue: 'Cumple el currículo' })}</span>
+                )}
+                {extendCourseSuggestion.newTone === 'warn' && (
+                  <span><AlertTriangle size={14} style={{ marginLeft: 6 }} />{t('scheduleEditor.extendCoursePreviewWarn', { defaultValue: 'Aún faltan algunas horas — considera extender más' })}</span>
+                )}
+                {extendCourseSuggestion.newTone === 'error' && (
+                  <span><XCircle size={14} style={{ marginLeft: 6 }} />{t('scheduleEditor.extendCoursePreviewError', { defaultValue: 'Sigue faltando bastante — revisa los rangos' })}</span>
+                )}
               </div>
             </div>
           )}

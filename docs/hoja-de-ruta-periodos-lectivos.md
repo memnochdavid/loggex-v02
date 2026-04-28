@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4 ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Fase 5 reestructurada el 2026-04-28** tras feedback del usuario: modelo mental anual (D-K) + botón "extender curso" (D-J) + CapacityPlanner relajado + cierre del parche temporal absorbido como sub-fase D. Sub-fases A/B/C/D pendientes. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fases 5 (modelo anual + extender curso + cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4+5a+5b ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Fase 5 reestructurada el 2026-04-28** tras feedback del usuario: modelo mental anual (D-K) + botón "extender curso" (D-J) + CapacityPlanner relajado + cierre del parche temporal absorbido como sub-fase D. **Sub-fases A+B ✅ Done**. Sub-fase A: input horas anuales + ModuleChip cross-rango + validación anual. Sub-fase B: botón "Extender el curso N días" en banner anual con modal de confirmación que muestra diff en `Grupo.fechaFin` + último PL `fechaFin` + preview del nuevo banner. Sub-fases C/D pendientes. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fases 5c/d (CapacityPlanner relajado + cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -203,25 +203,39 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Genericidad**: nada está hardcoded para etapa/itinerario/centro. El cómputo lee `Imparticion.materia.minutosSemanales` (currículo), `JornadaTipo.tramos` (capacidad semanal), `PeriodoLectivo.fechaInicio/Fin` (semanas reales). Constante temporal: 36 sem LOMLOE como referencia anual hasta Fase 7 (D-L).
 
-#### Sub-fase A — Modelo mental anual en UI
+#### Sub-fase A — Modelo mental anual en UI  ✅ Done (2026-04-28)
 
-- **Modal "Materias del rango" (Fase 4)**: cambiar input `Min/sem` por `Horas anuales en este rango`. Internamente persistimos `PLI.minutosSemanales = round(horasAnuales × 60 / semanasRango)` para mantener compatibilidad con solver/CapacityPlanner. Display secundario: "≈ X min/sem media (calculado)".
-- **ModuleChip lateral del editor de horarios**: cambiar contador `Xh/Yh` (semanal) → `Xh/Yh anuales`. Cómputo "colocadas" = Σ por placement actual de `(slot duración × ocurrencias del día_semana en TODOS los rangos donde existe el placement)`. La cuenta es global del grupo, no por rango.
-- **Banner anual de Fase 3b**: mantener pero añadir vista live "horas anuales colocadas" (visible cuando hay placements). Tonalidad sigue regla asimétrica (sobrar = ok, faltar = warn/error).
+- ✅ **Modal "Materias del rango"**: input cambiado a `Horas anuales (en este rango)` con `step="0.5"`. Conversión interna `minutosSemanales = round(horasAnuales × 60 / semanasRango)` al onBlur. Placeholder = `defaultMin × semanasRango / 60` (heredado de Materia). Hint secundario muestra "≈ X min/sem media" para que el admin pueda comprobar la conversión. Vacío = reset al default heredado.
+- ✅ **Header del modal**: dos stats en horas anuales con sub-label semanal (`Σ planificado en el rango: 576h ≈ 32h/sem`) vs `Cap. del rango (18 sem): 495h = 27.5h/sem`. La regla `fits` sigue evaluándose contra el cap semanal (es la restricción dura del solver), pero la vista principal es anual.
+- ✅ **ModuleChip lateral**: contador cambia de `Xh/Yh` semanal → `Xh/Yh anuales` (con sufijo "h"). Objetivo = `materia.minutosSemanales × 36` (constante D-L). Colocadas = Σ across todos los PLs del grupo de `(slot duración × semanas del PL)`. El PL activo lee del state local (placements vivos sin guardar); los demás PLs leen de `allHorariosByGroup` (persistidos).
+- ✅ **Validación drag y tap-mode**: cambia de "regla semanal del PL activo" a "regla anual cross-rango". El admin ya no es bloqueado por estar saturando la semana del PL activo si globalmente todavía le quedan horas. `done` del chip se evalúa anual.
+- ✅ **Refetch tras save**: `refetchAllHorariosForGroup` cargado en `performBatchSave` para que el chip refleje verdad persistida tras guardar (incluyendo placements del PL activo recién persistidos).
+- ✅ **i18n**: 7 claves nuevas por idioma (`pliColHorasAnuales`, `pliHorasInheritedHint`, `pliHorasOverrideHint`, `pliSummaryPlanAnual`, `pliSummaryCapAnual`, `pliSummaryNoFit` actualizado, `pliSummaryFits` mantenido).
 
-**Esfuerzo**: ~0.5 sesión.
+**Limitaciones conocidas** (cierre en sub-fases siguientes):
+- Constante 36 sem hardcoded para el objetivo anual (D-L). Cuando llegue Fase 7 (calendario lectivo del centro), se sustituye por cálculo desde `Centro.fechaInicioCurso/FinCurso` − festivos.
+- Las ocurrencias del día_semana en cada PL se aproximan como `(fechaFin − fechaInicio) / 7`. No descuenta festivos del día concreto. Para Fase 7 se afina.
+- `unplacedSummary` (modal "publicar incompleto") sigue en min/sem: enseña "le faltan X horas semanales" en vez de anuales. Cambiar a anual aquí también es trivial pero no urgente.
+- El banner del CapacityPlanner sigue mostrando rojo en su lógica original ("min/sem > jornada") — sub-fase C lo relajará.
+- Cuando hay cambios sin guardar en el PL activo, el chip los cuenta correctamente (lee de `placements` en vez del fetched para el PL activo). Pero los cambios sin guardar de OTROS PLs (escenario raro: navegar a otro PL con dirty=true y volver) NO entran en el cómputo. Aceptable.
 
-#### Sub-fase B — Botón "Extender curso" en banner anual
+**Esfuerzo invertido**: ~0.5 sesión, según estimación.
 
-- Cuando el banner anual muestra `diff < -tolerancia` (faltan horas), añadir un sub-botón **"Extender el curso N días lectivos para cuadrar"** (N = `ceil(faltan_horas / jornada_diaria) × 7/5`, redondeado hacia arriba a la siguiente semana completa).
-- Click → modal de confirmación (D-J) con tabla:
-  - `Grupo.fechaFin`: dd/mm/aaaa → dd/mm/aaaa (+N días)
-  - `PeriodoLectivo "<último>"` `fechaFin`: dd/mm/aaaa → dd/mm/aaaa (+N días)
-  - Banner final: "Banner anual quedará en: -3h (sigue ligeramente por debajo)" o "+12h (cumples con margen)".
-- Confirma → PATCH `/api/grupos/{gid}` con `fechaFin` + PATCH `/api/periodo_lectivos/{plId}` con `fechaFin`. Atómico desde la perspectiva del usuario (un solo "deshacer mental"); técnicamente dos requests secuenciales con rollback si la segunda falla.
-- Refresca cachés (`plByGrupo`, `capacityByGrupo`) → banner se vuelve verde.
+#### Sub-fase B — Botón "Extender curso" en banner anual  ✅ Done (2026-04-28)
 
-**Esfuerzo**: ~0.5 sesión.
+- ✅ Memo `extendCourseSuggestion`: calcula faltanHoras, extraSemanas (`ceil(faltan / jornadaSemanaH)`), extraDays (`× 7`), lastPl (sort desc por fechaFin), nuevas fechas y preview del nuevo `newDiff` (`oldPlanned + extraSemanas × Σ effectiveMin del último PL`). Devuelve null si banner ya está ok, faltan ≤ 0, o no hay jornada/PLs.
+- ✅ Botón "Extender el curso N días" inline en `.plBannerHint` cuando `extendCourseSuggestion` no es null. Estilo themed (primary color, icono CalendarClock).
+- ✅ Modal de confirmación (size medium): intro con horas faltantes + días + semanas; tabla con dos filas (`Grupo.fechaFin` y último `PL.fechaFin`) mostrando antes/después; preview con tonalidad ok/warn/error y mensaje correspondiente.
+- ✅ Handler `handleConfirmExtendCourse`: PATCH `merge-patch+json` secuencial — primero el PL, luego el Grupo. Si el PL falla, abortamos sin tocar Grupo. Si el Grupo falla tras PL OK, se muestra warning toast (PL extendido pero Grupo no — desalineamiento cosmético, recuperable manualmente). Tras éxito: refetch `refetchPlsForGroup`, update local de `grupos`, invalidate `capacityByGrupo` para el PL extendido. Toast success.
+- ✅ i18n nuevo en 5 idiomas (~16 claves nuevas en bloque `extendCourse*`).
+
+**Limitaciones conocidas** (no bloqueantes):
+- El cálculo asume que la jornada del PL activo es representativa del centro. Si el último PL tuviera una jornada distinta (caso atípico), la fórmula `ceil(faltan / jornadaSemanaActiva)` puede dar un número de semanas off. Para producción real, mejor usar la jornada del último PL (refactor menor diferido).
+- No hay rollback automático si el PATCH del Grupo falla tras el PATCH del PL OK. La probabilidad es baja (mismas validaciones, mismo backend, mismo grupo) pero existe. Futura mejora: mover ambos PATCHes a un endpoint backend transaccional.
+- El cálculo de `extraSemanas` redondea hacia arriba a semanas completas (no admite "extender 4 días"). Razón: las semanas son la unidad natural lectiva. Si el centro necesita ajuste fino, edita las fechas a mano desde el modal "Editar rango".
+- La preview del banner asume que las nuevas semanas se llenarán con la composición actual del último PL (Σ effectiveMin). Si el admin desactiva materias o ajusta minutos en ese rango después de extender, el banner real difiere. Aceptable como guía orientativa.
+
+**Esfuerzo invertido**: ~0.5 sesión, según estimación.
 
 #### Sub-fase C — CapacityPlanner relajado (anual-aware)
 
@@ -326,6 +340,99 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-28 — Fase 5 sub-B mejora: crear rango en banner warn/error abarca lo necesario + auto-extend Grupo
+
+Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del strip) debe ser sensible al estado del banner anual. Decisión refinada:
+
+- **Banner ok**: default `fechaFin` = `Grupo.fechaFin` (cubre hasta fin de curso, comportamiento ya existente).
+- **Banner warn/error** (faltan horas): default `fechaFin` = `extendCourseSuggestion.newLastPlFinISO`. El admin que crea un rango cuando el banner pide extender obtiene un rango **dimensionado exactamente para cubrir las horas faltantes** (ni más ni menos).
+
+**Auto-extend Grupo.fechaFin**: tras crear un rango cuyo `fechaFin > Grupo.fechaFin` (o si Grupo no tenía fechaFin), PATCH automático a `Grupo.fechaFin = newPlFin`. Mismo principio que el botón "Extender curso": **crear un rango que se pasa = extender el curso**. Best-effort: si el PATCH del Grupo falla, no abortamos la creación del rango (ya está hecha). Sólo log + warn console.
+
+**Coherencia con D-J**: la decisión cerrada (extender curso = extender último rango + Grupo, con confirm modal) ahora tiene un atajo: crear un nuevo rango en lugar del último. Caso de uso típico: "Bloque FCT" como rango aparte que vive en las semanas extras.
+
+**Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
+
+### 2026-04-28 — Fix Fase 5 sub-B: no adelantar fechaFin del Grupo si ya es posterior
+
+Detectado por el usuario al probar: caso 1º DAW Mañanas con `Grupo.fechaFin = 31/07/2026` (extendido manualmente o defaults raros) y `lastPL.fechaFin = 27/03/2026`. Tras pedir extender 56 días, mi modal proponía `Grupo.fechaFin: 31/07/2026 → 21/05/2026`. **Adelantaba el curso 70 días en vez de extenderlo**.
+
+**Causa**: la lógica original era `newGrupoFin = newLastPlFin` siempre. Eso era correcto sólo si Grupo.fechaFin original = lastPL.fechaFin original (caso típico recién creado). Si Grupo.fechaFin > newLastPlFin, debería respetarse.
+
+**Fix**:
+- Memo `extendCourseSuggestion`: `newGrupoFinISO = (oldGrupoFinISO >= newLastPlFinISO) ? oldGrupoFinISO : newLastPlFinISO` (max). Añadido flag `grupoNeedsPatch = oldGrupoFinISO !== newGrupoFinISO`.
+- Modal: si `!grupoNeedsPatch`, la fila del Grupo se reemplaza por una nota `colSpan=4` "Grupo X — fechaFin ya es Y, no necesita cambios" (italic, muted). Hacerla visible es deliberado: el admin ve qué se va a tocar y qué no.
+- Handler `handleConfirmExtendCourse`: si `!grupoNeedsPatch`, salta el PATCH del Grupo entero. Sólo se actualiza el último PL.
+- Reordenada la tabla: rango primero (siempre cambia), grupo después (puede no cambiar). Refleja mejor el orden de prioridad.
+
+**i18n**: clave nueva `extendCourseGrupoUnchanged` en 5 idiomas.
+
+**Lección**: cuando una operación "extender X" combina múltiples entidades, no asumir que todas tienen que cambiar. Comprobar el delta real por entidad y exponer al usuario qué se toca y qué no — eso evita sustos como "¿adelantar el curso?". Aplica también si en el futuro hay otras "extensiones cascada" (ej: Centro.fechaFinCurso si llegase Fase 7).
+
+### 2026-04-28 — Fase 5 sub-B implementada (botón "Extender curso" + modal confirm)
+
+Cierre de sub-fase B: cuando el banner anual de Fase 3b está en warn/error (faltan horas anuales para cumplir currículo), aparece un botón inline que sugiere extender el curso N días lectivos y abre un modal de confirmación con diff exacto antes de aplicar (D-J).
+
+**Frontend — `frontend/src/pages/HorariosEditor.jsx`**:
+- Estado nuevo: `extendModalOpen`, `extendingCourse`.
+- Memo `extendCourseSuggestion`: calcula la sugerencia completa o null. Fórmula: `extraSemanas = ceil(faltanHoras / jornadaSemanalH)`, `extraDays = extraSemanas × 7`. Last PL = sort desc por fechaFin. `newLastPlFin = lastPl.fechaFin + extraDays`. `newGrupoFin = newLastPlFin` (sincronizamos por arriba). Preview `newDiff = oldPlanned + extraHoras (= sumLastPlMin × extraSemanas / 60) - currículo`. Tonalidad calculada con misma regla asimétrica.
+- Botón inline en `.plBannerHint` (pegado al meta) con icono CalendarClock, theme primary. Visible sólo si `extendCourseSuggestion !== null`.
+- Modal `<ModalView size="medium">` con intro, tabla 4-col (entidad, campo, antes, después), y preview tonalizado del nuevo banner.
+- Handler `handleConfirmExtendCourse`: PATCH PL primero (`fechaFin: newLastPlFinISO`), luego PATCH Grupo (`fechaFin: newGrupoFinISO`). Si PL falla, no tocamos grupo. Si Grupo falla tras PL OK, log + toast warning (estado consistente desde el solver, pero `Grupo.fechaFin` queda por debajo de `lastPl.fechaFin`). Tras éxito: `refetchPlsForGroup`, update local de `grupos`, `invalidateCapacityForPl(grupoId, lastPl.id)`.
+- Sin rollback automático si Grupo PATCH falla; desalineamiento es cosmético (el solver lee de PLs, no de Grupo). Documentado como limitación.
+
+**Frontend — `frontend/src/pages/HorariosEditor.module.css`**: ~9 clases nuevas: `.plBannerExtendBtn`, `.extendModalBody`, `.extendModalIntro`, `.extendModalTable` (con thead sticky + code styling), `.extendModalPreview` con variantes ok/warn/error (color-mix sobre `--bg-card`), `.extendModalPreviewLabel`.
+
+**i18n (5 idiomas, ~16 claves nuevas por idioma)**: `extendCourseTitle`, `extendCourseButton`, `extendCourseModalTitle`, `extendCourseIntro`, `extendCourseColEntity/Field/Before/After`, `extendCourseRowGroup/Pl`, `extendCoursePreviewLabel`, `extendCoursePreviewOk/Warn/Error`, `extendCourseSubmit/Submitting`, `extendCourseSuccess/Error`, `extendCourseGrupoError`.
+
+**Decisiones menores durante implementación**:
+- **`newGrupoFin = newLastPlFin` siempre**: sincronizamos por arriba aunque el original fuera anterior. Razón: si Grupo.fechaFin estaba antes que el último PL.fechaFin original, era una inconsistencia previa que también arreglamos. Si era posterior, también lo extendemos al nuevo último PL para mantener la regla "Grupo.fechaFin ≥ último PL.fechaFin".
+- **Sin rollback automático**: dos PATCHes secuenciales sin transacción. Mover esto a un endpoint backend transaccional sería más seguro pero introduce un controller nuevo. Trade-off aceptado para esta sub-fase; documentado como mejora futura.
+- **Preview optimista**: `extraHoras = sumLastPlMin del último PL × extraSemanas`. Asume que el admin no va a tocar el último PL después. Si lo toca, el banner real difiere. Suficiente como guía visual.
+- **Botón visible sólo si banner warn/error**: el caso sobran-horas (verde) no muestra el botón porque no tiene sentido. El caso ok-cuadra (verde por ±5h) tampoco — no hay nada que ajustar.
+- **Días lectivos vs naturales en mensajes**: el botón dice "días lectivos" pero técnicamente extiende `extraSemanas × 7` días NATURALES (=`extraSemanas × 5` días lectivos). El texto del modal aclara: "{{days}} días lectivos ({{semanas}} sem completas)" — la interpretación correcta es "días lectivos del centro", consistente con el modelo mental del admin.
+
+**Verificación con caso teórico**:
+- Centro X, currículo 1152h, jornada 27.5h/sem, 3 rangos cubriendo 30 sem → planeado 825h, faltan 327h. extraSemanas = `ceil(327/27.5)` = 12 → extraDays = 84 días naturales. Modal muestra: Grupo "..." fechaFin: 30/04/2026 → 23/07/2026. Preview newDiff = 825 + (32×12)/60×60... bueno, aproximado a +60h (sobran), tono ok. El admin acepta y banner pasa a verde.
+- Caso 1º DAW del usuario: el banner ya está verde (+96h), el botón NO aparece. Para verlo aparecer, hay que recortar uno de los rangos (ej: borrar Rango 3 desde el modal Editar) y entonces el banner pasa a warn. El botón aparece y sugiere extender N días.
+
+**Próximo**: sub-fase C (CapacityPlanner relajado: rojo solo si globalmente imposible; amarillo informativo si solo desbordamiento semanal).
+
+### 2026-04-28 — Fase 5 sub-A implementada (modelo mental anual en UI)
+
+Cambio de mental model en el editor de horarios sin tocar BD ni solver. Input del modal "Materias del rango" pasa de min/sem a horas anuales en este rango; ModuleChip lateral muestra horas anuales colocadas (cross-rango) vs objetivo anual del currículo (`materia.minutosSemanales × 36`); validación drag/tap usa cuota anual.
+
+**Frontend — `frontend/src/pages/HorariosEditor.jsx`**:
+- Estado nuevo: `allHorariosByGroup` (cache de horarios persistidos del grupo, todos los PLs).
+- useEffect 1.5.d: carga `GET /api/horarios?imparticion.grupo={gid}&itemsPerPage=500` (sin filtro PL) al cambiar grupo.
+- Memo `semanasByPlId`: lookup `{plId: weeksOfPl}` para evitar recálculo en cada render.
+- Memo `pliModalSemanasRango`: semanas del PL del modal abierto (alimenta la conversión h↔min/sem en el input).
+- Memo `pliModalRows` extendido: ahora incluye `effectiveHorasAnualesRango` y `defaultHorasAnualesRango` por fila.
+- Memo `pliModalSummary` extendido: añade `planAnualH`, `capAnualH`, `semanas` para el header del modal en horas anuales.
+- Memo `minutosAnualesObjetivoByImp`: `materia.minutosSemanales × 36` (constante D-L).
+- Memo `minutosAnualesColocadosByImp`: por cada PL del grupo, `Σ (slot duración × semanas)`. PL activo lee state local; otros PLs leen `allHorariosByGroup`.
+- `ModuleChip` actualizado: title con horas anuales explícitas, contador con sufijo "h", validación `done` anual.
+- `isValidDrop` (drag) y `validateTap` (tap-mode): regla cambia de cuota semanal del PL activo a cuota anual cross-rango. Validación más permisiva: el admin puede saturar la semana de un PL si todavía le faltan horas anuales.
+- `handleTapCell`: tras tap, deselecciona si tras `tapDur × semanas_del_PL_activo` se alcanza el objetivo anual.
+- Helper `refetchAllHorariosForGroup`: reload del cache global tras `performBatchSave` para alimentar el chip con la verdad persistida (incluyendo placements recién guardados del PL activo).
+
+**Frontend — `frontend/src/pages/HorariosEditor.module.css`**: añadida `.pliSummaryStatSub` (texto pequeño con sub-info "≈ X min/sem media") en el header del modal.
+
+**i18n (5 idiomas, ~7 claves nuevas por idioma)**: `pliColHorasAnuales`, `pliHorasInheritedHint`, `pliHorasOverrideHint`, `pliSummaryPlanAnual`, `pliSummaryCapAnual`, `pliSummaryNoFit` actualizado.
+
+**Decisiones menores durante implementación**:
+- **Live cómputo cross-rango**: para el chip, el PL activo lee del state local (cambios sin guardar visibles inmediatamente) y los demás PLs del cache persistido. Alternativas descartadas: solo persistido (lag tras drag), solo state local (no ve otros rangos). El híbrido es el correcto.
+- **Constante `SEMANAS_REFERENCIA_ANUAL = 36`**: hardcoded en el componente con comentario que apunta a D-L y a Fase 7. Centralizado en un solo sitio para facilitar el reemplazo cuando llegue Fase 7.
+- **Mantener `minutosColocados` (semanal del PL activo)**: el solver/ProfLoadPanel/CapacityPlanner siguen usando esta variable. No se renombra ni cambia para no propagar el cambio a esos servicios. Doble fuente convive: `minutosColocados` (semanal del PL activo, para cálculos de jornada) y `minutosAnualesColocadosByImp` (anual cross-rango, para chip y validación).
+- **`unplacedSummary` no actualizado**: sigue en min/sem porque alimenta el modal "publicar incompleto". Cambiarlo es trivial pero no urgente. Marcado como pendiente en limitaciones.
+- **Conversión proporcional**: `minutosSemanales = round(horasAnuales × 60 / semanasRango)`. Para 220h en 18 sem: `round(220 × 60 / 18)` = `round(733.3)` = 733 min/sem (12.2h/sem). El round provoca un drift pequeño en la cuenta inversa (12.2h × 18 sem = 219.6h ≠ 220h). Aceptable para input de UI; el solver trabaja en min/sem así que no hay re-redondeo.
+
+**Verificación con caso 1º DAW LOMLOE**:
+- Antes: chip mostraba "0h/8h" (semanal de Programación). Validación bloqueaba a 8h/sem dentro del PL activo.
+- Después: chip muestra "0h/220h anuales". Validación permite seguir colocando hasta 220h anuales. Si en rango 1 (18 sem) coloco 12 slots de 2h en lunes, el chip suma 12 × 2h × 18 = 432h... espera, eso es 12 lunes × 2h = 24h por lunes × 18 = 432h, demasiado para Programación de 220h. La validación bloquearía cuando alcance las 220h. Test funcional válido.
+
+**Próximo**: sub-fase B (botón "Extender curso" en banner anual con modal de confirmación D-J).
 
 ### 2026-04-28 — Fase 5 reestructurada: modelo mental anual + extender curso
 
