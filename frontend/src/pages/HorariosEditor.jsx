@@ -20,7 +20,7 @@ import ModalView from '../components/ModalView';
 import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download, Plus, Pencil, Trash2, Sliders, RotateCcw } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Download, Plus, Pencil, Trash2, Sliders, RotateCcw, Layers, Settings2, Eraser, CalendarDays } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
@@ -251,6 +251,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // y al Grupo en cascada.
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [extendingCourse, setExtendingCourse] = useState(false);
+  // Acciones del curso (dropdown infoBar + modal Crear Rangos Recomendados).
+  const [cursoActionsOpen, setCursoActionsOpen] = useState(false);
+  const [createRangosModalOpen, setCreateRangosModalOpen] = useState(false);
+  const [createRangosCount, setCreateRangosCount] = useState(3);
+  const [creatingRangos, setCreatingRangos] = useState(false);
+  // Solver multi-rango: bandera para deshabilitar UI mientras corre el loop.
+  const [solverAllRunning, setSolverAllRunning] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -2042,11 +2049,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
-  // Solver: pide propuesta al backend y pinta el estado (sin persistir)
-  const runSolver = async (seed = null) => {
+  // Solver: pide propuesta al backend y pinta el estado (sin persistir).
+  // Parámetros opcionales para que `runSolverAllRangos` pueda invocar al
+  // solver iterativamente sin depender de selectedPlId (que cambia con state):
+  //   - skipConfirm: omite el confirm-overwrite cuando ya se confirmó el
+  //     batch al inicio del loop multi-rango.
+  //   - plIdOverride: PL específico para este run (si null, usa selectedPlId).
+  const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null) => {
     if (!selectedGrupo) return;
-    const hasContent = Object.keys(placements).length > 0;
-    if (hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return;
+    const targetPlId = plIdOverride ?? selectedPlId;
+    const targetStateKey = (selectedGrupo && targetPlId) ? `${selectedGrupo}_${targetPlId}` : '';
+    const targetPlacements = (state[targetStateKey]?.placements) || {};
+    const hasContent = Object.keys(targetPlacements).length > 0;
+    if (!skipConfirm && hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return;
     setSolving(true);
     setDragError(null);
     try {
@@ -2067,8 +2082,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           persistedByPl[plId].push(h);
         });
         pls.forEach(pl => {
-          // Excluir el PL activo (es lo que vamos a regenerar).
-          if (selectedPlId && String(pl.id) === String(selectedPlId)) return;
+          // Excluir el PL que vamos a regenerar (override o activo).
+          if (targetPlId && String(pl.id) === String(targetPlId)) return;
           const semanas = semanasByPlId[pl.id] || 0;
           if (semanas <= 0) return;
           const localKey = `${selectedGrupo}_${pl.id}`;
@@ -2093,7 +2108,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })();
       const body = {
         ...(seed !== null ? { seed } : {}),
-        ...(selectedPlId ? { periodoLectivoId: selectedPlId } : {}),
+        ...(targetPlId ? { periodoLectivoId: targetPlId } : {}),
         alreadyPlacedByImp: placedAnualOtrosRangos,
       };
       const res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
@@ -2136,8 +2151,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
       setState(prev => ({
         ...prev,
-        [stateKey]: {
-          ...prev[stateKey],
+        [targetStateKey]: {
+          ...(prev[targetStateKey] || {}),
           placements: newPlacements,
           dirty: true,
         },
@@ -2154,6 +2169,239 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
     } finally {
       setSolving(false);
+    }
+  };
+
+  // ── Acciones del curso (Fase 5 acciones) ─────────────────────────────
+  // Solver "todos los rangos": loop secuencial cronológico (rangos por
+  // fechaInicio asc). Cada rango aprovecha el cap anual cross-rango: tras
+  // ejecutar R1, sus placements pasan al state local; R2 los ve vía
+  // alreadyPlacedByImp en runSolver; R3 ve R1+R2; etc. Ejecutar en orden
+  // garantiza que las cuotas finales por materia respeten objetivo+1.5h.
+  // Si un rango falla, continuamos con el resto y reportamos al final.
+  const runSolverAllRangos = async () => {
+    if (!selectedGrupo) return;
+    const pls = (plByGrupo[selectedGrupo] || []).slice().sort((a, b) =>
+      (a.fechaInicio || '').localeCompare(b.fechaInicio || ''));
+    if (pls.length === 0) {
+      toast.error(t('scheduleEditor.solverAllNoRangos', { defaultValue: 'El grupo no tiene rangos lectivos.' }));
+      return;
+    }
+    // Confirmación: si algún rango ya tiene placements, advertir.
+    const algunoTienePlacements = pls.some(pl => {
+      const localKey = `${selectedGrupo}_${pl.id}`;
+      const local = state[localKey];
+      if (local?.placements && Object.keys(local.placements).length > 0) return true;
+      const persistidos = (allHorariosByGroup[selectedGrupo] || []).some(h => extractFkId(h.periodoLectivo) === String(pl.id));
+      return persistidos;
+    });
+    if (algunoTienePlacements) {
+      const ok = await confirm({
+        title: t('scheduleEditor.solverAllConfirmTitle', { defaultValue: 'Sugerir todo el curso' }),
+        body: t('scheduleEditor.solverAllConfirmBody', {
+          defaultValue: 'Esto recalculará el horario de los {{count}} rangos del grupo en orden cronológico. Los placements actuales se sustituirán. ¿Continuar?',
+          count: pls.length,
+        }),
+        confirmLabel: t('scheduleEditor.solverAllConfirmLabel', { defaultValue: 'Sí, recalcular' }),
+        confirmVariant: 'primary',
+      });
+      if (!ok) return;
+    }
+    setSolverAllRunning(true);
+    setDragError(null);
+    const errores = [];
+    try {
+      for (const pl of pls) {
+        // Switch al PL antes de ejecutar — para que `selectedPlId` y
+        // `placements` queden consistentes con el rango siendo solveado.
+        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
+        // Esperar a que React procese el cambio de selectedPlId (microtask
+        // queue). En la práctica un await Promise.resolve() basta para que el
+        // próximo runSolver lea el nuevo selectedPlId via useState. Para
+        // máxima seguridad usamos un setTimeout 0.
+        await new Promise(r => setTimeout(r, 50));
+        try {
+          await runSolver(null, /* skipConfirm */ true, pl.id);
+        } catch (err) {
+          errores.push({ pl: pl.nombre || `#${pl.id}`, error: err?.message || String(err) });
+        }
+      }
+      if (errores.length > 0) {
+        toast.error(t('scheduleEditor.solverAllPartial', {
+          defaultValue: '{{count}} rangos fallaron: {{names}}',
+          count: errores.length,
+          names: errores.map(e => e.pl).join(', '),
+        }));
+      } else {
+        toast.success(t('scheduleEditor.solverAllSuccess', {
+          defaultValue: 'Solver ejecutado en {{count}} rangos del curso.',
+          count: pls.length,
+        }));
+      }
+    } finally {
+      setSolverAllRunning(false);
+    }
+  };
+
+  // Limpiar rango activo: vacía placements del PL activo en state local.
+  // Marca dirty=true; el admin guarda para persistir el vaciado.
+  const handleClearActiveRange = async () => {
+    if (!stateKey || !grupoState) return;
+    const ok = await confirm({
+      title: t('scheduleEditor.clearRangeTitle', { defaultValue: 'Limpiar rango' }),
+      body: t('scheduleEditor.clearRangeBody', {
+        defaultValue: '¿Vaciar los placements del rango activo? El cambio no se persiste hasta pulsar Guardar.',
+      }),
+      confirmLabel: t('scheduleEditor.clearConfirmLabel', { defaultValue: 'Limpiar' }),
+      confirmVariant: 'danger',
+    });
+    if (!ok) return;
+    setState(prev => ({
+      ...prev,
+      [stateKey]: {
+        ...prev[stateKey],
+        placements: {},
+        dirty: true,
+      },
+    }));
+    setCursoActionsOpen(false);
+  };
+
+  // Limpiar todo el curso: borra TODOS los rangos del grupo + sus horarios y
+  // PLIs (cascade DB). Hard-delete vía endpoint `DELETE /api/v1/grupos/{id}
+  // /clear-rangos`. Tras éxito, refetch de PLs (lista quedará vacía → editor
+  // bloqueado hasta crear rango).
+  const handleClearAllCourse = async () => {
+    if (!selectedGrupo) return;
+    const ok = await confirm({
+      title: t('scheduleEditor.clearAllTitle', { defaultValue: 'Limpiar todo el curso' }),
+      body: t('scheduleEditor.clearAllBody', {
+        defaultValue: 'Esto borrará TODOS los rangos lectivos del grupo y sus horarios. El grupo quedará sin rangos hasta que crees uno nuevo. Esta acción no se puede deshacer. ¿Continuar?',
+      }),
+      confirmLabel: t('scheduleEditor.clearConfirmLabel', { defaultValue: 'Limpiar' }),
+      confirmVariant: 'danger',
+    });
+    if (!ok) return;
+    setCursoActionsOpen(false);
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/clear-rangos`), {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      // Limpiar caches locales del grupo.
+      setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: [] }));
+      setSelectedPlByGrupo(prev => { const n = { ...prev }; delete n[selectedGrupo]; return n; });
+      setState(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+        return next;
+      });
+      setCapacityByGrupo(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+        return next;
+      });
+      setAllHorariosByGroup(prev => ({ ...prev, [selectedGrupo]: [] }));
+      toast.success(t('scheduleEditor.clearAllSuccess', { defaultValue: 'Curso limpiado' }));
+    } catch (err) {
+      console.error('Error al limpiar curso:', err);
+      toast.error(t('scheduleEditor.clearAllError', { defaultValue: 'No se pudo limpiar el curso' }));
+    }
+  };
+
+  // Crear Rangos Recomendados: borra los PLs existentes y crea N nuevos
+  // equiespaciados de Grupo.fechaInicio a Grupo.fechaFin. Si Grupo no tiene
+  // fechas, fallback a `<año>-09-01` y `<año+1>-06-30`.
+  const handleCreateRecommendedRangos = async () => {
+    if (!selectedGrupo || !grupo) return;
+    const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
+    const iniISO = grupo.fechaInicio?.slice(0, 10)
+      || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[0]}-09-01` : null);
+    const finISO = grupo.fechaFin?.slice(0, 10)
+      || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[1] || (Number(grupo.anioEscolar.split('-')[0]) + 1)}-06-30` : null);
+    if (!iniISO || !finISO) {
+      toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
+      return;
+    }
+    setCreatingRangos(true);
+    try {
+      // Paso 1: borrar PLs existentes vía endpoint clear.
+      const r1 = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/clear-rangos`), {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include',
+      });
+      if (!r1.ok) {
+        const txt = await r1.text().catch(() => '');
+        throw new Error(`Clear: ${r1.status}: ${txt.slice(0, 200)}`);
+      }
+      // Paso 2: dividir el rango [iniISO, finISO] en N tramos contiguos.
+      const ini = new Date(iniISO);
+      const fin = new Date(finISO);
+      const totalDias = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+      const diasPorTramo = Math.floor(totalDias / N);
+      const remainder = totalDias - diasPorTramo * N;
+      let cursor = new Date(ini);
+      const rangosCreados = [];
+      for (let i = 0; i < N; i++) {
+        const dias = diasPorTramo + (i < remainder ? 1 : 0);
+        const tramoIni = new Date(cursor);
+        const tramoFin = new Date(cursor);
+        tramoFin.setDate(tramoFin.getDate() + dias - 1);
+        const body = {
+          grupo: `/api/grupos/${selectedGrupo}`,
+          nombre: t('scheduleEditor.recommendedRangoNombre', { defaultValue: 'Rango {{n}}', n: i + 1 }),
+          fechaInicio: tramoIni.toISOString().slice(0, 10),
+          fechaFin: tramoFin.toISOString().slice(0, 10),
+          jornadaTipo: null,
+          orden: i,
+        };
+        const r = await fetch(getApiUrl('/api/periodo_lectivos'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) {
+          const txt = await r.text().catch(() => '');
+          throw new Error(`POST PL #${i + 1}: ${r.status}: ${txt.slice(0, 200)}`);
+        }
+        rangosCreados.push(await r.json());
+        cursor.setDate(cursor.getDate() + dias);
+      }
+      // Refrescar caches
+      setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: rangosCreados }));
+      setState(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+        return next;
+      });
+      setCapacityByGrupo(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+        return next;
+      });
+      setAllHorariosByGroup(prev => ({ ...prev, [selectedGrupo]: [] }));
+      // Seleccionar el primero
+      if (rangosCreados[0]) {
+        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: rangosCreados[0].id }));
+      }
+      setCreateRangosModalOpen(false);
+      setCursoActionsOpen(false);
+      toast.success(t('scheduleEditor.createRangosSuccess', {
+        defaultValue: '{{count}} rangos creados',
+        count: rangosCreados.length,
+      }));
+    } catch (err) {
+      console.error('Error creando rangos recomendados:', err);
+      toast.error(t('scheduleEditor.createRangosError', { defaultValue: 'No se pudieron crear los rangos' }));
+    } finally {
+      setCreatingRangos(false);
     }
   };
 
@@ -2665,7 +2913,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         <>
                           <Button
                             onClick={() => runSolver(null)}
-                            disabled={baseDisabled || solverHardBlocked}
+                            disabled={baseDisabled || solverHardBlocked || solverAllRunning}
                             variant="secondary"
                             title={blockTitle}
                           >
@@ -2673,14 +2921,63 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                             {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
                           </Button>
                           <Button
-                            onClick={() => runSolver(Date.now())}
-                            disabled={baseDisabled || solverHardBlocked}
+                            onClick={runSolverAllRangos}
+                            disabled={baseDisabled || solverHardBlocked || solverAllRunning || (plByGrupo[selectedGrupo] || []).length === 0}
                             variant="secondary"
-                            title={blockTitle || t('scheduleEditor.solverSuggestAnotherHint')}
+                            title={blockTitle || t('scheduleEditor.solverAllHint', { defaultValue: 'Ejecuta el solver en todos los rangos del curso, en orden cronológico' })}
                           >
-                            <Shuffle size={14} style={{ marginRight: 4 }} />
-                            {t('scheduleEditor.solverSuggestAnother')}
+                            <Layers size={14} style={{ marginRight: 4 }} />
+                            {solverAllRunning
+                              ? t('scheduleEditor.solverAllRunning', { defaultValue: 'Sugiriendo todo el curso…' })
+                              : t('scheduleEditor.solverAll', { defaultValue: 'Sugerir todo el curso' })}
                           </Button>
+                          <div className={styles.cursoActionsWrapper}>
+                            <Button
+                              type="button"
+                              onClick={() => setCursoActionsOpen(v => !v)}
+                              disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos}
+                              variant="secondary"
+                              title={t('scheduleEditor.cursoActionsTitle', { defaultValue: 'Acciones del curso' })}
+                            >
+                              <Settings2 size={14} style={{ marginRight: 4 }} />
+                              {t('scheduleEditor.cursoActions', { defaultValue: 'Acciones del curso' })}
+                            </Button>
+                            {cursoActionsOpen && (
+                              <>
+                                <div
+                                  className={styles.cursoActionsBackdrop}
+                                  onClick={() => setCursoActionsOpen(false)}
+                                />
+                                <div className={styles.cursoActionsMenu} role="menu">
+                                  <button
+                                    type="button"
+                                    className={styles.cursoActionsItem}
+                                    onClick={handleClearActiveRange}
+                                    disabled={!grupoState}
+                                  >
+                                    <Eraser size={14} />
+                                    <span>{t('scheduleEditor.clearRangeAction', { defaultValue: 'Limpiar rango' })}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.cursoActionsItem}
+                                    onClick={handleClearAllCourse}
+                                  >
+                                    <Trash2 size={14} />
+                                    <span>{t('scheduleEditor.clearAllAction', { defaultValue: 'Limpiar todo el curso' })}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.cursoActionsItem}
+                                    onClick={() => { setCursoActionsOpen(false); setCreateRangosCount(3); setCreateRangosModalOpen(true); }}
+                                  >
+                                    <CalendarDays size={14} />
+                                    <span>{t('scheduleEditor.createRecommendedAction', { defaultValue: 'Crear Rangos Recomendados' })}</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </>
                       );
                     })()}
@@ -3144,6 +3441,47 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </div>
             </div>
           )}
+        </ModalView>
+
+        {/* Modal "Crear Rangos Recomendados" */}
+        <ModalView
+          isOpen={createRangosModalOpen}
+          onClose={() => !creatingRangos && setCreateRangosModalOpen(false)}
+          title={t('scheduleEditor.createRangosTitle', { defaultValue: 'Crear Rangos Recomendados' })}
+          onSubmit={handleCreateRecommendedRangos}
+          submitText={creatingRangos
+            ? t('scheduleEditor.createRangosSubmitting', { defaultValue: 'Creando…' })
+            : t('scheduleEditor.createRangosSubmit', { defaultValue: 'Crear y reemplazar' })}
+          cancelText={t('common.cancel', { defaultValue: 'Cancelar' })}
+          isSubmitting={creatingRangos}
+          size="small"
+        >
+          <div className={styles.plForm}>
+            <p style={{ margin: 0, lineHeight: 1.5 }}>
+              {t('scheduleEditor.createRangosBody', {
+                defaultValue: 'Esto borrará TODOS los rangos actuales del grupo y creará {{count}} rangos equiespaciados desde {{ini}} hasta {{fin}}. Los placements existentes se perderán.',
+                count: Math.max(1, parseInt(createRangosCount, 10) || 0),
+                ini: fmtDateEs(grupo?.fechaInicio) || '?',
+                fin: fmtDateEs(grupo?.fechaFin) || '?',
+              })}
+            </p>
+            <label className={styles.plFormField}>
+              <span>{t('scheduleEditor.createRangosCountLabel', { defaultValue: 'Número de rangos' })}</span>
+              <input
+                type="number"
+                min="1"
+                max="36"
+                step="1"
+                value={createRangosCount}
+                onChange={(e) => setCreateRangosCount(e.target.value)}
+                disabled={creatingRangos}
+                autoFocus
+              />
+              <small className={styles.plFormHint}>
+                {t('scheduleEditor.createRangosCountHint', { defaultValue: 'Recomendado: 3 (trimestres) para cursos típicos. Más rangos = más control fino.' })}
+              </small>
+            </label>
+          </div>
         </ModalView>
       </Container>
     </Wrapper>

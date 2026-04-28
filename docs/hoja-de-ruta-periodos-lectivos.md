@@ -426,6 +426,33 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Acciones del curso: Sugerir todo + Limpiar rango/todo + Crear Rangos Recomendados
+
+Cinco acciones nuevas/refinadas en el infoBar para flujos masivos en `/admin/horarios`:
+
+**Botones del solver redistribuidos**:
+- "Sugerir horario" (Sparkles) — sin cambios: solver del PL activo, sin seed.
+- "Sugerir otro" (Shuffle, con seed random) → REEMPLAZADO por **"Sugerir todo el curso"** (Layers): loop secuencial cronológico (PLs ordenados por fechaInicio asc) ejecutando el solver en cada uno. Aprovecha cap anual cross-rango: tras R1, sus placements alimentan `alreadyPlacedByImp` de R2; R3 ve R1+R2; etc. Confirmación previa si algún rango ya tiene placements (overwrite). Errores por rango se acumulan y reportan al final, no abortan el loop. La feature de "seed random" ya no está en UI; volver a clicar "Sugerir horario" produce el mismo resultado determinista (acceptable trade-off para ganar simplicidad).
+
+**Dropdown "Acciones del curso"** (Settings2 icon, en infoBar):
+- 🧹 **Limpiar rango**: vacía placements del PL activo en state local + `dirty=true`. El admin guarda para persistir. Confirmación.
+- 🗑️ **Limpiar todo el curso**: hard-DELETE de todos los PLs del grupo vía endpoint nuevo `DELETE /api/v1/grupos/{id}/clear-rangos`. La FK CASCADE de DB borra horarios y PLIs automáticamente. El grupo queda SIN rangos (UI bloquea editor hasta crear uno). Confirmación destructiva.
+- 🗓️ **Crear Rangos Recomendados**: modal con input N (default 3). Borra PLs existentes (mismo endpoint clear) y crea N rangos equiespaciados desde `Grupo.fechaInicio` hasta `Grupo.fechaFin`. Si el grupo no tiene fechas, error explícito ("edítalo en /admin/grupos primero"). Auto-selecciona el primero tras crear.
+
+**Backend nuevo** — `backend/src/Controller/GrupoCursoActionsController.php`:
+- `DELETE /api/v1/grupos/{grupoId}/clear-rangos` — DBAL crudo `DELETE FROM periodo_lectivo WHERE grupo_id = :gid` (cascade DB borra horarios/PLIs). Devuelve `{ ok: true, rangosBorrados: N }`.
+
+**Frontend** (`HorariosEditor.jsx`):
+- `runSolver()` refactorizado: acepta `skipConfirm` y `plIdOverride` para que `runSolverAllRangos()` pueda invocarlo iterativamente sin depender del state actual de `selectedPlId`. El `targetStateKey` se compone con el override correcto.
+- `runSolverAllRangos()`: ordena PLs cronológicamente, los visita uno por uno con `setSelectedPlByGrupo` + `await new Promise(r => setTimeout(r, 50))` para que React procese el cambio antes del siguiente `runSolver`. Usa `skipConfirm=true` (la confirmación batch fue al inicio).
+- `handleClearActiveRange()`, `handleClearAllCourse()`, `handleCreateRecommendedRangos()`: handlers con confirm modals + actualización de cachés (state, plByGrupo, capacityByGrupo, allHorariosByGroup).
+- Dropdown UI con backdrop transparente para cerrar al click-out.
+- Modal nuevo "Crear Rangos Recomendados" con preview de fechas dd/mm/yyyy y count input.
+
+**i18n**: ~32 claves nuevas en 5 idiomas (`solverAll*`, `cursoActions*`, `clearRange*`, `clearAll*`, `createRangos*`, `recommendedRangoNombre`).
+
+**CSS** — `.cursoActionsWrapper`, `.cursoActionsBackdrop`, `.cursoActionsMenu`, `.cursoActionsItem`. Dropdown con sombra suave usando `color-mix` sobre `--color-gray-900`.
+
 ### 2026-04-28 — Estado del badge y modal incompleto miran cobertura anual
 
 Tras el cap anual del solver, el badge del panel Materias mostraba "Borrador 26/27.5h" en el PL activo aunque las horas anuales estuvieran cubiertas (porque el cap recortaba cuotas legítimamente). El modal "Publicar incompleto" listaba esas falsas faltas semanales.
