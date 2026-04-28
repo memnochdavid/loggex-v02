@@ -156,25 +156,38 @@ class CapacityPlanner
         $orphansFromReduction = [];          // impId → minutos perdidos
         $orphanMateriaNames = [];            // impId → nombre (para reportar)
         if ($capacidadMinutos < $totalMinutos) {
-            $factor = $capacidadMinutos / $totalMinutos;
-            $unidadRedondeo = (int) min($duraciones);  // típicamente 60 (slot más corto)
-            $reducidoTotal = 0;
-            foreach ($materias as &$m) {
-                $original = (int) $m['minutos'];
-                // Floor a la unidad de slot más corta para que la reducción sea
-                // expresable como combo válido. Si queda 0 → la materia se
-                // marca como totalmente huérfana en este rango (caso extremo).
-                $reducido = (int) floor(($original * $factor) / $unidadRedondeo) * $unidadRedondeo;
-                $reducido = max(0, $reducido);
-                $perdido = $original - $reducido;
-                if ($perdido > 0) {
-                    $orphansFromReduction[$m['impId']] = $perdido;
-                    $orphanMateriaNames[$m['impId']] = $m['nombre'];
-                }
-                $m['minutos'] = $reducido;
-                $reducidoTotal += $reducido;
+            // Reducción round-robin equitativa: cada iteración reduce 1 unidad
+            // de slot a la materia con MENOS reducción acumulada, hasta que
+            // Σ minutos ≤ capacidad. Distribuye la pérdida entre materias en
+            // vez de concentrar todo en una. Si excess no es múltiplo de la
+            // unidad, sobrereducimos por <1 unidad (excess → ligeramente
+            // negativo, queda margen de slot libre).
+            $unidadRedondeo = (int) min($duraciones);
+            $excess = $totalMinutos - $capacidadMinutos;
+            $reducciones = [];
+            foreach ($materias as $m) {
+                $reducciones[$m['impId']] = 0;
             }
-            unset($m);
+            while ($excess > 0) {
+                // Candidato: materia con minutos ≥ 2 unidades (no la dejes con
+                // < 1 unidad) y MENOR reducción acumulada hasta ahora.
+                $candidatoIdx = null;
+                $minReduccion = PHP_INT_MAX;
+                foreach ($materias as $idx => $m) {
+                    if ($m['minutos'] < $unidadRedondeo * 2) continue;
+                    if ($reducciones[$m['impId']] < $minReduccion) {
+                        $minReduccion = $reducciones[$m['impId']];
+                        $candidatoIdx = $idx;
+                    }
+                }
+                if ($candidatoIdx === null) break;  // ninguna puede ceder más
+                $impId = $materias[$candidatoIdx]['impId'];
+                $materias[$candidatoIdx]['minutos'] -= $unidadRedondeo;
+                $reducciones[$impId] += $unidadRedondeo;
+                $orphansFromReduction[$impId] = $reducciones[$impId];
+                $orphanMateriaNames[$impId] = $materias[$candidatoIdx]['nombre'];
+                $excess -= $unidadRedondeo;
+            }
             // Filtrar materias con minutos=0 tras reducción (no entran al ILP).
             $materias = array_values(array_filter($materias, fn ($m) => $m['minutos'] > 0));
             // Nota: $totalMinutos NO se actualiza — sigue siendo el original

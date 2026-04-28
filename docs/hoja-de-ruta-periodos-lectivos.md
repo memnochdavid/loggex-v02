@@ -426,6 +426,20 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix reducción del CapacityPlanner: round-robin equitativa
+
+Tras best-effort, el solver no rellenaba toda la semana — el panel mostraba 27.5/29h pero solo se colocaban ~22h. Causa: la reducción proporcional con `floor()` era agresiva (cada materia caía a la unidad inferior, perdiendo varias horas en total cuando solo tocaba perder 1.5h). Ej: Digit 60min × 0.948 = 56 → floor(56/60)×60 = 0. Materia desaparece.
+
+**Fix**: algoritmo round-robin. Cada iteración reduce 1 unidad de slot a la materia con MENOS reducción acumulada, hasta que Σ ≤ capacidad. Distribuye equitativamente.
+
+Caso 1º DAW (excess 90min, unidad 60min):
+- Iter 1: Prog 480 → 420 (reducción acumulada 60). excess=30.
+- Iter 2: Bases 360 → 300 (reducción acumulada 60, igualada con Prog pero Bases tiene 360 vs Prog 420 — busca por menor reducción acumulada, ambas 60 → toma la primera elegible). excess=-30.
+
+Resultado distribuido: 2 materias pierden 1h cada una. Total reducción 120min. Sobrerreducción 30min (margen libre en la rejilla).
+
+**Mejora**: el solver ahora coloca casi toda la semana — solo queda 1 slot libre por sobrerreducción inevitable cuando excess no es múltiplo de unidad.
+
 ### 2026-04-28 — Capacidad curricular en banner: jornada lectiva real, no slots
 
 Tras best-effort en planner, el usuario seguía viendo "27.5h slots" en el banner. Su pregunta: "8:30 a 14:30 son 6h × 5 días = 30h. Si recreos cuentan como lectivos, ¿por qué sigue diciendo 27.5h?". Razón valida.
