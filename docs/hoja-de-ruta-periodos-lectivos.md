@@ -426,6 +426,26 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix solver: cascade soft-delete de Imparticion
+
+Tras sub-fase E, al pulsar "Sugerir horario" sobre 1º DAW EAG salía 500: `Entity of type 'App\Entity\Imparticion' for IDs id(39) was not found`.
+
+**Causa**: el SQL de sub-E hizo `UPDATE imparticion SET deleted=1` directo sobre 39 y 62 (Sostenibilidad mal asignada en 1º DAW + DAM). Pero las `PeriodoLectivoImparticion` y `Horario` que apuntaban a esas imparticions seguían vivos. El filtro Doctrine global oculta la imparticion deleted=1 → el solver intenta hidratar la FK y obtiene "not found".
+
+**Fix manual de datos**:
+- `DELETE FROM periodo_lectivo_imparticion WHERE imparticion_id IN (39, 62)` (6 filas).
+- `UPDATE horario SET deleted=1 WHERE imparticion_id IN (39, 62) AND deleted=0` (1 fila live).
+
+**Fix estructural** (`backend/src/EventSubscriber/ImparticionSoftDeleteCascadeSubscriber.php`):
+- Listener `preUpdate` que detecta el flanco `Imparticion.deleted: false → true`.
+- Hard-DELETE de los PLIs huérfanos (PLI es derivativa, hard-delete desde Fase 4).
+- Soft-DELETE de los Horarios live que apuntan a esa imparticion.
+- Usa DBAL crudo para evitar interferencia del filtro softdelete dentro del propio flush.
+
+Sin este listener, cualquier futuro DELETE de Imparticion vía API rompería el solver de cualquier grupo que tuviera un PL con esa imparticion. Ahora la cascada se aplica automáticamente.
+
+**Lección**: cuando cambiamos un Delete operation a soft-delete vía SoftDeleteProcessor, hay que pensar la cascada de tablas dependientes. Las FK `onDelete: 'CASCADE'` SOLO se disparan en hard-delete físico — el soft-delete (UPDATE deleted=1) las ignora. Aplicable también a otras entidades futuras: si tienen children con FK CASCADE y se cambian a soft-delete, hay que añadir un listener cascade equivalente.
+
 ### 2026-04-28 — Fase 5 sub-E implementada (auditoría + corrección catálogo DAW LOMLOE AN)
 
 Tras probar sub-A/B/C con 1º DAW EAG, el caso real LOMLOE seguía sin cuadrar (faltan 119h físicas con jornada 27.5h × 37.6 sem). Antes de aceptar la "brujería FP" (extender curso a julio o subir jornada con recreos), audité los datos del catálogo. Resultado: el catálogo en BD tenía 3 errores que sumaban +3h/sem inflated (Sistemas 6h→5h, Lenguajes 4h→3h, Sostenibilidad mal asignada en 1º). Corregido, el caso cuadra sin parches.
