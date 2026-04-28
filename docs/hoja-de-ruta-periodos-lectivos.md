@@ -309,6 +309,8 @@ UI nueva en `/admin/horarios`: strip horizontal sobre el editor con un pill por 
 
 **Pendiente Fase 3b**: editar/borrar PLs desde UI, selector de jornada por rango inline, banner Σ horas anuales, gestión de PLIs por rango.
 
+**Hotfix mismo día (TDZ en HorariosEditor)**: tras cargar `/admin/horarios` en el navegador la primera vez, fallaba con `ReferenceError: Cannot access 'selectedPlId' before initialization`. Causa: introduje `selectedPlId` y `stateKey` como dependencias en useEffect 1.5 (jornada loader) y 1.6 (capacity-check), pero las declaraciones `const` estaban después de esos useEffect en el cuerpo del componente. React ejecuta el cuerpo de arriba abajo en cada render → TDZ. Fix: mover ambas declaraciones justo después de los helpers (`extractFkId`, `resolveEffectiveJornadaId`) y antes del primer useEffect que las consume. Commit `006deeb`.
+
 ### 2026-04-28 — Fix post-Fase 2: PL.jornadaTipo debe quedar NULL por defecto
 
 Detectado tras probar Fase 2: al cambiar la jornada desde el selector de `/admin/horarios`, el banner verde/amarillo/rojo del `CapacityPlanner` se quedaba en rojo aunque la nueva jornada SÍ encajara. Causa: la migración Fase 1 copió `Grupo.jornadaTipoOverride → PeriodoLectivo.jornadaTipo` literalmente, "congelando" la jornada en BD. Como `PL.getEffectiveJornadaTipo()` prioriza el campo propio sobre el cascade, los cambios posteriores del override del grupo no propagaban — el `CapacityPlanner` veía la jornada vieja (la del momento de la migración) y la rejilla la nueva (que el frontend lee en cliente). Desincronización total.
