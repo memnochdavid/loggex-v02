@@ -1213,6 +1213,7 @@
     "panelModules": "Subjects ({{count}})",
     "panelHint": "Drag a subject onto the timetable. Drag a class onto the panel to remove it.",
     "statusComplete": "Complete · {{done}}/{{total}}h",
+    "statusCompleteAnual": "Complete · {{done}}/{{total}}h yearly",
     "statusDraft": "Draft · {{done}}/{{total}}h",
     "statusIncomplete": "Incomplete · {{done}}/{{total}}h",
     "saveChanges": "Save",

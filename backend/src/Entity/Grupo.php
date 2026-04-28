@@ -76,7 +76,7 @@ class Grupo
     private ?string $aulaDefault = null;
 
     #[ORM\Column]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?int $curso = null;
 
     #[ORM\Column(length: 20)]

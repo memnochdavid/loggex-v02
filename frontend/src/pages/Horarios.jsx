@@ -526,7 +526,12 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     },
     {
         header: t('schedules.group'),
-        accessor: (row) => row.imparticion && row.imparticion.grupo ? (row.imparticion.grupo.abreviatura || row.imparticion.grupo.nombre) : '-',
+        accessor: (row) => {
+            const g = row.imparticion?.grupo;
+            if (!g) return '-';
+            const abrev = g.abreviatura || g.nombre || '';
+            return g.curso ? `${g.curso}º ${abrev}`.trim() : abrev || '-';
+        },
         sortable: true, sortKey: 'imparticion.grupo.nombre'
     },
     {

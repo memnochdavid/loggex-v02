@@ -1,6 +1,6 @@
 # Pulido UX — ajustes y bugs detectados
 
-> **Status (2026-04-28)**: 🔴 sin empezar. Lista de ajustes UX y bugs detectados durante la sesión 2026-04-28 (post Fase 5 PeriodoLectivo). No es una feature coherente, es una pasada de pulido. Cada ítem es independiente y se puede atacar en cualquier orden.
+> **Status (2026-04-28)**: 🟡 en curso. 4 ítems cerrados (#2, #3, #6, #7). Quedan #1, #4, #5 y #8.
 
 ---
 
@@ -8,16 +8,16 @@
 
 ### Resumen
 
-| # | Ítem | Tipo | Esfuerzo |
+| # | Ítem | Tipo | Estado |
 |---|---|---|---|
-| 1 | Subtítulos descriptivos en headers de todas las vistas | UX | ~0.5 sesión |
-| 2 | `admin/horarios` columna Grupo: formato `"[curso]º [abreviatura]"` | UX | ~10 min |
-| 3 | DataTable columna Acciones: `justify-content: flex-end` (cabecera + filas) | UX | ~15 min |
-| 4 | Sidebar AccordionView: preservar scroll interno al navegar | Bug UX | ~30 min |
-| 5 | Auditar hardcodes en banners/toasts de vistas nuevas de catálogos | Deuda | ~0.5 sesión |
-| 6 | `/horarios` (profe): no muestra el turno de tarde aunque PDF sí | **Bug funcional** | ~20 min |
-| 7 | `admin/horarios` panel Materias: badge "Completo · 25/27.5h" inconsistente al pasar entre rangos | **Bug funcional** | ~30 min |
-| 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | ~30 min (si existe) o ~1 sesión (si toca implementar) |
+| 1 | Subtítulos descriptivos en headers de todas las vistas | UX | 🔴 pendiente |
+| 2 | `admin/horarios` columna Grupo: formato `"[curso]º [abreviatura]"` | UX | ✅ 2026-04-28 |
+| 3 | DataTable columna Acciones: `justify-content: flex-end` (cabecera + filas) | UX | ✅ 2026-04-28 |
+| 4 | Sidebar AccordionView: preservar scroll interno al navegar | Bug UX | 🔴 pendiente |
+| 5 | Auditar hardcodes en banners/toasts de vistas nuevas de catálogos | Deuda | 🔴 pendiente |
+| 6 | `/horarios` (profe): no muestra el turno de tarde aunque PDF sí | **Bug funcional** | ✅ 2026-04-28 |
+| 7 | `admin/horarios` panel Materias: badge "Completo · 25/27.5h" inconsistente al pasar entre rangos | **Bug funcional** | ✅ 2026-04-28 |
+| 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | 🔴 pendiente |
 
 **Total**: ~1.5-2 sesiones (sin contar #8 si toca implementar desde cero).
 
@@ -278,3 +278,13 @@ El centro tiene profesores con jornada de mañana o de tarde. El profe debe pode
 Lista recogida tras la sesión de cierre de Fase 5 PeriodoLectivo. 8 ítems entre UX cosmético, bugs funcionales y deuda de tema/hardcodes. Esfuerzo total ~1.5-2 sesiones, sin dependencias internas. Recomendado atacar bugs (#6, #7) primero por ser regresiones funcionales; luego ajustes UX cortos (#2, #3); después auditar hardcodes (#5); más tarde scroll sidebar (#4) con cuidado de no romper tutoriales; al final el barrido de subtítulos (#1). #8 se decide tras verificar si la feature ya existe.
 
 Cross-ref con: `sistema-toasts.md` §12 (refactor toasts unificado debe coordinarse con #5), memoria del proyecto "No estilos hardcodeados" (regla aplicable a #5), `MEMORY.md` "Formato de fechas en UI español" (verificar también en banners/modales nuevos durante #5).
+
+### 2026-04-28 — Cierre de #2, #3, #6, #7
+
+**#6 (`/horarios` profe sin turno tarde)** — `GetMyScheduleController` derivaba los slots únicamente de `$grupo->getItinerario()->getJornadaTipo()`, ignorando `Grupo.jornadaTipoOverride` y `PeriodoLectivo.jornadaTipo`. Si el profe daba clase en un grupo cuyo itinerario era de mañana pero el override (o PL) lo cambiaba a tarde, los slots de tarde no llegaban al frontend → el grid de tarde salía vacío aunque el PDF sí lo mostraba (el PDF deriva slots de los horarios reales, no de la jornada). Fix: union de tres fuentes en orden, dedup por `HH:MM-HH:MM`: (1) jornada efectiva del PL del horario, (2) jornada efectiva del grupo (override o itinerario), (3) slots derivados de los horarios reales como red de seguridad. Helper privado `collectSlots(JornadaTipo, &$slotsByKey)`. Cache 5min: tras deploy puede haber lag breve para schedules ya cacheadas.
+
+**#7 (badge "Completo · 25/27.5h" inconsistente)** — el `estadoBadge` en `HorariosEditor.jsx` decidía el color por cobertura ANUAL cross-rango (`allAnualCubierto`) pero el label siempre mostraba cifras SEMANALES del PL activo. Cuando el currículo anual estaba cubierto pero el rango activo estaba parcialmente lleno (típico cross-rango con 3 PLs), aparecía "Completo · 25/27.5h" verde — disonancia label/color. Fix: cuando `estado='complete'` y `colocadosMinutos < targetMinutos`, mostrar cifras anuales (`Σ minutosAnualesColocadosByImp` vs `Σ minutosAnualesObjetivoByImp`) con clave i18n nueva `statusCompleteAnual`. Si la cobertura anual coincide con la semanal (rango único o todos llenos), se mantiene el label semanal anterior. 5 idiomas actualizados.
+
+**#2 (columna Grupo `[curso]º [abrev]`)** — `Horarios.jsx` columna Grupo ya mostraba `abreviatura || nombre`; añadido prefijo `${grupo.curso}º ` cuando existe. Backfill API: añadido `'horario:read'` al grupo de serialización del campo `Grupo.curso` (antes solo en `imparticion:read`/`matricula:read`/`grupo:read`).
+
+**#3 (DataTable Acciones alineadas al final)** — extraído helper `isActionsCol(col)` reusando la heurística existente (`accessor === 'actions'`, header literal `'Acciones'` o traducción `t('common.actions')`). Aplicadas clases `actionsCol`/`actionsCell` al `<th>`/`<td>` correspondientes. Reglas CSS: `text-align: right` + `justify-content: flex-end` en `.thContent` (flex con icon de orden) y en hijos directos de `.actionsCell` (los wrappers `<div>` con los iconos suelen ser flex). Sin estilos inline; respeta el tema.

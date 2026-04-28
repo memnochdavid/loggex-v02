@@ -57,6 +57,14 @@ const DataTable = ({
         }
     };
 
+    // La columna "Acciones" se identifica por header traducido o accessor
+    // === 'actions'. El detector se reutiliza para alinear cabecera+celda al
+    // final (flex-end) y para extraer la columna en la vista móvil.
+    const isActionsCol = (col) =>
+        col.accessor === 'actions'
+        || col.header === 'Acciones'
+        || col.header === t('common.actions');
+
     const getCellValue = (col, row) => {
         if (typeof col.accessor === 'function') {
             return col.accessor(row);
@@ -150,11 +158,12 @@ const DataTable = ({
                                 <tr>
                                     {columns.map((col, index) => {
                                         const isSorted = sortColumn === (col.sortKey || col.accessor);
-                                        
+                                        const actionsClass = isActionsCol(col) ? styles.actionsCol : '';
+
                                         return (
-                                            <th 
-                                                key={index} 
-                                                className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''}`}
+                                            <th
+                                                key={index}
+                                                className={`${styles.th} ${col.className || ''} ${col.sortable ? styles.sortable : ''} ${actionsClass}`}
                                                 onClick={() => col.sortable && handleSort(col)}
                                             >
                                                 <div className={styles.thContent}>
@@ -189,11 +198,14 @@ const DataTable = ({
                                     /* Caso 3: Datos disponibles */
                                     data.map((row, rowIndex) => (
                                         <tr key={row.id || row['@id'] || rowIndex} className={styles.dataRow}>
-                                            {columns.map((col, colIndex) => (
-                                                <td key={colIndex} className={`${styles.td} ${col.className || ''}`}>
-                                                    {getCellValue(col, row)}
-                                                </td>
-                                            ))}
+                                            {columns.map((col, colIndex) => {
+                                                const actionsClass = isActionsCol(col) ? styles.actionsCell : '';
+                                                return (
+                                                    <td key={colIndex} className={`${styles.td} ${col.className || ''} ${actionsClass}`}>
+                                                        {getCellValue(col, row)}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))
                                 )}
@@ -224,8 +236,7 @@ const DataTable = ({
                                 onToggle={handleToggle}
                                 renderHeader={(row) => {
                                     const headerCols = columns.slice(0, mobileHeaderColumns);
-                                    // Buscar la columna de acciones (asumiendo que es la última o tiene header 'Acciones')
-                                    const actionsCol = columns.find(col => col.header === 'Acciones' || col.accessor === 'actions' || col.header === t('common.actions'));
+                                    const actionsCol = columns.find(isActionsCol);
                                     
                                     return (
                                         <div className={styles.mobileHeaderContent}>
@@ -246,7 +257,7 @@ const DataTable = ({
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {columns.slice(mobileHeaderColumns).filter(col => col.header !== 'Acciones' && col.accessor !== 'actions' && col.header !== t('common.actions')).map((col, index) => (
+                                        {columns.slice(mobileHeaderColumns).filter(col => !isActionsCol(col)).map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>
                                                 <span className={styles.mobileValue}>

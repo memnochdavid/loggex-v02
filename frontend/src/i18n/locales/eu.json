@@ -1213,6 +1213,7 @@
     "panelModules": "Ikasgaiak ({{count}})",
     "panelHint": "Arrastatu ikasgai bat ordutegira. Arrastatu klase bat panelera kentzeko.",
     "statusComplete": "Osatuta · {{done}}/{{total}}h",
+    "statusCompleteAnual": "Osatuta · {{done}}/{{total}}h urtekoak",
     "statusDraft": "Zirriborroa · {{done}}/{{total}}h",
     "statusIncomplete": "Osatu gabe · {{done}}/{{total}}h",
     "saveChanges": "Gorde",

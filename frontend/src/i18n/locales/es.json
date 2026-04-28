@@ -1511,6 +1511,7 @@
     "panelModules": "Materias ({{count}})",
     "panelHint": "Arrastra una materia al horario. Arrastra una clase del horario al panel para quitarla.",
     "statusComplete": "Completo · {{done}}/{{total}}h",
+    "statusCompleteAnual": "Completo · {{done}}/{{total}}h anuales",
     "statusDraft": "Borrador · {{done}}/{{total}}h",
     "statusIncomplete": "Incompleto · {{done}}/{{total}}h",
     "saveChanges": "Guardar",

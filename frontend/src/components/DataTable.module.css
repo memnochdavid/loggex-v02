@@ -113,6 +113,26 @@
     vertical-align: middle;
 }
 
+/* Columna Acciones: alineada al final tanto en cabecera como en celdas. El
+ * contenido de las celdas suele ser un wrapper flex con los iconos; usamos
+ * `text-align: right` (afecta a contenidos inline) y, además, dejamos que el
+ * `.thContent` (flex con icon de orden + texto) se justifique al final. Para
+ * los wrappers de iconos en celdas, el componente consumidor suele usar
+ * `display: flex; gap: ...` — `justify-content: flex-end` en `.actionsCell`
+ * empuja esos hijos hacia la derecha cuando son inline-flex/flex. */
+.th.actionsCol,
+.td.actionsCell {
+    text-align: right;
+}
+
+.th.actionsCol .thContent {
+    justify-content: flex-end;
+}
+
+.td.actionsCell > * {
+    justify-content: flex-end;
+}
+
 .pagination {
     display: flex;
     align-items: center;

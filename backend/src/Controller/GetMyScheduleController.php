@@ -90,11 +90,17 @@ class GetMyScheduleController extends AbstractController
         }
 
         $events = [];
-        // Recolectamos también los slots de las jornadas presentes para que el
-        // TimeTable las renderice correctamente (sin esto, los slots hardcoded
-        // del frontend no coinciden con jornadas reales como 60+60+60+60+90).
-        // Indexamos por "HH:MM-HH:MM" para deduplicar entre jornadas distintas
-        // (caso profesor con grupos en jornadas mixtas).
+        // Recolectamos también los slots para que el TimeTable los renderice.
+        // Tres fuentes (en este orden, dedup por clave "HH:MM-HH:MM"):
+        //  1) Jornada efectiva de cada PeriodoLectivo de los horarios (cubre el
+        //     caso PL.jornadaTipo override por rango).
+        //  2) Jornada efectiva del grupo (cubre Grupo.jornadaTipoOverride o
+        //     fallback al itinerario).
+        //  3) Slots derivados de los propios horarios (red de seguridad: si la
+        //     jornada efectiva no acoge un slot, el evento aún se renderiza).
+        // Sin (1) y (3), un profe con clases en grupo cuyo itinerario es de
+        // mañana pero override/PL=tarde no veía la rejilla de tarde aunque el
+        // PDF sí la mostraba (deriva slots de horarios reales).
         $slotsByKey = [];
 
         foreach ($horarios as $h) {
@@ -120,17 +126,28 @@ class GetMyScheduleController extends AbstractController
                 'imparticionId' => $h->getImparticion()->getId()
             ];
 
-            $jornada = $grupo->getItinerario()?->getJornadaTipo();
-            if ($jornada !== null) {
-                foreach ($jornada->getTramos() as $t) {
-                    if ($t->getTipo() !== \App\Entity\TipoTramo::SLOT) continue;
-                    $hi = $t->getHoraInicio()?->format('H:i');
-                    $hf = $t->getHoraFin()?->format('H:i');
-                    if ($hi === null || $hf === null) continue;
-                    $slotsByKey["{$hi}-{$hf}"] = [
+            // (1) Jornada efectiva del PL del horario, si existe.
+            $jornadaPl = $h->getPeriodoLectivo()?->getEffectiveJornadaTipo();
+            if ($jornadaPl !== null) {
+                $this->collectSlots($jornadaPl, $slotsByKey);
+            }
+
+            // (2) Jornada efectiva del grupo (override o itinerario).
+            $jornadaGrupo = $grupo->getEffectiveJornadaTipo();
+            if ($jornadaGrupo !== null) {
+                $this->collectSlots($jornadaGrupo, $slotsByKey);
+            }
+
+            // (3) Slot derivado del propio horario (red de seguridad).
+            $hi = $h->getHoraInicio()?->format('H:i');
+            $hf = $h->getHoraFin()?->format('H:i');
+            if ($hi !== null && $hf !== null) {
+                $key = "{$hi}-{$hf}";
+                if (!isset($slotsByKey[$key])) {
+                    $slotsByKey[$key] = [
                         'horaInicio' => $hi,
                         'horaFin' => $hf,
-                        'duracionMinutos' => $t->getDuracionMinutos(),
+                        'duracionMinutos' => null,
                     ];
                 }
             }
@@ -143,5 +160,28 @@ class GetMyScheduleController extends AbstractController
             'events' => $events,
             'slots' => $slots,
         ];
+    }
+
+    /**
+     * Añade los tramos SLOT de una jornada al mapa de slots, dedup por
+     * "HH:MM-HH:MM" para que jornadas distintas con tramos coincidentes no se
+     * dupliquen.
+     */
+    private function collectSlots(\App\Entity\JornadaTipo $jornada, array &$slotsByKey): void
+    {
+        foreach ($jornada->getTramos() as $t) {
+            if ($t->getTipo() !== \App\Entity\TipoTramo::SLOT) continue;
+            $hi = $t->getHoraInicio()?->format('H:i');
+            $hf = $t->getHoraFin()?->format('H:i');
+            if ($hi === null || $hf === null) continue;
+            $key = "{$hi}-{$hf}";
+            if (!isset($slotsByKey[$key])) {
+                $slotsByKey[$key] = [
+                    'horaInicio' => $hi,
+                    'horaFin' => $hf,
+                    'duracionMinutos' => $t->getDuracionMinutos(),
+                ];
+            }
+        }
     }
 }

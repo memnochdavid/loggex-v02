@@ -776,10 +776,31 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     allAnualCubierto ? 'complete' :
     completitud >= 80 ? 'draft' : 'incomplete';
 
+  // Cuando estado=complete por cobertura ANUAL (cross-rango) pero el rango
+  // activo está parcialmente lleno (semanal<target), las cifras semanales
+  // ("25/27.5h") generan disonancia con la etiqueta verde "Completo". Si el
+  // rango activo no está lleno semanalmente pero el currículo anual sí está
+  // cubierto, mostramos la cifra anual cross-rango para que el badge sea
+  // coherente con el color.
+  const colocadasAnualTotalMin = Object.values(minutosAnualesColocadosByImp)
+    .reduce((a, b) => a + b, 0);
+  const objetivoAnualTotalMin = Object.values(minutosAnualesObjetivoByImp)
+    .reduce((a, b) => a + b, 0);
+  const showAnualLabel = estado === 'complete' && colocadosMinutos < targetMinutos;
+  const labelDone = showAnualLabel ? minToHoras(colocadasAnualTotalMin) : colocadasTotal;
+  const labelTotal = showAnualLabel ? minToHoras(objetivoAnualTotalMin) : totalHoras;
+
   const estadoBadge = {
-    complete:   { cls: styles.statusComplete,   icon: <CheckCircle2 size={16} />, label: t('scheduleEditor.statusComplete',   { done: colocadasTotal, total: totalHoras }) },
-    draft:      { cls: styles.statusDraft,      icon: <AlertTriangle size={16} />, label: t('scheduleEditor.statusDraft',      { done: colocadasTotal, total: totalHoras }) },
-    incomplete: { cls: styles.statusIncomplete, icon: <XCircle size={16} />,      label: t('scheduleEditor.statusIncomplete', { done: colocadasTotal, total: totalHoras }) },
+    complete:   {
+      cls: styles.statusComplete,
+      icon: <CheckCircle2 size={16} />,
+      label: t(
+        showAnualLabel ? 'scheduleEditor.statusCompleteAnual' : 'scheduleEditor.statusComplete',
+        { done: labelDone, total: labelTotal },
+      ),
+    },
+    draft:      { cls: styles.statusDraft,      icon: <AlertTriangle size={16} />, label: t('scheduleEditor.statusDraft',      { done: labelDone, total: labelTotal }) },
+    incomplete: { cls: styles.statusIncomplete, icon: <XCircle size={16} />,      label: t('scheduleEditor.statusIncomplete', { done: labelDone, total: labelTotal }) },
   }[estado];
 
   // Mapa de imparticion por id (acceso rápido para validación)

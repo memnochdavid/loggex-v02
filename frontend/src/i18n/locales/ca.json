@@ -1213,6 +1213,7 @@
     "panelModules": "Matèries ({{count}})",
     "panelHint": "Arrossega una matèria a l'horari. Arrossega una classe al panell per treure-la.",
     "statusComplete": "Complet · {{done}}/{{total}}h",
+    "statusCompleteAnual": "Complet · {{done}}/{{total}}h anuals",
     "statusDraft": "Esborrany · {{done}}/{{total}}h",
     "statusIncomplete": "Incomplet · {{done}}/{{total}}h",
     "saveChanges": "Desar",
