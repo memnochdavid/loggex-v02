@@ -103,8 +103,10 @@ final class Version20260428180000 extends AbstractMigration
                 0
             FROM grupo g");
 
-        // ─── 5) Backfill: PeriodoLectivoImparticion para cada Imparticion ─
+        // ─── 5) Backfill: PeriodoLectivoImparticion para cada Imparticion VIVA
         // minutos_semanales = NULL (= hereda Materia.minutos_semanales, comportamiento actual).
+        // Filtro deleted=0: las imparticiones soft-deleted no las usa nadie y
+        // un PLI suyo sería ruido permanente en la tabla de unión.
         $this->addSql("INSERT INTO periodo_lectivo_imparticion (periodo_lectivo_id, imparticion_id, minutos_semanales, created_at, updated_at, deleted)
             SELECT
                 pl.id,
@@ -118,7 +120,8 @@ final class Version20260428180000 extends AbstractMigration
               ON pl.grupo_id = i.grupo_id
              AND pl.nombre = 'Curso completo'
              AND pl.deleted = 0
-            WHERE NOT EXISTS (
+            WHERE i.deleted = 0
+              AND NOT EXISTS (
                 SELECT 1 FROM periodo_lectivo_imparticion pli
                  WHERE pli.periodo_lectivo_id = pl.id
                    AND pli.imparticion_id = i.id
