@@ -20,7 +20,7 @@ import ModalView from '../components/ModalView';
 import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download, Plus } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
@@ -203,10 +203,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Lista de jornadas disponibles por centro: { [centroId]: [{id, nombre, turno}, ...] }.
   // Alimenta el selector de jornada del infoBar (override por grupo, persistido en BD).
   const [jornadasByCentro, setJornadasByCentro] = useState({});
-  // Cache de capacity-check por grupo: { [grupoId]: { feasible, totalMinutos, capacidadMinutos, desajuste, asignacion, roundups, huerfanos, ... } }
+  // Cache de capacity-check por (grupo, PL): { [`${grupoId}_${plId}`]: { feasible, ... } }.
+  // El PL afecta a la jornada efectiva y a las imparticiones activas, así que la
+  // cache se invalida al cambiar de PL o al cambiar la jornada del grupo.
   const [capacityByGrupo, setCapacityByGrupo] = useState({});
+  // Periodos lectivos por grupo: { [grupoId]: PL[] } ordenados por orden+fechaInicio.
+  // Cargados al seleccionar un grupo. Fase 3a — cada grupo tiene 1 PL ("Curso completo")
+  // tras la migración Fase 1; Fase 3b expondrá CRUD para crear más rangos.
+  const [plByGrupo, setPlByGrupo] = useState({});
+  // PL seleccionado (timeline strip): { [grupoId]: plId }. Default = el activo
+  // por fecha (contiene today o, si no, el primero por fechaInicio).
+  const [selectedPlByGrupo, setSelectedPlByGrupo] = useState({});
   // Flag de PUT en curso para el override de jornada (deshabilita el selector mientras llega el ack).
   const [savingJornadaOverride, setSavingJornadaOverride] = useState(false);
+  // Modal "Nuevo rango lectivo" (Fase 3a) + form state.
+  const [plPickerOpen, setPlPickerOpen] = useState(false);
+  const [plForm, setPlForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '', jornadaTipoId: '' });
+  const [addingPl, setAddingPl] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -250,23 +263,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return null;
   };
 
-  // Resuelve el id de la jornada efectiva del grupo: override > itinerario.jornadaTipo.
-  const resolveEffectiveJornadaId = (g) => {
+  // Resuelve el id de la jornada efectiva con la cadena
+  // PL.jornadaTipo > Grupo.jornadaTipoOverride > Itinerario.jornadaTipo,
+  // espejo de PeriodoLectivo::getEffectiveJornadaTipo() del backend.
+  const resolveEffectiveJornadaId = (g, pl = null) => {
+    const plJ = extractFkId(pl?.jornadaTipo);
+    if (plJ) return plJ;
     const overrideId = extractFkId(g?.jornadaTipoOverride);
     if (overrideId) return overrideId;
     return extractFkId(g?.itinerario?.jornadaTipo);
   };
 
-  // 1.5) Cargar la jornada efectiva del grupo seleccionado.
+  // 1.5) Cargar la jornada efectiva del (grupo, PL) seleccionado.
   // El GET /api/grupos no anida los tramos de la jornada (los serializer groups
   // no encadenan tan profundo), así que hacemos un fetch dedicado a /api/jornada_tipos/{id}.
-  // La jornada efectiva = override del grupo si existe, sino la del itinerario.
+  // Cadena resuelta: PL.jornadaTipo > Grupo.jornadaTipoOverride > Itinerario.jornadaTipo.
   useEffect(() => {
     if (!selectedGrupo || grupos.length === 0) return;
     const grupoActual = grupos.find(g => String(g.id) === String(selectedGrupo));
     if (!grupoActual) return;
+    const plActual = (plByGrupo[selectedGrupo] || []).find(pl => String(pl.id) === String(selectedPlId)) || null;
 
-    const jornadaId = resolveEffectiveJornadaId(grupoActual);
+    const jornadaId = resolveEffectiveJornadaId(grupoActual, plActual);
 
     if (!jornadaId) {
       // Sin jornada efectiva: marcamos para que el banner aparezca.
@@ -285,7 +303,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         setJornadasPorId(prev => ({ ...prev, [jornadaId]: j }));
       })
       .catch(err => console.error('Error cargando jornada:', err));
-  }, [selectedGrupo, grupos, jornadasPorId]);
+  }, [selectedGrupo, selectedPlId, grupos, plByGrupo, jornadasPorId]);
 
   // 1.5.b) Cargar las jornadas disponibles del centro del grupo seleccionado.
   // Alimenta el selector de jornada del infoBar (override por grupo).
@@ -309,33 +327,69 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       .catch(err => console.error('Error cargando jornadas del centro:', err));
   }, [selectedGrupo, grupos, jornadasByCentro]);
 
-  // 1.6) Capacity-check del grupo seleccionado (sub-fase O, §14.7).
+  // 1.5.c) Cargar los PeriodoLectivo del grupo seleccionado.
+  // Fase 3a: alimenta el timeline strip y el cableado del solver/capacity-check
+  // al PL activo. La selección por defecto es el rango que contiene today() o,
+  // si no hay match, el primero por fechaInicio (mismo criterio que el
+  // PeriodoLectivoResolver del backend).
+  useEffect(() => {
+    if (!selectedGrupo) return;
+    if (plByGrupo[selectedGrupo] !== undefined) return;
+    fetch(getApiUrl(`/api/periodo_lectivos?grupo=${selectedGrupo}&pagination=false&order[orden]=asc&order[fechaInicio]=asc`),
+      { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const items = d['hydra:member'] || d.member || [];
+        setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: items }));
+        // Fijar selección por defecto si aún no hay
+        if (!selectedPlByGrupo[selectedGrupo] && items.length > 0) {
+          const today = new Date().toISOString().slice(0, 10);
+          const active = items.find(pl => pl.fechaInicio <= today && pl.fechaFin >= today)
+            || items[0];
+          setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: active.id }));
+        }
+      })
+      .catch(err => console.error('Error cargando PeriodoLectivos:', err));
+  }, [selectedGrupo, plByGrupo, selectedPlByGrupo]);
+
+  // PL actualmente seleccionado para el grupo en pantalla (puede ser undefined
+  // mientras se resuelve la carga inicial — el resto del código maneja ese caso).
+  const selectedPlId = selectedPlByGrupo[selectedGrupo];
+  // Clave compuesta para el estado del editor: cada (grupo, PL) mantiene su
+  // propio set de placements/baseline/dirty. Cambiar de PL no descarta el
+  // trabajo en progreso del PL anterior.
+  const stateKey = (selectedGrupo && selectedPlId) ? `${selectedGrupo}_${selectedPlId}` : '';
+
+  // 1.6) Capacity-check del (grupo, PL) seleccionado (sub-fase O, §14.7).
   // Pre-calcula el ILP de asignación slots→materias antes de pulsar "Sugerir".
   // Devuelve feasible/desajuste/roundups/huerfanos para el banner pre-resolución.
   useEffect(() => {
-    if (!selectedGrupo) return;
-    if (capacityByGrupo[selectedGrupo] !== undefined) return;
-    fetch(getApiUrl(`/api/v1/horarios/capacity-check/${selectedGrupo}`),
+    if (!stateKey) return;
+    if (capacityByGrupo[stateKey] !== undefined) return;
+    fetch(getApiUrl(`/api/v1/horarios/capacity-check/${selectedGrupo}?periodoLectivo=${selectedPlId}`),
       { headers: { 'Accept': 'application/json' }, credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(c => {
         if (!c) return;
-        setCapacityByGrupo(prev => ({ ...prev, [selectedGrupo]: c }));
+        setCapacityByGrupo(prev => ({ ...prev, [stateKey]: c }));
       })
       .catch(err => console.error('Error capacity-check:', err));
-  }, [selectedGrupo, capacityByGrupo]);
+  }, [stateKey, selectedGrupo, selectedPlId, capacityByGrupo]);
 
-  // 2) Cargar imparticiones y horarios del grupo seleccionado
+  // 2) Cargar imparticiones del grupo y horarios del PL seleccionado.
+  // Las imparticiones son grupo-level (todas las disponibles para arrastrar);
+  // los horarios se filtran por PL (cada PL tiene sus propios placements).
   useEffect(() => {
-    if (!selectedGrupo) return;
-    if (state[selectedGrupo]) return;  // ya cargado, mantener trabajo en progreso
+    if (!stateKey) return;
+    if (state[stateKey]) return;  // ya cargado, mantener trabajo en progreso
 
     const noCache = { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
     const bust = Date.now();
     Promise.all([
       fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false&_=${bust}`),
         { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json()),
-      fetch(getApiUrl(`/api/horarios?imparticion.grupo=${selectedGrupo}&itemsPerPage=500&_=${bust}`),
+      fetch(getApiUrl(`/api/horarios?imparticion.grupo=${selectedGrupo}&periodoLectivo=${selectedPlId}&itemsPerPage=500&_=${bust}`),
         { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json()),
     ]).then(([impData, horData]) => {
       const imps = impData['hydra:member'] || impData.member || [];
@@ -377,7 +431,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       setImparticiones(prev => ({ ...prev, [selectedGrupo]: imps }));
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: {
+        [stateKey]: {
           placements,
           dirty: false,
           baseline: { ...placements },
@@ -385,7 +439,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         },
       }));
     });
-  }, [selectedGrupo, state]);
+  }, [stateKey, selectedGrupo, selectedPlId, state]);
 
   // Cargar ocupación de profes en grupos paralelos (mismo turno, mismo centro)
   useEffect(() => {
@@ -460,17 +514,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   const grupo = useMemo(() => grupos.find(g => String(g.id) === String(selectedGrupo)), [grupos, selectedGrupo]);
   const imps = imparticiones[selectedGrupo] || [];
-  const grupoState = state[selectedGrupo];
+  const grupoState = state[stateKey];
   const placements = grupoState?.placements || {};
 
-  // Resolver la jornada efectiva del grupo. Cargada por el useEffect 1.5).
-  // Override del grupo > itinerario.jornadaTipo (ver Grupo.getEffectiveJornadaTipo() en backend).
+  // Resolver la jornada efectiva del (grupo, PL). Cargada por el useEffect 1.5).
+  // Cadena: PL.jornadaTipo > Grupo.jornadaTipoOverride > Itinerario.jornadaTipo
+  // (ver PeriodoLectivo::getEffectiveJornadaTipo() en backend).
+  const selectedPl = useMemo(() => {
+    if (!selectedGrupo || !selectedPlId) return null;
+    return (plByGrupo[selectedGrupo] || []).find(pl => String(pl.id) === String(selectedPlId)) || null;
+  }, [selectedGrupo, selectedPlId, plByGrupo]);
+
   const jornadaActual = useMemo(() => {
     if (!grupo) return null;
-    const jornadaId = resolveEffectiveJornadaId(grupo);
+    const jornadaId = resolveEffectiveJornadaId(grupo, selectedPl);
     if (!jornadaId) return null;
     return jornadasPorId[jornadaId] || null;
-  }, [grupo, jornadasPorId]);
+  }, [grupo, selectedPl, jornadasPorId]);
 
   // Normaliza un valor de hora ("HH:MM" / "HH:MM:SS" / ISO) a "HH:MM:SS".
   const normHoraSlot = (v) => {
@@ -641,10 +701,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const key = `${o.dia}_${slotsDia[o.slot][0]}`;
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: {
-          ...prev[selectedGrupo],
+        [stateKey]: {
+          ...prev[stateKey],
           placements: {
-            ...prev[selectedGrupo].placements,
+            ...prev[stateKey].placements,
             [key]: {
               imparticionId: a.imparticionId,
               aula: resolveAulaJs(imps.find(i => i.id === a.imparticionId), grupo),
@@ -660,9 +720,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Caso: de celda a panel (fuera de toda celda, o arrastrado y soltado sin over)
     if (a.type === 'placed' && !o) {
       setState(prev => {
-        const p = { ...prev[selectedGrupo].placements };
+        const p = { ...prev[stateKey].placements };
         delete p[a.slotId];
-        return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
+        return { ...prev, [stateKey]: { ...prev[stateKey], placements: p, dirty: true } };
       });
     }
 
@@ -697,14 +757,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const srcSlot = slotsDia.find(s => s[0] === srcHoraIni);
       const srcHoraFin = srcSlot ? srcSlot[1] : null;
       setState(prev => {
-        const p = { ...prev[selectedGrupo].placements };
+        const p = { ...prev[stateKey].placements };
         const src = p[srcKey];
         const dst = p[dstKey];
         // Al mover, actualizamos horaInicio/horaFin del objeto a su NUEVA posición
         p[dstKey] = { ...src, horaInicio: dstHoraIni, horaFin: dstHoraFin };
         if (dst) p[srcKey] = { ...dst, horaInicio: srcHoraIni, horaFin: srcHoraFin };
         else delete p[srcKey];
-        return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
+        return { ...prev, [stateKey]: { ...prev[stateKey], placements: p, dirty: true } };
       });
     }
   }, [selectedGrupo, placements, imps, minutosColocados, slotsDia, grupo]);
@@ -781,6 +841,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         credentials: 'include',
         body: JSON.stringify({
           grupoId: Number(selectedGrupo),
+          periodoLectivoId: selectedPlId ? Number(selectedPlId) : null,
           baselineMaxUpdatedAt: grupoState?.baselineMaxUpdatedAt || null,
           operations,
         }),
@@ -804,8 +865,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: {
-          ...prev[selectedGrupo],
+        [stateKey]: {
+          ...prev[stateKey],
           placements: newBaseline,
           baseline: newBaseline,
           baselineMaxUpdatedAt: data.maxUpdatedAt || null,
@@ -823,11 +884,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
-  // Fuerza recarga del grupo actual descartando estado local (tras conflicto)
+  // Fuerza recarga del (grupo, PL) actual descartando estado local (tras conflicto)
   const reloadCurrentGroup = () => {
     setState(prev => {
       const cp = { ...prev };
-      delete cp[selectedGrupo];
+      delete cp[stateKey];
       return cp;
     });
     setConflictOpen(false);
@@ -915,8 +976,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const tapDur = slotMinutosByHi[slotsDia[slotIdx][0]] || 0;
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: {
-          ...prev[selectedGrupo],
+        [stateKey]: {
+          ...prev[stateKey],
           placements: {
             ...effectivePlacements,
             [key]: {
@@ -937,9 +998,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Sin selección y celda ocupada → quitar
     if (existing) {
       setState(prev => {
-        const p = { ...prev[selectedGrupo].placements };
+        const p = { ...prev[stateKey].placements };
         delete p[key];
-        return { ...prev, [selectedGrupo]: { ...prev[selectedGrupo], placements: p, dirty: true } };
+        return { ...prev, [stateKey]: { ...prev[stateKey], placements: p, dirty: true } };
       });
     }
   }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, slotMinutosByHi, grupo, t]);
@@ -965,6 +1026,76 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [selectedImpId]);
+
+  // Abrir modal "Nuevo rango lectivo": pre-rellena nombre y fechas con defaults
+  // razonables (continuación del último rango si existe, sino sept-jun del curso).
+  const openAddPlModal = () => {
+    const existing = (selectedGrupo && plByGrupo[selectedGrupo]) || [];
+    let inicio = '';
+    let fin = '';
+    if (existing.length > 0) {
+      // Fecha inicio del nuevo rango = día siguiente al fechaFin del último.
+      const last = [...existing].sort((a, b) => a.fechaFin.localeCompare(b.fechaFin)).at(-1);
+      const lastFin = new Date(last.fechaFin);
+      const dayAfter = new Date(lastFin); dayAfter.setDate(dayAfter.getDate() + 1);
+      inicio = dayAfter.toISOString().slice(0, 10);
+      fin = last.fechaFin.slice(0, 4) + '-06-30';  // hasta junio del año del último fin
+    }
+    setPlForm({
+      nombre: '',
+      fechaInicio: inicio,
+      fechaFin: fin,
+      jornadaTipoId: '',
+    });
+    setPlPickerOpen(true);
+  };
+
+  // Crear el PL: POST /api/periodo_lectivos. El State Processor del backend
+  // auto-crea PLIs por cada Imparticion del grupo (con minutos NULL = hereda
+  // Materia.minutosSemanales), así que el rango es usable inmediatamente.
+  const handleAddPl = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (!selectedGrupo || !plForm.nombre || !plForm.fechaInicio || !plForm.fechaFin) {
+      toast.error(t('scheduleEditor.rangoMissingFields', { defaultValue: 'Completa nombre y fechas' }));
+      return;
+    }
+    setAddingPl(true);
+    try {
+      const body = {
+        grupo: `/api/grupos/${selectedGrupo}`,
+        nombre: plForm.nombre,
+        fechaInicio: plForm.fechaInicio,
+        fechaFin: plForm.fechaFin,
+        jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
+        orden: (plByGrupo[selectedGrupo]?.length || 0),
+      };
+      const res = await fetch(getApiUrl('/api/periodo_lectivos'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      const created = await res.json();
+      // Refresca la lista de PLs e invalida cachés del grupo.
+      setPlByGrupo(prev => {
+        const cur = prev[selectedGrupo] || [];
+        return { ...prev, [selectedGrupo]: [...cur, created].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)) };
+      });
+      // Selecciona automáticamente el PL recién creado.
+      setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: created.id }));
+      setPlPickerOpen(false);
+      toast.success(t('scheduleEditor.rangoCreated', { defaultValue: 'Rango lectivo creado' }));
+    } catch (err) {
+      console.error('Error creando PL:', err);
+      toast.error(t('scheduleEditor.rangoCreateError', { defaultValue: 'No se pudo crear el rango' }));
+    } finally {
+      setAddingPl(false);
+    }
+  };
 
   // Cambio de override de jornada para el grupo actual.
   // Persiste vía PUT /api/grupos/{id} y refresca grupos + caches dependientes.
@@ -1001,10 +1132,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const updated = await res.json();
       // Reemplaza el grupo en la lista para que jornadaActual se recalcule.
       setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updated } : g));
-      // Invalida el capacity-check (depende de la jornada efectiva).
+      // Invalida el capacity-check de TODOS los PLs de este grupo (la jornada
+      // efectiva del grupo afecta a cualquier PL cuyo jornadaTipo sea NULL).
       setCapacityByGrupo(prev => {
         const next = { ...prev };
-        delete next[selectedGrupo];
+        Object.keys(next).forEach(k => {
+          if (k.startsWith(`${selectedGrupo}_`)) delete next[k];
+        });
         return next;
       });
       const newEffectiveId = effectiveOverride || inheritedItinId;
@@ -1027,11 +1161,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setSolving(true);
     setDragError(null);
     try {
+      const body = { ...(seed !== null ? { seed } : {}), ...(selectedPlId ? { periodoLectivoId: selectedPlId } : {}) };
       const res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(seed !== null ? { seed } : {}),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
@@ -1067,8 +1202,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
       setState(prev => ({
         ...prev,
-        [selectedGrupo]: {
-          ...prev[selectedGrupo],
+        [stateKey]: {
+          ...prev[stateKey],
           placements: newPlacements,
           dirty: true,
         },
@@ -1167,6 +1302,37 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </Button>
         </CrudHeader>
 
+        {selectedGrupo && plByGrupo[selectedGrupo] && plByGrupo[selectedGrupo].length > 0 && (
+          <div className={styles.plStrip}>
+            <span className={styles.plStripLabel}>
+              <CalendarClock size={14} style={{ marginRight: 4 }} />
+              {t('scheduleEditor.rangoLectivo', { defaultValue: 'Rango lectivo' })}:
+            </span>
+            <div className={styles.plPills}>
+              {plByGrupo[selectedGrupo].map(pl => {
+                const isActive = String(pl.id) === String(selectedPlId);
+                const fmt = (s) => s ? s.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
+                return (
+                  <button
+                    key={pl.id}
+                    type="button"
+                    className={`${styles.plPill} ${isActive ? styles.plPillActive : ''}`}
+                    onClick={() => setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }))}
+                    title={`${pl.fechaInicio?.slice(0, 10)} → ${pl.fechaFin?.slice(0, 10)}`}
+                  >
+                    <span className={styles.plPillName}>{pl.nombre}</span>
+                    <span className={styles.plPillDates}>{fmt(pl.fechaInicio)} – {fmt(pl.fechaFin)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" className={styles.plPillAdd} onClick={openAddPlModal}>
+              <Plus size={14} />
+              {t('scheduleEditor.addRango', { defaultValue: 'Añadir rango' })}
+            </button>
+          </div>
+        )}
+
         {!selectedGrupo || !grupoState ? (
           <div className={styles.emptyState}>{t('scheduleEditor.emptyState')}</div>
         ) : slotsDia.length === 0 ? (
@@ -1183,8 +1349,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </div>
         ) : (
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-            {capacityByGrupo[selectedGrupo] && (() => {
-              const cap = capacityByGrupo[selectedGrupo];
+            {capacityByGrupo[stateKey] && (() => {
+              const cap = capacityByGrupo[stateKey];
               const totalH = (cap.totalMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               const capH = (cap.capacidadMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               if (!cap.feasible) {
@@ -1375,16 +1541,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <div className={styles.infoBarActions}>
                     <Button
                       onClick={() => runSolver(null)}
-                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[selectedGrupo]?.feasible === false}
+                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[stateKey]?.feasible === false}
                       variant="secondary"
-                      title={capacityByGrupo[selectedGrupo]?.feasible === false ? t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' }) : undefined}
+                      title={capacityByGrupo[stateKey]?.feasible === false ? t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' }) : undefined}
                     >
                       <Sparkles size={14} style={{ marginRight: 4 }} />
                       {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
                     </Button>
                     <Button
                       onClick={() => runSolver(Date.now())}
-                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[selectedGrupo]?.feasible === false}
+                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[stateKey]?.feasible === false}
                       variant="secondary"
                       title={t('scheduleEditor.solverSuggestAnotherHint')}
                     >
@@ -1538,6 +1704,71 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           }
         >
           <p>{t('scheduleEditor.exportDirtyBody')}</p>
+        </ModalView>
+
+        <ModalView
+          isOpen={plPickerOpen}
+          onClose={() => setPlPickerOpen(false)}
+          title={t('scheduleEditor.addRangoTitle', { defaultValue: 'Nuevo rango lectivo' })}
+          onSubmit={handleAddPl}
+          submitText={addingPl ? t('scheduleEditor.addRangoSubmitting', { defaultValue: 'Creando…' }) : t('scheduleEditor.addRangoSubmit', { defaultValue: 'Crear rango' })}
+          cancelText={t('common.cancel', { defaultValue: 'Cancelar' })}
+          isSubmitting={addingPl}
+          size="small"
+        >
+          <div className={styles.plForm}>
+            <label className={styles.plFormField}>
+              <span>{t('scheduleEditor.rangoNombre', { defaultValue: 'Nombre' })}</span>
+              <input
+                type="text"
+                value={plForm.nombre}
+                onChange={(e) => setPlForm(prev => ({ ...prev, nombre: e.target.value }))}
+                required
+                autoFocus
+                placeholder={t('scheduleEditor.rangoNombrePlaceholder', { defaultValue: 'Ej: Bloque FCT' })}
+              />
+            </label>
+            <div className={styles.plFormRow}>
+              <label className={styles.plFormField}>
+                <span>{t('scheduleEditor.rangoFechaInicio', { defaultValue: 'Inicio' })}</span>
+                <input
+                  type="date"
+                  value={plForm.fechaInicio}
+                  onChange={(e) => setPlForm(prev => ({ ...prev, fechaInicio: e.target.value }))}
+                  required
+                />
+              </label>
+              <label className={styles.plFormField}>
+                <span>{t('scheduleEditor.rangoFechaFin', { defaultValue: 'Fin' })}</span>
+                <input
+                  type="date"
+                  value={plForm.fechaFin}
+                  onChange={(e) => setPlForm(prev => ({ ...prev, fechaFin: e.target.value }))}
+                  required
+                />
+              </label>
+            </div>
+            <label className={styles.plFormField}>
+              <span>{t('scheduleEditor.rangoJornada', { defaultValue: 'Jornada (opcional)' })}</span>
+              <ThemedSelect
+                value={plForm.jornadaTipoId}
+                onChange={(v) => setPlForm(prev => ({ ...prev, jornadaTipoId: v }))}
+                options={[
+                  { value: '', label: t('scheduleEditor.rangoJornadaInherit', { defaultValue: '— Heredar del grupo —' }) },
+                  ...((extractFkId(grupo?.centro) && jornadasByCentro[extractFkId(grupo?.centro)]) || []).map(j => ({
+                    value: String(j.id),
+                    label: `${j.nombre} · ${j.turno === 'tarde' ? t('scheduleEditor.turnoAfternoon') : t('scheduleEditor.turnoMorning')}`,
+                  })),
+                ]}
+                placeholder={t('scheduleEditor.rangoJornadaInherit', { defaultValue: '— Heredar del grupo —' })}
+                ariaLabel={t('scheduleEditor.rangoJornada', { defaultValue: 'Jornada' })}
+                minWidth={260}
+              />
+              <small className={styles.plFormHint}>
+                {t('scheduleEditor.rangoJornadaHint', { defaultValue: 'Déjalo en blanco para usar la jornada del selector general del editor.' })}
+              </small>
+            </label>
+          </div>
         </ModalView>
       </Container>
     </Wrapper>

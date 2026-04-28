@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fases 1+2 ✅ Done (modelo + migración + solver/planner por rango). Stepping stone (override jornada por grupo) ✅ Done. Fase 3 (UI timeline) pendiente — siguiente paso. Modelo `PeriodoLectivo` ya está en BD con un rango único `"Curso completo"` por grupo (`Version20260428180000`) y el solver/CapacityPlanner ya leen jornada e imparticiones del rango activo (resuelto con `PeriodoLectivoResolver`); el comportamiento observable sigue idéntico al actual mientras solo haya un rango por grupo. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo (Fase 3 + UI), las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
+> **Status (2026-04-28)**: 🟡 Fases 1+2+3a ✅ Done (modelo + migración + solver/planner por rango + UI timeline read-only y "Añadir rango"). Stepping stone (override jornada por grupo) ✅ Done. Fase 3b (editar/borrar PLs, jornada por rango inline, banner Σ horas) pendiente. La UI de `/admin/horarios` ya muestra un strip horizontal con los rangos del grupo y permite crear nuevos. El solver, CapacityPlanner, batch save y horarios fetch están todos cableados al PL activo. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo (Fase 3b + Fases 4-7), las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
 
 ---
 
@@ -134,14 +134,38 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo invertido**: ~1 sesión.
 
-### Fase 3 — UI: timeline de rangos en `/admin/horarios`
+### Fase 3a — UI: timeline read-only + selección + cableado API  ✅ Done (2026-04-28)
 
-- Pestaña/timeline horizontal con los rangos del grupo seleccionado.
-- Botones "+ Añadir rango", editar fechas, asignar `JornadaTipo`, duplicar, borrar.
-- Sub-vista por rango: cuadrícula horario actual (sin cambios) pero filtrada al rango seleccionado.
-- Banner global del grupo: Σ horas anuales planificadas vs Σ horas currículo. Aviso D-C.
+- ✅ Strip horizontal arriba del editor con un pill por cada `PeriodoLectivo` del grupo (nombre + fechas dd/mm), pill activo resaltado.
+- ✅ Click en pill cambia `selectedPlByGrupo[grupoId]`. El editor recarga placements y CapacityPlanner del nuevo PL.
+- ✅ Botón "Añadir rango" abre modal (nombre, fechaInicio, fechaFin, jornada opcional con "— Heredar del grupo —"). POST a `/api/periodo_lectivos`.
+- ✅ State Processor backend `PeriodoLectivoCreateProcessor` auto-crea un `PeriodoLectivoImparticion` por cada `Imparticion` viva del grupo (minutos NULL = hereda Materia). Sin esto, el rango recién creado estaría vacío.
+- ✅ Estado del editor refactorizado a clave compuesta `${grupoId}_${plId}`: `state`, `capacityByGrupo`. Cambiar de PL no descarta el trabajo en progreso del PL anterior (queda en memoria mientras la página viva).
+- ✅ Cadena frontend de jornada efectiva alineada con el backend: `PL.jornadaTipo > Grupo.jornadaTipoOverride > Itinerario.jornadaTipo` en `resolveEffectiveJornadaId(g, pl)`.
+- ✅ API calls cableadas:
+   - `GET /api/horarios?...&periodoLectivo=N` (filtro nuevo añadido en `Horario` ApiFilter).
+   - `GET /api/v1/horarios/capacity-check/{g}?periodoLectivo=N`.
+   - `POST /api/v1/horarios/solver/{g}` body con `periodoLectivoId`.
+   - `POST /api/v1/horarios/batch` body con `periodoLectivoId` (controller usa el PL para scope del check de concurrencia y para fijar `Horario.periodoLectivo` en cada create del lote).
+- ✅ i18n nuevo (5 idiomas): `scheduleEditor.rangoLectivo`, `addRango/addRangoTitle/addRangoSubmit/addRangoSubmitting`, `rangoNombre/rangoNombrePlaceholder/rangoFechaInicio/rangoFechaFin/rangoJornada/rangoJornadaInherit/rangoJornadaHint`, `rangoMissingFields/rangoCreated/rangoCreateError`.
 
-**Esfuerzo**: ~1.5 sesiones.
+**Limitaciones conocidas** (cierre en Fase 3b):
+- No se pueden editar ni borrar PLs desde la UI todavía. Si creas uno mal, hay que borrarlo en BD a mano (`DELETE FROM periodo_lectivo WHERE id=N`) o usar la API directamente.
+- El selector de jornada del `infoBar` sigue controlando `Grupo.jornadaTipoOverride`, no la jornada del PL. Para cambiar la jornada de un PL específico, hoy hay que crear el PL con la jornada deseada (en el modal). Fase 3b añadirá un selector de jornada por rango inline.
+- Si tienes cambios sin guardar en PL_A y cambias a PL_B, el `useBlocker` no avisa (porque `grupoState.dirty` se evalúa contra el PL activo). Los cambios siguen en memoria — al volver a PL_A reaparecen — pero un F5 los perdería.
+- El strip aparece siempre (incluso con un solo "Curso completo"). Es deliberado: hace visible la nueva primitiva.
+
+**Esfuerzo invertido**: ~1 sesión.
+
+### Fase 3b — pendiente
+
+- Editar PL inline (nombre, fechas, jornada).
+- Borrar PL (con confirm + warning si tiene horarios persistidos).
+- Selector de jornada **por rango** en cada pill (en vez de tener que recrear el PL).
+- Banner global del grupo: Σ horas anuales planificadas vs Σ horas currículo. Aviso D-C ("te sobran/faltan X horas").
+- Gestión de PLI por rango (UI para activar/desactivar imparticiones por rango y ajustar minutos cuando se desvía del default).
+
+**Esfuerzo estimado**: ~1 sesión.
 
 ### Fase 4 — UI gestión imparticiones por rango
 
@@ -259,6 +283,31 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 ### 2026-04-28 — Fase 8 añadida al roadmap
 
 Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.
+
+### 2026-04-28 — Fase 3a implementada (timeline strip + selección + cableado API)
+
+UI nueva en `/admin/horarios`: strip horizontal sobre el editor con un pill por cada `PeriodoLectivo` del grupo + botón "Añadir rango" que abre modal (nombre, fechas, jornada opcional). Cambiar de pill recarga editor y CapacityPlanner del nuevo PL. Estado del editor refactorizado a clave compuesta `${grupoId}_${plId}` para que cada PL mantenga su propio set de placements/baseline/dirty en memoria.
+
+**Backend**:
+- `App\State\PeriodoLectivoCreateProcessor` (nuevo): tras POST de un PL, auto-crea un PLI por cada Imparticion viva del grupo (minutos NULL = hereda Materia). Sin esto, un PL recién creado estaría vacío.
+- `Horario` ApiFilter: añadido filtro `periodoLectivo` (exact) y `periodoLectivo.grupo` (exact) — necesario para que el frontend pueda hacer `?periodoLectivo=N` en la query de horarios.
+- `HorarioBatchController`: acepta `periodoLectivoId` opcional en el body (cuando viene, lo usa para scope del check de concurrencia y para fijar `Horario.periodoLectivo` en cada create del lote).
+- `services.yaml`: registrado el nuevo State Processor.
+
+**Frontend**:
+- Estado nuevo: `plByGrupo`, `selectedPlByGrupo`, `plPickerOpen`, `plForm`, `addingPl`.
+- useEffect 1.5.c: fetch `/api/periodo_lectivos?grupo=N` al seleccionar grupo, fija default = PL activo (contiene today o, si no, primero por fechaInicio).
+- `stateKey = ${grupoId}_${plId}` derivado, usado en todas las cachés del editor.
+- `resolveEffectiveJornadaId(g, pl)` ampliado a la cadena `PL > Grupo.override > Itinerario`, espejo del backend.
+- Strip + pills + modal con CSS themed (`.plStrip`, `.plPill`, `.plPillActive`, `.plPillAdd`, `.plForm*`).
+- i18n en 5 idiomas (~12 claves nuevas en bloque `scheduleEditor.*`).
+
+**Decisiones menores durante implementación**:
+- El strip se muestra incluso con un solo PL ("Curso completo") tras la migración Fase 1, para hacer visible la primitiva (alternativa: ocultarlo si len=1, descartada por didactic value).
+- El selector de jornada del `infoBar` sigue controlando `Grupo.jornadaTipoOverride` (no la jornada del PL). El PL tiene su propia jornada que se fija en el modal de creación. Fase 3b añadirá selector de jornada inline por rango.
+- Estado del editor mantiene placements de todos los PLs visitados en memoria (composite key). Si la página se recarga, se pierden los no guardados — limitación documentada.
+
+**Pendiente Fase 3b**: editar/borrar PLs desde UI, selector de jornada por rango inline, banner Σ horas anuales, gestión de PLIs por rango.
 
 ### 2026-04-28 — Fix post-Fase 2: PL.jornadaTipo debe quedar NULL por defecto
 

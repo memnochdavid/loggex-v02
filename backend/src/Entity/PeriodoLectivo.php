@@ -15,6 +15,7 @@ use ApiPlatform\Metadata\Put;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\PeriodoLectivoRepository;
+use App\State\PeriodoLectivoCreateProcessor;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -48,7 +49,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
+        new Post(processor: PeriodoLectivoCreateProcessor::class),
         new Put(),
         new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Grupo;
 use App\Entity\Horario;
 use App\Entity\Imparticion;
+use App\Entity\PeriodoLectivo;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -45,6 +46,7 @@ class HorarioBatchController extends AbstractController
         $grupoId = $data['grupoId'] ?? null;
         $operations = $data['operations'] ?? [];
         $baseline = $data['baselineMaxUpdatedAt'] ?? null;
+        $periodoLectivoId = $data['periodoLectivoId'] ?? null;
 
         if (!$grupoId) {
             return $this->json(['message' => 'grupoId requerido'], 400);
@@ -58,8 +60,19 @@ class HorarioBatchController extends AbstractController
             return $this->json(['message' => 'Grupo no encontrado'], 404);
         }
 
-        // Check de concurrencia: max(updatedAt) de horarios de imparticiones del grupo
-        $currentMax = $this->maxUpdatedAtForGrupo($em, $grupoId);
+        // PeriodoLectivo opcional: si viene, scope toda la operación a ese rango.
+        // El frontend Fase 3a lo envía siempre; pre-Fase 3a se omitía y el
+        // prePersist subscriber resuelve el rango activo.
+        $periodoLectivo = null;
+        if ($periodoLectivoId !== null) {
+            $periodoLectivo = $em->getRepository(PeriodoLectivo::class)->find((int) $periodoLectivoId);
+            if ($periodoLectivo === null || $periodoLectivo->getGrupo()?->getId() !== (int) $grupoId) {
+                return $this->json(['message' => 'PeriodoLectivo no encontrado o no pertenece al grupo'], 422);
+            }
+        }
+
+        // Check de concurrencia scoped al PL (si está set), sino a todo el grupo.
+        $currentMax = $this->maxUpdatedAtForGrupo($em, (int) $grupoId, $periodoLectivo?->getId());
         if ($baseline && $currentMax && $this->parseDate($currentMax) > $this->parseDate($baseline)) {
             return $this->json([
                 'error' => 'concurrent_update',
@@ -93,6 +106,12 @@ class HorarioBatchController extends AbstractController
                     $h->setHoraFin(new \DateTime($op['horaFin'] ?? '00:00'));
                     $h->setAula($op['aula'] ?? '');
                     $h->setImparticion($imp);
+                    // Si el batch llega con periodoLectivoId, asignarlo aquí (más
+                    // explícito que delegar al prePersist subscriber, que solo se
+                    // dispara si el campo está null al persist).
+                    if ($periodoLectivo !== null) {
+                        $h->setPeriodoLectivo($periodoLectivo);
+                    }
                     $em->persist($h);
                     $em->flush();
                     $created[] = [
@@ -113,14 +132,14 @@ class HorarioBatchController extends AbstractController
             ], 500);
         }
 
-        $newMax = $this->maxUpdatedAtForGrupo($em, $grupoId);
+        $newMax = $this->maxUpdatedAtForGrupo($em, (int) $grupoId, $periodoLectivo?->getId());
         return $this->json([
             'created' => $created,
             'maxUpdatedAt' => $newMax,
         ]);
     }
 
-    private function maxUpdatedAtForGrupo(EntityManagerInterface $em, int $grupoId): ?string
+    private function maxUpdatedAtForGrupo(EntityManagerInterface $em, int $grupoId, ?int $periodoLectivoId = null): ?string
     {
         $qb = $em->createQueryBuilder();
         $qb->select('MAX(h.updatedAt) AS m')
@@ -128,6 +147,10 @@ class HorarioBatchController extends AbstractController
             ->join('h.imparticion', 'i')
             ->where('i.grupo = :g')
             ->setParameter('g', $grupoId);
+        if ($periodoLectivoId !== null) {
+            $qb->andWhere('h.periodoLectivo = :pl')
+                ->setParameter('pl', $periodoLectivoId);
+        }
         $r = $qb->getQuery()->getSingleScalarResult();
         if (!$r) return null;
         return $r instanceof \DateTimeInterface ? $r->format(\DateTime::ATOM) : (string) $r;

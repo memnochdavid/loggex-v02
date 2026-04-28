@@ -31,6 +31,14 @@ services:
         tags:
             - { name: 'api_platform.state_processor', priority: 100 }
 
+    # Procesador POST de PeriodoLectivo: tras persistir, auto-crea PLIs
+    # para cada Imparticion del grupo (inherit Materia.minutosSemanales).
+    App\State\PeriodoLectivoCreateProcessor:
+        bind:
+            $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+        tags:
+            - { name: 'api_platform.state_processor' }
+
     # Configuración del Cliente S3 para MinIO
     app.minio_client:
         class: 'Aws\S3\S3Client'

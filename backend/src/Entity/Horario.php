@@ -37,6 +37,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'imparticion' => 'exact',
     'imparticion.grupo' => 'exact',
     'imparticion.profesor' => 'exact',
+    'periodoLectivo' => 'exact',
+    'periodoLectivo.grupo' => 'exact',
     'aula' => 'partial',
     'diaSemana' => 'exact',
     'imparticion.materia.nombre' => 'partial',
