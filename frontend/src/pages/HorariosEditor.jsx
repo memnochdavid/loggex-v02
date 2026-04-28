@@ -1412,6 +1412,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const url = getApiUrl(`/api/v1/informes/horario/grupo/${selectedGrupo}?lang=${lang}`);
       const grupoNombre = grupo?.nombre ? grupo.nombre.replace(/[^a-zA-Z0-9]+/g, '_') : 'grupo';
       await downloadFileFromApi(url, `horario_${grupoNombre}.pdf`);
+      toast.success(t('scheduleEditor.exportSuccess', { defaultValue: 'PDF descargado' }));
     } catch (err) {
       toast.error(err.message, {
         description: t('scheduleEditor.exportErrorCtx', { defaultValue: 'No se ha podido exportar el horario' })
@@ -2626,16 +2627,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               })}
             </div>
             <div className={styles.cursoActionsWrapper}>
-              <button
+              <Button
                 type="button"
-                className={styles.plPillAdd}
                 onClick={() => setCursoActionsOpen(v => !v)}
                 disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos}
+                variant="secondary"
                 title={t('scheduleEditor.cursoActionsTitle', { defaultValue: 'Acciones del curso' })}
               >
-                <Settings2 size={14} />
+                <Settings2 size={14} style={{ marginRight: 4 }} />
                 {t('scheduleEditor.cursoActions', { defaultValue: 'Acciones del curso' })}
-              </button>
+              </Button>
               {cursoActionsOpen && (
                 <>
                   <div

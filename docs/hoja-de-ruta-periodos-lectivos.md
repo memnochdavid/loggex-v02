@@ -426,6 +426,27 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Pulido UX: estilo del dropdown + toast en exportar PDF + ubicación de toasts
+
+Tres ajustes pequeños tras feedback del usuario:
+
+1. **Botón "Acciones del curso" del strip**: usaba la clase `.plPillAdd` (estilo dashed propio del strip) que no era coherente con los demás botones. Ahora usa `<Button variant="secondary">` igual que "Generar este Horario" / "Generar todos". Misma apariencia themed.
+
+2. **Toast en descarga de PDF**: `performExport` solo notificaba en error. Añadido `toast.success(t('exportSuccess'))` tras descarga. i18n nuevo `exportSuccess` en 5 idiomas.
+
+3. **Ubicación de componentes toast** (referencia para futuros refactors):
+   - **Toast genérico**: `frontend/src/utils/toast.js` — `toast.success()` y `toast.error()`. Lo usan la mayoría de handlers (PATCHs/DELETEs).
+   - **Toast local del editor** ("Propuesta parcial. Sin colocar..."): `HorariosEditor.module.css:1172` clase `.errorToast`. Componente fixed bottom-right que se renderiza con `setDragError(msg)`. Estilo: `var(--color-error)` background, blanco texto, slide-in animation.
+   - **Deuda técnica**: dos sistemas de toasts conviviendo. El usuario sugirió que la apariencia de `.errorToast` sería un buen estilo unificado. Pendiente refactor a un único sistema con tonalidades (success verde, error rojo, info azul) coherente con tema. Tarea futura.
+
+Otras acciones que aún no avisan al admin (también deuda):
+- `handleClearActiveRange` — limpia placements del PL activo, sin toast.
+- Drag/drop de placement en rejilla — solo error en violation, sin success.
+- Cambio de override de jornada — sí avisa.
+- Crear/editar/borrar PL — sí avisa.
+
+Cuando se decida unificar el sistema de toasts, hacer barrido por todas las acciones y asegurar feedback visual consistente.
+
 ### 2026-04-28 — Reorganización UX + Guardar todos los rangos + labels solver
 
 Refactor de la UI tras feedback del usuario sobre la confusión de tener "+ Añadir rango" en el strip y un dropdown "Acciones del curso" en el infoBar.

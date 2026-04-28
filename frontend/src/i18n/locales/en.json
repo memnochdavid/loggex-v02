@@ -1378,6 +1378,7 @@
     "exportPdf": "PDF",
     "exporting": "Generating…",
     "exportError": "Error exporting PDF: {{message}}",
+    "exportSuccess": "PDF downloaded",
     "exportDirtyTitle": "Unsaved changes",
     "exportDirtyBody": "The PDF reflects the version saved in the database. You have unsaved local changes; what do you want to do?",
     "exportDirtyCancel": "Cancel",

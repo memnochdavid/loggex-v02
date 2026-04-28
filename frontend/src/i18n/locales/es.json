@@ -1676,6 +1676,7 @@
     "exportPdf": "PDF",
     "exporting": "Generando…",
     "exportError": "Error al exportar el PDF: {{message}}",
+    "exportSuccess": "PDF descargado",
     "exportDirtyTitle": "Hay cambios sin guardar",
     "exportDirtyBody": "El PDF refleja la versión guardada en la base de datos. Tienes cambios locales sin guardar; ¿qué quieres hacer?",
     "exportDirtyCancel": "Cancelar",

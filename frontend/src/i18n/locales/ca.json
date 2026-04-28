@@ -1378,6 +1378,7 @@
     "exportPdf": "PDF",
     "exporting": "Generant…",
     "exportError": "Error en exportar el PDF: {{message}}",
+    "exportSuccess": "PDF descarregat",
     "exportDirtyTitle": "Hi ha canvis sense desar",
     "exportDirtyBody": "El PDF reflecteix la versió desada a la base de dades. Tens canvis locals sense desar; què vols fer?",
     "exportDirtyCancel": "Cancel·lar",

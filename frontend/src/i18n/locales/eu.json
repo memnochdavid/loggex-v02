@@ -1378,6 +1378,7 @@
     "exportPdf": "PDF",
     "exporting": "Sortzen…",
     "exportError": "Errorea PDFa esportatzean: {{message}}",
+    "exportSuccess": "PDFa deskargatu da",
     "exportDirtyTitle": "Gorde gabeko aldaketak",
     "exportDirtyBody": "PDFak datu-basean gordetako bertsioa erakusten du. Gorde gabeko aldaketak dituzu; zer egin nahi duzu?",
     "exportDirtyCancel": "Utzi",

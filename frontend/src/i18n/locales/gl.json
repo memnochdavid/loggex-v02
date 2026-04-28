@@ -1378,6 +1378,7 @@
     "exportPdf": "PDF",
     "exporting": "Xerando…",
     "exportError": "Erro ao exportar o PDF: {{message}}",
+    "exportSuccess": "PDF descargado",
     "exportDirtyTitle": "Hai cambios sen gardar",
     "exportDirtyBody": "O PDF reflicte a versión gardada na base de datos. Tes cambios locais sen gardar; que queres facer?",
     "exportDirtyCancel": "Cancelar",
