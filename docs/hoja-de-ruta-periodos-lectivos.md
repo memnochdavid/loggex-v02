@@ -426,6 +426,36 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Cap anual por materia con tolerancia: solver no over-asigna cross-rango
+
+Problema reportado por el usuario: con 3 rangos cubriendo 42.6 sem y solver ejecutado en cada uno, las materias terminaban con horas anuales muy por encima de su objetivo curricular (Programación 322.3h vs 288h target = +34h, IPEI1 +28.9h, DIG +18.7h, etc). Causa: cada rango asigna `materia.minutosSemanales × semanas_rango` independientemente, sumando `× factor` (42.6/36 = 1.18) más de lo curricular.
+
+**Fix solicitado por el usuario**: hard cap por materia con tolerancia 1.5h. Cuando una materia alcanza `objetivoAnual + 1.5h` cross-rango, el solver no le asigna más slots.
+
+**Implementación**:
+
+Backend `CapacityPlanner::plan()` acepta nuevo parámetro `?array $alreadyPlacedByImp` (impId → minutosAnualesYaColocadosEnOtrosRangos). Para cada PLI:
+1. Calcula `cuotaNatural = effectiveMin × semanasRango`.
+2. Si `$alreadyPlacedByImp` no es null: `objetivoAnual = materia.minutosSemanales × 36` (LOMLOE D-L). `maxRestante = objetivoAnual + 90 - yaColocado`. `cuotaEsteRango = min(cuotaNatural, maxRestante)`.
+3. Convierte cuota total a min/sem efectivo: `cuota / semanasRango` (el ILP opera en cuotas semanales).
+4. Si cuotaEsteRango ≤ 0 → la materia queda fuera del rango (el solver la ignora).
+
+Helper nuevo `calcularSemanasPL(PeriodoLectivo)` para calcular semanas decimales del rango.
+
+`HorarioSolver::solve()` y `HorarioSolverController::solve()` propagan el parámetro nuevo (compatible: si null, modo legacy).
+
+Frontend `runSolver()`: antes de POST, calcula `placedAnualOtrosRangos` recorriendo todos los PLs del grupo EXCEPTO el activo, sumando `slot duración × semanas` desde state local (si existe) o persistidos. Lo envía como `body.alreadyPlacedByImp`.
+
+**Comportamiento esperado**:
+- Solver rango 1 (otros vacíos): asigna `min(cuotaNatural, 288h+1.5h)`. Para 480 min/sem × 18 sem = 144h ≤ 289.5h → asigna 144h normales.
+- Solver rango 2 (rango 1 ya con 144h): cap = 289.5 - 144 = 145.5h. cuotaNatural = 480 × 11.5 = 92h. Asigna 92h.
+- Solver rango 3 (1+2 con 236h): cap = 289.5 - 236 = 53.5h. cuotaNatural = 104h. Reduce a 53.5h. 
+- Total: ~289.5h, cumple +1.5h tolerancia.
+
+**Order-dependency**: el cap es relativo al estado actual de placements en otros rangos. Si el admin re-ejecuta el solver en orden distinto, los resultados pueden variar. Aceptable; el admin debe ejecutar en orden lógico (rango 1 → 2 → 3).
+
+**Ejecutado en orden inverso o aleatorio**: las primeras pasadas saturan tolerancia; las últimas reducen cuotas. El total siempre ≤ objetivo+1.5h por materia.
+
 ### 2026-04-28 — Fixes UX badge + ModuleChip cross-rango con state local
 
 Tres fixes a problemas reportados por el usuario tras best-effort + truco recreos:

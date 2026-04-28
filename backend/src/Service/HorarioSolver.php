@@ -30,7 +30,7 @@ class HorarioSolver
     ) {
     }
 
-    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null): array
+    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null): array
     {
         // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
         $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
@@ -80,7 +80,7 @@ class HorarioSolver
         // y colocar lo que cabe (Fase 5: el truco de recreos LOMLOE asume que el
         // déficit pequeño se justifica curricularmente con recreos lectivos).
         // Sólo abortamos si la asignación está vacía (caso patológico real).
-        $capacity = $this->planner->plan($grupo, $periodoLectivo);
+        $capacity = $this->planner->plan($grupo, $periodoLectivo, $alreadyPlacedByImp);
         if (empty($capacity['asignacion'])) {
             return [
                 'complete' => false,

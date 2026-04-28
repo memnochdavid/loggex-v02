@@ -52,7 +52,7 @@ class CapacityPlanner
      *   debug: array<string, mixed>
      * }
      */
-    public function plan(Grupo $grupo, ?PeriodoLectivo $periodoLectivo = null): array
+    public function plan(Grupo $grupo, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null): array
     {
         // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
         $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
@@ -109,19 +109,56 @@ class CapacityPlanner
             ->getQuery()
             ->getResult();
 
+        // Cap anual por materia (Fase 5 fix afinado): cada materia tiene un
+        // objetivo curricular = `materia.minutosSemanales × 36` (LOMLOE D-L).
+        // Lo ya colocado en OTROS rangos del grupo se descuenta del cuota de
+        // este rango, con tolerancia +TOLERANCIA_MIN. Resultado: el solver
+        // nunca asigna más allá de `objetivoAnual + tolerancia` para una
+        // materia (sumando todos los rangos).
+        // El parámetro `$alreadyPlacedByImp` lo pasa el caller (frontend
+        // calcula minutos anuales ya colocados en otros rangos antes de
+        // ejecutar el solver). Si el array es null, no se aplica el cap (modo
+        // legacy, mantiene comportamiento anterior para compatibilidad).
+        $TOLERANCIA_ANUAL_MIN = 90;  // 1.5h tolerancia sobre el currículo
+        $SEMANAS_REF_LOMLOE = 36;
+        $semanasRango = $this->calcularSemanasPL($periodoLectivo);
+
         $materias = [];
         $totalMinutos = 0;
         foreach ($plis as $pli) {
             $imp = $pli->getImparticion();
             if ($imp === null || $imp->isDeleted()) continue;
-            $minutos = $pli->getEffectiveMinutosSemanales();
-            if ($minutos <= 0) continue;
+            $minutosBaseSemanal = $pli->getEffectiveMinutosSemanales();
+            if ($minutosBaseSemanal <= 0) continue;
+
+            // Cuota objetivo de este rango = min/sem × semanas (lo "natural").
+            $cuotaNatural = (int) round($minutosBaseSemanal * $semanasRango);
+
+            // Cap anual: si el caller pasó info de placements en otros rangos,
+            // descontar del objetivo curricular total.
+            if ($alreadyPlacedByImp !== null) {
+                $objetivoAnual = ($imp->getMateria()?->getMinutosSemanales() ?? 0) * $SEMANAS_REF_LOMLOE;
+                $yaColocadoOtrosRangos = (int) ($alreadyPlacedByImp[$imp->getId()] ?? 0);
+                $maxRestante = max(0, $objetivoAnual + $TOLERANCIA_ANUAL_MIN - $yaColocadoOtrosRangos);
+                $cuotaEsteRango = min($cuotaNatural, $maxRestante);
+            } else {
+                $cuotaEsteRango = $cuotaNatural;
+            }
+
+            // Convertir cuota total del rango → minutos/sem para el ILP del
+            // planner (que opera en cuotas semanales asumiendo placements
+            // recurrentes cada semana del rango).
+            $minutosSemanalEffective = $semanasRango > 0
+                ? (int) round($cuotaEsteRango / $semanasRango)
+                : $minutosBaseSemanal;
+
+            if ($minutosSemanalEffective <= 0) continue;
             $materias[] = [
                 'impId' => $imp->getId(),
                 'nombre' => $imp->getMateria()?->getNombre() ?? '?',
-                'minutos' => (int) $minutos,
+                'minutos' => $minutosSemanalEffective,
             ];
-            $totalMinutos += (int) $minutos;
+            $totalMinutos += $minutosSemanalEffective;
         }
 
         $capacidadMinutos = 0;
@@ -417,6 +454,18 @@ class CapacityPlanner
             $materia['minutos'],
             $combo['delta']
         );
+    }
+
+    /**
+     * Semanas de un PeriodoLectivo (decimal). Calcula como (fechaFin - fechaInicio + 1) / 7.
+     */
+    private function calcularSemanasPL(PeriodoLectivo $pl): float
+    {
+        $i = $pl->getFechaInicio();
+        $f = $pl->getFechaFin();
+        if ($i === null || $f === null) return 0.0;
+        $diff = $i->diff($f);
+        return (((int) $diff->days) + 1) / 7.0;
     }
 
     private function slotsFromJornada(JornadaTipo $jornada): array

@@ -2032,7 +2032,52 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setSolving(true);
     setDragError(null);
     try {
-      const body = { ...(seed !== null ? { seed } : {}), ...(selectedPlId ? { periodoLectivoId: selectedPlId } : {}) };
+      // Cap anual por materia (Fase 5 fix afinado): pasamos al backend los
+      // minutos anuales ya colocados en OTROS rangos del grupo. El planner
+      // descuenta del objetivo curricular y limita cuotas para que el solver
+      // no asigne más allá del objetivo + 1.5h tolerancia (sumando todos los
+      // rangos). Recálculo manual aquí porque excluimos el PL activo (que
+      // vamos a regenerar).
+      const placedAnualOtrosRangos = (() => {
+        const acc = {};
+        const pls = plByGrupo[selectedGrupo] || [];
+        const persistedByPl = {};
+        (allHorariosByGroup[selectedGrupo] || []).forEach(h => {
+          const plId = extractFkId(h.periodoLectivo);
+          if (!plId) return;
+          if (!persistedByPl[plId]) persistedByPl[plId] = [];
+          persistedByPl[plId].push(h);
+        });
+        pls.forEach(pl => {
+          // Excluir el PL activo (es lo que vamos a regenerar).
+          if (selectedPlId && String(pl.id) === String(selectedPlId)) return;
+          const semanas = semanasByPlId[pl.id] || 0;
+          if (semanas <= 0) return;
+          const localKey = `${selectedGrupo}_${pl.id}`;
+          const localState = state[localKey];
+          if (localState?.placements) {
+            Object.values(localState.placements).forEach(p => {
+              const dur = slotMinutosByHi[p.horaInicio] || 0;
+              if (dur <= 0) return;
+              acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanas;
+            });
+          } else {
+            (persistedByPl[pl.id] || []).forEach(h => {
+              const dur = parseHmsToMin(h.horaFin) - parseHmsToMin(h.horaInicio);
+              if (dur <= 0) return;
+              const impId = Number(getId(h.imparticion));
+              if (!impId) return;
+              acc[impId] = (acc[impId] || 0) + dur * semanas;
+            });
+          }
+        });
+        return acc;
+      })();
+      const body = {
+        ...(seed !== null ? { seed } : {}),
+        ...(selectedPlId ? { periodoLectivoId: selectedPlId } : {}),
+        alreadyPlacedByImp: placedAnualOtrosRangos,
+      };
       const res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },

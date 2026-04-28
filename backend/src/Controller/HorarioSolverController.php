@@ -41,7 +41,21 @@ class HorarioSolverController extends AbstractController
             $periodoLectivo = $pl;
         }
 
-        $result = $solver->solve($grupo, $seed, $periodoLectivo);
+        // Cap anual por materia (Fase 5 fix afinado): el frontend pasa
+        // `alreadyPlacedByImp` con minutos anuales ya colocados en OTROS rangos
+        // del grupo (cross-rango). El planner descuenta esos minutos del
+        // objetivo curricular y limita las cuotas de este rango para que la
+        // suma anual no supere objetivo + 1.5h tolerancia. Si no se pasa, el
+        // planner opera en modo legacy (cuota = minutosSemanales × semanas).
+        $alreadyPlacedByImp = null;
+        if (isset($data['alreadyPlacedByImp']) && is_array($data['alreadyPlacedByImp'])) {
+            $alreadyPlacedByImp = [];
+            foreach ($data['alreadyPlacedByImp'] as $impId => $min) {
+                $alreadyPlacedByImp[(int) $impId] = (int) $min;
+            }
+        }
+
+        $result = $solver->solve($grupo, $seed, $periodoLectivo, $alreadyPlacedByImp);
         return $this->json($result);
     }
 
