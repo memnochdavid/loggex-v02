@@ -449,6 +449,7 @@ class CalificacionMediaController extends AbstractController
                 'grupo' => [
                     'id' => $grupo->getId(),
                     'nombre' => $grupo->getNombre(),
+                    'curso' => $grupo->getCurso(),
                     'ciclo' => $itinerario->getNombre(),
                     'anioEscolar' => $grupo->getAnioEscolar(),
                 ],

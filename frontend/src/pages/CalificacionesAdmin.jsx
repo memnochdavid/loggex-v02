@@ -173,7 +173,7 @@ const CalificacionesAdmin = () => {
             if (!result[ciclo]) result[ciclo] = [];
             result[ciclo].push({
                 id: g.grupo.id,
-                title: `${g.grupo.nombre} (${g.grupo.anioEscolar})`,
+                title: g.grupo.curso ? `${g.grupo.curso}º ${g.grupo.nombre}` : g.grupo.nombre,
                 modulos: g.modulos,
             });
         });
