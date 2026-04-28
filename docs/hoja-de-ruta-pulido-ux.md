@@ -306,3 +306,7 @@ i18n: 24 claves nuevas en 5 idiomas (es/en/ca/eu/gl) inyectadas vía script Pyth
 **#8 (cambio de turno)** — verificación: feature no existe en código (ni entidad ni UI). Promovido a `hoja-de-ruta-cambio-turno.md` con plan Fase 1 (~1 sesión: modelo + endpoints + UI básica) y Fase 2 diferida (reasignación automática). D-D cerrada.
 
 **Cierre del doc (2026-04-28 noche)**: los 8 ítems atendidos en una sola sesión.
+
+### 2026-04-28 — Addendum (post-cierre): consistencia de header de grupo
+
+Continuación natural de #2 detectada por el usuario tras el cierre: en `/admin/calificaciones` (`CalificacionesAdmin.jsx`) los headers del `AccordionView` mostraban `"[nombre] ([anioEscolar])"`. Cambio al mismo formato que la columna Grupo de `/admin/horarios`: `"[curso]º [nombre]"` con fallback a `[nombre]` si `curso` es null. Backend: `/api/v1/centro/resumen-calificaciones` ahora devuelve `grupo.curso` en el JSON (antes faltaba).
