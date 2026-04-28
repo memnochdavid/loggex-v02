@@ -19,6 +19,7 @@
 3. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 2.
 4. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, Proyecto Intermodular) en `/admin/imparticiones` para poder pulsar "Sugerir horario" en DAW LOMLOE.
 5. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
+6. **PDF multi-página por rango** (~0.5 sesión) — el botón "Exportar PDF" de `/admin/horarios` debe generar un documento con **una página por cada `PeriodoLectivo`** del grupo (rotulada con el nombre y fechas del rango), no un único horario plano. Hoy `HorarioPdfController::horarioGrupo()` carga `Horario[]` plano y el Twig `pdf/horario.html.twig` pinta una sola matriz. Cambios necesarios: (a) `loadHorariosForGrupo()` agrupar por `periodoLectivo_id`; (b) `buildScheduleContext()` devolver array `paginas` con un context por PL; (c) Twig iterar con `<div class="page" style="page-break-after: always">`. Solicitado por usuario sesión 2026-04-28, anotado pendiente en `docs/hoja-de-ruta-periodos-lectivos.md` §6.
 
 Otras rutas más amplias:
 - Ampliar `BojaAndHardcodedProvider` a DAW 1º + DAM 1º+2º AN (datos verificados contra BOJA — NO inventar).
