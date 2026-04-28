@@ -426,6 +426,19 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Estado del badge y modal incompleto miran cobertura anual
+
+Tras el cap anual del solver, el badge del panel Materias mostraba "Borrador 26/27.5h" en el PL activo aunque las horas anuales estuvieran cubiertas (porque el cap recortaba cuotas legítimamente). El modal "Publicar incompleto" listaba esas falsas faltas semanales.
+
+**Fix**: el `estado` del badge y el `unplacedSummary` (modal "Faltan por colocar") miran cobertura ANUAL cross-rango con tolerancia 1.5h:
+- `allAnualCubierto = imps.every(imp => colocadosAnualMin >= objetivoAnualMin - 90)`.
+- Si todas las materias están dentro de tolerancia, badge = 'complete' y modal NO sale al guardar.
+- `unplacedSummary` filtra materias ya cubiertas anualmente.
+
+Display semanal del badge ("X/Yh") se mantiene como info del rango activo.
+
+**Coherencia**: el solver se ejecutó en cada rango con cap anual cross-rango; lo que coloca es lo que toca. El "incompleto" semanal del PL activo NO es real si anualmente cuadra. Ahora el sistema lo reconoce.
+
 ### 2026-04-28 — Cap anual por materia con tolerancia: solver no over-asigna cross-rango
 
 Problema reportado por el usuario: con 3 rangos cubriendo 42.6 sem y solver ejecutado en cada uno, las materias terminaban con horas anuales muy por encima de su objetivo curricular (Programación 322.3h vs 288h target = +34h, IPEI1 +28.9h, DIG +18.7h, etc). Causa: cada rango asigna `materia.minutosSemanales × semanas_rango` independientemente, sumando `× factor` (42.6/36 = 1.18) más de lo curricular.

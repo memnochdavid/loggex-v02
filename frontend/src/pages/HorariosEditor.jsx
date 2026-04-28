@@ -744,9 +744,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
-  // Target del badge: cuando hay sobrecarga semanal absorbida por recreos,
-  // el "completo" se alcanza al llenar slots, no al cubrir Σ materias (físicamente
-  // imposible). Target = min(Σ materias, capacidad slots × 5 días).
+  // Display semanal del badge: muestra "X/Yh" con cap a slots colocables si
+  // hay sobrecarga (no engañar al admin con un target inalcanzable).
   const slotsCapacityWeekly = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0) * 5;
   const targetMinutos = slotsCapacityWeekly > 0
     ? Math.min(totalMinutos, slotsCapacityWeekly)
@@ -754,8 +753,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const totalHoras = minToHoras(targetMinutos);
   const colocadasTotal = minToHoras(colocadosMinutos);
   const completitud = targetMinutos ? (colocadosMinutos / targetMinutos) * 100 : 0;
+  // Estado del badge se decide por COBERTURA ANUAL cross-rango: complete si
+  // TODAS las materias del grupo están a ≤1.5h por debajo de su objetivo
+  // curricular (LOMLOE 36 sem). El cap del solver puede dejar slots vacíos en
+  // el rango activo cuando otros rangos ya cubrieron — eso no es "incompleto",
+  // es el comportamiento correcto del modelo cross-rango.
+  const TOLERANCIA_ANUAL_MIN = 90;
+  const allAnualCubierto = imps.length > 0 && imps.every(imp => {
+    const target = minutosAnualesObjetivoByImp[imp.id] || 0;
+    if (target <= 0) return true;
+    const placed = minutosAnualesColocadosByImp[imp.id] || 0;
+    return placed >= target - TOLERANCIA_ANUAL_MIN;
+  });
   const estado =
-    colocadosMinutos >= targetMinutos && targetMinutos > 0 ? 'complete' :
+    allAnualCubierto ? 'complete' :
     completitud >= 80 ? 'draft' : 'incomplete';
 
   const estadoBadge = {
@@ -1243,21 +1254,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     };
   };
 
-  // Lista de imparticiones con horas pendientes (para el modal de publicar incompleto)
+  // Lista de imparticiones con horas anuales pendientes (modal de publicar
+  // incompleto). Comparación cross-rango con tolerancia 1.5h: solo lista las
+  // materias que de verdad no llegan al currículo anual sumando todos los PLs.
+  // Antes era semanal del PL activo, lo que confundía cuando el cap anual del
+  // solver recortaba cuotas legítimamente.
   const unplacedSummary = useMemo(() => {
+    const TOL_MIN = 90;
     return imps
       .map(imp => {
-        const totalMin = (imp.materia?.minutosSemanales || 0);
-        const placedMin = minutosColocados[imp.id] || 0;
-        if (placedMin >= totalMin) return null;
+        const objetivoAnualMin = minutosAnualesObjetivoByImp[imp.id] || 0;
+        if (objetivoAnualMin <= 0) return null;
+        const colocadosAnualMin = minutosAnualesColocadosByImp[imp.id] || 0;
+        if (colocadosAnualMin >= objetivoAnualMin - TOL_MIN) return null;
+        const faltanMin = objetivoAnualMin - colocadosAnualMin;
         return {
           nombre: imp.materia?.nombre || '—',
-          faltan: minToHoras(totalMin - placedMin),
-          total: minToHoras(totalMin),
+          faltan: minToHoras(faltanMin),
+          total: minToHoras(objetivoAnualMin),
         };
       })
       .filter(Boolean);
-  }, [imps, minutosColocados]);
+  }, [imps, minutosAnualesObjetivoByImp, minutosAnualesColocadosByImp]);
 
   // Ejecuta el guardado real (batch). Devuelve true si OK.
   const performBatchSave = async () => {
