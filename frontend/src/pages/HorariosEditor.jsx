@@ -1221,10 +1221,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [conflictOpen, setConflictOpen] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
 
-  // Construye las operaciones de batch desde el diff baseline→current
-  const buildBatchOps = () => {
-    const baseline = grupoState?.baseline || {};
-    const current = grupoState?.placements || {};
+  // Construye las operaciones de batch desde el diff baseline→current.
+  // Acepta un stateKey opcional (default: el del PL activo) para que el guardar
+  // multi-rango pueda iterar sobre cada PL del grupo.
+  const buildBatchOps = (stKey = stateKey) => {
+    const st = state[stKey];
+    const baseline = st?.baseline || {};
+    const current = st?.placements || {};
     const operations = [];
     // Crear / reemplazar
     Object.entries(current).forEach(([key, v]) => {
@@ -1284,20 +1287,35 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       .filter(Boolean);
   }, [imps, minutosAnualesObjetivoByImp, minutosAnualesColocadosByImp]);
 
-  // Ejecuta el guardado real (batch). Devuelve true si OK.
-  const performBatchSave = async () => {
+  // Ejecuta el guardado real (batch) para el PL especificado. Devuelve true
+  // si OK. Si plId es null, usa el activo. El multi-save de "Guardar todos"
+  // recorre los PLs dirty del grupo y llama a esta función para cada uno.
+  const performBatchSave = async (plId = null) => {
+    const targetPlId = plId ?? selectedPlId;
+    const targetKey = (selectedGrupo && targetPlId) ? `${selectedGrupo}_${targetPlId}` : '';
+    if (!targetKey) return true;
+    const targetState = state[targetKey];
+    if (!targetState) return true;
     setSaving(true);
     try {
-      const operations = buildBatchOps();
-      if (operations.length === 0) return true;
+      const operations = buildBatchOps(targetKey);
+      if (operations.length === 0) {
+        // Aun así, marca dirty=false por consistencia (puede haber sido un
+        // toggle limpiado).
+        setState(prev => ({
+          ...prev,
+          [targetKey]: { ...prev[targetKey], dirty: false },
+        }));
+        return true;
+      }
       const res = await fetch(getApiUrl('/api/v1/horarios/batch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           grupoId: Number(selectedGrupo),
-          periodoLectivoId: selectedPlId ? Number(selectedPlId) : null,
-          baselineMaxUpdatedAt: grupoState?.baselineMaxUpdatedAt || null,
+          periodoLectivoId: targetPlId ? Number(targetPlId) : null,
+          baselineMaxUpdatedAt: targetState?.baselineMaxUpdatedAt || null,
           operations,
         }),
       });
@@ -1310,8 +1328,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         throw new Error(`${res.status}: ${txt.slice(0, 300)}`);
       }
       const data = await res.json();
-      // Mapear ids creados → baseline nuevo
-      const current = grupoState.placements || {};
+      const current = targetState.placements || {};
       const newBaseline = { ...current };
       (data.created || []).forEach(({ clientKey, id }) => {
         if (clientKey && newBaseline[clientKey]) {
@@ -1320,16 +1337,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
       setState(prev => ({
         ...prev,
-        [stateKey]: {
-          ...prev[stateKey],
+        [targetKey]: {
+          ...prev[targetKey],
           placements: newBaseline,
           baseline: newBaseline,
           baselineMaxUpdatedAt: data.maxUpdatedAt || null,
           dirty: false,
         },
       }));
-      // Refrescar la fuente persistida de horarios globales (alimenta el chip
-      // lateral en horas anuales — Fase 5 sub-A).
       refetchAllHorariosForGroup(selectedGrupo);
       return true;
     } catch (err) {
@@ -1342,6 +1357,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
+  // Guardar TODOS los rangos dirty del grupo en una sola pasada.
+  const performBatchSaveAllDirty = async () => {
+    if (!selectedGrupo) return false;
+    const pls = plByGrupo[selectedGrupo] || [];
+    const dirtyPls = pls.filter(pl => state[`${selectedGrupo}_${pl.id}`]?.dirty);
+    if (dirtyPls.length === 0) return true;
+    let allOk = true;
+    for (const pl of dirtyPls) {
+      const ok = await performBatchSave(pl.id);
+      if (!ok) allOk = false;
+    }
+    if (allOk) {
+      toast.success(t('scheduleEditor.saveAllSuccess', {
+        defaultValue: '{{count}} rangos guardados',
+        count: dirtyPls.length,
+      }));
+    }
+    return allOk;
+  };
+
   // Fuerza recarga del (grupo, PL) actual descartando estado local (tras conflicto)
   const reloadCurrentGroup = () => {
     setState(prev => {
@@ -1352,14 +1387,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setConflictOpen(false);
   };
 
-  // Entry point del botón Guardar: si está incompleto, pedir confirmación primero
+  // Entry point del botón Guardar: guarda TODOS los rangos dirty del grupo,
+  // no sólo el activo. Si el horario está incompleto (cobertura anual), pide
+  // confirmación primero — pero la confirmación se evalúa contra el cómputo
+  // global del grupo, no per-rango.
   const handleSave = async () => {
-    if (!grupoState?.dirty) return;
+    if (!dirtyAny) return;
     if (estado !== 'complete') {
       setPublishConfirmOpen(true);
       return;
     }
-    return performBatchSave();
+    return performBatchSaveAllDirty();
   };
 
   // ─── Exportación a PDF ────────────────────────────────────────────────
@@ -2504,9 +2542,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             <Download size={16} style={{ marginRight: 6 }} />
             {exporting ? t('scheduleEditor.exporting') : t('scheduleEditor.exportPdf')}
           </Button>
-          <Button onClick={handleSave} disabled={!grupoState?.dirty || saving}>
+          <Button onClick={handleSave} disabled={!dirtyAny || saving}>
             <Save size={16} style={{ marginRight: 6 }} />
-            {saving ? t('scheduleEditor.saving') : (grupoState?.dirty ? t('scheduleEditor.saveChanges') : t('scheduleEditor.saved'))}
+            {saving ? t('scheduleEditor.saving') : (dirtyAny ? t('scheduleEditor.saveChanges') : t('scheduleEditor.saved'))}
           </Button>
         </CrudHeader>
 
@@ -2587,10 +2625,61 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 );
               })}
             </div>
-            <button type="button" className={styles.plPillAdd} onClick={openCreatePlModal}>
-              <Plus size={14} />
-              {t('scheduleEditor.addRango', { defaultValue: 'Añadir rango' })}
-            </button>
+            <div className={styles.cursoActionsWrapper}>
+              <button
+                type="button"
+                className={styles.plPillAdd}
+                onClick={() => setCursoActionsOpen(v => !v)}
+                disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos}
+                title={t('scheduleEditor.cursoActionsTitle', { defaultValue: 'Acciones del curso' })}
+              >
+                <Settings2 size={14} />
+                {t('scheduleEditor.cursoActions', { defaultValue: 'Acciones del curso' })}
+              </button>
+              {cursoActionsOpen && (
+                <>
+                  <div
+                    className={styles.cursoActionsBackdrop}
+                    onClick={() => setCursoActionsOpen(false)}
+                  />
+                  <div className={styles.cursoActionsMenu} role="menu">
+                    <button
+                      type="button"
+                      className={styles.cursoActionsItem}
+                      onClick={() => { setCursoActionsOpen(false); setCreateRangosCount(3); setCreateRangosModalOpen(true); }}
+                    >
+                      <CalendarDays size={14} />
+                      <span>{t('scheduleEditor.createRecommendedAction', { defaultValue: 'Crear Rangos Recomendados' })}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cursoActionsItem}
+                      onClick={() => { setCursoActionsOpen(false); openCreatePlModal(); }}
+                    >
+                      <Plus size={14} />
+                      <span>{t('scheduleEditor.addRangoManualAction', { defaultValue: 'Añadir rango manual' })}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cursoActionsItem}
+                      onClick={handleClearActiveRange}
+                      disabled={!grupoState}
+                    >
+                      <Eraser size={14} />
+                      <span>{t('scheduleEditor.clearRangeAction', { defaultValue: 'Limpiar rango' })}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cursoActionsItem}
+                      onClick={handleClearAllCourse}
+                    >
+                      <Trash2 size={14} />
+                      <span>{t('scheduleEditor.clearAllAction', { defaultValue: 'Limpiar todo el curso' })}</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -2962,53 +3051,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               ? t('scheduleEditor.solverAllRunning', { defaultValue: 'Sugiriendo todo el curso…' })
                               : t('scheduleEditor.solverAll', { defaultValue: 'Sugerir todo el curso' })}
                           </Button>
-                          <div className={styles.cursoActionsWrapper}>
-                            <Button
-                              type="button"
-                              onClick={() => setCursoActionsOpen(v => !v)}
-                              disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos}
-                              variant="secondary"
-                              title={t('scheduleEditor.cursoActionsTitle', { defaultValue: 'Acciones del curso' })}
-                            >
-                              <Settings2 size={14} style={{ marginRight: 4 }} />
-                              {t('scheduleEditor.cursoActions', { defaultValue: 'Acciones del curso' })}
-                            </Button>
-                            {cursoActionsOpen && (
-                              <>
-                                <div
-                                  className={styles.cursoActionsBackdrop}
-                                  onClick={() => setCursoActionsOpen(false)}
-                                />
-                                <div className={styles.cursoActionsMenu} role="menu">
-                                  <button
-                                    type="button"
-                                    className={styles.cursoActionsItem}
-                                    onClick={handleClearActiveRange}
-                                    disabled={!grupoState}
-                                  >
-                                    <Eraser size={14} />
-                                    <span>{t('scheduleEditor.clearRangeAction', { defaultValue: 'Limpiar rango' })}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.cursoActionsItem}
-                                    onClick={handleClearAllCourse}
-                                  >
-                                    <Trash2 size={14} />
-                                    <span>{t('scheduleEditor.clearAllAction', { defaultValue: 'Limpiar todo el curso' })}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.cursoActionsItem}
-                                    onClick={() => { setCursoActionsOpen(false); setCreateRangosCount(3); setCreateRangosModalOpen(true); }}
-                                  >
-                                    <CalendarDays size={14} />
-                                    <span>{t('scheduleEditor.createRecommendedAction', { defaultValue: 'Crear Rangos Recomendados' })}</span>
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
                         </>
                       );
                     })()}
@@ -3101,7 +3143,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 type="button"
                 onClick={async () => {
                   setPublishConfirmOpen(false);
-                  await performBatchSave();
+                  await performBatchSaveAllDirty();
                 }}
                 disabled={saving}
               >

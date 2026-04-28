@@ -426,6 +426,37 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Reorganización UX + Guardar todos los rangos + labels solver
+
+Refactor de la UI tras feedback del usuario sobre la confusión de tener "+ Añadir rango" en el strip y un dropdown "Acciones del curso" en el infoBar.
+
+**Reorganización botones**:
+- El dropdown "Acciones del curso" del infoBar **se mueve al strip** y **sustituye al botón "+ Añadir rango"**. Mantiene icono `Settings2` y label "Acciones del curso".
+- Opciones del dropdown (en orden):
+  1. 🗓️ Crear Rangos Recomendados (acción primaria; el más útil tras "Limpiar todo").
+  2. ➕ Añadir rango manual (era el botón directo del strip).
+  3. 🧹 Limpiar rango.
+  4. 🗑️ Limpiar todo el curso.
+- InfoBar queda con sólo 2 botones de solver — labels renombrados:
+  - "Sugerir horario" → **"Generar este Horario"** (Sparkles).
+  - "Sugerir todo el curso" → **"Generar todos"** (Layers).
+
+**Botón Guardar global**:
+- Antes guardaba sólo el PL activo. Ahora itera todos los PLs `dirty` del grupo y los guarda secuencialmente.
+- `dirtyAny` (ya existente para useBlocker) ahora también gobierna el disabled del botón.
+- `performBatchSave(plId?)` refactorizada para aceptar PL específico (default = activo).
+- `performBatchSaveAllDirty()` nueva: recorre `state[gid_plid]?.dirty` y llama `performBatchSave(plid)` para cada uno. Toast final con "{N} rangos guardados".
+- `buildBatchOps(stateKey?)` recibe stateKey opcional para permitir construir ops desde otro PL distinto del activo.
+- El modal "Publicar incompleto" usa `performBatchSaveAllDirty` también — coherente con la decisión global.
+
+**i18n**: cambios en `solverSuggest`, `solverAll`, `solverAllRunning` (5 idiomas). Claves nuevas `addRangoManualAction`, `saveAllSuccess`.
+
+**Pendiente**: PDF multi-página por rango (1 página por PL en el descargado). Requiere modificar el Twig template `pdf/horario.html.twig` para iterar contextos. Diferido a próxima sesión por scope.
+
+**Sobre dudas del usuario** (registradas para próxima sesión):
+- "Materias del rango" (icono Sliders en pill activo): tiene sentido para currículos con materias NO uniformes anuales (FCT en rango específico, refuerzos, Proyecto Intermodular). Para 1º DAW puro, poco útil — el cap anual ya distribuye automáticamente. Plantear si UI sigue siendo necesaria o se mueve a "modo avanzado" en futuras iteraciones.
+- "Extender curso" (banner anual rojo): tiene sentido cuando el cómputo anual NO llega al currículo. Ya cubierto y bien usado. Mantener.
+
 ### 2026-04-28 — Fix cap cross-rango en "Sugerir todo el curso": acumulador local
 
 Detectado por el usuario: con 5 rangos y "Sugerir todo el curso", las materias acababan muy por encima del currículo (Programación 381h vs 288h objetivo, Bases 238h vs 216h, etc). El cap anual no se aplicaba bien entre iteraciones del loop.
