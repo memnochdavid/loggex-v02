@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fases 1+2+3a ✅ Done (modelo + migración + solver/planner por rango + UI timeline read-only y "Añadir rango"). Stepping stone (override jornada por grupo) ✅ Done. Fase 3b (editar/borrar PLs, jornada por rango inline, banner Σ horas) pendiente. La UI de `/admin/horarios` ya muestra un strip horizontal con los rangos del grupo y permite crear nuevos. El solver, CapacityPlanner, batch save y horarios fetch están todos cableados al PL activo. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo (Fase 3b + Fases 4-7), las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
+> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4 ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Fase 5 reestructurada el 2026-04-28** tras feedback del usuario: modelo mental anual (D-K) + botón "extender curso" (D-J) + CapacityPlanner relajado + cierre del parche temporal absorbido como sub-fase D. Sub-fases A/B/C/D pendientes. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fases 5 (modelo anual + extender curso + cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -99,6 +99,9 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 | D-G | ¿Validar huecos en edición o solo al "cerrar curso"? | Validar **solo** al "cerrar curso" (acción explícita). Durante edición se permiten huecos y el frontend muestra aviso amarillo. Cerrada 2026-04-28. | Edición incremental cómoda. El admin parte un rango en dos sin que la UI le bloquee mientras configura el segundo. |
 | D-H | ¿Quién crea los rangos por defecto al crear un grupo? | **Auto-crear** un rango único `"Curso completo"` con `fechaInicio = COALESCE(Grupo.fechaInicio, anioEscolar+0901)` y `fechaFin = COALESCE(Grupo.fechaFin, anioEscolar+0630)`, copiando `Grupo.jornadaTipoOverride` como `PeriodoLectivo.jornadaTipo`. La migración Fase 1 hace lo mismo retroactivamente para todos los grupos existentes. Cerrada 2026-04-28. | Un grupo nuevo es usable sin obligar a configurar rangos. El centro los partirá si lo necesita. |
 | D-I | ¿La entidad se llama `PeriodoLectivo`? | **Sí**. Contrapunto natural de `PeriodoEvaluativo`. Alternativa descartada: `RangoHorario` (suena bajo nivel y se confunde con `JornadaTramo`). Cerrada 2026-04-28. | Coherencia con la familia `Periodo*` ya presente. La entidad de unión sigue el mismo prefijo: `PeriodoLectivoImparticion`. |
+| D-J | ¿Cómo gestionar la extensión de curso cuando faltan horas anuales? | **Opción A con modal de confirmación**: extender automáticamente el `fechaFin` del último rango lectivo y, en cascada, `Grupo.fechaFin`. Modal previo enseña diff exacto (campo, antes → después) antes de aplicar. Cerrada 2026-04-28. | Lo simple es lo correcto el 90% del tiempo. El modal protege ante cambios accidentales. Si el centro quiere asignar las semanas extra a un rango específico (FCT puro, recuperación), siempre puede crear/editar rangos a mano después. |
+| D-K | Modelo mental editor: ¿minutos semanales o horas anuales? | **Horas anuales** como vista principal del editor. Internamente `PLI.minutosSemanales` se mantiene (se calcula como `horasAnuales × 60 / semanasRango`). Cerrada 2026-04-28. | El currículo LOMLOE se mide en horas anuales; el admin piensa en horas anuales. Forzar a pensar en min/sem es una fricción artificial. El campo BD se mantiene para no romper solver y compatibilidad con CapacityPlanner. |
+| D-L | ¿Cómo se validan las "semanas lectivas de referencia" (~36) sin Fase 7? | Constante 36 (estándar LOMLOE FP) usada como default. Hace falta una clave en `Centro` o `Itinerario` para parametrizarlo (ESO Andalucía 35, Bach 33-34, otras CCAA distintas). **Diferida a Fase 7** (calendario lectivo del centro): cuando exista `Centro.fechaInicioCurso/FinCurso` + `Festivo[]`, las semanas se calculan automáticamente. Mientras tanto, 36 fijo + tooltip explicativo. Cerrada 2026-04-28. | Implementarlo de forma genérica desde el principio (`Centro.semanasLectivasReferencia` nullable) tendría sentido pero lo correcto es ya delegar al calendario real cuando llegue Fase 7. Hardcoding temporal aceptable. |
 
 ### Abiertas
 
@@ -157,31 +160,91 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo invertido**: ~1 sesión.
 
-### Fase 3b — pendiente
+### Fase 3b — UI: editar/borrar PLs + banner Σ horas anuales  ✅ Done (2026-04-28)
 
-- Editar PL inline (nombre, fechas, jornada).
-- Borrar PL (con confirm + warning si tiene horarios persistidos).
-- Selector de jornada **por rango** en cada pill (en vez de tener que recrear el PL).
-- Banner global del grupo: Σ horas anuales planificadas vs Σ horas currículo. Aviso D-C ("te sobran/faltan X horas").
-- Gestión de PLI por rango (UI para activar/desactivar imparticiones por rango y ajustar minutos cuando se desvía del default).
+- ✅ Editar PL inline (nombre, fechas, jornada). Mismo modal que la creación, con título/submit reactivos al modo (`plPickerMode = 'create' | 'edit'`). PATCH `/api/periodo_lectivos/{id}` con `application/merge-patch+json` (evita nullificar campos no enviados como hace PUT en API Platform 3). Tras editar, se invalida la cache de capacity-check de ese (grupo, PL) para forzar recálculo.
+- ✅ Borrar PL desde el pill activo (icono Trash). Confirmación vía `useConfirm` con dos variantes de body: genérica si no hay horarios cacheados o explícita "se eliminarán N horario(s) asociados" cuando los hay (cuenta `placements[].hid` del state cargado). Bloqueado si es el último PL del grupo (toast informativo "Crea otro antes"). DELETE soft via `SoftDeleteProcessor`. Tras borrar: limpia `state[gid_plid]` y `capacityByGrupo[gid_plid]`, y si era el PL activo mueve la selección al rango que contiene `today()` o al primero por `fechaInicio` (mismo criterio que `PeriodoLectivoResolver`).
+- ✅ Banner Σ horas anuales bajo el strip: tres counters (currículo / planificado / diferencia) con tonalidad verde (±5h), amarillo (±15h) o rojo (>15h). Currículo = Σ `materia.minutosSemanales` × 36 semanas (referencia LOMLOE). Planificado = Σ por PL de (Σ `pli.effectiveMinutosSemanales` × semanasDelRango). Aviso explícito D-C ("te sobran X h" / "te faltan X h"). Meta: nº rangos + semanas totales.
+- ✅ i18n nuevo en 5 idiomas (~17 claves nuevas en bloque `scheduleEditor.*`): `editRango/editRangoTitle/editRangoSubmit/editRangoSubmitting/rangoUpdated/rangoUpdateError/deleteRango/deleteRangoConfirm{Title,Body,BodyWith}/deleteRangoOnlyOne/deleteRangoSuccess/deleteRangoError/horasBanner{Curriculum,Planned,Diff,Hint,Ok,Over,Under}`.
 
-**Esfuerzo estimado**: ~1 sesión.
+**Limitaciones conocidas** (cierre en Fase 4):
+- El selector de jornada **por rango** ya está cubierto: editando el PL se cambia su `jornadaTipo`. No queda como item suelto.
+- Los PLIs por rango no se gestionan aún desde UI: para un rango no se puede activar/desactivar imparticiones individualmente ni ajustar `minutosSemanales` override por rango. Eso es Fase 4.
+- El cálculo del banner ignora festivos del centro/CCAA: usa `(fechaFin - fechaInicio) / 7` literal. Cuando llegue Fase 7 (calendario lectivo del centro) se podrá restar semanas no lectivas. Mientras tanto, el banner es una guía razonable para detectar desajustes grandes.
+- La constante "36 semanas" del currículo es la referencia LOMLOE estándar; centros con calendarios atípicos verán desviaciones esperables.
+- Si el último PL borrado tenía cambios sin guardar en otro PL del mismo grupo, esos cambios se quedan en memoria sólo si el PL al que se mueve la selección ya estaba cargado. Limitación heredada de Fase 3a.
 
-### Fase 4 — UI gestión imparticiones por rango
+**Esfuerzo invertido**: ~1 sesión.
 
-- En `/admin/imparticiones` o pestaña dedicada en el editor del rango: añadir/quitar materias del rango, ajustar `minutosSemanales` por rango.
-- Auto-rellenar minutos por defecto desde Materia al añadir.
+### Fase 4 — UI gestión imparticiones por rango  ✅ Done (2026-04-28)
+
+- ✅ Modal "Materias del rango" abierto desde icono Sliders en pill activo (junto a Editar/Borrar). Muestra todas las imparticiones del grupo (activas e inactivas en este rango) en una tabla con: checkbox activa, materia (chip color), profesor, input minutos/sem, botón reset al default.
+- ✅ Activar imparticion en rango: POST `/api/periodo_lectivo_imparticions` con `minutosSemanales: null` (= hereda Materia).
+- ✅ Desactivar: DELETE de la PLI. **Hard-delete** — la operación de Delete del entity cambió de `SoftDeleteProcessor` a delete físico para evitar choque con la unique `(periodoLectivo, imparticion)` cuando el admin desactiva-y-reactiva en el mismo rango. PLI es derivativa (la auditoría vive en PL), no hay valor en preservar el row borrado.
+- ✅ Editar minutos por rango: PATCH `minutosSemanales: N` (override) o PATCH `null` (reset al default heredado). El input usa `key` con el valor actual para forzar re-mount tras cada save y mantener defaultValue en sync.
+- ✅ Header del modal: Σ planificado en horas/sem vs jornada del rango en horas/sem, con tonalidad verde/rojo según si cabe.
+- ✅ Tras cualquier mutación: invalida `capacityByGrupo[grupoId_plId]` y refresca `plByGrupo[grupoId]` (los PLIs embebidos alimentan el banner anual de Fase 3b → re-renderiza con los nuevos totales).
+- ✅ i18n nuevo en 5 idiomas (~22 claves nuevas en bloque `scheduleEditor.pli*`).
+
+**Comportamiento clave**: el admin puede ahora **redistribuir el peso semanal de cada materia entre rangos** sin tocar la jornada ni el catálogo de Materia. Ejemplo realista LOMLOE EAG/DAW: en el rango FCT, todas las materias regulares se desactivan y FCT pasa de 0 → 30h/sem; en los rangos normales, FCT está a 0h y las demás materias suman ≤27.5h/sem. Con Fase 4 cerrada, el sistema cumple el modelo de la Fase 1 (D-A) end-to-end desde UI.
+
+**Limitaciones conocidas** (no bloqueantes):
+- El input es uncontrolled con `key` para refresh tras save. Si el usuario está tipeando muy rápido y la red es lenta, el último valor puede sobreescribirse al llegar la respuesta. Mitigación práctica: el saving lock por fila (`pliRowSaving`) deshabilita el input mientras hay PATCH en vuelo.
+- Cambiar minutos no recalcula automáticamente las celdas ya colocadas en el editor de horarios — si se recolocan, el solver/CapacityPlanner ya ven los nuevos minutos. Resolución: tras editar PLIs es prudente repulsar "Sugerir horario" si los slots ya tenían algo del PL activo.
+- No hay batch update todavía: cada cambio es una request HTTP. Para grupos grandes (≫20 materias × 3 rangos) esto puede ser lento si el admin reordena masivamente. No prioritario.
+
+**Esfuerzo invertido**: ~1 sesión (más larga que el estimado original 0.5 porque incluyó el fix backend de hard-delete + refetch del banner anual).
+
+### Fase 5 — Modelo mental anual + extender curso + cierre del parche temporal
+
+> **Acordada 2026-04-28** tras feedback del usuario sobre 1º DAW LOMLOE: con todas las materias anuales, no había forma de cuadrar Σ semanal en una jornada de 27.5h/sem usando sólo Fases 3b+4. Decisión D-J + D-K + D-L cerradas. Esta fase reemplaza la Fase 5 anterior ("Eliminar parche temporal") absorbiendo ese cierre como sub-fase D — eliminar el parche es la **consecuencia natural** de tener un modelo anual + curso extensible. No tiene sentido eliminarlo antes.
+
+**Visión**: el admin piensa en horas anuales (como dicta el currículo LOMLOE). La jornada lectiva real (27.5h/sem) deja de ser una restricción semanal estricta — el sistema acepta que el currículo se cumple **sumando placements en N rangos**. Si las semanas disponibles del calendario lectivo no son suficientes, el sistema **sugiere extender el curso** ajustando `Grupo.fechaFin` y el último rango. Esto desbloquea cualquier itinerario en cualquier centro sin necesitar parches.
+
+**Genericidad**: nada está hardcoded para etapa/itinerario/centro. El cómputo lee `Imparticion.materia.minutosSemanales` (currículo), `JornadaTipo.tramos` (capacidad semanal), `PeriodoLectivo.fechaInicio/Fin` (semanas reales). Constante temporal: 36 sem LOMLOE como referencia anual hasta Fase 7 (D-L).
+
+#### Sub-fase A — Modelo mental anual en UI
+
+- **Modal "Materias del rango" (Fase 4)**: cambiar input `Min/sem` por `Horas anuales en este rango`. Internamente persistimos `PLI.minutosSemanales = round(horasAnuales × 60 / semanasRango)` para mantener compatibilidad con solver/CapacityPlanner. Display secundario: "≈ X min/sem media (calculado)".
+- **ModuleChip lateral del editor de horarios**: cambiar contador `Xh/Yh` (semanal) → `Xh/Yh anuales`. Cómputo "colocadas" = Σ por placement actual de `(slot duración × ocurrencias del día_semana en TODOS los rangos donde existe el placement)`. La cuenta es global del grupo, no por rango.
+- **Banner anual de Fase 3b**: mantener pero añadir vista live "horas anuales colocadas" (visible cuando hay placements). Tonalidad sigue regla asimétrica (sobrar = ok, faltar = warn/error).
 
 **Esfuerzo**: ~0.5 sesión.
 
-### Fase 5 — Eliminar parche temporal
+#### Sub-fase B — Botón "Extender curso" en banner anual
 
-- Borrar jornadas `id 4 Mañanas pre Calendario Real` y `id 5 Tardes pre Calendario Real` del seed/BD.
-- Migrar EAG a jornada normal de 30h/sem (≈27.5h lectivas).
-- En el rango LOMLOE, partir el curso si las horas anuales no cuadran con un solo rango (ej: rango FCT separado).
-- Marcar entrada "PARCHE TEMPORAL" en `hoja-de-ruta-jornadas-recreos.md` como **superseded por este doc**.
+- Cuando el banner anual muestra `diff < -tolerancia` (faltan horas), añadir un sub-botón **"Extender el curso N días lectivos para cuadrar"** (N = `ceil(faltan_horas / jornada_diaria) × 7/5`, redondeado hacia arriba a la siguiente semana completa).
+- Click → modal de confirmación (D-J) con tabla:
+  - `Grupo.fechaFin`: dd/mm/aaaa → dd/mm/aaaa (+N días)
+  - `PeriodoLectivo "<último>"` `fechaFin`: dd/mm/aaaa → dd/mm/aaaa (+N días)
+  - Banner final: "Banner anual quedará en: -3h (sigue ligeramente por debajo)" o "+12h (cumples con margen)".
+- Confirma → PATCH `/api/grupos/{gid}` con `fechaFin` + PATCH `/api/periodo_lectivos/{plId}` con `fechaFin`. Atómico desde la perspectiva del usuario (un solo "deshacer mental"); técnicamente dos requests secuenciales con rollback si la segunda falla.
+- Refresca cachés (`plByGrupo`, `capacityByGrupo`) → banner se vuelve verde.
 
 **Esfuerzo**: ~0.5 sesión.
+
+#### Sub-fase C — CapacityPlanner relajado (anual-aware)
+
+- Regla de feasibility cambia:
+  - **Rojo** sólo si físicamente imposible: `Σ horas_currículo > Σ jornada × Σ semanas_total_grupo` (no hay sitio aunque distribuyamos).
+  - **Amarillo** informativo si en el rango activo `Σ min/sem > jornada/sem` pero el cómputo anual cuadra. Mensaje: "Este rango tiene sobrecarga semanal. Reasigna minutos a otros rangos desde el modal Materias del rango."
+  - **Silencioso (verde)** si globalmente cabe y suma anual de placements < currículo: el admin sigue colocando, no es feedback útil.
+- Banner del CapacityPlanner ya no es la alarma central — pasa a ser informativo. La alarma real es el banner anual de Fase 3b.
+
+**Esfuerzo**: ~0.5 sesión.
+
+#### Sub-fase D — Cierre del parche temporal en BD
+
+> Era la Fase 5 antigua. Se mueve aquí porque depende de A+B+C estar implementadas.
+
+- Bajar jornada de EAG de "Mañanas pre Calendario Real" 35h/sem → jornada normal 30h presenciales (≈27.5h lectivas con recreos).
+- Verificar con sub-fase B que el sistema sugiere extender ~3 semanas (1º DAW LOMLOE) y el banner queda verde.
+- Borrar jornadas parche `id 4` y `id 5` del seed/BD (o marcarlas deleted).
+- Marcar §"PARCHE TEMPORAL" de `hoja-de-ruta-jornadas-recreos.md` como **superseded por este doc**.
+
+**Esfuerzo**: ~0.25 sesión (verificación + cleanup).
+
+#### Total Fase 5: ~1.75 sesiones
 
 ### Fase 6 — Merge `/admin/jornadas` + `/admin/horarios`
 
@@ -263,6 +326,133 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-28 — Fase 5 reestructurada: modelo mental anual + extender curso
+
+Tras probar Fase 4 con 1º DAW LOMLOE (3 rangos, 39 sem, currículo 1152h, jornada 27.5h/sem), el usuario detectó la limitación real del modelo actual: **todas las materias de DAW son anuales** — no hay materias "sólo trimestrales" para desactivar — y la suma semanal de las 32h/sem de currículo no cabe en una jornada de 27.5h/sem. Fase 4 (PLI por rango) NO arregla este caso porque desactivar materias por rango no aplica.
+
+**Conversación clave**: el usuario propuso (a) cambiar el mental model a horas anuales y (b) usar `Grupo.fechaFin` (campo flexible que ya existe) para extender el curso cuando faltan horas. Ambas ideas son correctas y resuelven el caso DAW + cualquier otro itinerario sin parches.
+
+**Decisiones cerradas durante la conversación**:
+- **D-J**: extender curso = extender último rango con modal de confirmación que muestre el diff (Grupo.fechaFin antes/después + PL.fechaFin antes/después + impacto en banner anual).
+- **D-K**: modelo mental editor = horas anuales (no min/sem). Internamente `PLI.minutosSemanales` se mantiene para no romper solver/CapacityPlanner; se calcula como `horasAnuales × 60 / semanasRango`.
+- **D-L**: 36 semanas LOMLOE como referencia hardcoded hasta Fase 7. Cuando llegue calendario lectivo del centro, las semanas se calculan automáticamente.
+
+**Reestructuración Fase 5**: la antigua Fase 5 ("Eliminar parche temporal") se vuelve sub-fase D dentro de la nueva Fase 5 ("Modelo mental anual + extender curso + cierre parche"). El cleanup del parche es **consecuencia natural** de tener el modelo correcto — eliminarlo antes habría dejado a EAG sin forma de cuadrar el currículo. Sub-fases A/B/C/D detalladas en §3.
+
+**Genericidad confirmada con el usuario**: ningún número está hardcoded para DAW/EAG. Las fórmulas leen `Materia.minutosSemanales`, `JornadaTipo.tramos`, `PeriodoLectivo.fechaInicio/Fin` — válido para cualquier grupo de cualquier itinerario en cualquier centro. Ejemplos verificados con el user: 2º Bach 1050h en jornada 30h/sem 36 sem → verde sin acción. ESO 1º 1050h en jornada 25h/sem 38 sem → "faltan 100h, extender 4 semanas".
+
+**Pendiente**: implementar sub-fase A (modelo mental anual en UI). Próxima sesión.
+
+### 2026-04-28 — Fix Fase 4: ciclo de serialización en PLI normalization context
+
+Detectado al probar el modal: `GET /api/periodo_lectivo_imparticions?periodoLectivo=N` devolvía 500 con `RuntimeException: The total number of joined relations has exceeded the specified maximum`. Causa: el `normalizationContext` de `PeriodoLectivoImparticion` incluía `periodo_lectivo:read`, lo que provocaba un ciclo de serialización:
+
+- Al normalizar PLI con `pli:read + periodo_lectivo:read`, el campo `periodoLectivo` (Groups `pli:read, pli:write`) se incluye → se carga PL.
+- PL serializa con `periodo_lectivo:read` → su campo `imparticiones` (Groups `periodo_lectivo:read`) se incluye → se cargan todos los PLIs.
+- Cada PLI embebido dispara de nuevo la cadena → eager-loading dispara joins infinitos hasta exceder `max_joins`.
+
+**Fix**: retirar `periodo_lectivo:read` del `normalizationContext` de la entidad PLI. Los Groups `periodo_lectivo:read` siguen presentes en los campos individuales de PLI (`id`, `imparticion`, `minutosSemanales`) — eso sigue funcionando cuando el contexto activo es el de PL (al fetchear PLs con sus PLIs embebidos, que es lo que alimenta el banner anual de Fase 3b y el modal). La diferencia es que PLI por sí mismo ya no propaga el grupo de PL hacia abajo, rompiendo el ciclo.
+
+**Side-effect del bug previo**: el modal nunca cargaba PLIs → la tabla mostraba TODAS las imparticiones como `isActive = false` → al usuario marcar el checkbox, el handler intentaba POSTear un PLI nuevo → choque con la unique `(periodoLectivo, imparticion)` (porque el PLI YA existía pre-creado por `PeriodoLectivoCreateProcessor`). Con el GET arreglado, el flujo correcto es: cargar PLIs → mostrar las activas como activadas → el checkbox sólo se activa para POST cuando realmente no hay PLI → no hay duplicate key.
+
+**Nota operativa**: el cambio en `ApiResource` requiere `php bin/console cache:clear` (la metadata del resource está cacheada).
+
+### 2026-04-28 — Fase 4 implementada (modal "Materias del rango" + hard-delete PLI)
+
+UI nueva en `/admin/horarios`: tercer icono (Sliders) en el pill activo del strip → abre modal con tabla de PLIs del rango. Cada fila permite activar/desactivar la imparticion en el rango, ajustar `minutosSemanales` (override o reset al default heredado de Materia). Cierra el ciclo Fase 1-4 del modelo de PeriodoLectivo: el admin ya puede gestionar end-to-end desde UI sin tocar BD.
+
+**Backend — `backend/src/Entity/PeriodoLectivoImparticion.php`**:
+- `Delete` operation cambiado de `SoftDeleteProcessor` a hard-delete físico. Razón: PLI tiene UNIQUE `(periodoLectivo, imparticion)` y el soft-delete deja el row con `deleted=true` pero la columna sigue ocupando el slot del unique → POST de revivir falla con duplicate key. PLI es derivativa (auditoría en PL padre), no hay valor en preservar el row borrado. Import `SoftDeleteProcessor` retirado.
+- Trait `SoftDeletableTrait` se mantiene (la columna `deleted` sigue existiendo) para no romper el filtro Doctrine global ni requerir migración. Simplemente nunca se setea a true por la API.
+
+**Frontend — `frontend/src/pages/HorariosEditor.jsx`**:
+- Iconos nuevos: `Sliders` (abrir modal) y `RotateCcw` (reset al default).
+- Estado nuevo: `pliModalOpen`, `pliModalPlId`, `pliByPl[plId] = PLI[]` (cache local), `pliLoading`, `pliRowSaving[impId]` (lock por fila).
+- Helpers `refetchPlsForGroup(gid)` (recarga PLs del grupo con sus PLIs embebidos para que el banner anual Fase 3b refleje cambios) e `invalidateCapacityForPl(gid, plId)` (limpia el capacity-check).
+- `openPliModal(pl)`: GET `/api/periodo_lectivo_imparticions?periodoLectivo={plId}&pagination=false` (siempre refresca al abrir, evita cache stale).
+- `activatePli(impId)`: POST con `minutosSemanales: null`.
+- `deactivatePli(pli)`: DELETE.
+- `updatePliMinutos(pli, newMinutos)`: PATCH `merge-patch+json` (mismo patrón que el override de jornada). `null` = reset al default heredado.
+- Memo `pliModalRows`: join de `imps` (group-level) con `pliByPl[plId]` (rango-level). Cada fila incluye `imp`, `pli|null`, `isActive`, `isOverride`, `effectiveMin`, `defaultMin`.
+- Memo `pliModalSummary`: Σ planificado vs cap semanal (`Σ slotMinutosByHi × 5 días`), con `fits: boolean | null`.
+- Modal `size="large"` con tabla, header de resumen (Σ planificado vs jornada con tonalidad verde/rojo), filas con checkbox/materia/profesor/input minutos/reset.
+- Input minutos: uncontrolled con `key={pli.id}_${minutos}_${impId}` para forzar re-mount tras cada save (mantiene `defaultValue` en sync con backend). `onBlur` parsea valor: vacío → reset al default; número → PATCH si difiere del actual y del default (no-op si igualan).
+- Lock por fila: `pliRowSaving[impId]` deshabilita el checkbox/input/reset mientras hay request en vuelo (evita carreras si el usuario clickea rápido).
+
+**Frontend — `frontend/src/pages/HorariosEditor.module.css`**: ~14 clases nuevas en bloque `.pliModalBody`/`.pliSummary*`/`.pliTable*`/`.pliCheckbox`/`.pliMateria*`/`.pliMinutosInput`/`.pliResetBtn`/`.pliEmpty`/`.pliRowInactive`/`.pliRowSaving`. Tonalidad green/red para el resumen vía `color-mix(--color-success/danger, --bg-card)`. Sticky header en la tabla (la lista de imparticiones puede ser larga: max-height 60vh + scroll vertical interno).
+
+**i18n (5 idiomas, ~22 claves nuevas por idioma)**: bloque `pliConfigure/pliModalTitle/pliLoading/pliLoadError/pliColActive/pliColMateria/pliColProfesor/pliColMinutos/pliInheritedHint/pliOverrideHint/pliReset/pliEmpty/pliSummary{Plan,Cap,Fits,NoFit}/pliActivateError/pliDeactivateError/pliSaveError`.
+
+**Decisiones menores durante implementación**:
+- **Hard-delete vs revive-on-POST**: barajado escribir un State Processor que detectara PLIs soft-deleted y los reviviera en POST. Descartado: introduce magia oculta y mantiene la columna `deleted` con valor histórico que nadie lee. Hard-delete es semánticamente más honesto para una entidad de unión derivativa.
+- **Refetch completo de PLs vs patch local**: tras cada cambio refrescamos los PLs del grupo en vez de calcular delta local. Más sencillo, una request extra por edit, y garantiza que el banner anual ve datos exactos. Para volúmenes razonables (≤100 PLs/grupo) el coste es bajo.
+- **Input uncontrolled con key trick**: alternativa sería local state controlado en un sub-componente `PliRow`. El key trick es más conciso y menos riesgo de drift entre estado local y backend. Trade-off aceptable.
+- **No batch save**: cada cambio dispara su propio HTTP. Para volúmenes humanos (decenas de cambios por sesión) es bien. Si llega a doler, batch endpoint en una sesión futura.
+- **Banner del CapacityPlanner sigue rojo si los minutos suman >jornada**: correcto — el modal es el lugar para arreglarlo, no para silenciar el aviso. La frase "Tu cómputo anual sí cuadra. Lo que falta es repartir las materias entre rangos" sigue siendo cierta y guía al admin al modal correcto.
+
+**Próximo**: Fase 5 — eliminar parche temporal en BD (jornadas 35h "pre Calendario Real" en EAG, sustituir por jornada normal 30h/sem y verificar que con los rangos repartidos los horarios LOMLOE cuadran en cómputo anual). O Fase 7 si se prioriza calendario lectivo del centro para que el banner anual reste festivos. O Fase 6 (merge `/admin/jornadas` + `/admin/horarios`) si se prioriza UX.
+
+### 2026-04-28 — Fix CTA del banner CapacityPlanner: rango-aware en vez de "amplía la jornada"
+
+Detectado tras pruebas de Fase 3b. El usuario señaló (con razón) que la intención de los rangos lectivos es **precisamente** que una jornada de 27.5h/sem no sea problema, porque las horas no impartidas en el rango actual se cubrirán en otros rangos. Pero el banner del `CapacityPlanner` (Fase O) seguía mostrando el CTA de la era del parche: "Reduce horas en /admin/materias o amplía la jornada en /admin/jornadas". Eso contradice el modelo nuevo.
+
+**Por qué el banner sigue siendo útil técnicamente**: el `CapacityPlanner` mira el rango activo y verifica feasibility semanal real. Hoy todos los `PLI` autocreados tienen `minutosSemanales = NULL` (heredan default de Materia), así que cada rango pide las 32h/sem completas y no caben en 27.5h. Eso es información verdadera: el solver no puede colocar 32h en 27.5h de slots. **Pero la solución correcta ya no es "ampliar la jornada"; es "redistribuir minutos por rango"** (Fase 4).
+
+**Fix**:
+- Título cambiado: "El itinerario no cabe **en la jornada**" → "El itinerario no cabe **en este rango**" (precisión: el problema es semanal en este rango, no una limitación global del centro).
+- Body revisado: ahora explica que para cuadrar la semana sin tocar la jornada hay que redistribuir minutos por rango — Fase 4 desde UI, mientras tanto vía API o partiendo el curso en más rangos.
+- Hint nuevo (`capacityHintAnnual`) que aparece SOLO si el banner anual de Fase 3b está en verde: "Tu cómputo anual sí cuadra (+96h vs currículo). Lo que falta es repartir las materias entre rangos para que cada semana quepa." Usa borde verde lateral para señalar que la situación global es buena, lo que falla es el detalle del rango.
+- CSS nuevo: `.capacityHintAnnual` con fondo verde 10% y borde-izquierdo 60% para ese tono "tranquilizador dentro del banner rojo".
+
+**i18n**: las claves `capacityInfeasibleTitle/Body` existían sólo como defaultValues en el JSX (no en los locale JSON), así que cambiar el default propaga el texto nuevo automáticamente. Si en futuras revisiones se vuelcan las claves a los 5 JSONs, copiar los nuevos defaults.
+
+**Por qué importa documentarlo**: este es un cambio de mensaje, no de modelo, pero refleja la transición conceptual de la era parche → era rangos. El sistema sigue siendo conservador y honesto al avisar de la infeasibility semanal, pero ahora apunta a la solución correcta.
+
+### 2026-04-28 — Fix Fase 3b: tonalidad asimétrica del banner Σ horas anuales
+
+Detectado tras pruebas con EAG/DAW LOMLOE de 3 rangos cubriendo 01/09 → 31/05 (~39 semanas). El banner salía rojo con `+96h` de diferencia, lo que el usuario interpretó como un error. Al revisar, el caso es legítimo: 32h/sem × 39 semanas reales = 1248h vs Σ currículo 32h/sem × 36 semanas LOMLOE = 1152h. El centro adapta jornada lectiva 27.5h/sem y necesita más semanas para meter las 32h/sem del currículo — **sobrar horas no es un problema, es exactamente el patrón LOMLOE-friendly que justifica los rangos**. La regla original de tonalidad por valor absoluto (`|diff| > 15h → rojo`) era incorrecta semánticamente.
+
+**Fix**:
+- Tonalidad ahora asimétrica: `|diff| ≤ 5h → ok` (cuadra), `diff > 5h → ok` (sobran, cumples currículo), `5h < -diff ≤ 15h → warn` (faltan algunas), `-diff > 15h → error` (incumplimiento real).
+- Mensaje verde dual: si cuadra muestra "el plan cuadra (±5h)", si sobran muestra "cumples el currículo con margen (+Xh anuales)".
+- Mensaje rojo/amarillo siempre pone "te faltan Xh anuales" (`horasBannerUnder`); la rama "te sobran" (`horasBannerOver`) queda como i18n key disponible pero no se muestra (puede usarse en futuras vistas).
+- i18n nuevo `horasBannerOverOk` en 5 idiomas.
+
+**Por qué importa documentarlo**: la decisión D-C dice "aviso te sobran/faltan X horas" — ambas direcciones se calculan, pero la tonalidad debe reflejar **incumplimiento del currículo**, no desviación bruta. Anotado para que futuras revisiones del banner (Fase 7+) no vuelvan al modelo simétrico.
+
+### 2026-04-28 — Fase 3b implementada (CRUD inline + banner Σ horas anuales)
+
+UI completa de gestión de PeriodoLectivo en `/admin/horarios`. Cierra el Fase 3 entero: el admin ya puede crear, editar y borrar rangos sin tocar BD, y ve de un vistazo si el plan cuadra con el currículo.
+
+**Frontend — `frontend/src/pages/HorariosEditor.jsx`**:
+- Estado nuevo: `plPickerMode` ('create'|'edit'), `editingPlId`, `deletingPlId` (para deshabilitar UI durante DELETE).
+- `openCreatePlModal` (renombrado de `openAddPlModal`) y `openEditPlModal(pl)` separados; ambos abren el mismo `ModalView` con título/submit reactivos al modo.
+- `handleSubmitPlForm` reemplaza a `handleAddPl`: branch sobre `plPickerMode`. Edición = PATCH `/api/periodo_lectivos/{id}` con `application/merge-patch+json` (mismo patrón que el `handleJornadaOverrideChange` para evitar nullificar campos en API Platform 3).
+- `handleDeletePl` con `useConfirm`: dos variantes de body según haya o no horarios persistidos cacheados (`placements[].hid`); bloquea si es el último PL del grupo (toast informativo); DELETE soft via `SoftDeleteProcessor`; al borrar limpia `state[gid_plid]` + `capacityByGrupo[gid_plid]` y, si era el activo, mueve la selección al rango que contiene `today()` (espejo de `PeriodoLectivoResolver`).
+- Memo `horasAnualesBanner`: calcula currículo (Σ `materia.minutosSemanales` × 36 sem) vs planificado (Σ por PL de `Σ pli.effectiveMinutosSemanales × semanasDelRango`). Devuelve `{curriculumHoras, plannedHoras, diff, diffSigned, tone, plCount, semanasTotal}`. Tonalidad: ±5h verde, ±15h amarillo, más rojo. Aprovecha que `periodo_lectivo:read` ya serializa los PLIs embedidos.
+- Pills del strip refactorizados de `<button>` a `<div role="button">` para poder anidar los iconos de acción (Pencil + Trash2) sin botones-dentro-de-botones. `onClick`/`onKeyDown` (Enter/Space) replican comportamiento accesible. Los iconos sólo aparecen en el pill activo y usan `e.stopPropagation()` para no disparar selección al pulsarlos.
+- Banner renderizado debajo del strip cuando hay grupo seleccionado y datos suficientes.
+
+**Frontend — `frontend/src/pages/HorariosEditor.module.css`**:
+- `.plPill` reestructurado a `flex-direction: row` con `.plPillBody` interno (cuerpo nombre+fechas) y `.plPillActions` (botones edit/delete con borde-divisor).
+- `.plPillActions`/`.plPillActionBtn`/`.plPillActionDanger` con hover themed (`color-mix` sobre `--button-primary-text-color` y `--color-danger`).
+- `.plPillDisabled` (opacity 0.5 + pointer-events none) para feedback visual durante DELETE en curso.
+- `.plBanner` + variantes `.plBanner_ok/_warn/_error` con backgrounds tematizados via `color-mix(--color-success/warning/danger, --bg-card)`. `.plBannerStats`, `.plBannerStat`, `.plBannerArrow`, `.plBannerHint`, `.plBannerMeta` para el layout interno.
+- `.plPill:focus-visible` añadido (la accesibilidad básica que perdimos al cambiar de `<button>` a `<div role="button">`).
+
+**i18n (5 idiomas, ~17 claves nuevas por idioma)**: `editRango/editRangoTitle/editRangoSubmit/editRangoSubmitting/rangoUpdated/rangoUpdateError/deleteRango/deleteRangoConfirmTitle/deleteRangoConfirmBody/deleteRangoConfirmBodyWith/deleteRangoOnlyOne/deleteRangoSuccess/deleteRangoError/horasBannerCurriculum/horasBannerPlanned/horasBannerDiff/horasBannerHint/horasBannerOk/horasBannerOver/horasBannerUnder`. Locales: `es.json`, `en.json`, `ca.json`, `eu.json`, `gl.json`.
+
+**Decisiones menores durante implementación**:
+- El selector de jornada por rango **se cubrió desde la edición del PL** (modal con campo `jornadaTipoId`) en vez de añadir un selector inline pegado a cada pill. Razón: el patrón `pill = ver/seleccionar; modal = configurar` es más limpio y consistente con el flow de creación. Si en el futuro pesa más la velocidad, se puede añadir un selector inline sin reestructurar.
+- El banner ignora festivos del centro (usa `(fechaFin - fechaInicio) / 7` literal). Cuando llegue Fase 7 (calendario lectivo) podrá restar semanas no lectivas. Mientras tanto, sirve como detector de desajustes grandes (>15h de diferencia).
+- El umbral de tonalidad se fijó en ±5h ok / ±15h amarillo / >15h rojo de forma intuitiva (no parametrizable por ahora). Si los centros piden más estricto/laxo, se externaliza más adelante.
+- La cuenta de horarios persistidos en el confirm body sólo mira el `state[stateKey]` cacheado: si el admin nunca visitó el PL en esta sesión, mostramos el confirm body genérico. Es honesto: no engañamos diciendo "0 horarios" cuando podría haber, simplemente omitimos la cifra.
+- `handleDeletePl` no invalida `plByGrupo[selectedGrupo]` con un re-fetch — actualiza el state filtrando localmente. Mismo patrón que `handleAddPl` original.
+
+**Bug histórico residual (no introducido en esta sesión, pero relevante)**: el cascade de `setSelectedPlByGrupo` tras borrar usa `plByGrupo[selectedGrupo]` *antes* de aplicar el `setPlByGrupo`. Funciona porque el filter dentro del cascade lee la lista pre-update y aplica el mismo filter; el resultado es correcto, pero es un poco frágil si alguien añade una transformación intermedia. Mantenido tal cual para no inflar la sesión, anotado aquí por si vuelve a tocarse.
+
+**Próximo**: Fase 4 (UI de gestión PLIs por rango — activar/desactivar imparticiones por rango, ajustar minutos override).
 
 ### 2026-04-28 — Doc creado
 

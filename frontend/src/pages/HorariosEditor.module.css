@@ -490,6 +490,17 @@
     line-height: 1.5;
 }
 
+.capacityHintAnnual {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--color-success, #16a34a) 10%, transparent);
+    color: var(--text-main);
+    border-left: 3px solid color-mix(in srgb, var(--color-success, #16a34a) 60%, transparent);
+    border-radius: 4px;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
 /* Timeline strip de PeriodoLectivo (Fase 3a) */
 .plStrip {
     display: flex;
@@ -520,9 +531,8 @@
 
 .plPill {
     display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    align-items: center;
+    gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border-color);
     background: var(--bg-card);
@@ -531,11 +541,17 @@
     cursor: pointer;
     font-size: var(--text-xs);
     transition: background 0.15s, border-color 0.15s;
+    user-select: none;
 }
 
 .plPill:hover {
     background: var(--bg-hover, var(--bg-subtle));
     border-color: var(--primary-color);
+}
+
+.plPill:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 .plPillActive {
@@ -549,6 +565,18 @@
     border-color: var(--primary-color);
 }
 
+.plPillDisabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.plPillBody {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
 .plPillName {
     font-weight: 600;
 }
@@ -556,6 +584,121 @@
 .plPillDates {
     font-size: 0.75em;
     opacity: 0.85;
+}
+
+.plPillActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: var(--space-2);
+    padding-left: var(--space-2);
+    border-left: 1px solid color-mix(in srgb, var(--button-primary-text-color, white) 30%, transparent);
+}
+
+.plPillActionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: background 0.12s, opacity 0.12s;
+}
+
+.plPillActionBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--button-primary-text-color, white) 18%, transparent);
+    opacity: 1;
+}
+
+.plPillActionBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.plPillActionDanger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger, #dc2626) 70%, transparent);
+    color: white;
+    opacity: 1;
+}
+
+/* Banner Σ horas anuales planificadas vs currículo (Fase 3b) */
+.plBanner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-xs);
+    flex-wrap: wrap;
+}
+
+.plBanner_ok {
+    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+}
+
+.plBanner_warn {
+    background: color-mix(in srgb, var(--color-warning, #d97706) 14%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-warning, #d97706) 35%, var(--border-color));
+}
+
+.plBanner_error {
+    background: color-mix(in srgb, var(--color-danger, #dc2626) 14%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+}
+
+.plBannerStats {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.plBannerStat {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    line-height: 1.2;
+}
+
+.plBannerStatLabel {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.plBannerStat strong {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.plBannerArrow {
+    color: var(--text-muted);
+    font-size: 1em;
+}
+
+.plBannerHint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.plBannerMeta {
+    color: var(--text-muted);
+    font-size: 0.92em;
 }
 
 .plPillAdd {
@@ -623,6 +766,216 @@
     font-size: 0.75em;
     color: var(--text-muted);
     margin-top: 2px;
+}
+
+/* Modal "Materias del rango" (Fase 4): editor de PLI */
+.pliModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.pliLoading {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-4);
+}
+
+.pliSummary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-subtle, var(--bg-card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: var(--text-sm);
+    flex-wrap: wrap;
+}
+
+.pliSummaryGreen {
+    background: color-mix(in srgb, var(--color-success, #16a34a) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success, #16a34a) 35%, var(--border-color));
+}
+
+.pliSummaryRed {
+    background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--border-color));
+}
+
+.pliSummaryStat {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.pliSummaryLabel {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.pliSummaryStat strong {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.pliSummaryArrow {
+    color: var(--text-muted);
+}
+
+.pliSummaryHint {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-main);
+}
+
+.pliTableWrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.pliTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.pliTable thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pliTable tbody td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+    vertical-align: middle;
+}
+
+.pliTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.pliRowInactive td {
+    opacity: 0.55;
+}
+
+.pliRowSaving {
+    background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+}
+
+.pliColActive {
+    width: 60px;
+    text-align: center;
+}
+
+.pliColMinutos {
+    width: 180px;
+}
+
+.pliColReset {
+    width: 40px;
+    text-align: center;
+}
+
+.pliCheckbox {
+    display: inline-flex;
+    cursor: pointer;
+}
+
+.pliCheckbox input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+
+.pliMateria {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.pliMateriaDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pliProfesor {
+    color: var(--text-muted);
+    font-size: 0.92em;
+}
+
+.pliMinutosInput {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid var(--input-border-color, var(--border-color));
+    background: var(--input-bg-color, var(--bg-card));
+    color: var(--input-text-color, var(--text-main));
+    border-radius: 4px;
+    font-size: var(--text-sm);
+}
+
+.pliMinutosInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.pliMinutosInput:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.pliMinutosHint {
+    margin-left: var(--space-2);
+    color: var(--text-muted);
+    font-size: 0.75em;
+}
+
+.pliResetBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pliResetBtn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.pliResetBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pliEmpty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-4);
 }
 
 .errorToast {

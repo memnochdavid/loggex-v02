@@ -20,7 +20,7 @@ import ModalView from '../components/ModalView';
 import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download, Plus } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Shuffle, Download, Plus, Pencil, Trash2, Sliders, RotateCcw } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
@@ -216,10 +216,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [selectedPlByGrupo, setSelectedPlByGrupo] = useState({});
   // Flag de PUT en curso para el override de jornada (deshabilita el selector mientras llega el ack).
   const [savingJornadaOverride, setSavingJornadaOverride] = useState(false);
-  // Modal "Nuevo rango lectivo" (Fase 3a) + form state.
+  // Modal "Rango lectivo" (Fase 3a/b): mismo modal para crear y editar.
+  // mode = 'create' | 'edit'; editingPlId guarda el id del PL que se está
+  // editando (null en modo create). El form pre-rellena valores actuales en
+  // edit y vacíos / continuación del último rango en create.
   const [plPickerOpen, setPlPickerOpen] = useState(false);
+  const [plPickerMode, setPlPickerMode] = useState('create');
+  const [editingPlId, setEditingPlId] = useState(null);
   const [plForm, setPlForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '', jornadaTipoId: '' });
   const [addingPl, setAddingPl] = useState(false);
+  const [deletingPlId, setDeletingPlId] = useState(null);
+  // Modal "Materias del rango" (Fase 4): editor de PLI por rango activo.
+  // pliByPl: cache local { [plId]: PLI[] } recargado cada vez que se abre el
+  // modal, para reflejar cambios concurrentes. pliRowSaving: Set<impId> con
+  // las filas con PATCH/POST/DELETE en vuelo (deshabilita los inputs de
+  // esa fila para evitar carreras).
+  const [pliModalOpen, setPliModalOpen] = useState(false);
+  const [pliModalPlId, setPliModalPlId] = useState(null);
+  const [pliByPl, setPliByPl] = useState({});
+  const [pliLoading, setPliLoading] = useState(false);
+  const [pliRowSaving, setPliRowSaving] = useState({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -615,6 +631,115 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     imps.forEach(i => { m[i.id] = i; });
     return m;
   }, [imps]);
+
+  // Banner Σ horas anuales: compara horas curriculares del grupo (Σ
+  // materia.minutosSemanales × 36 semanas estándar) contra horas planificadas
+  // (Σ por PL de Σ PLI.effectiveMinutosSemanales × semanasDelRango). El cálculo
+  // ignora festivos por simplicidad (Fase 3b); cuando llegue Fase 7 con el
+  // calendario lectivo del centro, la Σ de semanas se podrá ajustar restando
+  // semanas no lectivas. Tonalidad asimétrica (D-C): SOBRAR horas no es un
+  // problema (cumples el currículo y tienes margen, caso típico cuando la
+  // jornada lectiva real es 27.5h/sem y hace falta más semanas para meter las
+  // 32h/sem del currículo). Lo que sí alarma es FALTAR horas (incumplimiento).
+  //   - Verde: |diff| ≤ 5h (cuadra) o diff > 5h (sobran — cumples)
+  //   - Amarillo: faltan entre 5h y 15h (margen pequeño de incumplimiento)
+  //   - Rojo: faltan más de 15h (incumplimiento real del currículo)
+  const horasAnualesBanner = useMemo(() => {
+    const SEMANAS_ESTANDAR = 36;  // referencia LOMLOE para "horas anuales currículo"
+    const TOL_OK = 5;             // ±5h se considera cuadrado
+    const TOL_WARN = 15;          // si faltan entre 5h y 15h, amarillo; más, rojo
+    if (!selectedGrupo) return null;
+    const pls = plByGrupo[selectedGrupo] || [];
+    if (pls.length === 0 || imps.length === 0) return null;
+
+    // Currículo: Σ minutos semanales de las imparticiones del grupo × 36 semanas.
+    const curriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_ESTANDAR;
+
+    // Planificado: por cada PL, semanas del rango × Σ minutos efectivos PLI.
+    let plannedMin = 0;
+    let semanasTotal = 0;
+    pls.forEach(pl => {
+      if (!pl.fechaInicio || !pl.fechaFin) return;
+      const ini = new Date(pl.fechaInicio.slice(0, 10));
+      const fin = new Date(pl.fechaFin.slice(0, 10));
+      const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
+      const semanas = days / 7;
+      semanasTotal += semanas;
+      const plis = pl.imparticiones || [];
+      const sumPliMin = plis.reduce((acc, pli) => {
+        if (pli.deleted) return acc;
+        const overrideMin = pli.minutosSemanales;
+        if (overrideMin != null) return acc + overrideMin;
+        const impId = extractFkId(pli.imparticion);
+        const imp = impById[impId];
+        return acc + (imp?.materia?.minutosSemanales || 0);
+      }, 0);
+      plannedMin += sumPliMin * semanas;
+    });
+
+    const curriculumHoras = Math.round(curriculumMin / 60);
+    const plannedHoras = Math.round(plannedMin / 60);
+    const diff = plannedHoras - curriculumHoras;
+    // Tonalidad asimétrica: sobrar horas no es problema; faltar sí.
+    let tone;
+    if (Math.abs(diff) <= TOL_OK) tone = 'ok';        // cuadra (±5h)
+    else if (diff > 0) tone = 'ok';                    // sobran ≥ 5h (cumples currículo)
+    else if (-diff <= TOL_WARN) tone = 'warn';         // faltan entre 5 y 15h
+    else tone = 'error';                                // faltan más de 15h
+    const diffSigned = diff > 0 ? `+${diff}` : `${diff}`;
+    return {
+      curriculumHoras,
+      plannedHoras,
+      diff,
+      diffSigned,
+      tone,
+      plCount: pls.length,
+      semanasTotal: Math.round(semanasTotal * 10) / 10,
+    };
+  }, [selectedGrupo, plByGrupo, imps, impById]);
+
+  // Filas del modal "Materias del rango" (Fase 4): join de imparticiones del
+  // grupo con los PLIs del PL seleccionado en el modal. Cada fila incluye:
+  // - imp: la Imparticion (siempre presente)
+  // - pli: el PLI vivo en el rango (null si la materia no está activa)
+  // - isActive: derivado de pli !== null
+  // - isOverride: pli existe y minutosSemanales != null
+  // - effectiveMin: minutos efectivos (override o default heredado de Materia)
+  // - defaultMin: el default de la materia (para el placeholder/reset)
+  const pliModalRows = useMemo(() => {
+    if (!pliModalPlId) return [];
+    const plis = pliByPl[pliModalPlId] || [];
+    const byImpId = {};
+    plis.forEach(pli => {
+      const impId = extractFkId(pli.imparticion);
+      if (impId) byImpId[String(impId)] = pli;
+    });
+    return imps.map(imp => {
+      const pli = byImpId[String(imp.id)] || null;
+      const defaultMin = imp.materia?.minutosSemanales || 0;
+      const isActive = !!pli;
+      const isOverride = !!(pli && pli.minutosSemanales != null);
+      const effectiveMin = isActive
+        ? (pli.minutosSemanales != null ? pli.minutosSemanales : defaultMin)
+        : 0;
+      return { imp, pli, isActive, isOverride, effectiveMin, defaultMin };
+    });
+  }, [pliModalPlId, pliByPl, imps]);
+
+  const pliModalSummary = useMemo(() => {
+    if (!pliModalPlId) return null;
+    const planMin = pliModalRows.reduce((acc, r) => acc + (r.isActive ? r.effectiveMin : 0), 0);
+    // Cap semanal de la jornada del rango: Σ slot durations × 5 días.
+    const slotsMin = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
+    const capMin = slotsMin * 5;
+    return {
+      planMin,
+      capMin,
+      planH: Math.round((planMin / 60) * 10) / 10,
+      capH: Math.round((capMin / 60) * 10) / 10,
+      fits: capMin > 0 ? planMin <= capMin : null,
+    };
+  }, [pliModalPlId, pliModalRows, slotMinutosByHi]);
 
   // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales).
   // Trabajamos en minutos internamente y exponemos horas decimales al panel
@@ -1030,7 +1155,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   // Abrir modal "Nuevo rango lectivo": pre-rellena nombre y fechas con defaults
   // razonables (continuación del último rango si existe, sino sept-jun del curso).
-  const openAddPlModal = () => {
+  const openCreatePlModal = () => {
     const existing = (selectedGrupo && plByGrupo[selectedGrupo]) || [];
     let inicio = '';
     let fin = '';
@@ -1048,13 +1173,30 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       fechaFin: fin,
       jornadaTipoId: '',
     });
+    setPlPickerMode('create');
+    setEditingPlId(null);
     setPlPickerOpen(true);
   };
 
-  // Crear el PL: POST /api/periodo_lectivos. El State Processor del backend
-  // auto-crea PLIs por cada Imparticion del grupo (con minutos NULL = hereda
-  // Materia.minutosSemanales), así que el rango es usable inmediatamente.
-  const handleAddPl = async (e) => {
+  // Abrir modal en modo edición: pre-rellena con el PL pasado.
+  const openEditPlModal = (pl) => {
+    if (!pl) return;
+    setPlForm({
+      nombre: pl.nombre || '',
+      fechaInicio: pl.fechaInicio?.slice(0, 10) || '',
+      fechaFin: pl.fechaFin?.slice(0, 10) || '',
+      jornadaTipoId: extractFkId(pl.jornadaTipo) || '',
+    });
+    setPlPickerMode('edit');
+    setEditingPlId(pl.id);
+    setPlPickerOpen(true);
+  };
+
+  // Submit del modal: crea (POST) o actualiza (PATCH) según `plPickerMode`.
+  // Crear: el State Processor backend auto-crea PLIs por cada Imparticion del
+  // grupo. Editar: si cambia la jornada, invalidamos jornadaActual y
+  // capacity-check del PL para que el editor recargue tramos efectivos.
+  const handleSubmitPlForm = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (!selectedGrupo || !plForm.nombre || !plForm.fechaInicio || !plForm.fechaFin) {
       toast.error(t('scheduleEditor.rangoMissingFields', { defaultValue: 'Completa nombre y fechas' }));
@@ -1062,15 +1204,241 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
     setAddingPl(true);
     try {
+      if (plPickerMode === 'edit') {
+        if (!editingPlId) throw new Error('editingPlId vacío');
+        const body = {
+          nombre: plForm.nombre,
+          fechaInicio: plForm.fechaInicio,
+          fechaFin: plForm.fechaFin,
+          jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
+        };
+        const res = await fetch(getApiUrl(`/api/periodo_lectivos/${editingPlId}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+        }
+        const updated = await res.json();
+        setPlByGrupo(prev => {
+          const cur = prev[selectedGrupo] || [];
+          const next = cur.map(pl => (String(pl.id) === String(editingPlId) ? { ...pl, ...updated } : pl));
+          return {
+            ...prev,
+            [selectedGrupo]: next.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
+          };
+        });
+        // Si cambió la jornada, invalida la cache de jornadasPorId para el id viejo
+        // y la capacity-check de este (grupo, PL) para que se recalcule.
+        setCapacityByGrupo(prev => {
+          const next = { ...prev };
+          delete next[`${selectedGrupo}_${editingPlId}`];
+          return next;
+        });
+        setPlPickerOpen(false);
+        toast.success(t('scheduleEditor.rangoUpdated', { defaultValue: 'Rango lectivo actualizado' }));
+      } else {
+        const body = {
+          grupo: `/api/grupos/${selectedGrupo}`,
+          nombre: plForm.nombre,
+          fechaInicio: plForm.fechaInicio,
+          fechaFin: plForm.fechaFin,
+          jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
+          orden: (plByGrupo[selectedGrupo]?.length || 0),
+        };
+        const res = await fetch(getApiUrl('/api/periodo_lectivos'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+        }
+        const created = await res.json();
+        setPlByGrupo(prev => {
+          const cur = prev[selectedGrupo] || [];
+          return { ...prev, [selectedGrupo]: [...cur, created].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)) };
+        });
+        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: created.id }));
+        setPlPickerOpen(false);
+        toast.success(t('scheduleEditor.rangoCreated', { defaultValue: 'Rango lectivo creado' }));
+      }
+    } catch (err) {
+      console.error('Error guardando PL:', err);
+      const msgKey = plPickerMode === 'edit' ? 'scheduleEditor.rangoUpdateError' : 'scheduleEditor.rangoCreateError';
+      toast.error(t(msgKey, { defaultValue: plPickerMode === 'edit' ? 'No se pudo actualizar el rango' : 'No se pudo crear el rango' }));
+    } finally {
+      setAddingPl(false);
+    }
+  };
+
+  // Borrar un PL: confirma + DELETE (soft-delete vía SoftDeleteProcessor).
+  // Bloqueado si es el único rango del grupo (debe quedar al menos uno para
+  // que el editor tenga contexto). Si tiene horarios persistidos, lo avisamos
+  // explícitamente en el confirm body — el cascade DELETE de Horario los
+  // borrará junto con el PL.
+  const handleDeletePl = async (pl) => {
+    if (!pl || !selectedGrupo) return;
+    const list = plByGrupo[selectedGrupo] || [];
+    if (list.length <= 1) {
+      toast.error(t('scheduleEditor.deleteRangoOnlyOne', { defaultValue: 'No puedes borrar el único rango del grupo. Crea otro antes.' }));
+      return;
+    }
+    // Conteo de horarios persistidos en este PL (sólo del state cargado;
+    // si nunca se ha visitado el PL, asumimos 0 visualmente — la BD tiene
+    // la verdad. El usuario verá el aviso genérico de "horarios asociados".)
+    const cacheKey = `${selectedGrupo}_${pl.id}`;
+    const cachedPlacements = state[cacheKey]?.placements || {};
+    const horariosCount = Object.values(cachedPlacements).filter(p => p?.hid).length;
+    const body = horariosCount > 0
+      ? t('scheduleEditor.deleteRangoConfirmBodyWith', {
+          defaultValue: 'Vas a borrar el rango "{{nombre}}". Se eliminarán {{count}} horario(s) asociados a este rango. Esta acción no se puede deshacer.',
+          nombre: pl.nombre,
+          count: horariosCount,
+        })
+      : t('scheduleEditor.deleteRangoConfirmBody', {
+          defaultValue: 'Vas a borrar el rango "{{nombre}}". Esta acción no se puede deshacer.',
+          nombre: pl.nombre,
+        });
+    const ok = await confirm({
+      title: t('scheduleEditor.deleteRangoConfirmTitle', { defaultValue: 'Borrar rango lectivo' }),
+      body,
+      confirmLabel: t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' }),
+      cancelLabel: t('common.cancel', { defaultValue: 'Cancelar' }),
+      confirmVariant: 'danger',
+    });
+    if (!ok) return;
+    setDeletingPlId(pl.id);
+    try {
+      const res = await fetch(getApiUrl(`/api/periodo_lectivos/${pl.id}`), {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 204) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      // Quita el PL del listado del grupo y limpia caches asociadas.
+      setPlByGrupo(prev => ({
+        ...prev,
+        [selectedGrupo]: (prev[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id)),
+      }));
+      setState(prev => {
+        const next = { ...prev };
+        delete next[cacheKey];
+        return next;
+      });
+      setCapacityByGrupo(prev => {
+        const next = { ...prev };
+        delete next[cacheKey];
+        return next;
+      });
+      // Si el PL borrado era el activo, mover selección a otro (el activo por
+      // fecha o el primero por fechaInicio, mismo criterio que el resolver).
+      if (String(selectedPlId) === String(pl.id)) {
+        const remaining = (plByGrupo[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id));
+        const today = new Date().toISOString().slice(0, 10);
+        const next = remaining.find(p => p.fechaInicio <= today && p.fechaFin >= today) || remaining[0];
+        setSelectedPlByGrupo(prev => ({
+          ...prev,
+          [selectedGrupo]: next ? next.id : undefined,
+        }));
+      }
+      toast.success(t('scheduleEditor.deleteRangoSuccess', { defaultValue: 'Rango borrado' }));
+    } catch (err) {
+      console.error('Error borrando PL:', err);
+      toast.error(t('scheduleEditor.deleteRangoError', { defaultValue: 'No se pudo borrar el rango' }));
+    } finally {
+      setDeletingPlId(null);
+    }
+  };
+
+  // ── PLI por rango (Fase 4) ────────────────────────────────────────────
+  // Helpers internos: tras cualquier mutación de PLI, invalidamos la
+  // capacity-check del PL y refrescamos los PLs del grupo (cuyos PLIs
+  // embebidos alimentan el banner anual de Fase 3b). El refetch es ligero:
+  // un GET de los PLs del grupo trae todo lo necesario.
+  const refetchPlsForGroup = async (gid) => {
+    if (!gid) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/periodo_lectivos?grupo=${gid}&pagination=false&order[orden]=asc&order[fechaInicio]=asc`),
+        { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' });
+      if (!res.ok) return;
+      const d = await res.json();
+      const items = d['hydra:member'] || d.member || [];
+      setPlByGrupo(prev => ({ ...prev, [gid]: items }));
+    } catch (err) {
+      console.error('Error refetch PLs:', err);
+    }
+  };
+
+  const invalidateCapacityForPl = (gid, plId) => {
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      delete next[`${gid}_${plId}`];
+      return next;
+    });
+  };
+
+  // Abre el modal "Materias del rango" para el PL pasado. Carga las PLIs vivas
+  // (la lista refleja el estado actual de la BD; soft-deletes no aplican —
+  // PLI usa hard-delete, ver entidad).
+  const openPliModal = async (pl) => {
+    if (!pl) return;
+    setPliModalPlId(pl.id);
+    setPliModalOpen(true);
+    // Refresca siempre al abrir para evitar trabajar contra cache stale tras
+    // ediciones del mismo modal en una sesión anterior.
+    setPliLoading(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo=${pl.id}&pagination=false`),
+        { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const d = await res.json();
+      const items = d['hydra:member'] || d.member || [];
+      setPliByPl(prev => ({ ...prev, [pl.id]: items }));
+    } catch (err) {
+      console.error('Error cargando PLIs:', err);
+      toast.error(t('scheduleEditor.pliLoadError', { defaultValue: 'No se pudo cargar las materias del rango' }));
+    } finally {
+      setPliLoading(false);
+    }
+  };
+
+  const closePliModal = () => {
+    setPliModalOpen(false);
+    setPliModalPlId(null);
+  };
+
+  // Marca una fila como saving (true) o libre (false).
+  const markRowSaving = (impId, value) => {
+    setPliRowSaving(prev => {
+      const next = { ...prev };
+      if (value) next[impId] = true;
+      else delete next[impId];
+      return next;
+    });
+  };
+
+  // Activa una imparticion en el rango: POST /api/periodo_lectivo_imparticions
+  // con minutosSemanales NULL (= hereda Materia). El modal seguirá viendo el
+  // PLI tras el insert.
+  const activatePli = async (impId) => {
+    if (!pliModalPlId) return;
+    markRowSaving(impId, true);
+    try {
       const body = {
-        grupo: `/api/grupos/${selectedGrupo}`,
-        nombre: plForm.nombre,
-        fechaInicio: plForm.fechaInicio,
-        fechaFin: plForm.fechaFin,
-        jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
-        orden: (plByGrupo[selectedGrupo]?.length || 0),
+        periodoLectivo: `/api/periodo_lectivos/${pliModalPlId}`,
+        imparticion: `/api/imparticions/${impId}`,
+        minutosSemanales: null,
       };
-      const res = await fetch(getApiUrl('/api/periodo_lectivos'), {
+      const res = await fetch(getApiUrl('/api/periodo_lectivo_imparticions'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
         credentials: 'include',
@@ -1081,20 +1449,78 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
       }
       const created = await res.json();
-      // Refresca la lista de PLs e invalida cachés del grupo.
-      setPlByGrupo(prev => {
-        const cur = prev[selectedGrupo] || [];
-        return { ...prev, [selectedGrupo]: [...cur, created].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)) };
-      });
-      // Selecciona automáticamente el PL recién creado.
-      setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: created.id }));
-      setPlPickerOpen(false);
-      toast.success(t('scheduleEditor.rangoCreated', { defaultValue: 'Rango lectivo creado' }));
+      setPliByPl(prev => ({
+        ...prev,
+        [pliModalPlId]: [...(prev[pliModalPlId] || []), created],
+      }));
+      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
+      await refetchPlsForGroup(selectedGrupo);
     } catch (err) {
-      console.error('Error creando PL:', err);
-      toast.error(t('scheduleEditor.rangoCreateError', { defaultValue: 'No se pudo crear el rango' }));
+      console.error('Error activando PLI:', err);
+      toast.error(t('scheduleEditor.pliActivateError', { defaultValue: 'No se pudo activar la materia en el rango' }));
     } finally {
-      setAddingPl(false);
+      markRowSaving(impId, false);
+    }
+  };
+
+  // Desactiva (hard-delete) una PLI del rango.
+  const deactivatePli = async (pli) => {
+    if (!pli || !pliModalPlId) return;
+    const impId = extractFkId(pli.imparticion);
+    markRowSaving(impId, true);
+    try {
+      const res = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include',
+      });
+      if (!res.ok && res.status !== 204) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      setPliByPl(prev => ({
+        ...prev,
+        [pliModalPlId]: (prev[pliModalPlId] || []).filter(p => String(p.id) !== String(pli.id)),
+      }));
+      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
+      await refetchPlsForGroup(selectedGrupo);
+    } catch (err) {
+      console.error('Error desactivando PLI:', err);
+      toast.error(t('scheduleEditor.pliDeactivateError', { defaultValue: 'No se pudo quitar la materia del rango' }));
+    } finally {
+      markRowSaving(impId, false);
+    }
+  };
+
+  // PATCH minutos del PLI. Si valor es null → reset al default heredado de
+  // Materia. Si valor es un número, ese override manda en el rango.
+  const updatePliMinutos = async (pli, newMinutos) => {
+    if (!pli || !pliModalPlId) return;
+    const impId = extractFkId(pli.imparticion);
+    markRowSaving(impId, true);
+    try {
+      const res = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify({ minutosSemanales: newMinutos }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      const updated = await res.json();
+      setPliByPl(prev => ({
+        ...prev,
+        [pliModalPlId]: (prev[pliModalPlId] || []).map(p => String(p.id) === String(pli.id) ? { ...p, ...updated } : p),
+      }));
+      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
+      await refetchPlsForGroup(selectedGrupo);
+    } catch (err) {
+      console.error('Error guardando minutos PLI:', err);
+      toast.error(t('scheduleEditor.pliSaveError', { defaultValue: 'No se pudo guardar el cambio' }));
+    } finally {
+      markRowSaving(impId, false);
     }
   };
 
@@ -1313,24 +1739,122 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               {plByGrupo[selectedGrupo].map(pl => {
                 const isActive = String(pl.id) === String(selectedPlId);
                 const fmt = (s) => s ? s.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
+                const isDeleting = String(deletingPlId) === String(pl.id);
                 return (
-                  <button
+                  <div
                     key={pl.id}
-                    type="button"
-                    className={`${styles.plPill} ${isActive ? styles.plPillActive : ''}`}
-                    onClick={() => setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }))}
+                    className={`${styles.plPill} ${isActive ? styles.plPillActive : ''} ${isDeleting ? styles.plPillDisabled : ''}`}
+                    role="button"
+                    tabIndex={isDeleting ? -1 : 0}
+                    onClick={() => {
+                      if (isDeleting) return;
+                      setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (isDeleting) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
+                      }
+                    }}
                     title={`${pl.fechaInicio?.slice(0, 10)} → ${pl.fechaFin?.slice(0, 10)}`}
                   >
-                    <span className={styles.plPillName}>{pl.nombre}</span>
-                    <span className={styles.plPillDates}>{fmt(pl.fechaInicio)} – {fmt(pl.fechaFin)}</span>
-                  </button>
+                    <div className={styles.plPillBody}>
+                      <span className={styles.plPillName}>{pl.nombre}</span>
+                      <span className={styles.plPillDates}>{fmt(pl.fechaInicio)} – {fmt(pl.fechaFin)}</span>
+                    </div>
+                    {isActive && (
+                      <div className={styles.plPillActions}>
+                        <button
+                          type="button"
+                          className={styles.plPillActionBtn}
+                          onClick={(e) => { e.stopPropagation(); openPliModal(pl); }}
+                          aria-label={t('scheduleEditor.pliConfigure', { defaultValue: 'Materias del rango' })}
+                          title={t('scheduleEditor.pliConfigure', { defaultValue: 'Materias del rango' })}
+                          disabled={isDeleting}
+                        >
+                          <Sliders size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.plPillActionBtn}
+                          onClick={(e) => { e.stopPropagation(); openEditPlModal(pl); }}
+                          aria-label={t('scheduleEditor.editRango', { defaultValue: 'Editar rango' })}
+                          title={t('scheduleEditor.editRango', { defaultValue: 'Editar rango' })}
+                          disabled={isDeleting}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.plPillActionBtn} ${styles.plPillActionDanger}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeletePl(pl); }}
+                          aria-label={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
+                          title={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
+                          disabled={isDeleting || (plByGrupo[selectedGrupo] || []).length <= 1}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-            <button type="button" className={styles.plPillAdd} onClick={openAddPlModal}>
+            <button type="button" className={styles.plPillAdd} onClick={openCreatePlModal}>
               <Plus size={14} />
               {t('scheduleEditor.addRango', { defaultValue: 'Añadir rango' })}
             </button>
+          </div>
+        )}
+
+        {selectedGrupo && horasAnualesBanner && (
+          <div className={`${styles.plBanner} ${styles[`plBanner_${horasAnualesBanner.tone}`]}`}>
+            <div className={styles.plBannerStats}>
+              <span className={styles.plBannerStat}>
+                <span className={styles.plBannerStatLabel}>{t('scheduleEditor.horasBannerCurriculum', { defaultValue: 'Currículo' })}</span>
+                <strong>{horasAnualesBanner.curriculumHoras}h</strong>
+              </span>
+              <span className={styles.plBannerArrow}>→</span>
+              <span className={styles.plBannerStat}>
+                <span className={styles.plBannerStatLabel}>{t('scheduleEditor.horasBannerPlanned', { defaultValue: 'Planificado' })}</span>
+                <strong>{horasAnualesBanner.plannedHoras}h</strong>
+              </span>
+              <span className={styles.plBannerStat}>
+                <span className={styles.plBannerStatLabel}>{t('scheduleEditor.horasBannerDiff', { defaultValue: 'Diferencia' })}</span>
+                <strong>{horasAnualesBanner.diffSigned}h</strong>
+              </span>
+            </div>
+            <div className={styles.plBannerHint}>
+              {horasAnualesBanner.tone === 'ok' && horasAnualesBanner.diff > 0 && (
+                <span><CheckCircle2 size={14} style={{ marginRight: 4 }} />
+                  {t('scheduleEditor.horasBannerOverOk', {
+                    defaultValue: 'Cumples el currículo con margen (+{{horas}}h anuales).',
+                    horas: horasAnualesBanner.diff,
+                  })}
+                </span>
+              )}
+              {horasAnualesBanner.tone === 'ok' && horasAnualesBanner.diff <= 0 && (
+                <span><CheckCircle2 size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.horasBannerOk', { defaultValue: 'El plan cuadra con el currículo (±5h).' })}</span>
+              )}
+              {horasAnualesBanner.tone === 'warn' && (
+                <span><AlertTriangle size={14} style={{ marginRight: 4 }} />
+                  {t('scheduleEditor.horasBannerUnder', { defaultValue: 'Te faltan {{horas}}h anuales.', horas: Math.abs(horasAnualesBanner.diff) })}
+                </span>
+              )}
+              {horasAnualesBanner.tone === 'error' && (
+                <span><XCircle size={14} style={{ marginRight: 4 }} />
+                  {t('scheduleEditor.horasBannerUnder', { defaultValue: 'Te faltan {{horas}}h anuales.', horas: Math.abs(horasAnualesBanner.diff) })}
+                </span>
+              )}
+              <span className={styles.plBannerMeta}>
+                {t('scheduleEditor.horasBannerHint', {
+                  defaultValue: '{{plCount}} rangos · {{semanasTotal}} sem totales',
+                  plCount: horasAnualesBanner.plCount,
+                  semanasTotal: horasAnualesBanner.semanasTotal,
+                })}
+              </span>
+            </div>
           </div>
         )}
 
@@ -1355,17 +1879,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               const totalH = (cap.totalMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               const capH = (cap.capacidadMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               if (!cap.feasible) {
+                const annualOk = horasAnualesBanner && (horasAnualesBanner.tone === 'ok');
                 return (
                   <div className={`${styles.capacityBanner} ${styles.capacityBannerRed}`} role="alert">
                     <Ban size={16} />
                     <div>
-                      <b>{t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' })}</b>
+                      <b>{t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en este rango' })}</b>
                       <div>
                         {t('scheduleEditor.capacityInfeasibleBody', {
-                          defaultValue: 'Las materias suman {{total}}h/sem pero la jornada solo cubre {{cap}}h/sem. Reduce horas en /admin/materias o amplía la jornada en /admin/jornadas.',
+                          defaultValue: 'En el rango activo las materias suman {{total}}h/sem pero la jornada solo cubre {{cap}}h/sem. Para cuadrar la semana sin tocar la jornada, redistribuye los minutos por rango (Fase 4 — próximamente desde UI; mientras tanto vía API o partiendo el curso en más rangos).',
                           total: totalH, cap: capH,
                         })}
                       </div>
+                      {annualOk && (
+                        <div className={styles.capacityHintAnnual}>
+                          {t('scheduleEditor.capacityInfeasibleAnnualOk', {
+                            defaultValue: 'Tu cómputo anual sí cuadra ({{diffSigned}}h vs currículo). Lo que falta es repartir las materias entre rangos para que cada semana quepa.',
+                            diffSigned: horasAnualesBanner.diffSigned,
+                          })}
+                        </div>
+                      )}
                       {cap.huerfanos?.length > 0 && (
                         <ul className={styles.capacityList}>
                           {cap.huerfanos.map(h => (
@@ -1710,9 +2243,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         <ModalView
           isOpen={plPickerOpen}
           onClose={() => setPlPickerOpen(false)}
-          title={t('scheduleEditor.addRangoTitle', { defaultValue: 'Nuevo rango lectivo' })}
-          onSubmit={handleAddPl}
-          submitText={addingPl ? t('scheduleEditor.addRangoSubmitting', { defaultValue: 'Creando…' }) : t('scheduleEditor.addRangoSubmit', { defaultValue: 'Crear rango' })}
+          title={plPickerMode === 'edit'
+            ? t('scheduleEditor.editRangoTitle', { defaultValue: 'Editar rango lectivo' })
+            : t('scheduleEditor.addRangoTitle', { defaultValue: 'Nuevo rango lectivo' })}
+          onSubmit={handleSubmitPlForm}
+          submitText={addingPl
+            ? (plPickerMode === 'edit'
+                ? t('scheduleEditor.editRangoSubmitting', { defaultValue: 'Guardando…' })
+                : t('scheduleEditor.addRangoSubmitting', { defaultValue: 'Creando…' }))
+            : (plPickerMode === 'edit'
+                ? t('scheduleEditor.editRangoSubmit', { defaultValue: 'Guardar cambios' })
+                : t('scheduleEditor.addRangoSubmit', { defaultValue: 'Crear rango' }))}
           cancelText={t('common.cancel', { defaultValue: 'Cancelar' })}
           isSubmitting={addingPl}
           size="small"
@@ -1770,6 +2311,147 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </small>
             </label>
           </div>
+        </ModalView>
+
+        {/* Modal "Materias del rango" — editor de PLI por rango (Fase 4) */}
+        <ModalView
+          isOpen={pliModalOpen}
+          onClose={closePliModal}
+          title={t('scheduleEditor.pliModalTitle', {
+            defaultValue: 'Materias del rango "{{nombre}}"',
+            nombre: (plByGrupo[selectedGrupo] || []).find(p => String(p.id) === String(pliModalPlId))?.nombre || '—',
+          })}
+          cancelText={t('common.close', { defaultValue: 'Cerrar' })}
+          size="large"
+        >
+          {pliLoading ? (
+            <div className={styles.pliLoading}>{t('scheduleEditor.pliLoading', { defaultValue: 'Cargando materias…' })}</div>
+          ) : (
+            <div className={styles.pliModalBody}>
+              {pliModalSummary && (
+                <div className={`${styles.pliSummary} ${pliModalSummary.fits === false ? styles.pliSummaryRed : (pliModalSummary.fits === true ? styles.pliSummaryGreen : '')}`}>
+                  <div className={styles.pliSummaryStat}>
+                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryPlan', { defaultValue: 'Σ planificado' })}</span>
+                    <strong>{pliModalSummary.planH}h/sem</strong>
+                  </div>
+                  <span className={styles.pliSummaryArrow}>vs</span>
+                  <div className={styles.pliSummaryStat}>
+                    <span className={styles.pliSummaryLabel}>{t('scheduleEditor.pliSummaryCap', { defaultValue: 'Jornada del rango' })}</span>
+                    <strong>{pliModalSummary.capH}h/sem</strong>
+                  </div>
+                  <span className={styles.pliSummaryHint}>
+                    {pliModalSummary.fits === true && (
+                      <><CheckCircle2 size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.pliSummaryFits', { defaultValue: 'La semana cuadra.' })}</>
+                    )}
+                    {pliModalSummary.fits === false && (
+                      <><Ban size={14} style={{ marginRight: 4 }} />{t('scheduleEditor.pliSummaryNoFit', { defaultValue: 'La semana no cabe — reduce minutos o desactiva materias.' })}</>
+                    )}
+                  </span>
+                </div>
+              )}
+              <div className={styles.pliTableWrapper}>
+                <table className={styles.pliTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.pliColActive}>{t('scheduleEditor.pliColActive', { defaultValue: 'Activa' })}</th>
+                      <th>{t('scheduleEditor.pliColMateria', { defaultValue: 'Materia' })}</th>
+                      <th>{t('scheduleEditor.pliColProfesor', { defaultValue: 'Profesor' })}</th>
+                      <th className={styles.pliColMinutos}>{t('scheduleEditor.pliColMinutos', { defaultValue: 'Min/sem' })}</th>
+                      <th className={styles.pliColReset}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pliModalRows.map(row => {
+                      const saving = !!pliRowSaving[row.imp.id];
+                      const inputKey = `${row.pli?.id || 'noPli'}_${row.pli?.minutosSemanales ?? 'null'}_${row.imp.id}`;
+                      return (
+                        <tr key={row.imp.id} className={`${row.isActive ? '' : styles.pliRowInactive} ${saving ? styles.pliRowSaving : ''}`}>
+                          <td className={styles.pliColActive}>
+                            <label className={styles.pliCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={row.isActive}
+                                disabled={saving}
+                                onChange={() => {
+                                  if (row.isActive && row.pli) deactivatePli(row.pli);
+                                  else activatePli(row.imp.id);
+                                }}
+                              />
+                            </label>
+                          </td>
+                          <td>
+                            <span className={styles.pliMateria}>
+                              <span className={styles.pliMateriaDot} style={{ backgroundColor: colorForModule(row.imp.materia?.id || row.imp.id) }} />
+                              {row.imp.materia?.nombre || '—'}
+                            </span>
+                          </td>
+                          <td className={styles.pliProfesor}>
+                            {row.imp.profesor
+                              ? `${row.imp.profesor.nombre || ''} ${row.imp.profesor.apellidos || ''}`.trim()
+                              : '—'}
+                          </td>
+                          <td className={styles.pliColMinutos}>
+                            <input
+                              key={inputKey}
+                              type="number"
+                              min="0"
+                              step="5"
+                              className={styles.pliMinutosInput}
+                              defaultValue={row.isOverride ? row.pli.minutosSemanales : ''}
+                              placeholder={row.defaultMin > 0 ? String(row.defaultMin) : '0'}
+                              disabled={!row.isActive || saving}
+                              onBlur={(e) => {
+                                if (!row.pli) return;
+                                const raw = e.target.value.trim();
+                                if (raw === '') {
+                                  if (row.isOverride) updatePliMinutos(row.pli, null);
+                                  return;
+                                }
+                                const n = parseInt(raw, 10);
+                                if (!Number.isFinite(n) || n < 0) return;
+                                const current = row.pli.minutosSemanales;
+                                if (current === n) return;  // no-op si igual al guardado
+                                if (current == null && n === row.defaultMin) return;  // no-op si igual al default heredado
+                                updatePliMinutos(row.pli, n);
+                              }}
+                            />
+                            {row.isActive && (
+                              <span className={styles.pliMinutosHint}>
+                                {row.isOverride
+                                  ? t('scheduleEditor.pliOverrideHint', { defaultValue: 'override · default {{min}}', min: row.defaultMin })
+                                  : t('scheduleEditor.pliInheritedHint', { defaultValue: 'heredado de Materia' })}
+                              </span>
+                            )}
+                          </td>
+                          <td className={styles.pliColReset}>
+                            {row.isOverride && (
+                              <button
+                                type="button"
+                                className={styles.pliResetBtn}
+                                disabled={saving}
+                                onClick={() => updatePliMinutos(row.pli, null)}
+                                aria-label={t('scheduleEditor.pliReset', { defaultValue: 'Volver al default' })}
+                                title={t('scheduleEditor.pliReset', { defaultValue: 'Volver al default' })}
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {pliModalRows.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className={styles.pliEmpty}>
+                          {t('scheduleEditor.pliEmpty', { defaultValue: 'No hay imparticiones en este grupo. Crea primero la imparticion en /admin/imparticiones.' })}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </ModalView>
       </Container>
     </Wrapper>

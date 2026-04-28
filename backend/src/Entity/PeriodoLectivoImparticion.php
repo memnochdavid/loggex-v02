@@ -15,7 +15,6 @@ use ApiPlatform\Metadata\Put;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\PeriodoLectivoImparticionRepository;
-use App\State\SoftDeleteProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -44,9 +43,18 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(),
         new Put(),
         new Patch(),
-        new Delete(processor: SoftDeleteProcessor::class)
+        // Hard delete: PLI es derivativo (la auditoría vive en PL). Soft delete
+        // chocaría con la unique (periodoLectivo, imparticion) si el admin
+        // desactiva una materia y luego la reactiva en el mismo rango.
+        new Delete()
     ],
-    normalizationContext: ['groups' => ['pli:read', 'periodo_lectivo:read', 'timestamp:read', 'softdelete:read']],
+    // Sin `periodo_lectivo:read` aquí: si se incluye, el ciclo PLI → PL →
+    // PL.imparticiones (Collection<PLI>) → PLI → PL... dispara la explosión
+    // de eager-loading de API Platform ("max_joins exceeded").
+    // Los grupos `periodo_lectivo:read` en los campos siguen sirviendo cuando
+    // un endpoint de PL normaliza sus PLIs embebidos (contexto del PL, no
+    // del PLI), que es lo que alimenta el banner anual y el modal de Fase 4.
+    normalizationContext: ['groups' => ['pli:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['pli:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
