@@ -1078,3 +1078,24 @@ Tres estados:
 | **O** — Pre-asignación ILP (`CapacityPlanner`) + banner pre-resolución | 1 día | CCAA Fase 3 deja de ser bloqueante para producto comercial mínimo | ✅ Done (2026-04-27 madrugada) — validado E2E con EAG/DAW 1º, factor 7× de mejora |
 
 **Nota**: la solución *óptima* al desajuste sigue siendo ajustar la fuente de horas (capa CCAA Fase 3) para que el caso EAG cuadre exacto. Pero el ILP de O hace que el solver sea predecible y el banner sea honesto en cualquier centro, lo que es prerrequisito para cerrar D11 y vender el producto.
+
+---
+
+### 2026-04-28 — Override de jornada por grupo (stepping stone hacia `PeriodoLectivo`)
+
+Añadido selector de **plantilla de jornada** en el `infoBar` de `/admin/horarios`, junto al indicador "Turno". El admin puede cambiar a placer la jornada con la que trabajan el solver, el `CapacityPlanner` y la rejilla del editor para un grupo concreto, **sin tocar el itinerario** (no afecta a otros grupos del mismo itinerario) y persistido en BD.
+
+**Por qué ahora**: paso intermedio acordado antes de implementar `PeriodoLectivo` (ver `docs/hoja-de-ruta-periodos-lectivos.md`). Permite al admin probar jornadas de 30h/sem (incluyendo recreos, ≈27.5h lectivas) en grupos LOMLOE sin perder los placements ni necesitar las jornadas parche `pre Calendario Real` (35h/sem) en los grupos no afectados. Cuando llegue Fase 1 de períodos lectivos, el override del grupo se migra como `JornadaTipo` del rango único `"Curso completo"` autocreado.
+
+**Cambios**:
+- `Grupo.jornadaTipoOverride` (FK nullable a `JornadaTipo`, `onDelete: SET NULL`).
+- `Grupo::getEffectiveJornadaTipo()` — punto único para resolver la jornada efectiva (`override ?? itinerario.jornadaTipo`).
+- `HorarioSolver::solve()` y `CapacityPlanner::plan()` migrados para leer la jornada efectiva.
+- `HorarioSolver::buildParallelBusy()` también migrado para que los grupos paralelos respeten el override (la detección de paralelismo por turno sigue siendo aproximada — ver §"Lo que NO está hecho").
+- Migration `Version20260428100000`: columna `grupo.jornada_tipo_override_id` + FK + índice.
+- `HorariosEditor.jsx`: estado `jornadasByCentro` (un fetch por centro), `jornadaActual` recalculada desde la jornada efectiva, `handleJornadaOverrideChange` que **PATCHea** al grupo (`application/merge-patch+json`) e invalida el cache `capacityByGrupo[grupoId]` para recalcular el banner verde/amarillo/rojo. **PATCH añadido a las operaciones de `Grupo`** (`new Patch()` en `ApiResource::operations`); PUT en API Platform 3 reemplaza el recurso entero y nullificaría los NOT NULL del grupo.
+- UX: `<ThemedSelect placement="top">` en `infoBar` con etiquetas `"<nombre> · <turno> [(itinerario)]"`. La etiqueta "Turno" se sigue mostrando y se actualiza sola porque deriva del campo `turno` de la jornada efectiva. Si el admin elige el id que coincide con la jornada heredada del itinerario, el override se persiste como `null` (cadena limpia).
+- i18n en 5 idiomas: `scheduleEditor.jornada/jornadaPlaceholder/jornadaInheritedSuffix/jornadaChanged/jornadaChangeError`.
+- Comportamiento de placements existentes que no encajan con los slots de la nueva jornada: **silenciosamente no renderizados** (la rejilla itera sobre `tramosOrdenados`). No se borran de BD; reaparecen si el admin vuelve a la jornada anterior. Decisión deliberada para mantener este paso ligero — la limpieza se hará al implementar `PeriodoLectivo` con migración explícita.
+
+**Decisión de diseño cerrada**: persistencia en BD (vía `Grupo.jornadaTipoOverride`) en lugar de override solo de sesión. Razón: encaja con la migración a `PeriodoLectivo` sin tirar trabajo, y los placements siempre cuadran con la jornada activa al recargar la página.

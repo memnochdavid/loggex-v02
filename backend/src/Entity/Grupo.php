@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Doctrine\Filter\SearchAnyFilter;
@@ -31,6 +32,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Put(),
+        new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['grupo:read', 'timestamp:read', 'softdelete:read']],
@@ -98,6 +100,22 @@ class Grupo
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['grupo:read', 'grupo:write'])]
     private ?Centro $centro = null;
+
+    /**
+     * Override por grupo de la jornada efectiva. Si null, hereda de
+     * `Itinerario.jornadaTipo`. Permite que el admin cambie la plantilla de
+     * jornada con la que trabaja /admin/horarios sin tocar el itinerario
+     * (ni afectar a otros grupos del mismo itinerario).
+     *
+     * Stepping stone hacia `PeriodoLectivo` (ver
+     * `docs/hoja-de-ruta-periodos-lectivos.md`): cuando se implementen los
+     * rangos, el override del grupo se migra como `JornadaTipo` del rango
+     * único `"Curso completo"`.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['grupo:read', 'grupo:write'])]
+    private ?JornadaTipo $jornadaTipoOverride = null;
 
     #[ORM\OneToMany(mappedBy: 'grupo', targetEntity: Matricula::class)]
     private Collection $matriculas;
@@ -213,5 +231,26 @@ class Grupo
     {
         $this->centro = $centro;
         return $this;
+    }
+
+    public function getJornadaTipoOverride(): ?JornadaTipo
+    {
+        return $this->jornadaTipoOverride;
+    }
+
+    public function setJornadaTipoOverride(?JornadaTipo $jornadaTipoOverride): static
+    {
+        $this->jornadaTipoOverride = $jornadaTipoOverride;
+        return $this;
+    }
+
+    /**
+     * Jornada efectiva del grupo: override si está definido, default del
+     * itinerario en otro caso. Punto único que el solver, el CapacityPlanner
+     * y el editor deben consultar.
+     */
+    public function getEffectiveJornadaTipo(): ?JornadaTipo
+    {
+        return $this->jornadaTipoOverride ?? $this->itinerario?->getJornadaTipo();
     }
 }

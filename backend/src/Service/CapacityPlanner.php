@@ -51,9 +51,10 @@ class CapacityPlanner
      */
     public function plan(Grupo $grupo): array
     {
-        $jornada = $grupo->getItinerario()?->getJornadaTipo();
+        // Lee la jornada efectiva (override del grupo si lo hay, default del itinerario).
+        $jornada = $grupo->getEffectiveJornadaTipo();
         if ($jornada === null) {
-            return $this->errorResult('Sin jornada asignada al itinerario.');
+            return $this->errorResult('Sin jornada asignada al itinerario ni override en el grupo.');
         }
 
         $diasLectivos = $jornada->getDiasLectivos() ?: [1, 2, 3, 4, 5];

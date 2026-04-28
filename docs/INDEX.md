@@ -14,9 +14,9 @@
 
 **Próxima acción** — elegir entre 4 rutas según prioridad:
 
-1. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales (cierra el agujero de los 2 festivos locales por centro).
-2. **Calendario Fase 5** (~3h) — calendario lectivo del centro (fechas curso, vacaciones), prerrequisito de Boletines/FCT.
-3. **Calendario Fase 6 / Jornadas opción A-B-C** — distribución temporal de materias (Proyecto Intermodular, FCT, Libre config) para quitar el parche de jornadas `pre Calendario Real`.
+1. **Períodos Lectivos Fase 1** (~1 sesión) — modelo `PeriodoLectivo` + `PeriodoLectivoImparticion` + migración con auto-creación de rango único `"Curso completo"` por grupo. **Es la ruta acordada (2026-04-28) para resolver el parche temporal de jornadas 35h → 30h y la deuda de distribución temporal de materias.** Doc: `hoja-de-ruta-periodos-lectivos.md`.
+2. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales (cierra el agujero de los 2 festivos locales por centro).
+3. **Calendario Fase 5** — fundida en `hoja-de-ruta-periodos-lectivos.md` Fase 7 (calendario lectivo emerge naturalmente del modelo de rangos).
 4. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, Proyecto Intermodular) en `/admin/imparticiones` para poder pulsar "Sugerir horario" en DAW LOMLOE.
 
 Otras rutas más amplias:
@@ -25,7 +25,9 @@ Otras rutas más amplias:
 - §14 sub-fases L/M/N (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
 
-**⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). Ver `docs/hoja-de-ruta-jornadas-recreos.md` entrada "PARCHE TEMPORAL: jornadas pre Calendario Real" — opciones (A) flag, (B) enum tipoDistribución, (C) entidad MateriaTemporada. Las jornadas se eliminarán al implementar el modelo correcto.
+**⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). **Solución acordada (2026-04-28): `docs/hoja-de-ruta-periodos-lectivos.md`** — entidad `PeriodoLectivo` (rangos de fecha por grupo, cada uno con su `JornadaTipo` y sus minutos por imparticion), solver corre por rango, fecha-fin de curso flexible. Una vez implementado, las jornadas vuelven a ≈30h/sem (incluyendo recreos, ≈27.5h lectivas) y se borran las jornadas parche.
+
+**Stepping stone listo (2026-04-28):** override de jornada por grupo (`Grupo.jornadaTipoOverride`) operativo en `/admin/horarios`. El admin ya puede elegir, desde el `infoBar` del editor, qué plantilla de jornada usa el solver/planner/rejilla para cada grupo, sin tocar el itinerario. Migrará a `PeriodoLectivo.jornadaTipo` del rango único en Fase 1. **Pendiente correr migración**: `docker compose exec backend php bin/console doctrine:migrations:migrate` (Version20260428100000, columna nullable + FK).
 
 **⚠ DEUDA — Live updates CRUD para todas las vistas con persistencia:** Mercure está conectado pero **solo cubre la entidad `Mensaje`** (chat + notificaciones). Cualquier otra entidad CRUD (Itinerario, Grupo, Imparticion, Matricula, Festivo, Materia, Calificacion, Tarea, Entrega…) **requiere F5 manual** para reflejar cambios hechos por otros usuarios o por SQL directo (seeds). Detectada 2026-04-27 tras observación del usuario "pensaba que Mercure se ocupaba de mantener todo en tiempo real". Diseño propuesto: atributo PHP `#[LivePublish]` declarativo + subscriber Doctrine genérico + hook React `useLiveCollection`. Esfuerzo total cobertura completa: ~3 sesiones. Detalle en **`docs/hoja-de-ruta-redis-workers.md`** §"Deuda — Live updates CRUD para todas las vistas con persistencia".
 
@@ -111,6 +113,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
+| `hoja-de-ruta-periodos-lectivos.md` | 7 fases (~5 sesiones) | **CRÍTICO**: resuelve el parche temporal de jornadas 35h → 30h, modela distribución temporal de materias (Proyecto Intermodular, FCT, Libre config), funde Fase 5 calendario, desbloquea merge `/admin/jornadas`+`/admin/horarios`. Acordado 2026-04-28. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |

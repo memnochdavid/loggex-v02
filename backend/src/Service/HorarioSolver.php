@@ -29,14 +29,15 @@ class HorarioSolver
 
     public function solve(Grupo $grupo, ?int $seed = null): array
     {
-        $jornada = $grupo->getItinerario()?->getJornadaTipo();
+        // Lee la jornada efectiva (override del grupo si lo hay, default del itinerario).
+        $jornada = $grupo->getEffectiveJornadaTipo();
         if ($jornada === null) {
             return [
                 'complete' => false,
                 'placements' => [],
                 'unplaced' => [],
                 'debug' => [
-                    'error' => 'Sin jornada asignada al itinerario. Asigna una en /admin/jornadas.',
+                    'error' => 'Sin jornada asignada al itinerario ni override en el grupo. Asigna una en /admin/jornadas o desde el selector de /admin/horarios.',
                 ],
             ];
         }
@@ -349,7 +350,7 @@ class HorarioSolver
         $busy = [];
         foreach ($grupos as $g) {
             if ($g->getId() === $grupo->getId()) continue;
-            $jOtro = $g->getItinerario()?->getJornadaTipo();
+            $jOtro = $g->getEffectiveJornadaTipo();
             if ($jOtro === null) continue;
             if ($jOtro->getTurno() !== $turno) continue;
             $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $g]);

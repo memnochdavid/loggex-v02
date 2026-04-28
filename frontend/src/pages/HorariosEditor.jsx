@@ -200,8 +200,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [selectedImpId, setSelectedImpId] = useState(null);
   // Cache de jornadas por id: { [jornadaId]: JornadaTipoConTramos | null (no asignada) }
   const [jornadasPorId, setJornadasPorId] = useState({});
+  // Lista de jornadas disponibles por centro: { [centroId]: [{id, nombre, turno}, ...] }.
+  // Alimenta el selector de jornada del infoBar (override por grupo, persistido en BD).
+  const [jornadasByCentro, setJornadasByCentro] = useState({});
   // Cache de capacity-check por grupo: { [grupoId]: { feasible, totalMinutos, capacidadMinutos, desajuste, asignacion, roundups, huerfanos, ... } }
   const [capacityByGrupo, setCapacityByGrupo] = useState({});
+  // Flag de PUT en curso para el override de jornada (deshabilita el selector mientras llega el ack).
+  const [savingJornadaOverride, setSavingJornadaOverride] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -233,29 +238,39 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, user?.centro?.id]);
 
-  // 1.5) Cargar la jornada del itinerario del grupo seleccionado.
+  // Helper local: extrae id de una FK que puede llegar como objeto, IRI string u objeto JSON-LD.
+  const extractFkId = (ref) => {
+    if (!ref) return null;
+    if (typeof ref === 'string') return ref.split('/').pop();
+    if (typeof ref === 'object') {
+      return ref.id != null
+        ? String(ref.id)
+        : (ref['@id'] ? ref['@id'].split('/').pop() : null);
+    }
+    return null;
+  };
+
+  // Resuelve el id de la jornada efectiva del grupo: override > itinerario.jornadaTipo.
+  const resolveEffectiveJornadaId = (g) => {
+    const overrideId = extractFkId(g?.jornadaTipoOverride);
+    if (overrideId) return overrideId;
+    return extractFkId(g?.itinerario?.jornadaTipo);
+  };
+
+  // 1.5) Cargar la jornada efectiva del grupo seleccionado.
   // El GET /api/grupos no anida los tramos de la jornada (los serializer groups
   // no encadenan tan profundo), así que hacemos un fetch dedicado a /api/jornada_tipos/{id}.
+  // La jornada efectiva = override del grupo si existe, sino la del itinerario.
   useEffect(() => {
     if (!selectedGrupo || grupos.length === 0) return;
     const grupoActual = grupos.find(g => String(g.id) === String(selectedGrupo));
     if (!grupoActual) return;
 
-    const itin = grupoActual.itinerario;
-    // Resolver el id de la jornada (puede venir como objeto, IRI string o nada).
-    let jornadaId = null;
-    const jt = itin?.jornadaTipo;
-    if (jt) {
-      if (typeof jt === 'object') {
-        jornadaId = jt.id || (jt['@id'] ? jt['@id'].split('/').pop() : null);
-      } else if (typeof jt === 'string') {
-        jornadaId = jt.split('/').pop();
-      }
-    }
+    const jornadaId = resolveEffectiveJornadaId(grupoActual);
 
     if (!jornadaId) {
-      // Itinerario sin jornada asignada: marcamos null para que el banner aparezca.
-      const itinId = itin?.id || (itin?.['@id'] ? itin['@id'].split('/').pop() : null);
+      // Sin jornada efectiva: marcamos para que el banner aparezca.
+      const itinId = extractFkId(grupoActual.itinerario);
       if (itinId) setJornadasPorId(prev => ({ ...prev, [`itin:${itinId}`]: null }));
       return;
     }
@@ -271,6 +286,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })
       .catch(err => console.error('Error cargando jornada:', err));
   }, [selectedGrupo, grupos, jornadasPorId]);
+
+  // 1.5.b) Cargar las jornadas disponibles del centro del grupo seleccionado.
+  // Alimenta el selector de jornada del infoBar (override por grupo).
+  // Un fetch por centro, cacheado en jornadasByCentro.
+  useEffect(() => {
+    if (!selectedGrupo || grupos.length === 0) return;
+    const grupoActual = grupos.find(g => String(g.id) === String(selectedGrupo));
+    if (!grupoActual) return;
+    const centroId = extractFkId(grupoActual.centro);
+    if (!centroId) return;
+    if (jornadasByCentro[centroId] !== undefined) return;
+
+    fetch(getApiUrl(`/api/jornada_tipos?centro=${centroId}&pagination=false`),
+      { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const items = d['hydra:member'] || d.member || [];
+        setJornadasByCentro(prev => ({ ...prev, [centroId]: items }));
+      })
+      .catch(err => console.error('Error cargando jornadas del centro:', err));
+  }, [selectedGrupo, grupos, jornadasByCentro]);
 
   // 1.6) Capacity-check del grupo seleccionado (sub-fase O, §14.7).
   // Pre-calcula el ILP de asignación slots→materias antes de pulsar "Sugerir".
@@ -426,18 +463,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const grupoState = state[selectedGrupo];
   const placements = grupoState?.placements || {};
 
-  // Resolver la jornada del itinerario del grupo. Cargada por el useEffect 1.5).
+  // Resolver la jornada efectiva del grupo. Cargada por el useEffect 1.5).
+  // Override del grupo > itinerario.jornadaTipo (ver Grupo.getEffectiveJornadaTipo() en backend).
   const jornadaActual = useMemo(() => {
     if (!grupo) return null;
-    const jt = grupo.itinerario?.jornadaTipo;
-    let jornadaId = null;
-    if (jt) {
-      if (typeof jt === 'object') {
-        jornadaId = jt.id || (jt['@id'] ? jt['@id'].split('/').pop() : null);
-      } else if (typeof jt === 'string') {
-        jornadaId = jt.split('/').pop();
-      }
-    }
+    const jornadaId = resolveEffectiveJornadaId(grupo);
     if (!jornadaId) return null;
     return jornadasPorId[jornadaId] || null;
   }, [grupo, jornadasPorId]);
@@ -936,6 +966,59 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return () => window.removeEventListener('keydown', h);
   }, [selectedImpId]);
 
+  // Cambio de override de jornada para el grupo actual.
+  // Persiste vía PUT /api/grupos/{id} y refresca grupos + caches dependientes.
+  // Nota: los placements ya guardados que no encajen con los slots de la nueva
+  // jornada no se borran de BD; quedan silenciosamente no renderizados (la
+  // rejilla itera sobre tramosOrdenados, así que solo aparece lo que coincide).
+  const handleJornadaOverrideChange = async (newJornadaIdRaw) => {
+    if (!selectedGrupo || !grupo) return;
+    const currentEffectiveId = resolveEffectiveJornadaId(grupo);
+    // Normaliza '' / undefined a null (= sin override → fallback al itinerario).
+    const newOverrideId = newJornadaIdRaw ? String(newJornadaIdRaw) : null;
+    // Si el usuario elige el id que ya es la jornada efectiva por herencia del
+    // itinerario, mejor no fijar override (mantiene la cadena limpia).
+    const inheritedItinId = extractFkId(grupo.itinerario?.jornadaTipo);
+    const effectiveOverride = (newOverrideId && newOverrideId === inheritedItinId) ? null : newOverrideId;
+    const currentOverrideId = extractFkId(grupo.jornadaTipoOverride);
+    if ((currentOverrideId || null) === (effectiveOverride || null)) return;  // no-op
+
+    setSavingJornadaOverride(true);
+    try {
+      // PATCH (merge-patch+json) en vez de PUT: API Platform 3 trata PUT como
+      // reemplazo total y nullificaría nombre/curso/anioEscolar/itinerario/centro.
+      const body = { jornadaTipoOverride: effectiveOverride ? `/api/jornada_tipos/${effectiveOverride}` : null };
+      const res = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      const updated = await res.json();
+      // Reemplaza el grupo en la lista para que jornadaActual se recalcule.
+      setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updated } : g));
+      // Invalida el capacity-check (depende de la jornada efectiva).
+      setCapacityByGrupo(prev => {
+        const next = { ...prev };
+        delete next[selectedGrupo];
+        return next;
+      });
+      const newEffectiveId = effectiveOverride || inheritedItinId;
+      if (newEffectiveId && newEffectiveId !== currentEffectiveId) {
+        toast.success(t('scheduleEditor.jornadaChanged', { defaultValue: 'Jornada cambiada' }));
+      }
+    } catch (err) {
+      console.error('Error al cambiar jornada override:', err);
+      toast.error(t('scheduleEditor.jornadaChangeError', { defaultValue: 'No se pudo cambiar la jornada' }));
+    } finally {
+      setSavingJornadaOverride(false);
+    }
+  };
+
   // Solver: pide propuesta al backend y pinta el estado (sin persistir)
   const runSolver = async (seed = null) => {
     if (!selectedGrupo) return;
@@ -1252,6 +1335,41 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   });
                 })()}
                 <div className={styles.infoBar}>
+                  {(() => {
+                    const centroId = extractFkId(grupo?.centro);
+                    const opciones = (centroId && jornadasByCentro[centroId]) || [];
+                    const inheritedItinId = extractFkId(grupo?.itinerario?.jornadaTipo);
+                    // Valor del selector: id efectivo (override si lo hay, sino el del itinerario).
+                    const valor = String(resolveEffectiveJornadaId(grupo) || '');
+                    const options = opciones.map(j => {
+                      const turnoLabel = j.turno === 'tarde'
+                        ? t('scheduleEditor.turnoAfternoon')
+                        : t('scheduleEditor.turnoMorning');
+                      const isInherited = String(j.id) === String(inheritedItinId || '');
+                      const inheritedSuffix = isInherited
+                        ? ` ${t('scheduleEditor.jornadaInheritedSuffix', { defaultValue: '(itinerario)' })}`
+                        : '';
+                      return {
+                        value: String(j.id),
+                        label: `${j.nombre} · ${turnoLabel}${inheritedSuffix}`,
+                      };
+                    });
+                    return (
+                      <span className={styles.infoBarSelect}>
+                        <b>{t('scheduleEditor.jornada', { defaultValue: 'Jornada' })}:</b>
+                        <ThemedSelect
+                          value={valor}
+                          onChange={handleJornadaOverrideChange}
+                          options={options}
+                          placeholder={t('scheduleEditor.jornadaPlaceholder', { defaultValue: '— Sin jornada —' })}
+                          ariaLabel={t('scheduleEditor.jornada', { defaultValue: 'Jornada' })}
+                          minWidth={220}
+                          disabled={savingJornadaOverride || options.length === 0}
+                          placement="top"
+                        />
+                      </span>
+                    );
+                  })()}
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.aulaDefault || (grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : '—')}</span>
                   <div className={styles.infoBarActions}>

@@ -428,6 +428,14 @@
 
 .infoBar b { color: var(--text-main); }
 
+.infoBarSelect {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.infoBarSelect b { color: var(--text-main); }
+
 .infoBarActions {
     margin-left: auto;
     display: flex;
