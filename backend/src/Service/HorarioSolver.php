@@ -3,8 +3,10 @@
 namespace App\Service;
 
 use App\Entity\Grupo;
-use App\Entity\Imparticion;
+use App\Entity\Horario;
 use App\Entity\JornadaTipo;
+use App\Entity\PeriodoLectivo;
+use App\Entity\PeriodoLectivoImparticion;
 use App\Entity\TipoTramo;
 use App\Entity\TurnoJornada;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,20 +26,35 @@ class HorarioSolver
     public function __construct(
         private EntityManagerInterface $em,
         private CapacityPlanner $planner,
+        private PeriodoLectivoResolver $resolver,
     ) {
     }
 
-    public function solve(Grupo $grupo, ?int $seed = null): array
+    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null): array
     {
-        // Lee la jornada efectiva (override del grupo si lo hay, default del itinerario).
-        $jornada = $grupo->getEffectiveJornadaTipo();
+        // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
+        $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
+        if ($periodoLectivo === null) {
+            return [
+                'complete' => false,
+                'placements' => [],
+                'unplaced' => [],
+                'debug' => [
+                    'error' => 'Grupo sin PeriodoLectivo (caso imposible tras la migración Fase 1).',
+                ],
+            ];
+        }
+
+        // Jornada efectiva del rango: la propia si está set, sino fallback al
+        // grupo (override) y al itinerario.
+        $jornada = $periodoLectivo->getEffectiveJornadaTipo();
         if ($jornada === null) {
             return [
                 'complete' => false,
                 'placements' => [],
                 'unplaced' => [],
                 'debug' => [
-                    'error' => 'Sin jornada asignada al itinerario ni override en el grupo. Asigna una en /admin/jornadas o desde el selector de /admin/horarios.',
+                    'error' => 'Sin jornada asignada al rango, al grupo (override) ni al itinerario. Asigna una en /admin/jornadas o desde el selector de /admin/horarios.',
                 ],
             ];
         }
@@ -60,7 +77,7 @@ class HorarioSolver
         // topológico. Si la combinatoria es infactible (capacidad < total), el solver
         // se detiene aquí con el diagnóstico del planner — no hay nada que el
         // backtracking pueda hacer al respecto.
-        $capacity = $this->planner->plan($grupo);
+        $capacity = $this->planner->plan($grupo, $periodoLectivo);
         if (!$capacity['feasible']) {
             return [
                 'complete' => false,
@@ -75,7 +92,25 @@ class HorarioSolver
         }
 
         $turno = $jornada->getTurno();
-        $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+        // Imparticiones DEL RANGO (vía PLI), no todas las del grupo. La cadena
+        // imparticion[] = pliQuery → pli.getImparticion() permite además que
+        // los minutos por imparticion sigan el override del rango.
+        $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
+            ->createQueryBuilder('pli')
+            ->andWhere('pli.periodoLectivo = :pl')
+            ->andWhere('pli.deleted = false')
+            ->setParameter('pl', $periodoLectivo)
+            ->getQuery()
+            ->getResult();
+        $imps = [];
+        $minutosPorImp = [];   // impId → minutos efectivos del rango
+        foreach ($plis as $pli) {
+            $imp = $pli->getImparticion();
+            if ($imp === null || $imp->isDeleted()) continue;
+            $imps[] = $imp;
+            $minutosPorImp[$imp->getId()] = $pli->getEffectiveMinutosSemanales();
+        }
+
         $parallelBusy = $this->buildParallelBusy($grupo, $turno);
 
         // Una tarea por imparticion con cuotas por duración (preasignadas por el
@@ -85,7 +120,7 @@ class HorarioSolver
         // cuotas (el planner generó combos con sum >= minutos).
         $tasks = [];
         foreach ($imps as $imp) {
-            $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+            $minutos = $minutosPorImp[$imp->getId()] ?? 0;
             if ($minutos <= 0) continue;
             $cuotas = $capacity['asignacion'][$imp->getId()] ?? [];
             if (empty($cuotas) || array_sum($cuotas) === 0) continue;
@@ -181,7 +216,7 @@ class HorarioSolver
         $tasksPerImp = [];
         $totalMinAColocar = 0;
         foreach ($imps as $imp) {
-            $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+            $minutos = $minutosPorImp[$imp->getId()] ?? 0;
             $totalMinAColocar += $minutos;
             $tasksPerImp[] = [
                 'imparticionId' => $imp->getId(),
@@ -203,7 +238,11 @@ class HorarioSolver
             'placements' => $out,
             'unplaced' => $unplaced,
             'capacity' => $capacity,
+            'periodoLectivoId' => $periodoLectivo->getId(),
+            'periodoLectivoNombre' => $periodoLectivo->getNombre(),
             'debug' => [
+                'periodoLectivoId' => $periodoLectivo->getId(),
+                'periodoLectivoNombre' => $periodoLectivo->getNombre(),
                 'jornadaId' => $jornada->getId(),
                 'jornadaNombre' => $jornada->getNombre(),
                 'turno' => $turno?->value,
@@ -337,6 +376,10 @@ class HorarioSolver
      * cuya jornada comparte el mismo `turno` con la del grupo actual. Esto
      * impide que un profesor se asigne en dos grupos a la vez.
      *
+     * Para cada grupo paralelo se mira SU rango lectivo activo y se filtran
+     * los horarios a placements de ese rango (los placements de rangos pasados
+     * o futuros del mismo grupo no cuentan como ocupación actual).
+     *
      * Nota: comparamos por `turno` (enum mañana/tarde) en lugar de solape real
      * de rangos horarios. Es una aproximación suficiente y barata; si dos
      * jornadas distintas pero ambas "MAÑANA" no se solapan en la práctica,
@@ -348,21 +391,34 @@ class HorarioSolver
         if (!$centro || $turno === null) return [];
         $grupos = $this->em->getRepository(Grupo::class)->findBy(['centro' => $centro]);
         $busy = [];
+        $horarioRepo = $this->em->getRepository(Horario::class);
         foreach ($grupos as $g) {
             if ($g->getId() === $grupo->getId()) continue;
-            $jOtro = $g->getEffectiveJornadaTipo();
+            // Resolver PL activo de cada paralelo y leer su jornada efectiva.
+            $plOtro = $this->resolver->resolveActive($g);
+            if ($plOtro === null) continue;
+            $jOtro = $plOtro->getEffectiveJornadaTipo();
             if ($jOtro === null) continue;
             if ($jOtro->getTurno() !== $turno) continue;
-            $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $g]);
-            foreach ($imps as $imp) {
-                $pid = $imp->getProfesor()?->getId();
+
+            // Horarios del PL activo del grupo paralelo (no todos los históricos).
+            $horarios = $horarioRepo->createQueryBuilder('h')
+                ->innerJoin('h.imparticion', 'i')
+                ->andWhere('i.grupo = :grupo')
+                ->andWhere('h.periodoLectivo = :pl')
+                ->andWhere('h.deleted = false')
+                ->setParameter('grupo', $g)
+                ->setParameter('pl', $plOtro)
+                ->getQuery()
+                ->getResult();
+
+            foreach ($horarios as $h) {
+                $pid = $h->getImparticion()?->getProfesor()?->getId();
                 if (!$pid) continue;
-                foreach ($imp->getHorarios() as $h) {
-                    $dia = $h->getDiaSemana();
-                    $hi = $h->getHoraInicio()?->format('H:i');
-                    if ($hi === null) continue;
-                    $busy[$dia . '_' . $hi][] = $pid;
-                }
+                $dia = $h->getDiaSemana();
+                $hi = $h->getHoraInicio()?->format('H:i');
+                if ($hi === null) continue;
+                $busy[$dia . '_' . $hi][] = $pid;
             }
         }
         return $busy;

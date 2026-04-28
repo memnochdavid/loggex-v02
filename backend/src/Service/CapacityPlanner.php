@@ -3,8 +3,9 @@
 namespace App\Service;
 
 use App\Entity\Grupo;
-use App\Entity\Imparticion;
 use App\Entity\JornadaTipo;
+use App\Entity\PeriodoLectivo;
+use App\Entity\PeriodoLectivoImparticion;
 use App\Entity\TipoTramo;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -32,8 +33,10 @@ class CapacityPlanner
     private bool $timedOut = false;
     private int $nodesExplored = 0;
 
-    public function __construct(private EntityManagerInterface $em)
-    {
+    public function __construct(
+        private EntityManagerInterface $em,
+        private PeriodoLectivoResolver $resolver,
+    ) {
     }
 
     /**
@@ -49,12 +52,20 @@ class CapacityPlanner
      *   debug: array<string, mixed>
      * }
      */
-    public function plan(Grupo $grupo): array
+    public function plan(Grupo $grupo, ?PeriodoLectivo $periodoLectivo = null): array
     {
-        // Lee la jornada efectiva (override del grupo si lo hay, default del itinerario).
-        $jornada = $grupo->getEffectiveJornadaTipo();
+        // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
+        $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
+        if ($periodoLectivo === null) {
+            return $this->errorResult('Grupo sin PeriodoLectivo (caso imposible tras la migración Fase 1).');
+        }
+
+        // Jornada efectiva del rango: la propia si está set, sino fallback al
+        // grupo (override) y al itinerario. Cadena completa en
+        // PeriodoLectivo::getEffectiveJornadaTipo().
+        $jornada = $periodoLectivo->getEffectiveJornadaTipo();
         if ($jornada === null) {
-            return $this->errorResult('Sin jornada asignada al itinerario ni override en el grupo.');
+            return $this->errorResult('Sin jornada asignada al rango, al grupo (override) ni al itinerario.');
         }
 
         $diasLectivos = $jornada->getDiasLectivos() ?: [1, 2, 3, 4, 5];
@@ -71,11 +82,22 @@ class CapacityPlanner
         ksort($slotsDisponibles);
         $duraciones = array_keys($slotsDisponibles);
 
-        $imps = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+        // Lee las imparticiones DEL RANGO (vía PLI), no todas las del grupo.
+        // Si una imparticion no tiene PLI en este rango, no existe en este rango.
+        $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
+            ->createQueryBuilder('pli')
+            ->andWhere('pli.periodoLectivo = :pl')
+            ->andWhere('pli.deleted = false')
+            ->setParameter('pl', $periodoLectivo)
+            ->getQuery()
+            ->getResult();
+
         $materias = [];
         $totalMinutos = 0;
-        foreach ($imps as $imp) {
-            $minutos = $imp->getMateria()?->getMinutosSemanales() ?? 0;
+        foreach ($plis as $pli) {
+            $imp = $pli->getImparticion();
+            if ($imp === null || $imp->isDeleted()) continue;
+            $minutos = $pli->getEffectiveMinutosSemanales();
             if ($minutos <= 0) continue;
             $materias[] = [
                 'impId' => $imp->getId(),

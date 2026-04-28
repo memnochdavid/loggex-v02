@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fase 1 ✅ Done (modelo + migración con backfill). Stepping stone (override jornada por grupo) ✅ Done. Fase 2 (solver y `CapacityPlanner` por rango) pendiente — siguiente paso. Modelo `PeriodoLectivo` ya está en BD con un rango único `"Curso completo"` por cada grupo existente (vía migración `Version20260428180000`); el comportamiento del solver y editor sigue siendo idéntico al actual hasta que Fase 2 los cablee a leer la jornada e imparticiones del rango. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo, las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
+> **Status (2026-04-28)**: 🟡 Fases 1+2 ✅ Done (modelo + migración + solver/planner por rango). Stepping stone (override jornada por grupo) ✅ Done. Fase 3 (UI timeline) pendiente — siguiente paso. Modelo `PeriodoLectivo` ya está en BD con un rango único `"Curso completo"` por grupo (`Version20260428180000`) y el solver/CapacityPlanner ya leen jornada e imparticiones del rango activo (resuelto con `PeriodoLectivoResolver`); el comportamiento observable sigue idéntico al actual mientras solo haya un rango por grupo. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo (Fase 3 + UI), las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
 
 ---
 
@@ -121,15 +121,18 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo invertido**: ~1 sesión.
 
-### Fase 2 — Solver y CapacityPlanner por rango
+### Fase 2 — Solver y CapacityPlanner por rango  ✅ Done (2026-04-28)
 
-- `HorarioSolver` recibe un `PeriodoLectivo` y opera con sus imparticiones (`PeriodoLectivoImparticion`) y su `JornadaTipo` resuelto (rango → itinerario).
-- `CapacityPlanner` (sub-fase O) idem: corre por rango.
-- `Imparticion.minutosSemanales` deja de leerse en el solver; se pasa a leer de `PeriodoLectivoImparticion`.
-- Endpoint sugerir-horario gana parámetro `periodoLectivo` (default: rango activo en la fecha actual del grupo).
-- Banner verde/amarillo/rojo del CapacityPlanner se calcula por rango.
+- ✅ `HorarioSolver::solve(Grupo, ?int $seed, ?PeriodoLectivo)` acepta el rango opcional. Si no se pasa, lo resuelve con `PeriodoLectivoResolver` (rango cuyo intervalo contiene `today()` o, si no hay match, el primero por `fechaInicio`).
+- ✅ Lee `PeriodoLectivoImparticion[]` del rango (vía query Doctrine), no `Imparticion[]` del grupo. Cada PLI usa `getEffectiveMinutosSemanales()` (override del rango ?? `Materia.minutosSemanales`). Una imparticion sin PLI en el rango no existe en él (el solver no la considera).
+- ✅ Jornada efectiva del rango: `PeriodoLectivo.getEffectiveJornadaTipo()` cae en cadena `rango.jornadaTipo → grupo.jornadaTipoOverride → itinerario.jornadaTipo`.
+- ✅ `CapacityPlanner::plan(Grupo, ?PeriodoLectivo)` idem.
+- ✅ `buildParallelBusy` actualizado: para cada grupo paralelo resuelve SU rango activo y filtra los `Horario` por `periodo_lectivo_id` (ya no cuentan los placements de rangos pasados/futuros como ocupación).
+- ✅ Controller `HorarioSolverController` acepta `periodoLectivoId` en el body de `POST /solver/{grupoId}` y `?periodoLectivo=N` en `GET /capacity-check/{grupoId}`. Validación: el PL debe pertenecer al grupo (422 si no).
+- ✅ `Horario.periodoLectivo` se auto-rellena en el `prePersist` (vía `HorarioPeriodoLectivoSubscriber`) si el frontend no lo envía. Mantiene compatibilidad con la UI pre-Fase 3 que sigue POSTeando horarios sin el campo.
+- **Comportamiento observable**: idéntico al actual mientras solo haya un rango por grupo (caso post-migración Fase 1). El solver y el banner verde/amarillo/rojo siguen funcionando como hasta ahora; cualquier cambio pasaría por crear un segundo PL en el grupo.
 
-**Esfuerzo**: ~1 sesión.
+**Esfuerzo invertido**: ~1 sesión.
 
 ### Fase 3 — UI: timeline de rangos en `/admin/horarios`
 
@@ -256,6 +259,23 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 ### 2026-04-28 — Fase 8 añadida al roadmap
 
 Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.
+
+### 2026-04-28 — Fase 2 implementada (solver y planner por rango)
+
+Cableado backend de Fase 2. Servicios y controlador adaptados para que el solver y el `CapacityPlanner` operen sobre `PeriodoLectivo` en vez de `Grupo` directamente, manteniendo el comportamiento observable idéntico al actual mientras solo haya un rango por grupo.
+
+**Archivos nuevos**:
+- `backend/src/Service/PeriodoLectivoResolver.php` — resuelve rango activo (contiene `today()`, fallback al primero por `fechaInicio`).
+- `backend/src/EventSubscriber/HorarioPeriodoLectivoSubscriber.php` — `prePersist` que auto-rellena `Horario.periodoLectivo` si el cliente no lo envía. Necesario porque la columna pasó a NOT NULL en Fase 1 y el frontend pre-Fase 3 sigue POSTeando horarios sin ese campo.
+
+**Archivos modificados**:
+- `HorarioSolver.php`: signature `solve(Grupo, ?int, ?PeriodoLectivo)`; lee imparticiones desde PLI (con `getEffectiveMinutosSemanales`); jornada vía `PeriodoLectivo.getEffectiveJornadaTipo()`; añade `periodoLectivoId/Nombre` al output. `buildParallelBusy` ahora pide PL activo de cada grupo paralelo y filtra `Horario.periodoLectivo` (no cuenta placements de rangos antiguos como ocupación).
+- `CapacityPlanner.php`: signature `plan(Grupo, ?PeriodoLectivo)`; constructor recibe `PeriodoLectivoResolver`; lee imparticiones desde PLI.
+- `HorarioSolverController.php`: ambos endpoints aceptan PL opcional (body `periodoLectivoId` en POST, query `?periodoLectivo=N` en GET); valida pertenencia al grupo (422 si no).
+
+**Decisión menor durante implementación**: el resolver tiene fallback "primer rango por `fechaInicio`" cuando ningún rango contiene `today()` (caso típico antes de septiembre o tras junio). Permite que el editor siga funcionando fuera de horas lectivas sin errores en blanco.
+
+**Pendiente Fase 3**: UI timeline de rangos en `/admin/horarios` (selector por rango, "+ añadir rango", botones de duplicar/borrar, banner Σ horas anuales por grupo).
 
 ### 2026-04-28 — Fase 1 implementada (modelo + migración con backfill)
 
