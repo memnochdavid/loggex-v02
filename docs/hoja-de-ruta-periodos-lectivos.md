@@ -169,6 +169,40 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo**: ~1 sesión.
 
+### Fase 8 — Tab "Consumición de horas anuales" por grupo
+
+> Idea acordada 2026-04-28. Es la fase que justifica visualmente las decisiones de los rangos: el admin debe poder confirmar de un vistazo que el currículo cuadra al final del año.
+
+Tab nuevo en la vista de cada grupo (probablemente en `/admin/grupos/{id}` o como sub-pestaña de `/admin/horarios` cuando el grupo está seleccionado) con dos vistas combinadas:
+
+**Vista "ahora"** — instantánea de hoy:
+- Por materia: horas previstas en el currículo (Σ minutos × semanas) vs horas ya impartidas hasta hoy (de `Asistencia` confirmadas o, en su defecto, deducidas del calendario y los `PeriodoLectivo` ya transcurridos).
+- Diferencia: adelanto/retraso por materia.
+- Banner: "vas X% del año, llevas Y% de horas impartidas — proyección Z".
+
+**Vista "proyección"** — timeline anual:
+- Eje X = semanas/meses del curso. Eje Y = horas acumuladas.
+- Una línea por materia (o por categoría si hay ruido). Línea ideal del currículo + línea proyectada según los `PeriodoLectivo` configurados (jornadas, materias activas en cada rango, festivos).
+- Si la proyección no llega al objetivo anual al final del curso → alerta con la diferencia exacta y sugerencia ("amplía el rango FCT en N días" / "añade X minutos/sem en el rango Y").
+
+**Doble eje temporal**: además del "rango" (`PeriodoLectivo`), permitir alternar la línea de "evaluaciones" (`PeriodoEvaluativo`) para ver el cumplimiento por evaluación. Los dos modelos son ortogonales y útiles por separado:
+- Rangos = "¿cuánto le queda a la materia X para terminar?"
+- Evaluaciones = "¿qué materias terminan dentro de la 1ª evaluación a tiempo de poner nota?"
+
+**Datos de entrada**:
+- Currículo por materia (Σ minutos × semanas) — lo que ya tenemos.
+- `PeriodoLectivo[]` del grupo + sus `PeriodoLectivoImparticion[]` con minutos por rango.
+- `PeriodoEvaluativo[]` del grupo (fechas, peso) — ya existe.
+- `Festivo[]` del centro/CCAA — ya cargado tras Calendario Fases 1-3.
+- `Centro.fechaInicioCurso/FinCurso` — pendiente Fase 7.
+- `Asistencia[]` confirmadas (vista "ahora") — opcional, fallback al cálculo teórico.
+
+**Esfuerzo**: ~2-3 sesiones (1 backend de cálculo + 1-2 frontend con `recharts` o similar).
+
+**Impacto comercial**: alto. Es el dashboard que un jefe de estudios revisa semanalmente. Sin este tab, los rangos son una caja negra — con él, son una herramienta de gestión real.
+
+**Prerrequisitos**: Fases 1-7 completas. Funciona aún sin Asistencia (cálculo teórico) pero gana mucho con ella.
+
 ---
 
 ## 4. Impacto en otros docs
@@ -209,3 +243,7 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 **Pendiente** (sin cambios respecto al estado anterior del doc):
 - D-C / D-G / D-H / D-I abiertas (decisiones del modelo `PeriodoLectivo`).
 - Fase 1: modelo + migración (auto-crea rango único `"Curso completo"` por grupo, copia override → `PeriodoLectivo.jornadaTipo`).
+
+### 2026-04-28 — Fase 8 añadida al roadmap
+
+Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.

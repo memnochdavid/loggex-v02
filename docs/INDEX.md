@@ -113,7 +113,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| `hoja-de-ruta-periodos-lectivos.md` | 7 fases (~5 sesiones) | **CRÍTICO**: resuelve el parche temporal de jornadas 35h → 30h, modela distribución temporal de materias (Proyecto Intermodular, FCT, Libre config), funde Fase 5 calendario, desbloquea merge `/admin/jornadas`+`/admin/horarios`. Acordado 2026-04-28. |
+| `hoja-de-ruta-periodos-lectivos.md` | 8 fases (~7-8 sesiones) | **CRÍTICO**: resuelve el parche temporal de jornadas 35h → 30h, modela distribución temporal de materias (Proyecto Intermodular, FCT, Libre config), funde Fase 5 calendario, desbloquea merge `/admin/jornadas`+`/admin/horarios`. Cierra con tab dashboard de horas anuales (Fase 8). Acordado 2026-04-28. Stepping stone (override de jornada por grupo) ✅ Done. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
