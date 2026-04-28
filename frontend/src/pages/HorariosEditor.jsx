@@ -760,7 +760,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Currículo: Σ minutos semanales de las imparticiones del grupo × 36 semanas.
     const curriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_ESTANDAR;
 
-    // Planificado: por cada PL, semanas del rango × Σ minutos efectivos PLI.
+    // Cap semanal de la jornada (capacidad física por semana). Asumimos que la
+    // jornada del PL activo es representativa de todos los PLs del grupo —
+    // approximación; rangos con jornadas distintas darán cifra ~aproximada.
+    // Necesario para que el plan no prometa más horas que las que físicamente
+    // caben (Fase 5 sub-C polish): si Σ pli/sem > jornada/sem, el solver sólo
+    // colocará lo que cabe; el plan debe reflejar esa cota.
+    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
+    const jornadaSemanalMin = slotsMinTotal * 5;
+
+    // Planificado: por cada PL, semanas del rango × min(Σ minutos efectivos
+    // PLI, jornadaSemanalMin). El min cap evita el caso "plan > capacity"
+    // que producía verdicts contradictorios entre este banner y el del
+    // CapacityPlanner ("plan +50h cumple" vs "capacidad -119h faltan").
     let plannedMin = 0;
     let semanasTotal = 0;
     pls.forEach(pl => {
@@ -779,7 +791,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const imp = impById[impId];
         return acc + (imp?.materia?.minutosSemanales || 0);
       }, 0);
-      plannedMin += sumPliMin * semanas;
+      const minPerWeekColocables = jornadaSemanalMin > 0
+        ? Math.min(sumPliMin, jornadaSemanalMin)
+        : sumPliMin;
+      plannedMin += minPerWeekColocables * semanas;
     });
 
     const curriculumHoras = Math.round(curriculumMin / 60);
@@ -801,7 +816,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       plCount: pls.length,
       semanasTotal: Math.round(semanasTotal * 10) / 10,
     };
-  }, [selectedGrupo, plByGrupo, imps, impById]);
+  }, [selectedGrupo, plByGrupo, imps, impById, slotMinutosByHi]);
 
   // Sugerencia de extensión de curso (Fase 5 sub-B): cuando el banner anual
   // muestra que faltan horas (tone warn/error), calcula cuántos días lectivos
@@ -882,6 +897,38 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       newTone,
     };
   }, [horasAnualesBanner, slotMinutosByHi, plByGrupo, selectedGrupo, grupo, impById]);
+
+  // Feasibility ANUAL global del grupo (Fase 5 sub-C): compara Σ currículo
+  // anual contra Σ capacidad real (jornada × semanas total del grupo). Si
+  // cabe globalmente, una sobrecarga semanal en un rango concreto no es alarma
+  // — sólo informativa (el admin redistribuye desde Sliders o crea otro rango).
+  // Si NO cabe globalmente, el banner del CapacityPlanner pasa a rojo real:
+  // hay que extender curso o subir jornada (no hay redistribución que arregle
+  // un déficit físico de capacidad).
+  // Distinto del banner anual de Fase 3b (que compara plan vs currículo, no
+  // capacidad vs currículo).
+  const capacityFeasibilityAnual = useMemo(() => {
+    if (!selectedGrupo) return null;
+    if (imps.length === 0) return null;
+    const sumCurriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_REFERENCIA_ANUAL;
+    if (sumCurriculumMin <= 0) return null;
+    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
+    const jornadaSemanalMin = slotsMinTotal * 5;
+    if (jornadaSemanalMin <= 0) return null;
+    const semanasTotal = Object.values(semanasByPlId).reduce((a, b) => a + b, 0);
+    if (semanasTotal <= 0) return null;
+    const capacidadAnualMin = jornadaSemanalMin * semanasTotal;
+    const fits = capacidadAnualMin >= sumCurriculumMin;
+    const deficitH = fits ? 0 : Math.round((sumCurriculumMin - capacidadAnualMin) / 60);
+    return {
+      curriculumH: Math.round(sumCurriculumMin / 60),
+      capacidadH: Math.round(capacidadAnualMin / 60),
+      jornadaSemanalH: Math.round((jornadaSemanalMin / 60) * 10) / 10,
+      semanasTotal: Math.round(semanasTotal * 10) / 10,
+      fits,
+      deficitH,
+    };
+  }, [selectedGrupo, imps, slotMinutosByHi, semanasByPlId]);
 
   // Semanas del rango activo en el modal (Fase 5 sub-A): se usa para convertir
   // entre min/sem ↔ horas anuales. Cálculo: ceil((fechaFin - fechaInicio) / 7).
@@ -2258,26 +2305,53 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               const totalH = (cap.totalMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               const capH = (cap.capacidadMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               if (!cap.feasible) {
-                const annualOk = horasAnualesBanner && (horasAnualesBanner.tone === 'ok');
+                // Fase 5 sub-C: la regla deja de ser "rojo si no cabe semanal" y
+                // pasa a ser "rojo si no cabe ANUALMENTE" (capacidad < currículo).
+                // Si anualmente cabe pero hay sobrecarga semanal, amarillo
+                // informativo: el admin redistribuye desde Sliders o crea otro rango.
+                const anualFits = capacityFeasibilityAnual?.fits ?? null;
+                if (anualFits === true) {
+                  return (
+                    <div className={`${styles.capacityBanner} ${styles.capacityBannerYellow}`}>
+                      <AlertTriangle size={16} />
+                      <div>
+                        <b>{t('scheduleEditor.capacityWeekOverloadTitle', { defaultValue: 'Sobrecarga semanal en este rango' })}</b>
+                        <div>
+                          {t('scheduleEditor.capacityWeekOverloadBody', {
+                            defaultValue: 'En el rango activo las materias suman {{total}}h/sem pero la jornada cubre {{cap}}h/sem. El cómputo anual sí cabe ({{capacidadH}}h capacidad vs {{curriculumH}}h currículo); redistribuye minutos entre rangos desde Sliders o crea otro rango para repartir la carga.',
+                            total: totalH,
+                            cap: capH,
+                            capacidadH: capacityFeasibilityAnual.capacidadH,
+                            curriculumH: capacityFeasibilityAnual.curriculumH,
+                          })}
+                        </div>
+                        {cap.huerfanos?.length > 0 && (
+                          <ul className={styles.capacityList}>
+                            {cap.huerfanos.map(h => (
+                              <li key={h.impId}>{h.materia} ({h.horasRestantes}h sin cubrir)</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                // Anual NO cabe: alarma real. CTA = extender curso o subir jornada.
                 return (
                   <div className={`${styles.capacityBanner} ${styles.capacityBannerRed}`} role="alert">
                     <Ban size={16} />
                     <div>
-                      <b>{t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en este rango' })}</b>
+                      <b>{t('scheduleEditor.capacityAnualInfeasibleTitle', { defaultValue: 'El currículo no cabe en el calendario actual' })}</b>
                       <div>
-                        {t('scheduleEditor.capacityInfeasibleBody', {
-                          defaultValue: 'En el rango activo las materias suman {{total}}h/sem pero la jornada solo cubre {{cap}}h/sem. Para cuadrar la semana sin tocar la jornada, redistribuye los minutos por rango (Fase 4 — próximamente desde UI; mientras tanto vía API o partiendo el curso en más rangos).',
-                          total: totalH, cap: capH,
+                        {t('scheduleEditor.capacityAnualInfeasibleBody', {
+                          defaultValue: 'Currículo anual {{curriculumH}}h vs capacidad real {{capacidadH}}h ({{jornadaH}}h/sem × {{semanas}} sem). Faltan {{deficitH}}h físicas. Extiende el curso (botón en banner anual) o aumenta la jornada lectiva.',
+                          curriculumH: capacityFeasibilityAnual?.curriculumH ?? '?',
+                          capacidadH: capacityFeasibilityAnual?.capacidadH ?? '?',
+                          jornadaH: capacityFeasibilityAnual?.jornadaSemanalH ?? '?',
+                          semanas: capacityFeasibilityAnual?.semanasTotal ?? '?',
+                          deficitH: capacityFeasibilityAnual?.deficitH ?? '?',
                         })}
                       </div>
-                      {annualOk && (
-                        <div className={styles.capacityHintAnnual}>
-                          {t('scheduleEditor.capacityInfeasibleAnnualOk', {
-                            defaultValue: 'Tu cómputo anual sí cuadra ({{diffSigned}}h vs currículo). Lo que falta es repartir las materias entre rangos para que cada semana quepa.',
-                            diffSigned: horasAnualesBanner.diffSigned,
-                          })}
-                        </div>
-                      )}
                       {cap.huerfanos?.length > 0 && (
                         <ul className={styles.capacityList}>
                           {cap.huerfanos.map(h => (

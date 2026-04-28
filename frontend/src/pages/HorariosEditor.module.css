@@ -176,9 +176,27 @@
 }
 
 .moduleChipSelected {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-200, color-mix(in srgb, var(--color-primary-500) 30%, transparent));
-    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 8%, transparent));
+    background: var(--color-primary-500);
+    color: var(--btn-primary-text, var(--text-special, #fff));
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+}
+
+.moduleChipSelected .moduleName,
+.moduleChipSelected .moduleProfe {
+    color: var(--btn-primary-text, var(--text-special, #fff));
+}
+
+/* Counter mantiene su pill bg-card pero el texto pasa a primary
+   para contrastar sobre el chip filled. */
+.moduleChipSelected .moduleCounter {
+    color: var(--color-primary-500);
+    background: var(--bg-card);
+}
+
+.moduleChipSelected:hover {
+    background: var(--color-primary-600, var(--color-primary-500));
+    border-color: var(--color-primary-600, var(--color-primary-500));
 }
 
 .moduleDot {
@@ -545,24 +563,24 @@
 }
 
 .plPill:hover {
-    background: var(--bg-hover, var(--bg-subtle));
-    border-color: var(--primary-color);
+    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 8%, transparent));
+    border-color: var(--color-primary-500);
 }
 
 .plPill:focus-visible {
-    outline: 2px solid var(--primary-color);
+    outline: 2px solid var(--color-primary-500);
     outline-offset: 2px;
 }
 
 .plPillActive {
-    background: var(--primary-color);
-    color: var(--button-primary-text-color, white);
-    border-color: var(--primary-color);
+    background: var(--color-primary-500);
+    color: var(--btn-primary-text, var(--text-special, #fff));
+    border-color: var(--color-primary-500);
 }
 
 .plPillActive:hover {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: var(--color-primary-600, var(--color-primary-500));
+    border-color: var(--color-primary-600, var(--color-primary-500));
 }
 
 .plPillDisabled {
@@ -592,7 +610,7 @@
     gap: 2px;
     margin-left: var(--space-2);
     padding-left: var(--space-2);
-    border-left: 1px solid color-mix(in srgb, var(--button-primary-text-color, white) 30%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--btn-primary-text, var(--text-special, #fff)) 30%, transparent);
 }
 
 .plPillActionBtn {
@@ -612,7 +630,7 @@
 }
 
 .plPillActionBtn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--button-primary-text-color, white) 18%, transparent);
+    background: color-mix(in srgb, var(--btn-primary-text, var(--text-special, #fff)) 18%, transparent);
     opacity: 1;
 }
 

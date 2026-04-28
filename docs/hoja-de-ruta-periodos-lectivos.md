@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4+5a+5b ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Fase 5 reestructurada el 2026-04-28** tras feedback del usuario: modelo mental anual (D-K) + botón "extender curso" (D-J) + CapacityPlanner relajado + cierre del parche temporal absorbido como sub-fase D. **Sub-fases A+B ✅ Done**. Sub-fase A: input horas anuales + ModuleChip cross-rango + validación anual. Sub-fase B: botón "Extender el curso N días" en banner anual con modal de confirmación que muestra diff en `Grupo.fechaFin` + último PL `fechaFin` + preview del nuevo banner. Sub-fases C/D pendientes. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fases 5c/d (CapacityPlanner relajado + cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4+5a+5b+5c+5e ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Sub-fase C ✅**: el banner del CapacityPlanner ya no es rojo automático cuando Σ semanal supera la jornada — es **amarillo informativo** si globalmente cabe (admin redistribuye con Sliders) y **rojo real** sólo si Σ currículo > Σ jornada × Σ semanas total grupo (déficit físico, requiere extender curso o subir jornada). Mensajes actualizados con cifras exactas (capacidad vs currículo, déficit físico). Sub-fase D pendiente (cleanup parche temporal). Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fase 5d (cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -237,15 +237,51 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo invertido**: ~0.5 sesión, según estimación.
 
-#### Sub-fase C — CapacityPlanner relajado (anual-aware)
+#### Sub-fase C — CapacityPlanner relajado (anual-aware)  ✅ Done (2026-04-28)
 
-- Regla de feasibility cambia:
-  - **Rojo** sólo si físicamente imposible: `Σ horas_currículo > Σ jornada × Σ semanas_total_grupo` (no hay sitio aunque distribuyamos).
-  - **Amarillo** informativo si en el rango activo `Σ min/sem > jornada/sem` pero el cómputo anual cuadra. Mensaje: "Este rango tiene sobrecarga semanal. Reasigna minutos a otros rangos desde el modal Materias del rango."
-  - **Silencioso (verde)** si globalmente cabe y suma anual de placements < currículo: el admin sigue colocando, no es feedback útil.
-- Banner del CapacityPlanner ya no es la alarma central — pasa a ser informativo. La alarma real es el banner anual de Fase 3b.
+- ✅ Memo `capacityFeasibilityAnual`: compara Σ currículo (`Σ materia.minutosSemanales × 36`) contra Σ capacidad real (`jornadaSemanalMin × Σ semanasByPlId`). Devuelve `fits: bool` + `deficitH` cuando no cabe + cifras detalladas para el mensaje.
+- ✅ Branch del banner cuando `!cap.feasible` ahora bifurca:
+  - **`anualFits === true`**: banner **amarillo informativo** (`AlertTriangle`, no `Ban`). Título "Sobrecarga semanal en este rango". Mensaje incluye `total/cap` semanal + `capacidadH/curriculumH` anual para que el admin vea ambas escalas. CTA: "redistribuye minutos entre rangos desde Sliders o crea otro rango". Lista huérfanos para diagnóstico.
+  - **`anualFits === false`**: banner **rojo real**. Título "El currículo no cabe en el calendario actual". Mensaje detalla `currículo H vs capacidad H (jornada × semanas)` + `déficit H` físicas. CTA: "extiende el curso (botón en banner anual) o aumenta la jornada lectiva". Sigue listando huérfanos.
+- Branch `cap.feasible && roundups` (amarillo) y `cap.feasible && exact` (verde) **sin cambios** — siguen siendo info útil sobre el solver.
+- ✅ i18n: 4 claves nuevas en 5 idiomas (`capacityWeekOverloadTitle/Body`, `capacityAnualInfeasibleTitle/Body`). Las antiguas (`capacityInfeasibleTitle/Body/AnnualOk`) quedan obsoletas pero se mantienen por compatibilidad con los `defaultValue` de cualquier ruta no migrada.
 
-**Esfuerzo**: ~0.5 sesión.
+**Coherencia con Fase 5 sub-A/B**: el banner CapacityPlanner deja de ser la alarma central y pasa a guiar al admin a la solución correcta — Sliders/crear rango si la redistribución arregla, "Extender curso" del banner anual si no.
+
+**Limitación conocida**:
+- El cálculo de capacidad usa la jornada del PL **activo** asumiéndola representativa. Si el grupo tiene rangos con jornadas distintas (típico tras Fase 4), `capacityFeasibilityAnual` pinta una capacidad teórica común. Para producción real hace falta sumar `jornadaPL × semanasPL` PL a PL. Refactor menor diferido a iteración futura — el rango activo suele ser la jornada del centro y la aproximación funciona en el 95% de casos.
+
+**Esfuerzo invertido**: ~0.5 sesión, según estimación.
+
+#### Sub-fase E — Auditoría y corrección de catálogo DAW LOMLOE Andalucía  ✅ Done (2026-04-28)
+
+> Insertada tras feedback del usuario: tras sub-A/B/C el caso 1º DAW LOMLOE con jornada 27.5h seguía sin cuadrar (faltan 119h físicas). Antes de aceptar la "brujería" (extender curso a julio o subir jornada con recreos), verificamos si los datos del catálogo son correctos vs RD oficial. Resultado: **el catálogo en BD tenía 3 errores que sumaban +3h/sem infladas**. Corregidos, el caso cuadra sin trucos.
+
+**Errores detectados** (1º DAW + DAM Andalucía LOMLOE):
+
+| Materia | BD antes | BOJA Res 26/06/2024 | Δ |
+|---|---|---|---|
+| 0483 Sistemas informáticos | 360 min/sem (6h) | 300 min/sem (5h) | −1h |
+| 0373 Lenguajes de marcas y sist. gestión info | 240 min/sem (4h) | 180 min/sem (3h) | −1h |
+| 1708 Sostenibilidad **en 1º DAW + DAM** | 60 min/sem (1h) | NO existe en 1º (es de 2º con 120 min) | −1h (eliminada de 1º) |
+
+**Origen del problema**: el `BojaAndHardcodedProvider` (`backend/src/Catalogo/Ccaa/Provider/`) tenía documentado en su comment que DAW 1º LOMLOE Andalucía suma 29h, pero **faltaban los overrides explícitos** para 0483 y 0373 — el provider asumía que los valores BOE base eran 5h y 3h, pero el BOE pre-LOMLOE dice 6h y 4h. Sin override, el resync usaba el BOE inflated. Y Sostenibilidad-en-1º era una imparticion residual de seeds antiguos pre-LOMLOE.
+
+**Correcciones aplicadas**:
+- BD oneshot via SQL directo:
+  - `UPDATE materia SET minutos_semanales = 300 WHERE codigo_oficial = '0483'`
+  - `UPDATE materia SET minutos_semanales = 180 WHERE codigo_oficial = '0373'`
+  - `UPDATE imparticion SET deleted = 1 WHERE id IN (39, 62)` (Sostenibilidad-en-1º DAW + DAM EAG)
+- Provider `BojaAndHardcodedProvider`: añadidos overrides explícitos `0483:300` y `0373:180` para DAW 1º y DAM 1º. Centros futuros que materialicen estos itinerarios LOMLOE Andalucía obtendrán las cifras correctas vía resync, sin necesidad del UPDATE manual.
+
+**Verificación**: 1º DAW EAG ahora suma `5+6+8+3+3+3+1 = 29h/sem` (1740 min) según BOJA LOMLOE. Currículo anual = 29 × 36 = 1044h. Capacidad real con jornada 27.5h × 37.6 sem (3 rangos del usuario) = 1033h. **Faltan solo ~11h, casi cuadrado** — extender curso 1 sem o subir jornada a 30h cuadra cómodamente. Sin parche temporal.
+
+**Deuda anotada para futuras fases**:
+- El catálogo nacional (`catalogo_materia.minutos_semanales`) está NULL para todas las materias DAW. El BOE enricher no extrajo `horasSemanales` del PDF (solo `horasTotales`). Eso significa que el resolver depende SOLO de los overrides de provider para producir cifras semanales. Si falta un override, la materia queda en NULL y la materialización pone 0 (caso FP) o NULL (ESO/Bach). **Tarea futura**: rellenar `catalogo_materia.minutos_semanales` desde `horas_totales / 33 sem` como default razonable cuando no haya extracción del PDF.
+- Verificar también DAW 2º + DAM 2º (no auditados aún en esta sesión). Provider tiene overrides sospechosos sin verificar PDF BOJA real ("patrón observado").
+- Verificar otros itinerarios FP (ASIR, SMR, otros) — pueden tener problemas similares. **Backlog: auditoría sistemática del catálogo FP LOMLOE**.
+
+**Esfuerzo invertido**: ~0.75 sesión (investigación + UPDATE + provider).
 
 #### Sub-fase D — Cierre del parche temporal en BD
 
@@ -341,6 +377,42 @@ Dos vistas combinadas dentro de la pestaña:
 
 ## 6. Bitácora de implementación
 
+### 2026-04-28 — Fase 5 sub-C polish: cappear plan a capacidad para evitar verdicts contradictorios
+
+Detectado tras probar sub-C con 1º DAW (3 rangos, 37.6 sem). Banner anual decía verde "+50h cumples" pero el banner CapacityPlanner decía rojo "faltan 119h físicas". Aparente contradicción.
+
+**Causa**: el plan se calculaba como `Σ por PL de Σ pli × semanasPL`. Cuando Σ pli/sem (32h) > jornada/sem (27.5h), el plan promete más horas (32×37.6=1202h) de las que físicamente caben (27.5×37.6=1033h). Las 169h extra son humo: el solver no las puede colocar. El banner anual prometía un cumplimiento basado en intent inflado.
+
+**Fix**: cappear el plan a la capacidad por rango. `minPerWeekColocables = min(Σ pli, jornadaSemanal)`. Si Σ pli ≤ jornada → plan = intent (sin cambios). Si Σ pli > jornada → plan = capacidad (la verdad de lo que cabe).
+
+**Resultado**: ambos banners se alinean. Caso 1º DAW: plan capped = 1033h, currículo 1152h, ambos coinciden en faltan ~118h. Banner anual pasa de verde "+50h cumples" a rojo/amarillo "te faltan 118h" → coherente con CapacityPlanner.
+
+**Limitación**: sigue usando `slotMinutosByHi` del PL activo como aproximación de jornada para todos los PLs. Si el grupo tiene jornadas distintas por rango, el cap es aproximado. Heredado de sub-A.
+
+### 2026-04-28 — Fase 5 sub-C implementada (CapacityPlanner relajado anual-aware)
+
+El banner del CapacityPlanner ya no es rojo automático cuando hay sobrecarga semanal — bifurca según si el currículo cabe ANUALMENTE en el calendario del grupo.
+
+**Frontend — `frontend/src/pages/HorariosEditor.jsx`**:
+- Memo `capacityFeasibilityAnual`: compara Σ currículo (`Σ materia.minutosSemanales × 36`) contra Σ capacidad real (`jornadaSemanalMin × Σ semanasByPlId del grupo`). Devuelve `{curriculumH, capacidadH, jornadaSemanalH, semanasTotal, fits, deficitH}`. Distinto del banner anual de Fase 3b (que compara plan vs currículo).
+- Branch del banner CapacityPlanner cuando `!cap.feasible`:
+  - Si `anualFits === true` → **amarillo `AlertTriangle`**, mensaje "Sobrecarga semanal en este rango", CTA redistribuir/crear rango.
+  - Si `anualFits === false` → **rojo `Ban`**, mensaje "El currículo no cabe en el calendario actual" con cifras detalladas (currículo H vs capacidad H + déficit H), CTA extender curso o subir jornada.
+- Mensaje antiguo `capacityInfeasibleAnnualOk` retirado (la lógica está absorbida en el branch amarillo). Las claves antiguas (`capacityInfeasibleTitle/Body/AnnualOk`) ya no se usan en este path; se mantienen sin retirar para no provocar fallos de fallback en código residual.
+
+**i18n (5 idiomas, 4 claves nuevas por idioma)**: `capacityWeekOverloadTitle`, `capacityWeekOverloadBody`, `capacityAnualInfeasibleTitle`, `capacityAnualInfeasibleBody`.
+
+**Decisiones menores durante implementación**:
+- **Mantener `capacityFeasibilityAnual` separado de `horasAnualesBanner`**: ambos memos comparan distintas cosas (capacidad vs plan vs currículo). Funden mal y conviven bien — distintos signals para distintas alarmas.
+- **No silenciar el banner verde `cap.feasible && exact`**: el admin lo agradece como confirmación. Mantenido.
+- **Aproximación de jornada única**: `capacityFeasibilityAnual` usa la jornada del PL activo × Σ semanasTotal. Si rangos del grupo tienen jornadas distintas, la cifra es aproximada. Suficiente para detectar el caso "imposible" mayoritario; refactor a `Σ jornadaPL × semanasPL` queda como mejora futura.
+
+**Verificación con caso 1º DAW LOMLOE**:
+- Antes (sub-B): banner rojo "no cabe en este rango" siempre que Σ semanal > jornada — hasta tras extender curso seguía rojo aunque las horas anuales cuadraran.
+- Después (sub-C): si tras extender el curso el cómputo anual cabe (capacidad ≥ currículo), el banner pasa a amarillo informativo. Si extendiendo no llega (caso patológico: jornada muy baja), el banner sigue rojo con CTA explícito a extender más o cambiar jornada.
+
+**Próximo**: sub-fase D (cleanup parche temporal en BD: eliminar jornadas 35h "pre Calendario Real" en EAG y verificar que con sub-fases A+B+C el sistema cuadra horas LOMLOE en jornada normal).
+
 ### 2026-04-28 — Fase 5 sub-B mejora: crear rango en banner warn/error abarca lo necesario + auto-extend Grupo
 
 Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del strip) debe ser sensible al estado del banner anual. Decisión refinada:
@@ -353,6 +425,37 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 **Coherencia con D-J**: la decisión cerrada (extender curso = extender último rango + Grupo, con confirm modal) ahora tiene un atajo: crear un nuevo rango en lugar del último. Caso de uso típico: "Bloque FCT" como rango aparte que vive en las semanas extras.
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
+
+### 2026-04-28 — Fase 5 sub-E implementada (auditoría + corrección catálogo DAW LOMLOE AN)
+
+Tras probar sub-A/B/C con 1º DAW EAG, el caso real LOMLOE seguía sin cuadrar (faltan 119h físicas con jornada 27.5h × 37.6 sem). Antes de aceptar la "brujería FP" (extender curso a julio o subir jornada con recreos), audité los datos del catálogo. Resultado: el catálogo en BD tenía 3 errores que sumaban +3h/sem inflated (Sistemas 6h→5h, Lenguajes 4h→3h, Sostenibilidad mal asignada en 1º). Corregido, el caso cuadra sin parches.
+
+**Investigación**:
+- Catálogo nacional `catalogo_materia.minutos_semanales` está NULL para DAW (BOE no extrae horasSemanales del PDF).
+- `materia.minutos_semanales` (group-instance) tiene valores (360, 240) que NO vienen del catálogo nacional — vienen de seeds históricos pre-LOMLOE o de un resync antiguo con datos BOE inflated.
+- `BojaAndHardcodedProvider` documenta correctamente "DAW 1º LOMLOE = 29h" pero no tenía overrides explícitos para 0483 ni 0373 — asumía que el BOE base era ya 5h y 3h.
+- `app:catalogo:refresh` solo toca `catalogo_*` tables, no `materia` — refrescar no hubiera arreglado nada.
+- El resync CCAA respeta valores cuando catálogo es NULL → no sobreescribe minutos inflated en `materia`.
+
+**Correcciones**:
+1. BD oneshot SQL (UPDATEs sobre `materia` y soft-delete sobre `imparticion`).
+2. `backend/src/Catalogo/Ccaa/Provider/BojaAndHardcodedProvider.php`: overrides nuevos `0483:300` y `0373:180` añadidos a DAW 1º y DAM 1º. Garantiza que centros futuros LOMLOE Andalucía obtengan cifras correctas.
+
+**Verificación end-to-end**:
+- 1º DAW EAG: Σ pasa de 32h → 29h/sem.
+- Currículo anual: 29 × 36 = 1044h.
+- Capacidad real (3 rangos, 37.6 sem): 27.5 × 37.6 = 1033h.
+- Déficit ~11h → extender 1 sem o subir jornada a 30h lo cuadra.
+
+**Decisiones clave durante la sesión**:
+- **No hard-delete materia 1708 globalmente**: la materia Sostenibilidad sigue siendo legítima en 2º curso. Sólo borramos las imparticiones específicas (1º DAW + 1º DAM) que la tenían mal.
+- **No tocar `catalogo_materia.minutos_semanales`** todavía: queda como deuda para cuando se diseñe la población automática (horas_totales / 33 sem por defecto).
+- **Tres correcciones, no más**: hay sospecha que DAW 2º + DAM 2º + otros itinerarios tengan problemas similares. **No auditados en esta sesión**. Trabajo de auditoría sistemática del catálogo FP LOMLOE va al backlog.
+- **Sostenibilidad en 1º era data residual**: probablemente vino de un seed antiguo cuando se confundía el curso de la materia. El provider correcto la asigna a 2º (autonómica `AN-SOS, curso=2`).
+
+**Lección**: cuando un caso "imposible matemáticamente" aparece, antes de aceptar la "brujería" del dominio, auditar los datos. Las contradicciones de modelo a menudo son errores de datos disfrazados. El caso 1º DAW LOMLOE sí cuadra con jornada 27.5h estándar — el catálogo tenía 112h infladas que coincidían exactamente con el déficit reportado.
+
+**Próximo**: sub-fase D (cleanup parche temporal en BD) — ahora viable porque la jornada 27.5h del centro es suficiente para el currículo correcto.
 
 ### 2026-04-28 — Fix Fase 5 sub-B: no adelantar fechaFin del Grupo si ya es posterior
 

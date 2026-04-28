@@ -66,8 +66,10 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
         // 2º curso: 6 + 7.5 + 3.5 + 5 + 0 (Empresa desact) + 3 (IPE II) + 2 (Inglés) + 2 (Sostenib) = 29h
         'des-aplicaciones-web' => [
             'overrides' => [
-                // 1º curso — FOL sustituida por IPE I (LOMLOE)
-                ['codigo' => '0617', 'curso' => 1, 'minutos' => 0],
+                // 1º curso — ajustes BOJA Orden 16/06/2011 (149/DAW) sobre BOE
+                ['codigo' => '0483', 'curso' => 1, 'minutos' => 300],  // Sistemas informáticos 5h (BOE 6h, BOJA ajusta a 5h)
+                ['codigo' => '0373', 'curso' => 1, 'minutos' => 180],  // Lenguajes de marcas 3h (BOE 4h, BOJA ajusta a 3h)
+                ['codigo' => '0617', 'curso' => 1, 'minutos' => 0],    // FOL sustituida por IPE I (LOMLOE Res 26/06/2024)
                 // 2º curso — ajustes BOJA + desactivación de Empresa
                 ['codigo' => '0613', 'curso' => 2, 'minutos' => 450],  // Web servidor 7.5h (BOE 8h) — patrón observado, sin verificar PDF
                 ['codigo' => '0614', 'curso' => 2, 'minutos' => 210],  // Despliegue 3.5h (BOE 5h) — patrón observado
@@ -89,8 +91,10 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
         // 2º curso: 0486/0488/0489 sin override (caen a BOE 6h c/u, pendiente verificar PDF BOJA)
         'des-aplicaciones-multiplataforma' => [
             'overrides' => [
-                // 1º curso — FOL DAM (código 0493) sustituida por IPE I
-                ['codigo' => '0493', 'curso' => 1, 'minutos' => 0],
+                // 1º curso — ajustes BOJA Orden 16/06/2011 (142/DAM), idénticos a DAW 1º
+                ['codigo' => '0483', 'curso' => 1, 'minutos' => 300],  // Sistemas informáticos 5h
+                ['codigo' => '0373', 'curso' => 1, 'minutos' => 180],  // Lenguajes de marcas 3h
+                ['codigo' => '0493', 'curso' => 1, 'minutos' => 0],    // FOL DAM sustituida por IPE I (LOMLOE)
                 // 2º curso — datos confirmados de DAM 2º AN
                 ['codigo' => '0490', 'curso' => 2, 'minutos' => 180],  // Programación de servicios y procesos 3h
                 ['codigo' => '0491', 'curso' => 2, 'minutos' => 240],  // Sistemas de gestión empresarial 4h
