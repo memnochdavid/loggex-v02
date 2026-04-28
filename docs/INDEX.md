@@ -15,12 +15,13 @@
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
 1. **Modalidad de imparticion** (~3 sesiones) — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). **Cierra la limitación detectada con 2º DAM AN** (33h currículo no caben en 30h jornada porque incluye 5h "no regulares" de Proyecto Intermodular + Libre configuración que el modelo trata como presenciales). Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar 2º DAM/DAW LOMLOE en producción**.
-2. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
-3. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
-4. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 2.
-5. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
-6. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
-7. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
+2. **Pulido UX + bugs sueltos** (~1.5-2 sesiones) — 8 ítems independientes: bugs (`/horarios` profe sin turno tarde, badge inconsistente entre rangos), UX (subtítulos en headers, formato `[curso]º [abrev]` en /admin/horarios, alinear Acciones al final en DataTables, scroll sidebar), deuda (auditar hardcodes en banners/toasts), verificación (profes piden cambio de turno). Doc dedicado: `hoja-de-ruta-pulido-ux.md`. Atacar bugs primero.
+3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
+4. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
+5. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 3.
+6. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
+7. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
+8. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
 **PDF multi-página por rango ✅ Done (2026-04-28 noche):** el botón "Exportar PDF" de `/admin/horarios` genera un PDF con **una página por cada `PeriodoLectivo`** del grupo, ordenadas cronológicamente. Cada página repite la cabecera (logo + título + fecha) y añade una sub-cabecera con nombre+fechas del rango. Backend: `HorarioPdfController::horarioGrupo()` agrupa horarios por PL y construye array `paginas[]`. Twig refactorizado en 2 macros (`headerBlock`, `grillaBlock`) con branching multi/single-page para mantener compatibilidad con `/horario/me`.
 
 Otras rutas más amplias:
@@ -28,6 +29,8 @@ Otras rutas más amplias:
 - Fase 3 opción B completa: scraper PDF del BOJA.
 - §14 sub-fases L/M/N (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
+
+**🆕 Lista de pulido UX + bugs detectados (2026-04-28 noche):** 8 ítems sueltos recogidos durante la sesión: 2 bugs funcionales (`/horarios` profe sin turno tarde aunque PDF sí lo muestra; badge "Completo · X/Yh" inconsistente al pasar entre rangos en panel Materias), auditoría de hardcodes en banners/toasts de vistas nuevas, scroll del sidebar que se rebobina al navegar, formato compacto `[curso]º [abrev]` en columna Grupo de `/admin/horarios`, alinear Acciones a la derecha en DataTables, subtítulos descriptivos en headers de todas las vistas y verificación/implementación de "profes piden cambio de turno". Esfuerzo total ~1.5-2 sesiones, ítems independientes. Doc dedicado: **`hoja-de-ruta-pulido-ux.md`**.
 
 **🆕 Limitación detectada con 2º DAM AN (2026-04-28 noche):** la jornada lectiva normal (30h presencial) no acoge el currículo LOMLOE de 2º DAM (33h/sem) porque el modelo trata todas las materias como `PRESENCIAL`, incluidas las **5h "no regulares"** (Proyecto Intermodular 2h + Horas de libre configuración 3h) que NO son clase semanal en aula. Plan: añadir enum `Modalidad` (`PRESENCIAL/FCT/NO_REGULAR/AUTONOMA`) para separar placement físico de carga curricular. Doc dedicado: **`hoja-de-ruta-modalidad-imparticion.md`** (~3 sesiones). Bloqueante real para soportar 2º DAM/DAW LOMLOE sin parches en centros reales.
 
@@ -139,6 +142,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
 | `hoja-de-ruta-modalidad-imparticion.md` | ~3 sesiones (Fases 1-6) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Detectado con 2º DAM AN (déficit 5.5-6h ficticio). Bloquea soporte LOMLOE FP completo en producción. |
+| `hoja-de-ruta-pulido-ux.md` | ~1.5-2 sesiones (8 ítems independientes) | Medio: bugs funcionales (turno tarde profe, badge inconsistente entre rangos), UX (subtítulos, columna Acciones, scroll sidebar), deuda hardcodes. No bloquea, pero pule asperezas visibles. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
