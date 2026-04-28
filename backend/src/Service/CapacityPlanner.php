@@ -82,6 +82,23 @@ class CapacityPlanner
         ksort($slotsDisponibles);
         $duraciones = array_keys($slotsDisponibles);
 
+        // Capacidad curricular = slots + recreos × días lectivos. Es la jornada
+        // presencial completa que se reporta al currículo (truco LOMLOE FP:
+        // los recreos cuentan como lectivos a efectos del cumplimiento anual,
+        // aunque el solver no los use para placement). Si el centro no quiere
+        // contarlos, la cifra coincide con `capacidadMinutos`.
+        $recreosMinutosPorDia = 0;
+        foreach ($jornada->getTramos() as $tramo) {
+            if ($tramo->getTipo() !== TipoTramo::RECREO) continue;
+            $hi = $tramo->getHoraInicio();
+            $hf = $tramo->getHoraFin();
+            if ($hi === null || $hf === null) continue;
+            $diff = ((int) $hf->format('H')) * 60 + (int) $hf->format('i')
+                  - (((int) $hi->format('H')) * 60 + (int) $hi->format('i'));
+            if ($diff > 0) $recreosMinutosPorDia += $diff;
+        }
+        $recreosMinutosSemanales = $recreosMinutosPorDia * count($diasLectivos);
+
         // Lee las imparticiones DEL RANGO (vía PLI), no todas las del grupo.
         // Si una imparticion no tiene PLI en este rango, no existe en este rango.
         $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
@@ -117,6 +134,8 @@ class CapacityPlanner
                 'feasible' => true,
                 'totalMinutos' => 0,
                 'capacidadMinutos' => $capacidadMinutos,
+            'capacidadCurricularMinutos' => $capacidadMinutos + $recreosMinutosSemanales,
+            'recreosMinutosSemanales' => $recreosMinutosSemanales,
                 'desajuste' => 0,
                 'asignacion' => [],
                 'roundups' => [],
@@ -166,6 +185,8 @@ class CapacityPlanner
                 'feasible' => false,
                 'totalMinutos' => $totalMinutos,
                 'capacidadMinutos' => $capacidadMinutos,
+            'capacidadCurricularMinutos' => $capacidadMinutos + $recreosMinutosSemanales,
+            'recreosMinutosSemanales' => $recreosMinutosSemanales,
                 'desajuste' => $totalMinutos - $capacidadMinutos,
                 'asignacion' => [],
                 'roundups' => [],
@@ -195,6 +216,8 @@ class CapacityPlanner
                     'feasible' => false,
                     'totalMinutos' => $totalMinutos,
                     'capacidadMinutos' => $capacidadMinutos,
+            'capacidadCurricularMinutos' => $capacidadMinutos + $recreosMinutosSemanales,
+            'recreosMinutosSemanales' => $recreosMinutosSemanales,
                     'desajuste' => 0,
                     'asignacion' => [],
                     'roundups' => [],
@@ -229,6 +252,8 @@ class CapacityPlanner
                 'feasible' => false,
                 'totalMinutos' => $totalMinutos,
                 'capacidadMinutos' => $capacidadMinutos,
+            'capacidadCurricularMinutos' => $capacidadMinutos + $recreosMinutosSemanales,
+            'recreosMinutosSemanales' => $recreosMinutosSemanales,
                 'desajuste' => 0,
                 'asignacion' => [],
                 'roundups' => [],
@@ -278,6 +303,8 @@ class CapacityPlanner
             'feasible' => empty($huerfanos),
             'totalMinutos' => $totalMinutos,
             'capacidadMinutos' => $capacidadMinutos,
+            'capacidadCurricularMinutos' => $capacidadMinutos + $recreosMinutosSemanales,
+            'recreosMinutosSemanales' => $recreosMinutosSemanales,
             'desajuste' => $this->bestCost,
             'asignacion' => $asignacion,
             'roundups' => $roundups,
@@ -400,6 +427,8 @@ class CapacityPlanner
             'feasible' => false,
             'totalMinutos' => 0,
             'capacidadMinutos' => 0,
+            'capacidadCurricularMinutos' => 0,
+            'recreosMinutosSemanales' => 0,
             'desajuste' => 0,
             'asignacion' => [],
             'roundups' => [],

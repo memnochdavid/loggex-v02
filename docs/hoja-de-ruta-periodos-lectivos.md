@@ -426,6 +426,25 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Capacidad curricular en banner: jornada lectiva real, no slots
+
+Tras best-effort en planner, el usuario seguía viendo "27.5h slots" en el banner. Su pregunta: "8:30 a 14:30 son 6h × 5 días = 30h. Si recreos cuentan como lectivos, ¿por qué sigue diciendo 27.5h?". Razón valida.
+
+**Fix**: el banner del CapacityPlanner ahora usa una nueva cifra `cap.capacidadCurricularMinutos` (= slots + recreos × días lectivos) cuando el truco absorbe el déficit. El mensaje cambia de "29h/sem materias / 27.5h slots — déficit absorbido por recreos" → "29h/sem dentro de la jornada lectiva de 30h/sem (incluye recreos lectivos). Margen 1h/sem".
+
+**Backend (`CapacityPlanner.php`)**:
+- Calcula `recreosMinutosSemanales` recorriendo los tramos RECREO de la jornada efectiva.
+- Añade al output: `capacidadCurricularMinutos` (= capacidadMinutos + recreosMinutosSemanales) y `recreosMinutosSemanales`.
+- `errorResult()` también devuelve los nuevos campos en 0.
+
+**Frontend (`HorariosEditor.jsx`)**:
+- Branch `!cap.feasible && anualFits === true`:
+  - Si `cap.totalMinutos ≤ cap.capacidadCurricularMinutos` → banner verde "Currículo dentro de la jornada lectiva" usando la cifra curricular y mostrando margen disponible.
+  - Si supera incluso jornada presencial → amarillo (redistribuir, lógica anterior).
+- Mensaje ya no menciona "slots" ni "déficit" en el caso ok — lenguaje del centro, no del solver.
+
+**Limitación residual**: el solver SIGUE colocando solo en slots (no en recreos). Si el solver reporta "Propuesta parcial. Sin colocar: ..." con horas reducidas por el best-effort, esos huérfanos siguen siendo reales (las materias no se imparten físicamente en recreos). El banner verde del CapacityPlanner declara coherencia curricular; el "Propuesta parcial" del toast del solver declara la verdad del placement. Coexisten sin contradicción si el centro acepta la asimetría.
+
 ### 2026-04-28 — CapacityPlanner best-effort cuando hay sobrecarga semanal
 
 Tras habilitar los botones del solver con sobrecarga absorbible por recreos, el solver retornaba "Propuesta parcial. Sin colocar: [todas las materias]". Es decir, no colocaba nada — todas las 29h de materias venían como huérfanas.
