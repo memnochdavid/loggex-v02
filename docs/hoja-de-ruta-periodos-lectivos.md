@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 Fases 1+2+3a+3b+4+5a+5b+5c+5e ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Sub-fase C ✅**: el banner del CapacityPlanner ya no es rojo automático cuando Σ semanal supera la jornada — es **amarillo informativo** si globalmente cabe (admin redistribuye con Sliders) y **rojo real** sólo si Σ currículo > Σ jornada × Σ semanas total grupo (déficit físico, requiere extender curso o subir jornada). Mensajes actualizados con cifras exactas (capacidad vs currículo, déficit físico). Sub-fase D pendiente (cleanup parche temporal). Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fase 5d (cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-28)**: 🟢 **Fase 5 COMPLETA** (sub-A+B+C+D+E ✅) + Fases 1+2+3a+3b+4 ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Sub-fase C ✅**: el banner del CapacityPlanner ya no es rojo automático cuando Σ semanal supera la jornada — es **amarillo informativo** si globalmente cabe (admin redistribuye con Sliders) y **rojo real** sólo si Σ currículo > Σ jornada × Σ semanas total grupo (déficit físico, requiere extender curso o subir jornada). Mensajes actualizados con cifras exactas (capacidad vs currículo, déficit físico). Sub-fase D pendiente (cleanup parche temporal). Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fase 5d (cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -283,7 +283,7 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo invertido**: ~0.75 sesión (investigación + UPDATE + provider).
 
-#### Sub-fase D — Cierre del parche temporal en BD
+#### Sub-fase D — Cierre del parche temporal en BD  ✅ Done (2026-04-28)
 
 > Era la Fase 5 antigua. Se mueve aquí porque depende de A+B+C estar implementadas.
 
@@ -425,6 +425,63 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 **Coherencia con D-J**: la decisión cerrada (extender curso = extender último rango + Grupo, con confirm modal) ahora tiene un atajo: crear un nuevo rango en lugar del último. Caso de uso típico: "Bloque FCT" como rango aparte que vive en las semanas extras.
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
+
+### 2026-04-28 — Sub-fase D: cleanup parche temporal en BD — Fase 5 CERRADA
+
+Tras Fase 5 sub-A/B/C/E completas y feature de PDF multi-página, ejecutado el cleanup final del parche temporal acordado al inicio de Fase 5. **Cierra el círculo "del parche al modelo correcto"**: las jornadas 35h/sem `pre Calendario Real` que existían sólo como bypass del modelo simplificado pre-PeriodoLectivo se eliminan de BD; los itinerarios DAW/DAM apuntan ya a la jornada normal del centro real (30h presencial = 27.5h slots + 2.5h recreos).
+
+**Estado pre-cleanup**:
+- Jornada `id=3 "FP Mañanas"`: normal viva, 27.5h slots + 2.5h recreos = 30h presencial.
+- Jornada `id=4 "FP Mañanas pre Calendario Real"`: **parche** 35h slots + 2.5h recreos = 37.5h presencial (08:00-15:30).
+- Jornada `id=5 "FP Tardes pre Calendario Real"`: **parche** 35h slots + 2.5h recreos en horario nocturno absurdo (15:00-22:30) — solo creada para "tener algo que cuadrara con LOMLOE 33h pre-PeriodoLectivo".
+- `Itinerario id=3 (DAW)` apuntaba a jornada 4. `Itinerario id=5 (DAM)` apuntaba a jornada 5.
+- 164 horarios persistidos con slots inexistentes en jornada normal (08:00-09:00, 14:30-15:30, etc.) — fantasmas de la jornada parche.
+
+**SQL ejecutado** (4 pasos atómicos):
+```sql
+-- 1. Reapuntar itinerarios DAW + DAM a jornada normal.
+UPDATE itinerario SET jornada_tipo_id = 3 WHERE id IN (3, 5) AND deleted = 0;
+
+-- 2. Soft-delete horarios huérfanos (slots fuera de la jornada normal).
+UPDATE horario SET deleted = 1, deleted_at = NOW()
+WHERE deleted = 0 AND CONCAT(...) NOT IN (slots de jornada 3);
+-- → 164 filas soft-deleted.
+
+-- 3. Hard-delete tramos de las jornadas parche (la FK no es CASCADE).
+DELETE FROM jornada_tramo WHERE jornada_tipo_id IN (4, 5);
+
+-- 4. Hard-delete las jornadas parche.
+DELETE FROM jornada_tipo WHERE id IN (4, 5);
+```
+
+**Verificación post-cleanup**:
+- Jornadas vivas: 1 (la normal).
+- Jornadas 4/5 vivas: 0.
+- Itinerarios apuntando a 4/5: 0.
+- Horarios huérfanos vivos: 0.
+
+**Doc `hoja-de-ruta-jornadas-recreos.md` §"PARCHE TEMPORAL"** marcado con banner 🪦 SUPERSEDED apuntando aquí. Mantenido como histórico arqueológico — explica cómo se llegó al diseño de PeriodoLectivo desde la observación inicial "el currículo LOMLOE no cabe en la jornada lectiva sin trucos".
+
+**Para regenerar el horario** del 1º DAW EAG tras el cleanup:
+1. `/admin/horarios` → grupo "1º DAW".
+2. Strip muestra los 5 rangos del año (los rangos NO se borraron, solo los placements fantasma).
+3. Click **"Generar todos"** → loop cronológico R1→R5 con cap anual + truco recreos.
+4. Banner verde + chips OK → click "Guardar".
+5. Click "Exportar PDF" → 5 páginas con horario por rango.
+
+**Cierre conceptual de Fase 5**:
+- **Sub-A**: modelo mental anual en UI.
+- **Sub-B**: botón Extender curso.
+- **Sub-C**: CapacityPlanner relajado anual-aware.
+- **Sub-D**: cleanup parche en BD ← *acabado aquí*.
+- **Sub-E**: auditoría catálogo DAW LOMLOE.
+
+Resultado: el sistema ahora soporta cualquier itinerario LOMLOE en cualquier centro real con jornada lectiva normal (no parche), distribuyendo currículo entre N rangos cronológicos con cap anual cross-rango + tolerancia 1.5h, contabilizando recreos como tiempo lectivo curricular (truco LOMLOE FP), y permitiendo extender el curso si el cómputo anual lo necesita. **Todo genérico**, sin hardcoding por grupo/centro/etapa.
+
+**Próximas fases** (deja Fase 5 cerrada limpia):
+- Fase 7: calendario lectivo del centro (parametriza D-L: las 36 sem hardcoded → cálculo real desde `Centro.fechaInicioCurso/FinCurso` + festivos).
+- Fase 8: dashboard "Consumición de horas anuales" para jefe de estudios.
+- Fase 6: merge `/admin/jornadas` + `/admin/horarios` (cosmético, opcional).
 
 ### 2026-04-28 — PDF multi-página por rango lectivo
 

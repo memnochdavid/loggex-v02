@@ -733,6 +733,12 @@ Cambios mínimos en el editor existente:
 
 ### 2026-04-27 noche — PARCHE TEMPORAL: jornadas "pre Calendario Real" + observación arquitectónica sobre distribución temporal
 
+> ## 🪦 SUPERSEDED el 2026-04-28 noche por `docs/hoja-de-ruta-periodos-lectivos.md` (Sub-fase D)
+>
+> El parche de las jornadas 35h/sem `id 4 "FP Mañanas pre Calendario Real"` y `id 5 "FP Tardes pre Calendario Real"` fue **eliminado de BD** el 2026-04-28 noche tras cerrar Fase 5 entera (modelo `PeriodoLectivo` con cap anual cross-rango + truco recreos lectivos curriculares). Los itinerarios DAW (id=3) y DAM (id=5) se reapuntaron a la jornada normal `id=3 "FP Mañanas"` 27.5h slots + 2.5h recreos = 30h presencial. 164 placements fantasma de la jornada parche se soft-deletearon. Los rangos lectivos del grupo se mantienen; basta con "Generar todos" desde `/admin/horarios` para reconstruir el horario del año con el modelo correcto.
+>
+> Mantener esta entrada como histórico arqueológico de cómo se llegó a `PeriodoLectivo`.
+
 **⚠ ESTO ES UN PARCHE TEMPORAL.** Se eliminará cuando esté implementado el modelado de distribución temporal de materias (ver "Deuda arquitectónica" abajo).
 
 **Contexto:** tras la Fase 3 CCAA opción B parcial (datos LOMLOE puros del BOJA), el banner pre-resolución pinta rojo en TODOS los grupos del centro EAG porque las materias suman 32h (DAW 1º) y 33h (DAW 2º) frente a la jornada actual de 27.5h. El usuario observa que hay materias que NO responden a un horario semanal monolítico — Proyecto Intermodular, FCT y Horas de libre configuración se imparten en bloques concentrados o en empresa, fuera del horario lectivo regular del centro.

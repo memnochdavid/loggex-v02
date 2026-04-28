@@ -12,13 +12,14 @@
 
 **Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E con datos hard-coded aproximados antes de pasar a B real.
 
-**Próxima acción** — Fase 1-4 de PeriodoLectivo cerradas, **Fase 5 reestructurada y acordada (2026-04-28)**. Rutas posibles:
+**Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
-1. **Períodos Lectivos Fase 5 ⭐** (~1.75 sesiones) — modelo mental anual + extender curso + cierre parche temporal. **Es la ruta crítica acordada**: sub-fase A (input "horas anuales" en modal Materias del rango + ModuleChip lateral en horas anuales), sub-fase B (botón "Extender curso" en banner anual con modal de confirmación que ajusta `Grupo.fechaFin` + último PL — D-J), sub-fase C (CapacityPlanner relajado: rojo solo si físicamente imposible globalmente, amarillo informativo si solo desbordamiento semanal), sub-fase D (eliminar parche 35h en BD una vez A+B+C funcionan). D-J/D-K/D-L cerradas. Genérico para cualquier itinerario/grupo/centro.
-2. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
-3. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 2.
-4. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, Proyecto Intermodular) en `/admin/imparticiones` para poder pulsar "Sugerir horario" en DAW LOMLOE.
-5. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
+1. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
+2. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
+3. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 1.
+4. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
+5. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
+6. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
 **PDF multi-página por rango ✅ Done (2026-04-28 noche):** el botón "Exportar PDF" de `/admin/horarios` genera un PDF con **una página por cada `PeriodoLectivo`** del grupo, ordenadas cronológicamente. Cada página repite la cabecera (logo + título + fecha) y añade una sub-cabecera con nombre+fechas del rango. Backend: `HorarioPdfController::horarioGrupo()` agrupa horarios por PL y construye array `paginas[]`. Twig refactorizado en 2 macros (`headerBlock`, `grillaBlock`) con branching multi/single-page para mantener compatibilidad con `/horario/me`.
 
 Otras rutas más amplias:
@@ -27,7 +28,7 @@ Otras rutas más amplias:
 - §14 sub-fases L/M/N (cosméticos del solver).
 4. **Jornadas Fase B** (asistente automático de tramos).
 
-**⚠ PARCHE TEMPORAL en BD:** dos jornadas "pre Calendario Real" creadas (`id 4` Mañanas + `id 5` Tardes en EAG, 35h/sem cada una) para acoger el currículo LOMLOE puro mientras no esté implementado el modelado de distribución temporal de materias (Proyecto Intermodular, FCT y Libre configuración no son "regulares semanales todo el año"). **Solución acordada (2026-04-28): `docs/hoja-de-ruta-periodos-lectivos.md`** — entidad `PeriodoLectivo` (rangos de fecha por grupo, cada uno con su `JornadaTipo` y sus minutos por imparticion), solver corre por rango, fecha-fin de curso flexible. Una vez implementado, las jornadas vuelven a ≈30h/sem (incluyendo recreos, ≈27.5h lectivas) y se borran las jornadas parche.
+**✅ PARCHE TEMPORAL ELIMINADO (2026-04-28 noche):** las jornadas `id 4 Mañanas` y `id 5 Tardes pre Calendario Real` (35h/sem) **borradas de BD** tras cerrar Fase 5 entera de PeriodoLectivo. Itinerarios DAW/DAM ahora apuntan a la jornada normal `id=3 "FP Mañanas"` (27.5h slots + 2.5h recreos = 30h presencial). 164 horarios fantasma (slots inexistentes en jornada normal) soft-deleted. Bitácora completa: `docs/hoja-de-ruta-periodos-lectivos.md` §6 (Sub-fase D). Doc histórico marcado SUPERSEDED: `docs/hoja-de-ruta-jornadas-recreos.md` §"PARCHE TEMPORAL".
 
 **Stepping stone listo (2026-04-28):** override de jornada por grupo (`Grupo.jornadaTipoOverride`) operativo en `/admin/horarios`. El admin ya puede elegir, desde el `infoBar` del editor, qué plantilla de jornada usa el solver/planner/rejilla para cada grupo, sin tocar el itinerario.
 
@@ -123,7 +124,8 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Hecho | Pendiente |
 |---|---|---|
-| `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos) | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
+| `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 todas ✅** (modelo + UI completa + cap anual cross-rango + truco recreos + extender curso + acciones del curso + PDF multi-página + cleanup parche temporal) | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético), Fase 7 (calendario lectivo del centro — parametriza D-L), Fase 8 (dashboard horas anuales para jefe de estudios) |
+| `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos). **§"PARCHE TEMPORAL" SUPERSEDED 2026-04-28** por periodos-lectivos sub-fase D | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
 | `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3** ✅ (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos) | Fase 4 (Municipio + UI locales), Fase 5 (calendario lectivo), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE) |
 | `hoja-de-ruta-calificaciones.md` | Aparentemente Fases A-D (existen `seed_calificaciones.sql`, vistas `CalificacionesAdmin/Detalle/Grupo.jsx`) | **Auditar y cerrar bitácora**; Fase E (boletines PDF) |
 | `home-widgets-roadmap.md` | TablonWidget, NotificationList | Resto de widgets marcados 🔴 |
@@ -133,7 +135,6 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| `hoja-de-ruta-periodos-lectivos.md` | 8 fases (~7-8 sesiones) | **CRÍTICO**: resuelve el parche temporal de jornadas 35h → 30h, modela distribución temporal de materias (Proyecto Intermodular, FCT, Libre config), funde Fase 5 calendario, desbloquea merge `/admin/jornadas`+`/admin/horarios`. Cierra con tab dashboard de horas anuales (Fase 8). Acordado 2026-04-28. Stepping stone (override de jornada por grupo) ✅ Done. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
