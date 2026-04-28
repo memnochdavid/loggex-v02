@@ -426,6 +426,18 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix solver buttons disabled tras truco recreos
+
+Detectado por el usuario: tras truco recreos + ambos banners verdes, los botones "Sugerir" y "Sugerir otro" del solver seguían deshabilitados. El `disabled` era `cap.feasible === false`, que sigue siendo true cuando hay sobrecarga semanal aunque la situación sea operativamente válida (banner verde con recreos o amarillo redistribuible).
+
+**Fix**: el solver pasa a estar hard-blocked **sólo si NI semanal NI anualmente cabe** (= caso rojo real "el currículo no cabe en el calendario"). En los demás casos el solver corre y coloca lo que entra en slots; los huérfanos se reportan para que el admin decida.
+
+```js
+const solverHardBlocked = semanalNoCabe && anualNoCabe;
+```
+
+Coherente con la filosofía de Fase 5: el solver placement es independiente del cumplimiento curricular declarativo. Si caben anualmente con/sin recreos, dejar correr el solver siempre.
+
 ### 2026-04-28 — Refinamiento truco recreos: extender al banner CapacityPlanner
 
 Tras aplicar el truco al cómputo anual, el banner CapacityPlanner seguía amarillo "Sobrecarga semanal en este rango — anual sí cabe" para 1º DAW EAG (29h materias / 27.5h slots). El usuario notó que el banner no había desaparecido aunque conceptualmente el truco debería absorber esa diferencia.

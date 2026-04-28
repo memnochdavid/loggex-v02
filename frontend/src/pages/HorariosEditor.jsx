@@ -2569,24 +2569,43 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.aulaDefault || (grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : '—')}</span>
                   <div className={styles.infoBarActions}>
-                    <Button
-                      onClick={() => runSolver(null)}
-                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[stateKey]?.feasible === false}
-                      variant="secondary"
-                      title={capacityByGrupo[stateKey]?.feasible === false ? t('scheduleEditor.capacityInfeasibleTitle', { defaultValue: 'El itinerario no cabe en la jornada' }) : undefined}
-                    >
-                      <Sparkles size={14} style={{ marginRight: 4 }} />
-                      {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
-                    </Button>
-                    <Button
-                      onClick={() => runSolver(Date.now())}
-                      disabled={!selectedGrupo || !grupoState || solving || saving || capacityByGrupo[stateKey]?.feasible === false}
-                      variant="secondary"
-                      title={t('scheduleEditor.solverSuggestAnotherHint')}
-                    >
-                      <Shuffle size={14} style={{ marginRight: 4 }} />
-                      {t('scheduleEditor.solverSuggestAnother')}
-                    </Button>
+                    {(() => {
+                      // Solver hard-blocked sólo si NI semanal NI anualmente cabe
+                      // (caso rojo "currículo no cabe en el calendario"). Si la
+                      // sobrecarga semanal es absorbible por recreos (banner verde
+                      // "cubierto con recreos") o redistribuible (banner amarillo),
+                      // el solver puede correr — colocará lo que cabe en slots y
+                      // reportará huérfanos para que el admin decida.
+                      const semanalNoCabe = capacityByGrupo[stateKey]?.feasible === false;
+                      const anualNoCabe = capacityFeasibilityAnual?.fits === false;
+                      const solverHardBlocked = semanalNoCabe && anualNoCabe;
+                      const baseDisabled = !selectedGrupo || !grupoState || solving || saving;
+                      const blockTitle = solverHardBlocked
+                        ? t('scheduleEditor.capacityAnualInfeasibleTitle', { defaultValue: 'El currículo no cabe en el calendario actual' })
+                        : undefined;
+                      return (
+                        <>
+                          <Button
+                            onClick={() => runSolver(null)}
+                            disabled={baseDisabled || solverHardBlocked}
+                            variant="secondary"
+                            title={blockTitle}
+                          >
+                            <Sparkles size={14} style={{ marginRight: 4 }} />
+                            {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
+                          </Button>
+                          <Button
+                            onClick={() => runSolver(Date.now())}
+                            disabled={baseDisabled || solverHardBlocked}
+                            variant="secondary"
+                            title={blockTitle || t('scheduleEditor.solverSuggestAnotherHint')}
+                          >
+                            <Shuffle size={14} style={{ marginRight: 4 }} />
+                            {t('scheduleEditor.solverSuggestAnother')}
+                          </Button>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
