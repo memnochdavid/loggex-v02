@@ -426,6 +426,27 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix cap cross-rango en "Sugerir todo el curso": acumulador local
+
+Detectado por el usuario: con 5 rangos y "Sugerir todo el curso", las materias acababan muy por encima del currículo (Programación 381h vs 288h objetivo, Bases 238h vs 216h, etc). El cap anual no se aplicaba bien entre iteraciones del loop.
+
+**Causa**: `runSolver` calculaba `placedAnualOtrosRangos` leyendo `state` de React. React batchea setState, así que entre iteraciones del loop el state estaba **stale**: el siguiente runSolver no veía los placements que el solver del rango anterior acababa de generar. El cap del backend recibía `alreadyPlacedByImp` casi vacío en cada iter → no recortaba cuotas.
+
+**Fix**:
+- `runSolver()` acepta nuevo parámetro `alreadyPlacedOverride`. Si viene, se usa tal cual; si no, se calcula desde state (modo single-call clásico).
+- `runSolver()` ahora devuelve el `data` del backend (o null si error/aborto).
+- `runSolverAllRangos()` mantiene un acumulador local `accumPlacedByImp = {}`. Tras cada solver run, suma los `data.placements` × `semanasByPlId[pl.id]` por imparticion. Pasa el acumulador al siguiente `runSolver` como `alreadyPlacedOverride`.
+
+Resultado: el cap se aplica deterministico independiente del state batching de React. Cada rango ve los minutos cross-rango ya colocados en los anteriores.
+
+**Verificación esperada para 1º DAW con 5 rangos** (objetivo Prog 288h + 1.5h tol = 289.5h):
+- R1: alreadyPlaced[Prog] = 0. Asigna ~76h.
+- R2: alreadyPlaced[Prog] = 76h. cap restante = 213h. Asigna ~76h.
+- R3: alreadyPlaced[Prog] = 152h. cap restante = 137h. Asigna ~76h.
+- R4: alreadyPlaced[Prog] = 228h. cap restante = 61h. Asigna ~61h (cap aplica).
+- R5: alreadyPlaced[Prog] = 289h. cap restante = 0.5h. Asigna 0 (no hay slot menor que la mínima unidad).
+- Total final ~289h ≈ objetivo + tolerancia. ✓
+
 ### 2026-04-28 — Fix Crear Rangos Recomendados: faltaba preventDefault
 
 Detectado por el usuario: tras "Limpiar todo el curso" + "Crear Rangos Recomendados" con N=5, solo se creaba el primer rango (Rango 1 cubriendo 67 días); los demás fallaban silenciosamente.

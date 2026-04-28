@@ -2055,13 +2055,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   //   - skipConfirm: omite el confirm-overwrite cuando ya se confirmó el
   //     batch al inicio del loop multi-rango.
   //   - plIdOverride: PL específico para este run (si null, usa selectedPlId).
-  const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null) => {
-    if (!selectedGrupo) return;
+  //   - alreadyPlacedOverride: mapa { impId → minutosAnualesYaColocados } que
+  //     se pasa tal cual al backend. Si null, se calcula desde state local
+  //     excluyendo el PL activo (modo single-call). Cuando viene desde
+  //     `runSolverAllRangos`, evita el problema de batching de React state
+  //     entre iteraciones del loop.
+  // Devuelve el `data` del backend (o null si no se pudo ejecutar).
+  const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null, alreadyPlacedOverride = null) => {
+    if (!selectedGrupo) return null;
     const targetPlId = plIdOverride ?? selectedPlId;
     const targetStateKey = (selectedGrupo && targetPlId) ? `${selectedGrupo}_${targetPlId}` : '';
     const targetPlacements = (state[targetStateKey]?.placements) || {};
     const hasContent = Object.keys(targetPlacements).length > 0;
-    if (!skipConfirm && hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return;
+    if (!skipConfirm && hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return null;
     setSolving(true);
     setDragError(null);
     try {
@@ -2069,9 +2075,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       // minutos anuales ya colocados en OTROS rangos del grupo. El planner
       // descuenta del objetivo curricular y limita cuotas para que el solver
       // no asigne más allá del objetivo + 1.5h tolerancia (sumando todos los
-      // rangos). Recálculo manual aquí porque excluimos el PL activo (que
-      // vamos a regenerar).
-      const placedAnualOtrosRangos = (() => {
+      // rangos). Si el caller pasa `alreadyPlacedOverride` (caso loop multi-
+      // rango), lo usamos tal cual para evitar batching stale de React state.
+      // Si no, calculamos desde state local excluyendo el PL activo.
+      const placedAnualOtrosRangos = alreadyPlacedOverride ?? (() => {
         const acc = {};
         const pls = plByGrupo[selectedGrupo] || [];
         const persistedByPl = {};
@@ -2163,10 +2170,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         setDragError(t('scheduleEditor.solverPartial', { items: faltan }));
         window.setTimeout(() => setDragError(null), 6000);
       }
+      return data;
     } catch (err) {
       toast.error(err.message, {
         description: t('scheduleEditor.solverErrorCtx', { defaultValue: 'El solver ha fallado' })
       });
+      return null;
     } finally {
       setSolving(false);
     }
@@ -2210,18 +2219,34 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setSolverAllRunning(true);
     setDragError(null);
     const errores = [];
+    // Acumulador de minutos anuales colocados por imparticion. Lo mantenemos
+    // localmente (en vez de leer state entre iteraciones) para evitar el
+    // problema de batching de React: setState es async, así que el siguiente
+    // runSolver podría leer state stale y NO ver los placements del rango
+    // anterior → cap anual no se aplicaría correctamente. Pasando este
+    // acumulador como `alreadyPlacedOverride`, el cap funciona deterministico.
+    const accumPlacedByImp = {};
     try {
       for (const pl of pls) {
-        // Switch al PL antes de ejecutar — para que `selectedPlId` y
-        // `placements` queden consistentes con el rango siendo solveado.
+        // Switch al PL para que la UI lo refleje durante la ejecución.
         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
-        // Esperar a que React procese el cambio de selectedPlId (microtask
-        // queue). En la práctica un await Promise.resolve() basta para que el
-        // próximo runSolver lea el nuevo selectedPlId via useState. Para
-        // máxima seguridad usamos un setTimeout 0.
         await new Promise(r => setTimeout(r, 50));
         try {
-          await runSolver(null, /* skipConfirm */ true, pl.id);
+          const data = await runSolver(null, /* skipConfirm */ true, pl.id, { ...accumPlacedByImp });
+          // Acumular los minutos anuales colocados por imparticion en este rango.
+          // Usamos `pl.id` para mirar las semanas y multiplicar.
+          if (data?.placements) {
+            const semanasPL = semanasByPlId[pl.id] || 0;
+            const semanalMinPorImp = {};
+            data.placements.forEach(p => {
+              const dur = parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio);
+              if (dur <= 0) return;
+              semanalMinPorImp[p.imparticionId] = (semanalMinPorImp[p.imparticionId] || 0) + dur;
+            });
+            Object.entries(semanalMinPorImp).forEach(([impId, semanalMin]) => {
+              accumPlacedByImp[impId] = (accumPlacedByImp[impId] || 0) + semanalMin * semanasPL;
+            });
+          }
         } catch (err) {
           errores.push({ pl: pl.nombre || `#${pl.id}`, error: err?.message || String(err) });
         }
