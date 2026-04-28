@@ -93,7 +93,7 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 | D-A | Cómo expresar materia × rango | Entidad de unión `PeriodoLectivoImparticion` con `minutosSemanales` propio (nullable: si NULL, hereda `Materia.minutosSemanales`) | Permite mismo Imparticion con distintos pesos por rango. Más flexible que enum en Materia. |
 | D-B | Granularidad de PeriodoLectivo | Por **grupo** | Hereda granularidad de `PeriodoEvaluativo`. Cada grupo puede tener calendario distinto. |
 | D-C | Fecha-fin curso: ¿se computa o el usuario la fija? | **Manual** con aviso "te sobran/faltan X horas anuales para cumplir currículo". Cerrada 2026-04-28. | Computada es elegante pero choca con calendario oficial CCAA (junio fijo). El usuario decide y el sistema valida con aviso no bloqueante. |
-| D-D | ¿Jornada distinta por rango? | Sí, FK opcional `PeriodoLectivo.jornadaTipo`. Si null, fallback a `Grupo.getEffectiveJornadaTipo()` (override del grupo o jornada del itinerario). | Permite cambio de jornada en bloques especiales (ej: FCT con horario distinto). El nullable encadena con el fallback ya implementado en el stepping stone. |
+| D-D | ¿Jornada distinta por rango? | Sí, FK opcional `PeriodoLectivo.jornadaTipo`. Si null, fallback a `Grupo.getEffectiveJornadaTipo()` (override del grupo o jornada del itinerario). **El campo se queda NULL por defecto** (incluso en la migración Fase 1) — solo se rellena cuando el admin lo cambia explícitamente para ESE rango (caso FCT/Proyecto Intermodular en Fase 3). Razón: si se copia el override del grupo, se "congela" en BD y el cascade no propaga cambios posteriores del selector. | Permite cambio de jornada en bloques especiales (ej: FCT con horario distinto). El nullable encadena con el fallback ya implementado en el stepping stone. |
 | D-E | ¿Imparticion troceada por rango? | No, `Imparticion` sigue siendo única; los minutos por rango viven en la entidad de unión | Evita explosión combinatoria y mantiene asistencia/calificación apuntando a una sola Imparticion. |
 | D-F | ¿Pueden solaparse rangos del mismo grupo? | No (validación de servicio), deben cubrir ventana del curso sin huecos validados al "cerrar curso" (D-G) | Más simple, refleja realidad. Un grupo solo tiene un horario activo en cada fecha. |
 | D-G | ¿Validar huecos en edición o solo al "cerrar curso"? | Validar **solo** al "cerrar curso" (acción explícita). Durante edición se permiten huecos y el frontend muestra aviso amarillo. Cerrada 2026-04-28. | Edición incremental cómoda. El admin parte un rango en dos sin que la UI le bloquee mientras configura el segundo. |
@@ -259,6 +259,15 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 ### 2026-04-28 — Fase 8 añadida al roadmap
 
 Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.
+
+### 2026-04-28 — Fix post-Fase 2: PL.jornadaTipo debe quedar NULL por defecto
+
+Detectado tras probar Fase 2: al cambiar la jornada desde el selector de `/admin/horarios`, el banner verde/amarillo/rojo del `CapacityPlanner` se quedaba en rojo aunque la nueva jornada SÍ encajara. Causa: la migración Fase 1 copió `Grupo.jornadaTipoOverride → PeriodoLectivo.jornadaTipo` literalmente, "congelando" la jornada en BD. Como `PL.getEffectiveJornadaTipo()` prioriza el campo propio sobre el cascade, los cambios posteriores del override del grupo no propagaban — el `CapacityPlanner` veía la jornada vieja (la del momento de la migración) y la rejilla la nueva (que el frontend lee en cliente). Desincronización total.
+
+**Fix**:
+- Migración Fase 1 (`Version20260428180000`) actualizada: `INSERT ... jornada_tipo_id = NULL` en vez de copiar el override.
+- SQL one-shot para entornos ya migrados: `UPDATE periodo_lectivo SET jornada_tipo_id = NULL`. La cadena `PL → grupo (override) → itinerario` toma el control y todo vuelve a sincronizarse.
+- Doc de D-D ampliada para dejar explícita la regla: el campo `PL.jornadaTipo` se queda NULL por defecto y solo se rellena cuando el admin lo cambia para ese rango concreto (caso FCT/Proyecto Intermodular).
 
 ### 2026-04-28 — Fase 2 implementada (solver y planner por rango)
 

@@ -90,10 +90,18 @@ final class Version20260428180000 extends AbstractMigration
         // anio_escolar formato 'YYYY-YYYY'; SUBSTRING_INDEX extrae año1 y año2.
         // Incluimos grupos soft-deleted (deleted=1) por seguridad: si tienen horarios vivos asociados,
         // necesitan su rango para que el ALTER TABLE NOT NULL del paso 7 no falle.
+        //
+        // jornada_tipo_id = NULL deliberadamente: el campo debe quedar nulo por defecto
+        // para que `PeriodoLectivo::getEffectiveJornadaTipo()` caiga al grupo (override
+        // o itinerario). Solo se rellena cuando el admin quiere una jornada distinta
+        // *para ese rango concreto* (caso FCT/Proyecto Intermodular en Fase 3). Si lo
+        // copiásemos del override del grupo aquí, "congelaríamos" la jornada en el
+        // momento de la migración: cambios posteriores del override desde el selector
+        // de /admin/horarios no propagarían y el CapacityPlanner se desincronizaría.
         $this->addSql("INSERT INTO periodo_lectivo (grupo_id, jornada_tipo_id, nombre, fecha_inicio, fecha_fin, orden, created_at, updated_at, deleted)
             SELECT
                 g.id,
-                g.jornada_tipo_override_id,
+                NULL,
                 'Curso completo',
                 COALESCE(g.fecha_inicio, STR_TO_DATE(CONCAT(SUBSTRING_INDEX(g.anio_escolar, '-', 1), '-09-01'), '%Y-%m-%d')),
                 COALESCE(g.fecha_fin,    STR_TO_DATE(CONCAT(SUBSTRING_INDEX(g.anio_escolar, '-', -1), '-06-30'), '%Y-%m-%d')),
