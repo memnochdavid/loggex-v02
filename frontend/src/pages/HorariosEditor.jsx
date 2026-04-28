@@ -2317,7 +2317,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Crear Rangos Recomendados: borra los PLs existentes y crea N nuevos
   // equiespaciados de Grupo.fechaInicio a Grupo.fechaFin. Si Grupo no tiene
   // fechas, fallback a `<año>-09-01` y `<año+1>-06-30`.
-  const handleCreateRecommendedRangos = async () => {
+  const handleCreateRecommendedRangos = async (e) => {
+    if (e?.preventDefault) e.preventDefault();  // evita submit nativo del <form> del ModalView
     if (!selectedGrupo || !grupo) return;
     const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
     const iniISO = grupo.fechaInicio?.slice(0, 10)

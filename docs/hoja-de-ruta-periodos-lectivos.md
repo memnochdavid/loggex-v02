@@ -426,6 +426,18 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix Crear Rangos Recomendados: faltaba preventDefault
+
+Detectado por el usuario: tras "Limpiar todo el curso" + "Crear Rangos Recomendados" con N=5, solo se creaba el primer rango (Rango 1 cubriendo 67 días); los demás fallaban silenciosamente.
+
+**Causa**: `handleCreateRecommendedRangos` no recibía el evento ni llamaba `e.preventDefault()`. El ModalView usa `<form onSubmit={onSubmit}>`. Sin preventDefault, tras el primer POST `await fetch`, el formulario disparaba el submit nativo → recarga de página → interrumpía el loop async antes del segundo POST. Solo el primer rango quedaba en BD; el frontend nunca refrescaba `plByGrupo` (ese código está después del loop).
+
+**Fix**: añadir parámetro `e` al handler y `if (e?.preventDefault) e.preventDefault();`. Mismo patrón que `handleSubmitPlForm` (que sí lo tenía y funciona).
+
+**Cleanup BD**: borrado el rango huérfano que quedó en BD (`DELETE FROM periodo_lectivo WHERE grupo_id = 1`).
+
+**Lección**: cualquier handler de modal que use `await fetch` DEBE llamar `preventDefault()`. El formulario nativo no espera promesas async; la recarga de página por submit interrumpe el JS. Anotar como pattern obligatorio en futuros modales.
+
 ### 2026-04-28 — Fix UX tras "Limpiar todo el curso": strip vacío con CTA
 
 Tras la primera "Limpiar todo el curso" el grupo quedaba sin rangos pero el strip se ocultaba (`length > 0` en la condición de render), dejando al admin sin botón "Añadir rango" — atrapado.
