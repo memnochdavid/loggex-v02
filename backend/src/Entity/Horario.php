@@ -83,6 +83,18 @@ class Horario
     #[Groups(['horario:read', 'horario:write'])]
     private ?Imparticion $imparticion = null;
 
+    /**
+     * Rango lectivo al que pertenece este placement. La migración Fase 1 de
+     * `PeriodoLectivo` rellena este campo para todos los horarios existentes
+     * con el rango único "Curso completo" del grupo, y luego pasa a NOT NULL.
+     *
+     * Doc: docs/hoja-de-ruta-periodos-lectivos.md
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[Groups(['horario:read', 'horario:write'])]
+    private ?PeriodoLectivo $periodoLectivo = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -140,6 +152,17 @@ class Horario
     public function setImparticion(?Imparticion $imparticion): static
     {
         $this->imparticion = $imparticion;
+        return $this;
+    }
+
+    public function getPeriodoLectivo(): ?PeriodoLectivo
+    {
+        return $this->periodoLectivo;
+    }
+
+    public function setPeriodoLectivo(?PeriodoLectivo $periodoLectivo): static
+    {
+        $this->periodoLectivo = $periodoLectivo;
         return $this;
     }
 }

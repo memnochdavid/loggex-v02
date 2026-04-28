@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟡 stepping stone implementado, modelo completo pendiente. **Override de jornada por grupo** (`Grupo.jornadaTipoOverride`) ya operativo — el admin puede cambiar la plantilla de jornada del solver desde el `infoBar` de `/admin/horarios` sin tocar el itinerario. Modelo completo `PeriodoLectivo` (rangos N por grupo) sigue sin empezar. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md` (calendario lectivo). Una vez completo, las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
+> **Status (2026-04-28)**: 🟡 Fase 1 ✅ Done (modelo + migración con backfill). Stepping stone (override jornada por grupo) ✅ Done. Fase 2 (solver y `CapacityPlanner` por rango) pendiente — siguiente paso. Modelo `PeriodoLectivo` ya está en BD con un rango único `"Curso completo"` por cada grupo existente (vía migración `Version20260428180000`); el comportamiento del solver y editor sigue siendo idéntico al actual hasta que Fase 2 los cablee a leer la jornada e imparticiones del rango. Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` (jornadas "pre Calendario Real" 35h/sem) y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Una vez completo, las jornadas vuelven a ser realistas (≈30h/sem incluyendo recreos, ≈27.5h lectivas) y el cumplimiento del currículo LOMLOE pasa por sumar horas anuales en N rangos en vez de forzar Σ semanal.
 
 ---
 
@@ -90,34 +90,36 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 | ID | Decisión | Resolución | Razón |
 |---|---|---|---|
-| D-A | Cómo expresar materia × rango | Entidad de unión `PeriodoLectivoImparticion` con `minutosSemanales` propio | Permite mismo Imparticion con distintos pesos por rango. Más flexible que enum en Materia. |
+| D-A | Cómo expresar materia × rango | Entidad de unión `PeriodoLectivoImparticion` con `minutosSemanales` propio (nullable: si NULL, hereda `Materia.minutosSemanales`) | Permite mismo Imparticion con distintos pesos por rango. Más flexible que enum en Materia. |
 | D-B | Granularidad de PeriodoLectivo | Por **grupo** | Hereda granularidad de `PeriodoEvaluativo`. Cada grupo puede tener calendario distinto. |
-| D-D | ¿Jornada distinta por rango? | Sí, FK opcional `PeriodoLectivo.jornadaTipo`. Si null, hereda de `Itinerario.jornadaTipo`. | Permite cambio de jornada en bloques especiales (ej: FCT con horario distinto). |
+| D-C | Fecha-fin curso: ¿se computa o el usuario la fija? | **Manual** con aviso "te sobran/faltan X horas anuales para cumplir currículo". Cerrada 2026-04-28. | Computada es elegante pero choca con calendario oficial CCAA (junio fijo). El usuario decide y el sistema valida con aviso no bloqueante. |
+| D-D | ¿Jornada distinta por rango? | Sí, FK opcional `PeriodoLectivo.jornadaTipo`. Si null, fallback a `Grupo.getEffectiveJornadaTipo()` (override del grupo o jornada del itinerario). | Permite cambio de jornada en bloques especiales (ej: FCT con horario distinto). El nullable encadena con el fallback ya implementado en el stepping stone. |
 | D-E | ¿Imparticion troceada por rango? | No, `Imparticion` sigue siendo única; los minutos por rango viven en la entidad de unión | Evita explosión combinatoria y mantiene asistencia/calificación apuntando a una sola Imparticion. |
-| D-F | ¿Pueden solaparse rangos del mismo grupo? | No (constraint), deben cubrir ventana del curso sin huecos validados al final | Más simple, refleja realidad. Un grupo solo tiene un horario activo en cada fecha. |
+| D-F | ¿Pueden solaparse rangos del mismo grupo? | No (validación de servicio), deben cubrir ventana del curso sin huecos validados al "cerrar curso" (D-G) | Más simple, refleja realidad. Un grupo solo tiene un horario activo en cada fecha. |
+| D-G | ¿Validar huecos en edición o solo al "cerrar curso"? | Validar **solo** al "cerrar curso" (acción explícita). Durante edición se permiten huecos y el frontend muestra aviso amarillo. Cerrada 2026-04-28. | Edición incremental cómoda. El admin parte un rango en dos sin que la UI le bloquee mientras configura el segundo. |
+| D-H | ¿Quién crea los rangos por defecto al crear un grupo? | **Auto-crear** un rango único `"Curso completo"` con `fechaInicio = COALESCE(Grupo.fechaInicio, anioEscolar+0901)` y `fechaFin = COALESCE(Grupo.fechaFin, anioEscolar+0630)`, copiando `Grupo.jornadaTipoOverride` como `PeriodoLectivo.jornadaTipo`. La migración Fase 1 hace lo mismo retroactivamente para todos los grupos existentes. Cerrada 2026-04-28. | Un grupo nuevo es usable sin obligar a configurar rangos. El centro los partirá si lo necesita. |
+| D-I | ¿La entidad se llama `PeriodoLectivo`? | **Sí**. Contrapunto natural de `PeriodoEvaluativo`. Alternativa descartada: `RangoHorario` (suena bajo nivel y se confunde con `JornadaTramo`). Cerrada 2026-04-28. | Coherencia con la familia `Periodo*` ya presente. La entidad de unión sigue el mismo prefijo: `PeriodoLectivoImparticion`. |
 
 ### Abiertas
 
-| ID | Pregunta | Recomendación | Por decidir |
-|---|---|---|---|
-| D-C | Fecha-fin curso: ¿se computa o el usuario la fija? | **Manual** con aviso "te sobran/faltan X horas anuales para cumplir currículo" | Computada es elegante pero choca con calendario oficial CCAA (junio fijo). Usuario decide y sistema valida. |
-| D-G | ¿Permitir crear rangos sin huecos obligatorio o validar solo al "cerrar curso"? | Validar al cerrar/publicar; durante edición se permiten huecos. | Edición incremental cómoda. |
-| D-H | ¿Quién crea los rangos por defecto al crear un grupo? | Auto-crear un rango único `"Curso completo"` que cubre `Centro.fechaInicioCurso..Centro.fechaFinCurso` (Fase 5 calendario) | Que un grupo nuevo sea usable sin obligar a configurar rangos. El centro los partirá si lo necesita. |
-| D-I | ¿La entidad se llama `PeriodoLectivo`? | Sí. Contrapunto natural de `PeriodoEvaluativo`. Alternativa descartada: `RangoHorario` (suena bajo nivel). | Confirmar con usuario antes de migrar. |
+(ninguna pendiente — todas cerradas en 2026-04-28 antes de implementar Fase 1)
 
 ---
 
 ## 3. Fases de implementación
 
-### Fase 1 — Modelo + migración (sin UI, sin solver)
+### Fase 1 — Modelo + migración (sin UI, sin solver)  ✅ Done (2026-04-28)
 
-- Crear `PeriodoLectivo` + `PeriodoLectivoImparticion` con `ApiResource`, `ApiFilter`, soft delete.
-- FK `Horario.periodoLectivo` (nullable temporalmente).
-- Migración: crear tabla, **auto-crear un PeriodoLectivo único `"Curso completo"` por grupo existente** (rellena fechas con `Centro.fechaInicio/FinCurso` si existen, o `01-09 → 30-06` por defecto), poblar `Horario.periodoLectivo` con ese rango único, y luego volver `Horario.periodoLectivo` a NOT NULL.
-- Migrar `Imparticion` actuales: crear una fila `PeriodoLectivoImparticion` por cada Imparticion en el rango único `"Curso completo"`, copiando `minutosSemanales` desde la Materia.
-- **Resultado**: data migrada sin pérdida, comportamiento idéntico al actual (un solo rango anual = mismo solver que hoy).
+- ✅ `PeriodoLectivo` (`backend/src/Entity/PeriodoLectivo.php`) con `ApiResource` (Get/GetCollection/Post/Put/Patch/Delete), filtros por grupo/centro/jornadaTipo, traits TimestampableTrait + SoftDeletableTrait, validador `Assert\Expression` para fechaFin > fechaInicio, helper `getEffectiveJornadaTipo()` que cae a `Grupo.getEffectiveJornadaTipo()` si la del rango es NULL.
+- ✅ `PeriodoLectivoImparticion` (`backend/src/Entity/PeriodoLectivoImparticion.php`) con UNIQUE(periodoLectivo, imparticion), `minutosSemanales` nullable (NULL = hereda `Materia.minutosSemanales`), helper `getEffectiveMinutosSemanales()`.
+- ✅ `Horario.periodoLectivo` FK NOT NULL (cascade DELETE; en API es `horario:read`+`horario:write`).
+- ✅ Migration `Version20260428180000` con backfill: un `PeriodoLectivo "Curso completo"` por cada grupo (incluyendo soft-deleted, por seguridad) con fechas `COALESCE(grupo.fecha_inicio/Fin, anio_escolar+'-09-01' / +'-06-30')` y `jornadaTipo = grupo.jornadaTipoOverride`; un `PeriodoLectivoImparticion(NULL minutos)` por cada imparticion existente; `Horario.periodoLectivo` poblado y luego pasa a NOT NULL.
+- **Comportamiento idéntico al actual**: el solver (Fase 2 lo cableará) verá un solo rango por grupo con todas las imparticiones, exactamente como antes. La granularidad por rangos llega cuando el centro decida partir el "Curso completo" en N rangos desde la UI (Fase 3).
 
-**Esfuerzo**: ~1 sesión.
+**Pendiente menor** (Fase 1.5, no bloqueante para correr la migración):
+- Auto-crear un `PeriodoLectivo "Curso completo"` cuando se crea un Grupo nuevo vía API. Pendiente decidir si vía Doctrine `postPersist` listener, State Processor, o como parte de la UI de Fase 3 (ahí ya hay timeline de rangos y el admin puede crearlo a mano). Mientras tanto, los grupos creados por seed deben llevar su PL en el seed, o se ejecuta un comando manual.
+
+**Esfuerzo invertido**: ~1 sesión.
 
 ### Fase 2 — Solver y CapacityPlanner por rango
 
@@ -254,6 +256,20 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 ### 2026-04-28 — Fase 8 añadida al roadmap
 
 Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.
+
+### 2026-04-28 — Fase 1 implementada (modelo + migración con backfill)
+
+Cerradas previamente D-C, D-G, D-H, D-I (sin pendientes en la lista de decisiones). Implementada la Fase 1 entera:
+
+- Entidades `PeriodoLectivo` y `PeriodoLectivoImparticion` con sus repositorios, ApiResource (incluido Patch), filtros, traits y validators.
+- `Horario.periodoLectivo` FK NOT NULL (con tránsito por nullable durante el backfill).
+- Migration `Version20260428180000`: tablas + backfill que crea un rango único `"Curso completo"` por grupo (fechas con COALESCE de `Grupo.fechaInicio/Fin` o fallback a `anio_escolar` parseado en SQL con `SUBSTRING_INDEX`/`STR_TO_DATE`), copia `Grupo.jornadaTipoOverride` como `PeriodoLectivo.jornadaTipo`, crea PLI por cada imparticion (minutos NULL = hereda Materia), vincula horarios al rango único, y al final hace `ALTER TABLE horario MODIFY periodo_lectivo_id INT NOT NULL`.
+
+**Decisión menor durante implementación** (no estaba prevista en el doc original): los datos backfilleados de `PeriodoLectivoImparticion` se persisten con `minutos_semanales = NULL` en vez de copiar `Materia.minutosSemanales`. Razón: el helper `getEffectiveMinutosSemanales()` ya cae a `Materia.minutosSemanales` cuando el override es NULL — copiarlo a la BD generaría duplicación innecesaria y desincronización si el admin cambia el default de la materia. Sólo se rellena `minutos_semanales` cuando el admin quiere desviarse del default en un rango concreto (caso típico: materia con menos peso semanal en el rango FCT).
+
+**Pendiente Fase 1.5**: auto-crear `PeriodoLectivo "Curso completo"` cuando se crea un Grupo nuevo vía API (la migración solo cubre los existentes). Decisión diferida — se cierra como parte de Fase 3 cuando la UI de timeline esté lista, o antes si los seeds nuevos lo requieren. Mientras tanto, los seeds que creen grupos deben crear también su PL.
+
+**Próximo**: Fase 2 (solver y `CapacityPlanner` por rango) — pendiente decisión de scope con el usuario.
 
 ### 2026-04-28 — Ubicación de Fase 8 cerrada
 
