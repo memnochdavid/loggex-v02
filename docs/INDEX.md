@@ -144,7 +144,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `catalogo-oficial.md` | Arquitectura del catálogo + bitácora de §13 + secciones por etapa (FP, ESO) y §20 cross-ref CCAA |
 | `informe-mejoras.md` | Auditoría inicial del proyecto |
 | `async-select.md` | Manual del componente `AsyncSearchSelect` |
-| `sistema-toasts.md` | Manual del sistema de toasts |
+| `sistema-toasts.md` | Manual del sistema de toasts. **§12 refactor pendiente** (unificar sonner con estilo `.errorToast` saturado, registrado 2026-04-28) |
 
 ### 🪦 Superseded (candidatas)
 

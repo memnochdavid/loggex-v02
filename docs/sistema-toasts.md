@@ -321,3 +321,53 @@ Todo el proyecto importa **solo** de `utils/toast.js`. Si algún día se quiere 
 3. Ajustar el CSS de tematización en `styles/toast.css` para que mapee las CSS vars del tema a las que exponga la nueva lib.
 
 El resto del código (22 archivos que consumen `toast.*`) no necesita tocarse.
+
+---
+
+## 12. Refactor pendiente — unificar el sistema de toasts (registrado 2026-04-28)
+
+### Problema
+
+Hoy conviven dos sistemas de toasts en la app:
+
+1. **Genérico (sonner via `utils/toast.js`)** — descrito en este documento. Usado por la mayoría de handlers (PATCHs, DELETEs, validaciones de formulario). Aparece arriba-derecha o abajo-derecha según config de sonner.
+2. **Local del editor de horarios** — `frontend/src/pages/HorariosEditor.module.css:1172` clase `.errorToast`. Componente fixed bottom-right que se renderiza con `setDragError(msg)` (JSX en `HorariosEditor.jsx:3074-3078`). Estilo: `var(--color-error)` de fondo, blanco texto, slide-in animation. Lo dispara el solver cuando devuelve "Propuesta parcial. Sin colocar..." o el drag-drop al rechazar un placement (profe ocupado, materia llena, celda ocupada).
+
+El usuario (sesión 2026-04-28) prefiere visualmente el estilo del **`.errorToast` local**: bloque grande con fondo de color semántico saturado y mensaje contundente. Lo señaló como ejemplo a seguir y pidió un equivalente verde para `success`.
+
+### Plan de unificación
+
+**Objetivo**: un único sistema de toasts coherente con el tema, ubicación bottom-right, tonos semánticos saturados (no solo borde + texto), tipografía consistente.
+
+**Estrategia**:
+- Mantener `utils/toast.js` como punto de entrada único (firma pública intacta).
+- Cambiar el `<Toaster />` de sonner para que use el estilo del `.errorToast` actual:
+  - Background: `var(--color-success/error/warning/info)` saturado al 100%.
+  - Color de texto: blanco (`#fff` o `var(--text-special, #fff)`).
+  - Position: bottom-right.
+  - Animación: slide-in desde abajo (`@keyframes toastSlide` ya existe en HorariosEditor.module.css, mover a global).
+  - Border-radius: `var(--radius-md)`.
+  - Box-shadow themed con `color-mix(--color-gray-900 18%)`.
+- Mover los keyframes y la base styling a `frontend/src/styles/toast.css` (que ya existe con overrides de sonner).
+- Eliminar `.errorToast` local de HorariosEditor.module.css.
+- Cambiar todos los `setDragError(msg)` a `toast.error(msg, { duration: 6000 })` o similar. Eliminar el state `dragError` y su render JSX.
+
+### Tareas concretas (cuando se aborde)
+
+1. **Auditar usos actuales** del sistema genérico — sonner ya tiene success/error/warning/info; pintar todos en el estilo nuevo.
+2. **Auditar usos del `.errorToast`** — buscar `setDragError` en `HorariosEditor.jsx` y migrar a `toast.error`.
+3. **Refactor del CSS** — `frontend/src/styles/toast.css` recibe los estilos finales (saturados, bottom-right, etc).
+4. **Eliminar duplicación** — borrar `.errorToast` de `HorariosEditor.module.css` y el state `dragError`.
+5. **Barrer acciones que aún no avisan** — añadir feedback visual donde falte. Ya identificadas (sesión 2026-04-28):
+   - `handleClearActiveRange` (limpia placements del PL activo, sin toast).
+   - Drag/drop de placement válido en rejilla — sólo notifica error en violation, no éxito.
+   - Otras CRUD handlers donde haga falta.
+6. **Tipografía y escala** — alinear con el resto del tema.
+
+### Esfuerzo estimado
+
+~0.5 sesión. Bajo riesgo (cambio puramente cosmético + barrido de usos), alta visibilidad (afecta a toda la app).
+
+### Prioridad
+
+Media. No bloquea producto; mejora coherencia visual y feedback. Recomendable hacerlo antes del primer despliegue a centro real.
