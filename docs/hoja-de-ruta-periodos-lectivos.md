@@ -426,6 +426,35 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — PDF multi-página por rango lectivo
+
+Implementado el feature pendiente: el botón "Exportar PDF" de `/admin/horarios` ahora genera un documento con **una página por cada `PeriodoLectivo`** del grupo, no un horario plano.
+
+**Backend** (`HorarioPdfController::horarioGrupo`):
+- Carga `Horario[]` del grupo y los agrupa por `periodo_lectivo_id`.
+- Carga también los PLs del grupo SIN horarios (para mostrar el rango como página vacía).
+- Ordena entries por `pl.fechaInicio` ascendente (los sin PL al final).
+- Por cada entry construye un `pageContext` con `slotsManana/slotsTarde/matriz` específico + datos del PL (`plNombre`, `plFechaInicio`, `plFechaFin` formato dd/mm/yyyy).
+- El context final mezcla campos comunes (`centro`, `logoUrl`, `subjectLine`, `i18n`, etc.) con el array `paginas[]`. Los `slotsManana/Tarde/matriz` se quitan del top-level (ahora viven en `paginas[]`).
+
+**Twig** (`pdf/horario.html.twig`):
+- Refactorizado en 2 macros reutilizables: `headerBlock(...)` (logo + título + fecha) y `grillaBlock(...)` (parrilla mañana + tarde con la matriz).
+- Lógica de body: si `paginas` está definido y no vacío → itera con `<div class="page page-break">` por entry, mostrando sub-cabecera del PL (nombre + fechas) entre header y grilla. La última entry NO lleva `page-break-after` (evita página extra al final).
+- Else: modo single-page (compatibilidad con `/api/v1/informes/horario/me` que sigue pasando `slotsManana/Tarde/matriz` top-level).
+- CSS nuevo: `.pl-header` (sub-cabecera tonalizada con border-left), `.page-break` (page-break-after: always).
+
+**Comportamiento**:
+- Grupo con 3 PLs (Rango 1, Rango 2, Rango 3) → PDF de 3 páginas, una por rango. Cada una con su propia parrilla solo de los placements de ese rango. Sub-cabecera "Rango 1 — 01/09/2025 – 06/01/2026" debajo del header común.
+- Grupo con 1 PL → PDF de 1 página (igual que antes pero con sub-cabecera del PL).
+- Grupo sin PLs → PDF de 1 página vacía con `empty-state`.
+- `/horario/me` (mi horario) sigue siendo 1 página plana sin cambios.
+
+**Archivos tocados**:
+- `backend/src/Controller/HorarioPdfController.php`: import de `PeriodoLectivo`, refactor de `horarioGrupo()`.
+- `backend/templates/pdf/horario.html.twig`: 2 macros + branching multi/single page + CSS de `.pl-header`/`.page-break`.
+
+**Pendiente residual**: el `/horario/me` personal podría también beneficiarse de mostrar el rango activo si se usa en escenarios donde el alumno cambia entre rangos. Por ahora se mantiene como horario "plano" (todos sus horarios mezclados); se puede ampliar en el futuro si surge el caso.
+
 ### 2026-04-28 — Pulido UX: estilo del dropdown + toast en exportar PDF + ubicación de toasts
 
 Tres ajustes pequeños tras feedback del usuario:

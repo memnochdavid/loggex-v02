@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Grupo;
 use App\Entity\Horario;
 use App\Entity\Matricula;
+use App\Entity\PeriodoLectivo;
 use App\Entity\User;
 use App\Service\PdfBranding;
 use App\Service\PdfGenerator;
@@ -98,13 +99,67 @@ class HorarioPdfController extends AbstractController
         }
 
         $lang = substr($request->query->get('lang', 'es'), 0, 2);
+
+        // Multi-página por PeriodoLectivo: agrupamos los horarios por PL y
+        // cargamos también los PLs del grupo SIN horarios (para que el PDF
+        // muestre cada rango — aunque vacío — como página independiente).
+        $byPl = [];   // plId → ['pl' => ?PL, 'horarios' => Horario[]]
+        foreach ($horarios as $h) {
+            $pl = $h->getPeriodoLectivo();
+            $plId = $pl?->getId() ?? 0;
+            if (!isset($byPl[$plId])) {
+                $byPl[$plId] = ['pl' => $pl, 'horarios' => []];
+            }
+            $byPl[$plId]['horarios'][] = $h;
+        }
+        $allPls = $this->em->getRepository(PeriodoLectivo::class)->findBy(
+            ['grupo' => $grupo, 'deleted' => false],
+            ['fechaInicio' => 'ASC']
+        );
+        foreach ($allPls as $pl) {
+            if (!isset($byPl[$pl->getId()])) {
+                $byPl[$pl->getId()] = ['pl' => $pl, 'horarios' => []];
+            }
+        }
+        // Ordenar entries por fechaInicio del PL (los sin PL al final).
+        uasort($byPl, function ($a, $b) {
+            $fa = $a['pl']?->getFechaInicio()?->format('Y-m-d') ?? '9999-12-31';
+            $fb = $b['pl']?->getFechaInicio()?->format('Y-m-d') ?? '9999-12-31';
+            return strcmp($fa, $fb);
+        });
+
+        // Construir array `paginas`: una entrada por PL con su parrilla.
+        $paginas = [];
+        foreach ($byPl as $entry) {
+            $pl = $entry['pl'];
+            $ctxPl = $this->buildScheduleContext(
+                centro: $centro,
+                grupo: $grupo,
+                usuarioPersonal: null,
+                horarios: $entry['horarios'],
+                lang: $lang
+            );
+            $paginas[] = [
+                'plNombre' => $pl?->getNombre(),
+                'plFechaInicio' => $pl?->getFechaInicio()?->format('d/m/Y'),
+                'plFechaFin' => $pl?->getFechaFin()?->format('d/m/Y'),
+                'slotsManana' => $ctxPl['slotsManana'],
+                'slotsTarde' => $ctxPl['slotsTarde'],
+                'matriz' => $ctxPl['matriz'],
+            ];
+        }
+
+        // Context base (header común a todas las páginas).
         $context = $this->buildScheduleContext(
             centro: $centro,
             grupo: $grupo,
             usuarioPersonal: null,
-            horarios: $horarios,
+            horarios: [],   // base sin parrilla; las parrillas van por página
             lang: $lang
         );
+        $context['paginas'] = $paginas;
+        // Quitamos los campos por-página del top-level (ahora viven en paginas[]).
+        unset($context['slotsManana'], $context['slotsTarde'], $context['matriz']);
 
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/horario.html.twig', $context, 'A4', 'landscape');
         $filename = sprintf('horario_%s_%s.pdf',
