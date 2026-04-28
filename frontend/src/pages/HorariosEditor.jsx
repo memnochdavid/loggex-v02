@@ -274,6 +274,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return extractFkId(g?.itinerario?.jornadaTipo);
   };
 
+  // PL actualmente seleccionado para el grupo en pantalla (puede ser undefined
+  // mientras se resuelve la carga inicial — el resto del código maneja ese caso).
+  // Declarado aquí (antes de los useEffect que lo consumen) para evitar TDZ.
+  const selectedPlId = selectedPlByGrupo[selectedGrupo];
+  // Clave compuesta para el estado del editor: cada (grupo, PL) mantiene su
+  // propio set de placements/baseline/dirty. Cambiar de PL no descarta el
+  // trabajo en progreso del PL anterior.
+  const stateKey = (selectedGrupo && selectedPlId) ? `${selectedGrupo}_${selectedPlId}` : '';
+
   // 1.5) Cargar la jornada efectiva del (grupo, PL) seleccionado.
   // El GET /api/grupos no anida los tramos de la jornada (los serializer groups
   // no encadenan tan profundo), así que hacemos un fetch dedicado a /api/jornada_tipos/{id}.
@@ -352,14 +361,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })
       .catch(err => console.error('Error cargando PeriodoLectivos:', err));
   }, [selectedGrupo, plByGrupo, selectedPlByGrupo]);
-
-  // PL actualmente seleccionado para el grupo en pantalla (puede ser undefined
-  // mientras se resuelve la carga inicial — el resto del código maneja ese caso).
-  const selectedPlId = selectedPlByGrupo[selectedGrupo];
-  // Clave compuesta para el estado del editor: cada (grupo, PL) mantiene su
-  // propio set de placements/baseline/dirty. Cambiar de PL no descarta el
-  // trabajo en progreso del PL anterior.
-  const stateKey = (selectedGrupo && selectedPlId) ? `${selectedGrupo}_${selectedPlId}` : '';
 
   // 1.6) Capacity-check del (grupo, PL) seleccionado (sub-fase O, §14.7).
   // Pre-calcula el ILP de asignación slots→materias antes de pulsar "Sugerir".
