@@ -426,6 +426,16 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fixes UX badge + ModuleChip cross-rango con state local
+
+Tres fixes a problemas reportados por el usuario tras best-effort + truco recreos:
+
+**1. Badge panel Materias mostraba "Borrador 27.5/29h" al tener slots llenos.** El target del badge era `Σ materia.minutosSemanales` (29h), inalcanzable cuando hay sobrecarga absorbida por recreos. Cambio: target = `min(Σ materia, capacidadSlots × 5)`. Cuando los slots están llenos, el badge marca "Completo 27.5/27.5h".
+
+**2. ModuleChip mostraba contadores diferentes entre rangos.** Causa: el memo `minutosAnualesColocadosByImp` solo leía del state local del PL ACTIVO + persistidos para los demás. Al ejecutar solver en 3 rangos sin guardar entre medias, los placements de PL inactivos seguían en `state[grupoId_otroPL]` pero ese local NO se contabilizaba — solo los persistidos (vacíos). Resultado: el chip cambiaba según qué PL estuviera activo. Fix: el memo ahora itera TODOS los PLs del grupo y para cada uno usa state local si existe (incluyendo unsaved), sino persistidos. Cross-rango funciona correctamente sin necesidad de guardar entre PLs.
+
+**3. Wording modal "Faltan por colocar" confuso.** Antes: "Bases de Datos: 1 de 6h sin colocar" (¿1 qué de 6h?). Ahora: "faltan 1h de 6h" en es (con unidades consistentes). Actualizado en 5 idiomas.
+
 ### 2026-04-28 — Fix reducción del CapacityPlanner: round-robin equitativa
 
 Tras best-effort, el solver no rellenaba toda la semana — el panel mostraba 27.5/29h pero solo se colocaban ~22h. Causa: la reducción proporcional con `floor()` era agresiva (cada materia caía a la unidad inferior, perdiendo varias horas en total cuando solo tocaba perder 1.5h). Ej: Digit 60min × 0.948 = 56 → floor(56/60)×60 = 0. Materia desaparece.

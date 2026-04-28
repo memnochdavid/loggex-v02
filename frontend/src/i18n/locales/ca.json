@@ -1338,7 +1338,7 @@
     "conflictReload": "Recarregar",
     "publishIncompleteTitle": "Publicar horari incomplet",
     "publishIncompleteBody": "L'horari encara no està complet. Si el deses ara, els alumnes veuran la versió parcial. Falta col·locar:",
-    "publishIncompleteItem": "{{faltan}} de {{total}}h sense col·locar",
+    "publishIncompleteItem": "falten {{faltan}}h de {{total}}h",
     "publishIncompleteCancel": "Cancel·lar",
     "publishIncompleteConfirm": "Publicar igualment",
     "exportPdf": "PDF",

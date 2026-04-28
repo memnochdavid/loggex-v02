@@ -1338,7 +1338,7 @@
     "conflictReload": "Berriro kargatu",
     "publishIncompleteTitle": "Ordutegi osatugabea argitaratu",
     "publishIncompleteBody": "Ordutegia ez dago oraindik osatuta. Orain gordetzen baduzu, ikasleek bertsio partziala ikusiko dute. Kokatzeke:",
-    "publishIncompleteItem": "{{total}}h-tik {{faltan}} kokatzeke",
+    "publishIncompleteItem": "{{total}}h-tik {{faltan}}h falta dira",
     "publishIncompleteCancel": "Utzi",
     "publishIncompleteConfirm": "Argitaratu hala ere",
     "exportPdf": "PDF",

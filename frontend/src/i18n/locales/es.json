@@ -1636,7 +1636,7 @@
     "conflictReload": "Recargar",
     "publishIncompleteTitle": "Publicar horario incompleto",
     "publishIncompleteBody": "El horario aún no está completo. Si guardas ahora, los alumnos verán la versión parcial. Faltan por colocar:",
-    "publishIncompleteItem": "{{faltan}} de {{total}}h sin colocar",
+    "publishIncompleteItem": "faltan {{faltan}}h de {{total}}h",
     "publishIncompleteCancel": "Cancelar",
     "publishIncompleteConfirm": "Publicar igualmente",
     "exportPdf": "PDF",

@@ -1338,7 +1338,7 @@
     "conflictReload": "Reload",
     "publishIncompleteTitle": "Publish incomplete schedule",
     "publishIncompleteBody": "The schedule is not complete yet. If you save now, students will see the partial version. Still unplaced:",
-    "publishIncompleteItem": "{{faltan}} of {{total}}h unplaced",
+    "publishIncompleteItem": "{{faltan}}h missing of {{total}}h",
     "publishIncompleteCancel": "Cancel",
     "publishIncompleteConfirm": "Publish anyway",
     "exportPdf": "PDF",

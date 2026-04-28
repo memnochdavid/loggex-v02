@@ -684,39 +684,49 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   }, [plByGrupo, selectedGrupo]);
 
   // Minutos ANUALES colocados por imparticion (Fase 5 sub-A): suma a través
-  // de TODOS los rangos del grupo. Por cada placement: `slot duración × semanas
-  // del PL` (asume cada día_semana ocurre 1× por semana del rango).
-  // - PL activo: usa `placements` (state local, incluye ediciones sin guardar).
-  // - Otros PLs: usa `allHorariosByGroup` (datos persistidos).
-  // Tras un save, `refetchAllHorariosForGroup` actualiza la fuente persistida.
+  // de TODOS los rangos del grupo. Por cada PL del grupo:
+  //  · Si hay state local (placements en memoria, posiblemente sin guardar):
+  //    usar el local. Eso incluye cambios del solver y drag-and-drop pendientes.
+  //  · Si no hay state local: usar persistidos de `allHorariosByGroup`.
+  // De este modo, ejecutar el solver en los 3 rangos uno tras otro suma los 3
+  // sin necesidad de guardar entre medias (siempre que no haya hard-refresh).
   const minutosAnualesColocadosByImp = useMemo(() => {
     const acc = {};
     if (!selectedGrupo) return acc;
-    // Otros PLs (persistidos)
-    const all = allHorariosByGroup[selectedGrupo] || [];
-    all.forEach(h => {
+    const pls = plByGrupo[selectedGrupo] || [];
+    const persistedByPl = {};
+    (allHorariosByGroup[selectedGrupo] || []).forEach(h => {
       const plId = extractFkId(h.periodoLectivo);
       if (!plId) return;
-      if (selectedPlId && String(plId) === String(selectedPlId)) return;  // skip activo (lo cubre el state local)
-      const semanas = semanasByPlId[plId] || 0;
-      if (semanas <= 0) return;
-      const dur = parseHmsToMin(h.horaFin) - parseHmsToMin(h.horaInicio);
-      if (dur <= 0) return;
-      const impId = Number(getId(h.imparticion));
-      if (!impId) return;
-      acc[impId] = (acc[impId] || 0) + dur * semanas;
+      if (!persistedByPl[plId]) persistedByPl[plId] = [];
+      persistedByPl[plId].push(h);
     });
-    // PL activo (state local)
-    const semanasActivo = selectedPlId ? (semanasByPlId[selectedPlId] || 0) : 0;
-    if (semanasActivo > 0) {
-      Object.values(placements).forEach(p => {
-        const dur = slotMinutosByHi[p.horaInicio] || 0;
-        if (dur <= 0) return;
-        acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanasActivo;
-      });
-    }
+    pls.forEach(pl => {
+      const semanas = semanasByPlId[pl.id] || 0;
+      if (semanas <= 0) return;
+      const localKey = `${selectedGrupo}_${pl.id}`;
+      const localState = state[localKey];
+      if (localState?.placements) {
+        // State local (sin guardar incluido). Usa la duración del slot map del PL
+        // activo como aproximación (jornada típicamente igual entre rangos).
+        Object.values(localState.placements).forEach(p => {
+          const dur = slotMinutosByHi[p.horaInicio] || 0;
+          if (dur <= 0) return;
+          acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanas;
+        });
+      } else {
+        // Sin state local: leer persistidos del PL.
+        (persistedByPl[pl.id] || []).forEach(h => {
+          const dur = parseHmsToMin(h.horaFin) - parseHmsToMin(h.horaInicio);
+          if (dur <= 0) return;
+          const impId = Number(getId(h.imparticion));
+          if (!impId) return;
+          acc[impId] = (acc[impId] || 0) + dur * semanas;
+        });
+      }
+    });
     return acc;
-  }, [selectedGrupo, allHorariosByGroup, semanasByPlId, selectedPlId, placements, slotMinutosByHi]);
+  }, [selectedGrupo, plByGrupo, allHorariosByGroup, semanasByPlId, state, slotMinutosByHi]);
 
   // Objetivo anual por imparticion (Fase 5 sub-A): `materia.minutosSemanales × 36`
   // semanas LOMLOE de referencia (D-L). Cuando llegue Fase 7 con calendario
@@ -734,11 +744,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
-  const totalHoras = minToHoras(totalMinutos);
+  // Target del badge: cuando hay sobrecarga semanal absorbida por recreos,
+  // el "completo" se alcanza al llenar slots, no al cubrir Σ materias (físicamente
+  // imposible). Target = min(Σ materias, capacidad slots × 5 días).
+  const slotsCapacityWeekly = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0) * 5;
+  const targetMinutos = slotsCapacityWeekly > 0
+    ? Math.min(totalMinutos, slotsCapacityWeekly)
+    : totalMinutos;
+  const totalHoras = minToHoras(targetMinutos);
   const colocadasTotal = minToHoras(colocadosMinutos);
-  const completitud = totalMinutos ? (colocadosMinutos / totalMinutos) * 100 : 0;
+  const completitud = targetMinutos ? (colocadosMinutos / targetMinutos) * 100 : 0;
   const estado =
-    colocadosMinutos >= totalMinutos && totalMinutos > 0 ? 'complete' :
+    colocadosMinutos >= targetMinutos && targetMinutos > 0 ? 'complete' :
     completitud >= 80 ? 'draft' : 'incomplete';
 
   const estadoBadge = {
