@@ -630,6 +630,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return m;
   }, [tramosOrdenados]);
 
+  // Jornada semanal "lectiva curricular" (Fase 5 — truco recreos): incluye
+  // SLOT + RECREO × 5 días. Razón: en muchos centros (LOMLOE FP típicamente)
+  // los recreos cuentan como tiempo lectivo a efectos de cumplir el currículo
+  // anual ante la inspección. La rejilla y el solver siguen ignorando recreos
+  // (no se colocan materias en ellos), pero el cómputo de capacidad anual los
+  // suma. Distinto de `slotMinutosByHi` que es solo SLOTs (placement).
+  // Asunción universal por ahora; parametrizable a futuro vía Centro/JornadaTipo
+  // si algún centro quiere descontarlos del cómputo curricular.
+  const jornadaSemanalLectivaMin = useMemo(() => {
+    let total = 0;
+    tramosOrdenados.forEach(t => {
+      if (t.tipo !== 'slot' && t.tipo !== 'recreo') return;
+      total += Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
+    });
+    return total * 5;
+  }, [tramosOrdenados]);
+
   // Recreos para renderizar como bloques no asignables en la rejilla.
   const recreosDia = useMemo(
     () => tramosOrdenados.filter(t => t.tipo === 'recreo'),
@@ -760,14 +777,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Currículo: Σ minutos semanales de las imparticiones del grupo × 36 semanas.
     const curriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_ESTANDAR;
 
-    // Cap semanal de la jornada (capacidad física por semana). Asumimos que la
-    // jornada del PL activo es representativa de todos los PLs del grupo —
-    // approximación; rangos con jornadas distintas darán cifra ~aproximada.
-    // Necesario para que el plan no prometa más horas que las que físicamente
-    // caben (Fase 5 sub-C polish): si Σ pli/sem > jornada/sem, el solver sólo
-    // colocará lo que cabe; el plan debe reflejar esa cota.
-    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
-    const jornadaSemanalMin = slotsMinTotal * 5;
+    // Cap semanal "lectivo curricular" (slots + recreos × 5 días). Asumimos
+    // que la jornada del PL activo es representativa de todos los PLs del
+    // grupo — approximación; rangos con jornadas distintas darán cifra
+    // ~aproximada. Necesario para que el plan no prometa más horas que las
+    // que físicamente caben (Fase 5 sub-C polish): si Σ pli/sem > jornada/sem,
+    // el plan debe cap a la capacidad. Recreos cuentan aquí (truco LOMLOE FP).
+    const jornadaSemanalMin = jornadaSemanalLectivaMin;
 
     // Planificado: por cada PL, semanas del rango × min(Σ minutos efectivos
     // PLI, jornadaSemanalMin). El min cap evita el caso "plan > capacity"
@@ -816,13 +832,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       plCount: pls.length,
       semanasTotal: Math.round(semanasTotal * 10) / 10,
     };
-  }, [selectedGrupo, plByGrupo, imps, impById, slotMinutosByHi]);
+  }, [selectedGrupo, plByGrupo, imps, impById, jornadaSemanalLectivaMin]);
 
   // Sugerencia de extensión de curso (Fase 5 sub-B): cuando el banner anual
   // muestra que faltan horas (tone warn/error), calcula cuántos días lectivos
   // habría que extender el curso para que el banner pase a verde. El cálculo:
-  //   - jornadaSemanal = Σ slot durations × 5 días (del PL activo, asumido
-  //     representativo del centro)
+  //   - jornadaSemanal = jornadaSemanalLectivaMin (slots + recreos × 5 días,
+  //     truco LOMLOE FP que cuenta recreos como lectivo curricular)
   //   - extraSemanas = ceil(faltanHoras / jornadaSemanal_en_horas)
   //   - extraDays = extraSemanas × 7 (días naturales)
   //   - lastPl = PL del grupo con mayor fechaFin (= "el último rango")
@@ -837,8 +853,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (horasAnualesBanner.tone === 'ok') return null;        // ya cuadrado o sobran
     const faltanHoras = -horasAnualesBanner.diff;             // tone warn/error → diff < 0
     if (faltanHoras <= 0) return null;
-    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
-    const jornadaSemanaMin = slotsMinTotal * 5;
+    const jornadaSemanaMin = jornadaSemanalLectivaMin;
     if (jornadaSemanaMin <= 0) return null;
     const jornadaSemanaH = jornadaSemanaMin / 60;
     const extraSemanas = Math.ceil(faltanHoras / jornadaSemanaH);
@@ -896,7 +911,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       newDiffSigned: newDiff > 0 ? `+${newDiff}` : `${newDiff}`,
       newTone,
     };
-  }, [horasAnualesBanner, slotMinutosByHi, plByGrupo, selectedGrupo, grupo, impById]);
+  }, [horasAnualesBanner, jornadaSemanalLectivaMin, plByGrupo, selectedGrupo, grupo, impById]);
 
   // Feasibility ANUAL global del grupo (Fase 5 sub-C): compara Σ currículo
   // anual contra Σ capacidad real (jornada × semanas total del grupo). Si
@@ -912,8 +927,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (imps.length === 0) return null;
     const sumCurriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_REFERENCIA_ANUAL;
     if (sumCurriculumMin <= 0) return null;
-    const slotsMinTotal = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
-    const jornadaSemanalMin = slotsMinTotal * 5;
+    // Capacidad lectiva curricular: incluye recreos (truco LOMLOE FP).
+    const jornadaSemanalMin = jornadaSemanalLectivaMin;
     if (jornadaSemanalMin <= 0) return null;
     const semanasTotal = Object.values(semanasByPlId).reduce((a, b) => a + b, 0);
     if (semanasTotal <= 0) return null;
@@ -928,7 +943,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       fits,
       deficitH,
     };
-  }, [selectedGrupo, imps, slotMinutosByHi, semanasByPlId]);
+  }, [selectedGrupo, imps, jornadaSemanalLectivaMin, semanasByPlId]);
 
   // Semanas del rango activo en el modal (Fase 5 sub-A): se usa para convertir
   // entre min/sem ↔ horas anuales. Cálculo: ceil((fechaFin - fechaInicio) / 7).

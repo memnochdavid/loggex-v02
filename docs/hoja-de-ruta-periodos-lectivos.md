@@ -426,6 +426,29 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Truco LOMLOE FP: recreos cuentan como tiempo lectivo curricular
+
+Tras sub-fase E (catálogo corregido a 29h/sem semanales reales para 1º DAW LOMLOE), el déficit anual quedó en ~11h con jornada 27.5h × 37.6 sem. El usuario decidió aplicar el "truco" más extendido en centros FP: **contar los recreos como tiempo lectivo a efectos del cumplimiento curricular** ante la inspección.
+
+**Justificación normativa**: la jornada presencial de un centro suele ser 30h/sem (con 2.5h de recreos lectivos). Aunque los recreos NO se imparten clases, normativamente forman parte de la "presencia obligatoria del alumno" — y muchos centros los computan al currículo total para cuadrar las horas anuales LOMLOE.
+
+**Implementación**:
+
+- Memo nuevo `jornadaSemanalLectivaMin` en `HorariosEditor.jsx`: `Σ (SLOT + RECREO duración) × 5 días`. A diferencia de `slotMinutosByHi` (sólo SLOTs, usado por solver/grid/validaciones), esta cifra incluye recreos.
+- Sustituida la `jornadaSemanalMin` (sólo slots) en los 3 cálculos de cómputo anual:
+  - `horasAnualesBanner` — el cap del plan ya no es `slots × semanas` sino `(slots+recreos) × semanas`. La intención del admin se cap en la jornada lectiva curricular completa.
+  - `capacityFeasibilityAnual` — la capacidad anual del banner CapacityPlanner pasa a incluir recreos. Caso 1º DAW EAG: capacidad sube de 1033h (27.5h × 37.6sem) a ≈1128h (30h × 37.6sem). Currículo 1044h. **Cabe con margen +84h**, banner verde sin extender.
+  - `extendCourseSuggestion` — la sugerencia de extender curso usa la cifra lectiva curricular para `extraSemanas = ceil(faltan / jornadaLectiva)`. Si recreos cuentan, hace falta menos extender.
+- **NO afectado** (deliberado): `slotMinutosByHi`, `pliModalSummary` per-rango (que es semanal y per-rango — el admin sigue pensando "slots disponibles" para colocar materias), validación drag/tap, solver y CapacityPlanner backend.
+
+**Decisiones**:
+- **Universal sin flag**: aplica a todos los centros automáticamente. Es el patrón mayoritario en FP LOMLOE Andalucía. Si en el futuro otro centro quiere descontar recreos del cómputo curricular, **se añade un flag `JornadaTipo.recreosCuentanComoLectivo`** (default `true`) o `Centro.recreosCuentanCurriculo`. Diferido.
+- **Distinción placement vs currículo mantenida**: la rejilla y el solver siguen siendo "puramente slots" — un recreo NO es asignable. La cifra "horas anuales colocadas" del ModuleChip lateral usa `slotMinutosByHi` (no afectado), así que sigue contando solo lo que realmente se imparte. **Pero** la "capacidad anual" de los banners usa la cifra lectiva-con-recreos. Esa asimetría es deliberada: refleja la lógica real del centro (impartes en slots, justificas el currículo a la inspección con la jornada presencial completa).
+
+**Verificación caso 1º DAW EAG**:
+- Antes: capacidad 1033h vs currículo 1044h → faltan 11h, banner amarillo sugería extender curso 1 semana.
+- Después: capacidad 1128h vs currículo 1044h → +84h margen, banner anual verde "Cumples con margen", banner CapacityPlanner silencioso. Sin extender curso.
+
 ### 2026-04-28 — Fix solver: cascade soft-delete de Imparticion
 
 Tras sub-fase E, al pulsar "Sugerir horario" sobre 1º DAW EAG salía 500: `Entity of type 'App\Entity\Imparticion' for IDs id(39) was not found`.
