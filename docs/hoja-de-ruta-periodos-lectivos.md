@@ -173,7 +173,14 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 > Idea acordada 2026-04-28. Es la fase que justifica visualmente las decisiones de los rangos: el admin debe poder confirmar de un vistazo que el currículo cuadra al final del año.
 
-Tab nuevo en la vista de cada grupo (probablemente en `/admin/grupos/{id}` o como sub-pestaña de `/admin/horarios` cuando el grupo está seleccionado) con dos vistas combinadas:
+**Ubicación decidida (2026-04-28)**: sub-pestaña dentro de `/admin/horarios` (no ruta propia, no en `/admin/grupos/{id}`). Razones:
+- **Misma actividad**: editar horarios y verificar consumición son la misma tarea de planificación temporal — uno es "configuro", el otro es "compruebo". El admin que edita es el mismo que mira el dashboard.
+- **Reuso del contexto**: el selector de grupo, la jornada efectiva y el banner del capacity-check ya están en `/admin/horarios`. Una ruta propia tendría que duplicar ese flujo.
+- **Encaja con Fase 6**: la unificación `/admin/jornadas` + `/admin/horarios` deja un contenedor por grupo con pestañas; Fase 8 entra como una pestaña más (`[Editor] [Dashboard horas]`, mañana `[Rangos]` con Fase 3).
+- **`/admin/grupos/{id}` queda fuera**: esa vista es CRUD del grupo (datos del sujeto), no operativa académica.
+- Mitigación si crece demasiado: partir en sub-rutas tipo `/admin/horarios/{grupoId}/dashboard` manteniendo el contexto del selector — decisión diferida a cuando llegue la implementación.
+
+Dos vistas combinadas dentro de la pestaña:
 
 **Vista "ahora"** — instantánea de hoy:
 - Por materia: horas previstas en el currículo (Σ minutos × semanas) vs horas ya impartidas hasta hoy (de `Asistencia` confirmadas o, en su defecto, deducidas del calendario y los `PeriodoLectivo` ya transcurridos).
@@ -247,3 +254,7 @@ Implementado **el override de jornada por grupo** (`Grupo.jornadaTipoOverride`) 
 ### 2026-04-28 — Fase 8 añadida al roadmap
 
 Acordada con el usuario una nueva **Fase 8: tab "Consumición de horas anuales" por grupo**. Es la fase que cierra el ciclo de gestión: dashboard con vista "ahora" (cuánto se ha impartido de cada materia hasta hoy vs el currículo) + proyección anual basada en los `PeriodoLectivo` configurados, con doble eje temporal `rango`/`evaluación`. Sin este tab los rangos son una caja negra; con él, son una herramienta de gestión real para el jefe de estudios. Esfuerzo estimado 2-3 sesiones. Detalles en §3 Fase 8.
+
+### 2026-04-28 — Ubicación de Fase 8 cerrada
+
+Decidido tras discusión con el usuario: la Fase 8 vive como **sub-pestaña dentro de `/admin/horarios`** (no ruta propia, no en `/admin/grupos/{id}`). Razón principal: editar horarios y verificar consumición son la misma tarea de planificación temporal, y el contexto (selector de grupo + jornada efectiva + capacity-check) ya está montado en `/admin/horarios`. Encaja con la unificación prevista en Fase 6 (`/admin/jornadas` + `/admin/horarios` → contenedor por grupo con pestañas). Mitigación si la pestaña crece: partir en sub-rutas tipo `/admin/horarios/{grupoId}/dashboard` manteniendo el contexto del selector — diferido. Doc actualizado en §3 Fase 8 ("Ubicación decidida").
