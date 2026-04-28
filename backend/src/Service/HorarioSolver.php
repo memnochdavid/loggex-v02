@@ -74,18 +74,21 @@ class HorarioSolver
 
         // Pre-asignación cuantitativa (sub-fase O, §14.7): el CapacityPlanner decide
         // cuántos slots de cada duración recibe cada imparticion ANTES del backtracking
-        // topológico. Si la combinatoria es infactible (capacidad < total), el solver
-        // se detiene aquí con el diagnóstico del planner — no hay nada que el
-        // backtracking pueda hacer al respecto.
+        // topológico. Cuando capacidad < total (sobrecarga semanal), el planner hace
+        // best-effort: reduce proporcionalmente y devuelve `feasible:false` con
+        // `asignacion` poblada y `huerfanos` con el déficit. El solver debe seguir
+        // y colocar lo que cabe (Fase 5: el truco de recreos LOMLOE asume que el
+        // déficit pequeño se justifica curricularmente con recreos lectivos).
+        // Sólo abortamos si la asignación está vacía (caso patológico real).
         $capacity = $this->planner->plan($grupo, $periodoLectivo);
-        if (!$capacity['feasible']) {
+        if (empty($capacity['asignacion'])) {
             return [
                 'complete' => false,
                 'placements' => [],
                 'unplaced' => $capacity['huerfanos'],
                 'capacity' => $capacity,
                 'debug' => [
-                    'error' => 'El itinerario no cabe en la jornada según CapacityPlanner.',
+                    'error' => 'CapacityPlanner no produjo asignación (capacidad nula o reducción dejó 0 en todas las imparticiones).',
                     'capacity' => $capacity,
                 ],
             ];
@@ -181,19 +184,27 @@ class HorarioSolver
         // Tras pre-asignación cuantitativa, "completo" significa que cada imparticion
         // recibió todos los slots de su cuota — no que sus minutos cuadren exacto con
         // los declarados (puede haber round-up D22=A si el planner devolvió delta>0).
+        // En modo best-effort (capacidad < total), `capacity['huerfanos']` lleva el
+        // déficit de la reducción proporcional: hay que sumarlo al `unplaced` aquí.
         $unplaced = [];
+        $orphansFromPlanner = [];   // impId → minutos no cubiertos por el planner
+        foreach ($capacity['huerfanos'] ?? [] as $h) {
+            $orphansFromPlanner[$h['impId']] = (int) ($h['minutosRestantes'] ?? 0);
+        }
         foreach ($imps as $imp) {
             $cuotaImp = $capacity['asignacion'][$imp->getId()] ?? [];
             $minutosCuota = 0;
             foreach ($cuotaImp as $d => $c) $minutosCuota += $d * $c;
             $placedMin = $placedMinPerImp[$imp->getId()] ?? 0;
-            if ($placedMin < $minutosCuota) {
-                $faltanMin = $minutosCuota - $placedMin;
+            $faltanBacktrack = max(0, $minutosCuota - $placedMin);
+            $faltanPlanner = $orphansFromPlanner[$imp->getId()] ?? 0;
+            $faltanTotal = $faltanBacktrack + $faltanPlanner;
+            if ($faltanTotal > 0) {
                 $unplaced[] = [
                     'imparticionId' => $imp->getId(),
                     'materia' => $imp->getMateria()?->getNombre(),
-                    'minutosRestantes' => $faltanMin,
-                    'horasRestantes' => round($faltanMin / 60, 2),
+                    'minutosRestantes' => $faltanTotal,
+                    'horasRestantes' => round($faltanTotal / 60, 2),
                 ];
             }
         }

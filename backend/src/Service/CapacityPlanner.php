@@ -126,7 +126,42 @@ class CapacityPlanner
             ];
         }
 
+        // Capacidad insuficiente: best-effort. En vez de devolver "todos huérfanos"
+        // y bloquear el solver, reducimos proporcionalmente los minutos por
+        // imparticion para que Σ ≤ capacidad, generamos asignación con esos
+        // valores reducidos y reportamos el excedente como huérfanos parciales.
+        // Razón: con el truco de recreos LOMLOE FP, una sobrecarga semanal
+        // pequeña es operativa (los placements colocan lo que cabe; el resto
+        // se justifica al currículo con recreos lectivos). El admin debe poder
+        // ejecutar el solver aunque haya un déficit semanal pequeño.
+        $orphansFromReduction = [];          // impId → minutos perdidos
+        $orphanMateriaNames = [];            // impId → nombre (para reportar)
         if ($capacidadMinutos < $totalMinutos) {
+            $factor = $capacidadMinutos / $totalMinutos;
+            $unidadRedondeo = (int) min($duraciones);  // típicamente 60 (slot más corto)
+            $reducidoTotal = 0;
+            foreach ($materias as &$m) {
+                $original = (int) $m['minutos'];
+                // Floor a la unidad de slot más corta para que la reducción sea
+                // expresable como combo válido. Si queda 0 → la materia se
+                // marca como totalmente huérfana en este rango (caso extremo).
+                $reducido = (int) floor(($original * $factor) / $unidadRedondeo) * $unidadRedondeo;
+                $reducido = max(0, $reducido);
+                $perdido = $original - $reducido;
+                if ($perdido > 0) {
+                    $orphansFromReduction[$m['impId']] = $perdido;
+                    $orphanMateriaNames[$m['impId']] = $m['nombre'];
+                }
+                $m['minutos'] = $reducido;
+                $reducidoTotal += $reducido;
+            }
+            unset($m);
+            // Filtrar materias con minutos=0 tras reducción (no entran al ILP).
+            $materias = array_values(array_filter($materias, fn ($m) => $m['minutos'] > 0));
+            // Nota: $totalMinutos NO se actualiza — sigue siendo el original
+            // (para que la respuesta refleje los minutos pedidos vs capacidad).
+        }
+        if (empty($materias)) {
             return [
                 'feasible' => false,
                 'totalMinutos' => $totalMinutos,
@@ -134,14 +169,18 @@ class CapacityPlanner
                 'desajuste' => $totalMinutos - $capacidadMinutos,
                 'asignacion' => [],
                 'roundups' => [],
-                'huerfanos' => array_map(fn ($m) => [
-                    'impId' => $m['impId'],
-                    'materia' => $m['nombre'],
-                    'minutosRestantes' => $m['minutos'],
-                    'horasRestantes' => round($m['minutos'] / 60, 2),
-                ], $materias),
+                'huerfanos' => array_map(
+                    fn ($impId, $min) => [
+                        'impId' => $impId,
+                        'materia' => $orphanMateriaNames[$impId] ?? '?',
+                        'minutosRestantes' => $min,
+                        'horasRestantes' => round($min / 60, 2),
+                    ],
+                    array_keys($orphansFromReduction),
+                    array_values($orphansFromReduction)
+                ),
                 'slotsDisponibles' => $slotsDisponibles,
-                'debug' => ['error' => 'capacidad insuficiente: capacidad < Σ minutos'],
+                'debug' => ['error' => 'capacidad insuficiente; reducción proporcional dejó 0 minutos en todas.'],
             ];
         }
 
@@ -223,14 +262,26 @@ class CapacityPlanner
             }
         }
 
+        // Si hubo reducción proporcional (best-effort), reporta como huérfanos
+        // las minutos perdidas y marca feasible:false para que la UI lo refleje.
+        $huerfanos = [];
+        foreach ($orphansFromReduction as $impId => $perdido) {
+            $huerfanos[] = [
+                'impId' => $impId,
+                'materia' => $orphanMateriaNames[$impId] ?? '?',
+                'minutosRestantes' => $perdido,
+                'horasRestantes' => round($perdido / 60, 2),
+            ];
+        }
+
         return [
-            'feasible' => true,
+            'feasible' => empty($huerfanos),
             'totalMinutos' => $totalMinutos,
             'capacidadMinutos' => $capacidadMinutos,
             'desajuste' => $this->bestCost,
             'asignacion' => $asignacion,
             'roundups' => $roundups,
-            'huerfanos' => [],
+            'huerfanos' => $huerfanos,
             'slotsDisponibles' => $slotsDisponibles,
             'debug' => [
                 'duraciones' => $duraciones,
@@ -238,6 +289,7 @@ class CapacityPlanner
                 'nodesExplored' => $this->nodesExplored,
                 'elapsedSec' => round(microtime(true) - $this->startedAt, 3),
                 'timedOut' => $this->timedOut,
+                'reducedFromOverflow' => !empty($orphansFromReduction),
             ],
         ];
     }

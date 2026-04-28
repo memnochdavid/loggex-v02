@@ -426,6 +426,31 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — CapacityPlanner best-effort cuando hay sobrecarga semanal
+
+Tras habilitar los botones del solver con sobrecarga absorbible por recreos, el solver retornaba "Propuesta parcial. Sin colocar: [todas las materias]". Es decir, no colocaba nada — todas las 29h de materias venían como huérfanas.
+
+**Causa**: short-circuit en `CapacityPlanner::plan()` cuando `capacidadMinutos < totalMinutos` → retornaba `asignacion: []` y `huerfanos: full set`. El solver no tenía cuotas que respetar → `tasks` vacías → 0 placements.
+
+**Fix**: best-effort en el planner. Cuando la capacidad es insuficiente:
+- Reduce proporcionalmente `materia.minutos` por `factor = capacidadMinutos / totalMinutos`, con floor a la unidad de slot más corta.
+- Genera asignación con esos minutos reducidos (ahora factibles).
+- Reporta `huerfanos = (originalMin - reducidoMin)` por imparticion.
+- Devuelve `feasible: false` (porque el déficit existe) **pero con `asignacion` poblada**.
+
+**HorarioSolver actualizado**:
+- Antes abortaba con `if (!$capacity['feasible'])`.
+- Ahora aborta solo si `empty($capacity['asignacion'])` (caso patológico real, ej: capacidad nula).
+- En `$unplaced` fusiona los huérfanos del backtracking + los huérfanos del planner (déficit de la reducción).
+
+**Verificación caso 1º DAW EAG**:
+- 29h materias / 27.5h slots → factor = 27.5/29 = 0.948.
+- Cada materia se reduce a `floor(min × 0.948 / 60) × 60`. Suma resultante ~27.5h.
+- Solver coloca esa reducción completa.
+- `unplaced` reporta el ~1.5h perdido en la reducción, distribuido entre las imparticiones más grandes.
+
+**Coherente con truco recreos**: el solver ahora responde "coloco lo que cabe en slots; el resto queda como huérfano declarativo (que el banner verde-recreos justifica al currículo con los 2.5h/sem de recreos)".
+
 ### 2026-04-28 — Fix solver buttons disabled tras truco recreos
 
 Detectado por el usuario: tras truco recreos + ambos banners verdes, los botones "Sugerir" y "Sugerir otro" del solver seguían deshabilitados. El `disabled` era `cap.feasible === false`, que sigue siendo true cuando hay sobrecarga semanal aunque la situación sea operativamente válida (banner verde con recreos o amarillo redistribuible).
