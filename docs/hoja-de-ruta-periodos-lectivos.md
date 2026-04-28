@@ -426,6 +426,14 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Fix UX tras "Limpiar todo el curso": strip vacío con CTA
+
+Tras la primera "Limpiar todo el curso" el grupo quedaba sin rangos pero el strip se ocultaba (`length > 0` en la condición de render), dejando al admin sin botón "Añadir rango" — atrapado.
+
+**Fix**: el strip ahora se muestra siempre que haya grupo seleccionado, aunque tenga 0 rangos. Cuando está vacío, muestra mensaje italic "El grupo no tiene rangos lectivos. Crea uno para empezar." y el botón "Añadir rango" sigue visible. Coherente con la operación destructiva: el admin queda con un punto de partida claro para reconstruir.
+
+i18n: 1 clave nueva `rangoLectivoEmpty` en 5 idiomas.
+
 ### 2026-04-28 — Acciones del curso: Sugerir todo + Limpiar rango/todo + Crear Rangos Recomendados
 
 Cinco acciones nuevas/refinadas en el infoBar para flujos masivos en `/admin/horarios`:

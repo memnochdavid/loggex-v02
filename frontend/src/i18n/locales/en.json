@@ -1229,6 +1229,7 @@
     "jornadaChanged": "Schedule template changed",
     "jornadaChangeError": "Could not change the schedule template",
     "rangoLectivo": "Term",
+    "rangoLectivoEmpty": "The group has no terms. Create one to get started.",
     "addRango": "Add term",
     "addRangoTitle": "New term",
     "addRangoSubmit": "Create term",

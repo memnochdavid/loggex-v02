@@ -1527,6 +1527,7 @@
     "jornadaChanged": "Jornada cambiada",
     "jornadaChangeError": "No se pudo cambiar la jornada",
     "rangoLectivo": "Rango lectivo",
+    "rangoLectivoEmpty": "El grupo no tiene rangos lectivos. Crea uno para empezar.",
     "addRango": "Añadir rango",
     "addRangoTitle": "Nuevo rango lectivo",
     "addRangoSubmit": "Crear rango",

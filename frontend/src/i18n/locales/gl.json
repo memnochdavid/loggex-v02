@@ -1229,6 +1229,7 @@
     "jornadaChanged": "Xornada cambiada",
     "jornadaChangeError": "Non se puido cambiar a xornada",
     "rangoLectivo": "Período lectivo",
+    "rangoLectivoEmpty": "O grupo non ten períodos lectivos. Crea un para empezar.",
     "addRango": "Engadir período",
     "addRangoTitle": "Novo período lectivo",
     "addRangoSubmit": "Crear período",

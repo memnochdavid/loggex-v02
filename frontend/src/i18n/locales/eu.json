@@ -1229,6 +1229,7 @@
     "jornadaChanged": "Lanaldia aldatuta",
     "jornadaChangeError": "Ezin izan da lanaldia aldatu",
     "rangoLectivo": "Aldi lektiboa",
+    "rangoLectivoEmpty": "Taldeak ez du aldi lektiborik. Sortu bat hasteko.",
     "addRango": "Aldia gehitu",
     "addRangoTitle": "Aldi lektibo berria",
     "addRangoSubmit": "Aldia sortu",

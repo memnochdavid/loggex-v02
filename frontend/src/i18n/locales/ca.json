@@ -1229,6 +1229,7 @@
     "jornadaChanged": "Jornada canviada",
     "jornadaChangeError": "No s'ha pogut canviar la jornada",
     "rangoLectivo": "Període lectiu",
+    "rangoLectivoEmpty": "El grup no té períodes lectius. Crea'n un per començar.",
     "addRango": "Afegir període",
     "addRangoTitle": "Nou període lectiu",
     "addRangoSubmit": "Crear període",

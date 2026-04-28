@@ -2484,12 +2484,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </Button>
         </CrudHeader>
 
-        {selectedGrupo && plByGrupo[selectedGrupo] && plByGrupo[selectedGrupo].length > 0 && (
+        {selectedGrupo && plByGrupo[selectedGrupo] && (
           <div className={styles.plStrip}>
             <span className={styles.plStripLabel}>
               <CalendarClock size={14} style={{ marginRight: 4 }} />
               {t('scheduleEditor.rangoLectivo', { defaultValue: 'Rango lectivo' })}:
             </span>
+            {plByGrupo[selectedGrupo].length === 0 && (
+              <span className={styles.plStripEmpty}>
+                {t('scheduleEditor.rangoLectivoEmpty', { defaultValue: 'El grupo no tiene rangos lectivos. Crea uno para empezar.' })}
+              </span>
+            )}
             <div className={styles.plPills}>
               {plByGrupo[selectedGrupo].map(pl => {
                 const isActive = String(pl.id) === String(selectedPlId);
