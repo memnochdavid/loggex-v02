@@ -1284,6 +1284,8 @@
     "extendCourseSuccess": "Curs estès",
     "extendCourseError": "No s'ha pogut estendre el curs",
     "extendCourseGrupoError": "El període s'ha estès però la data del grup no s'ha pogut actualitzar. Revisa /admin/grupos.",
+    "capacityRecreosCoverTitle": "Currículum cobert amb pauses lectives",
+    "capacityRecreosCoverBody": "Les matèries sumen {{total}}h/setm i els slots col·locables cobreixen {{cap}}h/setm; les {{deficitH}}h restants es justifiquen curricularment amb les {{recreosH}}h/setm de pauses lectives. El solver col·locarà el que cap als slots; la resta computa al currículum anual.",
     "capacityWeekOverloadTitle": "Sobrecàrrega setmanal en aquest període",
     "capacityWeekOverloadBody": "En el període actiu les matèries sumen {{total}}h/setm però la jornada cobreix {{cap}}h/setm. El còmput anual sí que cap ({{capacidadH}}h capacitat vs {{curriculumH}}h currículum); redistribueix minuts entre períodes des de Sliders o crea un altre període per repartir la càrrega.",
     "capacityAnualInfeasibleTitle": "El currículum no cap al calendari actual",

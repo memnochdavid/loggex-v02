@@ -1284,6 +1284,8 @@
     "extendCourseSuccess": "Ikasturtea luzatu da",
     "extendCourseError": "Ezin izan da ikasturtea luzatu",
     "extendCourseGrupoError": "Aldia luzatu da baina taldeko data ezin izan da eguneratu. /admin/grupos berrikusi.",
+    "capacityRecreosCoverTitle": "Curriculuma atsedenaldi lektiboekin estalia",
+    "capacityRecreosCoverBody": "Irakasgaiek {{total}}h/aste batzen dituzte eta jarri daitezkeen tarteek {{cap}}h/aste estaltzen dituzte; gainerako {{deficitH}}h-ak {{recreosH}}h/asteko atsedenaldi lektiboekin justifikatzen dira. Solverrak tarteetan sartzen dena jarriko du; gainerakoa urteko curriculumean konputatzen da.",
     "capacityWeekOverloadTitle": "Aldi honetan asteko gainkarga",
     "capacityWeekOverloadBody": "Aldi aktiboan irakasgaiak {{total}}h/aste batzen dituzte baina lanaldiak {{cap}}h/aste estaltzen ditu. Urteko zenbaketa bat dator ({{capacidadH}}h ahalmena vs {{curriculumH}}h curriculuma); minutuak banatu aldien artean Sliders-en edo aldi berri bat sortu karga banatzeko.",
     "capacityAnualInfeasibleTitle": "Curriculuma ez da egungo egutegian sartzen",

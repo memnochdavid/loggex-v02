@@ -426,6 +426,27 @@ Tras feedback del usuario: el modal "Nuevo rango" (botón "Añadir rango" del st
 
 **Limitación conocida**: no hay confirm modal aquí — el admin pulsa "Crear rango" del modal y la extensión del Grupo es transparente. Si se prefiere visibilidad explícita, se puede añadir un hint inline en el modal cuando `fechaFin > Grupo.fechaFin` ("Esto extenderá el curso hasta dd/mm/yyyy"). Diferido a futura iteración.
 
+### 2026-04-28 — Refinamiento truco recreos: extender al banner CapacityPlanner
+
+Tras aplicar el truco al cómputo anual, el banner CapacityPlanner seguía amarillo "Sobrecarga semanal en este rango — anual sí cabe" para 1º DAW EAG (29h materias / 27.5h slots). El usuario notó que el banner no había desaparecido aunque conceptualmente el truco debería absorber esa diferencia.
+
+**Reflexión**: el banner amarillo informaba de un déficit semanal real (1.5h/sem que el solver no podrá colocar en slots), pero el truco "recreos cuentan como lectivo curricular" significa que esa diferencia se justifica con los recreos disponibles cada semana. Si el déficit semanal de slots ≤ minutos de recreo semanales, **es exactamente el caso que el truco compensa**.
+
+**Implementación**:
+- Branch `!cap.feasible && anualFits === true` ahora bifurca:
+  - `deficitSemanalMin = cap.totalMinutos - cap.capacidadMinutos` (= 90 min para 1º DAW)
+  - `recreosSemanalMin = jornadaSemanalLectivaMin - cap.capacidadMinutos` (= 150 min, los recreos semanales)
+  - Si `deficitSemanalMin ≤ recreosSemanalMin` → **banner verde-info** "Currículo cubierto con recreos lectivos" con `CheckCircle2`. Mensaje aclaratorio: el solver coloca lo que cabe en slots; el resto se justifica al currículo con los recreos.
+  - Si `deficitSemanalMin > recreosSemanalMin` → amarillo (lógica anterior, redistribuir entre rangos).
+- 2 claves i18n nuevas en 5 idiomas: `capacityRecreosCoverTitle/Body`.
+
+**Verificación caso 1º DAW EAG**:
+- 29h materias - 27.5h slots = 1.5h déficit semanal.
+- 30h jornada lectiva - 27.5h slots = 2.5h recreos semanal.
+- 1.5 ≤ 2.5 → banner pasa a verde "Currículo cubierto con recreos lectivos".
+
+**Honestidad del modelo**: el banner verde NO miente. Dice explícitamente "El solver colocará lo que cabe en slots; el resto computa al currículo anual ante la inspección". La asimetría placement vs cumplimiento curricular queda visible. Si la inspección audita placements reales, el centro tiene que ajustar (redistribuir o cambiar la jornada). El sistema solo refleja lo que el centro decide computar.
+
 ### 2026-04-28 — Truco LOMLOE FP: recreos cuentan como tiempo lectivo curricular
 
 Tras sub-fase E (catálogo corregido a 29h/sem semanales reales para 1º DAW LOMLOE), el déficit anual quedó en ~11h con jornada 27.5h × 37.6 sem. El usuario decidió aplicar el "truco" más extendido en centros FP: **contar los recreos como tiempo lectivo a efectos del cumplimiento curricular** ante la inspección.

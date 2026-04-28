@@ -2320,12 +2320,40 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               const totalH = (cap.totalMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               const capH = (cap.capacidadMinutos / 60).toFixed(2).replace(/\.?0+$/, '');
               if (!cap.feasible) {
-                // Fase 5 sub-C: la regla deja de ser "rojo si no cabe semanal" y
-                // pasa a ser "rojo si no cabe ANUALMENTE" (capacidad < currículo).
-                // Si anualmente cabe pero hay sobrecarga semanal, amarillo
-                // informativo: el admin redistribuye desde Sliders o crea otro rango.
+                // Fase 5 sub-C/truco recreos: la regla pasa a ser "rojo si no
+                // cabe ANUALMENTE" (capacidad < currículo). Si anualmente cabe
+                // pero hay sobrecarga semanal, hay dos sub-casos:
+                //  · El déficit semanal entra dentro de la capacidad de recreos
+                //    semanal (el truco LOMLOE FP cuenta los recreos como tiempo
+                //    lectivo curricular) → verde-info: "absorbido por recreos".
+                //  · El déficit semanal supera incluso eso → amarillo: el admin
+                //    debe redistribuir entre rangos o crear otro rango.
                 const anualFits = capacityFeasibilityAnual?.fits ?? null;
                 if (anualFits === true) {
+                  const deficitSemanalMin = Math.max(0, cap.totalMinutos - cap.capacidadMinutos);
+                  const recreosSemanalMin = Math.max(0, jornadaSemanalLectivaMin - cap.capacidadMinutos);
+                  const absorbedByRecreos = deficitSemanalMin > 0 && deficitSemanalMin <= recreosSemanalMin;
+                  if (absorbedByRecreos) {
+                    const deficitH = Math.round((deficitSemanalMin / 60) * 10) / 10;
+                    const recreosH = Math.round((recreosSemanalMin / 60) * 10) / 10;
+                    return (
+                      <div className={`${styles.capacityBanner} ${styles.capacityBannerGreen}`}>
+                        <CheckCircle2 size={16} />
+                        <div>
+                          <b>{t('scheduleEditor.capacityRecreosCoverTitle', { defaultValue: 'Currículo cubierto con recreos lectivos' })}</b>
+                          <div>
+                            {t('scheduleEditor.capacityRecreosCoverBody', {
+                              defaultValue: 'Las materias suman {{total}}h/sem y los slots colocables cubren {{cap}}h/sem; las {{deficitH}}h restantes se justifican curricularmente con los {{recreosH}}h/sem de recreos lectivos. El solver colocará lo que cabe en slots; el resto computa al currículo anual ante la inspección.',
+                              total: totalH,
+                              cap: capH,
+                              deficitH,
+                              recreosH,
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                     <div className={`${styles.capacityBanner} ${styles.capacityBannerYellow}`}>
                       <AlertTriangle size={16} />

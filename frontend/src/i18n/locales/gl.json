@@ -1284,6 +1284,8 @@
     "extendCourseSuccess": "Curso estendido",
     "extendCourseError": "Non se puido estender o curso",
     "extendCourseGrupoError": "O período estendeuse pero a data do grupo non se puido actualizar. Revisa /admin/grupos.",
+    "capacityRecreosCoverTitle": "Currículo cuberto con recreos lectivos",
+    "capacityRecreosCoverBody": "As materias suman {{total}}h/sem e os slots colocables cobren {{cap}}h/sem; as {{deficitH}}h restantes xustifícanse curricularmente cos {{recreosH}}h/sem de recreos lectivos. O solver colocará o que cabe nos slots; o resto computa ao currículo anual.",
     "capacityWeekOverloadTitle": "Sobrecarga semanal neste período",
     "capacityWeekOverloadBody": "No período activo as materias suman {{total}}h/sem pero a xornada cobre {{cap}}h/sem. O cómputo anual si cabe ({{capacidadH}}h capacidade vs {{curriculumH}}h currículo); redistribúe minutos entre períodos desde Sliders ou crea outro período para repartir a carga.",
     "capacityAnualInfeasibleTitle": "O currículo non cabe no calendario actual",
