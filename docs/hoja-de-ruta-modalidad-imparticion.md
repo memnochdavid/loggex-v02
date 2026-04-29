@@ -168,13 +168,14 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 
 **Esfuerzo real**: ~30 min.
 
-### Fase 5 — UI para editar modalidad
+### Fase 5 — UI para editar modalidad ✅ Done (2026-04-29 noche)
 
-- `/admin/materias`: columna "Modalidad" en la tabla con select por fila (`PRESENCIAL`/`FCT`/`NO_REGULAR`/`AUTONOMA`). Edita `Materia.modalidad` directamente.
-- `/admin/imparticiones`: columna "Modalidad (override)" con select que permite override per-grupo (NULL = "heredar de Materia"). Edita `Imparticion.modalidad`.
-- Modal "Materias del rango" (Fase 4 PeriodoLectivo): añadir badge de modalidad junto al nombre de la materia. Las no presenciales se muestran "deshabilitadas" para minutos override (no tiene sentido editar minutos de FCT por rango).
+- `/admin/materias`: columna "Modalidad" en la tabla (badge solo cuando NO es presencial). Select en el modal de edición.
+- `/admin/imparticiones`: columna "Modalidad" mostrando efectiva (override o heredada con asterisco). Select "Modalidad (override)" en modal con opción "— Heredar de la materia —".
+- Modal "Materias del rango": badge de modalidad junto al nombre cuando NO es presencial.
+- i18n × 5 idiomas (es/en/ca/gl/eu).
 
-**Esfuerzo**: ~0.5 sesión.
+**Esfuerzo real**: ~30 min.
 
 ### Fase 6 — PDF con sección "Otras horas curriculares"
 
@@ -215,6 +216,38 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 noche — Fase 5 ✅ Done (UI editar modalidad)
+
+UI completa para editar la modalidad de materias e imparticiones desde el admin. Cambios en 3 archivos frontend + i18n × 5 idiomas:
+
+- **`/admin/materias`** (`pages/Materias.jsx`):
+  - Nueva columna "Modalidad" en el `DataTable`. Solo muestra badge cuando NO es `presencial` (95% de los casos default invisible — UX limpia). Badges con color: FCT azul, NO_REGULAR ámbar, AUTONOMA gris (estilos heredados de `HorariosEditor.module.css`, replicados en `Crud.module.css` para reuso).
+  - Nuevo `<select>` "Modalidad" en el modal de edición con 4 opciones (presencial/fct/no_regular/autonoma). Hint explicativo bajo el select.
+  - `formData.modalidad` integrado en init/edit/payload. PUT/POST envía la modalidad junto con el resto.
+
+- **`/admin/imparticiones`** (`pages/Imparticiones.jsx`):
+  - Nueva columna "Modalidad" en el `DataTable`. Muestra modalidad efectiva (override de Imparticion si existe, sino hereda de Materia). Override se distingue con asterisco `*` y tooltip "Override (esta imparticion)" vs "Heredada de la materia".
+  - Nuevo `<select>` "Modalidad (override)" en el modal con opción "— Heredar de la materia —" (`value=""` ↔ `null` en BD). Permite override solo para grupo concreto sin afectar la materia base.
+
+- **Modal "Materias del rango"** (PLI editor en `HorariosEditor.jsx` Fase 4 PeriodoLectivo):
+  - Badge de modalidad al lado del nombre de la materia cuando NO es presencial. Visualmente alerta al admin de que esa materia no consume slot semanal en aula (su input de horas anuales sigue siendo editable porque el currículo cuenta, pero al placement físico no llega).
+
+- **CSS**: `Crud.module.css` añade `.modalidadDefault`, `.modalidadBadge`, `.modalidadBadge_fct/_no_regular/_autonoma`, `.formHint`. Mirror del estilo ya usado en `HorariosEditor.module.css` para coherencia visual entre vistas admin y editor.
+
+- **i18n × 5 idiomas** (es, en, ca, gl, eu): nuevas claves
+  - `modalidad.label.{presencial,fct,no_regular,autonoma}` (textos largos para selects de modal).
+  - `materias.modality`, `materias.modalityHint`.
+  - `teaching.modality`, `teaching.modalityOverride`, `teaching.modalityInherit`, `teaching.modalityOverrideHint`, `teaching.modalityOverridden`, `teaching.modalityInherited`.
+  - Bonus: claves `teaching.aulaEspecifica*` migradas al locale (estaban inline como defaultValue).
+  - JSON × 5 idiomas validado.
+
+**Comportamiento E2E**:
+- El admin entra a `/admin/materias`, ve columna "Modalidad" con `—` para presenciales y badge para FCT/NO_REGULAR/AUTONOMA. Click en editar → select en modal.
+- Tras guardar, el cambio se propaga: panel lateral del editor de horarios filtra automáticamente (Fase 4); modal "Materias del rango" muestra badge.
+- Si una materia en general es PRESENCIAL pero un grupo específico la imparte como NO_REGULAR (caso edge), el admin la edita en `/admin/imparticiones` con override. El `getEffectiveModalidad` del backend ya respeta la jerarquía override → herencia.
+
+**Pendiente Fase 6** (~0.5 sesión): PDF con sección "Otras horas curriculares" tras las páginas por rango. Sin implementar todavía.
 
 ### 2026-04-29 — Fase 4 ✅ Done (panel lateral del editor honra modalidad)
 

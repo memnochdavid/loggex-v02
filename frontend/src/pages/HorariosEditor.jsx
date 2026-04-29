@@ -4080,6 +4080,29 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                             <span className={styles.pliMateria}>
                               <span className={styles.pliMateriaDot} style={{ backgroundColor: colorForModule(row.imp.materia?.id || row.imp.id) }} />
                               {row.imp.materia?.nombre || '—'}
+                              {(() => {
+                                // Badge de modalidad cuando NO es presencial (las
+                                // no presenciales aparecen aquí porque pueden ser
+                                // activadas/desactivadas pero los minutos no
+                                // tienen sentido editarlos por rango).
+                                const mod = getEffectiveModalidad(row.imp);
+                                if (mod === 'presencial') return null;
+                                const labelKey = `modalidad.badge.${mod}`;
+                                const label = t(labelKey, {
+                                  defaultValue: mod === 'fct' ? 'FCT'
+                                    : mod === 'no_regular' ? 'No regular'
+                                    : mod === 'autonoma' ? 'Autónoma'
+                                    : mod,
+                                });
+                                return (
+                                  <span
+                                    className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${mod}`] || ''}`}
+                                    style={{ marginLeft: 'var(--space-2)' }}
+                                  >
+                                    {label}
+                                  </span>
+                                );
+                              })()}
                             </span>
                           </td>
                           <td className={styles.pliProfesor}>

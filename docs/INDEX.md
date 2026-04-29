@@ -21,8 +21,9 @@
    - **Fase 2 ✅ Done (2026-04-29)** — heurística + columnas catálogo + cascada providers/resolver/controller. 2 576 materias del catálogo correctamente etiquetadas.
    - **Fase 3 ✅ Done (2026-04-29)** — `CapacityPlanner` y `HorarioSolver` filtran no presenciales. Smoke test 2º DAM EAG: 33h → 28h, complete=true. Bug original resuelto a nivel solver.
    - **Fase 4 ✅ Done (2026-04-29)** — `/admin/horarios` con panel arrastrable filtrado a PRESENCIAL + sub-panel "Otras horas curriculares" para FCT/NO_REGULAR/AUTONOMA con badge de modalidad. Banner anual y CapacityPlanner sin cambios (ya correctos vía cascada). i18n × 5 idiomas. Build OK.
-   - **Próximo: Fase 5** (~0.5 sesión) — columna "Modalidad" en `/admin/materias` (default catálogo) y "Modalidad (override)" opcional en `/admin/imparticiones`. Polish: badge en modal "Materias del rango".
-   - Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar FP LOMLOE completo en producción** hasta que terminen Fases 5-6 (edición admin + PDF).
+   - **Fase 5 ✅ Done (2026-04-29 noche)** — UI editar modalidad: columna + select en `/admin/materias` y `/admin/imparticiones` (con override y "heredar de materia"). Badge en modal "Materias del rango". i18n × 5.
+   - **Próximo: Fase 6** (~0.5 sesión) — PDF con sección "Otras horas curriculares" tras las páginas por rango.
+   - Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Fases 1-5 cubren ya todo el flujo operativo en UI**; Fase 6 es solo polish del PDF.
 2. **Solicitud de cambio de turno (profe → admin)** (~1 sesión) — entidad `SolicitudCambioTurno` + cola de aprobación + notificación vía Mensaje (Mercure live ya cubre). Promovido desde `pulido-ux.md` #8 tras verificar que no existía. Doc dedicado: `hoja-de-ruta-cambio-turno.md`. Fase 2 (reasignación automática) diferida.
 3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
 4. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
@@ -175,7 +176,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1+2+3+4 ✅ Done (2026-04-29)**, quedan Fases 5-6 (~0.75 sesiones) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Backend + editor de horarios ya respetan modalidad a partir de Fase 4 — bug original resuelto E2E. Pendiente UI editar modalidad en /admin/materias + sección PDF. |
+| `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
 | `hoja-de-ruta-pulido-ux.md` | ✅ Done 2026-04-28 (8 ítems en una sesión) | — (mover a 🟢 cerradas en próxima revisión del INDEX) |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |

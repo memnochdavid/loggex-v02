@@ -364,7 +364,9 @@
     "cycleLabel": "Itinerarioa",
     "course1": "1.",
     "course2": "2.",
-    "weeklyHours": "Asteko Orduak"
+    "weeklyHours": "Asteko Orduak",
+    "modality": "Modalitatea",
+    "modalityHint": "\"Aurrez aurrekoa\" soilik betetzen ditu ordutegiko slot-ak. Beste guztiak kurrikuluan zenbatzen dira baina ez sareskan."
   },
   "enrollments": {
     "title": "Matrikulak",
@@ -391,7 +393,16 @@
     "teacherCount": "Irakaslea ({{count}})",
     "groupCount": "Taldea ({{count}})",
     "moduleCount": "Ikasgaia ({{count}})",
-    "selectGroupFirst": "Aukeratu talde bat lehenik"
+    "selectGroupFirst": "Aukeratu talde bat lehenik",
+    "aulaEspecifica": "Gela espezifikoa (override)",
+    "aulaEspecificaPlaceholder": "adib. Hardware Lab, Musika Gela…",
+    "aulaEspecificaHint": "Ikasgai hau taldearena ez den gela batean ematen bada bakarrik. Hutsik utziz gero, taldearen lehenetsitako gela erabiliko da.",
+    "modality": "Modalitatea",
+    "modalityOverride": "Modalitatea (override)",
+    "modalityInherit": "— Ikasgaitik heredatu —",
+    "modalityOverrideHint": "Talde honetarako bakarrik. Heredatzeari uzten badiozu, ikasgaiaren modalitatea erabiltzen da. Ikasgai bera talde desberdinetan modu desberdinean ematen denean erabilgarria.",
+    "modalityOverridden": "Override (esleipen hau)",
+    "modalityInherited": "Ikasgaitik heredatua"
   },
   "schedules": {
     "title": "Ordutegiak",
@@ -1484,6 +1495,12 @@
       "fct": "FCT",
       "no_regular": "Ez-erregularra",
       "autonoma": "Autonomoa"
+    },
+    "label": {
+      "presencial": "Aurrez aurrekoa (gelako saio erregularra)",
+      "fct": "FCT (Lantokiko Prestakuntza)",
+      "no_regular": "Ez-erregularra (proiektua, konfigurazio librea)",
+      "autonoma": "Autonomoa (ikasle-lana)"
     }
   }
 }

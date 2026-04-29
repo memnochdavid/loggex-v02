@@ -73,6 +73,10 @@ const Imparticiones = () => {
     materia: '',
     grupo: '',
     aulaEspecifica: '',
+    // Override de modalidad. '' = heredar de Materia.modalidad. Solo se setea
+    // cuando el admin quiere cambiar la modalidad SOLO para esta imparticion
+    // (= grupo concreto), sin afectar la materia base.
+    modalidad: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -273,6 +277,7 @@ const Imparticiones = () => {
         materia: extractId(imparticion.materia),
         grupo: grupoId,
         aulaEspecifica: imparticion.aulaEspecifica || '',
+        modalidad: imparticion.modalidad || '',
       });
 
       // Hidratar el filtro grupo→materia para que el AsyncSearchSelect de materia
@@ -301,6 +306,7 @@ const Imparticiones = () => {
         materia: '',
         grupo: '',
         aulaEspecifica: '',
+        modalidad: '',
       });
       setGrupoFilter({ itinerario: '', curso: '' });
     }
@@ -347,6 +353,8 @@ const Imparticiones = () => {
         materia: materiaValue.includes('/api/') ? materiaValue : `/api/materias/${materiaValue}`,
         grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`,
         aulaEspecifica: formData.aulaEspecifica?.trim() || null,
+        // '' (string vacío del select) se traduce a null = "heredar de Materia".
+        modalidad: formData.modalidad === '' ? null : formData.modalidad,
       };
 
       const response = await fetch(url, {
@@ -452,8 +460,41 @@ const Imparticiones = () => {
         sortable: true,
         sortKey: 'grupo.nombre'
     },
-    { 
-        header: t('common.actions'), 
+    {
+        // Modalidad efectiva: override de Imparticion si existe, sino hereda
+        // Materia.modalidad. Solo se muestra badge cuando el resultado NO es
+        // 'presencial' (95% de los casos). El override visualmente lleva un
+        // asterisco (*) para distinguirlo de la herencia.
+        header: t('teaching.modality', { defaultValue: 'Modalidad' }),
+        accessor: (row) => {
+            const override = row.modalidad;
+            const hereda = row.materia?.modalidad || 'presencial';
+            const efectiva = override || hereda;
+            if (efectiva === 'presencial') return <span className={styles.modalidadDefault}>—</span>;
+            const labelKey = `modalidad.badge.${efectiva}`;
+            const label = t(labelKey, {
+                defaultValue: efectiva === 'fct' ? 'FCT'
+                    : efectiva === 'no_regular' ? 'No regular'
+                    : efectiva === 'autonoma' ? 'Autónoma'
+                    : efectiva,
+            });
+            const sufijo = override ? '*' : '';
+            return (
+                <span
+                    className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${efectiva}`] || ''}`}
+                    title={override
+                        ? t('teaching.modalityOverridden', { defaultValue: 'Override (esta imparticion)' })
+                        : t('teaching.modalityInherited', { defaultValue: 'Heredada de la materia' })
+                    }
+                >
+                    {label}{sufijo}
+                </span>
+            );
+        },
+        sortable: false,
+    },
+    {
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
@@ -649,6 +690,29 @@ const Imparticiones = () => {
                 <small className={styles.helpText}>
                     {t('teaching.aulaEspecificaHint', {
                         defaultValue: 'Solo si esta materia se imparte en un aula distinta a la del grupo. Si vacío, se usa el aula por defecto del grupo.',
+                    })}
+                </small>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('teaching.modalityOverride', { defaultValue: 'Modalidad (override)' })}
+                </label>
+                <select
+                    name="modalidad"
+                    value={formData.modalidad}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="">{t('teaching.modalityInherit', { defaultValue: '— Heredar de la materia —' })}</option>
+                    <option value="presencial">{t('modalidad.label.presencial', { defaultValue: 'Presencial (clase regular en aula)' })}</option>
+                    <option value="fct">{t('modalidad.label.fct', { defaultValue: 'FCT (Formación en Centros de Trabajo)' })}</option>
+                    <option value="no_regular">{t('modalidad.label.no_regular', { defaultValue: 'No regular (proyecto, libre configuración)' })}</option>
+                    <option value="autonoma">{t('modalidad.label.autonoma', { defaultValue: 'Autónoma (trabajo del alumno)' })}</option>
+                </select>
+                <small className={styles.formHint}>
+                    {t('teaching.modalityOverrideHint', {
+                        defaultValue: 'Override solo para este grupo. Si dejas heredar, se usa la modalidad de la materia. Útil si una misma materia se imparte de forma distinta en grupos diferentes.',
                     })}
                 </small>
             </div>

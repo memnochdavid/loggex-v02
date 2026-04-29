@@ -75,6 +75,7 @@ const Materias = () => {
     curso: 1,
     horasSemanales: '',
     tipo: '',
+    modalidad: 'presencial',
     itinerario: ''
   });
   const [saving, setSaving] = useState(false);
@@ -262,6 +263,7 @@ const Materias = () => {
         curso: materia.curso,
         horasSemanales: materia.minutosSemanales != null ? (materia.minutosSemanales / 60) : '',
         tipo: materia.tipo || '',
+        modalidad: materia.modalidad || 'presencial',
         itinerario: itinerarioId
       });
     } else {
@@ -273,6 +275,7 @@ const Materias = () => {
         curso: 1,
         horasSemanales: '',
         tipo: '',
+        modalidad: 'presencial',
         itinerario: ''
       });
     }
@@ -422,13 +425,32 @@ const Materias = () => {
     },
     { header: t('materias.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
     { header: t('materias.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
-    { 
-        header: t('materias.cycle'), 
+    {
+        header: t('materias.cycle'),
         accessor: (row) => row.itinerario ? row.itinerario.nombre : '-',
-        sortable: true, 
-        sortKey: 'itinerario.nombre' 
+        sortable: true,
+        sortKey: 'itinerario.nombre'
     },
-    { 
+    {
+        // Badge de modalidad. Solo visible cuando NO es presencial (default
+        // invisible para no inundar la columna; presencial es el caso 95%).
+        header: t('materias.modality', { defaultValue: 'Modalidad' }),
+        accessor: (row) => {
+            const mod = row.modalidad || 'presencial';
+            if (mod === 'presencial') return <span className={styles.modalidadDefault}>—</span>;
+            const labelKey = `modalidad.badge.${mod}`;
+            const label = t(labelKey, {
+                defaultValue: mod === 'fct' ? 'FCT'
+                    : mod === 'no_regular' ? 'No regular'
+                    : mod === 'autonoma' ? 'Autónoma'
+                    : mod,
+            });
+            return <span className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${mod}`] || ''}`}>{label}</span>;
+        },
+        sortable: true,
+        sortKey: 'modalidad',
+    },
+    {
         header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
@@ -633,6 +655,26 @@ const Materias = () => {
                     <option value="fct">{t('catalogo.tipoLabel.FCT', 'FCT')}</option>
                     <option value="proyecto">{t('catalogo.tipoLabel.PROYECTO', 'Proyecto')}</option>
                 </select>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('materias.modality', { defaultValue: 'Modalidad' })}
+                </label>
+                <select
+                    name="modalidad"
+                    value={formData.modalidad}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                >
+                    <option value="presencial">{t('modalidad.label.presencial', { defaultValue: 'Presencial (clase regular en aula)' })}</option>
+                    <option value="fct">{t('modalidad.label.fct', { defaultValue: 'FCT (Formación en Centros de Trabajo)' })}</option>
+                    <option value="no_regular">{t('modalidad.label.no_regular', { defaultValue: 'No regular (proyecto, libre configuración)' })}</option>
+                    <option value="autonoma">{t('modalidad.label.autonoma', { defaultValue: 'Autónoma (trabajo del alumno)' })}</option>
+                </select>
+                <small className={styles.formHint}>
+                    {t('materias.modalityHint', { defaultValue: 'Solo "Presencial" ocupa slots en el horario. Las demás cuentan al currículo pero no en la rejilla.' })}
+                </small>
             </div>
         </ModalView>
         </div>

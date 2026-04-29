@@ -364,7 +364,9 @@
     "cycleLabel": "Itinerario",
     "course1": "1º",
     "course2": "2º",
-    "weeklyHours": "Horas Semanais"
+    "weeklyHours": "Horas Semanais",
+    "modality": "Modalidade",
+    "modalityHint": "Só \"Presencial\" ocupa slots no horario. As demais contan ao currículo pero non na grade."
   },
   "enrollments": {
     "title": "Matrículas",
@@ -391,7 +393,16 @@
     "teacherCount": "Profesor ({{count}})",
     "groupCount": "Grupo ({{count}})",
     "moduleCount": "Materia ({{count}})",
-    "selectGroupFirst": "Selecciona un grupo primeiro"
+    "selectGroupFirst": "Selecciona un grupo primeiro",
+    "aulaEspecifica": "Aula específica (override)",
+    "aulaEspecificaPlaceholder": "p. ex. Lab Hardware, Aula Música…",
+    "aulaEspecificaHint": "Só se esta materia se imparte nunha aula distinta á do grupo. Se baleiro, úsase a aula por defecto do grupo.",
+    "modality": "Modalidade",
+    "modalityOverride": "Modalidade (override)",
+    "modalityInherit": "— Herdar da materia —",
+    "modalityOverrideHint": "Override só para este grupo. Se deixas herdar, úsase a modalidade da materia. Útil cando unha mesma materia se imparte de forma distinta en grupos diferentes.",
+    "modalityOverridden": "Override (esta asignación)",
+    "modalityInherited": "Herdada da materia"
   },
   "schedules": {
     "title": "Horarios",
@@ -1484,6 +1495,12 @@
       "fct": "FCT",
       "no_regular": "Non regular",
       "autonoma": "Autónoma"
+    },
+    "label": {
+      "presencial": "Presencial (clase regular en aula)",
+      "fct": "FCT (Formación en Centros de Traballo)",
+      "no_regular": "Non regular (proxecto, libre configuración)",
+      "autonoma": "Autónoma (traballo do alumno)"
     }
   }
 }

@@ -364,7 +364,9 @@
     "cycleLabel": "Itinerari",
     "course1": "1r",
     "course2": "2n",
-    "weeklyHours": "Hores setmanals"
+    "weeklyHours": "Hores setmanals",
+    "modality": "Modalitat",
+    "modalityHint": "Només \"Presencial\" ocupa slots a l'horari. Les altres compten al currículum però no a la graella."
   },
   "enrollments": {
     "title": "Matrícules",
@@ -391,7 +393,16 @@
     "teacherCount": "Professor ({{count}})",
     "groupCount": "Grup ({{count}})",
     "moduleCount": "Matèria ({{count}})",
-    "selectGroupFirst": "Selecciona un grup primer"
+    "selectGroupFirst": "Selecciona un grup primer",
+    "aulaEspecifica": "Aula específica (override)",
+    "aulaEspecificaPlaceholder": "p. ex. Lab Hardware, Aula Música…",
+    "aulaEspecificaHint": "Només si aquesta matèria s'imparteix en una aula diferent a la del grup. Si buit, s'usa l'aula per defecte del grup.",
+    "modality": "Modalitat",
+    "modalityOverride": "Modalitat (override)",
+    "modalityInherit": "— Heretar de la matèria —",
+    "modalityOverrideHint": "Override només per aquest grup. Si deixes heretar, s'usa la modalitat de la matèria. Útil quan una mateixa matèria s'imparteix de forma diferent en grups diferents.",
+    "modalityOverridden": "Override (aquesta assignació)",
+    "modalityInherited": "Heretada de la matèria"
   },
   "schedules": {
     "title": "Horaris",
@@ -1484,6 +1495,12 @@
       "fct": "FCT",
       "no_regular": "No regular",
       "autonoma": "Autònoma"
+    },
+    "label": {
+      "presencial": "Presencial (classe regular a l'aula)",
+      "fct": "FCT (Formació en Centres de Treball)",
+      "no_regular": "No regular (projecte, lliure configuració)",
+      "autonoma": "Autònoma (treball de l'alumne)"
     }
   }
 }

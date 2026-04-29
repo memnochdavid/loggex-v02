@@ -364,7 +364,9 @@
     "cycleLabel": "Itinerary",
     "course1": "1st",
     "course2": "2nd",
-    "weeklyHours": "Weekly Hours"
+    "weeklyHours": "Weekly Hours",
+    "modality": "Modality",
+    "modalityHint": "Only \"In-class\" occupies slots in the schedule. The others count toward the curriculum but not in the grid."
   },
   "enrollments": {
     "title": "Enrollments",
@@ -391,7 +393,16 @@
     "teacherCount": "Teacher ({{count}})",
     "groupCount": "Group ({{count}})",
     "moduleCount": "Subject ({{count}})",
-    "selectGroupFirst": "Select a group first"
+    "selectGroupFirst": "Select a group first",
+    "aulaEspecifica": "Specific classroom (override)",
+    "aulaEspecificaPlaceholder": "e.g. Hardware Lab, Music Room…",
+    "aulaEspecificaHint": "Only if this subject is taught in a different room than the group's. If empty, the group's default room is used.",
+    "modality": "Modality",
+    "modalityOverride": "Modality (override)",
+    "modalityInherit": "— Inherit from subject —",
+    "modalityOverrideHint": "Override only for this group. If you leave inherit, the subject's modality is used. Useful when the same subject is taught differently in different groups.",
+    "modalityOverridden": "Override (this assignment)",
+    "modalityInherited": "Inherited from subject"
   },
   "schedules": {
     "title": "Schedules",
@@ -1484,6 +1495,12 @@
       "fct": "FCT",
       "no_regular": "Non-regular",
       "autonoma": "Autonomous"
+    },
+    "label": {
+      "presencial": "In-class (regular classroom session)",
+      "fct": "FCT (Workplace Training)",
+      "no_regular": "Non-regular (project, free configuration)",
+      "autonoma": "Autonomous (student work)"
     }
   }
 }
