@@ -138,6 +138,10 @@ final class CatalogoMaterializationController extends AbstractController
             ->setCurso($materia->getCurso() ?? 1)
             ->setMinutosSemanales($minutosFinal)
             ->setTipo($materia->getTipo())
+            // Propaga modalidad del catálogo (Fase 2 modalidad). Sin esto, las
+            // Materia nacen como `presencial` aunque CatalogoMateria sea fct/
+            // no_regular, y solo se corrigen tras un resync explícito — frágil.
+            ->setModalidad($materia->getModalidad())
             ->setItinerario($itinerario)
             ->setCatalogoOrigen($materia);
     }
