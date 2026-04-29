@@ -124,18 +124,19 @@ class CapacityPlanner
         //   3. `maxRestante    = objetivoAnual × (1 + TOLERANCIA_ANUAL_FRAC) − yaColocado` →
         //      fail-safe absoluto: nunca sobrepasar el currículo total + holgura.
         //
-        // La tolerancia es PROPORCIONAL al objetivo (no absoluta). Razón: con
-        // multi-rango y slots de 60min, cada rango sufre round-up D22=A de hasta
-        // ~30min/sem por materia. Acumulado en N rangos × M semanas, el exceso
-        // puede ser sustancial. Fijar la tolerancia en 90min absolutos (legacy)
-        // hacía que rangos finales quedasen vacíos. Tolerancia ≥20% de objetivo
-        // absorbe ese exceso para currículos típicos LOMLOE.
+        // Tolerancia anual: 0 absoluta. Con la cuota equitativa (#2) repartiendo
+        // el currículo entre rangos, el round-up D22=A se autorregula en el
+        // último rango: cuando `maxRestante` cae por debajo del slot menor
+        // multiplicado por las semanas, el ILP fuerza un round-DOWN natural
+        // (combo sum >= m_pequeño = un solo slot), absorbiendo el exceso de
+        // round-up acumulado en rangos previos. Resultado típico: overshoot
+        // ≤ 5-10% del currículo en lugar del 20% que producía la tolerancia
+        // proporcional o el rango final vacío que producía la fórmula naïve.
         //
         // El parámetro `$alreadyPlacedByImp` lo pasa el caller (frontend calcula
         // minutos anuales ya colocados en otros rangos antes de ejecutar el solver).
         // Si el array es null, no se aplica el cap (modo legacy / single-range).
-        $TOLERANCIA_ANUAL_FRAC = 0.20;       // 20% de holgura sobre el objetivo
-        $TOLERANCIA_ANUAL_MIN_ABS = 90;      // piso para currículos pequeños
+        $TOLERANCIA_ANUAL_MIN = 0;           // sin holgura: el último rango se autorregula
         $SEMANAS_REF_LOMLOE = 36;
         $semanasRango = $this->calcularSemanasPL($periodoLectivo);
         // Total de semanas del grupo (todos sus PLs vivos). Necesario para la
@@ -172,11 +173,7 @@ class CapacityPlanner
                     ? (int) round($objetivoAnual * ($semanasRango / $totalSemanasGrupo))
                     : PHP_INT_MAX;
                 $yaColocadoOtrosRangos = (int) ($alreadyPlacedByImp[$imp->getId()] ?? 0);
-                $tolerancia = max(
-                    $TOLERANCIA_ANUAL_MIN_ABS,
-                    (int) round($objetivoAnual * $TOLERANCIA_ANUAL_FRAC),
-                );
-                $maxRestante = max(0, $objetivoAnual + $tolerancia - $yaColocadoOtrosRangos);
+                $maxRestante = max(0, $objetivoAnual + $TOLERANCIA_ANUAL_MIN - $yaColocadoOtrosRangos);
                 $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);
             } else {
                 $cuotaEsteRango = $cuotaNatural;
