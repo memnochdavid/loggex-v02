@@ -789,36 +789,64 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return acc;
   }, [selectedGrupo, plByGrupo, allHorariosByGroup, semanasByPlId, state, slotMinutosByHi]);
 
-  // Objetivo anual por imparticion (Fase 5 sub-A): `materia.minutosSemanales × 36`
-  // semanas LOMLOE de referencia (D-L). Cuando llegue Fase 7 con calendario
-  // lectivo del centro, sustituir 36 por el cálculo real.
+  // Objetivo anual por imparticion (Opción A 2026-04-29): usa
+  // `materia.horasTotales × 60` que es la "ley LOMLOE" (RD del título).
+  // Fallback a `min/sem × 36` solo si horasTotales no está set (caso edge).
+  // Antes el sistema asumía calendario rígido de 36 sem y solo guardaba h/sem,
+  // lo que generaba inconsistencias en calendarios distintos a 36 sem.
   const SEMANAS_REFERENCIA_ANUAL = 36;
   const minutosAnualesObjetivoByImp = useMemo(() => {
     const m = {};
     imps.forEach(imp => {
-      m[imp.id] = (imp.materia?.minutosSemanales || 0) * SEMANAS_REFERENCIA_ANUAL;
+      const horasTot = imp.materia?.horasTotales;
+      if (horasTot != null && horasTot > 0) {
+        m[imp.id] = horasTot * 60;
+      } else {
+        m[imp.id] = (imp.materia?.minutosSemanales || 0) * SEMANAS_REFERENCIA_ANUAL;
+      }
     });
     return m;
   }, [imps]);
 
   const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
 
-  // Semanas óptimas necesarias para cubrir el currículo presencial. Usa
-  // jornadaSemanalLectivaMin (slots + recreos × días) como capacidad: LOMLOE
-  // cuenta los recreos como tiempo lectivo curricular legítimo. Si el centro
-  // tiene déficit estructural per-week (Σ presencial > capacidad slots solo),
-  // ese déficit es IRREDUCIBLE — no se arregla añadiendo semanas porque la
-  // restricción es per-semana, no anual. El banner amarillo/verde-info de la
-  // jornada lectiva ya refleja la situación correctamente.
+  // Capacidad SOLO de slots colocables por semana (sin recreos). Necesario
+  // para semanasOptimas: el solver físicamente solo coloca placements en
+  // slots, no en recreos. Las horas a impartir deben caber en slots reales.
+  const slotsSemanalMin = useMemo(() => {
+    let total = 0;
+    tramosOrdenados.forEach(t => {
+      if (t.tipo !== 'slot') return;
+      total += Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
+    });
+    return total * 5;
+  }, [tramosOrdenados]);
+
+  // Semanas óptimas necesarias para cubrir el currículo presencial al 100%
+  // (Opción A 2026-04-29):
+  //   semanasOptimas = max(36 LOMLOE, ceil(Σ horasTotalesAnuales × 60 / capSlotsSemanal))
+  // Usa SOLO slots (sin recreos) como capacidad: LOMLOE permite que las h/sem
+  // sean flexibles, pero los slots colocables por semana son el techo físico
+  // del solver. Si la suma de h totales anuales no cabe en 36 sem × cap slots,
+  // alarga el calendario las semanas necesarias para que sí caiga.
+  // Para 1º DAW: 1044h × 60 / 1650 (27.5h slots) = 38 sem (en lugar de 36).
+  // Para grupos sin déficit (2º DAW/DAM con jornada generosa): se queda en 36.
   const semanasOptimas = useMemo(() => {
-    const objetivoSemanalPresencial = imps.reduce((a, i) => {
+    const objetivoAnualPresencialMin = imps.reduce((a, i) => {
       if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
-      return a + (i.materia?.minutosSemanales || 0);
+      // Opción A: usa horasTotales (h × 60 = min anuales). Fallback a
+      // min/sem × 36 si la materia no tiene h totales (caso muy raro tras
+      // backfill).
+      const horasTot = i.materia?.horasTotales;
+      if (horasTot != null && horasTot > 0) return a + horasTot * 60;
+      return a + (i.materia?.minutosSemanales || 0) * 36;
     }, 0);
-    if (objetivoSemanalPresencial <= 0 || jornadaSemanalLectivaMin <= 0) return 0;
-    const objetivoAnualMin = objetivoSemanalPresencial * 36;
-    return Math.ceil(objetivoAnualMin / jornadaSemanalLectivaMin);
-  }, [imps, jornadaSemanalLectivaMin]);
+    if (objetivoAnualPresencialMin <= 0 || slotsSemanalMin <= 0) return 0;
+    const necesarias = Math.ceil(objetivoAnualPresencialMin / slotsSemanalMin);
+    // No bajar de 36 LOMLOE: si el currículo cabe holgado, mantener calendario
+    // estándar (no acortar el curso por debajo de lo legal).
+    return Math.max(36, necesarias);
+  }, [imps, slotsSemanalMin]);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
@@ -901,8 +929,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const pls = plByGrupo[selectedGrupo] || [];
     if (pls.length === 0 || imps.length === 0) return null;
 
-    // Currículo: Σ minutos semanales de las imparticiones del grupo × 36 semanas.
-    const curriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_ESTANDAR;
+    // Currículo (Opción A 2026-04-29): Σ horas totales anuales × 60 (ley LOMLOE).
+    // Fallback a min/sem × 36 si la materia no tiene horasTotales (caso edge).
+    const curriculumMin = imps.reduce((acc, i) => {
+      const horasTot = i.materia?.horasTotales;
+      if (horasTot != null && horasTot > 0) return acc + horasTot * 60;
+      return acc + (i.materia?.minutosSemanales || 0) * SEMANAS_ESTANDAR;
+    }, 0);
 
     // Cap semanal "lectivo curricular" (slots + recreos × 5 días). Asumimos
     // que la jornada del PL activo es representativa de todos los PLs del
@@ -3753,12 +3786,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             {semanasOptimas > 0 && (
               <small className={styles.plFormHint} style={{ display: 'block', marginTop: 'var(--space-2)' }}>
                 {t('scheduleEditor.createRangosOptimalCalc', {
-                  defaultValue: 'Cálculo: Σ currículo {{horasObj}}h ÷ jornada lectiva {{horasJornada}}h/sem = {{semanas}} sem',
+                  defaultValue: 'Cálculo: Σ horas totales anuales {{horasObj}}h ÷ slots colocables {{horasJornada}}h/sem = {{semanas}} sem (mín. 36 LOMLOE)',
                   horasObj: Math.round(imps.reduce((a, i) => {
                     if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
-                    return a + (i.materia?.minutosSemanales || 0);
-                  }, 0) * 36 / 60),
-                  horasJornada: Math.round(jornadaSemanalLectivaMin / 60 * 10) / 10,
+                    const horasTot = i.materia?.horasTotales;
+                    if (horasTot != null && horasTot > 0) return a + horasTot;
+                    return a + (i.materia?.minutosSemanales || 0) * 36 / 60;
+                  }, 0)),
+                  horasJornada: Math.round(slotsSemanalMin / 60 * 10) / 10,
                   semanas: semanasOptimas,
                 })}
               </small>

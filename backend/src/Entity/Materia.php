@@ -88,10 +88,34 @@ class Materia
      * ESO/Bachillerato es opcional: el RD nacional solo fija horas mínimas
      * totales por etapa, y el reparto curso a curso lo decide cada CCAA. El
      * admin puede dejarlo en blanco hasta confirmar el reparto regional.
+     *
+     * NOTA (Fase 5 PL fix 2026-04-29): aunque sigue siendo el dato persistido
+     * para la jornada típica de la materia, el objetivo curricular ANUAL ahora
+     * lo fija `horasTotales` (ver abajo). Las h/sem son una sugerencia derivada
+     * que el centro adapta según calendario; lo legal LOMLOE son las horas
+     * totales anuales del módulo (BOE/BOJA).
      */
     #[ORM\Column(nullable: true)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $minutosSemanales = null;
+
+    /**
+     * Carga lectiva ANUAL en HORAS, según el RD del título (BOE/BOJA).
+     * Es la "ley LOMLOE" — la inspección comprueba que cada módulo se haya
+     * impartido durante este número de horas en el curso. El reparto en h/sem
+     * es flexible y se adapta al calendario real del centro:
+     *   - Calendario 36 sem: h/sem = horasTotales / 36 (LOMLOE estándar).
+     *   - Calendario 38 sem: h/sem = horasTotales / 38 (más sem, menos h/sem).
+     *   - Si la jornada slots < Σ h/sem, el centro alarga el calendario para
+     *     impartir las horas debidas (ver `semanasOptimas` en frontend).
+     *
+     * Backfill (migration Version20260429xxxxxx): ROUND(minutos_semanales × 36 / 60).
+     * Mantiene el comportamiento previo (cuando solo había min/sem × 36 implícito)
+     * y deja las h totales editables por el admin si difieren del catálogo.
+     */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
+    private ?int $horasTotales = null;
 
     /**
      * Tipo de materia (TRONCAL, ESPECIFICA, OPTATIVA, MODULO, FCT, …) — re-usa
@@ -195,6 +219,31 @@ class Materia
     {
         $this->minutosSemanales = $minutosSemanales;
         return $this;
+    }
+
+    public function getHorasTotales(): ?int
+    {
+        return $this->horasTotales;
+    }
+
+    public function setHorasTotales(?int $horasTotales): static
+    {
+        $this->horasTotales = $horasTotales;
+        return $this;
+    }
+
+    /**
+     * Objetivo anual en MINUTOS. Punto único de consulta para el solver,
+     * CapacityPlanner y banner anual:
+     *   - Si `horasTotales` está set: horasTotales × 60.
+     *   - Si null (caso edge tras migración): fallback a min/sem × 36.
+     */
+    public function getObjetivoAnualMinutos(): int
+    {
+        if ($this->horasTotales !== null) {
+            return $this->horasTotales * 60;
+        }
+        return ($this->minutosSemanales ?? 0) * 36;
     }
 
     public function getTipo(): ?TipoMateria

@@ -170,19 +170,32 @@ class CapacityPlanner
             $cuotaNatural = (int) round($minutosBaseSemanal * $semanasRango);
 
             // Cap anual: si el caller pasó info de placements en otros rangos,
-            // aplicar la triple regla min(natural, equitativa, restante).
+            // aplicar las restricciones combinadas según el calendario.
             if ($alreadyPlacedByImp !== null) {
-                $objetivoAnual = ($imp->getMateria()?->getMinutosSemanales() ?? 0) * $SEMANAS_REF_LOMLOE;
-                // Cuota equitativa: este rango toma la fracción del objetivo
-                // anual proporcional al peso de sus semanas sobre el total
-                // del grupo. Si totalSemanas <= 0 (caso edge), neutralizamos
-                // la equitativa con PHP_INT_MAX para que no domine el min().
-                $cuotaEquitativa = $totalSemanasGrupo > 0
-                    ? (int) round($objetivoAnual * ($semanasRango / $totalSemanasGrupo))
-                    : PHP_INT_MAX;
+                // Opción A (2026-04-29): el objetivo anual es horasTotales×60
+                // (ley LOMLOE), no min/sem×36. Si la materia no tiene
+                // horasTotales, fallback a min/sem×36 (compat back).
+                $objetivoAnual = $imp->getMateria()?->getObjetivoAnualMinutos() ?? 0;
                 $yaColocadoOtrosRangos = (int) ($alreadyPlacedByImp[$imp->getId()] ?? 0);
                 $maxRestante = max(0, $objetivoAnual + $TOLERANCIA_ANUAL_MIN - $yaColocadoOtrosRangos);
-                $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);
+
+                // La cuota equitativa solo se aplica si el calendario es CORTO
+                // (totalSemanas < 36 LOMLOE): subir cuotas para cubrir el
+                // currículo en menos semanas. Si el calendar es ≥ 36, dejamos
+                // cuota natural — la reducción proporcional (criterio C) y el
+                // cap absoluto (maxRestante) gestionan los overshoots
+                // naturales por round-up del solver. Esta separación evita
+                // que el ILP reciba cuotas más bajas que la natural cuando
+                // el calendario es generoso, lo que generaba round-up que
+                // saturaba la jornada y hacía la combinatoria infactible.
+                $usarEquitativa = $totalSemanasGrupo > 0
+                    && $totalSemanasGrupo < $SEMANAS_REF_LOMLOE;
+                if ($usarEquitativa) {
+                    $cuotaEquitativa = (int) round($objetivoAnual * ($semanasRango / $totalSemanasGrupo));
+                    $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);
+                } else {
+                    $cuotaEsteRango = min($cuotaNatural, $maxRestante);
+                }
                 // Skip si la cuota residual no llega ni a 1 slot del rango.
                 // Materia "casi cubierta" no necesita más placements aquí —
                 // forzarlo crearía un combo de 1 slot que satura otras.

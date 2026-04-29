@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fixes post-cierre 2026-04-29**: (a) cuota equitativa cross-rango en `CapacityPlanner` con tolerancia anual 0; (b) "Configurar curso óptimo" en frontend que calcula `semanasOptimas` y crea rangos óptimos + lanza el solver; (c) skip materia con cuota residual < slotMin en último rango; (d) reducción proporcional con criterio "menor penalty %" — concentra el déficit en la materia más grande (que lo absorbe mejor relativamente) en lugar del round-robin caprichoso anterior. Resultado: en grupos sin déficit estructural, todas las materias al 100-108%; en grupos con déficit (Σpresencial > capacidadSlots), una materia grande absorbe el déficit y las demás al 97-103%. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Opción A (post-cierre 2026-04-29)**: el objetivo curricular ahora es `Materia.horasTotales × 60` (ley LOMLOE) en lugar de `min/sem × 36` (rígido). `semanasOptimas = max(36, ceil(Σ horasTotales × 60 / slotsSemanalMin))` adapta el calendario a la jornada slots real. La cuota equitativa cross-rango solo se aplica si calendario < 36 sem; con calendario ≥ 36 sem se usa cuota natural + reducción C. Verificado E2E con 3 grupos del centro EAG: 2º DAW/DAM al 101-108%; 1º DAW (déficit estructural irreductible jornada 27.5h vs currículo 29h) con Programación al 88% absorbiendo el déficit y 6 materias al 102-111%. Limitación restante = jornada física insuficiente (decisión operativa del centro, no algorítmica). Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro), 8 (dashboard horas anuales).
 
 ---
 
@@ -376,6 +376,46 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Opción A: horasTotales como objetivo curricular (ley LOMLOE)
+
+**Cambio arquitectónico** descubierto tras frustración del usuario con 1º DAW: las h/sem del catálogo eran tratadas como ley inmutable, cuando la realidad LOMLOE es que las **horas totales anuales** son el dato legal y las h/sem son una división convencional. Esta fricción explicaba por qué el sistema no se adaptaba a calendarios distintos a 36 sem.
+
+**Cambios en código**:
+
+- `backend/src/Entity/Materia.php`: nueva propiedad `horasTotales` (int nullable). Helper `getObjetivoAnualMinutos()` que devuelve `horasTotales × 60` (preferente) o `min/sem × 36` (fallback). Es el punto único de consulta para solver, banner y chip.
+
+- `backend/migrations/Version20260429180000.php`: añade columna y backfill = `ROUND(min/sem × 36 / 60)`. Mantiene comportamiento previo intacto (todas las materias quedan con `horasTotales` = lo implícito anterior).
+
+- `backend/src/Controller/CatalogoMaterializationController.php`: al materializar itinerario desde catálogo, copia `horasTotales` (BOE) o calcula fallback.
+
+- `backend/src/Controller/GrupoResyncCcaaController.php`: idem en resync CCAA.
+
+- `backend/src/Service/CapacityPlanner.php`: el objetivo anual ahora viene de `getObjetivoAnualMinutos()`. Cambio adicional: la cuota equitativa cross-rango solo se aplica si `totalSemanasGrupo < 36 LOMLOE` (calendario corto). Si el calendario es ≥ 36 sem, se usa cuota natural — la reducción proporcional (criterio C) y el cap absoluto manejan los overshoots por round-up. Esto evita que el ILP del solver reciba cuotas equitativas más bajas que la natural y haga round-up a slots que saturan la jornada hasta el punto de combinatoria infactible.
+
+- `frontend/src/pages/HorariosEditor.jsx`:
+  - `slotsSemanalMin`: helper que suma sólo slots colocables (sin recreos).
+  - `semanasOptimas`: cambiado a `max(36, ceil(Σ horasTotales × 60 / slotsSemanalMin))`. Para 1º DAW (Σ=1044h, slots=27.5h): semanasOptimas = 38 sem (en lugar de 35 con la fórmula previa que incluía recreos).
+  - `minutosAnualesObjetivoByImp`: usa `materia.horasTotales × 60` (fallback a `min × 36`).
+  - Banner anual `curriculumMin`: idem.
+  - Modal "Crear Rangos Recomendados": el cálculo mostrado al admin pasa de "Σ ÷ jornada lectiva" a "Σ horas totales anuales ÷ slots colocables = N sem (mín. 36 LOMLOE)".
+
+**Verificación E2E**:
+
+| Grupo | Σ h/sem | Jornada slots | Antes | Después |
+|---|---|---|---|---|
+| 2º DAW (47 sem×9.4) | 28h | 27.5h | 5 al 102%, Inglés 106% | 5 al 102%, Inglés 106% (igual) |
+| 2º DAM (43 sem×8.7) | 28h | 27.5h | 6 al 101-104%, Inglés 108% | igual |
+| **1º DAW (38 sem×12.7)** | 29h | 27.5h | Programación 77% (estructural) | **Programación 88%** + 6 al 102-111% |
+
+La mejora notable está en 1º DAW: antes el cap anual cross-rango con cuota equitativa hacía que la reducción se concentrase severamente en una materia. Ahora con cuota natural + criterio C, la reducción es menos drástica y más uniforme.
+
+**Limitación residual conocida y aceptada**: si Σ presencial > capacidad slots semanal (caso 1º DAW EAG: 29h > 27.5h), el déficit estructural es **per-semana**, no anual. Ningún algoritmo lo arregla — sólo se puede:
+- Subir la jornada del centro (añadir slots/día) ← solución operativa.
+- Aceptar que una materia (la más grande) absorbe el déficit (~88% en 1º DAW EAG) y el resto al 100-110% ← lo que el sistema entrega ahora.
+- Truco recreos LOMLOE: contar los recreos como tiempo lectivo curricular (banner verde-info "Currículo dentro de jornada lectiva (incluye recreos)") ← banner ya lo informa cuando aplica.
+
+El usuario debe entender que el sistema NO puede inventar slots físicos; sólo distribuye óptimamente lo disponible. La pregunta "tan difícil es prolongar el curso" tiene respuesta: el curso SÍ se prolonga (de 36 LOMLOE a 38 sem en 1º DAW), pero la **suma per-semana sigue saturando la jornada**, lo cual es restricción física inherente.
 
 ### 2026-04-29 — Reducción proporcional con criterio "menor penalty %" (C)
 

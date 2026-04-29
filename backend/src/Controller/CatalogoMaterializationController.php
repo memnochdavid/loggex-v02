@@ -132,11 +132,20 @@ final class CatalogoMaterializationController extends AbstractController
         ], true);
         $minutosFinal = $minutosSemanales ?? ($isFp ? 0 : null);
 
+        // Horas totales anuales (Opción A 2026-04-29): es el dato LEGAL LOMLOE.
+        // Si el catálogo lo trae (BOE), copiarlo. Si no, fallback al cálculo
+        // implícito (min/sem × 36 con calendario estándar).
+        $horasTotales = $materia->getHorasTotales();
+        if ($horasTotales === null && $minutosFinal !== null) {
+            $horasTotales = (int) round($minutosFinal * 36 / 60);
+        }
+
         return (new Materia())
             ->setNombre($materia->getNombre())
             ->setCodigoOficial($materia->getCodigoOficial())
             ->setCurso($materia->getCurso() ?? 1)
             ->setMinutosSemanales($minutosFinal)
+            ->setHorasTotales($horasTotales)
             ->setTipo($materia->getTipo())
             // Propaga modalidad del catálogo (Fase 2 modalidad). Sin esto, las
             // Materia nacen como `presencial` aunque CatalogoMateria sea fct/
