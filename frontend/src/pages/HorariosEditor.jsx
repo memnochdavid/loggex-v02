@@ -2322,9 +2322,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // alreadyPlacedByImp en runSolver; R3 ve R1+R2; etc. Ejecutar en orden
   // garantiza que las cuotas finales por materia respeten objetivo+1.5h.
   // Si un rango falla, continuamos con el resto y reportamos al final.
-  const runSolverAllRangos = async () => {
+  // `plsOverride`: si se pasa, ignora `plByGrupo[selectedGrupo]` (que puede
+  // estar batch-stale tras un setPlByGrupo síncrono dentro del mismo handler).
+  // Útil para "Configurar curso óptimo" que crea rangos y ejecuta el solver en
+  // un solo flujo, donde React aún no ha re-rendereado tras el setState.
+  const runSolverAllRangos = async (plsOverride = null) => {
     if (!selectedGrupo) return;
-    const pls = (plByGrupo[selectedGrupo] || []).slice().sort((a, b) =>
+    const pls = (plsOverride ?? plByGrupo[selectedGrupo] ?? []).slice().sort((a, b) =>
       (a.fechaInicio || '').localeCompare(b.fechaInicio || ''));
     if (pls.length === 0) {
       toast.error(t('scheduleEditor.solverAllNoRangos', { defaultValue: 'El grupo no tiene rangos lectivos.' }));
@@ -2370,7 +2374,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           // Acumular los minutos anuales colocados por imparticion en este rango.
           // Usamos `pl.id` para mirar las semanas y multiplicar.
           if (data?.placements) {
-            const semanasPL = semanasByPlId[pl.id] || 0;
+            // Cuando viene de "Configurar curso óptimo" con plsOverride, el
+            // memo `semanasByPlId` puede no haberse re-renderizado todavía.
+            // Calculamos las semanas directamente del PL para evitar el stale.
+            let semanasPL = semanasByPlId[pl.id] || 0;
+            if (semanasPL === 0 && pl.fechaInicio && pl.fechaFin) {
+              const ini = new Date(pl.fechaInicio.slice(0, 10));
+              const fin = new Date(pl.fechaFin.slice(0, 10));
+              const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
+              semanasPL = days / 7;
+            }
             const semanalMinPorImp = {};
             data.placements.forEach(p => {
               const dur = parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio);
@@ -2479,10 +2492,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // del año natural queda sin rangos lectivos para FCT, exámenes, evaluaciones,
   // etc. Si el currículo no cabe en el calendario disponible, se usa todo el
   // calendario (caso déficit físico, banner rojo lo indicará aparte).
-  const handleCreateRecommendedRangos = async (e) => {
+  // `nOverride`: si se pasa, ignora `createRangosCount` del state. Útil para
+  // "Configurar curso óptimo" que invoca esta función sin abrir el modal y
+  // necesita garantizar un N concreto independiente de interacciones previas.
+  // Devuelve la lista de PLs creados (o null si falló) — el caller lo usa
+  // como fuente de verdad en lugar de leer state batch-stale.
+  const handleCreateRecommendedRangos = async (e, nOverride = null) => {
     if (e?.preventDefault) e.preventDefault();  // evita submit nativo del <form> del ModalView
-    if (!selectedGrupo || !grupo) return;
-    const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
+    if (!selectedGrupo || !grupo) return null;
+    const N = nOverride !== null
+      ? Math.max(1, nOverride)
+      : Math.max(1, parseInt(createRangosCount, 10) || 3);
     const iniISO = grupo.fechaInicio?.slice(0, 10)
       || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[0]}-09-01` : null);
     const finISO = grupo.fechaFin?.slice(0, 10)
@@ -2564,9 +2584,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         defaultValue: '{{count}} rangos creados',
         count: rangosCreados.length,
       }));
+      return rangosCreados;
     } catch (err) {
       console.error('Error creando rangos recomendados:', err);
       toast.error(t('scheduleEditor.createRangosError', { defaultValue: 'No se pudieron crear los rangos' }));
+      return null;
     } finally {
       setCreatingRangos(false);
     }
@@ -2576,6 +2598,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // "Crear Rangos Recomendados" con span óptimo + "Sugerir todo el curso" en
   // un solo flujo. Resultado: calendario ajustado al currículo y placements
   // distribuidos cubriéndolo al ~100%, sin overshoot por exceso de semanas.
+  // N de rangos = el último valor configurado en el modal o 3 por default.
   const handleConfigureOptimalCourse = async () => {
     if (!selectedGrupo || !grupo) return;
     if (semanasOptimas <= 0) {
@@ -2584,12 +2607,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }));
       return;
     }
+    const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
     // Confirmar (la creación borra todos los rangos + placements).
     const ok = await confirm({
       title: t('scheduleEditor.optimalConfirmTitle', { defaultValue: 'Configurar curso óptimo' }),
       body: t('scheduleEditor.optimalConfirmBody', {
         defaultValue: 'Esto borrará todos los rangos y placements actuales del grupo, creará {{count}} rangos cubriendo {{semanas}} semanas (las necesarias para el currículo) desde {{ini}}, y ejecutará el solver en todos. ¿Continuar?',
-        count: Math.max(1, parseInt(createRangosCount, 10) || 3),
+        count: N,
         semanas: semanasOptimas,
         ini: fmtDateEs(grupo?.fechaInicio) || '?',
       }),
@@ -2597,21 +2621,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       confirmVariant: 'primary',
     });
     if (!ok) return;
-    // Paso 1: crear rangos (reusa handleCreateRecommendedRangos sin abrir modal).
     setCursoActionsOpen(false);
-    await handleCreateRecommendedRangos();
-    // Paso 2: si la creación falló (toast.error), cortocircuitamos.
-    // Detectamos por el flag `creatingRangos` que vuelve a false sin haber
-    // poblado plByGrupo. Para simplicidad damos un beat al state y seguimos.
-    await new Promise(r => setTimeout(r, 200));
-    if (!(plByGrupo[selectedGrupo] || []).length) {
-      toast.warning(t('scheduleEditor.optimalSolverSkipped', {
-        defaultValue: 'Rangos creados, pero el solver no se pudo ejecutar automáticamente. Usa "Sugerir todo el curso".',
-      }));
+    // Paso 1: crear rangos. Pasamos `N` explícito para no depender del state
+    // de createRangosCount (que el modal puede haber dejado en otro valor).
+    // Recibimos los PLs creados como return value, evitando state batch-stale.
+    const rangosCreados = await handleCreateRecommendedRangos(null, N);
+    if (!rangosCreados || rangosCreados.length === 0) {
+      // El propio handleCreateRecommendedRangos ya mostró el toast de error.
       return;
     }
-    // Paso 3: ejecutar el solver en todos los rangos.
-    await runSolverAllRangos();
+    // Paso 2: ejecutar el solver pasando los PLs recién creados directamente
+    // (sin esperar al re-render que sincronice plByGrupo[selectedGrupo]).
+    await runSolverAllRangos(rangosCreados);
   };
 
   const dirtyAny = Object.values(state).some(s => s?.dirty);
