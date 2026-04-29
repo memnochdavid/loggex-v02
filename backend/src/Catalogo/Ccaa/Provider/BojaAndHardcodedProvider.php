@@ -7,6 +7,7 @@ use App\Catalogo\Ccaa\Dto\ItinerarioOverrideDto;
 use App\Catalogo\Ccaa\Dto\MateriaOverrideDto;
 use App\Entity\Ccaa;
 use App\Entity\Catalogo\TipoMateria;
+use App\Entity\Modalidad;
 
 /**
  * Provider hard-coded del currículo de FP en Andalucía (BOJA).
@@ -53,12 +54,16 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
      *
      * Estructura:
      *   itinerarioCodigoOficial => [
-     *     'overrides' => [ {materiaCodigoOficial, curso, minutos, [nombre]}, ... ],
-     *     'autonomicas' => [ {curso, minutos, nombre, codigo, tipo}, ... ],
+     *     'overrides' => [ {materiaCodigoOficial, curso, minutos, [nombre], [modalidad]}, ... ],
+     *     'autonomicas' => [ {curso, minutos, nombre, codigo, tipo, [modalidad]}, ... ],
      *   ]
      *
      * Convención `minutos = 0` ⇒ materia desactivada en LOMLOE (caso típico:
      * FOL → IPE I, Empresa → IPE II). El resolver omite la materia.
+     *
+     * `modalidad` es opcional: NULL/ausente = hereda la modalidad inferida por
+     * el `BoeRdEnricher` desde el nombre BOE. Solo se rellena cuando difiere o
+     * cuando se quiere ser explícito en una autonómica pura.
      */
     private const MATERIA_OVERRIDES = [
         // DAW — Técnico Superior en Desarrollo de Aplicaciones Web
@@ -98,7 +103,10 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
                 // 2º curso — datos confirmados de DAM 2º AN
                 ['codigo' => '0490', 'curso' => 2, 'minutos' => 180],  // Programación de servicios y procesos 3h
                 ['codigo' => '0491', 'curso' => 2, 'minutos' => 240],  // Sistemas de gestión empresarial 4h
-                ['codigo' => '0492', 'curso' => 2, 'minutos' => 120],  // Proyecto DAM 2h carga lectiva
+                // 2h carga lectiva pero NO regular: tutorización + autónoma.
+                // Modalidad explícita (heurística inferFromName ya lo cazaría
+                // por empezar con "Proyecto", se duplica como red de seguridad).
+                ['codigo' => '0492', 'curso' => 2, 'minutos' => 120, 'modalidad' => Modalidad::NO_REGULAR],  // Proyecto DAM
                 ['codigo' => '0494', 'curso' => 2, 'minutos' => 0],    // Empresa → IPE II
                 // 0486 Acceso a datos, 0488 Desarrollo de interfaces, 0489 Programación
                 // multimedia y dispositivos móviles: SIN OVERRIDE — pendiente verificar
@@ -155,6 +163,7 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
                     // LOMLOE; el resto son ajustes BOJA tradicionales.
                     boletinOficialRef: $row['minutos'] === 0 ? $fuenteAutonomicas : $fuenteOverrides,
                     vigenteDesde: $vigenteDesde,
+                    modalidad: $row['modalidad'] ?? null,
                 );
             }
             foreach ($bloque['autonomicas'] ?? [] as $row) {
@@ -169,6 +178,7 @@ final class BojaAndHardcodedProvider implements CcaaCurriculumProviderInterface
                     tipo: $row['tipo'],
                     boletinOficialRef: $fuenteAutonomicas,
                     vigenteDesde: $vigenteDesde,
+                    modalidad: $row['modalidad'] ?? null,
                 );
             }
         }

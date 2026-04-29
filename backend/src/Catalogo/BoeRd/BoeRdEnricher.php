@@ -5,6 +5,7 @@ namespace App\Catalogo\BoeRd;
 use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Catalogo\EtapaEducativa;
+use App\Entity\Modalidad;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -283,7 +284,12 @@ final class BoeRdEnricher
                     ->setHorasTotales($mod['horasTotales'])
                     ->setMinutosSemanales(!empty($mod['horasSemanales']) ? (int) round(((float) $mod['horasSemanales']) * 60) : null)
                     ->setEcts($mod['ects'] ?? null)
-                    ->setOrden($mod['orden']);
+                    ->setOrden($mod['orden'])
+                    // Heurística por nombre: detecta FCT y "Proyecto X". El
+                    // BOE no marca explícitamente la modalidad, así que se
+                    // infiere. Casos no detectables (libre configuración…)
+                    // se cubren vía override CCAA en BojaAndHardcodedProvider.
+                    ->setModalidad(Modalidad::inferFromName($mod['nombre']));
                 $itinerario->addMateria($materia);
                 $this->modulosCreados++;
             }

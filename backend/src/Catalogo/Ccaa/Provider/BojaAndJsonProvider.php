@@ -7,6 +7,7 @@ use App\Catalogo\Ccaa\Dto\ItinerarioOverrideDto;
 use App\Catalogo\Ccaa\Dto\MateriaOverrideDto;
 use App\Entity\Ccaa;
 use App\Entity\Catalogo\TipoMateria;
+use App\Entity\Modalidad;
 use League\Flysystem\FilesystemOperator;
 
 /**
@@ -93,6 +94,12 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
                 // "Horas libre configuración" (AN-LIBRE-*) son códigos sintéticos
                 // del propio JSON, no existen en `catalogo_materia` BOE.
                 // Se modelan como autonómicas puras.
+                //
+                // Modalidad: respeta la declarada en el JSON si existe
+                // (forwards-compat para cuando el curador del JSON la indique);
+                // si no, NO_REGULAR para libreConfig (no son clase semanal en
+                // aula, son distribución libre del centro). El resto cae al
+                // catálogo nacional vía cascada del resolver.
                 if ($libreConfig || str_starts_with($codigo, 'AN-')) {
                     if ($horas !== null) {
                         yield new MateriaOverrideDto(
@@ -106,6 +113,7 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
                             tipo: TipoMateria::LIBRE_CONFIGURACION,
                             boletinOficialRef: $fuenteBoja,
                             vigenteDesde: $vigenteDesde,
+                            modalidad: $this->resolverModalidad($m, $libreConfig ? Modalidad::NO_REGULAR : null),
                         );
                     }
                     continue;
@@ -113,6 +121,8 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
 
                 // Override estándar de horas BOJA (puede coincidir con BOE: igual
                 // se emite para que la trazabilidad de la fuente quede explícita).
+                // Modalidad: solo si el JSON la declara explícita; si no, NULL
+                // = hereda la del catálogo nacional (heurística por nombre).
                 if ($horas !== null) {
                     yield new MateriaOverrideDto(
                         ccaa: Ccaa::AN,
@@ -125,6 +135,7 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
                         tipo: null,
                         boletinOficialRef: $fuenteBoja,
                         vigenteDesde: $vigenteDesde,
+                        modalidad: $this->resolverModalidad($m, null),
                     );
                 }
                 // horas=null + no sustituida → no override (FCT, Proyecto):
@@ -156,6 +167,14 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
                     tipo: TipoMateria::MODULO,
                     boletinOficialRef: $fuenteLomloe,
                     vigenteDesde: $vigenteDesde,
+                    // Transversales LOMLOE (IPE I/II, Inglés profesional GS,
+                    // Sostenibilidad, Digitalización): habitualmente clases en
+                    // aula, pero NO forzamos PRESENCIAL si el JSON no la
+                    // declara — el resolver aplicará Modalidad::inferFromName
+                    // sobre el nombre como red de seguridad (caso histórico:
+                    // "Proyecto Intermodular" indebidamente clasificado como
+                    // transversal en JSONs antiguos).
+                    modalidad: $this->resolverModalidad($tr, null),
                 );
             }
         }
@@ -211,5 +230,25 @@ final class BojaAndJsonProvider implements CcaaCurriculumProviderInterface
             'resolucion-2024-06-26' => 'Resolución DG FP 26/06/2024',
             default => $id,
         };
+    }
+
+    /**
+     * Lee `modalidad` del JSON (string: "presencial" / "fct" / "no_regular" /
+     * "autonoma") si está declarada; si no, devuelve `$default`.
+     *
+     * El JSON aún no incluye este campo (estructura pre-Fase 2). Cuando se
+     * regenere desde los PDFs, se podrá añadir explícitamente sin romper
+     * compatibilidad con archivos antiguos.
+     */
+    private function resolverModalidad(array $modulo, ?Modalidad $default): ?Modalidad
+    {
+        $raw = $modulo['modalidad'] ?? null;
+        if (is_string($raw)) {
+            $tryEnum = Modalidad::tryFrom(strtolower(trim($raw)));
+            if ($tryEnum !== null) {
+                return $tryEnum;
+            }
+        }
+        return $default;
     }
 }

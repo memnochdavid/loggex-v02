@@ -54,4 +54,42 @@ enum Modalidad: string
     {
         return $this === self::PRESENCIAL;
     }
+
+    /**
+     * Heurística para inferir la modalidad a partir del nombre de la materia
+     * cuando se carga desde el catálogo nacional (BOE) que no la declara
+     * explícitamente, o cuando un override CCAA no la fija. Conservadora:
+     * solo reetiqueta cuando el nombre apunta inequívocamente a una modalidad
+     * no presencial.
+     *
+     *   - "Formación en Centros de Trabajo" o "FCT" como palabra → FCT
+     *   - Empieza por "Proyecto " o nombre exacto "Proyecto" → NO_REGULAR
+     *     (cubre "Proyecto Intermodular", "Proyecto DAW/DAM/SMR/...")
+     *   - Contiene "libre configuración" → NO_REGULAR
+     *     (cubre "Horas de libre configuración", autonómicas que el centro
+     *     distribuye libremente sin horario fijo en aula)
+     *   - Cualquier otro caso → PRESENCIAL (incluye "Gestión de proyectos",
+     *     "Gestión de un pequeño comercio", etc., que sí son aula).
+     */
+    public static function inferFromName(string $nombre): self
+    {
+        $lower = mb_strtolower(trim($nombre));
+
+        if (str_contains($lower, 'formación en centros de trabajo')
+            || str_contains($lower, 'formacion en centros de trabajo')
+            || preg_match('/(^|\s)fct(\s|$)/u', $lower) === 1
+        ) {
+            return self::FCT;
+        }
+
+        if (str_starts_with($lower, 'proyecto ') || $lower === 'proyecto') {
+            return self::NO_REGULAR;
+        }
+
+        if (str_contains($lower, 'libre configuración') || str_contains($lower, 'libre configuracion')) {
+            return self::NO_REGULAR;
+        }
+
+        return self::PRESENCIAL;
+    }
 }

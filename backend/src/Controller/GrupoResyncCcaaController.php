@@ -85,6 +85,14 @@ class GrupoResyncCcaaController extends AbstractController
                     $m->setNombre($r->nombre);
                     $changed = true;
                 }
+                // Modalidad: el catálogo siempre tiene una concreta (NOT NULL).
+                // Si difiere, se actualiza — el override per-grupo en
+                // Imparticion.modalidad sigue ganando vía getEffectiveModalidad
+                // (ese override no se toca aquí: persiste decisión del centro).
+                if ($m->getModalidad() !== $r->modalidad) {
+                    $m->setModalidad($r->modalidad);
+                    $changed = true;
+                }
                 $stats[$changed ? 'actualizadas' : 'sinCambios']++;
                 continue;
             }
@@ -121,6 +129,7 @@ class GrupoResyncCcaaController extends AbstractController
                 ->setCurso($r->curso)
                 ->setMinutosSemanales($r->minutosSemanales)
                 ->setTipo($r->tipo)
+                ->setModalidad($r->modalidad)
                 ->setItinerario($itinerario)
                 ->setCatalogoOrigen($r->catalogoMateria);
             $em->persist($m);

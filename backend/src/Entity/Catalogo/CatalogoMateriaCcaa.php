@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use App\Entity\Ccaa;
+use App\Entity\Modalidad;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -100,6 +101,17 @@ class CatalogoMateriaCcaa
     #[Groups(['catalogo:read'])]
     private ?TipoMateria $tipo = null;
 
+    /**
+     * Override de modalidad. NULL = hereda la del CatalogoMateria nacional
+     * (override) o PRESENCIAL (autonómica pura sin override). Solo se rellena
+     * cuando la CCAA cataloga una materia con modalidad distinta a la nacional
+     * o cuando la autonómica pura no es presencial (ej. "Horas de libre
+     * configuración" → NO_REGULAR).
+     */
+    #[ORM\Column(type: 'string', enumType: Modalidad::class, nullable: true)]
+    #[Groups(['catalogo:read'])]
+    private ?Modalidad $modalidad = null;
+
     /** Referencia al boletín oficial (ej. "BOJA 149/2011 anexo II + Resolución DG FP 26/06/2024"). */
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['catalogo:read'])]
@@ -130,6 +142,8 @@ class CatalogoMateriaCcaa
     public function setCurso(?int $c): static { $this->curso = $c; return $this; }
     public function getTipo(): ?TipoMateria { return $this->tipo; }
     public function setTipo(?TipoMateria $t): static { $this->tipo = $t; return $this; }
+    public function getModalidad(): ?Modalidad { return $this->modalidad; }
+    public function setModalidad(?Modalidad $m): static { $this->modalidad = $m; return $this; }
     public function getBoletinOficialRef(): ?string { return $this->boletinOficialRef; }
     public function setBoletinOficialRef(?string $r): static { $this->boletinOficialRef = $r; return $this; }
     public function getVigenteDesde(): \DateTimeImmutable { return $this->vigenteDesde; }

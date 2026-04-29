@@ -4,6 +4,7 @@ namespace App\Catalogo\Ccaa\Dto;
 
 use App\Entity\Ccaa;
 use App\Entity\Catalogo\TipoMateria;
+use App\Entity\Modalidad;
 
 /**
  * DTO con un override (o materia autonómica pura) emitido por un
@@ -32,6 +33,11 @@ final class MateriaOverrideDto
         public readonly string $boletinOficialRef,
         public readonly \DateTimeImmutable $vigenteDesde,
         public readonly ?\DateTimeImmutable $vigenteHasta = null,
+        // Modalidad CCAA-específica (nullable). NULL = hereda la del catálogo
+        // nacional (override) o PRESENCIAL (autonómica pura sin override). Se
+        // rellena solo cuando difiere — caso típico: "Horas de libre
+        // configuración" → NO_REGULAR como autonómica pura.
+        public readonly ?Modalidad $modalidad = null,
     ) {
     }
 

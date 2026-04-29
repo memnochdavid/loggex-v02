@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use App\Doctrine\Filter\SearchAnyFilter;
+use App\Entity\Modalidad;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -62,6 +63,17 @@ class CatalogoMateria
     #[ORM\Column(type: 'string', enumType: TipoMateria::class)]
     #[Groups(['catalogo:read'])]
     private TipoMateria $tipo;
+
+    /**
+     * Modalidad de imparticion declarada por el catálogo nacional. Default
+     * `PRESENCIAL` (D-B). El BoeRdEnricher la infiere por heurística sobre el
+     * nombre del módulo ("Formación en Centros de Trabajo"→FCT, "Proyecto"→
+     * NO_REGULAR). Los casos no detectables por nombre (ej. autonómicas tipo
+     * "Horas de libre configuración") se cubren vía override CCAA.
+     */
+    #[ORM\Column(type: 'string', enumType: Modalidad::class, options: ['default' => 'presencial'])]
+    #[Groups(['catalogo:read'])]
+    private Modalidad $modalidad = Modalidad::PRESENCIAL;
 
     /** Curso (1, 2, …) dentro del itinerario. NULL en universidades sin estructura por curso. */
     #[ORM\Column(nullable: true)]
@@ -119,6 +131,8 @@ class CatalogoMateria
     public function setNombre(string $n): self { $this->nombre = $n; return $this; }
     public function getTipo(): TipoMateria { return $this->tipo; }
     public function setTipo(TipoMateria $t): self { $this->tipo = $t; return $this; }
+    public function getModalidad(): Modalidad { return $this->modalidad; }
+    public function setModalidad(Modalidad $m): self { $this->modalidad = $m; return $this; }
     public function getCurso(): ?int { return $this->curso; }
     public function setCurso(?int $c): self { $this->curso = $c; return $this; }
     public function getHorasTotales(): ?int { return $this->horasTotales; }

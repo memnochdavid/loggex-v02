@@ -8,6 +8,7 @@ use App\Entity\Catalogo\CatalogoMateriaCcaa;
 use App\Entity\Catalogo\TipoMateria;
 use App\Entity\Ccaa;
 use App\Entity\Itinerario;
+use App\Entity\Modalidad;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -78,17 +79,27 @@ class CcaaResolverService
                     minutosSemanales: $minutos,
                     curso: $catMat->getCurso() ?? 1,
                     tipo: $ov->getTipo() ?? $catMat->getTipo(),
+                    // Cascada: override CCAA explícito > modalidad del catálogo
+                    // nacional. NUNCA cae a PRESENCIAL implícito porque el
+                    // catálogo nacional siempre tiene modalidad NOT NULL.
+                    modalidad: $ov->getModalidad() ?? $catMat->getModalidad(),
                 );
             } else {
-                // Autonómica pura
+                // Autonómica pura: sin contraparte en catálogo nacional. Si el
+                // override no declara modalidad, fallback a heurística sobre el
+                // nombre — así una autonómica "Horas de libre configuración" o
+                // "Proyecto Intermodular" cuyo provider no marcó modalidad se
+                // cataloga correctamente sin tener que tocar todos los seeds.
+                $nombreOv = $ov->getNombre() ?? '';
                 $out[] = new ResolvedMateria(
                     catalogoMateria: null,
                     overrideCcaa: $ov,
-                    nombre: $ov->getNombre() ?? '?',
+                    nombre: $nombreOv ?: '?',
                     codigoOficial: $ov->getCodigo() ?? '',
                     minutosSemanales: $ov->getMinutosSemanales() ?? 0,
                     curso: $ov->getCurso() ?? 1,
                     tipo: $ov->getTipo() ?? TipoMateria::MODULO,
+                    modalidad: $ov->getModalidad() ?? Modalidad::inferFromName($nombreOv),
                 );
             }
         }
@@ -133,6 +144,7 @@ final class ResolvedMateria
         public readonly ?int $minutosSemanales,
         public readonly int $curso,
         public readonly ?TipoMateria $tipo,
+        public readonly Modalidad $modalidad = Modalidad::PRESENCIAL,
     ) {
     }
 
@@ -150,6 +162,7 @@ final class ResolvedMateria
             minutosSemanales: $m->getMinutosSemanales(),
             curso: $m->getCurso() ?? 1,
             tipo: $m->getTipo(),
+            modalidad: $m->getModalidad(),
         );
     }
 }

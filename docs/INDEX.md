@@ -15,8 +15,9 @@
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
 1. **Modalidad de imparticion** — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). Resuelve **todo FP LOMLOE** (Básica/Medio/Superior/Especialización 1º+2º). Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin regresión.
-   - **Fase 1 ✅ Done (2026-04-29)** — modelo (`App\Entity\Modalidad` enum + `Materia.modalidad` NOT NULL + `Imparticion.modalidad` nullable override + `getEffectiveModalidad()` + helper `consumeAula()`) + migración `Version20260429120000` con backfill por DEFAULT (65 materias presencial, 51 imparticiones heredan). Comportamiento idéntico al previo: solver/CapacityPlanner/banner/rejilla/PDF aún ignoran modalidad.
-   - **Próximo: Fase 2** (~0.5 sesión) — cargar modalidad en catálogo nacional (heurística por nombre en `BoeRdEnricher`: "FCT" → `FCT`, "Proyecto" → `NO_REGULAR`) + overrides explícitos en `BojaAndHardcodedProvider` para DAW/DAM 1º+2º AN. Tras Fase 2 los datos del catálogo discriminan modalidad pero el solver sigue sin honrarlo (eso llega en Fase 3).
+   - **Fase 1 ✅ Done (2026-04-29)** — enum + columnas Materia/Imparticion + `getEffectiveModalidad()` + `consumeAula()` + migración `Version20260429120000`.
+   - **Fase 2 ✅ Done (2026-04-29)** — `Modalidad::inferFromName()` (FCT/Proyecto/libre configuración) + `CatalogoMateria.modalidad` (NOT NULL + backfill heurístico: 293 FCT + 87 NO_REGULAR sobre 2 576 materias) + `CatalogoMateriaCcaa.modalidad` + DTO + cascada en `BoeRdEnricher`/providers BOJA/`SeedCcaaCommand`/`CcaaResolverService`/`GrupoResyncCcaaController`. Resolver fallback heurística para autonómicas puras. Verificado E2E con 2º DAM AN: 5h no regulares correctamente detectadas (`AN-LIBRE-DAM-2` 3h + `1713 Proyecto Intermodular` 2h) más `0492 Proyecto DAM` y `0495 FCT`.
+   - **Próximo: Fase 3** (~0.5 sesión) — `CapacityPlanner` y `HorarioSolver` filtran imparticiones por `getEffectiveModalidad()->consumeAula()` antes del cómputo. Solo PRESENCIAL ocupa slots; el resto cuenta al currículo total pero no al placement.
    - Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar FP LOMLOE completo en producción** hasta que terminen Fases 3-6.
 2. **Solicitud de cambio de turno (profe → admin)** (~1 sesión) — entidad `SolicitudCambioTurno` + cola de aprobación + notificación vía Mensaje (Mercure live ya cubre). Promovido desde `pulido-ux.md` #8 tras verificar que no existía. Doc dedicado: `hoja-de-ruta-cambio-turno.md`. Fase 2 (reasignación automática) diferida.
 3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
@@ -146,7 +147,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| `hoja-de-ruta-modalidad-imparticion.md` | **Fase 1 ✅ Done (2026-04-29)**, quedan Fases 2-6 (~2.5 sesiones) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Detectado con 2º DAM AN (déficit 5.5-6h ficticio). Bloquea soporte LOMLOE FP completo en producción hasta cerrar Fases 3-6 (solver + UI + PDF honor modalidad). |
+| `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1+2 ✅ Done (2026-04-29)**, quedan Fases 3-6 (~1.5 sesiones) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Catálogo + cascada CCAA correctos a partir de Fase 2; pendiente solver + UI + PDF honor modalidad (Fases 3-6). |
 | `hoja-de-ruta-pulido-ux.md` | ✅ Done 2026-04-28 (8 ítems en una sesión) | — (mover a 🟢 cerradas en próxima revisión del INDEX) |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
@@ -186,11 +187,12 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 5. **Ampliar provider** a DAW 1º + DAM 1º + DAM 2º AN ⏳ — datos verificados manualmente.
 6. **CCAA Fase 4** ⏳ — filtros CCAA en `/admin/catalogo/*` + banner provenance ampliado.
 
-### Bloque 2.5 — Modalidad de imparticion *(🟡 Fase 1 ✅ Done — bloqueante para FP LOMLOE completo hasta cerrar Fases 3-6)*
+### Bloque 2.5 — Modalidad de imparticion *(🟡 Fases 1+2 ✅ Done — bloqueante para FP LOMLOE completo hasta cerrar Fases 3-6)*
 
 7. **Modalidad enum** — `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico de carga curricular. Alcance: **todo FP LOMLOE** (Básica/Medio/Superior/Especialización, 1º y 2º). Causa estructural: dual obligatoria RD 659/2023 + Proyecto intermodular + Horas libre configuración autonómicas. **Aditivo**: default `PRESENCIAL` = comportamiento actual sin regresión.
-   - **Fase 1 ✅ Done (2026-04-29)**: enum + columnas + migration + helpers (`getEffectiveModalidad`, `consumeAula`). Sin cambios funcionales aún.
-   - **Pendiente Fases 2-6** (~2.5 sesiones): catálogo nacional + BOJA, solver/CapacityPlanner respeta modalidad, banner anual + chip lateral, UI editar modalidad, PDF "Otras horas curriculares".
+   - **Fase 1 ✅ Done (2026-04-29)**: enum + columnas + migration + helpers.
+   - **Fase 2 ✅ Done (2026-04-29)**: heurística `inferFromName` + columnas catálogo + cascada providers/resolver/controller. 2 576 materias del catálogo correctamente etiquetadas. Verificado E2E con 2º DAM AN.
+   - **Pendiente Fases 3-6** (~1.5 sesiones): solver/CapacityPlanner respeta modalidad, banner anual + chip lateral, UI editar modalidad, PDF "Otras horas curriculares".
    - Doc: `hoja-de-ruta-modalidad-imparticion.md`.
 
 ### Bloque 3 — Solver y editor pulidos *(medio)*

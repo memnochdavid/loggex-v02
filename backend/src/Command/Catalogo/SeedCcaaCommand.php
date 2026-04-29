@@ -220,7 +220,8 @@ final class SeedCcaaCommand extends Command
             && $e->getTipo() === $dto->tipo
             && $e->getCurso() === $dto->curso
             && $e->getBoletinOficialRef() === $dto->boletinOficialRef
-            && $e->getVigenteHasta()?->format('Y-m-d') === $dto->vigenteHasta?->format('Y-m-d');
+            && $e->getVigenteHasta()?->format('Y-m-d') === $dto->vigenteHasta?->format('Y-m-d')
+            && $e->getModalidad() === $dto->modalidad;
     }
 
     private function aplicarDatos(CatalogoMateriaCcaa $e, MateriaOverrideDto $dto, CatalogoItinerario $catItin, ?CatalogoMateria $catMat): void
@@ -236,6 +237,7 @@ final class SeedCcaaCommand extends Command
         $e->setBoletinOficialRef($dto->boletinOficialRef);
         $e->setVigenteDesde($dto->vigenteDesde);
         $e->setVigenteHasta($dto->vigenteHasta);
+        $e->setModalidad($dto->modalidad);
     }
 
     private function upsertItinerarioCcaa(ItinerarioOverrideDto $dto, bool $dryRun, SymfonyStyle $io): string

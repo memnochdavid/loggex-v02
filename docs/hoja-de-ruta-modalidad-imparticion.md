@@ -1,6 +1,6 @@
 # Modalidad de imparticion — separar placement vs currículo
 
-> **Status (2026-04-29)**: 🟡 Fase 1 ✅ Done (modelo + migración + backfill, sin UI). Decisiones D-A→D-F cerradas con sus recomendaciones iniciales. **Siguiente**: Fase 2 (cargar modalidad en catálogo nacional + overrides BOJA para LOMLOE FP).
+> **Status (2026-04-29)**: 🟡 Fases 1+2 ✅ Done (modelo + catálogo + heurística + cascada CCAA propagando modalidad). El catálogo nacional, los overlays CCAA y el resolver discriminan modalidad correctamente; verificado E2E con 2º DAM AN: 5h "no regulares" detectadas (`AN-LIBRE-DAM-2` 3h + `1713 Proyecto Intermodular` 2h) más FCT y `0492`. **Siguiente**: Fase 3 (solver + CapacityPlanner respetan modalidad — solo PRESENCIAL ocupa slots).
 >
 > **Alcance** (discusión 2026-04-29): no es parche para DAW/DAM 2º — resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización) y abre la puerta a ESO/Bach/Uni. Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión.
 
@@ -122,16 +122,18 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 
 **Esfuerzo real**: ~30 min.
 
-### Fase 2 — Cargar modalidad en el catálogo nacional + BOJA
+### Fase 2 — Cargar modalidad en el catálogo nacional + BOJA ✅ Done (2026-04-29)
 
-- `BoeRdEnricher` extrae modalidad del nombre de la materia cuando contiene "Formación en Centros de Trabajo" → FCT, "Proyecto" → NO_REGULAR, etc. (heurística inicial).
-- `BojaAndHardcodedProvider` añade overrides explícitos para LOMLOE FP:
-  - DAW 2º: `0492 Proyecto DAW` → NO_REGULAR. `0619 FCT` → FCT.
-  - DAM 2º: `0492 Proyecto DAM` → NO_REGULAR. `AN-LIBRE-DAM-2` → NO_REGULAR. FCT correspondiente → FCT.
-  - DAW/DAM 1º: todas PRESENCIAL.
-- Añadir override por código oficial similar al patrón actual de minutos.
+- ✅ `Modalidad::inferFromName($nombre)` heurística: "Formación en Centros de Trabajo"/"FCT" → FCT, "Proyecto X" → NO_REGULAR, "libre configuración" → NO_REGULAR, resto → PRESENCIAL.
+- ✅ `CatalogoMateria.modalidad` NOT NULL DEFAULT `presencial` + `CatalogoMateriaCcaa.modalidad` nullable (override). Migration `Version20260429140000` con backfill por LIKE: 293 FCT + 87 NO_REGULAR detectados sobre 2 576 materias del catálogo.
+- ✅ `BoeRdEnricher` aplica heurística al persistir cada `CatalogoMateria` desde el BOE (cubre futuros enrichments sin tocar nada).
+- ✅ `MateriaOverrideDto.modalidad` nullable propagado por `BojaAndHardcodedProvider` (override explícito en `0492 Proyecto DAM` → NO_REGULAR, belt-and-suspenders sobre la heurística) y `BojaAndJsonProvider` (libre configuración → NO_REGULAR; el resto cae al fallback heurístico vía resolver).
+- ✅ `SeedCcaaCommand::aplicarDatos` + `datosCoinciden` propagan modalidad (24 rows actualizados con datos del provider hardcoded).
+- ✅ `CcaaResolverService::ResolvedMateria.modalidad` con cascada: override CCAA explícito → modalidad del catálogo nacional (override) → `Modalidad::inferFromName($nombre)` (autonómica pura sin declaración) → PRESENCIAL.
+- ✅ `GrupoResyncCcaaController` setea `Materia.modalidad` al crear/actualizar (preserva el override `Imparticion.modalidad` que sea decisión del centro).
+- ✅ Smoke test E2E con 2º DAM AN: 4 materias correctamente NO_REGULAR/FCT (`0492 Proyecto DAM`, `1713 Proyecto Intermodular`, `AN-LIBRE-DAM-2`, `0495 FCT`).
 
-**Esfuerzo**: ~0.5 sesión.
+**Esfuerzo real**: ~1h.
 
 ### Fase 3 — Solver y CapacityPlanner respetan modalidad
 
@@ -199,6 +201,36 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Fase 2 ✅ Done (catálogo + heurística + cascada CCAA)
+
+**Cambios en código**:
+- `backend/src/Entity/Modalidad.php`: añadida `inferFromName(string)` con tres patrones (FCT/Proyecto/libre configuración). Centraliza la heurística — el resto del código nunca compara substrings de nombre directamente.
+- `backend/src/Entity/Catalogo/CatalogoMateria.php`: nueva propiedad `modalidad` NOT NULL DEFAULT `presencial`, expuesta en `catalogo:read`.
+- `backend/src/Entity/Catalogo/CatalogoMateriaCcaa.php`: nueva propiedad `modalidad` nullable (override del catálogo nacional o autonómica pura).
+- `backend/src/Catalogo/Ccaa/Dto/MateriaOverrideDto.php`: añadido `?Modalidad $modalidad = null` al final del constructor (campo opcional, no rompe llamadas existentes).
+- `backend/src/Catalogo/BoeRd/BoeRdEnricher.php`: en `applyChanges()`, al crear cada `CatalogoMateria` se aplica `Modalidad::inferFromName($nombre)` automáticamente. Cubre los ~2 230 módulos cargados desde BOE más cualquier futura ingesta.
+- `backend/src/Catalogo/Ccaa/Provider/BojaAndHardcodedProvider.php`: estructura `MATERIA_OVERRIDES` ahora acepta `'modalidad' => Modalidad::X` opcional. Override explícito añadido en DAM 2º `0492 Proyecto` → `NO_REGULAR` (red de seguridad — la heurística lo cazaría igualmente). El resto se queda como NULL = hereda.
+- `backend/src/Catalogo/Ccaa/Provider/BojaAndJsonProvider.php`: helper `resolverModalidad($modulo, $default)` que lee `modalidad` del JSON cuando existe, con fallback al default. Para `libreConfig` → NO_REGULAR. Para transversales LOMLOE → NULL (deja al resolver decidir vía heurística, evitando que un JSON viejo que clasifica mal "Proyecto Intermodular" como transversal lo etiquete PRESENCIAL).
+- `backend/src/Command/Catalogo/SeedCcaaCommand.php`: `datosCoinciden` y `aplicarDatos` ahora propagan modalidad. Al re-ejecutar el seed con datos pre-Fase 2, 24 rows quedaron con modalidad NULL excepto `0492 Proyecto DAM` que recibió NO_REGULAR explícito.
+- `backend/src/Service/CcaaResolverService.php`: `ResolvedMateria.modalidad` con cascada explícita en `resolverMaterias()`. Para autonómicas puras, fallback final a `Modalidad::inferFromName($nombre)` — la red de seguridad que captura "Horas de libre configuración" e "Proyecto Intermodular" cuando ningún provider los marca explícitamente.
+- `backend/src/Controller/GrupoResyncCcaaController.php`: el resync ahora copia `r->modalidad` a `Materia.modalidad` tanto al crear como al actualizar. Importante: NO toca `Imparticion.modalidad` (override per-grupo del centro, decisión humana).
+- `backend/migrations/Version20260429140000.php`: dos `ALTER TABLE ADD COLUMN`. Para `catalogo_materia` añade DEFAULT 'presencial' que rellena al instante; backfill heurístico vía dos UPDATE con `LIKE` (FCT primero, Proyecto después). Para `catalogo_materia_ccaa` solo añade columna nullable; el backfill se delega al resolver en runtime para no necesitar otra migración cuando se afine la heurística.
+
+**Verificación E2E con 2º DAM AN**:
+- Catálogo nacional: 293 FCT + 87 NO_REGULAR detectados (vs 2 196 PRESENCIAL).
+- `0492 Proyecto de desarrollo de aplicaciones multiplataforma` → `no_regular` (heurística).
+- `0495 Formación en Centros de Trabajo` → `fct` (heurística).
+- `1713 Proyecto Intermodular` (autonómica pura JSON sin modalidad) → `no_regular` (resolver fallback inferFromName).
+- `AN-LIBRE-DAM-2 Horas de libre configuración` (autonómica pura JSON sin modalidad) → `no_regular` (resolver fallback inferFromName).
+- Total 5h "no regulares" del bug original ahora correctamente identificadas — quedan invisibles para el solver cuando llegue Fase 3.
+
+**Bug latente detectado durante verificación** (no afecta ahora pero merece anotar):
+- El JSON `catalogo/ccaa/AN/curated/horarios.json` no existe en MinIO actualmente (probablemente borrado tras subida pre-Fase 5 sub-E). `BojaAndJsonProvider` queda no-op silencioso — `forCcaa(AN)` lo escoge porque "gana el último registrado" pero no emite nada. Las rows existentes en `catalogo_materia_ccaa` provienen de un seed pasado y no se refrescan. Mitigación: el resolver aplica heurística sobre las rows existentes, así que el comportamiento end-to-end es correcto. Pendiente regenerar y re-subir el JSON cuando se aborde Fase 3 opción B (parser PDF real).
+
+**Sin cambios funcionales aún para el solver / banner / rejilla / PDF**: estos componentes siguen tratando todo como PRESENCIAL implícito. Es Fase 3 quien los hace honrar la modalidad.
+
+**Siguiente** (Fase 3, ~0.5 sesión): `CapacityPlanner` y `HorarioSolver` filtran imparticiones por `getEffectiveModalidad()->consumeAula()` antes del cómputo. Banner anual mantiene "todo currículo" (presencial + no presencial); banner CapacityPlanner pasa a "presencial vs jornada" (más limpio).
 
 ### 2026-04-29 — Fase 1 ✅ Done (modelo + migración + backfill)
 
