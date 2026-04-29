@@ -231,45 +231,49 @@ class CapacityPlanner
         }
 
         // Capacidad insuficiente: best-effort. En vez de devolver "todos huérfanos"
-        // y bloquear el solver, reducimos proporcionalmente los minutos por
-        // imparticion para que Σ ≤ capacidad, generamos asignación con esos
-        // valores reducidos y reportamos el excedente como huérfanos parciales.
-        // Razón: con el truco de recreos LOMLOE FP, una sobrecarga semanal
-        // pequeña es operativa (los placements colocan lo que cabe; el resto
-        // se justifica al currículo con recreos lectivos). El admin debe poder
-        // ejecutar el solver aunque haya un déficit semanal pequeño.
+        // y bloquear el solver, reducimos los minutos por imparticion para que
+        // Σ ≤ capacidad, generamos asignación con esos valores reducidos y
+        // reportamos el excedente como huérfanos parciales.
+        //
+        // Criterio (Fase 5 fix-C 2026-04-29): "menor penalización porcentual".
+        // Cada iteración quita 1 slot a la materia que pierda MENOR % relativo
+        // de sus minutos. Las materias grandes absorben mejor 1 slot perdido
+        // (8h/sem → 7h/sem = -12.5%) que las pequeñas (1h/sem → 0h/sem = -100%).
+        // Resultado matemáticamente óptimo: minimiza el déficit relativo total.
+        //
+        // El round-robin previo (que penalizaba materias en orden de iteración)
+        // dejaba resultados caprichosos: Sistemas 5h podía quedar al 78% mientras
+        // Programación 8h al 97% — sin lógica pedagógica. El criterio actual
+        // concentra el déficit en la materia más grande del rango, que es la
+        // que mejor lo absorbe en términos relativos.
+        //
+        // Razón filosófica: con el truco de recreos LOMLOE FP, una sobrecarga
+        // semanal pequeña es operativa — los placements colocan lo que cabe;
+        // el resto se justifica al currículo con recreos lectivos. El admin
+        // debe poder ejecutar el solver aunque haya un déficit semanal pequeño.
         $orphansFromReduction = [];          // impId → minutos perdidos
         $orphanMateriaNames = [];            // impId → nombre (para reportar)
         if ($capacidadMinutos < $totalMinutos) {
-            // Reducción round-robin equitativa: cada iteración reduce 1 unidad
-            // de slot a la materia con MENOS reducción acumulada, hasta que
-            // Σ minutos ≤ capacidad. Distribuye la pérdida entre materias en
-            // vez de concentrar todo en una. Si excess no es múltiplo de la
-            // unidad, sobrereducimos por <1 unidad (excess → ligeramente
-            // negativo, queda margen de slot libre).
             $unidadRedondeo = (int) min($duraciones);
             $excess = $totalMinutos - $capacidadMinutos;
-            $reducciones = [];
-            foreach ($materias as $m) {
-                $reducciones[$m['impId']] = 0;
-            }
             while ($excess > 0) {
-                // Candidato: materia con minutos ≥ 2 unidades (no la dejes con
-                // < 1 unidad) y MENOR reducción acumulada hasta ahora.
+                // Candidato: materia con minutos ≥ 2 unidades (no la dejes
+                // con < 1 unidad) y MENOR penalización porcentual al perder
+                // 1 unidad. La de mayor minutos en absoluto = menor penalty%.
                 $candidatoIdx = null;
-                $minReduccion = PHP_INT_MAX;
+                $minPenaltyPct = INF;
                 foreach ($materias as $idx => $m) {
                     if ($m['minutos'] < $unidadRedondeo * 2) continue;
-                    if ($reducciones[$m['impId']] < $minReduccion) {
-                        $minReduccion = $reducciones[$m['impId']];
+                    $penaltyPct = $unidadRedondeo / $m['minutos'];
+                    if ($penaltyPct < $minPenaltyPct) {
+                        $minPenaltyPct = $penaltyPct;
                         $candidatoIdx = $idx;
                     }
                 }
                 if ($candidatoIdx === null) break;  // ninguna puede ceder más
                 $impId = $materias[$candidatoIdx]['impId'];
                 $materias[$candidatoIdx]['minutos'] -= $unidadRedondeo;
-                $reducciones[$impId] += $unidadRedondeo;
-                $orphansFromReduction[$impId] = $reducciones[$impId];
+                $orphansFromReduction[$impId] = ($orphansFromReduction[$impId] ?? 0) + $unidadRedondeo;
                 $orphanMateriaNames[$impId] = $materias[$candidatoIdx]['nombre'];
                 $excess -= $unidadRedondeo;
             }

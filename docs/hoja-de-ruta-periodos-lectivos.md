@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fixes post-cierre 2026-04-29**: (a) cuota equitativa cross-rango en `CapacityPlanner` con tolerancia anual 0 (autorregulación natural del último rango); (b) "Configurar curso óptimo" en frontend que calcula `semanasOptimas = ceil(Σobjetivos / jornada/sem)` y crea rangos cubriendo solo lo necesario + lanza el solver. Resultado: el calendario lectivo se ajusta al currículo en lugar de forzar al solver a llenar todo el año natural; overshoot reducido a 1-8% (vs 20% antes) y sin rangos vacíos. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fixes post-cierre 2026-04-29**: (a) cuota equitativa cross-rango en `CapacityPlanner` con tolerancia anual 0; (b) "Configurar curso óptimo" en frontend que calcula `semanasOptimas` y crea rangos óptimos + lanza el solver; (c) skip materia con cuota residual < slotMin en último rango; (d) reducción proporcional con criterio "menor penalty %" — concentra el déficit en la materia más grande (que lo absorbe mejor relativamente) en lugar del round-robin caprichoso anterior. Resultado: en grupos sin déficit estructural, todas las materias al 100-108%; en grupos con déficit (Σpresencial > capacidadSlots), una materia grande absorbe el déficit y las demás al 97-103%. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -376,6 +376,41 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Reducción proporcional con criterio "menor penalty %" (C)
+
+**Bug detectado**: tras "Configurar curso óptimo" en 1º DAW (déficit estructural 1.5h/sem: jornada 27.5h vs currículo 29h), el resultado por materia era caprichoso: Sistemas 5h al 78%, Bases 6h al 86%, Programación 8h al 97%. Sin lógica pedagógica — la reducción round-robin penalizaba materias en orden de iteración.
+
+**Causa raíz**: la reducción proporcional usaba el criterio "materia con MENOS reducción acumulada", lo que iteraba round-robin penalizando las primeras encontradas. Para Σpresencial > capacidadSlots, el déficit se distribuía sin considerar el peso relativo de cada materia.
+
+**Fix**: nuevo criterio "menor penalización porcentual". Cada iteración quita 1 slot a la materia que pierda MENOR % relativo de sus minutos:
+
+```php
+foreach ($materias as $idx => $m) {
+    if ($m['minutos'] < $unidadRedondeo * 2) continue;
+    $penaltyPct = $unidadRedondeo / $m['minutos'];
+    if ($penaltyPct < $minPenaltyPct) {
+        $minPenaltyPct = $penaltyPct;
+        $candidatoIdx = $idx;
+    }
+}
+```
+
+Las materias grandes absorben mejor 1 slot perdido (8h/sem → 7h = -12.5%) que las pequeñas (1h/sem → 0h = -100%). El criterio concentra el déficit en la materia más grande, que es la matemáticamente óptima en términos de minimizar el déficit relativo total.
+
+**Verificación E2E** con 3 grupos del centro EAG:
+
+| Grupo | Antes (round-robin) | Después (menor penalty %) |
+|---|---|---|
+| 2º DAW | 5 al 110%, Inglés 126%, otras 102% | 5 al 102%, Inglés 106% |
+| 2º DAM | 6 al 120%, Inglés 120% | 6 al 101-104%, Inglés 108% |
+| 1º DAW | Sistemas 78%, Bases 86%, Programación 97%, otras 95-100% | 6 al 97-103%, Programación 77% (absorbe déficit) |
+
+En 1º DAW, Programación (la materia más grande) absorbe los 1.5h/sem de déficit estructural. Resultado mejor para el centro: 6 de 7 materias al 97-103% en lugar de "lotería round-robin" donde algunas a 78%, otras a 97%.
+
+**Sobre el déficit estructural irreductible** (Σpresencial > capacidadSlots): el truco recreos LOMLOE FP (Fase 5 sub-C) ya muestra banner verde-info "Currículo dentro de la jornada lectiva (incluye recreos)" — informa correctamente al admin. El chip lateral muestra placedHours físicos honestos (Programación al 77% = 360 min/sem placement real, las 120 min/sem faltantes se cuentan curricularmente como recreo lectivo LOMLOE). Los placements no se "inflan virtualmente" para mostrar 100%.
+
+**Limitación remanente** (follow-up posible, no crítico): el banner anual lateral y los chips podrían incluir indicación visual explícita "X h cubiertas por recreos lectivos LOMLOE" cuando hay déficit ≤ recreosMinutosSemanales × 5 días. Por ahora el banner CapacityPlanner ya cubre ese mensaje cuando se pulsa "Resolver".
 
 ### 2026-04-29 — "Configurar curso óptimo" (frontend) + cuota equitativa con tolerancia 0
 
