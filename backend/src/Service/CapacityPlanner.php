@@ -128,6 +128,10 @@ class CapacityPlanner
         foreach ($plis as $pli) {
             $imp = $pli->getImparticion();
             if ($imp === null || $imp->isDeleted()) continue;
+            // Solo PRESENCIAL ocupa slots. Las modalidades FCT/NO_REGULAR/AUTONOMA
+            // cuentan al currículo pero NO consumen aula — no entran al ILP ni a
+            // las cuotas. Sus minutos los reportará el banner anual aparte.
+            if (!$imp->getEffectiveModalidad()->consumeAula()) continue;
             $minutosBaseSemanal = $pli->getEffectiveMinutosSemanales();
             if ($minutosBaseSemanal <= 0) continue;
 

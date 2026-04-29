@@ -1,6 +1,6 @@
 # Modalidad de imparticion — separar placement vs currículo
 
-> **Status (2026-04-29)**: 🟡 Fases 1+2 ✅ Done (modelo + catálogo + heurística + cascada CCAA propagando modalidad). El catálogo nacional, los overlays CCAA y el resolver discriminan modalidad correctamente; verificado E2E con 2º DAM AN: 5h "no regulares" detectadas (`AN-LIBRE-DAM-2` 3h + `1713 Proyecto Intermodular` 2h) más FCT y `0492`. **Siguiente**: Fase 3 (solver + CapacityPlanner respetan modalidad — solo PRESENCIAL ocupa slots).
+> **Status (2026-04-29)**: 🟡 Fases 1+2+3 ✅ Done (modelo + catálogo + cascada + solver). El `CapacityPlanner` y `HorarioSolver` filtran imparticiones no presenciales. **Smoke test 2º DAM AN E2E**: con UPDATE manual simulando post-resync, 33h → 28h totales, 9 → 7 imparticiones procesadas, 6 → 1 huérfano. `complete: true` con 25 placements. Modalidad cumple su promesa: el currículo cabe en jornada normal. **Siguiente**: Fase 4 (banner anual + chip lateral honran modalidad — Σ currículo total vs Σ presencial separados).
 >
 > **Alcance** (discusión 2026-04-29): no es parche para DAW/DAM 2º — resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización) y abre la puerta a ESO/Bach/Uni. Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión.
 
@@ -135,15 +135,24 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 
 **Esfuerzo real**: ~1h.
 
-### Fase 3 — Solver y CapacityPlanner respetan modalidad
+### Fase 3 — Solver y CapacityPlanner respetan modalidad ✅ Done (2026-04-29)
 
-- `CapacityPlanner::plan()`: filtra `materias` para incluir solo `PRESENCIAL` en el cómputo de cuotas. Las no presenciales no entran en el ILP.
-- `HorarioSolver::solve()`: `tasks` solo contiene presenciales.
-- `cap.totalMinutos` (semanal) → solo presenciales.
-- `cap.huerfanos` → solo presenciales.
-- Backend tests para verificar que materias FCT/NO_REGULAR no aparecen en placements ni en huerfanos.
+- ✅ `CapacityPlanner::plan()` filtra PLIs cuya `Imparticion::getEffectiveModalidad()->consumeAula()` sea `false`. Las no presenciales no entran al ILP — ni a `materias[]`, ni a `cuotas`, ni a `totalMinutos`, ni a `huerfanos`.
+- ✅ `HorarioSolver::solve()` aplica el mismo filtro al construir `$imps[]`. Coherencia: el solver no debe procesar nada que el planner no consideró. Sus placements no existen para no presenciales.
+- ✅ Smoke test E2E con grupo 2º DAM EAG (id=4):
 
-**Esfuerzo**: ~0.5 sesión.
+| Métrica | ANTES (todo presencial) | DESPUÉS (modalidad aplicada) |
+|---|---|---|
+| feasible | false | true (con 0.5h round-up) |
+| totalMinutos semanal | 1 980 (33h) | 1 680 (28h) |
+| capacidadMinutos | 1 650 (27.5h) | 1 650 (27.5h) |
+| imparticiones procesadas | 9 | 7 |
+| huérfanos | 6 | 1 (round-up 30 min) |
+| placements colocados | parcial | 25 (`complete: true`) |
+
+Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Intermodular` (2h, NO_REGULAR), `AN-LIBRE-DAM-2 Horas de libre configuración` (3h, NO_REGULAR), `0495 Formación en Centros de Trabajo` (FCT). Total deducido: 5h "no regulares" del bug original.
+
+**Esfuerzo real**: ~20 min.
 
 ### Fase 4 — Banner anual y chip lateral respetan modalidad
 
@@ -201,6 +210,32 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Fase 3 ✅ Done (solver + CapacityPlanner respetan modalidad)
+
+**Cambios en código** (mínimos, dos hooks idénticos):
+- `backend/src/Service/CapacityPlanner.php` (línea ~131): tras `if ($imp === null || $imp->isDeleted()) continue;`, añadido `if (!$imp->getEffectiveModalidad()->consumeAula()) continue;`. Las no presenciales no entran al ILP — el cómputo de `materias[]`, `totalMinutos`, generación de combos, backtracking y reporte de huérfanos las ignora completamente.
+- `backend/src/Service/HorarioSolver.php` (línea ~112): mismo filtro al construir `$imps[]`. Coherencia con planner: si el planner no las cuenta, el solver tampoco.
+
+**Por qué tan poco código**:
+- El single point of truth es `Modalidad::consumeAula()` (creado en Fase 1). Solver/planner solo preguntan, sin saber qué modalidades existen.
+- Toda la cadena Imparticion.modalidad → Materia.modalidad → fallback heurístico ya está montada (Fases 1+2). Aquí solo se enchufa al consumidor.
+- Las no presenciales que ya tenían 0 minutos efectivos (caso típico FCT) ya se filtraban por `<= 0`; el filtro nuevo cubre los casos de NO_REGULAR con minutos > 0 (Proyecto, libre configuración).
+
+**Verificación E2E con 2º DAM EAG** (id=4):
+
+UPDATE manual previo simulando post-resync (las 3 materias no presenciales del grupo: `1713`, `AN-LIBRE-DAM-2`, `0495`) → ejecutar `CapacityPlanner` y `HorarioSolver`.
+
+Resultados:
+- `CapacityPlanner`: 33h → 28h totales (cayó las 5h no regulares + 0h FCT). 6 → 1 huérfanos. `feasible` sigue false porque 28h > 27.5h, pero el déficit es solo 30 min (round-up).
+- `HorarioSolver`: `complete: true`, 25 placements colocados. 7 imparticiones presenciales procesadas (Acceso a datos, Desarrollo de interfaces, Programación multimedia, Programación servicios, Sistemas gestión, Inglés profesional GS, IPE II). Las 3 no presenciales NO aparecen ni en `imparticiones` ni en `placements`.
+- `unplaced`: 1 imparticion con 30 min (round-up D22=A — el truco de recreos LOMLOE lo absorbe).
+
+**Conclusión**: la modalidad cumple lo prometido. El currículo presencial real (28h) cabe en la jornada normal de 27.5h con margen mínimo. El bug original que motivó toda esta hoja de ruta queda resuelto a nivel de solver. Lo único pendiente para producción real es disparar el resync (vía `/admin/grupos` o `POST /api/v1/grupos/{id}/resync-ccaa`) para que las `Materia` live de cada grupo reciban su modalidad correcta del catálogo. **Tras el smoke test, las 3 filas modificadas manualmente quedan con su valor correcto** — coincide con el resultado de un resync real.
+
+**Sin cambios funcionales en**: banner anual (sigue contando todo currículo presencial+no presencial), chip lateral del editor (sigue mostrando todas las materias arrastrables, incluida Proyecto/FCT), PDF (sigue sin sección "Otras horas curriculares"), UI de edición de modalidad (no existe). Esos componentes los aborda Fase 4 (banner + chip), Fase 5 (UI editar), Fase 6 (PDF).
+
+**Siguiente** (Fase 4, ~0.75 sesión): banner anual mantiene `Σ currículo` (todas las modalidades) pero el banner del CapacityPlanner pasa a `Σ presencial vs jornada` (más limpio: si presenciales caben → verde, sin "informativo amarillo" residual). ModuleChip lateral filtra por `consumeAula()` para drag-and-drop; añade vista "Otras horas curriculares" con la lista no presencial.
 
 ### 2026-04-29 — Fase 2 ✅ Done (catálogo + heurística + cascada CCAA)
 

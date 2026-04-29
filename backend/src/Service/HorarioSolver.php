@@ -110,6 +110,11 @@ class HorarioSolver
         foreach ($plis as $pli) {
             $imp = $pli->getImparticion();
             if ($imp === null || $imp->isDeleted()) continue;
+            // Coherencia con CapacityPlanner: el solver no procesa imparticiones
+            // que no consumen aula (FCT/NO_REGULAR/AUTONOMA). Sus placements no
+            // existen — sus horas curriculares se cuentan en el banner anual,
+            // no en la rejilla.
+            if (!$imp->getEffectiveModalidad()->consumeAula()) continue;
             $imps[] = $imp;
             $minutosPorImp[$imp->getId()] = $pli->getEffectiveMinutosSemanales();
         }
