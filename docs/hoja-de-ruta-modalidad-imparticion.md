@@ -1,6 +1,8 @@
 # Modalidad de imparticion — separar placement vs currículo
 
-> **Status (2026-04-28)**: 🔴 sin empezar. Plan acordado tras detectar la limitación con 2º DAM (33h/sem currículo no cabe en jornada 30h presencial porque incluye 5h "no regulares" de Proyecto Intermodular + Horas de libre configuración que el modelo trata como presenciales). Cierra el ciclo de soporte LOMLOE FP completo + abre la puerta a ESO/Bach/Uni que también necesitan distinguir modalidades.
+> **Status (2026-04-29)**: 🟡 Fase 1 ✅ Done (modelo + migración + backfill, sin UI). Decisiones D-A→D-F cerradas con sus recomendaciones iniciales. **Siguiente**: Fase 2 (cargar modalidad en catálogo nacional + overrides BOJA para LOMLOE FP).
+>
+> **Alcance** (discusión 2026-04-29): no es parche para DAW/DAM 2º — resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización) y abre la puerta a ESO/Bach/Uni. Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión.
 
 ---
 
@@ -36,10 +38,23 @@ Distinguir **placement físico** (slot en aula con un profesor) de **carga curri
 - El banner anual maneja **currículo**: TODAS las materias del catálogo (presenciales + no presenciales).
 - El PDF puede tener una sección distinta para "Otras horas" no presenciales.
 
-Aplica también a:
+### Alcance estructural en LOMLOE (discusión 2026-04-29)
+
+La feature no es un parche para DAW/DAM 2º. La causa raíz es estructural en LOMLOE FP y aplica a **todos los itinerarios**:
+
+1. **Dual obligatoria** (RD 659/2023, vigente desde 2024-25): todos los itinerarios FP LOMLOE incorporan fase en empresa en 2º curso. La antigua FCT separable se integra como bloque dual que NO ocupa aula → `FCT`.
+2. **Proyecto intermodular** (FP Superior) / **Proyecto** (FP Medio): trabajo final tutorizado, no clase semanal regular → `NO_REGULAR`.
+3. **Horas de libre configuración / autonómicas**: presentes en 1º y 2º según CCAA y itinerario. En 2º DAM AN son las que detonaron el bug; en 1º DAW AN ya hay "Digitalización aplicada" autonómica que también encaja → `NO_REGULAR`.
+4. **FP Básica**: tiene FCT en 2º curso. No tiene Proyecto intermodular, pero la FCT sola justifica la discriminación.
+5. **Especialización** (cursos post-FP, 600-800h): mayoría llevan Proyecto final + frecuentemente fase en empresa.
+
+**Por qué es aditivo y no destructivo**: el enum default `PRESENCIAL` = comportamiento actual byte-a-byte. Itinerarios que hoy cuadran bien (1º DAW EAG con 29h presenciales reales, 1º ESO, cualquier itinerario sin materias "no aula") se quedan idénticos sin tocar nada. Solo se reetiqueta lo que demostradamente NO es clase semanal en aula. **No se rompe ningún caso que hoy funciona.**
+
+El riesgo no es perjudicar lo que cuadra; es que **lo que parecía cuadrar gracias a una jornada inflada** (parche temporal de 35h, ya borrado el 2026-04-28) deje de cuadrar al volver a 30h. Eso ya pasó. La modalidad lo arregla, no lo introduce.
+
+Aplica también a (puerta abierta, fuera del alcance Fase 1-6):
 - **ESO/Bach LOMLOE**: optativas, refuerzo, asignaturas con horas de autonomía.
 - **Universidad**: ECTS no traducen 1:1 a horas semanales; hay teoría/práctica/laboratorio/autoaprendizaje.
-- **FP especialización**: módulos de proyecto y FCT.
 
 ---
 
@@ -80,33 +95,32 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 
 ### Abiertas (a cerrar antes de Fase 1)
 
-| ID | Decisión | Recomendación inicial |
-|---|---|---|
-| D-A | ¿Modalidad en `Materia`, en `Imparticion`, o ambas? | Default en `Materia`, override en `Imparticion` (mismo patrón que minutos). |
-| D-B | ¿Default si NULL? | `PRESENCIAL` (preserva comportamiento actual: todas las materias del catálogo existente serían presenciales tras la migración). |
-| D-C | ¿La modalidad afecta al solver SOLO o también a la rejilla visual? | El solver no las coloca; la rejilla no las muestra. Tienen una zona aparte (lista) con sus horas. |
-| D-D | ¿En el PDF? | Una sección al final "Otras horas curriculares (no regulares)" con las materias no PRESENCIALES y sus h/curso. NO una página por modalidad. |
-| D-E | ¿La modalidad puede cambiar a mitad de curso? | No. El override de `Imparticion` se fija al crear el grupo. Si el centro cambia de criterio, replantea para el siguiente curso. |
-| D-F | ¿Necesitamos sub-modalidades (PRESENCIAL_TEORIA / PRESENCIAL_LAB para Universidad)? | No en Fase 1. Puerta abierta para Universidad cuando llegue. |
+(ninguna — todas cerradas el 2026-04-29 antes de empezar Fase 1)
 
 ### Cerradas
 
-(ninguna todavía)
+| ID | Decisión | Resolución | Razón |
+|---|---|---|---|
+| D-A | ¿Modalidad en `Materia`, en `Imparticion`, o ambas? | **Default en `Materia.modalidad` (NOT NULL) + override opcional en `Imparticion.modalidad` (nullable, NULL = hereda Materia).** | Mismo patrón que `minutosSemanales`. Override grupo-level es suficiente porque la modalidad pertenece a la naturaleza de la materia en ese grupo, no del rango (ver D-E). PLI no necesita modalidad propia. |
+| D-B | ¿Default si NULL? | **`PRESENCIAL`.** | Preserva comportamiento actual byte-a-byte: todas las materias e imparticiones existentes serán PRESENCIAL tras el backfill. Itinerarios que ya cuadran no cambian nada. |
+| D-C | ¿La modalidad afecta al solver SOLO o también a la rejilla visual? | **El solver no las coloca; la rejilla no las muestra.** Las no presenciales viven en zona aparte del editor (lista con h informativas, sin drag-and-drop). | Clean separation: rejilla = placement físico; lista lateral = currículo total. Evita confundir al admin con bloques que no cuadran. |
+| D-D | ¿En el PDF? | **Una sección al final "Otras horas curriculares (no regulares)"** con las materias no presenciales y sus h/curso. NO una página por modalidad. | Coherente con la rejilla: el PDF es un export del horario, las no presenciales son anexo informativo del currículo total. |
+| D-E | ¿La modalidad puede cambiar a mitad de curso? | **No.** Override de `Imparticion` se fija al crear el grupo. Si el centro cambia de criterio, replantea para el siguiente curso. | La modalidad es estructural (¿es clase regular en aula o no?), no varía por rango. Cambiarla a mitad de curso invalidaría placements y carga curricular. |
+| D-F | ¿Sub-modalidades (PRESENCIAL_TEORIA / PRESENCIAL_LAB para Universidad)? | **No en Fase 1-6.** Puerta abierta para Universidad cuando llegue. | El alcance Fase 1-6 es FP/ESO/Bach LOMLOE. Universidad probablemente requiera modelo aparte (ECTS no traducen 1:1). No precondicionar el enum con casos no resueltos. |
 
 ---
 
 ## 3. Fases de implementación
 
-### Fase 1 — Modelo + migración (sin UI)
+### Fase 1 — Modelo + migración (sin UI) ✅ Done (2026-04-29)
 
-- Crear enum `App\Entity\Modalidad` (PRESENCIAL/FCT/NO_REGULAR/AUTONOMA).
-- Añadir `Materia.modalidad` (default PRESENCIAL, NOT NULL).
-- Añadir `Imparticion.modalidad` nullable (NULL = hereda Materia).
-- Migration `Version20260429xxxxxx` con backfill: todas las materias y imparticiones existentes → PRESENCIAL.
-- Helper `Imparticion::getEffectiveModalidad()` que devuelve override o default Materia.
-- API Platform: exponer `modalidad` en serialization groups de Materia y Imparticion.
+- ✅ Enum `App\Entity\Modalidad` con `label()` + `consumeAula()` (único punto de verdad para "¿esto va a la grilla?").
+- ✅ `Materia.modalidad` NOT NULL DEFAULT `'presencial'` con enumType, getter/setter, expuesto en `materia:read/write` + `imparticion:read`.
+- ✅ `Imparticion.modalidad` nullable con enumType + `getEffectiveModalidad()` (fallback Materia → PRESENCIAL).
+- ✅ Migration `Version20260429120000` con backfill por DEFAULT (65 materias → presencial, 51 imparticiones → NULL = hereda).
+- ✅ Smoke test PHP CLI: `getEffectiveModalidad()` resuelve correctamente, `consumeAula()` devuelve `true` para PRESENCIAL.
 
-**Esfuerzo**: ~0.5 sesión.
+**Esfuerzo real**: ~30 min.
 
 ### Fase 2 — Cargar modalidad en el catálogo nacional + BOJA
 
@@ -185,6 +199,41 @@ Decisión **D-A** (a cerrar antes de Fase 1): ¿`Materia.modalidad` o `Impartici
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Fase 1 ✅ Done (modelo + migración + backfill)
+
+**Decisiones cerradas** (D-A→D-F): todas con la recomendación inicial. Movidas al bloque "Cerradas" con resolución y razón. Sin sorpresas durante implementación.
+
+**Cambios en código**:
+- `backend/src/Entity/Modalidad.php` (nuevo): backed enum string con 4 cases + `label()` + `consumeAula()`. Este último es el punto único de verdad para "¿esta modalidad consume slot de aula?" — solver, CapacityPlanner, rejilla y PDF deben preguntárselo en lugar de comparar `=== Modalidad::PRESENCIAL` repetido por toda la base.
+- `backend/src/Entity/Materia.php`: nueva propiedad `modalidad` con `enumType` + default PHP-side `Modalidad::PRESENCIAL`, expuesta en grupos `materia:read/write` y `imparticion:read`.
+- `backend/src/Entity/Imparticion.php`: nueva propiedad `modalidad` nullable + `getEffectiveModalidad()` con fallback `override → materia → PRESENCIAL`. La PRESENCIAL final es defensiva por si la materia no se carga (no debería pasar, pero evita NPEs).
+- `backend/migrations/Version20260429120000.php`: dos `ALTER TABLE ADD COLUMN`. La columna de `materia` lleva `DEFAULT 'presencial' NOT NULL` para que MariaDB rellene el backfill automáticamente sin necesidad de UPDATE explícito. Imparticion queda nullable (NULL = hereda).
+
+**Verificación**:
+- `doctrine:migrations:migrate` → 1 migración aplicada, 2 SQL queries, 107.5ms.
+- `doctrine:schema:validate` → mappings OK; el "no in sync" residual son renames de índices `IDX_PL_*` → `IDX_<hash>` heredados de fases previas (no de modalidad).
+- `SELECT COUNT(*) FROM materia WHERE modalidad='presencial'` → 65/65.
+- `SELECT COUNT(modalidad) FROM imparticion` → 0 overrides (todas heredan).
+- Smoke test PHP CLI: `getEffectiveModalidad()` resuelve a PRESENCIAL, `consumeAula()` devuelve `true`.
+
+**Sin cambios funcionales aún**: solver, CapacityPlanner, banner, rejilla y PDF siguen tratando todo como PRESENCIAL implícito. El comportamiento honor-modalidad llega en Fases 3-6.
+
+**Siguiente** (Fase 2, ~0.5 sesión): cargar modalidad en catálogo nacional + overrides BOJA. Heurística inicial por nombre de materia ("Formación en Centros de Trabajo" → FCT, "Proyecto" → NO_REGULAR) + overrides explícitos en `BojaAndHardcodedProvider` para DAW/DAM 1º+2º.
+
+### 2026-04-29 — Alcance ampliado tras discusión
+
+Conversación clarifica que la feature no es un parche para DAW/DAM 2º. La causa raíz es estructural en LOMLOE y aplica a **todo FP**:
+
+- **Dual obligatoria** (RD 659/2023) en todos los 2º cursos LOMLOE → `FCT`.
+- **Proyecto intermodular** (Superior) / Proyecto (Medio) → `NO_REGULAR`.
+- **Horas de libre configuración / autonómicas** en 1º y 2º según CCAA → `NO_REGULAR`.
+- **FP Básica** tiene FCT en 2º; aunque sin proyecto intermodular, la FCT sola justifica la discriminación.
+- **Especialización** suele llevar Proyecto final + fase en empresa.
+
+Punto clave validado: el enum es **aditivo**. Default `PRESENCIAL` = comportamiento actual idéntico. Itinerarios que ya cuadran (1º DAW EAG con 29h reales, 1º ESO, etc.) se quedan sin tocar. Solo se reetiqueta lo que demostradamente no es clase en aula. **Sin riesgo de regresión.**
+
+Añadida sub-sección "Alcance estructural en LOMLOE" en el snapshot. Status actualizado a 2026-04-29. Plan, fases y decisiones D-A→D-F sin cambios (siguen válidos al ampliar alcance).
 
 ### 2026-04-28 — Doc creado
 

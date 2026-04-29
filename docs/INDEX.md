@@ -14,7 +14,10 @@
 
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
-1. **Modalidad de imparticion** (~3 sesiones) — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). **Cierra la limitación detectada con 2º DAM AN** (33h currículo no caben en 30h jornada porque incluye 5h "no regulares" de Proyecto Intermodular + Libre configuración que el modelo trata como presenciales). Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar 2º DAM/DAW LOMLOE en producción**.
+1. **Modalidad de imparticion** — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). Resuelve **todo FP LOMLOE** (Básica/Medio/Superior/Especialización 1º+2º). Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin regresión.
+   - **Fase 1 ✅ Done (2026-04-29)** — modelo (`App\Entity\Modalidad` enum + `Materia.modalidad` NOT NULL + `Imparticion.modalidad` nullable override + `getEffectiveModalidad()` + helper `consumeAula()`) + migración `Version20260429120000` con backfill por DEFAULT (65 materias presencial, 51 imparticiones heredan). Comportamiento idéntico al previo: solver/CapacityPlanner/banner/rejilla/PDF aún ignoran modalidad.
+   - **Próximo: Fase 2** (~0.5 sesión) — cargar modalidad en catálogo nacional (heurística por nombre en `BoeRdEnricher`: "FCT" → `FCT`, "Proyecto" → `NO_REGULAR`) + overrides explícitos en `BojaAndHardcodedProvider` para DAW/DAM 1º+2º AN. Tras Fase 2 los datos del catálogo discriminan modalidad pero el solver sigue sin honrarlo (eso llega en Fase 3).
+   - Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Bloqueante real para soportar FP LOMLOE completo en producción** hasta que terminen Fases 3-6.
 2. **Solicitud de cambio de turno (profe → admin)** (~1 sesión) — entidad `SolicitudCambioTurno` + cola de aprobación + notificación vía Mensaje (Mercure live ya cubre). Promovido desde `pulido-ux.md` #8 tras verificar que no existía. Doc dedicado: `hoja-de-ruta-cambio-turno.md`. Fase 2 (reasignación automática) diferida.
 3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
 4. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
@@ -32,7 +35,9 @@ Otras rutas más amplias:
 
 **✅ Pulido UX + bugs sueltos cerrados (2026-04-28 noche):** los 8 ítems del doc atendidos en una sola sesión. Fixes de bugs (turno tarde profe en `/horarios`; badge "Completo · X/Yh" coherente con cobertura anual cross-rango); UX (columna Grupo `[curso]º [abrev]` en `/admin/horarios`, Acciones alineadas al final en DataTables, scroll interno del sidebar persistido por sessionStorage); deuda (62 fallback hex muertos eliminados de 7 archivos + 2 inline `#64748b` migrados a `var(--text-muted)`); subtítulos descriptivos en 24 vistas con i18n × 5 (residual: `CatalogoItinerarioDetail` por título dinámico). #8 promovido a `hoja-de-ruta-cambio-turno.md` por no existir la feature. Doc cerrado: **`hoja-de-ruta-pulido-ux.md`**.
 
-**🆕 Limitación detectada con 2º DAM AN (2026-04-28 noche):** la jornada lectiva normal (30h presencial) no acoge el currículo LOMLOE de 2º DAM (33h/sem) porque el modelo trata todas las materias como `PRESENCIAL`, incluidas las **5h "no regulares"** (Proyecto Intermodular 2h + Horas de libre configuración 3h) que NO son clase semanal en aula. Plan: añadir enum `Modalidad` (`PRESENCIAL/FCT/NO_REGULAR/AUTONOMA`) para separar placement físico de carga curricular. Doc dedicado: **`hoja-de-ruta-modalidad-imparticion.md`** (~3 sesiones). Bloqueante real para soportar 2º DAM/DAW LOMLOE sin parches en centros reales.
+**🆕 Limitación detectada con 2º DAM AN (2026-04-28 noche):** la jornada lectiva normal (30h presencial) no acoge el currículo LOMLOE de 2º DAM (33h/sem) porque el modelo trata todas las materias como `PRESENCIAL`, incluidas las **5h "no regulares"** (Proyecto Intermodular 2h + Horas de libre configuración 3h) que NO son clase semanal en aula. Plan: añadir enum `Modalidad` (`PRESENCIAL/FCT/NO_REGULAR/AUTONOMA`) para separar placement físico de carga curricular. Doc dedicado: **`hoja-de-ruta-modalidad-imparticion.md`** (~3 sesiones).
+
+**🆕 Alcance ampliado de Modalidad de imparticion (2026-04-29):** discusión confirma que la feature NO es un parche para DAW/DAM 2º — la causa raíz es estructural en LOMLOE (dual obligatoria RD 659/2023 en todos los 2º cursos + Proyecto intermodular en FP Sup/Med + Horas de libre configuración autonómicas en 1º y 2º) y resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización). FP Básica tiene FCT en 2º; Especialización suele llevar Proyecto final. Punto clave: el enum es **aditivo**, default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión para itinerarios que ya cuadran (1º DAW EAG, 1º ESO, etc.). Detalle en doc dedicado §"Alcance estructural en LOMLOE" + bitácora 2026-04-29.
 
 **✅ PARCHE TEMPORAL ELIMINADO (2026-04-28 noche):** las jornadas `id 4 Mañanas` y `id 5 Tardes pre Calendario Real` (35h/sem) **borradas de BD** tras cerrar Fase 5 entera de PeriodoLectivo. Itinerarios DAW/DAM ahora apuntan a la jornada normal `id=3 "FP Mañanas"` (27.5h slots + 2.5h recreos = 30h presencial). 164 horarios fantasma (slots inexistentes en jornada normal) soft-deleted. Bitácora completa: `docs/hoja-de-ruta-periodos-lectivos.md` §6 (Sub-fase D). Doc histórico marcado SUPERSEDED: `docs/hoja-de-ruta-jornadas-recreos.md` §"PARCHE TEMPORAL".
 
@@ -141,7 +146,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| `hoja-de-ruta-modalidad-imparticion.md` | ~3 sesiones (Fases 1-6) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Detectado con 2º DAM AN (déficit 5.5-6h ficticio). Bloquea soporte LOMLOE FP completo en producción. |
+| `hoja-de-ruta-modalidad-imparticion.md` | **Fase 1 ✅ Done (2026-04-29)**, quedan Fases 2-6 (~2.5 sesiones) | **CRÍTICO**: sin esto, materias "no regulares" (Proyecto Intermodular, Libre configuración, FCT) saturan la jornada lectiva. Detectado con 2º DAM AN (déficit 5.5-6h ficticio). Bloquea soporte LOMLOE FP completo en producción hasta cerrar Fases 3-6 (solver + UI + PDF honor modalidad). |
 | `hoja-de-ruta-pulido-ux.md` | ✅ Done 2026-04-28 (8 ítems en una sesión) | — (mover a 🟢 cerradas en próxima revisión del INDEX) |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
@@ -181,9 +186,12 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 5. **Ampliar provider** a DAW 1º + DAM 1º + DAM 2º AN ⏳ — datos verificados manualmente.
 6. **CCAA Fase 4** ⏳ — filtros CCAA en `/admin/catalogo/*` + banner provenance ampliado.
 
-### Bloque 2.5 — Modalidad de imparticion *(🔴 sin empezar — bloqueante para 2º curso FP)*
+### Bloque 2.5 — Modalidad de imparticion *(🟡 Fase 1 ✅ Done — bloqueante para FP LOMLOE completo hasta cerrar Fases 3-6)*
 
-7. **Modalidad enum** ⏳ — `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico de carga curricular. Sin esto, 2º DAM/DAW LOMLOE no caben en jornada normal aunque el currículo sea correcto. Doc: `hoja-de-ruta-modalidad-imparticion.md` (~3 sesiones, Fases 1-6).
+7. **Modalidad enum** — `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico de carga curricular. Alcance: **todo FP LOMLOE** (Básica/Medio/Superior/Especialización, 1º y 2º). Causa estructural: dual obligatoria RD 659/2023 + Proyecto intermodular + Horas libre configuración autonómicas. **Aditivo**: default `PRESENCIAL` = comportamiento actual sin regresión.
+   - **Fase 1 ✅ Done (2026-04-29)**: enum + columnas + migration + helpers (`getEffectiveModalidad`, `consumeAula`). Sin cambios funcionales aún.
+   - **Pendiente Fases 2-6** (~2.5 sesiones): catálogo nacional + BOJA, solver/CapacityPlanner respeta modalidad, banner anual + chip lateral, UI editar modalidad, PDF "Otras horas curriculares".
+   - Doc: `hoja-de-ruta-modalidad-imparticion.md`.
 
 ### Bloque 3 — Solver y editor pulidos *(medio)*
 

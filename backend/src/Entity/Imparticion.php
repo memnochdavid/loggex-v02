@@ -83,6 +83,22 @@ class Imparticion
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
     private ?string $aulaEspecifica = null;
 
+    /**
+     * Override de modalidad per-grupo (D-A). NULL = hereda
+     * `Materia.modalidad`. Permite que un centro trate, p.ej., las "Horas de
+     * libre configuración" como `PRESENCIAL` (refuerzo en aula) en uno de sus
+     * grupos aunque el catálogo nacional las marque como `NO_REGULAR`.
+     *
+     * Se fija al crear el grupo y no debe variar a mitad de curso (D-E):
+     * cambiarla invalidaría placements existentes y la carga curricular.
+     *
+     * Consultar siempre vía `getEffectiveModalidad()` para no olvidar el
+     * fallback al default de Materia.
+     */
+    #[ORM\Column(type: 'string', enumType: Modalidad::class, nullable: true)]
+    #[Groups(['imparticion:read', 'imparticion:write'])]
+    private ?Modalidad $modalidad = null;
+
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]
     private Collection $horarios;
 
@@ -151,6 +167,30 @@ class Imparticion
     {
         $this->aulaEspecifica = $aulaEspecifica;
         return $this;
+    }
+
+    public function getModalidad(): ?Modalidad
+    {
+        return $this->modalidad;
+    }
+
+    public function setModalidad(?Modalidad $modalidad): static
+    {
+        $this->modalidad = $modalidad;
+        return $this;
+    }
+
+    /**
+     * Modalidad efectiva: override propio o default de la materia. Punto único
+     * de consulta para el solver, CapacityPlanner, rejilla y PDF — nadie debe
+     * leer `$imparticion->getModalidad()` directamente sin el fallback.
+     */
+    public function getEffectiveModalidad(): Modalidad
+    {
+        if ($this->modalidad !== null) {
+            return $this->modalidad;
+        }
+        return $this->materia?->getModalidad() ?? Modalidad::PRESENCIAL;
     }
 
     /**

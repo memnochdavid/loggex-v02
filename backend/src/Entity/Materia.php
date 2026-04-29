@@ -103,6 +103,21 @@ class Materia
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?TipoMateria $tipo = null;
 
+    /**
+     * Modalidad de imparticion (D-A): separa placement físico de carga
+     * curricular. Default `PRESENCIAL` (D-B): preserva comportamiento previo
+     * a 2026-04-29 sin riesgo de regresión.
+     *
+     * Solo `PRESENCIAL` ocupa slots del horario; el resto (FCT, NO_REGULAR,
+     * AUTONOMA) cuenta al currículo total pero no al placement.
+     *
+     * Override grupo-level posible vía `Imparticion.modalidad`
+     * (consultar siempre con `Imparticion::getEffectiveModalidad()`).
+     */
+    #[ORM\Column(type: 'string', enumType: Modalidad::class, options: ['default' => 'presencial'])]
+    #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
+    private Modalidad $modalidad = Modalidad::PRESENCIAL;
+
     #[ORM\ManyToOne(inversedBy: 'materias')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['materia:read', 'materia:write'])]
@@ -190,6 +205,17 @@ class Materia
     public function setTipo(?TipoMateria $tipo): static
     {
         $this->tipo = $tipo;
+        return $this;
+    }
+
+    public function getModalidad(): Modalidad
+    {
+        return $this->modalidad;
+    }
+
+    public function setModalidad(Modalidad $modalidad): static
+    {
+        $this->modalidad = $modalidad;
         return $this;
     }
 
