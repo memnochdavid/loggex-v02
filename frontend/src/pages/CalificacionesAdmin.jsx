@@ -169,7 +169,7 @@ const CalificacionesAdmin = () => {
         const result = {};
         filteredGrupos.forEach(g => {
             const itin = g.grupo?.itinerario ?? g.grupo?.ciclo;
-            const ciclo = itin?.nombre ?? '?';
+            const ciclo = (typeof itin === 'string' ? itin : itin?.nombre) ?? t('grades.noCiclo', { defaultValue: 'Sin itinerario' });
             if (!result[ciclo]) result[ciclo] = [];
             result[ciclo].push({
                 id: g.grupo.id,

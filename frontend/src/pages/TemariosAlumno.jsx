@@ -182,7 +182,7 @@ const TemariosAlumno = () => {
 
         for (const imp of allImparticiones) {
             const impId = imp.id || imp['@id'].split('/').pop();
-            const matRes = await fetch(getApiUrl(`/api/materials?imparticion=${impId}&pagination=false`), {
+            const matRes = await fetch(getApiUrl(`/api/temarios?imparticion=${impId}&pagination=false`), {
                 headers: { 'Accept': 'application/ld+json' },
                 credentials: 'include'
             });

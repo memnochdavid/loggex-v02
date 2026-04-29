@@ -119,7 +119,7 @@ const TemariosProfesor = () => {
 
       for (const imp of imparticiones) {
           const impId = imp.id || imp['@id'].split('/').pop();
-          const matRes = await fetch(getApiUrl(`/api/materials?imparticion=${impId}&pagination=false`), {
+          const matRes = await fetch(getApiUrl(`/api/temarios?imparticion=${impId}&pagination=false`), {
               headers: { 'Accept': 'application/ld+json' },
               credentials: 'include'
           });
@@ -217,7 +217,7 @@ const TemariosProfesor = () => {
       if (!(await confirm({ body: t('teacherMaterials.confirmDelete') }))) return;
 
       try {
-          const response = await fetch(getApiUrl(`/api/materials/${materialId}`), {
+          const response = await fetch(getApiUrl(`/api/temarios/${materialId}`), {
               method: 'DELETE',
               credentials: 'include'
           });

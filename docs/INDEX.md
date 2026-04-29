@@ -133,7 +133,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 todas ✅** (modelo + UI completa + cap anual cross-rango + truco recreos + extender curso + acciones del curso + PDF multi-página + cleanup parche temporal) | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético), Fase 7 (calendario lectivo del centro — parametriza D-L), Fase 8 (dashboard horas anuales para jefe de estudios) |
 | `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos). **§"PARCHE TEMPORAL" SUPERSEDED 2026-04-28** por periodos-lectivos sub-fase D | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
 | `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3** ✅ (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos) | Fase 4 (Municipio + UI locales), Fase 5 (calendario lectivo), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE) |
-| `hoja-de-ruta-calificaciones.md` | Aparentemente Fases A-D (existen `seed_calificaciones.sql`, vistas `CalificacionesAdmin/Detalle/Grupo.jsx`) | **Auditar y cerrar bitácora**; Fase E (boletines PDF) |
+| `hoja-de-ruta-calificaciones.md` | **Auditado 2026-04-29 + BD poblada (tarde)**: Fases A+B+C+D+E ✅ todas cerradas. `backup_tfg_full.sql` ahora contiene 174 tareas / 614 entregas / 614 calificaciones / 16 periodos / 87 ponderaciones / 725 asistencias / 17 mensajes / 10 comunicados / 87 temarios. Todos los archivos referencian a `Dummy.pdf` en MinIO. | B.1 validación Σ pesos=1.0 a nivel entidad (deuda menor; fixtures la cumplen pero la app no la fuerza). |
 | `home-widgets-roadmap.md` | TablonWidget, NotificationList | Resto de widgets marcados 🔴 |
 | `modernizacion-ui.md` | Manual vivo de modernización; varios plugins documentados | Sigue activo, registrar cada modernización nueva |
 
@@ -194,12 +194,13 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 Estimación: ~2 sesiones. Docs: `hoja-de-ruta-jornadas-recreos.md` (§14 + Fase B).
 
-### Bloque 4 — Cierre del ciclo evaluativo *(alto)*
+### Bloque 4 — Cierre del ciclo evaluativo *(✅ código cerrado 2026-04-29 — falta repoblar BD)*
 
-9. **Calificaciones — Auditar A-D** y cerrar bitácora.
-10. **Calificaciones Fase E** — boletines de notas en PDF.
+9. **Calificaciones — Auditar A-D** ✅ Done (2026-04-29). Bitácora cerrada en doc. Fases B/C/D/E todas implementadas en código.
+10. **Calificaciones Fase E — boletines PDF** ✅ Done (`dompdf 3.1` + `BoletinController` + plantilla Twig + `PdfBranding` con logo MinIO + i18n × 5 + botones de descarga en frontend).
+11. **Cola residual** (~1 sesión): re-aplicar seed de calificaciones (no idempotente; BD vacía hoy), poblar 4 periodos evaluativos por grupo (C.5), añadir validación Σ pesos=1.0 a `PonderacionImparticion`.
 
-Estimación: ~1.5 sesiones. Doc: `hoja-de-ruta-calificaciones.md`.
+Doc: `hoja-de-ruta-calificaciones.md`.
 
 ### Bloque 5 — Resto de CCAAs *(medio, incremental)*
 

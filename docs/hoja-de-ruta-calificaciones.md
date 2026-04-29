@@ -6,6 +6,27 @@ y poblado de datos de prueba (entregas + calificaciones) para el centro Escuela 
 
 ---
 
+## ⚡ Snapshot para retomar (auditoría 2026-04-29)
+
+**Todas las fases ✅ implementadas y BD poblada (2026-04-29 tarde).** Fixtures inyectados en `backup_tfg_full.sql` y validados; un `./scripts/restore_db.sh` deja Loggex listo para probar todo el ciclo evaluativo.
+
+| Fase | Código | BD/datos | Notas |
+|------|--------|----------|-------|
+| A — Datos de prueba | ✅ `scripts/seed_calificaciones.sql` (1600 líneas, 144 tareas + 720 entregas + 720 calificaciones) | ❌ **0 tareas / 0 entregas / 0 calificaciones / 0 periodos** en BD actual | Seed con INSERTs por ID literal sin DELETE/TRUNCATE → no es idempotente. Debe re-aplicarse o reescribirse. |
+| B — Ponderaciones | ✅ Entidad `PonderacionImparticion` con CRUD API Platform + endpoints `/media`, `/medias`, `/nota-final` | 3 ponderaciones manuales (1 imparticion configurada) | Falta validación a nivel entidad de "Σ pesos = 1.0" (hoy solo Range 0-1 por peso). Defaults 0.5/0.3/0.2 aplicados desde repo. |
+| C — Periodos evaluativos | ✅ Entidad `PeriodoEvaluativo` (tipo enum, peso, grupo) + lógica de media ponderada por periodo en `nota-final` | ❌ 0 periodos en BD | C.5 (poblar 3 ord + 1 extra por grupo de Escuela Arte Granada) sin ejecutar. |
+| D — Vistas frontend | ✅ `CalificacionesAdmin.jsx`, `CalificacionesGrupo.jsx`, `CalificacionesDetalle.jsx`, `MisCalificaciones.jsx` | — | D.1 (config ponderaciones) integrada en `CalificacionesGrupo` con `ThemedNumberInput`. Vista `CalificacionesAdmin` agrupa por itinerario (no árbol Centro→Ciclo→Grupo→Modulo como pedía D.5, pero cumple el rol). |
+| E — Boletines PDF | ✅ `dompdf/dompdf ^3.1`, `templates/pdf/boletin.html.twig`, `BoletinController` (individual + masivos PDF/ZIP), `PdfGenerator`, `PdfBranding` (logo MinIO → tmp → base64), i18n × 5 | — | Botones de descarga integrados en `CalificacionesAdmin` (admin) y `MisCalificaciones` (alumno). |
+
+**Próximas acciones recomendadas:**
+
+1. **Re-aplicar Fase A** sobre BD actual: o bien hacer el seed idempotente (`DELETE FROM calificacion WHERE entrega_id IN (...); DELETE FROM entrega WHERE tarea_id IN (...); DELETE FROM tarea WHERE id BETWEEN 17 AND 160;`) o regenerarlo, y ejecutar.
+2. **Fase C.5** — poblar 4 periodos por grupo (3 ord + 1 extra) con fechas coherentes con `Grupo.fechaInicio/fechaFin`.
+3. **B.1 validación Σ=1.0** — añadir `Assert\Callback` o validador de colección en entidad/repo.
+4. **Fase E** ya cerrada como ruta crítica — no pendiente.
+
+---
+
 ## Indice
 
 1. [Fase A — Poblado de datos de prueba](#fase-a--poblado-de-datos-de-prueba)
@@ -474,3 +495,65 @@ Cuando se aborde FCT, se recomienda una fase dedicada que incluya:
 3. **Tipo de calificacion en Modulo**: campo `tipoCalificacion` (`numerico` | `apto_no_apto`) para que el sistema de medias sepa que modulos ignorar
 4. **Vista especifica**: panel de seguimiento de FCT diferente al de calificaciones ordinarias
 5. **Generacion de documentos**: anexos oficiales del convenio (formatos regulados por la comunidad autonoma)
+
+---
+
+## Bitácora de implementación
+
+### 2026-04-29 — Auditoría completa del estado real
+
+Hecho en una sesión, motivado por el item del INDEX "Auditar y cerrar bitácora" + bug reportado por usuario en `/admin/calificaciones`.
+
+**Bug corregido** (`frontend/src/pages/CalificacionesAdmin.jsx:173`):
+- Aparecía un carácter `?` como header bajo las stat cards. Causa raíz: el backend `CalificacionMediaController::resumenCalificaciones` devuelve `grupo.ciclo` como **string** ya formateado (`$itinerario->getNombre()`), pero el frontend lo trataba como objeto haciendo `itin?.nombre`, que sobre un string siempre da `undefined` y caía en el fallback `'?'`.
+- Fix: detectar tipo (`typeof itin === 'string' ? itin : itin?.nombre`) y sustituir el fallback por texto i18n descriptivo `"Sin itinerario"`.
+
+**Hallazgos por fase**:
+- **Fase A** 🟡: el script `scripts/seed_calificaciones.sql` (1600 líneas) existe y es coherente con la spec, pero NO es idempotente (INSERTs con IDs literales sin DELETE/TRUNCATE previo). La BD actual tiene `tarea/entrega/calificacion = 0` registros: o se reseteó tras aplicar el seed o nunca se aplicó. Imparticiones (51), matrículas (21) y grupos (4) sí están.
+- **Fase B** 🟢: entidad `PonderacionImparticion` completa (CRUD API Platform, validación Choice + Range 0-1, unique constraint, soft-delete). Endpoints `/api/v1/imparticion/{id}/media/{alumnoId}`, `/medias`, `/nota-final/{alumnoId}` operativos en `CalificacionMediaController`. Defaults 0.5/0.3/0.2 vía `PonderacionImparticionRepository::getPesosParaImparticion()`. **Pendiente residual**: validación Σ pesos = 1.0 a nivel entidad (B.1 lo pedía pero no está). 3 ponderaciones reales en BD (imparticion 15).
+- **Fase C** 🟢: entidad `PeriodoEvaluativo` completa con tipo enum (PRIMERA/SEGUNDA/TERCERA/ORDINARIA_FINAL/EXTRAORDINARIA), peso, grupo, fechas. Lógica de "media ponderada de periodos ordinarios" implementada en endpoint `nota-final`. **Pendiente residual**: C.5 — 0 periodos en BD; no se ha poblado el seed de periodos para Escuela Arte Granada.
+- **Fase D** 🟢: cuatro vistas implementadas (`CalificacionesAdmin`, `CalificacionesGrupo`, `CalificacionesDetalle`, `MisCalificaciones`). `CalificacionesGrupo` integra D.1 (config ponderaciones con `ThemedNumberInput`) además de D.2 (tabla del grupo). `CalificacionesAdmin` agrupa por itinerario en lugar del árbol Centro→Ciclo→Grupo→Modulo del spec original — cumple el rol funcional aunque sea un layout más plano.
+- **Fase E** 🟢: `dompdf/dompdf ^3.1` instalado, plantilla `templates/pdf/boletin.html.twig` viva, `BoletinController` con endpoints individual y masivo (PDF/ZIP), `PdfGenerator` y `PdfBranding` (logo del centro vía MinIO → tmp → base64 para que dompdf lo embeba), i18n del boletín en 5 idiomas. Botones de descarga ya cableados en `CalificacionesAdmin` y `MisCalificaciones`.
+
+**Conclusión**: el sistema de calificaciones está mucho más cerrado de lo que reflejaba el doc. Cola viva real:
+- A.4 idempotencia + re-poblado de BD (datos faltan).
+- C.5 poblado de periodos (datos faltan).
+- B.1 validación Σ pesos = 1.0 (deuda menor; defaults cubren el caso normal).
+
+### 2026-04-29 (tarde) — BD poblada con fixtures completos
+
+Petición del usuario: "edita el .sql y mete registros creíbles para probar entregas, notas, evaluaciones, etc.". Persistencia vía `./scripts/restore_db.sh` (lee `backup_tfg_full.sql`).
+
+**Estrategia**: generador Python en `/tmp/gen_fixtures.py` (idempotente entre runs, semilla `random.seed(42)`) que produce 9 bloques SQL → script `/tmp/inject_fixtures.py` que los empotra en `backup_tfg_full.sql` reemplazando los `LOCK TABLES … UNLOCK TABLES` correspondientes y ajustando `AUTO_INCREMENT` en cada CREATE TABLE.
+
+**Datos generados** (todos centro 3 / Escuela Arte Granada, año escolar 2025-2026):
+
+| Tabla | Filas | Notas |
+|---|---:|---|
+| `periodo_evaluativo` | 16 | 4 por grupo: 1ª/2ª/3ª (peso 0.333/0.333/0.334) + Extraordinaria (peso NULL, no entra en media) |
+| `ponderacion_imparticion` | 87 (3 previas + 84 nuevas) | Defaults `examen=0.5/tarea=0.3/practica=0.2` para 28 imparticiones (excluyendo FCT y Proyecto Intermodular) |
+| `tarea` | 174 | 6 tareas/imparticion (2 examen + 3 tarea + 1 practica) repartidas oct 2025 – may 2026. Todas con `archivo='Dummy.pdf'` |
+| `entrega` | 614 | Solo para tareas con `fecha_limite < hoy` (29 tareas son aún futuras → 0 entregas → simulan "pendientes"). ~85% de los alumnos entregan; 15% no → simula faltas. `archivo='Dummy.pdf'`, ~30% con `comentario_alumno` |
+| `calificacion` | 614 | 1:1 con entregas. Distribución por perfil de alumno (alto/medio/justo/bajo) + sesgo por tipo (examen –0.4, practica +0.5). Resultado real: media=5.83, suspensos=190 (31%), aprobados=246 (40%), notable+=178 (29%). ~40% lleva `feedback_profesor` contextual a la nota |
+| `asistencia` | 725 | Semana 13–17/04/2026 × 5 alumnos × 29 imparticiones. Estados: 620 presente / 57 ausente / 38 justificada / 10 retraso |
+| `mensaje` | 17 | 7 conversaciones realistas profesor↔alumno y admin↔profesor (dudas de tareas, retraso de entrega, recordatorio cierre 2ª eval, traslado de aula, etc.) |
+| `comunicado` | 10 (5 previos + 5 nuevos) | Calendario fin de curso, jornada puertas abiertas, mantenimiento aulas, mantenimiento plataforma (global), recordatorio trabajos finales |
+| `temario` | 87 | 3 temarios por imparticion (Tema 1/2/3) con `archivo='Dummy.pdf'` |
+
+**Convención de archivos**: `tarea.archivo`, `entrega.archivo` y `temario.archivo` guardan **solo el filename** (no path completo). El `FileProxyController` resuelve el path con `tareas/{filename}`, `entregas/{filename}`, `materiales/{filename}` respectivamente. Todos los registros referencian al mismo `Dummy.pdf` físico que existe en `loggex-data/{tareas,entregas,materiales}/Dummy.pdf` en MinIO. La URL pública es distinta (`/uploads/{type}/{id}/Dummy.pdf`) gracias al ID en la URL — se valida que coincida con el almacenado.
+
+**Validación post-restore**:
+- 0 entregas sin calificación.
+- 0 imparticiones con `Σ pesos ≠ 1.0`.
+- 29 tareas futuras = 0 entregas (correcto: son las "pendientes" que aún no han vencido).
+- Imparticion 15 conserva sus 3 ponderaciones manuales previas (0.5/0.1/0.4).
+- AUTO_INCREMENT ajustado en CREATE TABLE para cada tabla → la app puede seguir creando registros sin choques de PK.
+
+**Fuera de alcance del seed**:
+- FCT (imparticiones 27 y 57) y Proyecto Intermodular (43, 69): excluidas porque su evaluación es no-numérica / por proyecto único, no encajan en el modelo "tareas con tipo".
+- Centro 4 (IES Tecnológico): tiene 0 grupos / 0 imparticiones, no procede poblar.
+
+**Cierre de cola viva**:
+- ✅ A.4 BD poblada (sin reescribir el seed antiguo `scripts/seed_calificaciones.sql`, que queda histórico — los nuevos fixtures viven directamente en `backup_tfg_full.sql`).
+- ✅ C.5 Periodos evaluativos poblados (4 por grupo).
+- ⏳ B.1 Validación Σ pesos = 1.0 a nivel entidad sigue pendiente (fixtures la cumplen pero la app no la fuerza).
