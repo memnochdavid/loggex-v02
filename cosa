@@ -4,7 +4,7 @@ se me ocurre añadir una vista o apartado en admin/horarios para cada grupo dond
 
 
 
-añadir toasts y banners al tema, unificándolos. **
+añadir toasts y banners al tema, unificándolos. *
 
 unificar vistas /jornadas y admin/horarios. igual que se puede seleccionar una plantilla de jornada, se debe poder crearla / editarla, haciendo innecesario la vista /jornadas.
 
@@ -24,14 +24,25 @@ revisar hardcodes. sobre todo en banners y toasts. vistas nuevas de catálogos.
 la vista /horarios sólo muestra un timetable con horario de mañana. si un profe tien clases por la tarde, no puede verlo. si imprimes el pdf sí aparece.
 
 
-en admin/horarios, panel Materias: aunque todo está bien, cuando pasas entre rangos, a veces alguno aparece Completo · 25/27.5h en verde o borrador en amarillo.
+en admin/horarios, panel Materias: aunque todo está bien, cuando pasas entre rangos, a veces alguno aparece Completo · 25/27.5h en verde o borrador en amarillo. hay un bug en el que si no visualizas manualmente cada rango lectivo, se muestra el mensaje "borrador..." amarillo. si empiezas a cambiar entre rangos, finalmente se pone verde.
 
 asegurarse de que los profes pueedn pedir cambiar turno.
 
 ------------
 
+en rol profe:
+/calificaciones/ -> el select de materia puede crecer muchísimo. debemos dividir el filtrado en varios select. pero select con búsqueda server-sided.
 
+en/mis-temarios -> no se muestra opción de edición (sé que puede joder los fixtures con Dummy.pdf, pero la opción debe estar )
 
 en /mis-temarios: falta el º despueś de nobre de grupo
 en /companeros los cards de alumnos deben mostrar el curso "[curso]º "
 toasts en /calificaciones al guardar ponderaciones, etc
+
+en home: 600+ sin corregir.
+
+
+-------------
+
+otra cosa es que tal y como está todo ahora en /admid/horarios, no se puede usar ninguna funcion hasta que creas un rango manualmente. eso no tiene sentido, ya que para usar el auto que destruira el rango creado manualmente primero debes crear un rango manualmente. hay que replantear la ux ahí.
+un problema es que hay varias funciones que, a pesar de pedir confirmación, persisten cambios sin que el usuario tenga que pulsar Guardar. hablo de las "Acciones del curso". nada debe persistir sin que se pulse en Guardar.
