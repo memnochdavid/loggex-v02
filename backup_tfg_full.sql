@@ -901,7 +901,7 @@ INSERT INTO `calificacion` VALUES
 (92,4.58,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,92),
 (93,8.04,'Excelente trabajo, muy buen análisis.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,93),
 (94,7.93,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,94),
-(95,10.0,'Perfecto, has cubierto todos los puntos.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,95),
+(95,10,'Perfecto, has cubierto todos los puntos.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,95),
 (96,7.15,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,96),
 (97,5.38,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,97),
 (98,5.12,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,98),
@@ -938,7 +938,7 @@ INSERT INTO `calificacion` VALUES
 (129,6.42,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,129),
 (130,7.81,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,130),
 (131,6.11,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,131),
-(132,10.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,132),
+(132,10,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,132),
 (133,4.22,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,133),
 (134,5.35,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,134),
 (135,7.22,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,135),
@@ -971,14 +971,14 @@ INSERT INTO `calificacion` VALUES
 (162,3.3,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,162),
 (163,8.17,'Muy completo, sigue así.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,163),
 (164,7.69,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,164),
-(165,0.0,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,165),
+(165,0,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,165),
 (166,4.44,'No se cumple con lo solicitado. Recuperación necesaria.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,166),
 (167,2.31,'No se cumple con lo solicitado. Recuperación necesaria.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,167),
 (168,8.23,'Muy completo, sigue así.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,168),
 (169,4.84,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,169),
 (170,5.06,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,170),
 (171,7.47,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,171),
-(172,0.0,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,172),
+(172,0,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,172),
 (173,7.32,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,173),
 (174,6.99,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,174),
 (175,4.31,'Faltan apartados clave del enunciado. Revisa lo entregado.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,175),
@@ -1053,7 +1053,7 @@ INSERT INTO `calificacion` VALUES
 (244,7.73,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,244),
 (245,6.28,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,245),
 (246,5.27,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,246),
-(247,0.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,247),
+(247,0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,247),
 (248,8.44,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,248),
 (249,6.24,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,249),
 (250,7.31,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,250),
@@ -1111,7 +1111,7 @@ INSERT INTO `calificacion` VALUES
 (302,5.19,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,302),
 (303,6.8,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,303),
 (304,4.07,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,304),
-(305,5.0,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,305),
+(305,5,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,305),
 (306,7.08,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,306),
 (307,4.6,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,307),
 (308,4.37,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,308),
@@ -1133,7 +1133,7 @@ INSERT INTO `calificacion` VALUES
 (324,7.86,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,324),
 (325,8.09,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,325),
 (326,4.5,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,326),
-(327,4.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,327),
+(327,4,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,327),
 (328,6.18,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,328),
 (329,8.38,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,329),
 (330,4.32,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,330),
@@ -1144,7 +1144,7 @@ INSERT INTO `calificacion` VALUES
 (335,3.93,'Necesita repaso. Repasa los conceptos del tema antes del próximo examen.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,335),
 (336,6.85,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,336),
 (337,1.2,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,337),
-(338,10.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,338),
+(338,10,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,338),
 (339,6.93,'Buen trabajo en general, revisa el apartado de conclusiones.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,339),
 (340,8.74,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,340),
 (341,2.72,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,341),
@@ -1227,7 +1227,7 @@ INSERT INTO `calificacion` VALUES
 (418,5.74,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,418),
 (419,6.36,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,419),
 (420,8.26,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,420),
-(421,10.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,421),
+(421,10,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,421),
 (422,5.44,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,422),
 (423,5.5,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,423),
 (424,3.43,'Faltan apartados clave del enunciado. Revisa lo entregado.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,424),
@@ -1409,15 +1409,15 @@ INSERT INTO `calificacion` VALUES
 (600,9.27,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,600),
 (601,2.81,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,601),
 (602,7.22,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,602),
-(603,10.0,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,603),
+(603,10,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,603),
 (604,9.41,'Muy completo, sigue así.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,604),
 (605,5.05,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,605),
-(606,9.0,'Muy completo, sigue así.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,606),
+(606,9,'Muy completo, sigue así.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,606),
 (607,7.49,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,607),
 (608,5.64,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,608),
 (609,3.1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,609),
 (610,9.03,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,610),
-(611,5.0,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,611),
+(611,5,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,611),
 (612,4.19,'No se cumple con lo solicitado. Recuperación necesaria.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,612),
 (613,4.6,'Faltan apartados clave del enunciado. Revisa lo entregado.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,613),
 (614,6.85,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,614);
@@ -4554,12 +4554,7 @@ INSERT INTO `comunicado` VALUES
 (11,'Comunicado GLOBAL','Me tenéis que obedecer, porque soy el SUPERADMIN.',0,'2026-02-15 15:13:28','2026-02-18 11:58:51',1,'2026-02-18 11:58:51',49,NULL),
 (12,'Comunicado de prueba','Contenido de prueba',0,'2026-02-17 09:41:35','2026-02-17 09:43:41',1,'2026-02-17 09:43:41',55,3),
 (13,'Comunicado GLOBAL','Me tenéis que obedecer, porque soy el SUPERADMIN.',1,'2026-02-18 11:59:09','2026-02-18 11:59:09',0,NULL,49,NULL),
-(14,'Calendario fin de curso 2025-2026','Recordatorio del calendario para el final del curso:
-
-- Cierre 2ª evaluación: 30/04/2026
-- 3ª evaluación: 23/03 a 29/05
-- Prueba extraordinaria: 22/06
-- Entrega de boletines finales: 30/06',0,'2026-04-15 09:00:00','2026-04-15 09:00:00',0,NULL,55,3),
+(14,'Calendario fin de curso 2025-2026','Recordatorio del calendario para el final del curso:\n\n- Cierre 2ª evaluación: 30/04/2026\n- 3ª evaluación: 23/03 a 29/05\n- Prueba extraordinaria: 22/06\n- Entrega de boletines finales: 30/06',0,'2026-04-15 09:00:00','2026-04-15 09:00:00',0,NULL,55,3),
 (15,'Jornada de puertas abiertas','El próximo viernes 16/05 celebraremos la jornada de puertas abiertas. Se invita a profesores y alumnos a participar en la presentación de los proyectos finales del segundo curso de DAW y DAM.',0,'2026-04-20 11:00:00','2026-04-20 11:00:00',0,NULL,55,3),
 (16,'Mantenimiento aulas 4 y 5','Aviso: el lunes 04/05 las aulas 4 y 5 estarán cerradas por mantenimiento. Las clases se trasladarán al aula 6 en franja de mañana.',0,'2026-04-26 17:30:00','2026-04-26 17:30:00',0,NULL,55,3),
 (17,'Actualización de la plataforma Loggex','Comunicación general a todos los centros: el próximo sábado 03/05 entre las 03:00 y las 06:00 se realizarán tareas de mantenimiento en la plataforma. Durante ese intervalo podrá haber inestabilidad.',1,'2026-04-28 16:00:00','2026-04-28 16:00:00',0,NULL,49,NULL),
@@ -7043,9 +7038,9 @@ CREATE TABLE `tarea` (
 LOCK TABLES `tarea` WRITE;
 /*!40000 ALTER TABLE `tarea` DISABLE KEYS */;
 INSERT INTO `tarea` VALUES
-(1,'Sistemas informáticos - Examen Tema 1','<p>Examen Tema 1 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-11-05 23:59:00','2025-10-22 00:00:00',1,'examen',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
-(2,'Sistemas informáticos - Ejercicios Tema 2','<p>Ejercicios Tema 2 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-11-20 23:59:00','2025-11-06 00:00:00',1,'tarea',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
-(3,'Sistemas informáticos - Trabajo Tema 3','<p>Trabajo Tema 3 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-12-15 23:59:00','2025-12-01 00:00:00',1,'tarea',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
+(1,'Sistemas informáticos - Examen Tema 1','<p>Examen Tema 1 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-11-05 23:59:00','2025-10-22 00:00:00',1,'examen',100,1,3,'2026-04-29 09:00:00','2026-04-29 06:52:47',0,NULL,15,NULL),
+(2,'Sistemas informáticos - Ejercicios Tema 2','<p>Ejercicios Tema 2 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-11-20 23:59:00','2025-11-06 00:00:00',1,'tarea',20,1,3,'2026-04-29 09:00:00','2026-04-29 06:52:48',0,NULL,15,NULL),
+(3,'Sistemas informáticos - Trabajo Tema 3','<p>Trabajo Tema 3 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2025-12-15 23:59:00','2025-12-01 00:00:00',1,'tarea',80,1,3,'2026-04-29 09:00:00','2026-04-29 06:52:49',0,NULL,15,NULL),
 (4,'Sistemas informáticos - Examen Tema 4','<p>Examen Tema 4 de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2026-02-12 23:59:00','2026-01-29 00:00:00',1,'examen',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
 (5,'Sistemas informáticos - Práctica integradora','<p>Práctica integradora de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2026-03-18 23:59:00','2026-03-04 00:00:00',1,'tarea',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
 (6,'Sistemas informáticos - Proyecto final tema','<p>Proyecto final tema de Sistemas informáticos. Material disponible adjunto.</p>','Dummy.pdf','2026-05-15 23:59:00','2026-05-01 00:00:00',1,'practica',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,15,NULL),
@@ -7463,4 +7458,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-29  6:25:38
+-- Dump completed on 2026-04-29  6:53:17
