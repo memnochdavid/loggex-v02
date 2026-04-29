@@ -46,3 +46,8 @@ en home: 600+ sin corregir.
 
 otra cosa es que tal y como está todo ahora en /admid/horarios, no se puede usar ninguna funcion hasta que creas un rango manualmente. eso no tiene sentido, ya que para usar el auto que destruira el rango creado manualmente primero debes crear un rango manualmente. hay que replantear la ux ahí.
 un problema es que hay varias funciones que, a pesar de pedir confirmación, persisten cambios sin que el usuario tenga que pulsar Guardar. hablo de las "Acciones del curso". nada debe persistir sin que se pulse en Guardar.
+
+
+--------
+
+se me ocurre que pilles todos los datos que se usan para elaborar el

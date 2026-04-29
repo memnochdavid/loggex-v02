@@ -6,6 +6,8 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**🗒️ Cierre de jornada 2026-04-29 noche.** Sesión cerrada con 4 commits ya empujados (`39dc02d`, `6ef7be1`, `37f49a9`, `6a60db0`): Opción A `horasTotales` + CurriculumDistributor, bin-packing first-fit Fases 1-3, Modalidad Fase 5 UI. Cambios menores empujados al cerrar: `cosa` (backlog) ampliado con nuevas ideas de UX/bugs para triar (consumición horas anuales, UX de rango obligatorio en `/admin/horarios`, "Acciones del curso" persistiendo sin Guardar, etc.) — varias ya están representadas en las rutas 2-8 de abajo; otras necesitarán entrada propia o promoción. Asset Lottie `frontend/public/solver.json` añadido (sin cablear todavía, para futuro indicador "solver en marcha").
+
 **Calendario escolar Fases 1+2+3 ✅ Done (2026-04-27 noche)** — modelo `Provincia`/`AmbitoFestivo` + 17 nacionales y 118 autonómicos cargados desde PDFs oficiales BOE 2025-26 + UI Centros (selector Provincia cascada CCAA) y Festivos (columna Ámbito + filtro + badges themed). Doc dedicado: **`hoja-de-ruta-calendario-escolar.md`**.
 
 **Fase 3 opción B (parcial) ✅ Done (2026-04-27 noche)** — datos LOMLOE oficiales del BOJA persistidos en MinIO + provider que los lee. PDFs auditables en `catalogo/ccaa/AN/source/`, extracto verificado en `catalogo/ccaa/AN/curated/horarios.json`. Banner rojo en EAG (LOMLOE = 32-33h vs jornada 27.5h) — feedback honesto: el centro adapta jornada al currículo, no al revés.
