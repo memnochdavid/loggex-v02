@@ -485,18 +485,44 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       .catch(err => console.error('Error capacity-check:', err));
   }, [stateKey, selectedGrupo, selectedPlId, capacityByGrupo]);
 
-  // 2) Cargar imparticiones del grupo y horarios del PL seleccionado.
-  // Las imparticiones son grupo-level (todas las disponibles para arrastrar);
-  // los horarios se filtran por PL (cada PL tiene sus propios placements).
+  // 2.a) Cargar imparticiones del grupo INDEPENDIENTEMENTE del PL. Necesario
+  // para que `semanasOptimas`, `imps`, ModuleChip y los cálculos de currículo
+  // funcionen incluso cuando no hay PL seleccionado (caso típico tras "Limpiar
+  // todo el curso", o primera entrada al grupo antes de que se monte stateKey).
+  useEffect(() => {
+    if (!selectedGrupo) return;
+    if (imparticiones[selectedGrupo]) return; // ya cargado en cache
+    const noCache = { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
+    const bust = Date.now();
+    fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false&_=${bust}`),
+      { headers: noCache, credentials: 'include', cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const items = d['hydra:member'] || d.member || [];
+        setImparticiones(prev => ({ ...prev, [selectedGrupo]: items }));
+      })
+      .catch(err => console.error('Error cargando imparticiones del grupo:', err));
+  }, [selectedGrupo, imparticiones]);
+
+  // 2.b) Cargar horarios del PL seleccionado (placements de la rejilla).
+  // Las imparticiones se cargan en 2.a (independiente de PL); aquí solo
+  // poblamos `state[stateKey].placements` para el rango activo. Si las
+  // imparticiones aún no están en cache, las traemos también para evitar
+  // race con 2.a.
   useEffect(() => {
     if (!stateKey) return;
     if (state[stateKey]) return;  // ya cargado, mantener trabajo en progreso
 
     const noCache = { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
     const bust = Date.now();
+    const cachedImps = imparticiones[selectedGrupo];
+    const impPromise = cachedImps
+      ? Promise.resolve({ 'hydra:member': cachedImps })
+      : fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false&_=${bust}`),
+          { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json());
     Promise.all([
-      fetch(getApiUrl(`/api/imparticions?grupo=${selectedGrupo}&pagination=false&_=${bust}`),
-        { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json()),
+      impPromise,
       fetch(getApiUrl(`/api/horarios?imparticion.grupo=${selectedGrupo}&periodoLectivo=${selectedPlId}&itemsPerPage=500&_=${bust}`),
         { headers: noCache, credentials: 'include', cache: 'no-store' }).then(r => r.json()),
     ]).then(([impData, horData]) => {
@@ -547,7 +573,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         },
       }));
     });
-  }, [stateKey, selectedGrupo, selectedPlId, state]);
+  }, [stateKey, selectedGrupo, selectedPlId, state, imparticiones]);
 
   // Cargar ocupación de profes en grupos paralelos (mismo turno, mismo centro)
   useEffect(() => {
@@ -824,28 +850,32 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   // Semanas óptimas necesarias para cubrir el currículo presencial al 100%
   // (Opción A 2026-04-29):
-  //   semanasOptimas = max(36 LOMLOE, ceil(Σ horasTotalesAnuales × 60 / capSlotsSemanal))
-  // Usa SOLO slots (sin recreos) como capacidad: LOMLOE permite que las h/sem
-  // sean flexibles, pero los slots colocables por semana son el techo físico
-  // del solver. Si la suma de h totales anuales no cabe en 36 sem × cap slots,
-  // alarga el calendario las semanas necesarias para que sí caiga.
-  // Para 1º DAW: 1044h × 60 / 1650 (27.5h slots) = 38 sem (en lugar de 36).
-  // Para grupos sin déficit (2º DAW/DAM con jornada generosa): se queda en 36.
+  //   semanasOptimas = ceil(Σ horasTotalesAnuales × 60 / capSlotsSemanal)
+  //
+  // Principio "tiempos fluidos" (consenso usuario, ver Fase 5 §Visión y
+  // bitácora 2026-04-28):
+  // - La jornada del centro NO es discutible (27.5h/sem o lo que toque).
+  // - `horasTotales` por materia NO es discutible (ley LOMLOE, BOE/BOJA).
+  // - El **calendario** ES la variable: si la jornada × semanas calendario
+  //   no llega al currículo, se extiende `Grupo.fechaFin` las semanas que
+  //   hagan falta. Si sobra calendario, el centro decide qué hacer con el
+  //   tiempo libre (FCT, exámenes, repaso). El sistema NO impone un suelo
+  //   de 36 sem LOMLOE — eso es convención, no obligación legal.
+  //
+  // Para 1º DAW EAG: 1044h × 60 / 1650 (27.5h slots) = ceil(37.96) = 38 sem.
+  // Para 2º DAM con jornada generosa que cabe en 32 sem: devuelve 32 sem.
   const semanasOptimas = useMemo(() => {
     const objetivoAnualPresencialMin = imps.reduce((a, i) => {
       if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
       // Opción A: usa horasTotales (h × 60 = min anuales). Fallback a
-      // min/sem × 36 si la materia no tiene h totales (caso muy raro tras
-      // backfill).
+      // min/sem × 36 solo si la materia no tiene h totales (caso edge muy
+      // raro tras backfill — defensivo, no anclaje de diseño).
       const horasTot = i.materia?.horasTotales;
       if (horasTot != null && horasTot > 0) return a + horasTot * 60;
       return a + (i.materia?.minutosSemanales || 0) * 36;
     }, 0);
     if (objetivoAnualPresencialMin <= 0 || slotsSemanalMin <= 0) return 0;
-    const necesarias = Math.ceil(objetivoAnualPresencialMin / slotsSemanalMin);
-    // No bajar de 36 LOMLOE: si el currículo cabe holgado, mantener calendario
-    // estándar (no acortar el curso por debajo de lo legal).
-    return Math.max(36, necesarias);
+    return Math.ceil(objetivoAnualPresencialMin / slotsSemanalMin);
   }, [imps, slotsSemanalMin]);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
@@ -1082,10 +1112,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // un déficit físico de capacidad).
   // Distinto del banner anual de Fase 3b (que compara plan vs currículo, no
   // capacidad vs currículo).
+  // Opción A (2026-04-29): el objetivo curricular se lee de
+  // `minutosAnualesObjetivoByImp` (horasTotales×60 con fallback min/sem×36),
+  // no de `min/sem × 36` rígido. Y solo cuentan las materias presenciales:
+  // FCT/NO_REGULAR/AUTONOMA no compiten por la jornada lectiva del centro.
   const capacityFeasibilityAnual = useMemo(() => {
     if (!selectedGrupo) return null;
     if (imps.length === 0) return null;
-    const sumCurriculumMin = imps.reduce((acc, i) => acc + (i.materia?.minutosSemanales || 0), 0) * SEMANAS_REFERENCIA_ANUAL;
+    const sumCurriculumMin = imps.reduce((acc, i) => {
+      if (!consumeAulaModalidad(getEffectiveModalidad(i))) return acc;
+      return acc + (minutosAnualesObjetivoByImp[i.id] || 0);
+    }, 0);
     if (sumCurriculumMin <= 0) return null;
     // Capacidad lectiva curricular: incluye recreos (truco LOMLOE FP).
     const jornadaSemanalMin = jornadaSemanalLectivaMin;
@@ -1103,7 +1140,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       fits,
       deficitH,
     };
-  }, [selectedGrupo, imps, jornadaSemanalLectivaMin, semanasByPlId]);
+  }, [selectedGrupo, imps, jornadaSemanalLectivaMin, semanasByPlId, minutosAnualesObjetivoByImp]);
 
   // Semanas del rango activo en el modal (Fase 5 sub-A): se usa para convertir
   // entre min/sem ↔ horas anuales. Cálculo: ceil((fechaFin - fechaInicio) / 7).
@@ -2356,7 +2393,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // estar batch-stale tras un setPlByGrupo síncrono dentro del mismo handler).
   // Útil para "Configurar curso óptimo" que crea rangos y ejecuta el solver en
   // un solo flujo, donde React aún no ha re-rendereado tras el setState.
-  const runSolverAllRangos = async (plsOverride = null) => {
+  const runSolverAllRangos = async (plsOverride = null, autoSave = false) => {
     if (!selectedGrupo) return;
     const pls = (plsOverride ?? plByGrupo[selectedGrupo] ?? []).slice().sort((a, b) =>
       (a.fechaInicio || '').localeCompare(b.fechaInicio || ''));
@@ -2394,13 +2431,96 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // anterior → cap anual no se aplicaría correctamente. Pasando este
     // acumulador como `alreadyPlacedOverride`, el cap funciona deterministico.
     const accumPlacedByImp = {};
+    let savedCount = 0;
+    console.group(`[SolverAll] grupo=${selectedGrupo} pls=${pls.length} autoSave=${autoSave}`);
+
+    // Pre-cache de PLIs del grupo (mapa "plId_impId" → pli).
+    // Lo usamos para reducir cuotas iterativamente cuando el solver da
+    // unplaced. Cargamos UNA VEZ al inicio y vamos actualizando local.
+    const pliCache = {};
+    try {
+      const pliRes = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo.grupo=${selectedGrupo}&pagination=false`), {
+        headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+      });
+      if (pliRes.ok) {
+        const pliData = await pliRes.json();
+        const plis = pliData['hydra:member'] || pliData.member || [];
+        plis.forEach(pli => {
+          const plId = extractFkId(pli.periodoLectivo);
+          const impId = extractFkId(pli.imparticion);
+          if (plId && impId) pliCache[`${plId}_${impId}`] = pli;
+        });
+      }
+    } catch (err) {
+      console.warn('[SolverAll] No se pudo cargar pliCache (iteración solver no funcionará):', err);
+    }
+
+    // Helper: reducir cuotas de las materias unplaced. Devuelve true si
+    // hubo reducción (=> reintentar solver); false si no se puede reducir más.
+    const reduceUnplacedQuotas = async (plId, unplaced) => {
+      const SLOT_MIN = 60; // asumir slot mínimo 60 (FP Mañanas/Tardes)
+      let reduced = false;
+      for (const u of unplaced) {
+        const impId = u.imparticionId || u.impId;
+        if (!impId) continue;
+        const key = `${plId}_${impId}`;
+        const pli = pliCache[key];
+        if (!pli) continue;
+        const currentMin = (pli.minutosSemanales != null) ? pli.minutosSemanales : 0;
+        if (currentMin < SLOT_MIN) continue; // ya está en 0, no se puede reducir más
+        const newMin = currentMin - SLOT_MIN;
+        try {
+          const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+            credentials: 'include',
+            body: JSON.stringify({ minutosSemanales: newMin }),
+          });
+          if (r.ok) {
+            pliCache[key] = { ...pli, minutosSemanales: newMin };
+            reduced = true;
+            console.log(`[SolverAll] reducida cuota PLI #${pli.id} (mat ${u.materia || impId}): ${currentMin} → ${newMin} min/sem`);
+          }
+        } catch (err) {
+          console.warn(`[SolverAll] error reduciendo PLI #${pli.id}:`, err);
+        }
+      }
+      return reduced;
+    };
+
     try {
       for (const pl of pls) {
         // Switch al PL para que la UI lo refleje durante la ejecución.
         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
         await new Promise(r => setTimeout(r, 50));
+        console.group(`[SolverAll] PL #${pl.id} ${pl.nombre} ${pl.fechaInicio?.slice(0, 10)} → ${pl.fechaFin?.slice(0, 10)}`);
+        console.log('[SolverAll] alreadyPlaced (cross-rango cumulativo):', { ...accumPlacedByImp });
         try {
-          const data = await runSolver(null, /* skipConfirm */ true, pl.id, { ...accumPlacedByImp });
+          // Loop iterativo: si el solver da unplaced, reducir cuotas y reintentar.
+          // Garantiza que al final el rango esté `complete=true unplaced=0`.
+          const MAX_SOLVER_RETRIES = 6;
+          let solverAttempt = 0;
+          let data = null;
+          while (solverAttempt < MAX_SOLVER_RETRIES) {
+            data = await runSolver(null, /* skipConfirm */ true, pl.id, { ...accumPlacedByImp });
+            console.log(`[SolverAll] solver response (attempt ${solverAttempt + 1}): complete=${data?.complete} placed=${data?.placements?.length} unplaced=${data?.unplaced?.length}`);
+            if (!data?.unplaced?.length && data?.complete) break;
+            if (data?.unplaced?.length) {
+              console.warn('[SolverAll] UNPLACED:', data.unplaced);
+              const reduced = await reduceUnplacedQuotas(pl.id, data.unplaced);
+              if (!reduced) {
+                console.warn('[SolverAll] no se pudo reducir más, abandonando reintentos');
+                break;
+              }
+              solverAttempt++;
+              continue;
+            }
+            // complete=false sin unplaced: caso raro, abandonar
+            break;
+          }
+          if (data?.debug) {
+            console.log('[SolverAll] solver debug final:', data.debug);
+          }
           // Acumular los minutos anuales colocados por imparticion en este rango.
           // Usamos `pl.id` para mirar las semanas y multiplicar.
           if (data?.placements) {
@@ -2420,19 +2540,106 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               if (dur <= 0) return;
               semanalMinPorImp[p.imparticionId] = (semanalMinPorImp[p.imparticionId] || 0) + dur;
             });
+            console.log(`[SolverAll] PL #${pl.id} sem=${semanasPL.toFixed(2)} placed by materia (sem):`,
+              Object.fromEntries(Object.entries(semanalMinPorImp).map(([impId, m]) => [
+                imps.find(i => String(i.id) === String(impId))?.materia?.nombre || impId,
+                `${m} min/sem (${(m / 60).toFixed(2)}h)`,
+              ])));
             Object.entries(semanalMinPorImp).forEach(([impId, semanalMin]) => {
               accumPlacedByImp[impId] = (accumPlacedByImp[impId] || 0) + semanalMin * semanasPL;
             });
+
+            // autoSave: persistir el rango DIRECTAMENTE con los placements recién
+            // devueltos por el solver (evitamos closure-stale en `state`: los
+            // setState del solver son async y `performBatchSaveAllDirty` leería
+            // un `state` capturado anterior al solver → no encontraría dirty).
+            if (autoSave) {
+              const ops = data.placements.map(p => {
+                const hi = String(p.horaInicio).slice(0, 8);
+                const hf = String(p.horaFin).slice(0, 8);
+                return {
+                  op: 'create',
+                  clientKey: `${p.diaSemana}_${hi}`,
+                  diaSemana: p.diaSemana,
+                  horaInicio: hi.slice(0, 5),
+                  horaFin: hf.slice(0, 5),
+                  aula: p.aula,
+                  imparticion: p.imparticionId,
+                };
+              });
+              try {
+                const res = await fetch(getApiUrl('/api/v1/horarios/batch'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({
+                    grupoId: Number(selectedGrupo),
+                    periodoLectivoId: Number(pl.id),
+                    baselineMaxUpdatedAt: null,
+                    operations: ops,
+                  }),
+                });
+                if (!res.ok) {
+                  const txt = await res.text().catch(() => '');
+                  throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+                }
+                const sd = await res.json();
+                // Marcar dirty=false en state local con baseline = newPlacements.
+                const newPlacements = {};
+                data.placements.forEach(p => {
+                  const hi = String(p.horaInicio).slice(0, 8);
+                  newPlacements[`${p.diaSemana}_${hi}`] = {
+                    imparticionId: p.imparticionId,
+                    aula: p.aula,
+                    horaInicio: hi,
+                    horaFin: String(p.horaFin).slice(0, 8),
+                  };
+                });
+                // Ajustar hid de los created.
+                (sd.created || []).forEach(({ clientKey, id }) => {
+                  if (clientKey && newPlacements[clientKey]) {
+                    newPlacements[clientKey] = { ...newPlacements[clientKey], hid: id };
+                  }
+                });
+                const skey = `${selectedGrupo}_${pl.id}`;
+                setState(prev => ({
+                  ...prev,
+                  [skey]: {
+                    ...(prev[skey] || {}),
+                    placements: newPlacements,
+                    baseline: { ...newPlacements },
+                    baselineMaxUpdatedAt: sd.maxUpdatedAt || null,
+                    dirty: false,
+                  },
+                }));
+                savedCount++;
+                console.log(`[SolverAll] PL #${pl.id} guardado: ${ops.length} placements persistidos`);
+              } catch (err) {
+                console.error(`[SolverAll] PL #${pl.id} save FAIL:`, err);
+                errores.push({ pl: pl.nombre || `#${pl.id}`, error: `Save: ${err?.message || String(err)}` });
+              }
+            }
           }
         } catch (err) {
+          console.error(`[SolverAll] PL #${pl.id} solver FAIL:`, err);
           errores.push({ pl: pl.nombre || `#${pl.id}`, error: err?.message || String(err) });
         }
+        console.groupEnd(); // PL group
+      }
+      // Refetch global de horarios para que el cómputo cross-rango refleje BD.
+      if (autoSave && savedCount > 0) {
+        await refetchAllHorariosForGroup(selectedGrupo);
       }
       if (errores.length > 0) {
         toast.error(t('scheduleEditor.solverAllPartial', {
           defaultValue: '{{count}} rangos fallaron: {{names}}',
           count: errores.length,
           names: errores.map(e => e.pl).join(', '),
+        }));
+      } else if (autoSave) {
+        toast.success(t('scheduleEditor.solverAllSavedSuccess', {
+          defaultValue: 'Curso configurado y guardado: {{count}} rangos.',
+          count: savedCount,
         }));
       } else {
         toast.success(t('scheduleEditor.solverAllSuccess', {
@@ -2443,6 +2650,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     } finally {
       setSolverAllRunning(false);
     }
+    console.log(`[SolverAll] FIN: ${savedCount} guardados, ${errores.length} errores. accumPlacedFinal:`, accumPlacedByImp);
+    console.groupEnd(); // SolverAll group
   };
 
   // Limpiar rango activo: vacía placements del PL activo en state local.
@@ -2527,15 +2736,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // necesita garantizar un N concreto independiente de interacciones previas.
   // Devuelve la lista de PLs creados (o null si falló) — el caller lo usa
   // como fuente de verdad en lugar de leer state batch-stale.
-  const handleCreateRecommendedRangos = async (e, nOverride = null) => {
+  const handleCreateRecommendedRangos = async (e, nOverride = null, fechasOverride = null) => {
     if (e?.preventDefault) e.preventDefault();  // evita submit nativo del <form> del ModalView
     if (!selectedGrupo || !grupo) return null;
     const N = nOverride !== null
       ? Math.max(1, nOverride)
       : Math.max(1, parseInt(createRangosCount, 10) || 3);
-    const iniISO = grupo.fechaInicio?.slice(0, 10)
+    // `fechasOverride` permite a `handleConfigureOptimalCourse` pasar las
+    // fechas EFECTIVAS tras extender `Grupo.fechaFin` (si el state aún no se
+    // ha re-renderado). Backward compatible: si null, usa las del grupo.
+    const iniISO = fechasOverride?.iniISO
+      || grupo.fechaInicio?.slice(0, 10)
       || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[0]}-09-01` : null);
-    const finISO = grupo.fechaFin?.slice(0, 10)
+    const finISO = fechasOverride?.finISO
+      || grupo.fechaFin?.slice(0, 10)
       || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[1] || (Number(grupo.anioEscolar.split('-')[0]) + 1)}-06-30` : null);
     if (!iniISO || !finISO) {
       toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
@@ -2624,11 +2838,21 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
-  // Configurar curso óptimo (Fase 5 fix post-cierre 2026-04-29): combina
-  // "Crear Rangos Recomendados" con span óptimo + "Sugerir todo el curso" en
-  // un solo flujo. Resultado: calendario ajustado al currículo y placements
-  // distribuidos cubriéndolo al ~100%, sin overshoot por exceso de semanas.
-  // N de rangos = el último valor configurado en el modal o 3 por default.
+  // Configurar curso óptimo (Fase 5 fix post-cierre 2026-04-29 + Distributor
+  // 2026-04-29): aplica el principio "tiempos fluidos" — adapta el calendario
+  // al currículo y a la jornada del centro/rango. Pipeline completo:
+  //   1. Si `semanasOptimas × 7` excede el calendario actual del grupo:
+  //      extender `Grupo.fechaFin` los días que hagan falta.
+  //   2. Borrar PLs actuales y crear N rangos cubriendo `semanasOptimas`.
+  //   3. Llamar `distribute-curriculum` (backend `CurriculumDistributor`) que
+  //      reparte minutos heterogéneos por (rango, materia) respetando jornada
+  //      efectiva de cada rango. Si dice `extendBy > 0`, extender más y
+  //      reintentar (hasta 3 intentos).
+  //   4. PATCH `pli.minutosSemanales` con la distribución sugerida.
+  //   5. Lanzar el solver per-rango con `runSolverAllRangos`.
+  // Resultado esperado: TODAS las materias colocadas al ~100% del currículo,
+  // sin que ninguna absorba déficit estructural per-semana (ya no hay
+  // necesidad porque los minutos varían por rango).
   const handleConfigureOptimalCourse = async () => {
     if (!selectedGrupo || !grupo) return;
     if (semanasOptimas <= 0) {
@@ -2638,31 +2862,269 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       return;
     }
     const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
-    // Confirmar (la creación borra todos los rangos + placements).
+    const iniISO = grupo.fechaInicio?.slice(0, 10);
+    const finISO = grupo.fechaFin?.slice(0, 10);
+    if (!iniISO || !finISO) {
+      toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
+      return;
+    }
+
+    // Calcular si hay que extender Grupo.fechaFin para cubrir semanasOptimas.
+    const ini = new Date(iniISO);
+    const fin = new Date(finISO);
+    const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+    const diasNecesarios = semanasOptimas * 7;
+    const willExtend = diasNecesarios > totalDiasCalendario;
+    const diasExtension = willExtend ? (diasNecesarios - totalDiasCalendario) : 0;
+    const newFechaFinDate = willExtend
+      ? new Date(fin.getTime() + diasExtension * 86400000)
+      : fin;
+    const newFinISO = newFechaFinDate.toISOString().slice(0, 10);
+
+    console.group(`[OptCurso] grupo=${selectedGrupo} (${grupo?.nombre || '?'})`);
+    console.log('[OptCurso] inputs:', {
+      grupoId: selectedGrupo,
+      grupoNombre: grupo?.nombre,
+      itinerario: grupo?.itinerario?.nombre,
+      iniISO, finISO,
+      totalDiasCalendario,
+      semanasOptimas,
+      diasNecesarios,
+      willExtend, diasExtension, newFinISO,
+      N,
+      slotsSemanalMin,
+      jornadaSemanalLectivaMin,
+      impsCount: imps.length,
+      impsPresenciales: impsPresenciales.length,
+      objetivoAnualPorImp: imps.map(i => ({
+        materia: i.materia?.nombre,
+        horasTotales: i.materia?.horasTotales,
+        minSemanales: i.materia?.minutosSemanales,
+        modalidad: getEffectiveModalidad(i),
+        objetivoMin: minutosAnualesObjetivoByImp[i.id] || 0,
+      })),
+    });
+
+    // Confirmación con preview.
     const ok = await confirm({
       title: t('scheduleEditor.optimalConfirmTitle', { defaultValue: 'Configurar curso óptimo' }),
-      body: t('scheduleEditor.optimalConfirmBody', {
-        defaultValue: 'Esto borrará todos los rangos y placements actuales del grupo, creará {{count}} rangos cubriendo {{semanas}} semanas (las necesarias para el currículo) desde {{ini}}, y ejecutará el solver en todos. ¿Continuar?',
-        count: N,
-        semanas: semanasOptimas,
-        ini: fmtDateEs(grupo?.fechaInicio) || '?',
-      }),
+      body: willExtend
+        ? t('scheduleEditor.optimalConfirmBodyExtend', {
+            defaultValue: 'Esto extenderá la fecha de fin del curso de {{oldFin}} a {{newFin}} ({{dias}} días) para cubrir las {{semanas}} semanas necesarias del currículo, borrará todos los rangos y placements actuales, creará {{count}} rangos y ejecutará el solver con minutos heterogéneos por rango. ¿Continuar?',
+            oldFin: fmtDateEs(finISO),
+            newFin: fmtDateEs(newFinISO),
+            dias: diasExtension,
+            semanas: semanasOptimas,
+            count: N,
+          })
+        : t('scheduleEditor.optimalConfirmBody', {
+            defaultValue: 'Esto borrará todos los rangos y placements actuales del grupo, creará {{count}} rangos cubriendo {{semanas}} semanas desde {{ini}}, distribuirá los minutos por rango heterogéneamente y ejecutará el solver. ¿Continuar?',
+            count: N,
+            semanas: semanasOptimas,
+            ini: fmtDateEs(iniISO),
+          }),
       confirmLabel: t('scheduleEditor.optimalConfirmLabel', { defaultValue: 'Sí, configurar' }),
       confirmVariant: 'primary',
     });
-    if (!ok) return;
+    if (!ok) { console.groupEnd(); return; }
     setCursoActionsOpen(false);
-    // Paso 1: crear rangos. Pasamos `N` explícito para no depender del state
-    // de createRangosCount (que el modal puede haber dejado en otro valor).
-    // Recibimos los PLs creados como return value, evitando state batch-stale.
-    const rangosCreados = await handleCreateRecommendedRangos(null, N);
+
+    // Paso 1: extender Grupo.fechaFin si hace falta (PRE).
+    if (willExtend) {
+      console.log(`[OptCurso] Paso 1: extender Grupo.fechaFin → ${newFinISO} (+${diasExtension} días)`);
+      try {
+        const r = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify({ fechaFin: newFinISO }),
+        });
+        if (!r.ok) throw new Error(`PATCH grupo: ${r.status}`);
+        const updated = await r.json();
+        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updated } : g));
+        console.log('[OptCurso] Paso 1 OK');
+      } catch (err) {
+        console.error('[OptCurso] Paso 1 FAIL:', err);
+        toast.error(t('scheduleEditor.extendGroupError', { defaultValue: 'No se pudo extender la fecha de fin del curso.' }));
+        console.groupEnd();
+        return;
+      }
+    } else {
+      console.log('[OptCurso] Paso 1 skip (no hace falta extender)');
+    }
+
+    // Paso 2: crear rangos pasando fechas EXPLÍCITAS (state setGrupos puede
+    // no haber re-renderizado todavía; el closure de handleCreateRecommendedRangos
+    // capturaría grupo stale).
+    console.log(`[OptCurso] Paso 2: crear ${N} rangos cubriendo ${iniISO} → ${newFinISO}`);
+    const rangosCreados = await handleCreateRecommendedRangos(null, N, {
+      iniISO,
+      finISO: newFinISO,
+    });
     if (!rangosCreados || rangosCreados.length === 0) {
-      // El propio handleCreateRecommendedRangos ya mostró el toast de error.
+      console.error('[OptCurso] Paso 2 FAIL: rangos no creados');
+      console.groupEnd();
       return;
     }
-    // Paso 2: ejecutar el solver pasando los PLs recién creados directamente
-    // (sin esperar al re-render que sincronice plByGrupo[selectedGrupo]).
-    await runSolverAllRangos(rangosCreados);
+    console.log('[OptCurso] Paso 2 OK:', rangosCreados.map(pl => ({
+      id: pl.id, nombre: pl.nombre,
+      fechaInicio: pl.fechaInicio?.slice(0, 10), fechaFin: pl.fechaFin?.slice(0, 10),
+    })));
+
+    // Paso 3: distribuir currículo. Si extendBy > 0, extender más y reintentar.
+    let distribution = null;
+    let plsActuales = rangosCreados;
+    let currentGrupoFin = newFinISO;
+    let attempts = 0;
+    const MAX_DISTRIBUTE_ATTEMPTS = 8;
+    while (attempts < MAX_DISTRIBUTE_ATTEMPTS) {
+      console.log(`[OptCurso] Paso 3.${attempts + 1}: POST /distribute-curriculum`);
+      let distRes;
+      try {
+        distRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/distribute-curriculum`), {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          credentials: 'include',
+        });
+      } catch (err) {
+        console.error('[OptCurso] Paso 3 FAIL:', err);
+        toast.error(t('scheduleEditor.distributeError', { defaultValue: 'No se pudo distribuir el currículo entre los rangos.' }));
+        console.groupEnd();
+        return;
+      }
+      if (!distRes.ok) {
+        const errText = await distRes.text().catch(() => '');
+        console.error(`[OptCurso] Paso 3 FAIL: ${distRes.status}`, errText.slice(0, 500));
+        toast.error(t('scheduleEditor.distributeError', { defaultValue: 'No se pudo distribuir el currículo entre los rangos.' }));
+        console.groupEnd();
+        return;
+      }
+      const distJson = await distRes.json();
+      console.log(`[OptCurso] Paso 3.${attempts + 1} response:`, distJson);
+      if (distJson.feasible) {
+        distribution = distJson.distribution;
+        console.log('[OptCurso] Paso 3 OK feasible. Cobertura:', distJson.debug?.cobertura);
+        break;
+      }
+      const extendBy = distJson.extendBy || 0;
+      console.log(`[OptCurso] Paso 3.${attempts + 1} NOT feasible. reason=${distJson.reason} extendBy=${extendBy}d shortfalls=`, distJson.shortfalls);
+      if (extendBy > 0 && attempts < MAX_DISTRIBUTE_ATTEMPTS - 1) {
+        console.log(`[OptCurso] Paso 3.${attempts + 1} extender curso +${extendBy}d, reintentar`);
+        // Extender Grupo.fechaFin Y último PL por extendBy días naturales.
+        const lastPl = plsActuales[plsActuales.length - 1];
+        const lastPlFin = new Date(lastPl.fechaFin);
+        lastPlFin.setDate(lastPlFin.getDate() + extendBy);
+        const lastPlFinISO = lastPlFin.toISOString().slice(0, 10);
+        const grupoFinDate = new Date(currentGrupoFin);
+        grupoFinDate.setDate(grupoFinDate.getDate() + extendBy);
+        const newGrupoFinISO = grupoFinDate.toISOString().slice(0, 10);
+        try {
+          await fetch(getApiUrl(`/api/periodo_lectivos/${lastPl.id}`), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+            credentials: 'include',
+            body: JSON.stringify({ fechaFin: lastPlFinISO }),
+          });
+          await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+            credentials: 'include',
+            body: JSON.stringify({ fechaFin: newGrupoFinISO }),
+          });
+          currentGrupoFin = newGrupoFinISO;
+          // Refetch PLs para que `plsActuales` refleje el último PL extendido.
+          const r2 = await fetch(getApiUrl(`/api/periodo_lectivos?grupo=${selectedGrupo}&pagination=false&order[orden]=asc&order[fechaInicio]=asc`), {
+            headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+          });
+          if (r2.ok) {
+            const dd = await r2.json();
+            const items = dd['hydra:member'] || dd.member || [];
+            plsActuales = items;
+            setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: items }));
+          }
+          setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: newGrupoFinISO } : g));
+        } catch (err) {
+          console.error('[OptCurso] Paso 3 extender FAIL:', err);
+          toast.error(t('scheduleEditor.extendError', { defaultValue: 'Error extendiendo curso.' }));
+          console.groupEnd();
+          return;
+        }
+        attempts++;
+        continue;
+      }
+      // No factible ni extendiendo más: shortfall residual irreductible.
+      console.error('[OptCurso] Paso 3 shortfall irreductible. Abort.');
+      toast.error(t('scheduleEditor.distributeShortfall', {
+        defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso. Revisa la jornada o las horas curriculares.',
+      }));
+      console.groupEnd();
+      return;
+    }
+
+    if (!distribution) {
+      console.error('[OptCurso] Paso 3 sin distribution tras 3 attempts. Abort.');
+      toast.error(t('scheduleEditor.distributeFailed', { defaultValue: 'No se pudo distribuir el currículo.' }));
+      console.groupEnd();
+      return;
+    }
+
+    // Paso 4: PATCH `pli.minutosSemanales` con la distribución.
+    console.log('[OptCurso] Paso 4: PATCH PLIs con distribución');
+    console.table(Object.entries(distribution).flatMap(([plId, byImp]) =>
+      Object.entries(byImp).map(([impId, min]) => ({
+        plId, impId,
+        materia: imps.find(i => String(i.id) === String(impId))?.materia?.nombre || '?',
+        minSem: min,
+        horasSem: min / 60,
+      }))
+    ));
+    try {
+      const pliRes = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo.grupo=${selectedGrupo}&pagination=false`), {
+        headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+      });
+      if (!pliRes.ok) throw new Error(`Fetch PLIs: ${pliRes.status}`);
+      const pliData = await pliRes.json();
+      const plis = pliData['hydra:member'] || pliData.member || [];
+      const patches = [];
+      for (const pli of plis) {
+        const plId = extractFkId(pli.periodoLectivo);
+        const impId = extractFkId(pli.imparticion);
+        const minutos = distribution[plId]?.[impId];
+        if (minutos === undefined || minutos === null) continue;
+        const current = pli.minutosSemanales;
+        if (current === minutos) continue;
+        patches.push(fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify({ minutosSemanales: minutos }),
+        }));
+      }
+      const results = await Promise.all(patches);
+      const failed = results.filter(r => !r.ok).length;
+      console.log(`[OptCurso] Paso 4 OK: ${results.length - failed}/${results.length} PLIs patched`);
+      if (failed > 0) {
+        console.warn(`[OptCurso] Paso 4 ${failed} PLI patches fallaron`);
+      }
+      // Refetch PLs (cuyos PLIs embebidos alimentan el banner anual).
+      await refetchPlsForGroup(selectedGrupo);
+    } catch (err) {
+      console.error('[OptCurso] Paso 4 FAIL:', err);
+      toast.error(t('scheduleEditor.distributePatchError', {
+        defaultValue: 'Error aplicando la distribución de minutos por rango.',
+      }));
+      console.groupEnd();
+      return;
+    }
+
+    // Paso 5: lanzar el solver per-rango con autoSave=true para persistir
+    // los placements en BD inmediatamente. Sin autoSave, los placements
+    // quedarían en preview local y el PDF saldría vacío hasta que el admin
+    // pulsase "Guardar" rango por rango (UX rota del flow combinado).
+    console.log(`[OptCurso] Paso 5: runSolverAllRangos para ${plsActuales.length} rangos (autoSave=true)`);
+    await runSolverAllRangos(plsActuales, /* autoSave */ true);
+    console.log('[OptCurso] FIN');
+    console.groupEnd();
   };
 
   const dirtyAny = Object.values(state).some(s => s?.dirty);

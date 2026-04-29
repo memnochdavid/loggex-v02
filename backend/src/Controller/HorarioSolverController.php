@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Grupo;
 use App\Entity\PeriodoLectivo;
 use App\Service\CapacityPlanner;
+use App\Service\CurriculumDistributor;
 use App\Service\HorarioSolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -83,5 +84,32 @@ class HorarioSolverController extends AbstractController
         }
 
         return $this->json($planner->plan($grupo, $periodoLectivo));
+    }
+
+    /**
+     * Distribuye horas curriculares heterogéneamente entre los rangos lectivos
+     * del grupo, respetando la jornada efectiva de cada rango. Devuelve la
+     * sugerencia de minutosSemanales por (rango, imparticion) que el frontend
+     * persistirá en `PeriodoLectivoImparticion` antes de invocar el solver.
+     *
+     * Si el currículo no cabe (anualmente o tras redistribución), devuelve
+     * `extendBy` (días naturales que el calendario debe alargarse) y `reason`
+     * para que el frontend extienda `Grupo.fechaFin` y reintente.
+     *
+     * Doc: docs/hoja-de-ruta-periodos-lectivos.md §6 (CurriculumDistributor 2026-04-29).
+     */
+    #[Route('/api/v1/grupos/{grupoId}/distribute-curriculum', name: 'api_grupo_distribute_curriculum', methods: ['POST'], requirements: ['grupoId' => '\d+'])]
+    public function distributeCurriculum(int $grupoId, EntityManagerInterface $em, CurriculumDistributor $distributor): JsonResponse
+    {
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['message' => 'Acceso denegado'], 403);
+        }
+
+        $grupo = $em->getRepository(Grupo::class)->find($grupoId);
+        if (!$grupo) {
+            return $this->json(['message' => 'Grupo no encontrado'], 404);
+        }
+
+        return $this->json($distributor->distribute($grupo));
     }
 }

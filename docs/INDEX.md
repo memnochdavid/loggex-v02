@@ -12,6 +12,8 @@
 
 **Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E con datos hard-coded aproximados antes de pasar a B real.
 
+**🆕 Solver bin-packing — propuesto (2026-04-29 noche):** tras observar que el solver físico ILP actual deja slots vacíos en jornadas con tramos heterogéneos (FP Mañanas 4×60+1×90/día → 2-5 slots vacíos / rango), el usuario propuso modelo de "líquidos y recipientes" funcionalmente equivalente a bin-packing first-fit. Plan diseñado en `hoja-de-ruta-solver-bin-packing.md` (sin implementar todavía). Probabilidad de éxito 70% al primer intento, 90% tras ajustes. Fallback: `git reset --hard` y volvemos al ILP actual.
+
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
 1. **Modalidad de imparticion** — enum `PRESENCIAL/FCT/NO_REGULAR/AUTONOMA` para separar placement físico (slot en aula) de carga curricular (horas RD). Resuelve **todo FP LOMLOE** (Básica/Medio/Superior/Especialización 1º+2º). Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin regresión.
@@ -179,6 +181,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
+| `hoja-de-ruta-solver-bin-packing.md` | Fase 1 (~3h) + Fase 2 endpoint (~30min) + Fase 3 validación E2E (~1h) | Alternativa al ILP actual de `HorarioSolver`. Resuelve el bug de slots vacíos en FP Mañanas (4×60+1×90/día). Modelo "líquidos y recipientes". Probabilidad éxito 70% al primer intento, 90% tras ajustes. Si falla → `git reset --hard`. |
 
 ### 📋 Referencia / manuales
 

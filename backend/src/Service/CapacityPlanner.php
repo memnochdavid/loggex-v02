@@ -26,6 +26,18 @@ class CapacityPlanner
 {
     private const MAX_COMBOS_PER_MATERIA = 30;
     private const TIMEOUT_SEC = 1.5;
+    /**
+     * Penalización fija aplicada al `weight` de un combo con delta > 0. Hace
+     * que el ILP backtracking prefiera CUALQUIER combo con delta=0 sobre uno
+     * con delta>0, incluso si el segundo redujese el delta global.
+     *
+     * Razón: el cost lineal Σ delta favorece "una materia con delta 30 si
+     * libera slots para que otras dos pasen a delta 0". Resultado real
+     * observado en 1º DAW EAG: IPEI1 colocaba 2×60+1×90 (delta 30) cuando
+     * 3×60 (delta 0) era factible — saturaba +30 min/sem cross-rango y
+     * dejaba a otras materias por debajo del 100% por cap anual exhausto.
+     */
+    private const PENALTY_NONZERO_DELTA = 100000;
 
     private array $bestSolution = [];
     private int $bestCost = PHP_INT_MAX;
@@ -324,7 +336,10 @@ class CapacityPlanner
         $combosPorMateria = [];
         foreach ($materias as $idx => $m) {
             $combos = $this->generateCombos($m['minutos'], $duraciones, $maxD, $slotsDisponibles);
-            usort($combos, fn ($a, $b) => $a['delta'] <=> $b['delta']);
+            // Ordenar por weight (delta=0 primero, luego delta asc). Garantiza
+            // que el backtracking prueba combos sin overshoot ANTES que los
+            // combos con delta>0.
+            usort($combos, fn ($a, $b) => $a['weight'] <=> $b['weight']);
             $combos = array_slice($combos, 0, self::MAX_COMBOS_PER_MATERIA);
             if (empty($combos)) {
                 return [
@@ -349,9 +364,11 @@ class CapacityPlanner
             $combosPorMateria[$idx] = $combos;
         }
 
+        // minWeightRestante: lower bound del weight acumulado restante (= mejor
+        // combo de cada materia futura). Usado para pruning del backtracking.
         $minDeltaRestante = array_fill(0, count($materias) + 1, 0);
         for ($i = count($materias) - 1; $i >= 0; $i--) {
-            $minDeltaRestante[$i] = $minDeltaRestante[$i + 1] + $combosPorMateria[$i][0]['delta'];
+            $minDeltaRestante[$i] = $minDeltaRestante[$i + 1] + $combosPorMateria[$i][0]['weight'];
         }
 
         $this->bestSolution = [];
@@ -457,7 +474,15 @@ class CapacityPlanner
                 foreach ($duraciones as $i => $d) {
                     $xMap[$d] = $x[$i] ?? 0;
                 }
-                $combos[] = ['x' => $xMap, 'delta' => $sum - $m, 'sum' => $sum];
+                $delta = $sum - $m;
+                // Coste ponderado (fix 2026-04-29): penalización fuerte (×1000)
+                // a combos con delta>0 cuando existe alternativa con delta=0
+                // para esa materia. Sin esto, el ILP backtracking elegía
+                // combos con delta>0 si reducían el delta global, inflando
+                // materias individuales (ej IPEI1 con 2×60+1×90=210 cuando
+                // 3×60=180 era posible, +30 min/sem cross-rango).
+                $weight = $delta > 0 ? (self::PENALTY_NONZERO_DELTA + $delta) : 0;
+                $combos[] = ['x' => $xMap, 'delta' => $delta, 'sum' => $sum, 'weight' => $weight];
             }
             return;
         }
@@ -501,7 +526,7 @@ class CapacityPlanner
             }
             $newCurrent = $current;
             $newCurrent[$idx] = $combo;
-            $this->backtrack($materias, $combosPorMateria, $newDisp, $idx + 1, $newCurrent, $costSoFar + $combo['delta'], $minDeltaRestante);
+            $this->backtrack($materias, $combosPorMateria, $newDisp, $idx + 1, $newCurrent, $costSoFar + $combo['weight'], $minDeltaRestante);
             if ($this->bestCost === 0) return;
         }
     }

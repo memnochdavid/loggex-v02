@@ -377,6 +377,99 @@ Dos vistas combinadas dentro de la pestaña:
 
 ## 6. Bitácora de implementación
 
+### 2026-04-29 — `CurriculumDistributor`: solver con minutos heterogéneos por rango
+
+**Objetivo**: completar el principio "tiempos fluidos". Tras quitar el anclaje 36 LOMLOE, el caso 1º DAW EAG seguía dejando Programación al 88% porque "Configurar curso óptimo + Sugerir todo" copiaba `materia.minutosSemanales` ciegamente a todos los PLIs (mismo patrón semanal en todos los rangos), saturando 29h > 27.5h cada semana e irreductible.
+
+**Solución**: nuevo servicio backend `CurriculumDistributor` que distribuye minutos heterogéneamente por (rango, materia) ANTES de invocar el solver, respetando la jornada efectiva de cada rango.
+
+**Cambios en código**:
+
+- **`backend/src/Service/CurriculumDistributor.php`** (nuevo):
+  - Método `distribute(Grupo $grupo)`. Lee PLs vivos del grupo, calcula `cap_j` (slots × días lectivos) y `slot_min_j` desde `PeriodoLectivo::getEffectiveJornadaTipo()` por cada rango (jornadas heterogéneas funcionan).
+  - Algoritmo greedy de 5 pasos:
+    1. Capacity check anual: si `Σ horasTotales × 60 > Σ_j cap_j × sem_j` → devuelve `extendBy` proporcional al déficit.
+    2. Distribución inicial: `m_ij = round(objetivo_i × sem_j / Σsem / slot_min_j) × slot_min_j`.
+    3. Ajuste anual por materia: itera añadiendo/quitando slots en rangos con holgura hasta cuadrar `Σ_j m_ij × sem_j = objetivo_i` (tolerancia: 1 slot).
+    4. Saturación per-rango: si `Σ_i m_ij > cap_j`, reduce con criterio "menor penalty %" (igual que `CapacityPlanner`) y acumula shortfall.
+    5. Redistribución de shortfalls a rangos con hueco. Si tras redistribuir queda residuo, devuelve `extendBy` proporcional.
+  - Output: `{feasible, extendBy, distribution: [plId][impId] = minSem, shortfalls, debug}`.
+
+- **`backend/src/Controller/HorarioSolverController.php`**:
+  - Endpoint nuevo `POST /api/v1/grupos/{grupoId}/distribute-curriculum`. Auth ROLE_ADMIN/SUPERADMIN. Devuelve el output del distribuidor.
+
+- **`frontend/src/pages/HorariosEditor.jsx`**:
+  - `handleConfigureOptimalCourse` reescrito en pipeline 5 pasos:
+    1. Si `semanasOptimas × 7 > totalDíasCalendario` → PATCH `Grupo.fechaFin` extendiendo días necesarios (PRE).
+    2. Borrar PLs y crear N rangos cubriendo `semanasOptimas` (pasa `fechasOverride` para evitar closure stale tras `setGrupos`).
+    3. Llamar `distribute-curriculum`. Si `extendBy > 0`: extender `Grupo.fechaFin` y último PL por `extendBy` días, refetch PLs, reintentar (máx 3 attempts).
+    4. PATCH `pli.minutosSemanales` con la `distribution` recibida (en paralelo con `Promise.all`).
+    5. `runSolverAllRangos(plsActuales)`.
+  - `handleCreateRecommendedRangos` ahora acepta `fechasOverride = {iniISO, finISO}` opcional.
+  - Confirm modal con preview asimétrico: si extiende, muestra "extender curso de X a Y (N días)"; si no, mensaje normal.
+
+- **i18n × 5 idiomas** (es, en, ca, gl, eu): 7 claves nuevas (`optimalConfirmBodyExtend`, `extendGroupError`, `distributeError`, `distributeShortfall`, `distributeFailed`, `distributePatchError`, `extendError`) + actualizado `optimalConfirmBody` para reflejar el nuevo flujo.
+
+**Comportamiento nuevo**:
+
+| Grupo | Antes | Después |
+|---|---|---|
+| 2º DAW/DAM EAG (ya cuadraba) | 6 al 102-111%, Inglés 106-108% | mismo (sin regresión, distribuidor no sobre-corrige cuando ya cabe per-sem) |
+| 1º DAW EAG (29h sem > 27.5h jornada) | Programación 88%, otras 102-111% | TODAS al 100% — distribuidor reparte minutos heterogéneos: rangos donde Programación 8h/sem + otras 19h/sem (=27h cabe) y rangos donde Programación 7h/sem + otras 20h/sem (=27h cabe), sumando 100% anual de todas |
+| Cualquier grupo con jornada baja (ej: 20h) | shortfall masivo, banner rojo | distribuidor sugiere extender curso N días + adapta calendario |
+
+**Principio "tiempos fluidos" — contrato cerrado**:
+- Jornada del centro = inmutable (lo que el centro tiene).
+- `Materia.horasTotales` = inmutable (ley LOMLOE).
+- `Grupo.fechaFin` + minutos por rango = variables que se ajustan automáticamente.
+
+**Limitaciones conocidas**:
+- El distribuidor asume que dentro de un rango, cada materia tiene minutos uniformes en TODAS las semanas del rango. Para variar dentro del rango (ej: una materia con 8h las primeras 6 sem y 7h las siguientes 6 sem dentro del MISMO rango), hay que crear más rangos manualmente.
+- Solo procesa modalidad PRESENCIAL. FCT/NO_REGULAR/AUTONOMA no entran al distribuidor (no compiten por jornada).
+- El `extendBy` puede ser conservador: añade semanas al último rango. Si el centro prefiere extender el primero o un intermedio, debe hacerlo manualmente.
+- Tras "Configurar curso óptimo", el cache de `pli.minutosSemanales` queda con valores fijos. Si el centro luego cambia la jornada, debe re-ejecutar "Configurar curso óptimo".
+
+### 2026-04-29 — Fix anclaje 36 LOMLOE en `semanasOptimas` (consenso "tiempos fluidos")
+
+**Bug crítico señalado por el usuario** tras observar el screenshot de 1º DAW EAG: el cálculo `semanasOptimas` tenía un suelo `Math.max(36, necesarias)` que **traicionaba el consenso "tiempos fluidos"** documentado en §Visión Fase 5 y bitácora 2026-04-28 (línea 1093). Cita del usuario:
+
+> "los tiempos deben ser fluidos. conocemos el calendario. conocemos el inicio del curso. también sabemos las horas lectivas de cada materia de cada itinerario de cada grupo. las jornadas van a ser de 27.5h: NO ES DISCUTIBLE ESO. me dijiste que no es impositivo legal la duración de las jornadas. pues se crea un déficit de horas que se le debe a la materia. falta tiempo? se extiende el final del curso añadiendo una semana, o añadiendo dos."
+
+**Principio "tiempos fluidos" (re-afirmado 2026-04-29 y elevado a regla de diseño)**:
+- La **jornada del centro NO es discutible** (27.5h/sem o lo que toque) — variable inmutable.
+- `horasTotales` por materia **NO es discutible** (ley LOMLOE, BOE/BOJA) — variable inmutable.
+- El **calendario ES la variable**: si jornada × semanas calendario no llega al currículo, se extiende `Grupo.fechaFin` las semanas que hagan falta. Si sobra calendario, el centro decide qué hacer con el tiempo libre (FCT, exámenes, repaso).
+- El sistema **NO impone un suelo de 36 sem LOMLOE** — eso es convención escolar, no obligación legal.
+
+**Causa del bug**: al codificar Fase 5 sub-A (2026-04-28), introduje `Math.max(36, necesarias)` con el comentario "no acortar el curso por debajo de lo legal". El motivo era defensivo (evitar cursos demasiado cortos en casos edge) pero contradice el consenso documentado: el sistema NO impone duración del curso, eso lo decide el centro a partir de la jornada y el currículo.
+
+**Fix aplicado** (`HorariosEditor.jsx:825-851`):
+- Quitado `Math.max(36, necesarias)`.
+- `semanasOptimas = ceil(Σ horasTotales × 60 / slotsSemanalMin)` puro.
+- Comentario reescrito explicitando el principio "tiempos fluidos" como contrato.
+
+**Casos**:
+- 1º DAW EAG (1044h, 27.5h slots): `ceil(37.96) = 38 sem` (sin cambio — el suelo 36 no aplicaba aquí, `necesarias` ya era > 36).
+- Grupo con jornada generosa (currículo cabe en 32 sem): ahora devuelve 32 sem en lugar de forzar 36. El admin decide si los rangos lectivos cubren todo el calendario (sem extras = no lectivas) o solo las 32 necesarias.
+
+**Deuda separada — déficit per-semana irreductible**: el caso de Programación al 88% en 1º DAW NO es problema de `semanasOptimas` (ya da 38 sem suficientes para Σ = 1044h en capacidad anual de 1045h). Es problema **per-semana**: 29h currículo > 27.5h slots, así que cada semana algún placement falla. El "Configurar curso óptimo + Sugerir todo" no varía minutos por rango automáticamente — es una mejora pendiente. La forma de cuadrar Programación al 100% hoy: extender 1-2 sem más allá de `necesarias` y variar minutos manualmente vía Sliders de PLI por rango (lo permite el modelo).
+
+**Auto-aprendizaje**: el consenso "tiempos fluidos" estaba en el doc pero no se aplicó al código. Memoria de feedback persistida (`feedback_tiempos_fluidos.md`) para que ningún anclaje 36/35/34 sem se cuele en futuras Fases.
+
+### 2026-04-29 — Auditoría Opción A: fix de anclaje rígido en `capacityFeasibilityAnual`
+
+**Auditoría a petición del usuario** ("asegúrate de que la opción A está realmente implementada, que no hay un anclaje de horas diarias"). Revisión exhaustiva de los puntos donde se calcula el objetivo curricular anual.
+
+**Resultado** — 9 sitios revisados, 8 ✅ ya cumplían Opción A:
+- Backend: `Materia::getObjetivoAnualMinutos()` (helper único), `CapacityPlanner.php:178`, `CatalogoMaterializationController.php:138-148`, `GrupoResyncCcaaController.php:128-130`. `horasTotales` expuesto en grupos `materia:read` e `imparticion:read` (entidad Materia.php:117).
+- Frontend: `minutosAnualesObjetivoByImp` (798), `semanasOptimas` (834), `horasAnualesBanner.curriculumMin` (924), modal "Crear Rangos Recomendados" label (3790).
+
+**1 sitio ❌ con anclaje rígido detectado y corregido**: `HorariosEditor.jsx:1088` — `capacityFeasibilityAnual` (banner del CapacityPlanner que decide entre "amarillo informativo" vs "rojo real" cuando hay sobrecarga semanal). Calculaba el currículo como `Σ(materia.minutosSemanales) × 36` rígido, ignorando `horasTotales`. Bonus: tampoco filtraba por modalidad — incluía FCT/NO_REGULAR/AUTONOMA en el cómputo, cuando estas materias no compiten por jornada lectiva del centro.
+
+**Fix aplicado**: cambio mínimo a usar `minutosAnualesObjetivoByImp[i.id]` (que ya aplica Opción A con fallback) y filtrar por `consumeAulaModalidad(getEffectiveModalidad(i))` para coherencia con `semanasOptimas`. Añadido `minutosAnualesObjetivoByImp` al array de dependencias del useMemo. Comentario actualizado anotando Opción A.
+
+**Impacto operativo**: el banner CapacityPlanner ya no compara contra una cifra de currículo "fantasma" (× 36 rígido) cuando el catálogo tiene `horasTotales` distinto de `min × 36`. Esto afecta especialmente a materias con calendario no-LOMLOE (38+ sem) donde la diferencia se acumulaba. También evita falsos rojos cuando un grupo tiene materias FCT/NO_REGULAR/AUTONOMA grandes que se sumaban erróneamente al cómputo lectivo.
+
 ### 2026-04-29 — Opción A: horasTotales como objetivo curricular (ley LOMLOE)
 
 **Cambio arquitectónico** descubierto tras frustración del usuario con 1º DAW: las h/sem del catálogo eran tratadas como ley inmutable, cuando la realidad LOMLOE es que las **horas totales anuales** son el dato legal y las h/sem son una división convencional. Esta fricción explicaba por qué el sistema no se adaptaba a calendarios distintos a 36 sem.
