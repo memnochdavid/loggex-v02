@@ -42,11 +42,29 @@ Otras rutas más amplias:
 
 **🆕 Alcance ampliado de Modalidad de imparticion (2026-04-29):** discusión confirma que la feature NO es un parche para DAW/DAM 2º — la causa raíz es estructural en LOMLOE (dual obligatoria RD 659/2023 en todos los 2º cursos + Proyecto intermodular en FP Sup/Med + Horas de libre configuración autonómicas en 1º y 2º) y resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización). FP Básica tiene FCT en 2º; Especialización suele llevar Proyecto final. Punto clave: el enum es **aditivo**, default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión para itinerarios que ya cuadran (1º DAW EAG, 1º ESO, etc.). Detalle en doc dedicado §"Alcance estructural en LOMLOE" + bitácora 2026-04-29.
 
-**🆕 Fixes CapacityPlanner + "Configurar curso óptimo" (2026-04-29):** descubierto durante prueba de Fase 4 modalidad, refinado iterativamente. Cambios:
-- **Backend**: cuota equitativa cross-rango en `CapacityPlanner` con tolerancia anual 0; skip materia con cuota residual < slotMin; reducción proporcional con criterio "menor penalty %" (concentra déficit en la materia más grande que lo absorbe mejor relativamente, en lugar de round-robin caprichoso).
-- **Frontend**: nuevo flujo "Configurar curso óptimo" en `/admin/horarios` → menú "Acciones del curso". Calcula `semanasOptimas = ceil(Σobjetivos / jornada/sem)`, crea N rangos cubriendo SOLO esas semanas (no todo el año natural), y lanza el solver multi-rango.
-- **Resultados**: grupos sin déficit estructural (2º DAW, 2º DAM) → todas materias al 100-108%; grupos con déficit (1º DAW: jornada 27.5h vs currículo 29h) → 6 al 97-103% + Programación al 77% (absorbe el déficit, banner verde-info "incluye recreos lectivos").
-- **Filosofía**: el calendario lectivo NO debe coincidir con el año natural. El espacio sobrante se libera para FCT, exámenes, recuperaciones (modelado completo en Fase 7 calendario-escolar). Detalle en `hoja-de-ruta-periodos-lectivos.md` bitácora 2026-04-29.
+**🔥 PRIORIDAD MÁXIMA — Opción A: `horasTotales` como objetivo curricular (2026-04-29):** refactor arquitectónico que ataca la causa raíz de los problemas con calendarios distintos a 36 sem LOMLOE. Las h/sem del catálogo eran tratadas como ley inmutable (`min × 36` rígido), pero la realidad LOMLOE es que las **horas TOTALES anuales** del módulo son el dato legal y las h/sem son una división convencional adaptable al calendario real.
+
+Cambios implementados:
+- **Backend**: nueva propiedad `Materia.horasTotales` (int nullable) + helper `getObjetivoAnualMinutos()` (preferente `horasTotales × 60`, fallback `min/sem × 36`). Migration `Version20260429180000` con backfill = `ROUND(min × 36 / 60)`. `CatalogoMaterializationController` y `GrupoResyncCcaaController` copian `horasTotales` del catálogo al crear Materia. `CapacityPlanner` usa el helper como objetivo curricular; cuota equitativa cross-rango solo se aplica si `totalSemanas < 36 LOMLOE` (calendario corto), sino cuota natural + reducción C.
+- **Frontend**: `semanasOptimas = max(36, ceil(Σ horasTotales × 60 / slotsSemanalMin))` adapta el calendario a slots colocables reales (sin recreos). Banner anual y chip usan `horasTotales × 60` como objetivo. "Configurar curso óptimo" calcula automáticamente las semanas necesarias.
+
+Cambios complementarios (mismo día, fixes paralelos):
+- Reducción proporcional con criterio "menor penalty %" (sustituye round-robin caprichoso). Concentra el déficit estructural en la materia más grande que lo absorbe mejor relativamente.
+- Skip materia con cuota residual < slotMin en último rango (evita combos imposibles cuando la materia ya está casi cubierta).
+- "Configurar curso óptimo" como flujo combinado en menú "Acciones del curso": crea rangos óptimos + lanza solver multi-rango secuencial con acumulador local cap anual.
+
+**Resultados E2E** (centro EAG, 2026-04-29):
+| Grupo | Σ vs jornada slots | Antes | Después |
+|---|---|---|---|
+| 2º DAW | 28h ≤ 27.5h+0.5 | 5 al 110%, Inglés 126% | **5 al 102%, Inglés 106%** |
+| 2º DAM | 28h ≤ 27.5h+0.5 | 6 al 120%, Inglés 120% | **6 al 101-104%, Inglés 108%** |
+| 1º DAW | 29h > 27.5h (déficit estructural) | Sistemas/Bases/etc al 78-86% caprichoso | **6 al 102-111% + Programación 88%** (absorbe déficit) |
+
+**Limitación restante** (no resoluble por algoritmo): si Σ presencial > capacidad slots, el déficit es **per-semana** e irreductible. Para 1º DAW EAG (29h vs 27.5h slots), Programación queda al 88% como mejor reparto matemático. La única solución es operativa: subir la jornada del centro a 30h slots/sem (`/admin/jornadas`, 5 min). El truco recreos LOMLOE (banner verde "Currículo dentro de jornada lectiva (incluye recreos)") cubre el caso donde el centro acepta los recreos como tiempo lectivo curricular legítimo.
+
+**Filosofía**: el sistema NO inventa slots físicos; sólo distribuye óptimamente lo disponible. La pregunta del usuario "tan difícil es prolongar el curso" tiene respuesta: el curso SÍ se prolonga (de 36 LOMLOE a 38 sem en 1º DAW), pero la suma per-semana sigue saturando si la jornada es estructuralmente insuficiente.
+
+Detalle completo en `hoja-de-ruta-periodos-lectivos.md` §6 bitácora 2026-04-29 ("Opción A").
 
 **✅ PARCHE TEMPORAL ELIMINADO (2026-04-28 noche):** las jornadas `id 4 Mañanas` y `id 5 Tardes pre Calendario Real` (35h/sem) **borradas de BD** tras cerrar Fase 5 entera de PeriodoLectivo. Itinerarios DAW/DAM ahora apuntan a la jornada normal `id=3 "FP Mañanas"` (27.5h slots + 2.5h recreos = 30h presencial). 164 horarios fantasma (slots inexistentes en jornada normal) soft-deleted. Bitácora completa: `docs/hoja-de-ruta-periodos-lectivos.md` §6 (Sub-fase D). Doc histórico marcado SUPERSEDED: `docs/hoja-de-ruta-jornadas-recreos.md` §"PARCHE TEMPORAL".
 
@@ -144,7 +162,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Hecho | Pendiente |
 |---|---|---|
-| `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 todas ✅** + fix 2026-04-29 (cuota equitativa cross-rango en `CapacityPlanner`: rangos finales ya no quedan vacíos cuando Σsemanas > 36 LOMLOE; tolerancia anual proporcional al objetivo) | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético), Fase 7 (calendario lectivo del centro — parametriza D-L), Fase 8 (dashboard horas anuales para jefe de estudios) |
+| `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 todas ✅** + **Opción A 2026-04-29 (PRIORIDAD MÁXIMA)**: `Materia.horasTotales` como objetivo curricular (ley LOMLOE) en lugar de `min × 36` rígido. `semanasOptimas` con slots colocables. Cuota natural + reducción "menor penalty %". Resultados: 1º DAW 102-111% en 6 materias + Programación 88% (déficit estructural irreductible jornada 27.5h vs currículo 29h, requiere subir jornada a 30h o aceptar recreos lectivos LOMLOE). | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético), Fase 7 (calendario lectivo del centro — parametriza D-L), Fase 8 (dashboard horas anuales para jefe de estudios) |
 | `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos). **§"PARCHE TEMPORAL" SUPERSEDED 2026-04-28** por periodos-lectivos sub-fase D | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
 | `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3** ✅ (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos) | Fase 4 (Municipio + UI locales), Fase 5 (calendario lectivo), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE) |
 | `hoja-de-ruta-calificaciones.md` | **Auditado 2026-04-29 + BD poblada (tarde)**: Fases A+B+C+D+E ✅ todas cerradas. `backup_tfg_full.sql` ahora contiene 174 tareas / 614 entregas / 614 calificaciones / 16 periodos / 87 ponderaciones / 725 asistencias / 17 mensajes / 10 comunicados / 87 temarios. Todos los archivos referencian a `Dummy.pdf` en MinIO. | B.1 validación Σ pesos=1.0 a nivel entidad (deuda menor; fixtures la cumplen pero la app no la fuerza). |
