@@ -181,11 +181,12 @@ class CurriculumDistributor
 
         if ($capAnual < $sumObjetivos) {
             $deficit = $sumObjetivos - $capAnual;
-            // +1 sem de margen para evitar oscilación per-materia (el round-up
-            // del distribuidor causa overshoot ≤ aporteSlot en algunas; sin
-            // margen el extend sólo cubre exacto el déficit y nuevas
-            // distribuciones siguen viéndose justas).
-            $extendSem = $lastCap > 0 ? ((int) ceil($deficit / $lastCap)) + 1 : 1;
+            // Sin margen +1 (cambio 2026-04-29 noche, Opción A): el +1 sem
+            // que añadíamos antes inflaba el calendario causando holgura ~16%
+            // que bin-packing rellena con overshoot. Ahora extendemos solo lo
+            // matemáticamente necesario; la tolerancia 5% del chequeo de
+            // shortfalls evita la oscilación sin necesidad del margen +1.
+            $extendSem = $lastCap > 0 ? (int) ceil($deficit / $lastCap) : 1;
             return [
                 'feasible' => false,
                 'extendBy' => max(7, $extendSem * 7),
@@ -275,55 +276,22 @@ class CurriculumDistributor
             }
         }
 
-        // Pase 2: SATURAR JORNADA. Tras cubrir currículo, llenar los slots
-        // vacíos de cada rango con la materia menos cubierta relativamente.
-        // Garantiza que el chip "Borrador 23/27.5h" se vuelve "Completo 27/27.5h"
-        // (ningún slot vacío).
+        // Pase 2 (saturar jornada) ELIMINADO 2026-04-29 noche: cuando el
+        // solver físico es bin-packing first-fit (default), satura la jornada
+        // por sí solo (cada slot recibe la materia con más líquido pendiente
+        // hasta agotar). Si distribuidor también satura aquí, las cuotas se
+        // inflaban ~25-30% sobre target curricular y bin-packing añadía otro
+        // ~20% per materia, dejando overshoot total ~40% en algunas materias.
+        // Sin pase 2: distribuidor pide cuota natural exacta, bin-packing
+        // distribuye los slots residuales (típicamente 5 slots de 90 que
+        // aportan 30 min/sem extra cada uno = 150 min/sem) entre las materias
+        // menos cubiertas con tope 130%. Resultado: overshoot ≤ 130% per
+        // materia.
         //
-        // Criterio: para cada slot libre, asignarlo a la materia con MENOR
-        // cobertura relativa actual (= Σ K_ij × slotMin / objetivo_i). Eso
-        // distribuye el sobrante entre todas las materias proporcionalmente
-        // (las menos cubiertas reciben más). Tope: cada materia puede llegar
-        // máximo a 130% de su objetivo (evita over-asignar a una sola).
-        $coberturaMaxPase2 = 1.30;
-        $cubiertoByImp = [];
-        foreach ($impsPres as $impId => $row) {
-            $cubierto = 0;
-            foreach ($plMeta as $plId => $meta) {
-                $cubierto += $K[$plId][$impId] * $meta['aporteSlot'];
-            }
-            $cubiertoByImp[$impId] = $cubierto;
-        }
-        foreach ($plMeta as $plId => $_) {
-            $iter = 0;
-            // Saturar HASTA cap_j_min, no count: la jornada FP Mañanas con
-            // 4×60+1×90 tiene cap=1650 min pero solo 25 placements. Si paramos
-            // a 25 slots, dejamos 150 min sin asignar (slots vacíos en la
-            // rejilla). Saturando por min, el solver físico coloca el slot
-            // de 90 con una materia que tenga cuota total múltiplo de 60.
-            while ($plMeta[$plId]['capMinLibres'] >= $plMeta[$plId]['slotMin'] && $iter++ < 200) {
-                $bestImp = null;
-                $bestCobertura = PHP_INT_MAX;
-                foreach ($impsPres as $impId => $row) {
-                    if ($row['objetivo'] <= 0) continue;
-                    // Chequear cobertura TRAS añadir el slot, no antes. Para
-                    // materias pequeñas (DIG 36h), un solo slot puede hacer
-                    // saltar la cobertura del 110% al 140% — peor que no
-                    // añadir nada. Si tras añadir supera el tope, skip.
-                    $coberturaTrasAdd = ($cubiertoByImp[$impId] + $plMeta[$plId]['aporteSlot']) / $row['objetivo'];
-                    if ($coberturaTrasAdd > $coberturaMaxPase2) continue;
-                    $coberturaActual = $cubiertoByImp[$impId] / $row['objetivo'];
-                    if ($coberturaActual < $bestCobertura) {
-                        $bestCobertura = $coberturaActual;
-                        $bestImp = $impId;
-                    }
-                }
-                if ($bestImp === null) break;
-                $K[$plId][$bestImp] += 1;
-                $plMeta[$plId]['capMinLibres'] -= $plMeta[$plId]['slotMin'];
-                $cubiertoByImp[$bestImp] += $plMeta[$plId]['aporteSlot'];
-            }
-        }
+        // Si el caller usa el solver ILP legacy, sigue funcionando porque
+        // CapacityPlanner reduce cuotas al cap real y el ILP coloca lo que
+        // cabe. Pero el ILP no satura — slots vacíos. Para usar ILP con
+        // saturación habría que reactivar pase 2 condicionalmente.
 
         // Verificar shortfalls. Tolerancia per-materia = max(60 min, 5% del
         // objetivo) — el solver físico cuenta ocurrencias enteras del día_semana
@@ -343,12 +311,12 @@ class CurriculumDistributor
 
         if (!empty($shortfalls)) {
             // Ningún rango tiene capacidad y hay materias sin cubrir → extender curso.
-            // Calculamos por la MAYOR shortfall individual + 1 sem margen, no
-            // por la suma — el cap del último rango se aplica per-materia, no
-            // global. Sumar todos los shortfalls infraestima el extend cuando
-            // hay 1 materia gigante (ej Programación 100h) y otras pequeñas.
+            // Calculamos por la MAYOR shortfall individual (sin margen +1, ver
+            // capacityShortfall arriba para razón). El cap del último rango se
+            // aplica per-materia, no global. Sumar todos los shortfalls
+            // infraestima el extend cuando hay 1 materia gigante.
             $maxShortfall = max($shortfalls);
-            $extendSem = $lastCap > 0 ? ((int) ceil($maxShortfall / $lastCap)) + 1 : 1;
+            $extendSem = $lastCap > 0 ? (int) ceil($maxShortfall / $lastCap) : 1;
             $totalShortfall = array_sum($shortfalls);
             // Build distribution con lo que sí se asignó (parcial).
             $distribucion = [];

@@ -2863,10 +2863,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
     const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
     const iniISO = grupo.fechaInicio?.slice(0, 10);
-    const finISO = grupo.fechaFin?.slice(0, 10);
-    if (!iniISO || !finISO) {
+    if (!iniISO) {
       toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
       return;
+    }
+    // Base ideal de fechaFin: junio 30 del segundo año académico. Esto resetea
+    // cualquier acumulación de extends de pruebas anteriores (ej fechaFin
+    // 2030-11-20 tras múltiples ejecuciones de "Configurar curso óptimo").
+    // El sistema extenderá DESDE esta base si hace falta, no desde fechaFin
+    // acumulado.
+    let finISO;
+    if (grupo.anioEscolar) {
+      const partes = grupo.anioEscolar.split('-');
+      const segundoAnio = partes[1] || String(Number(partes[0]) + 1);
+      finISO = `${segundoAnio}-06-30`;
+    } else {
+      const yearIni = parseInt(iniISO.slice(0, 4), 10);
+      finISO = `${yearIni + 1}-06-30`;
+    }
+    const finISOPrev = grupo.fechaFin?.slice(0, 10);
+    const finResetNeeded = finISOPrev && finISOPrev !== finISO;
+    if (finResetNeeded) {
+      console.log(`[OptCurso] Reset Grupo.fechaFin: ${finISOPrev} → ${finISO} (eliminando acumulación previa)`);
     }
 
     // Calcular si hay que extender Grupo.fechaFin para cubrir semanasOptimas.
@@ -2929,9 +2947,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!ok) { console.groupEnd(); return; }
     setCursoActionsOpen(false);
 
-    // Paso 1: extender Grupo.fechaFin si hace falta (PRE).
-    if (willExtend) {
-      console.log(`[OptCurso] Paso 1: extender Grupo.fechaFin → ${newFinISO} (+${diasExtension} días)`);
+    // Paso 1: ajustar Grupo.fechaFin (PRE). Patch si: extender hacia adelante
+    // (willExtend) O si hay acumulación previa que resetear (finResetNeeded).
+    // El target final es siempre `newFinISO` (=base ideal + extensión si toca).
+    if (willExtend || finResetNeeded) {
+      const motivo = willExtend ? `extender (+${diasExtension} días)` : `resetear acumulación previa`;
+      console.log(`[OptCurso] Paso 1: PATCH Grupo.fechaFin → ${newFinISO} (${motivo})`);
       try {
         const r = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
           method: 'PATCH',
@@ -2950,7 +2971,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         return;
       }
     } else {
-      console.log('[OptCurso] Paso 1 skip (no hace falta extender)');
+      console.log('[OptCurso] Paso 1 skip (fechaFin ya correcta)');
     }
 
     // Paso 2: crear rangos pasando fechas EXPLÍCITAS (state setGrupos puede

@@ -7,6 +7,7 @@ use App\Entity\PeriodoLectivo;
 use App\Service\CapacityPlanner;
 use App\Service\CurriculumDistributor;
 use App\Service\HorarioSolver;
+use App\Service\HorarioSolverBinPacking;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,8 +17,13 @@ use Symfony\Component\Routing\Attribute\Route;
 class HorarioSolverController extends AbstractController
 {
     #[Route('/api/v1/horarios/solver/{grupoId}', name: 'api_horarios_solver', methods: ['POST'], requirements: ['grupoId' => '\d+'])]
-    public function solve(int $grupoId, Request $request, EntityManagerInterface $em, HorarioSolver $solver): JsonResponse
-    {
+    public function solve(
+        int $grupoId,
+        Request $request,
+        EntityManagerInterface $em,
+        HorarioSolver $solverIlp,
+        HorarioSolverBinPacking $solverBinPacking,
+    ): JsonResponse {
         if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['message' => 'Acceso denegado'], 403);
         }
@@ -29,6 +35,12 @@ class HorarioSolverController extends AbstractController
 
         $data = json_decode($request->getContent(), true) ?: [];
         $seed = isset($data['seed']) ? (int) $data['seed'] : null;
+
+        // Switch de solver (2026-04-29): `binpacking` es default desde la
+        // implementación del bin-packing first-fit (`HorarioSolverBinPacking`).
+        // El ILP previo (`HorarioSolver`) sigue disponible como fallback con
+        // `solver=ilp` para A/B testing o si bin-packing falla en algún caso.
+        $solverKind = isset($data['solver']) && $data['solver'] === 'ilp' ? 'ilp' : 'binpacking';
 
         // PeriodoLectivo opcional: si no viene, el solver resuelve el activo
         // del grupo. El frontend de Fase 2 todavía no lo envía; Fase 3 lo
@@ -44,10 +56,9 @@ class HorarioSolverController extends AbstractController
 
         // Cap anual por materia (Fase 5 fix afinado): el frontend pasa
         // `alreadyPlacedByImp` con minutos anuales ya colocados en OTROS rangos
-        // del grupo (cross-rango). El planner descuenta esos minutos del
-        // objetivo curricular y limita las cuotas de este rango para que la
-        // suma anual no supere objetivo + 1.5h tolerancia. Si no se pasa, el
-        // planner opera en modo legacy (cuota = minutosSemanales × semanas).
+        // del grupo (cross-rango). Solo aplicado por el solver ILP — el bin-
+        // packing usa el `pli.minutosSemanales` que el distribuidor ya ajustó
+        // cross-rango.
         $alreadyPlacedByImp = null;
         if (isset($data['alreadyPlacedByImp']) && is_array($data['alreadyPlacedByImp'])) {
             $alreadyPlacedByImp = [];
@@ -56,7 +67,10 @@ class HorarioSolverController extends AbstractController
             }
         }
 
-        $result = $solver->solve($grupo, $seed, $periodoLectivo, $alreadyPlacedByImp);
+        $result = $solverKind === 'ilp'
+            ? $solverIlp->solve($grupo, $seed, $periodoLectivo, $alreadyPlacedByImp)
+            : $solverBinPacking->solve($grupo, $seed, $periodoLectivo, $alreadyPlacedByImp);
+        $result['solver'] = $solverKind;
         return $this->json($result);
     }
 
