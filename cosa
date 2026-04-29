@@ -1,0 +1,37 @@
+se me ocurre añadir una vista o apartado en admin/horarios para cada grupo donde el admin pueda con un vistazo ver la consumición de horas en todo el año. con periodosLectivos y con evaluaciones. vistazo "ahora" y proyecciones en el tiempo según la config de horarios actual.
+
+/admin/grupos/{id} como has interpetado: sería en admin/horarios o en su propia ruta
+
+
+
+añadir toasts y banners al tema, unificándolos. **
+
+unificar vistas /jornadas y admin/horarios. igual que se puede seleccionar una plantilla de jornada, se debe poder crearla / editarla, haciendo innecesario la vista /jornadas.
+
+
+
+subtítulos en todas las vistas, bajo lottie y título, con mini descripción de qué hay en esa vista.
+
+admin/horarios, columna grupo, el texto debe ser "[curso]º [abreviatura]"
+
+en todas las datatables de las vistas crud, la columna Acciones, debe tener un justify-content: end. incluido la cabecera con el texto Acciones.
+
+en el sidebar, dentro de accordionview desplegado, haces scroll interior (si lo tiene) y entras a algún acceso de los que presenta. pues bien, ese scroll se vuelve arriba, escondiendo a veces el acceso a la ruta a la que se ha llegado. se debe corregir, quedando sin alterar ese scroll interior. ojo con no perjudicar los tutoriales, que también tocan esos elementos.
+
+
+revisar hardcodes. sobre todo en banners y toasts. vistas nuevas de catálogos.
+
+la vista /horarios sólo muestra un timetable con horario de mañana. si un profe tien clases por la tarde, no puede verlo. si imprimes el pdf sí aparece.
+
+
+en admin/horarios, panel Materias: aunque todo está bien, cuando pasas entre rangos, a veces alguno aparece Completo · 25/27.5h en verde o borrador en amarillo.
+
+asegurarse de que los profes pueedn pedir cambiar turno.
+
+------------
+
+
+
+en /mis-temarios: falta el º despueś de nobre de grupo
+en /companeros los cards de alumnos deben mostrar el curso "[curso]º "
+toasts en /calificaciones al guardar ponderaciones, etc
