@@ -802,6 +802,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   }, [imps]);
 
   const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
+
+  // Semanas óptimas necesarias para cubrir el currículo presencial sin overshoot
+  // (Fase 5 fix post-cierre 2026-04-29):
+  //   semanasOptimas = ceil(Σobjetivosanuales_presencial / jornadaSemanalLectivaMin)
+  // Sólo cuenta materias presenciales (consumeAula); FCT/NO_REGULAR/AUTONOMA no
+  // ocupan slot de aula, no contribuyen a la carga semanal del calendario.
+  // Útil para "Crear Rangos Recomendados" y "Configurar curso óptimo": permite
+  // que el calendario lectivo cubra exactamente lo necesario, dejando el resto
+  // del año natural libre para FCT, exámenes finales, evaluaciones, etc.
+  const semanasOptimas = useMemo(() => {
+    const objetivoSemanalPresencial = imps.reduce((a, i) => {
+      if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
+      return a + (i.materia?.minutosSemanales || 0);
+    }, 0);
+    if (objetivoSemanalPresencial <= 0 || jornadaSemanalLectivaMin <= 0) return 0;
+    // 36 sem LOMLOE × min/sem presencial = total minutos curriculares.
+    // Dividido por capacidad semanal del centro = nº semanas necesarias.
+    const objetivoAnualMin = objetivoSemanalPresencial * 36;
+    return Math.ceil(objetivoAnualMin / jornadaSemanalLectivaMin);
+  }, [imps, jornadaSemanalLectivaMin]);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
@@ -2454,8 +2474,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   };
 
   // Crear Rangos Recomendados: borra los PLs existentes y crea N nuevos
-  // equiespaciados de Grupo.fechaInicio a Grupo.fechaFin. Si Grupo no tiene
-  // fechas, fallback a `<año>-09-01` y `<año+1>-06-30`.
+  // equiespaciados desde Grupo.fechaInicio cubriendo SOLO las semanas óptimas
+  // necesarias para el currículo (Fase 5 fix post-cierre 2026-04-29). El resto
+  // del año natural queda sin rangos lectivos para FCT, exámenes, evaluaciones,
+  // etc. Si el currículo no cabe en el calendario disponible, se usa todo el
+  // calendario (caso déficit físico, banner rojo lo indicará aparte).
   const handleCreateRecommendedRangos = async (e) => {
     if (e?.preventDefault) e.preventDefault();  // evita submit nativo del <form> del ModalView
     if (!selectedGrupo || !grupo) return;
@@ -2480,10 +2503,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const txt = await r1.text().catch(() => '');
         throw new Error(`Clear: ${r1.status}: ${txt.slice(0, 200)}`);
       }
-      // Paso 2: dividir el rango [iniISO, finISO] en N tramos contiguos.
+      // Paso 2: calcular el span óptimo (semanas necesarias para cubrir el
+      // currículo) y dividir en N tramos contiguos. Si el currículo no cabe en
+      // el calendario, usamos todo el calendario disponible.
       const ini = new Date(iniISO);
       const fin = new Date(finISO);
-      const totalDias = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+      const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+      const diasOptimos = (semanasOptimas > 0) ? semanasOptimas * 7 : totalDiasCalendario;
+      const totalDias = Math.min(diasOptimos, totalDiasCalendario);
       const diasPorTramo = Math.floor(totalDias / N);
       const remainder = totalDias - diasPorTramo * N;
       let cursor = new Date(ini);
@@ -2543,6 +2570,48 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     } finally {
       setCreatingRangos(false);
     }
+  };
+
+  // Configurar curso óptimo (Fase 5 fix post-cierre 2026-04-29): combina
+  // "Crear Rangos Recomendados" con span óptimo + "Sugerir todo el curso" en
+  // un solo flujo. Resultado: calendario ajustado al currículo y placements
+  // distribuidos cubriéndolo al ~100%, sin overshoot por exceso de semanas.
+  const handleConfigureOptimalCourse = async () => {
+    if (!selectedGrupo || !grupo) return;
+    if (semanasOptimas <= 0) {
+      toast.error(t('scheduleEditor.optimalNoData', {
+        defaultValue: 'No se puede calcular el curso óptimo: faltan datos de jornada o materias.',
+      }));
+      return;
+    }
+    // Confirmar (la creación borra todos los rangos + placements).
+    const ok = await confirm({
+      title: t('scheduleEditor.optimalConfirmTitle', { defaultValue: 'Configurar curso óptimo' }),
+      body: t('scheduleEditor.optimalConfirmBody', {
+        defaultValue: 'Esto borrará todos los rangos y placements actuales del grupo, creará {{count}} rangos cubriendo {{semanas}} semanas (las necesarias para el currículo) desde {{ini}}, y ejecutará el solver en todos. ¿Continuar?',
+        count: Math.max(1, parseInt(createRangosCount, 10) || 3),
+        semanas: semanasOptimas,
+        ini: fmtDateEs(grupo?.fechaInicio) || '?',
+      }),
+      confirmLabel: t('scheduleEditor.optimalConfirmLabel', { defaultValue: 'Sí, configurar' }),
+      confirmVariant: 'primary',
+    });
+    if (!ok) return;
+    // Paso 1: crear rangos (reusa handleCreateRecommendedRangos sin abrir modal).
+    setCursoActionsOpen(false);
+    await handleCreateRecommendedRangos();
+    // Paso 2: si la creación falló (toast.error), cortocircuitamos.
+    // Detectamos por el flag `creatingRangos` que vuelve a false sin haber
+    // poblado plByGrupo. Para simplicidad damos un beat al state y seguimos.
+    await new Promise(r => setTimeout(r, 200));
+    if (!(plByGrupo[selectedGrupo] || []).length) {
+      toast.warning(t('scheduleEditor.optimalSolverSkipped', {
+        defaultValue: 'Rangos creados, pero el solver no se pudo ejecutar automáticamente. Usa "Sugerir todo el curso".',
+      }));
+      return;
+    }
+    // Paso 3: ejecutar el solver en todos los rangos.
+    await runSolverAllRangos();
   };
 
   const dirtyAny = Object.values(state).some(s => s?.dirty);
@@ -2720,6 +2789,26 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     onClick={() => setCursoActionsOpen(false)}
                   />
                   <div className={styles.cursoActionsMenu} role="menu">
+                    <button
+                      type="button"
+                      className={`${styles.cursoActionsItem} ${styles.cursoActionsItemPrimary || ''}`}
+                      onClick={handleConfigureOptimalCourse}
+                      disabled={semanasOptimas <= 0}
+                      title={semanasOptimas > 0
+                        ? t('scheduleEditor.optimalActionTitle', {
+                            defaultValue: 'Crear rangos óptimos ({{semanas}} sem) + lanzar solver',
+                            semanas: semanasOptimas,
+                          })
+                        : t('scheduleEditor.optimalNoData', { defaultValue: 'Sin datos para calcular el curso óptimo' })}
+                    >
+                      <Sparkles size={14} />
+                      <span>
+                        {t('scheduleEditor.optimalAction', {
+                          defaultValue: 'Configurar curso óptimo ({{semanas}} sem)',
+                          semanas: semanasOptimas || '?',
+                        })}
+                      </span>
+                    </button>
                     <button
                       type="button"
                       className={styles.cursoActionsItem}
@@ -3637,12 +3726,25 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           <div className={styles.plForm}>
             <p style={{ margin: 0, lineHeight: 1.5 }}>
               {t('scheduleEditor.createRangosBody', {
-                defaultValue: 'Esto borrará TODOS los rangos actuales del grupo y creará {{count}} rangos equiespaciados desde {{ini}} hasta {{fin}}. Los placements existentes se perderán.',
+                defaultValue: 'Esto borrará TODOS los rangos actuales del grupo y creará {{count}} rangos equiespaciados cubriendo {{semanas}} semanas (las necesarias para el currículo) desde {{ini}}. El resto del calendario queda libre para FCT, exámenes, etc. Los placements existentes se perderán.',
                 count: Math.max(1, parseInt(createRangosCount, 10) || 0),
+                semanas: semanasOptimas || '?',
                 ini: fmtDateEs(grupo?.fechaInicio) || '?',
-                fin: fmtDateEs(grupo?.fechaFin) || '?',
               })}
             </p>
+            {semanasOptimas > 0 && (
+              <small className={styles.plFormHint} style={{ display: 'block', marginTop: 'var(--space-2)' }}>
+                {t('scheduleEditor.createRangosOptimalCalc', {
+                  defaultValue: 'Cálculo: Σ currículo {{horasObj}}h ÷ jornada {{horasJornada}}h/sem = {{semanas}} sem',
+                  horasObj: Math.round(imps.reduce((a, i) => {
+                    if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
+                    return a + (i.materia?.minutosSemanales || 0);
+                  }, 0) * 36 / 60),
+                  horasJornada: Math.round(jornadaSemanalLectivaMin / 60),
+                  semanas: semanasOptimas,
+                })}
+              </small>
+            )}
             <label className={styles.plFormField}>
               <span>{t('scheduleEditor.createRangosCountLabel', { defaultValue: 'Número de rangos' })}</span>
               <input

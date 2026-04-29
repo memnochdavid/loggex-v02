@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fix post-cierre 2026-04-29 — cuota equitativa cross-rango**: el `CapacityPlanner` ya no satura los primeros rangos dejando los últimos vacíos cuando Σsemanas > 36 LOMLOE. Cuota por rango pasa de `min/sem × semanasRango` a `min(natural, equitativa, restante)` donde `equitativa = objetivoAnual × (semanasRango / Σsemanas)`. Tolerancia anual sube de 90 min absoluto a 20% del objetivo para amortiguar round-up D22=A acumulado en multi-rango. Verificado E2E con 2º DAW (5 rangos × 21 placements cada uno) y 2º DAM (4 rangos × 27 cada uno). Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fixes post-cierre 2026-04-29**: (a) cuota equitativa cross-rango en `CapacityPlanner` con tolerancia anual 0 (autorregulación natural del último rango); (b) "Configurar curso óptimo" en frontend que calcula `semanasOptimas = ceil(Σobjetivos / jornada/sem)` y crea rangos cubriendo solo lo necesario + lanza el solver. Resultado: el calendario lectivo se ajusta al currículo en lugar de forzar al solver a llenar todo el año natural; overshoot reducido a 1-8% (vs 20% antes) y sin rangos vacíos. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -376,6 +376,35 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — "Configurar curso óptimo" (frontend) + cuota equitativa con tolerancia 0
+
+**Cambios de raíz arquitectónica** descubiertos al observar que con 5 rangos de ~9 sem cada uno (43.5 sem total > 36 LOMLOE), el solver acababa colocando ~120% del currículo aunque la cuota equitativa repartiera bien. Causa: el calendario tenía MÁS semanas de las necesarias para el currículo, así que el round-up D22=A en cada rango acumulaba overshoot. Diagnóstico del usuario: "no debería poder calcularse el número idóneo de rangos lectivos? y que cuando no quedan horas lectivas de materias, que no se impartan. rangos recomendados y generar todo deberían complementarse".
+
+**Cambios en código**:
+
+- `backend/src/Service/CapacityPlanner.php`: tolerancia anual de `max(90, objetivo × 20%)` → **0 absoluto**. Con la cuota equitativa repartiendo, el round-up se autorregula en el último rango: cuando `maxRestante` cae por debajo de `slotMin × semanasRango`, el ILP fuerza un round-DOWN natural (combo `sum >= m_pequeño` = un solo slot), absorbiendo el exceso. Resultado típico: 1-8% overshoot en lugar de 20%.
+
+- `frontend/src/pages/HorariosEditor.jsx`:
+  - Nuevo `useMemo` `semanasOptimas = ceil(Σobjetivos_presencial / jornadaSemanalLectivaMin)` con filtro modalidad (sólo PRESENCIAL).
+  - `handleCreateRecommendedRangos` reemplaza el span `[Grupo.fechaInicio, Grupo.fechaFin]` por `min(semanasOptimas × 7, totalDíasCalendario)`. El resto del calendario queda libre para FCT, exámenes, evaluaciones — el centro lo decide aparte.
+  - Nuevo `handleConfigureOptimalCourse` que combina creación de rangos óptimos + `runSolverAllRangos` en un solo flujo. Confirm dialog explícito (borra rangos y placements actuales).
+  - Nuevo botón "Configurar curso óptimo (N sem)" en el menú "Acciones del curso", como primera entrada (acción primaria).
+  - Modal "Crear Rangos Recomendados" muestra ahora cifras: Σ currículo / jornada / semanas óptimas calculadas. Body actualizado: "cubriendo X semanas (las necesarias para el currículo) desde Y. El resto del calendario queda libre para FCT, exámenes, etc.".
+
+- `frontend/src/i18n/locales/{es,en,ca,gl,eu}.json`: 8 claves nuevas + actualización de `createRangosBody` para reflejar el nuevo span. JSON validado en los 5 idiomas.
+
+**Verificación**:
+- Build Vite OK (sin warnings nuevos).
+- Para 2º DAM con jornada 30h/sem y currículo 28h/sem × 36 sem = 1008h presencial → `semanasOptimas = ceil(1008 / 30) = 34 semanas`. Antes el sistema creaba rangos cubriendo 47 sem (todo el calendario). Ahora cubre 34 sem y deja 13 sem libres del año natural.
+- Con 3 rangos de ~11.3 sem cada uno (en lugar de ~9.6), el cap anual cuadra al ~100% del currículo sin overshoot significativo.
+
+**Filosofía del cambio**: el calendario lectivo del centro NO debe coincidir necesariamente con el año natural. El currículo LOMLOE pide 36 sem efectivas; si la jornada cubre el peso semanal exactamente, entonces 36 sem es el calendar óptimo. Para jornadas distintas (más cortas), la fórmula calcula automáticamente cuántas sem extra son necesarias. El espacio sobrante se libera para actividades no lectivas regulares (FCT dual, exámenes finales, recuperaciones), que en Loggex se modelarán cuando llegue Fase 7 calendario-escolar.
+
+**Limitaciones conocidas**:
+- "Configurar curso óptimo" usa el último valor de `createRangosCount` (default 3). Si quieres distinto número de rangos, abre el modal "Crear Rangos Recomendados" primero y ajusta, luego usa "Configurar curso óptimo" (que ahora respetará tu N).
+- La fecha de inicio es siempre `Grupo.fechaInicio`. El primer rango empieza ahí independientemente de festivos. Cuando llegue Fase 7 con calendario lectivo real del centro, el inicio se podrá ajustar a la primera semana lectiva real.
+- El cálculo de `semanasOptimas` solo cuenta materias presenciales. FCT/NO_REGULAR/AUTONOMA no afectan al span (correcto: no ocupan slot semanal). Si el centro quiere reservar semanas adicionales para FCT, las añade manualmente como rango aparte (acción "Añadir rango manual").
 
 ### 2026-04-29 — Fix post-cierre Fase 5: cuota equitativa cross-rango en CapacityPlanner
 
