@@ -1234,6 +1234,8 @@
     "emptyState": "Hautatu talde bat hasteko.",
     "panelModules": "Ikasgaiak ({{count}})",
     "panelHint": "Arrastatu ikasgai bat ordutegira. Arrastatu klase bat panelera kentzeko.",
+    "panelOtrasHoras": "Beste ordu kurrikularrak ({{count}})",
+    "panelOtrasHorasHint": "Ez dute gelarik hartzen baina urteko kurrikulumean kontatzen dute.",
     "statusComplete": "Osatuta · {{done}}/{{total}}h",
     "statusCompleteAnual": "Osatuta · {{done}}/{{total}}h urtekoak",
     "statusDraft": "Zirriborroa · {{done}}/{{total}}h",
@@ -1459,5 +1461,13 @@
     "errorCreating": "Ezin izan da lan-eguna sortu",
     "errorUpdating": "Ezin izan da lan-eguna eguneratu",
     "errorDelete": "Ezin izan da lan-eguna ezabatu"
+  },
+  "modalidad": {
+    "badge": {
+      "presencial": "Aurrez aurrekoa",
+      "fct": "FCT",
+      "no_regular": "Ez-erregularra",
+      "autonoma": "Autonomoa"
+    }
   }
 }

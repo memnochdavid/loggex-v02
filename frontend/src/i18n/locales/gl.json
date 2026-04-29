@@ -1234,6 +1234,8 @@
     "emptyState": "Selecciona un grupo para comezar.",
     "panelModules": "Materias ({{count}})",
     "panelHint": "Arrastra un materia ao horario. Arrastra unha clase ao panel para quitala.",
+    "panelOtrasHoras": "Outras horas curriculares ({{count}})",
+    "panelOtrasHorasHint": "Non ocupan aula pero contan ao currículo anual.",
     "statusComplete": "Completo · {{done}}/{{total}}h",
     "statusCompleteAnual": "Completo · {{done}}/{{total}}h anuais",
     "statusDraft": "Borrador · {{done}}/{{total}}h",
@@ -1459,5 +1461,13 @@
     "errorCreating": "Non se puido crear a xornada",
     "errorUpdating": "Non se puido actualizar a xornada",
     "errorDelete": "Non se puido eliminar a xornada"
+  },
+  "modalidad": {
+    "badge": {
+      "presencial": "Presencial",
+      "fct": "FCT",
+      "no_regular": "Non regular",
+      "autonoma": "Autónoma"
+    }
   }
 }

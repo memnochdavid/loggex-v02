@@ -1234,6 +1234,8 @@
     "emptyState": "Select a group to start.",
     "panelModules": "Subjects ({{count}})",
     "panelHint": "Drag a subject onto the timetable. Drag a class onto the panel to remove it.",
+    "panelOtrasHoras": "Other curricular hours ({{count}})",
+    "panelOtrasHorasHint": "Don't take classroom slots but count toward the annual curriculum.",
     "statusComplete": "Complete · {{done}}/{{total}}h",
     "statusCompleteAnual": "Complete · {{done}}/{{total}}h yearly",
     "statusDraft": "Draft · {{done}}/{{total}}h",
@@ -1459,5 +1461,13 @@
     "errorCreating": "Could not create schedule template",
     "errorUpdating": "Could not update schedule template",
     "errorDelete": "Could not delete schedule template"
+  },
+  "modalidad": {
+    "badge": {
+      "presencial": "In-person",
+      "fct": "FCT",
+      "no_regular": "Non-regular",
+      "autonoma": "Autonomous"
+    }
   }
 }

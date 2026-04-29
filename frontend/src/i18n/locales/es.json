@@ -1532,6 +1532,8 @@
     "emptyState": "Selecciona un grupo para empezar.",
     "panelModules": "Materias ({{count}})",
     "panelHint": "Arrastra una materia al horario. Arrastra una clase del horario al panel para quitarla.",
+    "panelOtrasHoras": "Otras horas curriculares ({{count}})",
+    "panelOtrasHorasHint": "No ocupan slot de aula pero cuentan al currículo anual.",
     "statusComplete": "Completo · {{done}}/{{total}}h",
     "statusCompleteAnual": "Completo · {{done}}/{{total}}h anuales",
     "statusDraft": "Borrador · {{done}}/{{total}}h",
@@ -1721,5 +1723,13 @@
     "subtitle": "Festivos, evaluaciones y otras fechas clave del curso.",
     "tabHolidays": "Festivos",
     "tabEvaluations": "Evaluaciones"
+  },
+  "modalidad": {
+    "badge": {
+      "presencial": "Presencial",
+      "fct": "FCT",
+      "no_regular": "No regular",
+      "autonoma": "Autónoma"
+    }
   }
 }

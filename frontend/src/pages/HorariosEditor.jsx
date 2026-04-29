@@ -75,6 +75,16 @@ const getId = (obj) => {
   return obj.id || obj['@id']?.split('/').pop();
 };
 
+// ─── Helpers de modalidad ──────────────────────────────────────────────
+// Mirror del backend `Imparticion::getEffectiveModalidad()` (Fase 1):
+// override per-imparticion → modalidad de la materia → fallback PRESENCIAL.
+// La API expone modalidad como string ("presencial" | "fct" | "no_regular" |
+// "autonoma") en `imp.modalidad` e `imp.materia.modalidad`.
+const getEffectiveModalidad = (imp) => imp?.modalidad ?? imp?.materia?.modalidad ?? 'presencial';
+// Único punto de verdad para "¿esta materia ocupa slot de aula?".
+// Solo PRESENCIAL → drag panel + grilla. El resto va al panel "Otras horas".
+const consumeAulaModalidad = (modalidad) => modalidad === 'presencial';
+
 // ─── Componente chip de materia (draggable desde el panel) ──────────────
 // Contador en horas ANUALES (Fase 5 sub-A): minutosTotales = currículo anual,
 // minutosColocados = Σ placements del grupo × ocurrencias del día_semana en
@@ -119,6 +129,38 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
         </span>
       </div>
       <span className={styles.moduleCounter}>{horasColocadas}/{horasTotales}h</span>
+    </div>
+  );
+};
+
+// ─── Item del panel "Otras horas curriculares" (no draggable) ─────────
+// Lista las materias no presenciales (FCT, NO_REGULAR, AUTONOMA) sin drag-
+// and-drop ni contador de progreso: cuentan al currículo anual pero no
+// ocupan slots. Su carga se ve en el banner anual; aquí solo se enumeran
+// con badge de modalidad para que el admin entienda dónde quedan.
+const OtrasHorasItem = ({ imparticion, minutosSemanales, modalidad, color, t }) => {
+  const horasSem = minutosSemanales > 0 ? minToHoras(minutosSemanales) : null;
+  // Etiqueta del badge i18n. Default values en español.
+  const badgeLabel = t(`modalidad.badge.${modalidad}`, {
+    defaultValue: modalidad === 'fct' ? 'FCT'
+      : modalidad === 'no_regular' ? 'No regular'
+      : modalidad === 'autonoma' ? 'Autónoma'
+      : modalidad,
+  });
+  return (
+    <div className={styles.otrasHorasItem} title={badgeLabel}>
+      <span className={styles.moduleDot} style={{ backgroundColor: color }} />
+      <div className={styles.moduleMeta}>
+        <span className={styles.moduleName}>
+          {imparticion.materia ? <MateriaLabel materia={imparticion.materia} /> : '—'}
+        </span>
+        <span className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${modalidad}`] || ''}`}>
+          {badgeLabel}
+        </span>
+      </div>
+      {horasSem !== null && (
+        <span className={styles.moduleCounter}>{horasSem}h/sem</span>
+      )}
     </div>
   );
 };
@@ -582,6 +624,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const imps = imparticiones[selectedGrupo] || [];
   const grupoState = state[stateKey];
   const placements = grupoState?.placements || {};
+
+  // Split de imparticiones por modalidad (Fase 4): solo PRESENCIAL va al panel
+  // arrastrable; el resto al sub-panel "Otras horas curriculares" sin drag.
+  // Mirror estricto del filtro del backend (CapacityPlanner / HorarioSolver).
+  const impsPresenciales = useMemo(
+    () => imps.filter(i => consumeAulaModalidad(getEffectiveModalidad(i))),
+    [imps],
+  );
+  const impsNoPresenciales = useMemo(
+    () => imps.filter(i => !consumeAulaModalidad(getEffectiveModalidad(i))),
+    [imps],
+  );
 
   // Resolver la jornada efectiva del (grupo, PL). Cargada por el useEffect 1.5).
   // Cadena: PL.jornadaTipo > Grupo.jornadaTipoOverride > Itinerario.jornadaTipo
@@ -2909,8 +2963,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             })()}
             <div className={styles.editorLayout}>
               <aside className={styles.modulesPanel}>
-                <h3 className={styles.panelTitle}>{t('scheduleEditor.panelModules', { count: imps.length })}</h3>
-                {imps.map(imp => (
+                <h3 className={styles.panelTitle}>{t('scheduleEditor.panelModules', { count: impsPresenciales.length })}</h3>
+                {impsPresenciales.map(imp => (
                   <ModuleChip
                     key={imp.id}
                     imparticion={imp}
@@ -2924,6 +2978,34 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
                   {t('scheduleEditor.panelHint')}
                 </p>
+                {/* Sub-panel "Otras horas curriculares" — Fase 4. Lista materias
+                    no presenciales (FCT, NO_REGULAR, AUTONOMA) sin drag, solo
+                    informativo. Cuenta al banner anual pero no ocupa slot. */}
+                {impsNoPresenciales.length > 0 && (
+                  <div className={styles.otrasHorasSection}>
+                    <h4 className={styles.otrasHorasTitle}>
+                      {t('scheduleEditor.panelOtrasHoras', {
+                        count: impsNoPresenciales.length,
+                        defaultValue: 'Otras horas curriculares ({{count}})',
+                      })}
+                    </h4>
+                    <p className={styles.otrasHorasHint}>
+                      {t('scheduleEditor.panelOtrasHorasHint', {
+                        defaultValue: 'No ocupan slot de aula pero cuentan al currículo anual.',
+                      })}
+                    </p>
+                    {impsNoPresenciales.map(imp => (
+                      <OtrasHorasItem
+                        key={imp.id}
+                        imparticion={imp}
+                        minutosSemanales={imp.materia?.minutosSemanales || 0}
+                        modalidad={getEffectiveModalidad(imp)}
+                        color={colorForModule(imp.materia?.id || imp.id)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                )}
                 {estadoBadge && (
                   <span className={`${styles.statusBadge} ${estadoBadge.cls} ${styles.panelStatus}`}>
                     {estadoBadge.icon}

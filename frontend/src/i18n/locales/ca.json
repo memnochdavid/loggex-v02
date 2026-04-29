@@ -1234,6 +1234,8 @@
     "emptyState": "Selecciona un grup per començar.",
     "panelModules": "Matèries ({{count}})",
     "panelHint": "Arrossega una matèria a l'horari. Arrossega una classe al panell per treure-la.",
+    "panelOtrasHoras": "Altres hores curriculars ({{count}})",
+    "panelOtrasHorasHint": "No ocupen aula però compten al currículum anual.",
     "statusComplete": "Complet · {{done}}/{{total}}h",
     "statusCompleteAnual": "Complet · {{done}}/{{total}}h anuals",
     "statusDraft": "Esborrany · {{done}}/{{total}}h",
@@ -1459,5 +1461,13 @@
     "errorCreating": "No s'ha pogut crear la jornada",
     "errorUpdating": "No s'ha pogut actualitzar la jornada",
     "errorDelete": "No s'ha pogut eliminar la jornada"
+  },
+  "modalidad": {
+    "badge": {
+      "presencial": "Presencial",
+      "fct": "FCT",
+      "no_regular": "No regular",
+      "autonoma": "Autònoma"
+    }
   }
 }

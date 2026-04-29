@@ -1,6 +1,6 @@
 # Modalidad de imparticion — separar placement vs currículo
 
-> **Status (2026-04-29)**: 🟡 Fases 1+2+3 ✅ Done (modelo + catálogo + cascada + solver). El `CapacityPlanner` y `HorarioSolver` filtran imparticiones no presenciales. **Smoke test 2º DAM AN E2E**: con UPDATE manual simulando post-resync, 33h → 28h totales, 9 → 7 imparticiones procesadas, 6 → 1 huérfano. `complete: true` con 25 placements. Modalidad cumple su promesa: el currículo cabe en jornada normal. **Siguiente**: Fase 4 (banner anual + chip lateral honran modalidad — Σ currículo total vs Σ presencial separados).
+> **Status (2026-04-29)**: 🟡 Fases 1+2+3+4 ✅ Done (modelo + catálogo + solver + UI editor). El editor de horarios (`/admin/horarios`) ahora muestra solo PRESENCIAL en el panel arrastrable y un sub-panel "Otras horas curriculares" para FCT/NO_REGULAR/AUTONOMA con badge de modalidad. Banner anual sigue contando todo el currículo (presencial + no presencial). i18n × 5 idiomas. **Siguiente**: Fase 5 (UI editar modalidad — columna en `/admin/materias` y `/admin/imparticiones`).
 >
 > **Alcance** (discusión 2026-04-29): no es parche para DAW/DAM 2º — resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización) y abre la puerta a ESO/Bach/Uni. Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión.
 
@@ -154,14 +154,19 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 
 **Esfuerzo real**: ~20 min.
 
-### Fase 4 — Banner anual y chip lateral respetan modalidad
+### Fase 4 — Banner anual y chip lateral respetan modalidad ✅ Done (2026-04-29)
 
-- Banner anual (Fase 3b): `curriculumMin` sigue sumando TODAS (presencial + no presencial). `plannedMin` sigue como está. La diferencia entre ambos es lo que cuenta a currículo total.
-- Banner CapacityPlanner: el cap usa solo presenciales. Si Σ presenciales ≤ jornada → verde silencioso. Si supera → amarillo "redistribuye" o rojo "extender".
-- ModuleChip lateral (Fase 5 sub-A): solo muestra materias PRESENCIAL en el panel arrastrable. Las no presenciales NO se pueden colocar (no tiene sentido). Pero su carga sí cuenta al banner anual.
-- Una vista nueva en el panel lateral: "Otras horas curriculares" con la lista de materias no presenciales y sus h/sem informativas. Sin drag-and-drop.
+- ✅ Helpers `getEffectiveModalidad(imp)` + `consumeAulaModalidad(modalidad)` en `HorariosEditor.jsx` (mirror del backend `Imparticion::getEffectiveModalidad()` + `Modalidad::consumeAula()`).
+- ✅ Split `imps` → `impsPresenciales` (drag panel) + `impsNoPresenciales` (sub-panel informativo).
+- ✅ Nuevo componente `OtrasHorasItem` sin drag-and-drop, con badge de modalidad (`FCT` azul / `No regular` ámbar / `Autónoma` gris) y `h/sem` informativo.
+- ✅ Sub-panel "Otras horas curriculares (N)" con divisor y hint dentro del mismo `<aside>` lateral.
+- ✅ CSS para `.otrasHorasSection`, `.otrasHorasItem`, `.modalidadBadge` y sus variantes por modalidad.
+- ✅ Banner anual: **sin cambios** — ya sumaba todas las materias (presencial + no presencial) correctamente.
+- ✅ Banner CapacityPlanner: **sin cambios textuales** — ya consume `cap.totalMinutos` filtrado por backend (Fase 3) y los textos siguen siendo precisos.
+- ✅ i18n × 5 idiomas: claves nuevas `scheduleEditor.panelOtrasHoras`, `scheduleEditor.panelOtrasHorasHint` y bloque `modalidad.badge.{presencial,fct,no_regular,autonoma}`.
+- ✅ Build de Vite OK (1992 módulos transformados, sin warnings nuevos).
 
-**Esfuerzo**: ~0.75 sesión.
+**Esfuerzo real**: ~30 min.
 
 ### Fase 5 — UI para editar modalidad
 
@@ -210,6 +215,38 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Fase 4 ✅ Done (panel lateral del editor honra modalidad)
+
+**Cambios en código**:
+- `frontend/src/pages/HorariosEditor.jsx`:
+  - Helpers `getEffectiveModalidad(imp)` y `consumeAulaModalidad(modalidad)` cerca del top del archivo (mirror estricto del backend). La API expone modalidad como string en `imp.modalidad` y `imp.materia.modalidad`; el helper aplica la cascada override → catálogo → fallback PRESENCIAL.
+  - Componente `OtrasHorasItem` para render no-arrastrable con badge de modalidad. Reutiliza `MateriaLabel` y `colorForModule`. Sin progreso (no aplica para no presenciales).
+  - `useMemo` `impsPresenciales` / `impsNoPresenciales` que parten `imps[]` por `consumeAulaModalidad(getEffectiveModalidad(i))`.
+  - Render del `<aside className={styles.modulesPanel}>`: el `.map(impsPresenciales)` alimenta `ModuleChip` (drag); abajo, condicional `impsNoPresenciales.length > 0` añade el sub-panel "Otras horas curriculares (N)" con hint y `OtrasHorasItem` por entrada.
+- `frontend/src/pages/HorariosEditor.module.css`:
+  - `.otrasHorasSection` con `border-top` punteado y margen superior.
+  - `.otrasHorasTitle` y `.otrasHorasHint` (texto sutil, italic).
+  - `.otrasHorasItem` similar a `moduleChip` pero `cursor: default`, opacidad 0.9, sin estados drag/done.
+  - `.modalidadBadge` base + variantes `_fct` (azul), `_no_regular` (ámbar) y `_autonoma` (gris) usando `color-mix` para no añadir variables CSS nuevas.
+- `frontend/src/i18n/locales/{es,en,ca,gl,eu}.json`:
+  - Claves `scheduleEditor.panelOtrasHoras` ("Otras horas curriculares ({{count}})") y `scheduleEditor.panelOtrasHorasHint` ("No ocupan slot de aula pero cuentan al currículo anual.").
+  - Bloque top-level `modalidad.badge.{presencial,fct,no_regular,autonoma}` con etiquetas en cada idioma.
+
+**Decisiones puntuales tomadas durante implementación**:
+- **Banner CapacityPlanner sin cambios textuales** (D-G informal, no estaba en D-A→D-F): el banner consume `cap.totalMinutos` ya filtrado por Fase 3 backend, y los textos "Las materias suman X h/sem" siguen siendo correctos (ahora "X" es el subtotal presencial). Cambiar a "Las materias presenciales..." complicaría el copy sin valor añadido. El sub-panel "Otras horas" del lateral ya cubre la separación visual.
+- **Banner anual sin cambios**: `curriculumMin` sigue siendo Σ todas las materias × 36 sem, y `plannedMin` sigue siendo Σ PLI × semanas (incluye no presenciales). Esa es la lectura correcta de "currículo total" — separarla por modalidad sería sobrediseño.
+- **Badges con `color-mix` en lugar de variables CSS nuevas**: el sistema de tematización del proyecto ya expone `--color-info`, `--color-warning`, `--color-text-secondary`. `color-mix` permite tonalidades blandas (12% / 35% / 40%) sin tocar `theme.js` ni inventar tokens nuevos.
+- **Sub-panel dentro del mismo `<aside>`**: la alternativa era un panel separado abajo. Se descartó porque (a) el sticky del aside seguiría funcionando, (b) el admin ve de un vistazo "todas las materias del grupo, separadas por placement", (c) menos cambio de layout.
+
+**Verificación**:
+- `npm run build` OK: 1992 módulos transformados, sin warnings nuevos. Solo warnings preexistentes (lottie-web `eval`, chunk size > 500 kB) sin relación.
+- JSON de los 5 idiomas validado por parser Python (`json.load`).
+- Visualmente pendiente: el usuario verifica en navegador. Esperado en 2º DAM EAG: 7 chips arrastrables (Acceso a datos, Desarrollo de interfaces, Programación multimedia, Programación servicios, Sistemas gestión, Inglés profesional GS, IPE II) + sub-panel "Otras horas curriculares (3)" con `Proyecto Intermodular [No regular] 2h/sem`, `Horas de libre configuración [No regular] 3h/sem`, `Formación en Centros de Trabajo [FCT]` (sin h/sem porque minutosSemanales=0).
+
+**Sin cambios funcionales en**: PDF (sigue sin sección "Otras horas curriculares" — Fase 6), UI de edición de modalidad (no existe — Fase 5), `/admin/materias` y `/admin/imparticiones` (sin columna modalidad).
+
+**Siguiente** (Fase 5, ~0.5 sesión): columna "Modalidad" editable en `/admin/materias` (default catálogo) y "Modalidad (override)" opcional en `/admin/imparticiones` (per-grupo). Modal "Materias del rango" (Fase 4 PeriodoLectivo, no confundir con esta Fase 4) puede mostrar badge de modalidad junto al nombre — opcional, polish.
 
 ### 2026-04-29 — Fase 3 ✅ Done (solver + CapacityPlanner respetan modalidad)
 
