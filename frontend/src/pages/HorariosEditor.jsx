@@ -803,36 +803,22 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
 
-  // Capacidad semanal de SLOTS COLOCABLES (sin recreos). Necesario para
-  // calcular semanasOptimas: el solver físicamente solo coloca placements en
-  // slots, no en recreos. Si usásemos jornadaSemanalLectivaMin (slots+recreos),
-  // el calendario quedaría corto y las materias deficitarias.
-  const slotsSemanalMin = useMemo(() => {
-    let total = 0;
-    tramosOrdenados.forEach(t => {
-      if (t.tipo !== 'slot') return;
-      total += Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
-    });
-    return total * 5;
-  }, [tramosOrdenados]);
-
-  // Semanas óptimas necesarias para cubrir el currículo presencial físicamente
-  // (Fase 5 fix post-cierre 2026-04-29):
-  //   semanasOptimas = ceil(Σ(materia.minutosSemanales × 36) / slotsSemanalMin)
-  // Usa SOLO slots (sin recreos) porque el solver coloca solo en slots — los
-  // recreos no son placement físico. Si Σ presencial > slotsSemanalMin (caso
-  // 1º DAW: 29h vs 27.5h slots), añadimos las semanas necesarias para que cada
-  // materia se imparta físicamente al 100% del currículo. Resultado: overshoot
-  // pequeño y aceptable (~106%) en lugar de déficit estructural irreductible.
+  // Semanas óptimas necesarias para cubrir el currículo presencial. Usa
+  // jornadaSemanalLectivaMin (slots + recreos × días) como capacidad: LOMLOE
+  // cuenta los recreos como tiempo lectivo curricular legítimo. Si el centro
+  // tiene déficit estructural per-week (Σ presencial > capacidad slots solo),
+  // ese déficit es IRREDUCIBLE — no se arregla añadiendo semanas porque la
+  // restricción es per-semana, no anual. El banner amarillo/verde-info de la
+  // jornada lectiva ya refleja la situación correctamente.
   const semanasOptimas = useMemo(() => {
     const objetivoSemanalPresencial = imps.reduce((a, i) => {
       if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
       return a + (i.materia?.minutosSemanales || 0);
     }, 0);
-    if (objetivoSemanalPresencial <= 0 || slotsSemanalMin <= 0) return 0;
+    if (objetivoSemanalPresencial <= 0 || jornadaSemanalLectivaMin <= 0) return 0;
     const objetivoAnualMin = objetivoSemanalPresencial * 36;
-    return Math.ceil(objetivoAnualMin / slotsSemanalMin);
-  }, [imps, slotsSemanalMin]);
+    return Math.ceil(objetivoAnualMin / jornadaSemanalLectivaMin);
+  }, [imps, jornadaSemanalLectivaMin]);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
@@ -3767,12 +3753,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             {semanasOptimas > 0 && (
               <small className={styles.plFormHint} style={{ display: 'block', marginTop: 'var(--space-2)' }}>
                 {t('scheduleEditor.createRangosOptimalCalc', {
-                  defaultValue: 'Cálculo: Σ currículo {{horasObj}}h ÷ slots colocables {{horasJornada}}h/sem = {{semanas}} sem',
+                  defaultValue: 'Cálculo: Σ currículo {{horasObj}}h ÷ jornada lectiva {{horasJornada}}h/sem = {{semanas}} sem',
                   horasObj: Math.round(imps.reduce((a, i) => {
                     if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
                     return a + (i.materia?.minutosSemanales || 0);
                   }, 0) * 36 / 60),
-                  horasJornada: Math.round(slotsSemanalMin / 60 * 10) / 10,
+                  horasJornada: Math.round(jornadaSemanalLectivaMin / 60 * 10) / 10,
                   semanas: semanasOptimas,
                 })}
               </small>
