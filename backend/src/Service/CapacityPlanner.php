@@ -145,6 +145,14 @@ class CapacityPlanner
         $totalSemanasGrupo = $alreadyPlacedByImp !== null
             ? $this->calcularTotalSemanasGrupo($grupo)
             : 0.0;
+        // Slot menor de la jornada — usado como umbral para descartar materias
+        // con cuota residual demasiado pequeña (cap anual cross-rango): si el
+        // currículo de una materia ya está cubierto al ~98% por rangos
+        // anteriores, su cuota restante puede ser solo unos minutos. Forzar
+        // un slot completo en este rango por esa materia generaría combos
+        // imposibles con las demás (déficit semanal en jornadas ajustadas).
+        // Solución: si cuotaEsteRango < slotMin, skip esta materia en el rango.
+        $slotMinDuracion = empty($slotsBase) ? 60 : (int) min(array_map(fn ($s) => $s[2], $slotsBase));
 
         $materias = [];
         $totalMinutos = 0;
@@ -175,6 +183,12 @@ class CapacityPlanner
                 $yaColocadoOtrosRangos = (int) ($alreadyPlacedByImp[$imp->getId()] ?? 0);
                 $maxRestante = max(0, $objetivoAnual + $TOLERANCIA_ANUAL_MIN - $yaColocadoOtrosRangos);
                 $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);
+                // Skip si la cuota residual no llega ni a 1 slot del rango.
+                // Materia "casi cubierta" no necesita más placements aquí —
+                // forzarlo crearía un combo de 1 slot que satura otras.
+                if ($cuotaEsteRango < $slotMinDuracion) {
+                    $cuotaEsteRango = 0;
+                }
             } else {
                 $cuotaEsteRango = $cuotaNatural;
             }
