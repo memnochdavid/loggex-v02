@@ -109,19 +109,41 @@ class CapacityPlanner
             ->getQuery()
             ->getResult();
 
-        // Cap anual por materia (Fase 5 fix afinado): cada materia tiene un
-        // objetivo curricular = `materia.minutosSemanales × 36` (LOMLOE D-L).
-        // Lo ya colocado en OTROS rangos del grupo se descuenta del cuota de
-        // este rango, con tolerancia +TOLERANCIA_MIN. Resultado: el solver
-        // nunca asigna más allá de `objetivoAnual + tolerancia` para una
-        // materia (sumando todos los rangos).
-        // El parámetro `$alreadyPlacedByImp` lo pasa el caller (frontend
-        // calcula minutos anuales ya colocados en otros rangos antes de
-        // ejecutar el solver). Si el array es null, no se aplica el cap (modo
-        // legacy, mantiene comportamiento anterior para compatibilidad).
-        $TOLERANCIA_ANUAL_MIN = 90;  // 1.5h tolerancia sobre el currículo
+        // Cap anual por materia (Fase 5 fix afinado + 2026-04-29 cuota equitativa):
+        // cada materia tiene un objetivo curricular = `materia.minutosSemanales × 36`
+        // (LOMLOE D-L). Lo ya colocado en OTROS rangos del grupo se descuenta del
+        // cuota de este rango, con tolerancia +TOLERANCIA_ANUAL_FRAC.
+        //
+        // Tres cuotas posibles, se toma la más restrictiva (`min` de las tres):
+        //   1. `cuotaNatural   = min/sem × semanasRango` → techo físico:
+        //      no se puede asignar más que lo que tendría la materia "naturalmente"
+        //      en este rango si fuese todo el año.
+        //   2. `cuotaEquitativa = objetivoAnual × (semanasRango / totalSemanasGrupo)` →
+        //      reparto proporcional cuando Σsemanas > 36 LOMLOE, evita que los
+        //      primeros rangos saturen el currículo y dejen vacíos los últimos.
+        //   3. `maxRestante    = objetivoAnual × (1 + TOLERANCIA_ANUAL_FRAC) − yaColocado` →
+        //      fail-safe absoluto: nunca sobrepasar el currículo total + holgura.
+        //
+        // La tolerancia es PROPORCIONAL al objetivo (no absoluta). Razón: con
+        // multi-rango y slots de 60min, cada rango sufre round-up D22=A de hasta
+        // ~30min/sem por materia. Acumulado en N rangos × M semanas, el exceso
+        // puede ser sustancial. Fijar la tolerancia en 90min absolutos (legacy)
+        // hacía que rangos finales quedasen vacíos. Tolerancia ≥20% de objetivo
+        // absorbe ese exceso para currículos típicos LOMLOE.
+        //
+        // El parámetro `$alreadyPlacedByImp` lo pasa el caller (frontend calcula
+        // minutos anuales ya colocados en otros rangos antes de ejecutar el solver).
+        // Si el array es null, no se aplica el cap (modo legacy / single-range).
+        $TOLERANCIA_ANUAL_FRAC = 0.20;       // 20% de holgura sobre el objetivo
+        $TOLERANCIA_ANUAL_MIN_ABS = 90;      // piso para currículos pequeños
         $SEMANAS_REF_LOMLOE = 36;
         $semanasRango = $this->calcularSemanasPL($periodoLectivo);
+        // Total de semanas del grupo (todos sus PLs vivos). Necesario para la
+        // cuota equitativa cuando hay multi-rango. Si solo hay un PL, coincide
+        // con $semanasRango y la cuota equitativa = objetivoAnual completo.
+        $totalSemanasGrupo = $alreadyPlacedByImp !== null
+            ? $this->calcularTotalSemanasGrupo($grupo)
+            : 0.0;
 
         $materias = [];
         $totalMinutos = 0;
@@ -139,12 +161,23 @@ class CapacityPlanner
             $cuotaNatural = (int) round($minutosBaseSemanal * $semanasRango);
 
             // Cap anual: si el caller pasó info de placements en otros rangos,
-            // descontar del objetivo curricular total.
+            // aplicar la triple regla min(natural, equitativa, restante).
             if ($alreadyPlacedByImp !== null) {
                 $objetivoAnual = ($imp->getMateria()?->getMinutosSemanales() ?? 0) * $SEMANAS_REF_LOMLOE;
+                // Cuota equitativa: este rango toma la fracción del objetivo
+                // anual proporcional al peso de sus semanas sobre el total
+                // del grupo. Si totalSemanas <= 0 (caso edge), neutralizamos
+                // la equitativa con PHP_INT_MAX para que no domine el min().
+                $cuotaEquitativa = $totalSemanasGrupo > 0
+                    ? (int) round($objetivoAnual * ($semanasRango / $totalSemanasGrupo))
+                    : PHP_INT_MAX;
                 $yaColocadoOtrosRangos = (int) ($alreadyPlacedByImp[$imp->getId()] ?? 0);
-                $maxRestante = max(0, $objetivoAnual + $TOLERANCIA_ANUAL_MIN - $yaColocadoOtrosRangos);
-                $cuotaEsteRango = min($cuotaNatural, $maxRestante);
+                $tolerancia = max(
+                    $TOLERANCIA_ANUAL_MIN_ABS,
+                    (int) round($objetivoAnual * $TOLERANCIA_ANUAL_FRAC),
+                );
+                $maxRestante = max(0, $objetivoAnual + $tolerancia - $yaColocadoOtrosRangos);
+                $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);
             } else {
                 $cuotaEsteRango = $cuotaNatural;
             }
@@ -470,6 +503,23 @@ class CapacityPlanner
         if ($i === null || $f === null) return 0.0;
         $diff = $i->diff($f);
         return (((int) $diff->days) + 1) / 7.0;
+    }
+
+    /**
+     * Σ semanas de TODOS los PeriodoLectivos vivos del grupo. Usado para
+     * calcular la cuota equitativa cuando el cap anual cross-rango está
+     * activo: la cuota de un rango es proporcional al peso de sus semanas
+     * sobre el total del grupo.
+     */
+    private function calcularTotalSemanasGrupo(Grupo $grupo): float
+    {
+        $pls = $this->em->getRepository(PeriodoLectivo::class)
+            ->findBy(['grupo' => $grupo, 'deleted' => false]);
+        $total = 0.0;
+        foreach ($pls as $pl) {
+            $total += $this->calcularSemanasPL($pl);
+        }
+        return $total;
     }
 
     private function slotsFromJornada(JornadaTipo $jornada): array

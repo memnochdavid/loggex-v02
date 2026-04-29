@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-28)**: 🟢 **Fase 5 COMPLETA** (sub-A+B+C+D+E ✅) + Fases 1+2+3a+3b+4 ✅ Done. Stepping stone (override jornada por grupo) ✅ Done. **Sub-fase C ✅**: el banner del CapacityPlanner ya no es rojo automático cuando Σ semanal supera la jornada — es **amarillo informativo** si globalmente cabe (admin redistribuye con Sliders) y **rojo real** sólo si Σ currículo > Σ jornada × Σ semanas total grupo (déficit físico, requiere extender curso o subir jornada). Mensajes actualizados con cifras exactas (capacidad vs currículo, déficit físico). Sub-fase D pendiente (cleanup parche temporal). Sustituye al **parche temporal** de `hoja-de-ruta-jornadas-recreos.md` y **funde la Fase 5** de `hoja-de-ruta-calendario-escolar.md`. Quedan Fase 5d (cleanup parche), 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
+> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Fix post-cierre 2026-04-29 — cuota equitativa cross-rango**: el `CapacityPlanner` ya no satura los primeros rangos dejando los últimos vacíos cuando Σsemanas > 36 LOMLOE. Cuota por rango pasa de `min/sem × semanasRango` a `min(natural, equitativa, restante)` donde `equitativa = objetivoAnual × (semanasRango / Σsemanas)`. Tolerancia anual sube de 90 min absoluto a 20% del objetivo para amortiguar round-up D22=A acumulado en multi-rango. Verificado E2E con 2º DAW (5 rangos × 21 placements cada uno) y 2º DAM (4 rangos × 27 cada uno). Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro, parametriza D-L), 8 (dashboard horas anuales).
 
 ---
 
@@ -376,6 +376,44 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-29 — Fix post-cierre Fase 5: cuota equitativa cross-rango en CapacityPlanner
+
+**Bug detectado** durante prueba de la Fase 4 modalidad: con 5 rangos lectivos, el solver dejaba el último rango casi vacío (DAW: 2 placements; DAM: 8 placements) mientras los primeros 4 cargaban al máximo. Comparativa antes del fix:
+
+| Grupo | Rangos | Antes |
+|---|---|---|
+| 2º DAW | 5 × ~9.6 sem | 25 / 25 / 25 / 21 / **2** placements |
+| 2º DAM | 5 × ~8.7 sem | 28 / 28 / 28 / 28 / **8** placements |
+
+**Causa raíz**: el `CapacityPlanner::plan()` calculaba `cuotaNatural = min/sem × semanasRango`. Cuando Σsemanas del grupo > 36 (semanas LOMLOE de referencia), los primeros rangos saturaban al 100% del currículo anual y el cap dejaba al último rango con `maxRestante ≈ 0`. Consecuencia operativa: pedagógicamente absurdo (alumno sin clases en el último rango porque "ya se cumplió la cuota").
+
+**Fix**: tres cambios en `backend/src/Service/CapacityPlanner.php`:
+
+1. **Cuota equitativa** como tercera variable del `min()`:
+   ```
+   cuotaEquitativa = objetivoAnual × (semanasRango / totalSemanasGrupo)
+   cuotaEsteRango  = min(cuotaNatural, cuotaEquitativa, maxRestante)
+   ```
+   Reparte el currículo anual proporcionalmente al peso de cada rango. Si Σsemanas = 36, equitativa coincide con natural. Si Σsemanas > 36, equitativa < natural y limita el primer rango.
+
+2. **Helper `calcularTotalSemanasGrupo(Grupo)`** que suma semanas de todos los PLs vivos. Solo se invoca cuando `alreadyPlacedByImp !== null` (modo cap anual cross-rango activo) — no penaliza el modo legacy / single-range.
+
+3. **Tolerancia anual proporcional**: de `90 min absoluto` a `max(90, objetivoAnual × 20%)`. Razón: con multi-rango y slots de 60 min, el round-up D22=A acumula hasta ~30 min/sem por materia × N rangos × M semanas. La tolerancia 90 min era insuficiente para currículos típicos LOMLOE (Inglés GS 72h → tolerancia 14.4h vs los 1.5h previos). El piso de 90 min absoluto preserva el comportamiento para currículos pequeños.
+
+**Modo legacy intacto**: si `alreadyPlacedByImp` es null (caller no calcula cap anual), ninguna de las tres ramas se activa — comportamiento idéntico al previo. Single-range tampoco cambia (Σsemanas = semanasRango → equitativa = natural).
+
+**Verificación E2E**:
+- 2º DAW post-fix: 21 / 21 / 21 / 21 / 21 placements ← equilibrado
+- 2º DAM post-fix: 27 / 27 / 27 / 27 placements (recreado a 4 rangos) ← equilibrado
+- Acumulado anual: materias entre 103% y 126% del objetivo (overshoot por round-up granularidad slot 60 min, dentro de tolerancia 20% para casi todas; un caso aislado 126% por currículo pequeño donde el round-up pesa más).
+- 0 unplaced en todos los rangos para ambos grupos.
+
+**Limitaciones conocidas**:
+- Si los rangos tienen jornadas distintas (uno con 30h/sem, otro 25h/sem), el cap usa Σsemanas del grupo sin ponderar por jornada. Aproximación suficiente; ponderar requiere cargar la jornada efectiva de cada PL aquí, lo que duplica trabajo del resolver.
+- El overshoot del 26% (Inglés GS DAW) es por granularidad de slot 60 min: 90.5 min/sem ideal → 120 min/sem real (round-up obligado a 2 slots). Solucionable solo con jornadas que permitan slots más finos (ej. 30 min) o con redistribución manual desde el modal "Materias del rango".
+
+**Cross-ref**: este fix se descubrió mientras se verificaba Fase 4 de `hoja-de-ruta-modalidad-imparticion.md`. La Fase 4 modalidad expuso el bug (con 5 rangos el rango 5 quedaba casi vacío) que era pre-existente desde Fase 5 sub-A pero no se notaba con un solo rango "Curso completo". No es un bug de modalidad.
 
 ### 2026-04-28 — Fase 5 sub-C polish: cappear plan a capacidad para evitar verdicts contradictorios
 
