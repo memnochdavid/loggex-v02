@@ -12,7 +12,7 @@
 
 **Sub-fase O + CCAA Fase 3 (opción A) ✅ Done (2026-04-27 madrugada).** Caso EAG/DAW 2º validado E2E con datos hard-coded aproximados antes de pasar a B real.
 
-**🆕 Solver bin-packing — propuesto (2026-04-29 noche):** tras observar que el solver físico ILP actual deja slots vacíos en jornadas con tramos heterogéneos (FP Mañanas 4×60+1×90/día → 2-5 slots vacíos / rango), el usuario propuso modelo de "líquidos y recipientes" funcionalmente equivalente a bin-packing first-fit. Plan diseñado en `hoja-de-ruta-solver-bin-packing.md` (sin implementar todavía). Probabilidad de éxito 70% al primer intento, 90% tras ajustes. Fallback: `git reset --hard` y volvemos al ILP actual.
+**🟡 Solver bin-packing — Fases 1+2+3 ✅ Done con deuda residual APLAZADA (2026-04-29 noche, commit `6ef7be1`):** el bin-packing first-fit (`HorarioSolverBinPacking`) ahora es default, satura jornadas (placed=25/25 FP Mañanas, 30/30 FP Tardes). Cobertura per materia 81-123% en los 4 grupos del centro EAG. **1º DAM perfecto al 97-103%** (FP Tardes uniforme); FP Mañanas tiene asimetría estructural del slot de 90min que causa overshoot residual 116-123% en algunas materias y undershoot 81-88% en otras (DIG, IPEI II) por bucle reductivo. **Decisión 2026-04-29 noche: aplazar afinado del solver para avanzar con Modalidad Fase 5**, que tiene mayor impacto comercial. Deuda detallada en `hoja-de-ruta-solver-bin-packing.md` §7 con 4 ideas de resolución cuando se retome. ILP queda como fallback con `body.solver=ilp`.
 
 **Próxima acción** — **Fase 5 COMPLETA (2026-04-28)** ✅. Fases 1-5 todas cerradas: el sistema soporta cualquier itinerario LOMLOE en cualquier centro real con jornada normal, cap anual cross-rango con tolerancia, truco recreos curriculares, extender curso, multi-rango cronológico y PDF multi-página. Rutas posibles:
 
@@ -181,7 +181,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
-| `hoja-de-ruta-solver-bin-packing.md` | Fase 1 (~3h) + Fase 2 endpoint (~30min) + Fase 3 validación E2E (~1h) | Alternativa al ILP actual de `HorarioSolver`. Resuelve el bug de slots vacíos en FP Mañanas (4×60+1×90/día). Modelo "líquidos y recipientes". Probabilidad éxito 70% al primer intento, 90% tras ajustes. Si falla → `git reset --hard`. |
+| `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Deuda residual aplazada (~1-2 sesiones futuras) | Bin-packing first-fit es default. Satura jornadas. Deuda residual: undershoot 81-88% en materias pequeñas con conflict profe (DIG, IPEI II), overshoot 116-123% en materias FP Mañanas por slot de 90 asimétrico. 4 ideas de resolución (A-D) en doc §7. Aplazado para priorizar Modalidad Fase 5. |
 
 ### 📋 Referencia / manuales
 

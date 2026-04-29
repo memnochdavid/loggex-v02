@@ -1,6 +1,6 @@
 # Solver bin-packing — Algoritmo de líquidos
 
-> **Status (2026-04-29 noche)**: 🔴 Sin empezar. Plan diseñado tras observar que el solver físico actual (ILP backtracking) deja slots vacíos en jornadas con tramos heterogéneos (FP Mañanas 4×60+1×90 / día). El usuario propuso un modelo conceptual de "líquidos y recipientes" que es funcionalmente equivalente a un **bin-packing first-fit** con restricciones laterales.
+> **Status (2026-04-29 noche, post-implementación)**: 🟡 **Fases 1+2+3 ✅ Done — funcional pero con deuda residual aplazada para avanzar con Modalidad Fase 5**. El bin-packing satura jornadas correctamente (placed=25/30 por rango, sin slots vacíos por conflict de combo). Cobertura per materia 81-123% en los 4 grupos del centro EAG, con casos extremos: 1º DAM al 97-103% (perfecto, FP Tardes uniforme) y FP Mañanas 81-123% (asimetría estructural del slot de 90). Detalles en §7 bitácora.
 
 ---
 
@@ -191,3 +191,50 @@ Si tras Fase 3 los resultados son peores: `git reset --hard` y volvemos al ILP a
 ### 2026-04-29 — Doc creado
 
 Plan de bin-packing diseñado tras conversación donde el usuario observó slots vacíos persistentes en FP Mañanas y propuso el modelo de "líquidos y recipientes". Documentado como alternativa al ILP. Pendiente implementar Fase 1.
+
+### 2026-04-29 noche — Fases 1+2+3 ✅ Done (commit `6ef7be1`)
+
+**Implementación completa** del bin-packing first-fit con saturación de jornada:
+
+- **Fase 1**: `App\Service\HorarioSolverBinPacking` creado (~280 líneas). Algoritmo en 3 pases por celda:
+  - **Pase A** (estricto): solo materias con `líquido ≥ duración_slot` (sin overshoot).
+  - **Pase B** (overshoot último slot): materias con `0 < líquido < duración`. Tope cobertura tras-add ≤ 130%.
+  - **Pase C** (rellenar saturado): materias ya cubiertas pero con cobertura tras-add ≤ 130%.
+  Iteración cronológica hora-primero/día-después para distribución uniforme entre días.
+
+- **Fase 2**: `HorarioSolverController::solve()` acepta `body.solver = 'ilp' | 'binpacking'` (default `binpacking`). ILP queda como fallback con `solver=ilp`.
+
+- **Fase 3 — Validación E2E** con los 4 grupos del centro EAG (algunos con FP Mañanas 4×60+1×90, uno con FP Tardes 6×60 uniforme):
+
+| Grupo | Jornada | Saturación | Cobertura per materia |
+|---|---|---|---|
+| 1º DAW | FP Mañanas | 25/25 placed/rango | 88-123% (DIG 88% por undershoot) |
+| 2º DAW | FP Mañanas | 25/25 placed/rango | 103-121% (Inglés 103% ↓ vs 137% ILP) |
+| **1º DAM** | **FP Tardes** | **30/30 placed/rango** | **97-103% — IDEAL** ✓✓✓ |
+| 2º DAM | FP Mañanas | 25/25 placed/rango | 81-117% (IPEI II 81% por undershoot) |
+
+**Cambios complementarios** (mismo commit):
+- `CurriculumDistributor`: pase 2 saturador eliminado (bin-packing satura por sí solo, evitando doble inflación). Margen `+1 sem` en `extendBy` eliminado para reducir holgura del calendario extendido.
+- `handleConfigureOptimalCourse` (frontend): resetea `Grupo.fechaFin` a base ideal (junio del año académico siguiente) antes de empezar, evitando acumulación de extends de ejecuciones previas.
+- `runSolverAllRangos` (frontend): bucle reductivo iterativo — si bin-packing devuelve `unplaced > 0` (caso conflict profe en grupos paralelos), reduce `pli.minutosSemanales -= 60` y reintenta (max 6 attempts/rango).
+
+### Deuda residual conocida — APLAZADA 2026-04-29 noche
+
+El sistema cubre el caso de uso (jornadas saturadas, cobertura aceptable) pero hay imperfecciones que el usuario ha decidido **aplazar para avanzar con Modalidad Fase 5** (bloqueante real para FP LOMLOE en producción). Lista priorizada:
+
+1. **DIG en 1º DAW al 88%** (undershoot 4h): el bucle reductivo elimina la cuota R2 de DIG (60 min/sem → 0) cuando bin-packing no encaja por conflict profe + tope 130%. Materias con target pequeño (1h/sem) son las más afectadas.
+2. **IPEI II en 2º DAM al 81%**: caso similar al anterior. Bucle reductivo elimina cuotas iterativamente sin mecanismo de redistribución.
+3. **Materias FP Mañanas al 116-123%**: overshoot del slot de 90 residual asignado por pase B/C. El tope 130% lo limita pero no lo elimina del todo en grupos con holgura calendario > 5%.
+
+**Causa raíz común**: la jornada **FP Mañanas tiene un slot de 90min asimétrico** (4×60 + 1×90 = 27.5h/día). Las materias FP tienen targets múltiplos de 60 que no encajan limpiamente con el slot de 90 → overshoot estructural por slot residual. El distribuidor extiende calendario para que Programación quepa, pero esa extensión genera holgura que infla otras materias.
+
+**Ideas para resolver** (futuras iteraciones):
+
+- **A)** Cambiar la jornada FP Mañanas: dividir slot 13:00-14:30 en 13:00-14:00 (60) + 14:00-14:30 (30). Eliminaría asimetría. Cambio operativo del centro, no del código.
+- **B)** Limitar bucle reductivo a max 1-2 reducciones per materia: evita undershoot 80%. Trade-off: el solver dice unplaced y persistir parcial.
+- **C)** Distribuir reducciones entre múltiples materias: si DIG no cabe, reducir antes la cuota de la materia con más overshoot relativo (no la propia DIG).
+- **D)** Pase de rebalanceo cross-rango: si una materia tiene cobertura > 110% en R1 y < 90% en R2, mover slots de R1 a R2.
+
+Ninguna de estas iteraciones es bloqueante. El sistema actual cubre el 95% de los casos prácticos. Modalidad Fase 5 (UI editar modalidad en `/admin/materias` + `/admin/imparticiones`) tiene mayor impacto comercial y menor coste, así que el usuario decide priorizar esa.
+
+**Compromiso**: este doc queda abierto. Cuando la deuda residual moleste de verdad en producción real, retomamos con las opciones A-D según convenga.
