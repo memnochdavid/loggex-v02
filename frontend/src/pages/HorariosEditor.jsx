@@ -539,6 +539,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   useEffect(() => {
     if (!stateKey) return;
     if (capacityByGrupo[stateKey] !== undefined) return;
+    // Skip capacity-check para PLs virtuales (tempId negativo) — el backend
+    // no los conoce; el cap se calcula localmente vía capacityFeasibilityAnual
+    // que usa los placements del state[gid_tempId] del solver dry-run.
+    if (Number(selectedPlId) < 0) return;
     fetch(getApiUrl(`/api/v1/horarios/capacity-check/${selectedGrupo}?periodoLectivo=${selectedPlId}`),
       { headers: { 'Accept': 'application/json' }, credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
@@ -577,6 +581,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   useEffect(() => {
     if (!stateKey) return;
     if (state[stateKey]) return;  // ya cargado, mantener trabajo en progreso
+    // PL virtual (tempId<0): el backend no lo conoce. Los placements ya
+    // están populados desde el dry-run del solver — no necesitamos fetch.
+    if (Number(selectedPlId) < 0) return;
 
     const noCache = { 'Accept': 'application/ld+json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
     const bust = Date.now();
