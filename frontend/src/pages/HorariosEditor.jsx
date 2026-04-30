@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -317,6 +317,31 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // (solving, solverAllRunning, configuringOptimal) está a true.
   const [configuringOptimal, setConfiguringOptimal] = useState(false);
   const [configuringStep, setConfiguringStep] = useState(null);
+  // Cola de transacción pendiente por grupo (Tanda B 2026-04-30 — "todo en
+  // preview hasta Guardar"). Ninguna acción del curso (manual o auto) toca
+  // BD; los cambios se acumulan aquí y se aplican secuencialmente al pulsar
+  // Guardar.
+  //
+  //   pendingTxByGrupo[gid] = {
+  //     grupoFechaFin: 'YYYY-MM-DD' | null,    // PATCH al Guardar (null = sin cambio)
+  //     grupoFechaFinOriginal: ...,             // captura para descartar
+  //     plsToDelete: [realPlId, ...],           // PLs reales a borrar (cascade horarios)
+  //     plsToCreate: [
+  //       { tempId: -1, nombre, fechaInicio, fechaFin, jornadaTipoId,
+  //         plisSeed: [{imparticionId, minutosSemanales}] },
+  //       ...
+  //     ],
+  //     pliPatches: [
+  //       { plId|tempId, imparticionId, minutosSemanales }, ...
+  //     ],
+  //   }
+  //
+  // Los PLs virtuales aparecen en `plByGrupo[gid]` con `_pending: 'create'`
+  // y `id < 0`, para que el strip y el banner anual los traten como reales
+  // sin tocar 30+ accesos al estado.
+  const [pendingTxByGrupo, setPendingTxByGrupo] = useState({});
+  const [applyingPendingTx, setApplyingPendingTx] = useState(false);
+  const tempIdSeqRef = useRef(-1);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -1565,12 +1590,219 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   };
 
-  // Guardar TODOS los rangos dirty del grupo en una sola pasada.
+  // Aplica la cola pendingTxByGrupo[gid] a BD en orden estricto:
+  //   1. PATCH Grupo.fechaFin si está pendiente.
+  //   2. DELETE PLs marcados.
+  //   3. POST PLs nuevos (los virtuales) y captura el mapping tempId→realId.
+  //   4. PATCH PLI minutosSemanales (sobre los reales recién creados via
+  //      mapping, o sobre los reales existentes).
+  //   5. Refetch PLs reales del grupo (alimenta el strip con datos definitivos).
+  //   6. Reescribe state[gid_tempId] → state[gid_realId] para que el batch
+  //      save de placements use el realId al POSTear horarios.
+  // Si cualquier paso falla, aborta y devuelve false; los placements no se
+  // tocan, así el usuario puede corregir y reintentar.
+  const applyPendingTxForGrupo = async (gid) => {
+    const tx = pendingTxByGrupo[gid];
+    if (!tx) return { ok: true, tempIdToRealId: {} };
+
+    // 1. PATCH Grupo.fechaFin
+    if (tx.grupoFechaFin) {
+      const r = await fetch(getApiUrl(`/api/grupos/${gid}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify({ fechaFin: tx.grupoFechaFin }),
+      });
+      if (!r.ok) return { ok: false, error: `PATCH grupo: ${r.status}` };
+      const updated = await r.json();
+      setGrupos(prev => prev.map(g => String(g.id) === String(gid) ? { ...g, ...updated } : g));
+    }
+
+    // 2. DELETE PLs marcados
+    for (const realPlId of (tx.plsToDelete || [])) {
+      const r = await fetch(getApiUrl(`/api/periodo_lectivos/${realPlId}`), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!r.ok && r.status !== 404) return { ok: false, error: `DELETE PL ${realPlId}: ${r.status}` };
+    }
+
+    // 3. POST PLs nuevos. PeriodoLectivoCreateProcessor del backend crea
+    //    automáticamente un PLI por cada Imparticion del grupo (minutos
+    //    NULL = hereda Materia). El mapping tempId→realId nos sirve para
+    //    el patcheo de PLIs y para reescribir state[gid_tempId].
+    const tempIdToRealId = {};
+    for (const draft of (tx.plsToCreate || [])) {
+      const body = {
+        grupo: `/api/grupos/${gid}`,
+        nombre: draft.nombre,
+        fechaInicio: draft.fechaInicio,
+        fechaFin: draft.fechaFin,
+        orden: draft.orden ?? 0,
+      };
+      if (draft.jornadaTipoId) body.jornadaTipo = `/api/jornada_tipos/${draft.jornadaTipoId}`;
+      const r = await fetch(getApiUrl('/api/periodo_lectivos'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) return { ok: false, error: `POST PL: ${r.status}` };
+      const created = await r.json();
+      tempIdToRealId[draft.tempId] = created.id ?? Number(created['@id']?.split('/').pop());
+    }
+
+    // 4. PATCH PLI minutosSemanales con la distribución calculada en dry-run.
+    //    pliPatches es [{ plKey, imparticionId, minutosSemanales }] donde
+    //    plKey puede ser un tempId (mapear a realId) o un realId existente.
+    if ((tx.pliPatches || []).length > 0) {
+      // Refetch de PLIs por (PL real) para conocer el id de cada PLI.
+      const plKeys = [...new Set(tx.pliPatches.map(p => {
+        const realId = tempIdToRealId[p.plKey] ?? p.plKey;
+        return Number(realId);
+      }).filter(Boolean))];
+      const pliByPlReal = {};
+      for (const realPlId of plKeys) {
+        const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo=${realPlId}&pagination=false`), {
+          headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+        });
+        if (!r.ok) return { ok: false, error: `Fetch PLIs ${realPlId}: ${r.status}` };
+        const dd = await r.json();
+        const items = dd['hydra:member'] || dd.member || [];
+        const mapByImp = {};
+        items.forEach(pli => {
+          const impId = extractFkId(pli.imparticion);
+          if (impId) mapByImp[impId] = pli.id ?? Number(pli['@id']?.split('/').pop());
+        });
+        pliByPlReal[realPlId] = mapByImp;
+      }
+      for (const patch of tx.pliPatches) {
+        const realPlId = Number(tempIdToRealId[patch.plKey] ?? patch.plKey);
+        const pliId = pliByPlReal[realPlId]?.[patch.imparticionId];
+        if (!pliId) continue;
+        const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pliId}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+          credentials: 'include',
+          body: JSON.stringify({ minutosSemanales: patch.minutosSemanales }),
+        });
+        if (!r.ok) return { ok: false, error: `PATCH PLI ${pliId}: ${r.status}` };
+      }
+    }
+
+    return { ok: true, tempIdToRealId };
+  };
+
+  // Tras aplicar la tx, los virtuales pasan a ser reales. Migramos el state
+  // de placements del tempId al realId para que performBatchSave use la
+  // clave correcta al POSTear horarios.
+  const migrateStateAfterTx = (gid, tempIdToRealId) => {
+    setState(prev => {
+      const next = { ...prev };
+      Object.entries(tempIdToRealId).forEach(([tempId, realId]) => {
+        const oldKey = `${gid}_${tempId}`;
+        const newKey = `${gid}_${realId}`;
+        if (next[oldKey]) {
+          next[newKey] = { ...next[oldKey] };
+          delete next[oldKey];
+        }
+      });
+      return next;
+    });
+    setSelectedPlByGrupo(prev => {
+      const cur = prev[gid];
+      if (cur && tempIdToRealId[cur] !== undefined) {
+        return { ...prev, [gid]: String(tempIdToRealId[cur]) };
+      }
+      return prev;
+    });
+  };
+
+  // Descarta la tx pendiente del grupo: elimina los PLs virtuales del
+  // strip, limpia state[gid_tempId] y reinstala los reales originales.
+  const discardPendingTxForGrupo = (gid) => {
+    const tx = pendingTxByGrupo[gid];
+    if (!tx) return;
+    // Quitar virtuales del strip.
+    setPlByGrupo(prev => {
+      const list = (prev[gid] || []).filter(pl => !pl._pending);
+      // Re-meter los reales que estaban en plsToDelete (no se llegaron a borrar).
+      // En la práctica los reales nunca se sacaron del array — `plsToDelete`
+      // es solo una intención. Así que basta con filter `!_pending`.
+      return { ...prev, [gid]: list };
+    });
+    // Limpiar state de tempIds.
+    setState(prev => {
+      const next = { ...prev };
+      (tx.plsToCreate || []).forEach(d => {
+        delete next[`${gid}_${d.tempId}`];
+      });
+      return next;
+    });
+    // Si el seleccionado era virtual, mover al primer real disponible.
+    setSelectedPlByGrupo(prev => {
+      const cur = prev[gid];
+      if (cur === undefined) return prev;
+      const isVirtual = (tx.plsToCreate || []).some(d => String(d.tempId) === String(cur));
+      if (!isVirtual) return prev;
+      const first = ((plByGrupo[gid] || []).find(pl => !pl._pending));
+      const next = { ...prev };
+      if (first) next[gid] = String(first.id);
+      else delete next[gid];
+      return next;
+    });
+    setPendingTxByGrupo(prev => {
+      const next = { ...prev };
+      delete next[gid];
+      return next;
+    });
+    toast.success(t('scheduleEditor.discardTxSuccess', { defaultValue: 'Cambios descartados' }));
+  };
+
+  const hasPendingTx = (gid) => {
+    const tx = pendingTxByGrupo[gid];
+    if (!tx) return false;
+    return Boolean(tx.grupoFechaFin) || (tx.plsToDelete?.length || 0) > 0
+      || (tx.plsToCreate?.length || 0) > 0 || (tx.pliPatches?.length || 0) > 0;
+  };
+
+  // Guardar TODOS los rangos dirty del grupo en una sola pasada. Si el grupo
+  // tiene tx pendiente (cambios estructurales acumulados por las acciones
+  // del curso), aplicarla PRIMERO — los PLs reales que resulten de los
+  // virtuales son a quienes se POSTean los placements después.
   const performBatchSaveAllDirty = async () => {
     if (!selectedGrupo) return false;
+
+    let tempIdToRealId = {};
+    if (hasPendingTx(selectedGrupo)) {
+      setApplyingPendingTx(true);
+      try {
+        const res = await applyPendingTxForGrupo(selectedGrupo);
+        if (!res.ok) {
+          toast.error(t('scheduleEditor.applyTxError', {
+            defaultValue: 'Error aplicando los cambios estructurales: {{err}}',
+            err: res.error,
+          }));
+          return false;
+        }
+        tempIdToRealId = res.tempIdToRealId;
+        migrateStateAfterTx(selectedGrupo, tempIdToRealId);
+        // Refetch PLs reales — los virtuales desaparecen, los nuevos aparecen
+        // con sus IDs reales.
+        await refetchPlsForGroup(selectedGrupo);
+        // Limpia la cola.
+        setPendingTxByGrupo(prev => {
+          const next = { ...prev };
+          delete next[selectedGrupo];
+          return next;
+        });
+      } finally {
+        setApplyingPendingTx(false);
+      }
+    }
+
     const pls = plByGrupo[selectedGrupo] || [];
-    const dirtyPls = pls.filter(pl => state[`${selectedGrupo}_${pl.id}`]?.dirty);
-    if (dirtyPls.length === 0) return true;
+    const dirtyPls = pls.filter(pl => !pl._pending && state[`${selectedGrupo}_${pl.id}`]?.dirty);
     let allOk = true;
     for (const pl of dirtyPls) {
       const ok = await performBatchSave(pl.id);
@@ -2993,224 +3225,227 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!ok) { console.groupEnd(); return; }
     setCursoActionsOpen(false);
 
-    // Overlay Lottie cubre TODA la secuencia (Pasos 1-5). Sin esto, los
-    // PATCH/POST de los pasos 1-4 corren sin feedback visual y el usuario
-    // puede creer que la app está congelada.
+    // Tanda B (2026-04-30) — "Nada persiste hasta Guardar":
+    // Esta secuencia ya NO toca BD. Construimos los rangos virtuales en
+    // pendingTxByGrupo[gid] + plByGrupo[gid] (con _pending: 'create' y
+    // tempIds negativos), llamamos a los endpoints solver-dry-run /
+    // distribute-curriculum-dry-run para previsualizar la distribución y
+    // los placements, y populamos state[gid_tempId] con los placements del
+    // solver. Al pulsar "Guardar" el flow aplica todo (PATCH grupo, DELETE
+    // PLs viejos, POST PLs nuevos, PATCH PLIs, POST horarios). Al pulsar
+    // "Descartar" la cola se vacía y el state local vuelve atrás.
     setConfiguringOptimal(true);
     setConfiguringStep('1/5');
     try {
 
-    // Paso 1: ajustar Grupo.fechaFin (PRE). Patch si: extender hacia adelante
-    // (willExtend) O si hay acumulación previa que resetear (finResetNeeded).
-    // El target final es siempre `newFinISO` (=base ideal + extensión si toca).
-    if (willExtend || finResetNeeded) {
-      const motivo = willExtend ? `extender (+${diasExtension} días)` : `resetear acumulación previa`;
-      console.log(`[OptCurso] Paso 1: PATCH Grupo.fechaFin → ${newFinISO} (${motivo})`);
-      try {
-        const r = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify({ fechaFin: newFinISO }),
-        });
-        if (!r.ok) throw new Error(`PATCH grupo: ${r.status}`);
-        const updated = await r.json();
-        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updated } : g));
-        console.log('[OptCurso] Paso 1 OK');
-      } catch (err) {
-        console.error('[OptCurso] Paso 1 FAIL:', err);
-        toast.error(t('scheduleEditor.extendGroupError', { defaultValue: 'No se pudo extender la fecha de fin del curso.' }));
-        console.groupEnd();
-        return;
-      }
-    } else {
-      console.log('[OptCurso] Paso 1 skip (fechaFin ya correcta)');
-    }
+    // Paso 1 (DRY): registrar pendingTx + capturar snapshot.
+    const realesActuales = (plByGrupo[selectedGrupo] || []).filter(p => !p._pending);
+    const grupoFechaFinFinal = (willExtend || finResetNeeded) ? newFinISO : null;
+    const pendingTx = {
+      grupoFechaFin: grupoFechaFinFinal,
+      grupoFechaFinOriginal: grupo.fechaFin,
+      plsToDelete: realesActuales.map(p => p.id),
+      plsRealesOriginales: realesActuales,  // snapshot para restaurar al descartar
+      plsToCreate: [],
+      pliPatches: [],
+    };
 
-    // Paso 2: crear rangos pasando fechas EXPLÍCITAS (state setGrupos puede
-    // no haber re-renderizado todavía; el closure de handleCreateRecommendedRangos
-    // capturaría grupo stale).
+    // Paso 2 (DRY): construir N PLs virtuales con tempIds negativos.
     setConfiguringStep('2/5');
-    console.log(`[OptCurso] Paso 2: crear ${N} rangos cubriendo ${iniISO} → ${newFinISO}`);
-    const rangosCreados = await handleCreateRecommendedRangos(null, N, {
-      iniISO,
-      finISO: newFinISO,
-    });
-    if (!rangosCreados || rangosCreados.length === 0) {
-      console.error('[OptCurso] Paso 2 FAIL: rangos no creados');
-      console.groupEnd();
-      return;
+    {
+      const totalDias = Math.max(1, Math.round((new Date(newFinISO) - new Date(iniISO)) / 86400000) + 1);
+      const diasPorRango = Math.floor(totalDias / N);
+      let cursor = new Date(iniISO);
+      for (let i = 0; i < N; i++) {
+        const tempId = tempIdSeqRef.current;
+        tempIdSeqRef.current -= 1;
+        const inicioRango = new Date(cursor);
+        const finRango = (i === N - 1)
+          ? new Date(newFinISO)
+          : new Date(cursor.getTime() + (diasPorRango - 1) * 86400000);
+        pendingTx.plsToCreate.push({
+          tempId,
+          id: tempId,                // así el strip lo trata como cualquier PL
+          _pending: 'create',
+          nombre: `Rango ${i + 1}`,
+          fechaInicio: inicioRango.toISOString().slice(0, 10),
+          fechaFin: finRango.toISOString().slice(0, 10),
+          jornadaTipo: null,
+          jornadaTipoId: null,
+          orden: i,
+        });
+        cursor = new Date(finRango.getTime() + 86400000);
+      }
     }
-    console.log('[OptCurso] Paso 2 OK:', rangosCreados.map(pl => ({
-      id: pl.id, nombre: pl.nombre,
-      fechaInicio: pl.fechaInicio?.slice(0, 10), fechaFin: pl.fechaFin?.slice(0, 10),
-    })));
 
-    // Paso 3: distribuir currículo. Si extendBy > 0, extender más y reintentar.
+    // Reemplaza plByGrupo[gid] por los virtuales (los reales se borrarán
+    // cuando se aplique la tx — el usuario los ve "desaparecer" del strip,
+    // que es coherente con la intención de la operación).
+    setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pendingTx.plsToCreate.slice() }));
+    // Limpia state de PLs reales que se van a borrar.
+    setState(prev => {
+      const next = { ...prev };
+      pendingTx.plsToDelete.forEach(realId => {
+        delete next[`${selectedGrupo}_${realId}`];
+      });
+      return next;
+    });
+
+    // Paso 3 (DRY): distribuir currículo via dry-run. Si extendBy > 0,
+    // ajustar último rango virtual y reintentar.
     setConfiguringStep('3/5');
     let distribution = null;
-    let plsActuales = rangosCreados;
-    let currentGrupoFin = newFinISO;
     let attempts = 0;
     const MAX_DISTRIBUTE_ATTEMPTS = 8;
     while (attempts < MAX_DISTRIBUTE_ATTEMPTS) {
-      console.log(`[OptCurso] Paso 3.${attempts + 1}: POST /distribute-curriculum`);
-      let distRes;
-      try {
-        distRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/distribute-curriculum`), {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          credentials: 'include',
-        });
-      } catch (err) {
-        console.error('[OptCurso] Paso 3 FAIL:', err);
-        toast.error(t('scheduleEditor.distributeError', { defaultValue: 'No se pudo distribuir el currículo entre los rangos.' }));
-        console.groupEnd();
-        return;
-      }
+      const distRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/distribute-curriculum-dry-run`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          rangos: pendingTx.plsToCreate.map(pl => ({
+            tempId: pl.tempId,
+            nombre: pl.nombre,
+            fechaInicio: pl.fechaInicio,
+            fechaFin: pl.fechaFin,
+            jornadaTipoId: pl.jornadaTipoId,
+          })),
+        }),
+      });
       if (!distRes.ok) {
-        const errText = await distRes.text().catch(() => '');
-        console.error(`[OptCurso] Paso 3 FAIL: ${distRes.status}`, errText.slice(0, 500));
         toast.error(t('scheduleEditor.distributeError', { defaultValue: 'No se pudo distribuir el currículo entre los rangos.' }));
         console.groupEnd();
         return;
       }
       const distJson = await distRes.json();
-      console.log(`[OptCurso] Paso 3.${attempts + 1} response:`, distJson);
       if (distJson.feasible) {
         distribution = distJson.distribution;
-        console.log('[OptCurso] Paso 3 OK feasible. Cobertura:', distJson.debug?.cobertura);
         break;
       }
       const extendBy = distJson.extendBy || 0;
-      console.log(`[OptCurso] Paso 3.${attempts + 1} NOT feasible. reason=${distJson.reason} extendBy=${extendBy}d shortfalls=`, distJson.shortfalls);
       if (extendBy > 0 && attempts < MAX_DISTRIBUTE_ATTEMPTS - 1) {
-        console.log(`[OptCurso] Paso 3.${attempts + 1} extender curso +${extendBy}d, reintentar`);
-        // Extender Grupo.fechaFin Y último PL por extendBy días naturales.
-        const lastPl = plsActuales[plsActuales.length - 1];
-        const lastPlFin = new Date(lastPl.fechaFin);
-        lastPlFin.setDate(lastPlFin.getDate() + extendBy);
-        const lastPlFinISO = lastPlFin.toISOString().slice(0, 10);
-        const grupoFinDate = new Date(currentGrupoFin);
-        grupoFinDate.setDate(grupoFinDate.getDate() + extendBy);
-        const newGrupoFinISO = grupoFinDate.toISOString().slice(0, 10);
-        try {
-          await fetch(getApiUrl(`/api/periodo_lectivos/${lastPl.id}`), {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-            credentials: 'include',
-            body: JSON.stringify({ fechaFin: lastPlFinISO }),
-          });
-          await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-            credentials: 'include',
-            body: JSON.stringify({ fechaFin: newGrupoFinISO }),
-          });
-          currentGrupoFin = newGrupoFinISO;
-          // Refetch PLs para que `plsActuales` refleje el último PL extendido.
-          const r2 = await fetch(getApiUrl(`/api/periodo_lectivos?grupo=${selectedGrupo}&pagination=false&order[orden]=asc&order[fechaInicio]=asc`), {
-            headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
-          });
-          if (r2.ok) {
-            const dd = await r2.json();
-            const items = dd['hydra:member'] || dd.member || [];
-            plsActuales = items;
-            setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: items }));
-          }
-          setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: newGrupoFinISO } : g));
-        } catch (err) {
-          console.error('[OptCurso] Paso 3 extender FAIL:', err);
-          toast.error(t('scheduleEditor.extendError', { defaultValue: 'Error extendiendo curso.' }));
-          console.groupEnd();
-          return;
-        }
+        // Extender último PL virtual + grupoFechaFin pendiente.
+        const lastVirt = pendingTx.plsToCreate[pendingTx.plsToCreate.length - 1];
+        const lastFin = new Date(lastVirt.fechaFin);
+        lastFin.setDate(lastFin.getDate() + extendBy);
+        lastVirt.fechaFin = lastFin.toISOString().slice(0, 10);
+        const newGrupoFin = new Date(pendingTx.grupoFechaFin || grupo.fechaFin);
+        newGrupoFin.setDate(newGrupoFin.getDate() + extendBy);
+        pendingTx.grupoFechaFin = newGrupoFin.toISOString().slice(0, 10);
+        setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pendingTx.plsToCreate.slice() }));
         attempts++;
         continue;
       }
-      // No factible ni extendiendo más: shortfall residual irreductible.
-      console.error('[OptCurso] Paso 3 shortfall irreductible. Abort.');
       toast.error(t('scheduleEditor.distributeShortfall', {
-        defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso. Revisa la jornada o las horas curriculares.',
+        defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso.',
       }));
       console.groupEnd();
       return;
     }
-
     if (!distribution) {
-      console.error('[OptCurso] Paso 3 sin distribution tras 3 attempts. Abort.');
       toast.error(t('scheduleEditor.distributeFailed', { defaultValue: 'No se pudo distribuir el currículo.' }));
       console.groupEnd();
       return;
     }
 
-    // Paso 4: PATCH `pli.minutosSemanales` con la distribución.
+    // Paso 4 (DRY): registrar pliPatches con la distribución por rango.
     setConfiguringStep('4/5');
-    console.log('[OptCurso] Paso 4: PATCH PLIs con distribución');
-    console.table(Object.entries(distribution).flatMap(([plId, byImp]) =>
-      Object.entries(byImp).map(([impId, min]) => ({
-        plId, impId,
-        materia: imps.find(i => String(i.id) === String(impId))?.materia?.nombre || '?',
-        minSem: min,
-        horasSem: min / 60,
-      }))
-    ));
-    try {
-      const pliRes = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo.grupo=${selectedGrupo}&pagination=false`), {
-        headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
-      });
-      if (!pliRes.ok) throw new Error(`Fetch PLIs: ${pliRes.status}`);
-      const pliData = await pliRes.json();
-      const plis = pliData['hydra:member'] || pliData.member || [];
-      const patches = [];
-      for (const pli of plis) {
-        const plId = extractFkId(pli.periodoLectivo);
-        const impId = extractFkId(pli.imparticion);
-        const minutos = distribution[plId]?.[impId];
-        if (minutos === undefined || minutos === null) continue;
-        const current = pli.minutosSemanales;
-        if (current === minutos) continue;
-        patches.push(fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify({ minutosSemanales: minutos }),
-        }));
+    for (const [plKeyStr, byImp] of Object.entries(distribution)) {
+      const plKey = Number(plKeyStr);
+      for (const [impIdStr, minutos] of Object.entries(byImp)) {
+        pendingTx.pliPatches.push({
+          plKey,
+          imparticionId: Number(impIdStr),
+          minutosSemanales: Number(minutos),
+        });
       }
-      const results = await Promise.all(patches);
-      const failed = results.filter(r => !r.ok).length;
-      console.log(`[OptCurso] Paso 4 OK: ${results.length - failed}/${results.length} PLIs patched`);
-      if (failed > 0) {
-        console.warn(`[OptCurso] Paso 4 ${failed} PLI patches fallaron`);
-      }
-      // Refetch PLs (cuyos PLIs embebidos alimentan el banner anual).
-      await refetchPlsForGroup(selectedGrupo);
-    } catch (err) {
-      console.error('[OptCurso] Paso 4 FAIL:', err);
-      toast.error(t('scheduleEditor.distributePatchError', {
-        defaultValue: 'Error aplicando la distribución de minutos por rango.',
-      }));
-      console.groupEnd();
-      return;
     }
 
-    // Paso 5: lanzar el solver per-rango con autoSave=false (preview local).
-    // Antes el flow llamaba con autoSave=true para que el PDF saliera "ya
-    // listo", pero el principio del editor es "nada se persiste hasta
-    // Guardar". Los placements del solver quedan dirty en cada rango y el
-    // banner "cambios sin guardar" guía al usuario a confirmar manualmente.
+    // Paso 5 (DRY): solver-dry-run por cada PL virtual, acumulando placements
+    // en state[gid_tempId] con dirty=true. alreadyPlacedByImp se acumula
+    // entre rangos para que el cap anual cross-rango funcione.
     setConfiguringStep('5/5');
-    console.log(`[OptCurso] Paso 5: runSolverAllRangos para ${plsActuales.length} rangos (autoSave=false)`);
-    await runSolverAllRangos(plsActuales, /* autoSave */ false);
-    console.log('[OptCurso] FIN');
+    {
+      const totalSemanasGrupo = pendingTx.plsToCreate.reduce((acc, pl) => {
+        const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
+        return acc + dias / 7;
+      }, 0);
+      const alreadyPlacedByImp = {};
+      for (const pl of pendingTx.plsToCreate) {
+        const distForPl = distribution[pl.tempId] || {};
+        const plisBody = Object.entries(distForPl).map(([impIdStr, minutos]) => ({
+          imparticionId: Number(impIdStr),
+          minutosSemanales: Number(minutos),
+        }));
+        const solverRes = await fetch(getApiUrl(`/api/v1/horarios/solver-dry-run/${selectedGrupo}`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            rango: {
+              tempId: pl.tempId,
+              fechaInicio: pl.fechaInicio,
+              fechaFin: pl.fechaFin,
+              jornadaTipoId: pl.jornadaTipoId,
+              plis: plisBody,
+            },
+            alreadyPlacedByImp,
+            totalSemanasGrupoOverride: totalSemanasGrupo,
+          }),
+        });
+        if (!solverRes.ok) {
+          toast.error(t('scheduleEditor.solverError', { defaultValue: 'El solver ha fallado en uno de los rangos virtuales.' }));
+          console.groupEnd();
+          return;
+        }
+        const solverJson = await solverRes.json();
+        const placements = {};
+        (solverJson.placements || []).forEach(p => {
+          const hi = String(p.horaInicio).slice(0, 8);
+          const key = `${p.diaSemana}_${hi}`;
+          placements[key] = {
+            imparticionId: p.imparticionId,
+            aula: p.aula,
+            horaInicio: hi,
+            horaFin: String(p.horaFin).slice(0, 8),
+          };
+        });
+        setState(prev => ({
+          ...prev,
+          [`${selectedGrupo}_${pl.tempId}`]: {
+            placements,
+            baseline: {},
+            dirty: true,
+          },
+        }));
+        const semanasPl = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 / 7 + 1/7;
+        Object.values(placements).forEach(p => {
+          const dur = parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio);
+          if (dur <= 0) return;
+          alreadyPlacedByImp[p.imparticionId] = (alreadyPlacedByImp[p.imparticionId] || 0) + dur * semanasPl;
+        });
+      }
+    }
+
+    // Persistir pendingTx en estado y seleccionar el primer virtual.
+    setPendingTxByGrupo(prev => ({ ...prev, [selectedGrupo]: pendingTx }));
+    if (pendingTx.plsToCreate[0]) {
+      setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: String(pendingTx.plsToCreate[0].tempId) }));
+    }
     console.groupEnd();
-    toast.success(t('scheduleEditor.optimalSuccessSaveHint', {
-      defaultValue: 'Curso configurado. Pulsa "Guardar" para persistir los placements en cada rango.',
+    toast.success(t('scheduleEditor.optimalPreviewReady', {
+      defaultValue: 'Preview lista. Pulsa "Guardar" para persistir o "Descartar" para revertir.',
     }), { duration: 6000 });
+    } catch (err) {
+      console.error('[OptCurso] FAIL:', err);
+      toast.error(err.message || t('scheduleEditor.optimalGenericError', { defaultValue: 'Error generando el curso óptimo.' }));
+      console.groupEnd();
     } finally {
       setConfiguringOptimal(false);
       setConfiguringStep(null);
     }
+    return;
+
   };
 
   const dirtyAny = Object.values(state).some(s => s?.dirty);
@@ -3444,6 +3679,50 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {selectedGrupo && hasPendingTx(selectedGrupo) && (
+          <div
+            className={styles.plBanner}
+            style={{
+              borderColor: 'var(--accent-warning, var(--color-warning, #d97706))',
+              background: 'var(--surface-warning-soft, color-mix(in oklab, var(--accent-warning, #d97706) 12%, var(--bg-elevated, transparent)))',
+            }}
+            role="alert"
+          >
+            <div className={styles.plBannerStats}>
+              <strong>{t('scheduleEditor.pendingTxTitle', { defaultValue: 'Cambios pendientes (sin guardar)' })}</strong>
+              <span className={styles.plBannerMeta}>
+                {t('scheduleEditor.pendingTxSummary', {
+                  defaultValue: '{{create}} rangos por crear · {{del}} por borrar · {{patches}} ajustes de minutos',
+                  create: pendingTxByGrupo[selectedGrupo]?.plsToCreate?.length || 0,
+                  del: pendingTxByGrupo[selectedGrupo]?.plsToDelete?.length || 0,
+                  patches: pendingTxByGrupo[selectedGrupo]?.pliPatches?.length || 0,
+                })}
+              </span>
+            </div>
+            <div className={styles.plBannerHint}>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={applyingPendingTx || saving}
+                onClick={performBatchSaveAllDirty}
+              >
+                {applyingPendingTx
+                  ? t('scheduleEditor.pendingTxApplying', { defaultValue: 'Aplicando…' })
+                  : t('scheduleEditor.pendingTxApply', { defaultValue: 'Guardar todos los cambios' })}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={applyingPendingTx || saving}
+                onClick={() => discardPendingTxForGrupo(selectedGrupo)}
+                style={{ marginLeft: 8 }}
+              >
+                {t('scheduleEditor.pendingTxDiscard', { defaultValue: 'Descartar' })}
+              </Button>
             </div>
           </div>
         )}
