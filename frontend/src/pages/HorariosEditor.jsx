@@ -3310,11 +3310,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
 
     // Paso 3 (DRY): distribuir currículo via dry-run. Si extendBy > 0,
-    // ajustar último rango virtual y reintentar.
+    // ajustar último rango virtual y reintentar. Bumpeado MAX_ATTEMPTS a 20
+    // porque el extendBy del distribuidor puede ser conservador (max 7d por
+    // iter en redistributionShortfall) y agotaba muy rápido.
     setConfiguringStep('3/5');
     let distribution = null;
     let attempts = 0;
-    const MAX_DISTRIBUTE_ATTEMPTS = 8;
+    let lastShortfallSignature = null;
+    const MAX_DISTRIBUTE_ATTEMPTS = 20;
     while (attempts < MAX_DISTRIBUTE_ATTEMPTS) {
       const distRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/distribute-curriculum-dry-run`), {
         method: 'POST',
@@ -3336,11 +3339,32 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         return;
       }
       const distJson = await distRes.json();
+      console.log(`[OptCurso] Paso 3.${attempts + 1} response:`, distJson);
       if (distJson.feasible) {
         distribution = distJson.distribution;
         break;
       }
       const extendBy = distJson.extendBy || 0;
+      // Detectar si el loop está atascado: misma "firma" de shortfalls dos
+      // iteraciones seguidas → el extendBy no está progresando, abort.
+      const shortfallSignature = JSON.stringify(distJson.shortfalls || {});
+      if (extendBy > 0 && shortfallSignature === lastShortfallSignature) {
+        console.error(`[OptCurso] Stuck loop: shortfalls iguales tras extender. Abort.`);
+        const shortfallsHuman = Object.entries(distJson.shortfalls || {})
+          .map(([impId, min]) => {
+            const imp = imps.find(i => String(i.id) === String(impId));
+            const nombre = imp?.materia?.nombre || `imp ${impId}`;
+            return `${nombre}: ${Math.round(min / 60 * 10) / 10}h`;
+          })
+          .join(', ') || 'sin detalle';
+        toast.error(t('scheduleEditor.distributeStuck', {
+          defaultValue: 'El distribuidor no logra cubrir todas las materias incluso extendiendo el curso. Materias atascadas: {{materias}}',
+          materias: shortfallsHuman,
+        }), { duration: 10000 });
+        console.groupEnd();
+        return;
+      }
+      lastShortfallSignature = shortfallSignature;
       if (extendBy > 0 && attempts < MAX_DISTRIBUTE_ATTEMPTS - 1) {
         // Extender último PL virtual + grupoFechaFin pendiente.
         const lastVirt = pendingTx.plsToCreate[pendingTx.plsToCreate.length - 1];

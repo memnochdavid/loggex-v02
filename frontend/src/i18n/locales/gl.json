@@ -1276,6 +1276,7 @@
     "extendGroupError": "Non se puido estender a data de fin do curso.",
     "distributeError": "Non se puido distribuír o currículo entre os períodos.",
     "distributeShortfall": "O currículo non cabe no calendario actual nin estendendo o curso ({{detail}}). Revisa a xornada ou as horas curriculares.",
+    "distributeStuck": "O distribuidor non logra cubrir todas as materias incluso estendendo o curso. Materias atascadas: {{materias}}",
     "distributeFailed": "Non se puido distribuír o currículo.",
     "distributePatchError": "Erro aplicando a distribución de minutos por período.",
     "extendError": "Erro estendendo o curso.",

@@ -1276,6 +1276,7 @@
     "extendGroupError": "Could not extend the course end date.",
     "distributeError": "Could not distribute the curriculum across terms.",
     "distributeShortfall": "The curriculum does not fit in the current calendar even extending the course ({{detail}}). Review the schedule or the curricular hours.",
+    "distributeStuck": "The distributor cannot cover all subjects even extending the course. Stuck subjects: {{materias}}",
     "distributeFailed": "Could not distribute the curriculum.",
     "distributePatchError": "Error applying the per-term minutes distribution.",
     "extendError": "Error extending the course.",

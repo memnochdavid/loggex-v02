@@ -1276,6 +1276,7 @@
     "extendGroupError": "No s'ha pogut allargar la data de fi del curs.",
     "distributeError": "No s'ha pogut distribuir el currículum entre els períodes.",
     "distributeShortfall": "El currículum no encaixa al calendari ni allargant el curs ({{detail}}). Revisa la jornada o les hores curriculars.",
+    "distributeStuck": "El distribuïdor no aconsegueix cobrir totes les matèries fins i tot allargant el curs. Matèries encallades: {{materias}}",
     "distributeFailed": "No s'ha pogut distribuir el currículum.",
     "distributePatchError": "Error aplicant la distribució de minuts per període.",
     "extendError": "Error allargant el curs.",
