@@ -30,7 +30,13 @@ class HorarioSolver
     ) {
     }
 
-    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null): array
+    /**
+     * `$pliOverride` permite ejecutar el solver en modo dry-run con un
+     * PeriodoLectivo y PLIs construidos en memoria (sin persistir).
+     *
+     * @param array<\App\Entity\PeriodoLectivoImparticion>|null $pliOverride
+     */
+    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null, ?array $pliOverride = null, ?float $totalSemanasGrupoOverride = null): array
     {
         // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
         $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
@@ -80,7 +86,7 @@ class HorarioSolver
         // y colocar lo que cabe (Fase 5: el truco de recreos LOMLOE asume que el
         // déficit pequeño se justifica curricularmente con recreos lectivos).
         // Sólo abortamos si la asignación está vacía (caso patológico real).
-        $capacity = $this->planner->plan($grupo, $periodoLectivo, $alreadyPlacedByImp);
+        $capacity = $this->planner->plan($grupo, $periodoLectivo, $alreadyPlacedByImp, $pliOverride, $totalSemanasGrupoOverride);
         if (empty($capacity['asignacion'])) {
             return [
                 'complete' => false,
@@ -98,7 +104,7 @@ class HorarioSolver
         // Imparticiones DEL RANGO (vía PLI), no todas las del grupo. La cadena
         // imparticion[] = pliQuery → pli.getImparticion() permite además que
         // los minutos por imparticion sigan el override del rango.
-        $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
+        $plis = $pliOverride ?? $this->em->getRepository(PeriodoLectivoImparticion::class)
             ->createQueryBuilder('pli')
             ->andWhere('pli.periodoLectivo = :pl')
             ->andWhere('pli.deleted = false')

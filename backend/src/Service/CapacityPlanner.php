@@ -66,7 +66,16 @@ class CapacityPlanner
      *   debug: array<string, mixed>
      * }
      */
-    public function plan(Grupo $grupo, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null): array
+    /**
+     * `$pliOverride` permite ejecutar el planner en modo dry-run con PLIs
+     * construidos en memoria (sin persistir). `$totalSemanasGrupoOverride`
+     * permite pasar el total de semanas del grupo cuando los demás rangos
+     * también son virtuales (sin persistir) — sin esto la cuota equitativa
+     * cross-rango leería sólo los rangos persistidos en BD y sería imprecisa.
+     *
+     * @param array<\App\Entity\PeriodoLectivoImparticion>|null $pliOverride
+     */
+    public function plan(Grupo $grupo, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null, ?array $pliOverride = null, ?float $totalSemanasGrupoOverride = null): array
     {
         // Resuelve el rango lectivo activo si el caller no lo pasa explícitamente.
         $periodoLectivo = $periodoLectivo ?? $this->resolver->resolveActive($grupo);
@@ -115,7 +124,8 @@ class CapacityPlanner
 
         // Lee las imparticiones DEL RANGO (vía PLI), no todas las del grupo.
         // Si una imparticion no tiene PLI en este rango, no existe en este rango.
-        $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
+        // En modo dry-run el caller pasa `$pliOverride` con PLIs in-memory.
+        $plis = $pliOverride ?? $this->em->getRepository(PeriodoLectivoImparticion::class)
             ->createQueryBuilder('pli')
             ->andWhere('pli.periodoLectivo = :pl')
             ->andWhere('pli.deleted = false')
@@ -167,9 +177,10 @@ class CapacityPlanner
         // Total de semanas del grupo (todos sus PLs vivos). Necesario para la
         // cuota equitativa cuando hay multi-rango. Si solo hay un PL, coincide
         // con $semanasRango y la cuota equitativa = objetivoAnual completo.
-        $totalSemanasGrupo = $alreadyPlacedByImp !== null
-            ? $this->calcularTotalSemanasGrupo($grupo)
-            : 0.0;
+        $totalSemanasGrupo = $totalSemanasGrupoOverride
+            ?? ($alreadyPlacedByImp !== null
+                ? $this->calcularTotalSemanasGrupo($grupo)
+                : 0.0);
         // Slot menor de la jornada — usado como umbral para descartar materias
         // con cuota residual demasiado pequeña (cap anual cross-rango): si el
         // currículo de una materia ya está cubierto al ~98% por rangos

@@ -48,8 +48,15 @@ class HorarioSolverBinPacking
     /**
      * Misma interfaz que `HorarioSolver::solve()` para que el endpoint pueda
      * conmutar entre ambos solvers transparentemente.
+     *
+     * `$pliOverride` permite ejecutar el solver en modo dry-run con un
+     * PeriodoLectivo y PLIs construidos en memoria (sin persistir). Lo usa
+     * la cola pendingActions del editor para mostrar preview de placements
+     * antes de que el usuario pulse Guardar (Tanda B 2026-04-30).
+     *
+     * @param array<\App\Entity\PeriodoLectivoImparticion>|null $pliOverride
      */
-    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null): array
+    public function solve(Grupo $grupo, ?int $seed = null, ?PeriodoLectivo $periodoLectivo = null, ?array $alreadyPlacedByImp = null, ?array $pliOverride = null, ?float $totalSemanasGrupoOverride = null): array
     {
         $start = microtime(true);
 
@@ -69,8 +76,10 @@ class HorarioSolverBinPacking
             return $this->errorResult('La jornada no contiene tramos de tipo SLOT.');
         }
 
-        // Imparticiones del rango (vía PLI).
-        $plis = $this->em->getRepository(PeriodoLectivoImparticion::class)
+        // Imparticiones del rango (vía PLI). En modo dry-run el caller pasa
+        // `$pliOverride` con PLIs in-memory; si no, se leen de BD como hasta
+        // ahora.
+        $plis = $pliOverride ?? $this->em->getRepository(PeriodoLectivoImparticion::class)
             ->createQueryBuilder('pli')
             ->andWhere('pli.periodoLectivo = :pl')
             ->andWhere('pli.deleted = false')

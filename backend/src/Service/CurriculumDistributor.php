@@ -50,9 +50,16 @@ class CurriculumDistributor
      *   debug: array<string, mixed>
      * }
      */
-    public function distribute(Grupo $grupo): array
+    /**
+     * `$plsOverride` permite ejecutar el distribuidor en modo dry-run con
+     * PeriodoLectivos in-memory (sin persistir). Lo usa la cola pendingActions
+     * del editor para previsualizar la distribución antes de Guardar.
+     *
+     * @param array<\App\Entity\PeriodoLectivo>|null $plsOverride
+     */
+    public function distribute(Grupo $grupo, ?array $plsOverride = null): array
     {
-        $pls = $this->em->getRepository(PeriodoLectivo::class)
+        $pls = $plsOverride ?? $this->em->getRepository(PeriodoLectivo::class)
             ->createQueryBuilder('pl')
             ->andWhere('pl.grupo = :g')
             ->andWhere('pl.deleted = false')
