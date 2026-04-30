@@ -1365,7 +1365,7 @@
     "optimalPreviewReady": "Vista previa lista. Preme \"Gardar\" para persistir ou \"Descartar\" para reverter.",
     "optimalGenericError": "Erro xerando o curso óptimo.",
     "optimalNoJornada": "O grupo non ten xornada asignada (nin override nin no itinerario). Asigna unha desde /admin/jornadas ou o selector do editor antes de configurar o curso óptimo.",
-    "solverError": "O solver fallou nun dos períodos virtuais.",
+    "solverError": "Erro do solver: {{message}}",
     "pendingTxTitle": "Cambios pendentes (sen gardar)",
     "pendingTxSummary": "{{create}} períodos por crear · {{del}} por borrar · {{patches}} axustes de minutos",
     "pendingTxApply": "Gardar todos os cambios",
@@ -1449,7 +1449,6 @@
     "solving": "Calculando…",
     "solverConfirmOverwrite": "Hai un horario en curso. Sobrescribir coa proposta do solver?",
     "solverPartial": "Proposta parcial. Sen colocar: {{items}}",
-    "solverError": "Erro do solver: {{message}}",
     "unsavedTitle": "Cambios sen gardar",
     "unsavedBody": "Tes cambios no horario sen gardar. Que queres facer?",
     "unsavedStay": "Quedar",
@@ -1472,7 +1471,13 @@
     "exportDirtyBody": "O PDF reflicte a versión gardada na base de datos. Tes cambios locais sen gardar; que queres facer?",
     "exportDirtyCancel": "Cancelar",
     "exportDirtyExportSaved": "Exportar versión gardada",
-    "exportDirtySaveAndExport": "Gardar e exportar"
+    "exportDirtySaveAndExport": "Gardar e exportar",
+    "createRangosSuccessPreview": "{{count}} períodos creados (preview). Preme Gardar para persistir.",
+    "rangoCreatedPreview": "Período creado (preview). Preme Gardar para persistir.",
+    "rangoUpdatedPreview": "Período actualizado (preview). Preme Gardar para persistir.",
+    "deleteRangoSuccessPreview": "Período borrado (preview). Preme Gardar para confirmar.",
+    "clearAllSuccessPreview": "Curso limpado (preview). Preme Gardar para confirmar.",
+    "clearAllBodyPreview": "O strip de períodos baleirarase en preview. Preme Gardar para confirmar o borrado na BD, ou Descartar para reverter. Continuar?"
   },
   "profLoad": {
     "title": "Carga semanal do profesorado",

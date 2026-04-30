@@ -1365,7 +1365,7 @@
     "optimalPreviewReady": "Vista prèvia llesta. Prem \"Desar\" per persistir o \"Descartar\" per revertir.",
     "optimalGenericError": "Error generant el curs òptim.",
     "optimalNoJornada": "El grup no té jornada assignada (ni override ni a l'itinerari). Assigna'n una des de /admin/jornadas o el selector de l'editor abans de configurar el curs òptim.",
-    "solverError": "El solver ha fallat en un dels períodes virtuals.",
+    "solverError": "Error del solver: {{message}}",
     "pendingTxTitle": "Canvis pendents (sense desar)",
     "pendingTxSummary": "{{create}} períodes per crear · {{del}} per esborrar · {{patches}} ajustaments de minuts",
     "pendingTxApply": "Desar tots els canvis",
@@ -1449,7 +1449,6 @@
     "solving": "Calculant…",
     "solverConfirmOverwrite": "Hi ha un horari en curs. Sobreescriure amb la proposta del solver?",
     "solverPartial": "Proposta parcial. Sense col·locar: {{items}}",
-    "solverError": "Error del solver: {{message}}",
     "unsavedTitle": "Canvis sense desar",
     "unsavedBody": "Tens canvis a l'horari que encara no has desat. Què vols fer?",
     "unsavedStay": "Quedar-me",
@@ -1472,7 +1471,13 @@
     "exportDirtyBody": "El PDF reflecteix la versió desada a la base de dades. Tens canvis locals sense desar; què vols fer?",
     "exportDirtyCancel": "Cancel·lar",
     "exportDirtyExportSaved": "Exportar versió desada",
-    "exportDirtySaveAndExport": "Desar i exportar"
+    "exportDirtySaveAndExport": "Desar i exportar",
+    "createRangosSuccessPreview": "{{count}} períodes creats (preview). Prem Desar per persistir.",
+    "rangoCreatedPreview": "Període creat (preview). Prem Desar per persistir.",
+    "rangoUpdatedPreview": "Període actualitzat (preview). Prem Desar per persistir.",
+    "deleteRangoSuccessPreview": "Període esborrat (preview). Prem Desar per confirmar.",
+    "clearAllSuccessPreview": "Curs netejat (preview). Prem Desar per confirmar.",
+    "clearAllBodyPreview": "L'strip de períodes es buidarà en preview. Prem Desar per confirmar l'esborrat a la BD, o Descartar per revertir. Continuar?"
   },
   "profLoad": {
     "title": "Càrrega setmanal del professorat",

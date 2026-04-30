@@ -1634,6 +1634,25 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (!r.ok && r.status !== 404) return { ok: false, error: `DELETE PL ${realPlId}: ${r.status}` };
     }
 
+    // 2.b PATCH PLs reales editados (cambiar nombre/fechas/jornada).
+    for (const upd of (tx.plsToUpdate || [])) {
+      const body = {};
+      if (upd.nombre !== undefined) body.nombre = upd.nombre;
+      if (upd.fechaInicio !== undefined) body.fechaInicio = upd.fechaInicio;
+      if (upd.fechaFin !== undefined) body.fechaFin = upd.fechaFin;
+      if (upd.jornadaTipoId !== undefined) {
+        body.jornadaTipo = upd.jornadaTipoId ? `/api/jornada_tipos/${upd.jornadaTipoId}` : null;
+      }
+      if (Object.keys(body).length === 0) continue;
+      const r = await fetch(getApiUrl(`/api/periodo_lectivos/${upd.realId}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) return { ok: false, error: `PATCH PL ${upd.realId}: ${r.status}` };
+    }
+
     // 3. POST PLs nuevos. PeriodoLectivoCreateProcessor del backend crea
     //    automáticamente un PLI por cada Imparticion del grupo (minutos
     //    NULL = hereda Materia). El mapping tempId→realId nos sirve para
@@ -1778,19 +1797,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
   };
 
-  // Descarta la tx pendiente del grupo: elimina los PLs virtuales del
-  // strip, limpia state[gid_tempId] y reinstala los reales originales.
+  // Descarta la tx pendiente del grupo: restaura el snapshot pre-tx
+  // (plsRealesOriginales) en plByGrupo, limpia state de los tempIds y
+  // reinstala el PL activo si era virtual.
   const discardPendingTxForGrupo = (gid) => {
     const tx = pendingTxByGrupo[gid];
     if (!tx) return;
-    // Quitar virtuales del strip.
-    setPlByGrupo(prev => {
-      const list = (prev[gid] || []).filter(pl => !pl._pending);
-      // Re-meter los reales que estaban en plsToDelete (no se llegaron a borrar).
-      // En la práctica los reales nunca se sacaron del array — `plsToDelete`
-      // es solo una intención. Así que basta con filter `!_pending`.
-      return { ...prev, [gid]: list };
-    });
+    // Restaurar plByGrupo desde el snapshot original.
+    const reales = tx.plsRealesOriginales || [];
+    setPlByGrupo(prev => ({ ...prev, [gid]: reales.slice() }));
     // Limpiar state de tempIds.
     setState(prev => {
       const next = { ...prev };
@@ -1799,15 +1814,24 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       });
       return next;
     });
-    // Si el seleccionado era virtual, mover al primer real disponible.
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      (tx.plsToCreate || []).forEach(d => {
+        delete next[`${gid}_${d.tempId}`];
+      });
+      return next;
+    });
+    // Si el seleccionado era virtual o estaba borrado, mover al activo
+    // por fecha de los reales restaurados (mismo criterio que el resolver).
     setSelectedPlByGrupo(prev => {
       const cur = prev[gid];
-      if (cur === undefined) return prev;
-      const isVirtual = (tx.plsToCreate || []).some(d => String(d.tempId) === String(cur));
-      if (!isVirtual) return prev;
-      const first = ((plByGrupo[gid] || []).find(pl => !pl._pending));
+      const stillExists = cur != null && reales.some(r => String(r.id) === String(cur));
+      if (stillExists) return prev;
+      const today = new Date().toISOString().slice(0, 10);
+      const fallback = reales.find(p => p.fechaInicio?.slice(0, 10) <= today && p.fechaFin?.slice(0, 10) >= today)
+        || reales[0];
       const next = { ...prev };
-      if (first) next[gid] = String(first.id);
+      if (fallback) next[gid] = String(fallback.id);
       else delete next[gid];
       return next;
     });
@@ -1823,7 +1847,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const tx = pendingTxByGrupo[gid];
     if (!tx) return false;
     return Boolean(tx.grupoFechaFin) || (tx.plsToDelete?.length || 0) > 0
-      || (tx.plsToCreate?.length || 0) > 0 || (tx.pliPatches?.length || 0) > 0;
+      || (tx.plsToCreate?.length || 0) > 0 || (tx.plsToUpdate?.length || 0) > 0
+      || (tx.pliPatches?.length || 0) > 0;
   };
 
   // Guardar TODOS los rangos dirty del grupo en una sola pasada. Si el grupo
@@ -2113,108 +2138,129 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       toast.error(t('scheduleEditor.rangoMissingFields', { defaultValue: 'Completa nombre y fechas' }));
       return;
     }
-    setAddingPl(true);
-    try {
-      if (plPickerMode === 'edit') {
-        if (!editingPlId) throw new Error('editingPlId vacío');
-        const body = {
-          nombre: plForm.nombre,
-          fechaInicio: plForm.fechaInicio,
-          fechaFin: plForm.fechaFin,
-          jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
-        };
-        const res = await fetch(getApiUrl(`/api/periodo_lectivos/${editingPlId}`), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify(body),
+
+    // Tanda B parte 2: NO toca BD. Acumula en pendingTxByGrupo.
+    if (plPickerMode === 'edit') {
+      if (!editingPlId) return;
+      const isVirtual = Number(editingPlId) < 0;
+      if (isVirtual) {
+        // Editar un PL virtual: modifica el draft en plsToCreate.
+        setPendingTxByGrupo(prev => {
+          const tx = prev[selectedGrupo] || {};
+          const newCreate = (tx.plsToCreate || []).map(d => String(d.tempId) === String(editingPlId)
+            ? {
+                ...d,
+                nombre: plForm.nombre,
+                fechaInicio: plForm.fechaInicio,
+                fechaFin: plForm.fechaFin,
+                jornadaTipoId: plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null,
+                jornadaTipo: plForm.jornadaTipoId ? { id: Number(plForm.jornadaTipoId) } : null,
+              }
+            : d);
+          return { ...prev, [selectedGrupo]: { ...tx, plsToCreate: newCreate } };
         });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-        }
-        const updated = await res.json();
+        // Reflect en plByGrupo.
         setPlByGrupo(prev => {
           const cur = prev[selectedGrupo] || [];
-          const next = cur.map(pl => (String(pl.id) === String(editingPlId) ? { ...pl, ...updated } : pl));
+          const next = cur.map(pl => (String(pl.id) === String(editingPlId)
+            ? { ...pl,
+                nombre: plForm.nombre,
+                fechaInicio: plForm.fechaInicio,
+                fechaFin: plForm.fechaFin,
+                jornadaTipo: plForm.jornadaTipoId ? { id: Number(plForm.jornadaTipoId) } : null,
+              }
+            : pl));
+          return { ...prev, [selectedGrupo]: next };
+        });
+      } else {
+        // Editar un PL real: añade/actualiza en plsToUpdate.
+        const realId = Number(editingPlId);
+        setPendingTxByGrupo(prev => {
+          const tx = prev[selectedGrupo] || {};
+          const others = (tx.plsToUpdate || []).filter(u => u.realId !== realId);
+          return {
+            ...prev,
+            [selectedGrupo]: {
+              ...tx,
+              grupoFechaFinOriginal: tx.grupoFechaFinOriginal ?? grupo?.fechaFin ?? null,
+              plsRealesOriginales: tx.plsRealesOriginales ?? (plByGrupo[selectedGrupo] || []).filter(p => !p._pending),
+              plsToUpdate: [
+                ...others,
+                {
+                  realId,
+                  nombre: plForm.nombre,
+                  fechaInicio: plForm.fechaInicio,
+                  fechaFin: plForm.fechaFin,
+                  jornadaTipoId: plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null,
+                },
+              ],
+            },
+          };
+        });
+        // Reflect en plByGrupo (preview).
+        setPlByGrupo(prev => {
+          const cur = prev[selectedGrupo] || [];
+          const next = cur.map(pl => (String(pl.id) === String(editingPlId)
+            ? { ...pl,
+                nombre: plForm.nombre,
+                fechaInicio: plForm.fechaInicio,
+                fechaFin: plForm.fechaFin,
+                jornadaTipo: plForm.jornadaTipoId ? { id: Number(plForm.jornadaTipoId) } : null,
+                _pending: pl._pending || 'edit',
+              }
+            : pl));
           return {
             ...prev,
             [selectedGrupo]: next.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
           };
         });
-        // Si cambió la jornada, invalida la cache de jornadasPorId para el id viejo
-        // y la capacity-check de este (grupo, PL) para que se recalcule.
-        setCapacityByGrupo(prev => {
-          const next = { ...prev };
-          delete next[`${selectedGrupo}_${editingPlId}`];
-          return next;
-        });
-        setPlPickerOpen(false);
-        toast.success(t('scheduleEditor.rangoUpdated', { defaultValue: 'Rango lectivo actualizado' }));
-      } else {
-        const body = {
-          grupo: `/api/grupos/${selectedGrupo}`,
-          nombre: plForm.nombre,
-          fechaInicio: plForm.fechaInicio,
-          fechaFin: plForm.fechaFin,
-          jornadaTipo: plForm.jornadaTipoId ? `/api/jornada_tipos/${plForm.jornadaTipoId}` : null,
-          orden: (plByGrupo[selectedGrupo]?.length || 0),
-        };
-        const res = await fetch(getApiUrl('/api/periodo_lectivos'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-        }
-        const created = await res.json();
-        setPlByGrupo(prev => {
-          const cur = prev[selectedGrupo] || [];
-          return { ...prev, [selectedGrupo]: [...cur, created].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)) };
-        });
-        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: created.id }));
-        setPlPickerOpen(false);
-        // Si el rango recién creado se pasa de `Grupo.fechaFin`, auto-extender
-        // el grupo para que abarque al rango (mismo principio que el botón
-        // "Extender curso"). Si el grupo no tiene fechaFin, lo fijamos al
-        // fechaFin del rango. Best-effort: si el PATCH falla, no abortamos
-        // la creación (el rango ya se creó).
-        const newPlFin = plForm.fechaFin;
-        const oldGrupoFin = grupo?.fechaFin ? grupo.fechaFin.slice(0, 10) : null;
-        if (newPlFin && (!oldGrupoFin || newPlFin > oldGrupoFin)) {
-          try {
-            const rg = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-              credentials: 'include',
-              body: JSON.stringify({ fechaFin: newPlFin }),
-            });
-            if (rg.ok) {
-              const updatedGrupo = await rg.json().catch(() => null);
-              if (updatedGrupo) {
-                setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updatedGrupo } : g));
-              } else {
-                setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: newPlFin } : g));
-              }
-            } else {
-              console.warn('Auto-extend Grupo.fechaFin falló:', rg.status);
-            }
-          } catch (e) {
-            console.warn('Auto-extend Grupo.fechaFin error:', e);
-          }
-        }
-        toast.success(t('scheduleEditor.rangoCreated', { defaultValue: 'Rango lectivo creado' }));
       }
-    } catch (err) {
-      console.error('Error guardando PL:', err);
-      const msgKey = plPickerMode === 'edit' ? 'scheduleEditor.rangoUpdateError' : 'scheduleEditor.rangoCreateError';
-      toast.error(t(msgKey, { defaultValue: plPickerMode === 'edit' ? 'No se pudo actualizar el rango' : 'No se pudo crear el rango' }));
-    } finally {
-      setAddingPl(false);
+      setPlPickerOpen(false);
+      toast.success(t('scheduleEditor.rangoUpdatedPreview', {
+        defaultValue: 'Rango actualizado (preview). Pulsa Guardar para persistir.',
+      }));
+      return;
     }
+
+    // Modo CREATE: añadir un PL virtual a plsToCreate.
+    const tempId = tempIdSeqRef.current;
+    tempIdSeqRef.current -= 1;
+    const draft = {
+      tempId,
+      id: tempId,
+      _pending: 'create',
+      nombre: plForm.nombre,
+      fechaInicio: plForm.fechaInicio,
+      fechaFin: plForm.fechaFin,
+      jornadaTipoId: plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null,
+      jornadaTipo: plForm.jornadaTipoId ? { id: Number(plForm.jornadaTipoId) } : null,
+      orden: (plByGrupo[selectedGrupo]?.length || 0),
+    };
+    setPendingTxByGrupo(prev => {
+      const tx = prev[selectedGrupo] || {};
+      return {
+        ...prev,
+        [selectedGrupo]: {
+          ...tx,
+          grupoFechaFinOriginal: tx.grupoFechaFinOriginal ?? grupo?.fechaFin ?? null,
+          plsRealesOriginales: tx.plsRealesOriginales ?? (plByGrupo[selectedGrupo] || []).filter(p => !p._pending),
+          plsToCreate: [...(tx.plsToCreate || []), draft],
+        },
+      };
+    });
+    setPlByGrupo(prev => {
+      const cur = prev[selectedGrupo] || [];
+      return {
+        ...prev,
+        [selectedGrupo]: [...cur, draft].sort((a, b) =>
+          (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
+      };
+    });
+    setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: String(tempId) }));
+    setPlPickerOpen(false);
+    toast.success(t('scheduleEditor.rangoCreatedPreview', {
+      defaultValue: 'Rango creado (preview). Pulsa Guardar para persistir.',
+    }));
   };
 
   // Borrar un PL: confirma + DELETE (soft-delete vía SoftDeleteProcessor).
@@ -2253,50 +2299,59 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       confirmVariant: 'danger',
     });
     if (!ok) return;
-    setDeletingPlId(pl.id);
-    try {
-      const res = await fetch(getApiUrl(`/api/periodo_lectivos/${pl.id}`), {
-        method: 'DELETE',
-        headers: { 'Accept': 'application/ld+json' },
-        credentials: 'include',
-      });
-      if (!res.ok && res.status !== 204) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+
+    // Tanda B parte 2: NO toca BD. Si es virtual, lo quitamos de
+    // plsToCreate; si es real, lo añadimos a plsToDelete.
+    const isVirtual = Number(pl.id) < 0;
+    setPendingTxByGrupo(prev => {
+      const tx = prev[selectedGrupo] || {};
+      if (isVirtual) {
+        const newCreate = (tx.plsToCreate || []).filter(d => String(d.tempId) !== String(pl.id));
+        return { ...prev, [selectedGrupo]: { ...tx, plsToCreate: newCreate } };
       }
-      // Quita el PL del listado del grupo y limpia caches asociadas.
-      setPlByGrupo(prev => ({
+      const realId = Number(pl.id);
+      const newDelete = [...new Set([...(tx.plsToDelete || []), realId])];
+      // Si el PL real estaba en plsToUpdate, lo quitamos (no tiene sentido
+      // PATCHearlo y luego DELETE).
+      const newUpdate = (tx.plsToUpdate || []).filter(u => u.realId !== realId);
+      return {
         ...prev,
-        [selectedGrupo]: (prev[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id)),
+        [selectedGrupo]: {
+          ...tx,
+          grupoFechaFinOriginal: tx.grupoFechaFinOriginal ?? grupo?.fechaFin ?? null,
+          plsRealesOriginales: tx.plsRealesOriginales ?? (plByGrupo[selectedGrupo] || []).filter(p => !p._pending),
+          plsToDelete: newDelete,
+          plsToUpdate: newUpdate,
+        },
+      };
+    });
+    // Quita el PL del strip + limpia state/capacity.
+    setPlByGrupo(prev => ({
+      ...prev,
+      [selectedGrupo]: (prev[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id)),
+    }));
+    setState(prev => {
+      const next = { ...prev };
+      delete next[cacheKey];
+      return next;
+    });
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      delete next[cacheKey];
+      return next;
+    });
+    if (String(selectedPlId) === String(pl.id)) {
+      const remaining = (plByGrupo[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id));
+      const today = new Date().toISOString().slice(0, 10);
+      const next = remaining.find(p => p.fechaInicio <= today && p.fechaFin >= today) || remaining[0];
+      setSelectedPlByGrupo(prev => ({
+        ...prev,
+        [selectedGrupo]: next ? String(next.id) : undefined,
       }));
-      setState(prev => {
-        const next = { ...prev };
-        delete next[cacheKey];
-        return next;
-      });
-      setCapacityByGrupo(prev => {
-        const next = { ...prev };
-        delete next[cacheKey];
-        return next;
-      });
-      // Si el PL borrado era el activo, mover selección a otro (el activo por
-      // fecha o el primero por fechaInicio, mismo criterio que el resolver).
-      if (String(selectedPlId) === String(pl.id)) {
-        const remaining = (plByGrupo[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id));
-        const today = new Date().toISOString().slice(0, 10);
-        const next = remaining.find(p => p.fechaInicio <= today && p.fechaFin >= today) || remaining[0];
-        setSelectedPlByGrupo(prev => ({
-          ...prev,
-          [selectedGrupo]: next ? next.id : undefined,
-        }));
-      }
-      toast.success(t('scheduleEditor.deleteRangoSuccess', { defaultValue: 'Rango borrado' }));
-    } catch (err) {
-      console.error('Error borrando PL:', err);
-      toast.error(t('scheduleEditor.deleteRangoError', { defaultValue: 'No se pudo borrar el rango' }));
-    } finally {
-      setDeletingPlId(null);
     }
+    toast.success(t('scheduleEditor.deleteRangoSuccessPreview', {
+      defaultValue: 'Rango borrado (preview). Pulsa Guardar para confirmar.',
+    }));
   };
 
   // ── PLI por rango (Fase 4) ────────────────────────────────────────────
@@ -3038,43 +3093,50 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!selectedGrupo) return;
     const ok = await confirm({
       title: t('scheduleEditor.clearAllTitle', { defaultValue: 'Limpiar todo el curso' }),
-      body: t('scheduleEditor.clearAllBody', {
-        defaultValue: 'Esto borrará TODOS los rangos lectivos del grupo y sus horarios. El grupo quedará sin rangos hasta que crees uno nuevo. Esta acción no se puede deshacer. ¿Continuar?',
+      body: t('scheduleEditor.clearAllBodyPreview', {
+        defaultValue: 'Se vaciará el strip de rangos en preview. Pulsa Guardar para confirmar el borrado en BD, o Descartar para revertir. ¿Continuar?',
       }),
       confirmLabel: t('scheduleEditor.clearConfirmLabel', { defaultValue: 'Limpiar' }),
       confirmVariant: 'danger',
     });
     if (!ok) return;
     setCursoActionsOpen(false);
-    try {
-      const res = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/clear-rangos`), {
-        method: 'DELETE',
-        headers: { 'Accept': 'application/json' },
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-      }
-      // Limpiar caches locales del grupo.
-      setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: [] }));
-      setSelectedPlByGrupo(prev => { const n = { ...prev }; delete n[selectedGrupo]; return n; });
-      setState(prev => {
-        const next = { ...prev };
-        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
-        return next;
-      });
-      setCapacityByGrupo(prev => {
-        const next = { ...prev };
-        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
-        return next;
-      });
-      setAllHorariosByGroup(prev => ({ ...prev, [selectedGrupo]: [] }));
-      toast.success(t('scheduleEditor.clearAllSuccess', { defaultValue: 'Curso limpiado' }));
-    } catch (err) {
-      console.error('Error al limpiar curso:', err);
-      toast.error(t('scheduleEditor.clearAllError', { defaultValue: 'No se pudo limpiar el curso' }));
-    }
+
+    // Tanda B parte 2: NO toca BD. Marca todos los reales como pending
+    // delete; al pulsar Guardar se ejecuta el DELETE secuencial.
+    const previaTx = pendingTxByGrupo[selectedGrupo];
+    const realesActuales = (plByGrupo[selectedGrupo] || []).filter(p => !p._pending);
+    const plsToDelete = previaTx?.plsToDelete ?? realesActuales.map(p => p.id);
+    const plsRealesOriginales = previaTx?.plsRealesOriginales ?? realesActuales;
+
+    setPendingTxByGrupo(prev => ({
+      ...prev,
+      [selectedGrupo]: {
+        ...(previaTx || {}),
+        grupoFechaFin: previaTx?.grupoFechaFin || null,
+        grupoFechaFinOriginal: previaTx?.grupoFechaFinOriginal || grupo?.fechaFin || null,
+        plsToDelete,
+        plsRealesOriginales,
+        plsToCreate: [],     // limpiar virtuales (si los había)
+        pliPatches: [],
+      },
+    }));
+    // Vaciar el strip y caches locales.
+    setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: [] }));
+    setSelectedPlByGrupo(prev => { const n = { ...prev }; delete n[selectedGrupo]; return n; });
+    setState(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+      return next;
+    });
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+      return next;
+    });
+    toast.success(t('scheduleEditor.clearAllSuccessPreview', {
+      defaultValue: 'Curso limpiado (preview). Pulsa Guardar para confirmar.',
+    }));
   };
 
   // Crear Rangos Recomendados: borra los PLs existentes y crea N nuevos
@@ -3094,9 +3156,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const N = nOverride !== null
       ? Math.max(1, nOverride)
       : Math.max(1, parseInt(createRangosCount, 10) || 3);
-    // `fechasOverride` permite a `handleConfigureOptimalCourse` pasar las
-    // fechas EFECTIVAS tras extender `Grupo.fechaFin` (si el state aún no se
-    // ha re-renderado). Backward compatible: si null, usa las del grupo.
     const iniISO = fechasOverride?.iniISO
       || grupo.fechaInicio?.slice(0, 10)
       || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[0]}-09-01` : null);
@@ -3105,89 +3164,86 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       || (grupo.anioEscolar ? `${grupo.anioEscolar.split('-')[1] || (Number(grupo.anioEscolar.split('-')[0]) + 1)}-06-30` : null);
     if (!iniISO || !finISO) {
       toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
-      return;
-    }
-    setCreatingRangos(true);
-    try {
-      // Paso 1: borrar PLs existentes vía endpoint clear.
-      const r1 = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/clear-rangos`), {
-        method: 'DELETE',
-        headers: { 'Accept': 'application/json' },
-        credentials: 'include',
-      });
-      if (!r1.ok) {
-        const txt = await r1.text().catch(() => '');
-        throw new Error(`Clear: ${r1.status}: ${txt.slice(0, 200)}`);
-      }
-      // Paso 2: calcular el span óptimo (semanas necesarias para cubrir el
-      // currículo) y dividir en N tramos contiguos. Si el currículo no cabe en
-      // el calendario, usamos todo el calendario disponible.
-      const ini = new Date(iniISO);
-      const fin = new Date(finISO);
-      const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
-      const diasOptimos = (semanasOptimas > 0) ? semanasOptimas * 7 : totalDiasCalendario;
-      const totalDias = Math.min(diasOptimos, totalDiasCalendario);
-      const diasPorTramo = Math.floor(totalDias / N);
-      const remainder = totalDias - diasPorTramo * N;
-      let cursor = new Date(ini);
-      const rangosCreados = [];
-      for (let i = 0; i < N; i++) {
-        const dias = diasPorTramo + (i < remainder ? 1 : 0);
-        const tramoIni = new Date(cursor);
-        const tramoFin = new Date(cursor);
-        tramoFin.setDate(tramoFin.getDate() + dias - 1);
-        const body = {
-          grupo: `/api/grupos/${selectedGrupo}`,
-          nombre: t('scheduleEditor.recommendedRangoNombre', { defaultValue: 'Rango {{n}}', n: i + 1 }),
-          fechaInicio: tramoIni.toISOString().slice(0, 10),
-          fechaFin: tramoFin.toISOString().slice(0, 10),
-          jornadaTipo: null,
-          orden: i,
-        };
-        const r = await fetch(getApiUrl('/api/periodo_lectivos'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify(body),
-        });
-        if (!r.ok) {
-          const txt = await r.text().catch(() => '');
-          throw new Error(`POST PL #${i + 1}: ${r.status}: ${txt.slice(0, 200)}`);
-        }
-        rangosCreados.push(await r.json());
-        cursor.setDate(cursor.getDate() + dias);
-      }
-      // Refrescar caches
-      setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: rangosCreados }));
-      setState(prev => {
-        const next = { ...prev };
-        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
-        return next;
-      });
-      setCapacityByGrupo(prev => {
-        const next = { ...prev };
-        Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
-        return next;
-      });
-      setAllHorariosByGroup(prev => ({ ...prev, [selectedGrupo]: [] }));
-      // Seleccionar el primero
-      if (rangosCreados[0]) {
-        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: rangosCreados[0].id }));
-      }
-      setCreateRangosModalOpen(false);
-      setCursoActionsOpen(false);
-      toast.success(t('scheduleEditor.createRangosSuccess', {
-        defaultValue: '{{count}} rangos creados',
-        count: rangosCreados.length,
-      }));
-      return rangosCreados;
-    } catch (err) {
-      console.error('Error creando rangos recomendados:', err);
-      toast.error(t('scheduleEditor.createRangosError', { defaultValue: 'No se pudieron crear los rangos' }));
       return null;
-    } finally {
-      setCreatingRangos(false);
     }
+
+    // Tanda B parte 2: NO toca BD. Acumula en pendingTxByGrupo[gid] para
+    // que el botón Guardar aplique el plan completo al final.
+    const previaTx = pendingTxByGrupo[selectedGrupo];
+    const realesActuales = (plByGrupo[selectedGrupo] || []).filter(p => !p._pending);
+    // Si ya había tx previa, conservamos plsToDelete + plsRealesOriginales
+    // (los REALES originales antes de cualquier edit) y solo regeneramos los
+    // virtuales. Si no hay tx previa, los reales actuales serán plsToDelete.
+    const plsToDelete = previaTx?.plsToDelete ?? realesActuales.map(p => p.id);
+    const plsRealesOriginales = previaTx?.plsRealesOriginales ?? realesActuales;
+
+    // Calcular tramos.
+    const ini = new Date(iniISO);
+    const fin = new Date(finISO);
+    const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+    const diasOptimos = (semanasOptimas > 0) ? semanasOptimas * 7 : totalDiasCalendario;
+    const totalDias = Math.min(diasOptimos, totalDiasCalendario);
+    const diasPorTramo = Math.floor(totalDias / N);
+    const remainder = totalDias - diasPorTramo * N;
+
+    // Construir N virtuales con tempIds negativos.
+    const plsToCreate = [];
+    let cursor = new Date(ini);
+    for (let i = 0; i < N; i++) {
+      const dias = diasPorTramo + (i < remainder ? 1 : 0);
+      const tramoIni = new Date(cursor);
+      const tramoFin = new Date(cursor);
+      tramoFin.setDate(tramoFin.getDate() + dias - 1);
+      const tempId = tempIdSeqRef.current;
+      tempIdSeqRef.current -= 1;
+      plsToCreate.push({
+        tempId,
+        id: tempId,
+        _pending: 'create',
+        nombre: t('scheduleEditor.recommendedRangoNombre', { defaultValue: 'Rango {{n}}', n: i + 1 }),
+        fechaInicio: tramoIni.toISOString().slice(0, 10),
+        fechaFin: tramoFin.toISOString().slice(0, 10),
+        jornadaTipo: null,
+        jornadaTipoId: null,
+        orden: i,
+      });
+      cursor.setDate(cursor.getDate() + dias);
+    }
+
+    setPendingTxByGrupo(prev => ({
+      ...prev,
+      [selectedGrupo]: {
+        ...(previaTx || {}),
+        grupoFechaFin: previaTx?.grupoFechaFin || null,
+        grupoFechaFinOriginal: previaTx?.grupoFechaFinOriginal || grupo.fechaFin,
+        plsToDelete,
+        plsRealesOriginales,
+        plsToCreate,
+        pliPatches: [],
+      },
+    }));
+    setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: plsToCreate.slice() }));
+    // Limpia state de PLs reales viejos y de virtuales previos.
+    setState(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+      return next;
+    });
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+      return next;
+    });
+    if (plsToCreate[0]) {
+      setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: String(plsToCreate[0].tempId) }));
+    }
+    setCreateRangosModalOpen(false);
+    setCursoActionsOpen(false);
+    toast.success(t('scheduleEditor.createRangosSuccessPreview', {
+      defaultValue: '{{count}} rangos creados (preview). Pulsa Guardar para persistir.',
+      count: plsToCreate.length,
+    }));
+    return plsToCreate;
   };
 
   // Configurar curso óptimo (Fase 5 fix post-cierre 2026-04-29 + Distributor
@@ -3836,8 +3892,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               <strong>{t('scheduleEditor.pendingTxTitle', { defaultValue: 'Cambios pendientes (sin guardar)' })}</strong>
               <span className={styles.plBannerMeta}>
                 {t('scheduleEditor.pendingTxSummary', {
-                  defaultValue: '{{create}} rangos por crear · {{del}} por borrar · {{patches}} ajustes de minutos',
+                  defaultValue: '{{create}} crear · {{update}} editar · {{del}} borrar · {{patches}} ajustes minutos',
                   create: pendingTxByGrupo[selectedGrupo]?.plsToCreate?.length || 0,
+                  update: pendingTxByGrupo[selectedGrupo]?.plsToUpdate?.length || 0,
                   del: pendingTxByGrupo[selectedGrupo]?.plsToDelete?.length || 0,
                   patches: pendingTxByGrupo[selectedGrupo]?.pliPatches?.length || 0,
                 })}

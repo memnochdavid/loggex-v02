@@ -1365,7 +1365,7 @@
     "optimalPreviewReady": "Aurrebista prest. Sakatu \"Gorde\" gordetzeko edo \"Baztertu\" desegiteko.",
     "optimalGenericError": "Errorea ikasturte optimoa sortzean.",
     "optimalNoJornada": "Taldeak ez du lan-egunik esleituta (ez override, ez ibilbidean). Esleitu bat /admin/jornadas-en edo editorearen hautatzailean ikasturte optimoa konfiguratu aurretik.",
-    "solverError": "Solverrak huts egin du aldi birtual batean.",
+    "solverError": "Solver errorea: {{message}}",
     "pendingTxTitle": "Aldaketa zain (gorde gabe)",
     "pendingTxSummary": "{{create}} aldi sortzeko · {{del}} ezabatzeko · {{patches}} minutu doiketa",
     "pendingTxApply": "Gorde aldaketa guztiak",
@@ -1449,7 +1449,6 @@
     "solving": "Kalkulatzen…",
     "solverConfirmOverwrite": "Ordutegi bat lantzen ari da. Solverraren proposamenarekin gainidatzi?",
     "solverPartial": "Proposamen partziala. Kokatu gabe: {{items}}",
-    "solverError": "Solver errorea: {{message}}",
     "unsavedTitle": "Gorde gabeko aldaketak",
     "unsavedBody": "Ordutegian oraindik gorde ez dituzun aldaketak dituzu. Zer egin nahi duzu?",
     "unsavedStay": "Geratu",
@@ -1472,7 +1471,13 @@
     "exportDirtyBody": "PDFak datu-basean gordetako bertsioa erakusten du. Gorde gabeko aldaketak dituzu; zer egin nahi duzu?",
     "exportDirtyCancel": "Utzi",
     "exportDirtyExportSaved": "Esportatu gordetako bertsioa",
-    "exportDirtySaveAndExport": "Gorde eta esportatu"
+    "exportDirtySaveAndExport": "Gorde eta esportatu",
+    "createRangosSuccessPreview": "{{count}} aldi sortuta (preview). Sakatu Gorde iraunarazteko.",
+    "rangoCreatedPreview": "Aldia sortuta (preview). Sakatu Gorde iraunarazteko.",
+    "rangoUpdatedPreview": "Aldia eguneratuta (preview). Sakatu Gorde iraunarazteko.",
+    "deleteRangoSuccessPreview": "Aldia ezabatuta (preview). Sakatu Gorde berresteko.",
+    "clearAllSuccessPreview": "Ikasturtea garbituta (preview). Sakatu Gorde berresteko.",
+    "clearAllBodyPreview": "Aldien strip-a hustuko da preview-an. Sakatu Gorde DBn ezabatzea berresteko, edo Baztertu desegiteko. Jarraitu?"
   },
   "profLoad": {
     "title": "Irakasleen asteko karga",

@@ -1365,7 +1365,7 @@
     "optimalPreviewReady": "Preview ready. Press \"Save\" to persist or \"Discard\" to revert.",
     "optimalGenericError": "Error generating the optimal course.",
     "optimalNoJornada": "The group has no schedule assigned (no override, no itinerary default). Assign one in /admin/jornadas or the editor selector before configuring the optimal course.",
-    "solverError": "The solver failed in one of the virtual terms.",
+    "solverError": "Solver error: {{message}}",
     "pendingTxTitle": "Pending changes (unsaved)",
     "pendingTxSummary": "{{create}} terms to create · {{del}} to delete · {{patches}} minute adjustments",
     "pendingTxApply": "Save all changes",
@@ -1449,7 +1449,6 @@
     "solving": "Computing…",
     "solverConfirmOverwrite": "There is a schedule in progress. Overwrite with the solver's proposal?",
     "solverPartial": "Partial proposal. Unplaced: {{items}}",
-    "solverError": "Solver error: {{message}}",
     "unsavedTitle": "Unsaved changes",
     "unsavedBody": "You have unsaved changes in the schedule. What do you want to do?",
     "unsavedStay": "Stay",
@@ -1472,7 +1471,13 @@
     "exportDirtyBody": "The PDF reflects the version saved in the database. You have unsaved local changes; what do you want to do?",
     "exportDirtyCancel": "Cancel",
     "exportDirtyExportSaved": "Export saved version",
-    "exportDirtySaveAndExport": "Save and export"
+    "exportDirtySaveAndExport": "Save and export",
+    "createRangosSuccessPreview": "{{count}} terms created (preview). Press Save to persist.",
+    "rangoCreatedPreview": "Term created (preview). Press Save to persist.",
+    "rangoUpdatedPreview": "Term updated (preview). Press Save to persist.",
+    "deleteRangoSuccessPreview": "Term deleted (preview). Press Save to confirm.",
+    "clearAllSuccessPreview": "Course cleared (preview). Press Save to confirm.",
+    "clearAllBodyPreview": "The term strip will be emptied in preview. Press Save to confirm the deletion in DB, or Discard to revert. Continue?"
   },
   "profLoad": {
     "title": "Weekly teacher workload",
