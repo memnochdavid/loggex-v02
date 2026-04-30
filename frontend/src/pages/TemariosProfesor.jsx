@@ -6,13 +6,14 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Download, Trash2, Upload } from 'lucide-react';
+import { FileText, Download, Trash2, Upload, Edit2 } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -38,6 +39,10 @@ const TemariosProfesor = () => {
   // Estado Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImparticionId, setCurrentImparticionId] = useState(null);
+  // Modo edición: si está set, el modal edita un Temario existente (PATCH del
+  // título); si es null, el modal sube un Temario nuevo. Cambiar el archivo
+  // adjunto requiere borrar + volver a subir (el backend no expone replace).
+  const [editingTemarioId, setEditingTemarioId] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
     archivo: null
@@ -127,7 +132,7 @@ const TemariosProfesor = () => {
           const materiales = matData['hydra:member'] || matData.member || [];
 
           const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
-          let title = `${imp.materia.nombre} - ${imp.grupo.abreviatura || imp.grupo.nombre}`;
+          let title = `${imp.materia.nombre} - ${formatGrupoAbrev(imp.grupo)}`;
           if (isSuperAdmin && nombreProfesor) {
               title += ` (${nombreProfesor})`;
           }
@@ -155,13 +160,22 @@ const TemariosProfesor = () => {
 
   const handleAddClick = (imparticionId) => {
     setCurrentImparticionId(imparticionId);
+    setEditingTemarioId(null);
     setFormData({ titulo: '', archivo: null });
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (mat) => {
+    setEditingTemarioId(mat.id);
+    setCurrentImparticionId(null);
+    setFormData({ titulo: mat.titulo || '', archivo: null });
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentImparticionId(null);
+    setEditingTemarioId(null);
   };
 
   const handleInputChange = (e) => {
@@ -175,7 +189,13 @@ const TemariosProfesor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.archivo || !formData.titulo) {
+    const isEditing = editingTemarioId !== null;
+
+    if (!formData.titulo) {
+        toast.warning(t('teacherMaterials.fillAllFields'));
+        return;
+    }
+    if (!isEditing && !formData.archivo) {
         toast.warning(t('teacherMaterials.fillAllFields'));
         return;
     }
@@ -183,30 +203,51 @@ const TemariosProfesor = () => {
     setUploading(true);
 
     try {
-        const data = new FormData();
-        data.append('file', formData.archivo);
-        data.append('titulo', formData.titulo);
-        data.append('imparticionId', currentImparticionId);
-
-        const response = await fetch(getApiUrl('/api/temarios/upload'), {
-            method: 'POST',
-            body: data,
-            credentials: 'include'
-        });
+        let response;
+        if (isEditing) {
+            // Edición: PATCH solo del título. Reemplazar el archivo no está
+            // soportado por el backend (no hay endpoint replace) — para eso
+            // el profesor debe borrar y volver a subir.
+            response = await fetch(getApiUrl(`/api/temarios/${editingTemarioId}`), {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/merge-patch+json',
+                    'Accept': 'application/ld+json',
+                },
+                body: JSON.stringify({ titulo: formData.titulo }),
+                credentials: 'include'
+            });
+        } else {
+            const data = new FormData();
+            data.append('file', formData.archivo);
+            data.append('titulo', formData.titulo);
+            data.append('imparticionId', currentImparticionId);
+            response = await fetch(getApiUrl('/api/temarios/upload'), {
+                method: 'POST',
+                body: data,
+                credentials: 'include'
+            });
+        }
 
         if (!response.ok) {
-            const message = await parseErrorResponse(response, t('teacherMaterials.errorUpload'));
+            const message = await parseErrorResponse(response, isEditing
+                ? t('teacherMaterials.errorUpdate', { defaultValue: 'No se ha podido actualizar el material' })
+                : t('teacherMaterials.errorUpload'));
             throw new Error(message);
         }
 
         await fetchData();
         handleCloseModal();
-        toast.success(t('teacherMaterials.uploadSuccess', { defaultValue: 'Material subido' }));
+        toast.success(isEditing
+            ? t('teacherMaterials.updatedSuccess', { defaultValue: 'Material actualizado' })
+            : t('teacherMaterials.uploadSuccess', { defaultValue: 'Material subido' }));
 
     } catch (err) {
-        console.error("Error subiendo material:", err);
+        console.error("Error guardando material:", err);
         toast.error(err.message, {
-          description: t('teacherMaterials.errorUploadCtx', { defaultValue: 'No se ha podido subir el material' })
+          description: isEditing
+            ? t('teacherMaterials.errorUpdatingCtx', { defaultValue: 'No se ha podido actualizar el material' })
+            : t('teacherMaterials.errorUploadCtx', { defaultValue: 'No se ha podido subir el material' })
         });
     } finally {
         setUploading(false);
@@ -254,17 +295,24 @@ const TemariosProfesor = () => {
                 </span>
             </div>
             <div className={styles.itemActions}>
-                <a 
+                <a
                     href={getAssetUrl(`/uploads/materiales/${mat.id}/${mat.archivo}`)}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className={styles.downloadLink}
                     download
                 >
                     <Download size={18} />
                 </a>
-                <button 
-                    className={`${styles.iconButton} ${styles.danger}`} 
+                <button
+                    className={styles.iconButton}
+                    onClick={() => handleEditClick(mat)}
+                    title={t('common.edit')}
+                >
+                    <Edit2 size={18} />
+                </button>
+                <button
+                    className={`${styles.iconButton} ${styles.danger}`}
                     onClick={() => handleDelete(mat.id)}
                     title={t('common.delete')}
                 >
@@ -317,7 +365,7 @@ const TemariosProfesor = () => {
                         ariaLabel={t('common.allGroups')}
                         options={[
                             { value: '', label: t('common.allGroups') },
-                            ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                            ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                         ]}
                     />
                 </div>
@@ -348,50 +396,61 @@ const TemariosProfesor = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={t('teacherMaterials.uploadTitle')}
+            title={editingTemarioId
+                ? t('teacherMaterials.editTitle', { defaultValue: 'Editar material' })
+                : t('teacherMaterials.uploadTitle')}
             onSubmit={handleSubmit}
             isSubmitting={uploading}
-            submitText={t('teacherMaterials.uploadBtn')}
+            submitText={editingTemarioId
+                ? t('common.save')
+                : t('teacherMaterials.uploadBtn')}
         >
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('teacherMaterials.titleLabel')}</label>
-                <input 
-                    type="text" 
-                    name="titulo" 
-                    value={formData.titulo} 
-                    onChange={handleInputChange} 
-                    className={styles.input} 
-                    required 
+                <input
+                    type="text"
+                    name="titulo"
+                    value={formData.titulo}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    required
                     placeholder={t('teacherMaterials.titlePlaceholder')}
                 />
             </div>
-            <div className={styles.formGroup}>
-                <label className={styles.label}>{t('teacherMaterials.fileLabel')}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <input 
-                        type="file" 
-                        name="archivo" 
-                        ref={fileInputRef}
-                        onChange={handleInputChange} 
-                        className={styles.fileInput}
-                        style={{ display: 'none' }}
-                        required 
-                    />
-                    <Button 
-                        type="button" 
-                        variant="secondary" 
-                        onClick={() => fileInputRef.current.click()}
-                    >
-                        <Upload size={16} style={{ marginRight: '8px' }} />
-                        {formData.archivo ? t('common.changeFile') : t('common.selectFile')}
-                    </Button>
-                    {formData.archivo && (
-                        <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                            {formData.archivo.name}
-                        </span>
-                    )}
+            {!editingTemarioId && (
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('teacherMaterials.fileLabel')}</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <input
+                            type="file"
+                            name="archivo"
+                            ref={fileInputRef}
+                            onChange={handleInputChange}
+                            className={styles.fileInput}
+                            style={{ display: 'none' }}
+                            required
+                        />
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => fileInputRef.current.click()}
+                        >
+                            <Upload size={16} style={{ marginRight: '8px' }} />
+                            {formData.archivo ? t('common.changeFile') : t('common.selectFile')}
+                        </Button>
+                        {formData.archivo && (
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                                {formData.archivo.name}
+                            </span>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
+            {editingTemarioId && (
+                <small className={styles.helpText} style={{ color: 'var(--text-muted)' }}>
+                    {t('teacherMaterials.editFileHint', { defaultValue: 'Para reemplazar el archivo, elimina este material y sube uno nuevo.' })}
+                </small>
+            )}
         </ModalView>
       </div>
     </Layout>
