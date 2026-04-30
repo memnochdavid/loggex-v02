@@ -12,6 +12,7 @@ import { Download } from 'lucide-react';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 import { toast } from '../utils/toast';
+import { formatGrupoNombre } from '../utils/grupo';
 
 const CalificacionesAdmin = () => {
     const { t, i18n } = useTranslation();
@@ -173,7 +174,7 @@ const CalificacionesAdmin = () => {
             if (!result[ciclo]) result[ciclo] = [];
             result[ciclo].push({
                 id: g.grupo.id,
-                title: g.grupo.curso ? `${g.grupo.curso}º ${g.grupo.nombre}` : g.grupo.nombre,
+                title: formatGrupoNombre(g.grupo),
                 modulos: g.modulos,
             });
         });

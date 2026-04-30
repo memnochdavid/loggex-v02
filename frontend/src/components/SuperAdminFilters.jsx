@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ThemedSelect from './ThemedSelect';
+import { formatGrupoNombre } from '../utils/grupo';
 
 /**
  * Filtros en cascada Centro → Año escolar → Grupo → Módulo para SuperAdmin.
@@ -54,7 +55,7 @@ const SuperAdminFilters = ({ filters }) => {
                 placeholder={t('common.allGroups')}
                 options={[
                     { value: '', label: t('common.allGroups') },
-                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                    ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                 ]}
             />
 

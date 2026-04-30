@@ -24,6 +24,7 @@ import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkle
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
+import { formatGrupoNombre } from '../utils/grupo';
 import { useConfirm } from '../context/ConfirmContext';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
@@ -250,6 +251,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Lista de jornadas disponibles por centro: { [centroId]: [{id, nombre, turno}, ...] }.
   // Alimenta el selector de jornada del infoBar (override por grupo, persistido en BD).
   const [jornadasByCentro, setJornadasByCentro] = useState({});
+  // Cache de semanas lectivas REALES por centro (Fase 7): consulta el endpoint
+  // GET /api/v1/centros/{id}/semanas-lectivas que descuenta festivos del rango
+  // del centro o, si no rellena fechas, del CalendarioEscolarCcaa(centro.ccaa,
+  // anioActual, etapa=fp). Cae a 36 LOMLOE si no hay calendario CCAA.
+  // Forma: { [centroId]: { semanas: float|null, diasLectivos: int|null, origen: 'centro'|'ccaa'|'fallback' } }
+  const [semanasLectivasByCentro, setSemanasLectivasByCentro] = useState({});
   // Cache de capacity-check por (grupo, PL): { [`${grupoId}_${plId}`]: { feasible, ... } }.
   // El PL afecta a la jornada efectiva y a las imparticiones activas, así que la
   // cache se invalida al cambiar de PL o al cambiar la jornada del grupo.
@@ -426,6 +433,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })
       .catch(err => console.error('Error cargando jornadas del centro:', err));
   }, [selectedGrupo, grupos, jornadasByCentro]);
+
+  // 1.5.b.bis) Cargar semanas lectivas reales del centro del grupo (Fase 7).
+  // Un fetch por centro, cacheado en `semanasLectivasByCentro`. La etapa se
+  // pasa como 'fp' por defecto (única soportada hoy en EAG); cuando lleguen
+  // grupos ESO/Bach se podrá inferir del Itinerario.
+  useEffect(() => {
+    if (!selectedGrupo || grupos.length === 0) return;
+    const grupoActual = grupos.find(g => String(g.id) === String(selectedGrupo));
+    if (!grupoActual) return;
+    const centroId = extractFkId(grupoActual.centro);
+    if (!centroId) return;
+    if (semanasLectivasByCentro[centroId] !== undefined) return;
+
+    fetch(getApiUrl(`/api/v1/centros/${centroId}/semanas-lectivas?etapa=fp`),
+      { headers: { 'Accept': 'application/json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        setSemanasLectivasByCentro(prev => ({ ...prev, [centroId]: d }));
+      })
+      .catch(err => console.error('Error cargando semanas lectivas del centro:', err));
+  }, [selectedGrupo, grupos, semanasLectivasByCentro]);
 
   // 1.5.c) Cargar los PeriodoLectivo del grupo seleccionado.
   // Fase 3a: alimenta el timeline strip y el cableado del solver/capacity-check
@@ -819,10 +848,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   // Objetivo anual por imparticion (Opción A 2026-04-29): usa
   // `materia.horasTotales × 60` que es la "ley LOMLOE" (RD del título).
-  // Fallback a `min/sem × 36` solo si horasTotales no está set (caso edge).
-  // Antes el sistema asumía calendario rígido de 36 sem y solo guardaba h/sem,
-  // lo que generaba inconsistencias en calendarios distintos a 36 sem.
-  const SEMANAS_REFERENCIA_ANUAL = 36;
+  // Fallback a `min/sem × semanasReferenciaCentro` solo si horasTotales no
+  // está set (caso edge). Antes el sistema asumía calendario rígido de 36
+  // sem; ahora (Fase 7) lo lee del calendario real del centro descontando
+  // festivos. Si el centro no tiene ni overrides ni CalendarioEscolarCcaa
+  // disponible, cae a 36 LOMLOE.
+  const semanasReferenciaCentro = useMemo(() => {
+    if (!selectedGrupo) return 36;
+    const grupo = grupos.find(g => String(g.id) === String(selectedGrupo));
+    const centroId = grupo ? extractFkId(grupo.centro) : null;
+    const r = centroId ? semanasLectivasByCentro[centroId] : null;
+    return (r && r.semanas != null && r.semanas > 0) ? r.semanas : 36;
+  }, [selectedGrupo, grupos, semanasLectivasByCentro]);
   const minutosAnualesObjetivoByImp = useMemo(() => {
     const m = {};
     imps.forEach(imp => {
@@ -830,11 +867,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (horasTot != null && horasTot > 0) {
         m[imp.id] = horasTot * 60;
       } else {
-        m[imp.id] = (imp.materia?.minutosSemanales || 0) * SEMANAS_REFERENCIA_ANUAL;
+        m[imp.id] = (imp.materia?.minutosSemanales || 0) * semanasReferenciaCentro;
       }
     });
     return m;
-  }, [imps]);
+  }, [imps, semanasReferenciaCentro]);
 
   const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
 
@@ -870,15 +907,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const objetivoAnualPresencialMin = imps.reduce((a, i) => {
       if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
       // Opción A: usa horasTotales (h × 60 = min anuales). Fallback a
-      // min/sem × 36 solo si la materia no tiene h totales (caso edge muy
-      // raro tras backfill — defensivo, no anclaje de diseño).
+      // min/sem × semanasReferenciaCentro solo si la materia no tiene h totales.
       const horasTot = i.materia?.horasTotales;
       if (horasTot != null && horasTot > 0) return a + horasTot * 60;
-      return a + (i.materia?.minutosSemanales || 0) * 36;
+      return a + (i.materia?.minutosSemanales || 0) * semanasReferenciaCentro;
     }, 0);
     if (objetivoAnualPresencialMin <= 0 || slotsSemanalMin <= 0) return 0;
     return Math.ceil(objetivoAnualPresencialMin / slotsSemanalMin);
-  }, [imps, slotsSemanalMin]);
+  }, [imps, slotsSemanalMin, semanasReferenciaCentro]);
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
   );
@@ -954,7 +990,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   //   - Amarillo: faltan entre 5h y 15h (margen pequeño de incumplimiento)
   //   - Rojo: faltan más de 15h (incumplimiento real del currículo)
   const horasAnualesBanner = useMemo(() => {
-    const SEMANAS_ESTANDAR = 36;  // referencia LOMLOE para "horas anuales currículo"
+    // Semanas de referencia: las reales del centro (Fase 7 — descuenta
+    // festivos del calendario lectivo). Si no hay calendario disponible, 36
+    // LOMLOE como fallback. Solo afecta al fallback de currículo cuando una
+    // materia no tiene horasTotales (caso edge tras backfill).
+    const semanasReferencia = semanasReferenciaCentro;
     const TOL_OK = 5;             // ±5h se considera cuadrado
     const TOL_WARN = 15;          // si faltan entre 5h y 15h, amarillo; más, rojo
     if (!selectedGrupo) return null;
@@ -962,11 +1002,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (pls.length === 0 || imps.length === 0) return null;
 
     // Currículo (Opción A 2026-04-29): Σ horas totales anuales × 60 (ley LOMLOE).
-    // Fallback a min/sem × 36 si la materia no tiene horasTotales (caso edge).
+    // Fallback a min/sem × semanasReferencia si la materia no tiene horasTotales.
     const curriculumMin = imps.reduce((acc, i) => {
       const horasTot = i.materia?.horasTotales;
       if (horasTot != null && horasTot > 0) return acc + horasTot * 60;
-      return acc + (i.materia?.minutosSemanales || 0) * SEMANAS_ESTANDAR;
+      return acc + (i.materia?.minutosSemanales || 0) * semanasReferencia;
     }, 0);
 
     // Cap semanal "lectivo curricular" (slots + recreos × 5 días). Asumimos
@@ -3208,7 +3248,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               .filter(g => !selectedYear || g.anioEscolar === selectedYear)
               .map(g => ({
                 value: String(g.id),
-                label: `${g.curso}º ${g.nombre}`,
+                label: formatGrupoNombre(g),
               }))}
           />
           <Button
@@ -4305,12 +4345,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             {semanasOptimas > 0 && (
               <small className={styles.plFormHint} style={{ display: 'block', marginTop: 'var(--space-2)' }}>
                 {t('scheduleEditor.createRangosOptimalCalc', {
-                  defaultValue: 'Cálculo: Σ horas totales anuales {{horasObj}}h ÷ slots colocables {{horasJornada}}h/sem = {{semanas}} sem (mín. 36 LOMLOE)',
+                  defaultValue: 'Cálculo: Σ horas totales anuales {{horasObj}}h ÷ slots colocables {{horasJornada}}h/sem = {{semanas}} sem',
                   horasObj: Math.round(imps.reduce((a, i) => {
                     if (!consumeAulaModalidad(getEffectiveModalidad(i))) return a;
                     const horasTot = i.materia?.horasTotales;
                     if (horasTot != null && horasTot > 0) return a + horasTot;
-                    return a + (i.materia?.minutosSemanales || 0) * 36 / 60;
+                    return a + (i.materia?.minutosSemanales || 0) * semanasReferenciaCentro / 60;
                   }, 0)),
                   horasJornada: Math.round(slotsSemanalMin / 60 * 10) / 10,
                   semanas: semanasOptimas,

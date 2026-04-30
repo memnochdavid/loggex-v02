@@ -12,6 +12,7 @@ import CrudHeader from '../components/CrudHeader';
 import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 import { toast } from '../utils/toast';
+import { formatGrupoNombre } from '../utils/grupo';
 
 // Header de cada módulo dentro del AccordionView. Dispara la carga lazy de
 // tareas la primera vez que el item se expande.
@@ -412,7 +413,7 @@ const MisCalificaciones = () => {
                                 ariaLabel={t('common.allGroups')}
                                 options={[
                                     { value: '', label: t('common.allGroups') },
-                                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                    ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                                 ]}
                             />
                             <ThemedSelect

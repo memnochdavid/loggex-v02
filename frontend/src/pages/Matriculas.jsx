@@ -17,6 +17,7 @@ import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
 
 const Matriculas = () => {
   const { t } = useTranslation();
@@ -382,7 +383,7 @@ const Matriculas = () => {
     },
     {
         header: t('enrollments.group'),
-        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.abreviatura || row.grupo.nombre}` : '-',
+        accessor: (row) => row.grupo ? formatGrupoAbrev(row.grupo) : '-',
         sortable: true,
         sortKey: 'grupo.nombre'
     },
@@ -445,7 +446,7 @@ const Matriculas = () => {
                     { value: '', label: t('common.allGroups') },
                     ...grupos.map(g => ({
                         value: String(g.id || g['@id']?.split('/').pop()),
-                        label: `${g.curso}º ${g.nombre}`,
+                        label: formatGrupoNombre(g),
                     })),
                 ]}
             />
@@ -520,7 +521,7 @@ const Matriculas = () => {
                     onChange={(v) => setFormData(p => ({ ...p, grupo: v }))}
                     endpoint="/api/grupos"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
-                    getOptionLabel={(g) => `${g.curso}º ${g.nombre}`}
+                    getOptionLabel={(g) => formatGrupoNombre(g)}
                     getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
                     placeholder={t('common.selectGroup')}
                     required

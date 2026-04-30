@@ -24,6 +24,7 @@ import Lottie from 'lottie-react';
 import calendarAnimation from '../../public/time.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
+import { formatGrupoAbrev } from '../utils/grupo';
 import { useConfirm } from '../context/ConfirmContext';
 
 const Horarios = ({ embedded = false, tabs = null }) => {
@@ -528,9 +529,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
         header: t('schedules.group'),
         accessor: (row) => {
             const g = row.imparticion?.grupo;
-            if (!g) return '-';
-            const abrev = g.abreviatura || g.nombre || '';
-            return g.curso ? `${g.curso}º ${abrev}`.trim() : abrev || '-';
+            return g ? (formatGrupoAbrev(g) || '-') : '-';
         },
         sortable: true, sortKey: 'imparticion.grupo.nombre'
     },

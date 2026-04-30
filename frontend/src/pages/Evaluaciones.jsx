@@ -15,6 +15,7 @@ import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoNombre } from '../utils/grupo';
 
 const TIPOS = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'ORDINARIA_FINAL', 'EXTRAORDINARIA'];
 
@@ -216,7 +217,7 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
           ? r.grupo.split('/').pop()
           : (r.grupo?.id || r.grupo?.['@id']?.split('/').pop());
         const g = grupos.find(x => String(x.id) === String(gid));
-        return g ? (g.nombre || g.abreviatura) : '—';
+        return g ? formatGrupoNombre(g) : '—';
       },
       sortable: false,
     },
@@ -259,7 +260,7 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
         ariaLabel={t('common.allGroups')}
         options={[
           { value: '', label: t('common.allGroups') },
-          ...gruposFiltrados.map(g => ({ value: String(g.id), label: g.nombre })),
+          ...gruposFiltrados.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
         ]}
       />
       {canCreate && (
@@ -318,7 +319,7 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
           <label className={styles.label}>Grupo</label>
           <select name="grupo" value={formData.grupo} onChange={handleInput} className={styles.select} style={{ width: '100%' }} required>
             <option value="">Selecciona un grupo</option>
-            {gruposFiltrados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+            {gruposFiltrados.map(g => <option key={g.id} value={g.id}>{formatGrupoNombre(g)}</option>)}
           </select>
         </div>
         <div className={styles.formGroup}>

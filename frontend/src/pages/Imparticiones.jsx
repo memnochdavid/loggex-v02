@@ -18,6 +18,7 @@ import crudAnimation from '../../public/crud.json';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoAbrev } from '../utils/grupo';
 
 
 const Imparticiones = () => {
@@ -452,11 +453,7 @@ const Imparticiones = () => {
     },
     {
         header: t('teaching.group'),
-        accessor: (row) => {
-            if (!row.grupo) return '-';
-            const label = row.grupo.abreviatura || row.grupo.nombre;
-            return row.grupo.curso ? `${row.grupo.curso}º ${label}` : label;
-        },
+        accessor: (row) => row.grupo ? (formatGrupoAbrev(row.grupo) || '-') : '-',
         sortable: true,
         sortKey: 'grupo.nombre'
     },
@@ -546,7 +543,7 @@ const Imparticiones = () => {
                     { value: '', label: t('teaching.allGroups', { defaultValue: 'Todos los grupos' }) },
                     ...grupos.map(g => ({
                         value: String(g.id || g['@id']?.split('/').pop()),
-                        label: `${g.curso ? g.curso + 'º ' : ''}${g.abreviatura || g.nombre}`,
+                        label: formatGrupoAbrev(g),
                     })),
                 ]}
             />
@@ -649,7 +646,7 @@ const Imparticiones = () => {
                     }}
                     endpoint="/api/grupos"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
-                    getOptionLabel={(g) => `${g.curso}º ${g.abreviatura || g.nombre}`}
+                    getOptionLabel={(g) => formatGrupoAbrev(g)}
                     getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
                     placeholder={t('common.selectGroup')}
                     required

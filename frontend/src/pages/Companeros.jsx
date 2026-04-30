@@ -12,6 +12,7 @@ import Lottie from 'lottie-react';
 import bookAnimation from '../../public/book.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { formatGrupoNombre } from '../utils/grupo';
 
 const Companeros = () => {
     const { t } = useTranslation();
@@ -162,7 +163,7 @@ const Companeros = () => {
                                 ariaLabel={t('common.allGroups')}
                                 options={[
                                     { value: '', label: t('common.allGroups') },
-                                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                    ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                                 ]}
                             />
                         </div>

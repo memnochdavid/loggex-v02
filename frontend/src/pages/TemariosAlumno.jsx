@@ -11,6 +11,7 @@ import Lottie from 'lottie-react';
 import bookAnimation from "../../public/book.json";
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
 
 const TemariosAlumno = () => {
   const { t } = useTranslation();
@@ -192,7 +193,7 @@ const TemariosAlumno = () => {
             const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
             
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
-            const title = `${imp.materia.nombre} (${imp.grupo.abreviatura || imp.grupo.nombre}) - ${nombreProfesor}`;
+            const title = `${imp.materia.nombre} (${formatGrupoAbrev(imp.grupo)}) - ${nombreProfesor}`;
 
             const grupoId = typeof imp.grupo === 'string'
                 ? imp.grupo.split('/').pop()
@@ -352,7 +353,7 @@ const TemariosAlumno = () => {
                         ariaLabel={t('common.allGroups')}
                         options={[
                             { value: '', label: t('common.allGroups') },
-                            ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                            ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                         ]}
                     />
                     <ThemedSelect

@@ -12,6 +12,7 @@ import Lottie from 'lottie-react';
 import checkAnimation from '../../public/check.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
+import { formatGrupoNombre } from '../utils/grupo';
 
 
 const MisFaltas = () => {
@@ -267,7 +268,7 @@ const MisFaltas = () => {
                                 ariaLabel={t('common.allGroups')}
                                 options={[
                                     { value: '', label: t('common.allGroups') },
-                                    ...grupos.map(g => ({ value: String(g.id), label: g.nombre })),
+                                    ...grupos.map(g => ({ value: String(g.id), label: formatGrupoNombre(g) })),
                                 ]}
                             />
                             <ThemedSelect
