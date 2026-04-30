@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-30)**: 🟢 **Fase 7 COMPLETA** — calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
+> **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B parte 1 ✅ (commit `2f57fc2`)**: "Configurar curso óptimo" no toca BD hasta Guardar. Backend dry-run del solver/distribuidor (overrides in-memory + endpoints `/solver-dry-run` y `/distribute-curriculum-dry-run`). Frontend cola `pendingTxByGrupo[gid]` con PLs virtuales (tempId<0) en `plByGrupo` + placements dry-run en `state[gid_tempId]`. Botón Guardar único aplica tx (PATCH grupo + DELETE PLs viejos + POST PLs nuevos + PATCH PLIs + POST horarios) → toast "X rangos / Y placements persistidos". Botón Descartar revierte. Distribución parcial best-effort (toast warning lista materias atascadas). Deuda Tanda B parte 2: handleCreateRecommended, openCreatePlModal, handleClearAll, editar PL/PLI siguen persistiendo en BD inmediatamente. **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
 >
 > **Status anterior (2026-04-29)**: Fase 5 COMPLETA + Opción A `Materia.horasTotales` como objetivo curricular. Verificado E2E centro EAG: 2º DAW/DAM al 101-108%; 1º DAW déficit estructural irreductible. Detalles abajo.
 
@@ -417,6 +417,75 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-30 — Tanda B: "Acciones del curso" no persisten hasta Guardar (parte 1)
+
+> Discusión con el usuario: las funciones del menú "Acciones del curso" en `/admin/horarios` (Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Limpiar todo, Limpiar rango, Editar PL/PLI) persistían cambios estructurales en BD inmediatamente tras la confirmación, antes de que el usuario pulsase "Guardar". Requisito: nada se persiste hasta que pulse Guardar; si descarta, vuelve al estado anterior.
+>
+> Análisis acordado: opción A (snapshot+descartar — los cambios SÍ tocan BD pero hay un undo) descartada. Opción B (cola de acciones puras — nada toca BD hasta Guardar) elegida. Implementación incremental.
+
+**Bloqueador técnico resuelto: backend dry-run** (commit `ba18788`):
+- Solver y planner aceptan ahora `PeriodoLectivo` + `PeriodoLectivoImparticion[]` construidos en memoria sin persistir (parámetros `?array $pliOverride`, `?float $totalSemanasGrupoOverride` opcionales). Si null, comportamiento idéntico al actual (lee BD).
+- `CurriculumDistributor::distribute(?array $plsOverride)` igual.
+- Endpoints nuevos:
+  - `POST /api/v1/horarios/solver-dry-run/{grupoId}` body `{rango: {tempId, fechaInicio, fechaFin, jornadaTipoId, plis: [...]}, alreadyPlacedByImp, totalSemanasGrupoOverride}`.
+  - `POST /api/v1/grupos/{grupoId}/distribute-curriculum-dry-run` body `{rangos: [...]}`.
+- `HorarioSolverController::buildVirtualPeriodoLectivo` asigna id artificial vía Reflection (negativo) — el solver/distributor lo usan como key de array sin distinguirlo de uno real.
+
+**Frontend cola pendingActions** (commit `8142808`):
+- State `pendingTxByGrupo[gid] = { grupoFechaFin, grupoFechaFinOriginal, plsToDelete, plsRealesOriginales, plsToCreate: [{tempId<0, _pending:'create', ...}], pliPatches }`.
+- `tempIdSeqRef` genera ids negativos secuenciales para PLs virtuales.
+- Los virtuales se insertan en `plByGrupo[gid]` reemplazando a los reales (que se borrarán al aplicar) — el strip y resto de UI los tratan como cualquier PL.
+- `state[gid_tempId]` guarda los placements del solver-dry-run con `dirty=true`.
+- Helpers: `applyPendingTxForGrupo`, `migrateStateAfterTx`, `discardPendingTxForGrupo`, `hasPendingTx`.
+
+**handleConfigureOptimalCourse** reescrito:
+1. Calcula willExtend, fechas, N (igual que antes).
+2. Confirm modal (igual).
+3. Construye N PLs virtuales con tempIds negativos en `pendingTx.plsToCreate`. Reemplaza `plByGrupo[gid]`.
+4. POST `distribute-curriculum-dry-run` con los virtuales → distribución. Si extendBy>0, ajusta último PL virtual y reintenta. MAX_DISTRIBUTE_ATTEMPTS=20.
+5. POST `solver-dry-run` por cada PL virtual con la distribución → placements en `state[gid_tempId]`. `alreadyPlacedByImp` se acumula entre rangos (cap anual cross-rango funciona).
+6. Toast: "Preview lista. Pulsa Guardar para persistir o Descartar para revertir."
+
+**Flujo Guardar**:
+- Botón "Guardar" del editor (handleSave → performBatchSaveAllDirty) detecta tx pendiente y la aplica primero:
+  1. PATCH `Grupo.fechaFin` (si está set).
+  2. DELETE PLs en `plsToDelete` (cascade horarios).
+  3. POST PLs nuevos → captura mapping tempId→realId.
+  4. PATCH `PeriodoLectivoImparticion.minutosSemanales` con la distribución (lookup PLI por (PL real, imp)).
+  5. POST horarios para cada PL recién creado leyendo `state[gid_tempId].placements` (sin pasar por setState/closure — bug crítico que dejaba BD vacía tras Guardar antes del fix `f1765aa`).
+- Migra `state[gid_tempId]` → `state[gid_realId]` con `dirty: false` (ya en BD).
+- Refetch PLs reales + horarios persistidos.
+- Limpia `pendingTxByGrupo[gid]`.
+- Toast: "Cambios aplicados: X rangos creados, Y placements persistidos."
+- Si la cobertura anual no llega al currículo, modal "publicar incompleto" (ya existente) pide confirmación antes de aplicar.
+
+**Flujo Descartar**:
+- Banner amarillo "Cambios pendientes (sin guardar)" con texto informativo + botón Descartar.
+- `discardPendingTxForGrupo`: filtra `_pending` del strip, restaura los reales originales desde el snapshot, limpia `state[gid_tempId]`, vacía `pendingTx`. La fechaFin del grupo no se toca (sólo era target de PATCH al Guardar).
+
+**Bugs durante implementación + fixes**:
+- `618a63b` — PLs virtuales se enviaban con `jornadaTipoId: null`, el backend caía por la cadena `Grupo.override → Itinerario.jornadaTipo`, y si ambos eran NULL devolvía `feasible:false, extendBy:0, reason:'error'` que el frontend interpretaba como shortfall irreductible. Fix: resolver `resolveEffectiveJornadaId(grupo)` ANTES de empezar; cada PL virtual lleva el id explícito; abortar con mensaje claro si no hay jornada efectiva.
+- `9ead24b` — MAX_DISTRIBUTE_ATTEMPTS subido de 8 a 20. Con extendBy=7d por iter, 56d era a veces insuficiente. Detector de loop atascado: si dos iteraciones devuelven los mismos shortfalls, sale del loop sin abortar.
+- `d0cf8eb` — el flow original continuaba con la **distribución parcial** del distribuidor cuando devolvía `redistributionShortfall` (best-effort). Mi flow nuevo abortaba. Fix: si tras los intentos no hay feasible, usar `lastDistJson.distribution` (parcial) y continuar al solver. Toast warning lista las materias atascadas (`Materia X: 7.2h`).
+- `4717737` — useEffects de `capacity-check` y carga inicial de placements pegaban a BD con `periodoLectivo=-N` (tempId negativo) → 422. Early return cuando `selectedPlId < 0`.
+- `f1765aa` — bug crítico de closure: tras `migrateStateAfterTx` (setState async), el filtro `dirtyPls.filter(... state[gid_realId].dirty)` leía el state pre-migración → no encontraba placements → no POSTeaba ningún horario → BD tenía rangos creados pero **vacíos**. Fix: el POST de horarios se mueve dentro de `applyPendingTxForGrupo` leyendo del state actual (sin setState intermedio).
+- `2f57fc2` — botón "Guardar todos los cambios" del banner duplicaba el "Guardar" del editor. Unificado: solo el "Guardar" del editor (que ya hacía todo); banner sólo informativo + Descartar; `dirtyAny` ahora también true cuando hay tx pendiente.
+
+**Estado actual (commit `2f57fc2`)**:
+- ✅ "Configurar curso óptimo" funciona end-to-end en preview: PLs virtuales en strip, placements del solver dry-run en editor, banner amarillo informativo, Guardar persiste todo, Descartar revierte.
+- ✅ Si la distribución es parcial, toast warning lista materias residuales y permite ajuste manual antes de Guardar.
+- ✅ Modal "publicar incompleto" se abre correctamente cuando la cobertura anual no llega al currículo.
+
+**Deuda residual (Tanda B parte 2 — pendiente)**:
+- `handleCreateRecommendedRangos` (modal "Crear Rangos Recomendados") sigue persistiendo PLs reales inmediatamente.
+- `openCreatePlModal` (modal "Añadir rango manual") POST inmediato.
+- `handleClearAllCourse` DELETE `/clear-rangos` inmediato.
+- Editar PL existente (modal Editar) PATCH inmediato.
+- Editar minutos PLI desde modal Sliders PATCH inmediato.
+- `runSolver` y `runSolverAllRangos` invocados sobre PL virtual fallan (el backend no conoce el tempId). Solución: deshabilitar los botones cuando el PL activo es virtual, o redirigir a las versiones dry-run para que también funcionen en preview. Por ahora: documentado, no romper si el usuario los pulsa por accidente.
+
+El refactor del resto de acciones del curso sigue el mismo patrón establecido (acumular en `pendingTxByGrupo`, dry-run para preview, aplicar al Guardar, descartar limpia local). Estimación: 1-2 sesiones más.
 
 ### 2026-04-29 — `CurriculumDistributor`: solver con minutos heterogéneos por rango
 

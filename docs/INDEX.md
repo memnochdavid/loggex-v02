@@ -6,6 +6,12 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**🗒️ Cierre 2026-04-30 noche — Tanda B parte 1 (commit `2f57fc2`)**: "Configurar curso óptimo" ya NO persiste a BD hasta pulsar Guardar. Backend dry-run + frontend `pendingTxByGrupo` con PLs virtuales (tempId<0) en strip + placements dry-run en editor + banner amarillo informativo. Guardar único aplica tx (PATCH grupo + DELETE viejos + POST nuevos + PATCH PLIs + POST horarios) y persiste; Descartar revierte. Distribución parcial best-effort con toast warning de materias residuales. Bitácora completa en `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-04-30.
+
+**Deuda Tanda B parte 2 anotada**: `handleCreateRecommendedRangos`, `openCreatePlModal` (modal Añadir manual), `handleClearAllCourse`, editar PL existente, editar minutos PLI desde modal Sliders → siguen persistiendo a BD inmediatamente. `runSolver`/`runSolverAllRangos` sobre PL virtual fallan porque backend no conoce tempIds. Patrón ya establecido en parte 1 — el refactor del resto se aplica igual (~1-2 sesiones).
+
+---
+
 **🗒️ Cierre 2026-04-30 — PeriodoLectivo Fase 7 ✅ Done (calendario lectivo del centro con datos reales BOJA).** El INDEX ruta 3 cerrada en una sesión. Implementación completa con datos extraídos del PDF oficial BOJA Sevilla 2025-26 (Resolución firmada 29-may-2025, código verificación `Pk2jmHN9YZXCU9YPKJTUAQG6SSRYET`). El usuario fue explícito: "los datos de la base de datos son susceptibles a cambiar — prioriza datos reales de fuentes reales". Por eso la fuente de verdad es el JSON curado en MinIO con su PDF al lado, y los seeds idempotentes restauran BD al estado canónico.
 
 Cambios concretos:
