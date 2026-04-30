@@ -3225,6 +3225,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!ok) { console.groupEnd(); return; }
     setCursoActionsOpen(false);
 
+    // Resolver la jornada efectiva del grupo ANTES de empezar — los PLs
+    // virtuales necesitan jornadaTipoId explícito porque el backend, sin él,
+    // cae a la cadena Grupo.override → Itinerario.jornadaTipo, y si está
+    // todo NULL devuelve "PL sin jornada efectiva" con extendBy:0 (que el
+    // frontend interpretaría erróneamente como shortfall irreductible).
+    const jornadaIdEfectiva = resolveEffectiveJornadaId(grupo);
+    if (!jornadaIdEfectiva) {
+      toast.error(t('scheduleEditor.optimalNoJornada', {
+        defaultValue: 'El grupo no tiene jornada asignada (ni override ni en el itinerario). Asigna una desde /admin/jornadas o el selector del editor antes de configurar el curso óptimo.',
+      }));
+      console.groupEnd();
+      return;
+    }
+
     // Tanda B (2026-04-30) — "Nada persiste hasta Guardar":
     // Esta secuencia ya NO toca BD. Construimos los rangos virtuales en
     // pendingTxByGrupo[gid] + plByGrupo[gid] (con _pending: 'create' y
@@ -3270,8 +3284,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           nombre: `Rango ${i + 1}`,
           fechaInicio: inicioRango.toISOString().slice(0, 10),
           fechaFin: finRango.toISOString().slice(0, 10),
-          jornadaTipo: null,
-          jornadaTipoId: null,
+          // Jornada explícita: heredamos la efectiva del grupo aquí mismo
+          // para que el backend dry-run no dependa de la cadena de fallback
+          // (que podría fallar si grupo.override + itinerario.jornadaTipo
+          // ambos son null al mismo tiempo).
+          jornadaTipo: { id: jornadaIdEfectiva },
+          jornadaTipoId: jornadaIdEfectiva,
           orden: i,
         });
         cursor = new Date(finRango.getTime() + 86400000);
@@ -3336,8 +3354,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         attempts++;
         continue;
       }
+      // distJson.feasible === false con extendBy === 0 → error de
+      // configuración (jornada no resoluble, sin slots, etc.) o redistribu-
+      // tion con shortfall irreductible. Mostramos el `reason` y `error`
+      // del backend para que el admin pueda diagnosticar.
+      console.error('[OptCurso] dry-run not feasible without extension:', distJson);
+      const detail = distJson.debug?.error || distJson.reason || 'sin detalle';
       toast.error(t('scheduleEditor.distributeShortfall', {
-        defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso.',
+        defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso ({{detail}}).',
+        detail,
       }));
       console.groupEnd();
       return;
