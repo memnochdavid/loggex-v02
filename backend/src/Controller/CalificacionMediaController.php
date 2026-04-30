@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Grupo;
 use App\Entity\Imparticion;
 use App\Entity\Matricula;
 use App\Entity\PeriodoEvaluativo;
@@ -19,6 +20,18 @@ class CalificacionMediaController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly PonderacionImparticionRepository $ponderacionRepo
     ) {
+    }
+
+    /**
+     * Etiqueta del grupo en formato "[curso]º [nombre]". Si `curso` es NULL
+     * (caso edge de grupos legacy sin LOMLOE), cae al nombre tal cual. Es la
+     * misma regla que aplica el frontend con `formatGrupoNombre`.
+     */
+    private function formatGrupoLabel(Grupo $grupo): string
+    {
+        $curso = $grupo->getCurso();
+        $nombre = $grupo->getNombre() ?? '';
+        return $curso !== null ? sprintf('%dº %s', $curso, $nombre) : $nombre;
     }
 
     /**
@@ -53,7 +66,7 @@ class CalificacionMediaController extends AbstractController
             'imparticion' => [
                 'id' => $imparticion->getId(),
                 'materia' => $imparticion->getMateria()->getNombre(),
-                'grupo' => $imparticion->getGrupo()->getNombre(),
+                'grupo' => $this->formatGrupoLabel($imparticion->getGrupo()),
                 'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
             ],
             'pesos' => $pesos,
@@ -108,7 +121,7 @@ class CalificacionMediaController extends AbstractController
             'imparticion' => [
                 'id' => $imparticion->getId(),
                 'materia' => $imparticion->getMateria()->getNombre(),
-                'grupo' => $imparticion->getGrupo()->getNombre(),
+                'grupo' => $this->formatGrupoLabel($imparticion->getGrupo()),
                 'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
             ],
             'pesos' => $pesos,
@@ -512,7 +525,7 @@ class CalificacionMediaController extends AbstractController
                         'id' => $imparticion->getId(),
                         'materia' => $imparticion->getMateria()->getNombre(),
                         'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
-                        'grupo' => $grupo->getNombre(),
+                        'grupo' => $this->formatGrupoLabel($grupo),
                     ],
                     ...$media,
                 ];

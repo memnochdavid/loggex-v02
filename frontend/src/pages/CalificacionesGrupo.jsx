@@ -16,6 +16,7 @@ import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 import { toast } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoNombre } from '../utils/grupo';
 
 // Genera un tooltip en texto plano con los motivos por los que un alumno no es evaluable.
 export const formatMotivos = (motivos, t) => {
@@ -238,6 +239,11 @@ const CalificacionesGrupo = () => {
     const [selectedCentro, setSelectedCentro] = useState('');
     const [allImparticiones, setAllImparticiones] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
+    // Grupo intermedio en la cascada Centro → Año → Grupo → Materia. Antes
+    // el select de imparticiones mostraba "Modulo — Grupo" para todas las
+    // del profesor/admin y crecía mucho. Filtrando primero por grupo, el
+    // select de Materia solo lista las del grupo activo.
+    const [selectedGrupo, setSelectedGrupo] = useState('');
 
     // Años disponibles (extraídos de los grupos de las imparticiones)
     const availableYears = [...new Set(
@@ -250,13 +256,67 @@ const CalificacionesGrupo = () => {
             ? allImparticiones.filter(i => (i.grupo?.anioEscolar || i.grupo?.anio_escolar) === selectedYear)
             : allImparticiones;
         setImparticiones(filtered);
-        if (filtered.length > 0 && !imparticionId) {
-            setSelectedImparticion(String(filtered[0].id ?? filtered[0]['@id']?.split('/').pop()));
-        } else if (filtered.length === 0 && allImparticiones.length > 0) {
+        // Cambiar de año reinicia la cascada Grupo + Materia.
+        setSelectedGrupo('');
+        if (filtered.length === 0 && allImparticiones.length > 0) {
             setSelectedImparticion('');
             setMediasData(null);
         }
     }, [selectedYear, allImparticiones]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Grupos únicos derivados de las imparticiones visibles. Se ordenan por
+    // (curso, nombre) para que aparezcan agrupados de forma intuitiva.
+    const gruposDisponibles = React.useMemo(() => {
+        const seen = new Map();
+        imparticiones.forEach(imp => {
+            const g = imp.grupo;
+            if (!g || typeof g === 'string') return;
+            const id = g.id ?? g['@id']?.split('/').pop();
+            if (id && !seen.has(String(id))) seen.set(String(id), g);
+        });
+        return Array.from(seen.values()).sort((a, b) => {
+            const ca = a.curso ?? 0;
+            const cb = b.curso ?? 0;
+            if (ca !== cb) return ca - cb;
+            return (a.nombre || '').localeCompare(b.nombre || '');
+        });
+    }, [imparticiones]);
+
+    // Imparticiones filtradas por el grupo seleccionado. Cuando no hay grupo
+    // elegido, no se muestra ninguna materia (forzamos la cascada).
+    const imparticionesFiltradas = React.useMemo(() => {
+        if (!selectedGrupo) return [];
+        return imparticiones.filter(imp => {
+            const gid = imp.grupo?.id ?? imp.grupo?.['@id']?.split('/').pop();
+            return String(gid) === String(selectedGrupo);
+        });
+    }, [imparticiones, selectedGrupo]);
+
+    // Auto-select del único grupo / única materia disponibles, para que el
+    // profesor con un solo grupo no tenga que clicar dos selects.
+    useEffect(() => {
+        if (gruposDisponibles.length === 1 && !selectedGrupo) {
+            const only = gruposDisponibles[0];
+            const id = only.id ?? only['@id']?.split('/').pop();
+            setSelectedGrupo(String(id));
+        }
+    }, [gruposDisponibles, selectedGrupo]);
+
+    useEffect(() => {
+        if (selectedGrupo && imparticionesFiltradas.length > 0 && !imparticionId) {
+            const current = imparticionesFiltradas.find(imp => {
+                const id = imp.id ?? imp['@id']?.split('/').pop();
+                return String(id) === String(selectedImparticion);
+            });
+            if (!current) {
+                const first = imparticionesFiltradas[0];
+                setSelectedImparticion(String(first.id ?? first['@id']?.split('/').pop()));
+            }
+        } else if (selectedGrupo && imparticionesFiltradas.length === 0) {
+            setSelectedImparticion('');
+            setMediasData(null);
+        }
+    }, [selectedGrupo, imparticionesFiltradas]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Cargar centros para SuperAdmin
     useEffect(() => {
@@ -554,9 +614,10 @@ const CalificacionesGrupo = () => {
     const weightValid = weightSum === 100;
 
     const getImparticionLabel = (imp) => {
-        const modulo = imp.materia?.nombre || '';
-        const grupo = imp.grupo?.nombre || imp.grupo || '';
-        return `${modulo} — ${grupo}`;
+        // El select de Materia ya está scoped al grupo activo (cascada
+        // Centro → Año → Grupo → Materia), así que basta con el nombre del
+        // módulo. El grupo está implícito por el filtro previo.
+        return imp.materia?.nombre || '';
     };
 
     return (
@@ -575,7 +636,7 @@ const CalificacionesGrupo = () => {
                         <>
                             <ThemedSelect
                                 value={selectedCentro}
-                                onChange={(v) => { setSelectedCentro(v); setSelectedImparticion(''); setSelectedPeriodo(''); }}
+                                onChange={(v) => { setSelectedCentro(v); setSelectedGrupo(''); setSelectedImparticion(''); setSelectedPeriodo(''); }}
                                 minWidth={180}
                                 ariaLabel={t('common.selectCenter')}
                                 options={[
@@ -586,7 +647,7 @@ const CalificacionesGrupo = () => {
                             {availableYears.length > 0 && (
                                 <ThemedSelect
                                     value={selectedYear}
-                                    onChange={(v) => { setSelectedYear(v); setSelectedPeriodo(''); }}
+                                    onChange={(v) => { setSelectedYear(v); setSelectedGrupo(''); setSelectedImparticion(''); setSelectedPeriodo(''); }}
                                     minWidth={140}
                                     ariaLabel={t('grades.allYears')}
                                     options={[
@@ -598,13 +659,30 @@ const CalificacionesGrupo = () => {
                         </>
                     )}
                     <ThemedSelect
+                        value={selectedGrupo}
+                        onChange={(v) => { setSelectedGrupo(v); setSelectedImparticion(''); setSelectedPeriodo(''); }}
+                        minWidth={160}
+                        ariaLabel={t('common.selectGroup')}
+                        options={[
+                            { value: '', label: t('common.selectGroup') },
+                            ...gruposDisponibles.map(g => ({
+                                value: String(g.id ?? g['@id']?.split('/').pop()),
+                                label: formatGrupoNombre(g),
+                            })),
+                        ]}
+                    />
+                    <ThemedSelect
                         value={selectedImparticion}
                         onChange={(v) => { setSelectedImparticion(v); setSelectedPeriodo(''); }}
-                        minWidth={220}
-                        options={imparticiones.map(imp => {
-                            const id = imp.id || imp['@id']?.split('/').pop();
-                            return { value: String(id), label: getImparticionLabel(imp) };
-                        })}
+                        minWidth={200}
+                        disabled={!selectedGrupo}
+                        ariaLabel={t('common.selectModule')}
+                        options={imparticionesFiltradas.length === 0
+                            ? [{ value: '', label: t('grades.selectGroupFirst', { defaultValue: 'Selecciona un grupo primero' }) }]
+                            : imparticionesFiltradas.map(imp => {
+                                const id = imp.id || imp['@id']?.split('/').pop();
+                                return { value: String(id), label: getImparticionLabel(imp) };
+                            })}
                     />
                     <ThemedSelect
                         value={selectedPeriodo}
