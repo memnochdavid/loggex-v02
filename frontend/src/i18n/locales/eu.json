@@ -286,7 +286,11 @@
     "cifPlaceholder": "Adib: Q1234567A",
     "addressPlaceholder": "Kale Nagusia, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Ikastetxe Aktiboa"
+    "activeCheckbox": "Ikastetxe Aktiboa",
+    "fechaInicioCurso": "Ikasturtearen hasiera",
+    "fechaFinCurso": "Ikasturtearen amaiera",
+    "fechaCursoHint": "EAren egutegia gainidazten du. Hutsik utziz gero, ofiziala erabiliko da.",
+    "fechaCursoSuggested": "{{ccaa}} egutegiak iradokia: {{fecha}} (edita daiteke)."
   },
   "itinerarios": {
     "title": "Itinerarioak",
@@ -450,7 +454,15 @@
     "namePlaceholder": "Adib: Gabonak",
     "endDateOptional": "Amaiera Data (Aukerakoa)",
     "centerOptional": "Ikastetxea (Aukerakoa - Globala hutsik badago)",
-    "globalOption": "Globala (Ikastetxe guztiak)"
+    "globalOption": "Globala (Ikastetxe guztiak)",
+    "syncButton": "Ikastetxearen jaiegunak kargatu",
+    "syncing": "Kargatzen…",
+    "syncTooltip": "BOE + BOJA jaiegun ofizialak ikastetxeari aplikagarri (idempotentea).",
+    "syncTitle": "Ikastetxearen jaiegunak kargatu",
+    "syncConfirmBody": "Ikastetxeari aplikagarri zaizkion jaiegun ofizialak (BOE + BOJA) kargatuko dira: nazionalak, EAren autonomikoak, eskola-oporraldiak, Hezkuntza Komunitatearen Eguna eta probintziakoa. Operazioa idempotentea da.",
+    "syncConfirm": "Kargatu",
+    "syncDoneTitle": "Jaiegunak kargatuta",
+    "syncDoneBody": "{{total}} sarrera berri (nazionalak {{nac}}, autonomikoak {{aut}}, oporraldiak {{vac}}, probintzia {{prov}}, etapak {{etapas}}). Aldaketarik gabe: {{sc}}."
   },
   "tasks": {
     "title": "Zereginak eta Jarduerak",
@@ -632,7 +644,12 @@
     "uploadBtn": "Igo",
     "errorUpload": "Errorea fitxategia igotzean",
     "errorUploadMsg": "Errorea gai-zerrenda igotzean: {{message}}",
-    "fillAllFields": "Mesedez, bete eremu guztiak"
+    "fillAllFields": "Mesedez, bete eremu guztiak",
+    "editTitle": "Gai-zerrenda editatu",
+    "editFileHint": "Fitxategia ordezkatzeko, ezabatu gai-zerrenda hau eta igo berria.",
+    "updatedSuccess": "Gai-zerrenda eguneratuta",
+    "errorUpdate": "Ezin izan da gai-zerrenda eguneratu",
+    "errorUpdatingCtx": "Ezin izan da gai-zerrenda eguneratu"
   },
   "timetable": {
     "hour": "Ordua",
@@ -1223,6 +1240,7 @@
     "downloadAsZip": "ZIP (banakakoek)",
     "generating": "Sortzen...",
     "selectPeriodFirst": "Lehenik ebaluazio bat aukeratu",
+    "selectGroupFirst": "Lehenik talde bat aukeratu",
     "pdfLanguage": "PDF hizkuntza",
     "weightTabGlobal": "Haztapen globala",
     "weightTabItems": "Elementuaren pisua",

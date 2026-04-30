@@ -535,7 +535,11 @@
     "cifPlaceholder": "Ej: Q1234567A",
     "addressPlaceholder": "Calle Principal, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Centro Activo"
+    "activeCheckbox": "Centro Activo",
+    "fechaInicioCurso": "Inicio del curso académico",
+    "fechaFinCurso": "Fin del curso académico",
+    "fechaCursoHint": "Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.",
+    "fechaCursoSuggested": "Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar)."
   },
   "itinerarios": {
     "title": "Itinerarios",
@@ -739,7 +743,15 @@
     "namePlaceholder": "Ej: Navidad",
     "endDateOptional": "Fecha Fin (Opcional)",
     "centerOptional": "Centro (Opcional - Global si vacío)",
-    "globalOption": "Global (Todos los centros)"
+    "globalOption": "Global (Todos los centros)",
+    "syncButton": "Cargar festivos del centro",
+    "syncing": "Cargando…",
+    "syncTooltip": "Carga festivos oficiales BOE + BOJA aplicables al centro (idempotente).",
+    "syncTitle": "Cargar festivos del centro",
+    "syncConfirmBody": "Se cargarán los festivos oficiales (BOE + BOJA) aplicables al centro: nacionales, autonómicos de la CCAA, vacaciones académicas, día de la Comunidad Educativa y día provincial. La operación es idempotente — los festivos ya existentes no se duplican.",
+    "syncConfirm": "Cargar",
+    "syncDoneTitle": "Festivos cargados",
+    "syncDoneBody": "{{total}} entradas nuevas (nacionales {{nac}}, autonómicos {{aut}}, vacaciones {{vac}}, provinciales {{prov}}, etapas {{etapas}}). Sin cambios: {{sc}}."
   },
   "tasks": {
     "title": "Tareas y Actividades",
@@ -921,7 +933,12 @@
     "uploadBtn": "Subir",
     "errorUpload": "Error al subir el archivo",
     "errorUploadMsg": "Error al subir el temario: {{message}}",
-    "fillAllFields": "Por favor completa todos los campos"
+    "fillAllFields": "Por favor completa todos los campos",
+    "editTitle": "Editar temario",
+    "editFileHint": "Para reemplazar el archivo, elimina este temario y sube uno nuevo.",
+    "updatedSuccess": "Temario actualizado",
+    "errorUpdate": "No se ha podido actualizar el temario",
+    "errorUpdatingCtx": "No se ha podido actualizar el temario"
   },
   "timetable": {
     "hour": "Hora",
@@ -1521,6 +1538,7 @@
     "downloadAsZip": "ZIP (individuales)",
     "generating": "Generando...",
     "selectPeriodFirst": "Selecciona una evaluación primero",
+    "selectGroupFirst": "Selecciona un grupo primero",
     "pdfLanguage": "Idioma PDF",
     "weightTabGlobal": "Ponderación global",
     "weightTabItems": "Peso por item",

@@ -286,7 +286,11 @@
     "cifPlaceholder": "E.g.: Q1234567A",
     "addressPlaceholder": "123 Main Street",
     "phonePlaceholder": "555 123 456",
-    "activeCheckbox": "Active Center"
+    "activeCheckbox": "Active Center",
+    "fechaInicioCurso": "Academic year start",
+    "fechaFinCurso": "Academic year end",
+    "fechaCursoHint": "Overrides the CCAA calendar. Leave empty to use the official autonomous one.",
+    "fechaCursoSuggested": "Suggested by {{ccaa}} calendar: {{fecha}} (editable)."
   },
   "itinerarios": {
     "title": "Itineraries",
@@ -450,7 +454,15 @@
     "namePlaceholder": "E.g.: Christmas",
     "endDateOptional": "End Date (Optional)",
     "centerOptional": "Center (Optional - Global if empty)",
-    "globalOption": "Global (All centers)"
+    "globalOption": "Global (All centers)",
+    "syncButton": "Load center holidays",
+    "syncing": "Loading…",
+    "syncTooltip": "Loads official BOE + BOJA holidays applicable to the center (idempotent).",
+    "syncTitle": "Load center holidays",
+    "syncConfirmBody": "Loads official holidays (BOE + BOJA) applicable to the center: national, regional, academic breaks, Educational Community Day and provincial day. Idempotent — existing holidays are not duplicated.",
+    "syncConfirm": "Load",
+    "syncDoneTitle": "Holidays loaded",
+    "syncDoneBody": "{{total}} new entries (national {{nac}}, regional {{aut}}, breaks {{vac}}, provincial {{prov}}, stages {{etapas}}). Unchanged: {{sc}}."
   },
   "tasks": {
     "title": "Tasks & Activities",
@@ -632,7 +644,12 @@
     "uploadBtn": "Upload",
     "errorUpload": "Error uploading file",
     "errorUploadMsg": "Error uploading syllabus: {{message}}",
-    "fillAllFields": "Please fill in all fields"
+    "fillAllFields": "Please fill in all fields",
+    "editTitle": "Edit syllabus",
+    "editFileHint": "To replace the file, delete this syllabus and upload a new one.",
+    "updatedSuccess": "Syllabus updated",
+    "errorUpdate": "Could not update the syllabus",
+    "errorUpdatingCtx": "Could not update the syllabus"
   },
   "timetable": {
     "hour": "Time",
@@ -1223,6 +1240,7 @@
     "downloadAsZip": "ZIP (individual)",
     "generating": "Generating...",
     "selectPeriodFirst": "Select an assessment first",
+    "selectGroupFirst": "Select a group first",
     "pdfLanguage": "PDF language",
     "weightTabGlobal": "Global weights",
     "weightTabItems": "Per-item weight",

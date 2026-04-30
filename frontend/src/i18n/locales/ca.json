@@ -286,7 +286,11 @@
     "cifPlaceholder": "Ex: Q1234567A",
     "addressPlaceholder": "Carrer Principal, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Centre actiu"
+    "activeCheckbox": "Centre actiu",
+    "fechaInicioCurso": "Inici del curs acadèmic",
+    "fechaFinCurso": "Final del curs acadèmic",
+    "fechaCursoHint": "Sobreescriu el calendari de la CCAA. Si el deixes buit, s'usarà l'oficial autonòmic.",
+    "fechaCursoSuggested": "Suggerit pel calendari {{ccaa}}: {{fecha}} (editable)."
   },
   "itinerarios": {
     "title": "Itineraris",
@@ -450,7 +454,15 @@
     "namePlaceholder": "Ex: Nadal",
     "endDateOptional": "Data fi (Opcional)",
     "centerOptional": "Centre (Opcional - Global si buit)",
-    "globalOption": "Global (Tots els centres)"
+    "globalOption": "Global (Tots els centres)",
+    "syncButton": "Carregar festius del centre",
+    "syncing": "Carregant…",
+    "syncTooltip": "Carrega festius oficials BOE + BOJA aplicables al centre (idempotent).",
+    "syncTitle": "Carregar festius del centre",
+    "syncConfirmBody": "Es carregaran els festius oficials (BOE + BOJA) aplicables al centre: nacionals, autonòmics de la CCAA, vacances acadèmiques, dia de la Comunitat Educativa i dia provincial. L'operació és idempotent.",
+    "syncConfirm": "Carregar",
+    "syncDoneTitle": "Festius carregats",
+    "syncDoneBody": "{{total}} entrades noves (nacionals {{nac}}, autonòmics {{aut}}, vacances {{vac}}, provincials {{prov}}, etapes {{etapas}}). Sense canvis: {{sc}}."
   },
   "tasks": {
     "title": "Tasques i activitats",
@@ -632,7 +644,12 @@
     "uploadBtn": "Pujar",
     "errorUpload": "Error en pujar el fitxer",
     "errorUploadMsg": "Error en pujar el temari: {{message}}",
-    "fillAllFields": "Si us plau completa tots els camps"
+    "fillAllFields": "Si us plau completa tots els camps",
+    "editTitle": "Editar temari",
+    "editFileHint": "Per reemplaçar el fitxer, elimina aquest temari i puja'n un de nou.",
+    "updatedSuccess": "Temari actualitzat",
+    "errorUpdate": "No s'ha pogut actualitzar el temari",
+    "errorUpdatingCtx": "No s'ha pogut actualitzar el temari"
   },
   "timetable": {
     "hour": "Hora",
@@ -1223,6 +1240,7 @@
     "downloadAsZip": "ZIP (individuals)",
     "generating": "Generant...",
     "selectPeriodFirst": "Selecciona una avaluació primer",
+    "selectGroupFirst": "Selecciona un grup primer",
     "pdfLanguage": "Idioma PDF",
     "weightTabGlobal": "Ponderació global",
     "weightTabItems": "Pes per ítem",

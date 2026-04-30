@@ -286,7 +286,11 @@
     "cifPlaceholder": "Ex: Q1234567A",
     "addressPlaceholder": "Rúa Principal, 123",
     "phonePlaceholder": "912 345 678",
-    "activeCheckbox": "Centro Activo"
+    "activeCheckbox": "Centro Activo",
+    "fechaInicioCurso": "Inicio do curso académico",
+    "fechaFinCurso": "Fin do curso académico",
+    "fechaCursoHint": "Sobrescribe o calendario CCAA. Se o deixas baleiro, usarase o oficial autonómico.",
+    "fechaCursoSuggested": "Suxerido polo calendario {{ccaa}}: {{fecha}} (editable)."
   },
   "itinerarios": {
     "title": "Itinerarios",
@@ -450,7 +454,15 @@
     "namePlaceholder": "Ex: Nadal",
     "endDateOptional": "Data Fin (Opcional)",
     "centerOptional": "Centro (Opcional - Global se baleiro)",
-    "globalOption": "Global (Todos os centros)"
+    "globalOption": "Global (Todos os centros)",
+    "syncButton": "Cargar festivos do centro",
+    "syncing": "Cargando…",
+    "syncTooltip": "Carga festivos oficiais BOE + BOJA aplicables ao centro (idempotente).",
+    "syncTitle": "Cargar festivos do centro",
+    "syncConfirmBody": "Cargaranse os festivos oficiais (BOE + BOJA) aplicables ao centro: nacionais, autonómicos da CCAA, vacacións académicas, día da Comunidade Educativa e día provincial. A operación é idempotente.",
+    "syncConfirm": "Cargar",
+    "syncDoneTitle": "Festivos cargados",
+    "syncDoneBody": "{{total}} entradas novas (nacionais {{nac}}, autonómicos {{aut}}, vacacións {{vac}}, provinciais {{prov}}, etapas {{etapas}}). Sen cambios: {{sc}}."
   },
   "tasks": {
     "title": "Tarefas e Actividades",
@@ -632,7 +644,12 @@
     "uploadBtn": "Subir",
     "errorUpload": "Erro ao subir o arquivo",
     "errorUploadMsg": "Erro ao subir o temario: {{message}}",
-    "fillAllFields": "Por favor completa todos os campos"
+    "fillAllFields": "Por favor completa todos os campos",
+    "editTitle": "Editar temario",
+    "editFileHint": "Para reemplazar o arquivo, elimina este temario e sube un novo.",
+    "updatedSuccess": "Temario actualizado",
+    "errorUpdate": "Non se puido actualizar o temario",
+    "errorUpdatingCtx": "Non se puido actualizar o temario"
   },
   "timetable": {
     "hour": "Hora",
@@ -1223,6 +1240,7 @@
     "downloadAsZip": "ZIP (individuais)",
     "generating": "Xerando...",
     "selectPeriodFirst": "Selecciona unha avaliación primeiro",
+    "selectGroupFirst": "Selecciona un grupo primeiro",
     "pdfLanguage": "Idioma PDF",
     "weightTabGlobal": "Ponderación global",
     "weightTabItems": "Peso por ítem",
