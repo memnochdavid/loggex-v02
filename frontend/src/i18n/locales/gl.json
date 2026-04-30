@@ -1373,6 +1373,7 @@
     "pendingTxDiscard": "Descartar",
     "discardTxSuccess": "Cambios descartados",
     "applyTxError": "Erro aplicando os cambios estruturais: {{err}}",
+    "applyTxSuccess": "Cambios aplicados: {{plsCreated}} períodos creados, {{placements}} placements persistidos.",
     "clearRangeSuccess": "Período limpado",
     "solverAllHint": "Executa o solver en todos os períodos do curso, en orde cronolóxica",
     "solverAllNoRangos": "O grupo non ten períodos lectivos.",

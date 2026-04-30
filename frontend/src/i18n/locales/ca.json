@@ -1373,6 +1373,7 @@
     "pendingTxDiscard": "Descartar",
     "discardTxSuccess": "Canvis descartats",
     "applyTxError": "Error aplicant els canvis estructurals: {{err}}",
+    "applyTxSuccess": "Canvis aplicats: {{plsCreated}} períodes creats, {{placements}} placements persistits.",
     "clearRangeSuccess": "Període netejat",
     "solverAllHint": "Executa el solver en tots els períodes del curs, en ordre cronològic",
     "solverAllNoRangos": "El grup no té períodes lectius.",

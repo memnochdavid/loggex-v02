@@ -1373,6 +1373,7 @@
     "pendingTxDiscard": "Discard",
     "discardTxSuccess": "Changes discarded",
     "applyTxError": "Error applying structural changes: {{err}}",
+    "applyTxSuccess": "Changes applied: {{plsCreated}} terms created, {{placements}} placements persisted.",
     "clearRangeSuccess": "Term cleared",
     "solverAllHint": "Runs the solver on every term of the course, in chronological order",
     "solverAllNoRangos": "The group has no terms yet.",

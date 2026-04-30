@@ -1671,6 +1671,7 @@
     "pendingTxDiscard": "Descartar",
     "discardTxSuccess": "Cambios descartados",
     "applyTxError": "Error aplicando los cambios estructurales: {{err}}",
+    "applyTxSuccess": "Cambios aplicados: {{plsCreated}} rangos creados, {{placements}} placements persistidos.",
     "clearRangeSuccess": "Rango limpiado",
     "solverAllHint": "Ejecuta el solver en todos los rangos del curso, en orden cronológico",
     "solverAllNoRangos": "El grupo no tiene rangos lectivos.",

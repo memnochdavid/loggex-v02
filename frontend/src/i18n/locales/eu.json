@@ -1373,6 +1373,7 @@
     "pendingTxDiscard": "Baztertu",
     "discardTxSuccess": "Aldaketak baztertuta",
     "applyTxError": "Errorea aldaketa estrukturalak aplikatzean: {{err}}",
+    "applyTxSuccess": "Aldaketak aplikatuta: {{plsCreated}} aldi sortuta, {{placements}} placements gordeta.",
     "clearRangeSuccess": "Aldia hustu da",
     "solverAllHint": "Solver-a ikasturteko aldi guztietan exekutatzen du, ordena kronologikoan",
     "solverAllNoRangos": "Taldeak ez du aldi lektiborik.",

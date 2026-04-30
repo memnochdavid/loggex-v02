@@ -1697,12 +1697,60 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
     }
 
-    return { ok: true, tempIdToRealId };
+    // 5. POST horarios (placements del dry-run) para cada PL recién creado,
+    //    leyendo del `state` ACTUAL (no del closure post-setState que aún no
+    //    se ha aplicado). Sin esto, los placements se quedaban como dirty
+    //    locales tras el Guardar y al refrescar la página los horarios
+    //    aparecían vacíos en BD.
+    let totalPlacementsPosted = 0;
+    for (const draft of (tx.plsToCreate || [])) {
+      const realId = tempIdToRealId[draft.tempId];
+      if (!realId) continue;
+      const placementsState = state[`${gid}_${draft.tempId}`];
+      const placements = placementsState?.placements || {};
+      if (Object.keys(placements).length === 0) continue;
+
+      const operations = Object.entries(placements).map(([key, v]) => {
+        const [diaStr, hiFromKey] = key.split('_');
+        const hi = (hiFromKey || '').slice(0, 5);
+        const hf = (v.horaFin || '').slice(0, 5);
+        return {
+          op: 'create',
+          clientKey: key,
+          diaSemana: parseInt(diaStr, 10),
+          horaInicio: hi,
+          horaFin: hf,
+          aula: v.aula,
+          imparticion: v.imparticionId,
+        };
+      });
+      if (operations.length === 0) continue;
+
+      const r = await fetch(getApiUrl('/api/v1/horarios/batch'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          grupoId: Number(gid),
+          periodoLectivoId: Number(realId),
+          baselineMaxUpdatedAt: null,
+          operations,
+        }),
+      });
+      if (!r.ok) {
+        const txt = await r.text().catch(() => '');
+        return { ok: false, error: `POST horarios PL ${realId}: ${r.status}: ${txt.slice(0, 200)}` };
+      }
+      totalPlacementsPosted += operations.length;
+    }
+
+    return { ok: true, tempIdToRealId, placementsPosted: totalPlacementsPosted };
   };
 
-  // Tras aplicar la tx, los virtuales pasan a ser reales. Migramos el state
-  // de placements del tempId al realId para que performBatchSave use la
-  // clave correcta al POSTear horarios.
+  // Tras aplicar la tx, los virtuales pasan a ser reales y los placements
+  // ya se persistieron dentro de applyPendingTxForGrupo. Migramos el state
+  // de placements del tempId al realId marcándolo `dirty: false` (ya está
+  // en BD) para que performBatchSaveAllDirty NO vuelva a POSTearlos.
   const migrateStateAfterTx = (gid, tempIdToRealId) => {
     setState(prev => {
       const next = { ...prev };
@@ -1710,7 +1758,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const oldKey = `${gid}_${tempId}`;
         const newKey = `${gid}_${realId}`;
         if (next[oldKey]) {
-          next[newKey] = { ...next[oldKey] };
+          const placements = next[oldKey].placements || {};
+          next[newKey] = {
+            ...next[oldKey],
+            baseline: placements,
+            dirty: false,
+          };
           delete next[oldKey];
         }
       });
@@ -1781,6 +1834,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!selectedGrupo) return false;
 
     let tempIdToRealId = {};
+    let placementsPosted = 0;
     if (hasPendingTx(selectedGrupo)) {
       setApplyingPendingTx(true);
       try {
@@ -1793,16 +1847,29 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           return false;
         }
         tempIdToRealId = res.tempIdToRealId;
+        placementsPosted = res.placementsPosted || 0;
         migrateStateAfterTx(selectedGrupo, tempIdToRealId);
         // Refetch PLs reales — los virtuales desaparecen, los nuevos aparecen
-        // con sus IDs reales.
+        // con sus IDs reales. También refetch los horarios persistidos del
+        // grupo para que allHorariosByGroup refleje los placements recién
+        // POSTeados.
         await refetchPlsForGroup(selectedGrupo);
+        if (typeof refetchAllHorariosForGroup === 'function') {
+          refetchAllHorariosForGroup(selectedGrupo);
+        }
         // Limpia la cola.
         setPendingTxByGrupo(prev => {
           const next = { ...prev };
           delete next[selectedGrupo];
           return next;
         });
+        if (placementsPosted > 0) {
+          toast.success(t('scheduleEditor.applyTxSuccess', {
+            defaultValue: 'Cambios aplicados: {{plsCreated}} rangos creados, {{placements}} placements persistidos.',
+            plsCreated: Object.keys(tempIdToRealId).length,
+            placements: placementsPosted,
+          }));
+        }
       } finally {
         setApplyingPendingTx(false);
       }
