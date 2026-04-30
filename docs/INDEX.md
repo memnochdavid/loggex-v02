@@ -6,9 +6,48 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**🗒️ Cierre 2026-04-30 noche — Tanda B parte 1 (commit `2f57fc2`)**: "Configurar curso óptimo" ya NO persiste a BD hasta pulsar Guardar. Backend dry-run + frontend `pendingTxByGrupo` con PLs virtuales (tempId<0) en strip + placements dry-run en editor + banner amarillo informativo. Guardar único aplica tx (PATCH grupo + DELETE viejos + POST nuevos + PATCH PLIs + POST horarios) y persiste; Descartar revierte. Distribución parcial best-effort con toast warning de materias residuales. Bitácora completa en `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-04-30.
+**🗒️ Cierre 2026-04-30 noche — Tanda B partes 1 y 2 ✅ Done** (commits `2f57fc2`, `d40b663`). Refactor "nada persiste hasta Guardar" en `/admin/horarios` para todas las acciones del curso del menú "Acciones del curso" + Crear/Editar/Borrar PL desde modal y pills:
 
-**Deuda Tanda B parte 2 anotada**: `handleCreateRecommendedRangos`, `openCreatePlModal` (modal Añadir manual), `handleClearAllCourse`, editar PL existente, editar minutos PLI desde modal Sliders → siguen persistiendo a BD inmediatamente. `runSolver`/`runSolverAllRangos` sobre PL virtual fallan porque backend no conoce tempIds. Patrón ya establecido en parte 1 — el refactor del resto se aplica igual (~1-2 sesiones).
+- **Backend**: endpoints `/api/v1/horarios/solver-dry-run/{gid}` y `/api/v1/grupos/{gid}/distribute-curriculum-dry-run` (commit `ba18788`); solver/planner/distribuidor aceptan `?array $pliOverride` y `?array $plsOverride` para operar in-memory.
+- **Frontend**: cola `pendingTxByGrupo[gid] = { grupoFechaFin, grupoFechaFinOriginal, plsToDelete, plsRealesOriginales (snapshot), plsToCreate: [{tempId<0, ...}], plsToUpdate: [{realId, nombre?, fechaInicio?, ...}], pliPatches }`. PLs virtuales con `_pending: 'create'` viven en `plByGrupo[gid]` junto a los reales editados con `_pending: 'edit'`. State[gid_tempId] guarda placements del solver-dry-run.
+- **Acciones refactorizadas**: Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Editar PL existente, Borrar PL, Limpiar todo el curso, Limpiar rango (ya estaba dirty local). Todas acumulan en `pendingTxByGrupo`.
+- **Guardar** único (`handleSave` → `performBatchSaveAllDirty`): si hay tx, ejecuta orden estricto: PATCH grupo → DELETE plsToDelete → PATCH plsToUpdate → POST plsToCreate → PATCH PLIs → POST horarios (lee `state[gid_tempId]` actual, no closure). Migra `state[gid_tempId] → state[gid_realId]` con `dirty: false`. Refetch PLs + horarios.
+- **Descartar**: restaura `plByGrupo[gid]` desde `plsRealesOriginales` (snapshot completo), limpia state de tempIds, vacía `pendingTx`.
+- **Banner amarillo** "Cambios pendientes (sin guardar)" bajo el strip cuando hay tx, con resumen `{create} crear · {update} editar · {del} borrar · {patches} ajustes minutos` y botón Descartar (Guardar es el único del editor).
+
+Bitácora completa: `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-04-30.
+
+---
+
+### 🟡 Tanda B parte 3 — pendiente al retomar
+
+**Cosas que SIGUEN persistiendo en BD inmediatamente** (no respetan "nada hasta Guardar"):
+
+1. **Editar minutos PLI desde modal "Materias del rango" (icono Sliders)**:
+   - Archivo: `frontend/src/pages/HorariosEditor.jsx`.
+   - Localización: `grep -n "/api/periodo_lectivo_imparticions" HorariosEditor.jsx` — hay PATCH/POST/DELETE inmediatos del PLI cuando el admin cambia minutos, activa/desactiva imparticion en el rango, o resetea al default heredado.
+   - Refactor: en lugar de PATCH directo, push a `pendingTxByGrupo[gid].pliPatches: [{plKey, imparticionId, minutosSemanales}]`. Si el plKey es virtual (tempId<0), el lookup de `applyPendingTxForGrupo` ya lo resuelve (paso 4 hace `tempIdToRealId[plKey] ?? plKey`). Para activar/desactivar imparticion: necesita estructura nueva `pendingTx.pliToggles: [{plKey, imparticionId, action: 'activate'|'deactivate'}]` — el apply lo traduce a POST/DELETE de `PeriodoLectivoImparticion`.
+   - El header del modal tiene Σ planificado vs jornada del rango — ese cálculo se hace localmente y debe seguir mostrando preview con los pliPatches pendientes superpuestos al PLI base.
+
+2. **`runSolver` / `runSolverAllRangos` sobre PL virtual**:
+   - Archivos y líneas: `runSolver` (~línea 2400) y `runSolverAllRangos` (~línea 2530) en `HorariosEditor.jsx`.
+   - Hoy: pegan a `/api/v1/horarios/solver/{gid}` con `periodoLectivoId` real. Si es tempId negativo → 422 del backend.
+   - Opción A (recomendada): si `selectedPlId < 0` (o `plIdOverride < 0`), redirigir a `/api/v1/horarios/solver-dry-run/{gid}` construyendo el body con el draft virtual del pendingTx (`pendingTx.plsToCreate.find(d => d.tempId === plId)`) y los plis del distribute-dry-run o de pliPatches.
+   - Opción B (mínima): deshabilitar los botones "Generar este horario" / "Generar todos" cuando hay PL virtual activo, con tooltip "Pulsa Guardar primero o usa Configurar curso óptimo".
+
+3. **`extendCourseSuggestion` (botón "Extender el curso N días" del banner anual)**:
+   - Archivo `HorariosEditor.jsx`, función que dispara `setExtendModalOpen(true)` y al confirmar hace PATCH a último PL real + PATCH grupo.
+   - Refactor: en lugar de PATCH directo, push a `pendingTx.plsToUpdate` (si el último PL es real) o modifica el draft (si es virtual) + set `pendingTx.grupoFechaFin`.
+
+**Cómo retomar (next session prompt)**:
+
+```
+examina index.md
+# luego:
+sigue con la parte 3 (Sliders PLI + solver dry-run sobre virtual)
+```
+
+El patrón ya está establecido en `applyPendingTxForGrupo` y `discardPendingTxForGrupo`. Estimación: 1-2 sesiones más para cerrar las 3 cosas pendientes.
 
 ---
 

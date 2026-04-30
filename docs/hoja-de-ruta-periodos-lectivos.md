@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B parte 1 ✅ (commit `2f57fc2`)**: "Configurar curso óptimo" no toca BD hasta Guardar. Backend dry-run del solver/distribuidor (overrides in-memory + endpoints `/solver-dry-run` y `/distribute-curriculum-dry-run`). Frontend cola `pendingTxByGrupo[gid]` con PLs virtuales (tempId<0) en `plByGrupo` + placements dry-run en `state[gid_tempId]`. Botón Guardar único aplica tx (PATCH grupo + DELETE PLs viejos + POST PLs nuevos + PATCH PLIs + POST horarios) → toast "X rangos / Y placements persistidos". Botón Descartar revierte. Distribución parcial best-effort (toast warning lista materias atascadas). Deuda Tanda B parte 2: handleCreateRecommended, openCreatePlModal, handleClearAll, editar PL/PLI siguen persistiendo en BD inmediatamente. **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
+> **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B partes 1+2 ✅** (commits `2f57fc2`, `d40b663`): TODAS las acciones del curso refactorizadas a "nada persiste hasta Guardar". Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Editar PL, Borrar PL, Limpiar todo → acumulan en `pendingTxByGrupo[gid]` con virtuales (`plsToCreate` con tempId<0), updates (`plsToUpdate`), borrados (`plsToDelete`) y patches PLI (`pliPatches`). Botón Guardar único aplica tx en orden estricto. Botón Descartar restaura snapshot. **Tanda B parte 3 pendiente** (deuda menor): editar minutos PLI desde modal Sliders sigue PATCH inmediato; runSolver/runSolverAllRangos sobre virtual fallan; botón "Extender curso" hace PATCH inmediato. Plan de retomada en `INDEX.md` "Tanda B parte 3 — pendiente al retomar". **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
 >
 > **Status anterior (2026-04-29)**: Fase 5 COMPLETA + Opción A `Materia.horasTotales` como objetivo curricular. Verificado E2E centro EAG: 2º DAW/DAM al 101-108%; 1º DAW déficit estructural irreductible. Detalles abajo.
 
@@ -417,6 +417,37 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-04-30 noche — Tanda B parte 2: resto de acciones del curso (commit `d40b663`)
+
+Cerrado con un commit grande que refactoriza:
+
+- **`handleCreateRecommendedRangos`**: ya no hace `DELETE /clear-rangos` ni `POST /api/periodo_lectivos`. Construye N PLs virtuales con tempIds negativos en `pendingTx.plsToCreate` y reemplaza `plByGrupo[gid]`. `plsRealesOriginales` preserva snapshot para Descartar. Reusa pendingTx existente si ya hay (caso "Limpiar todo + Crear Rangos Recomendados" preserva los originales).
+- **`handleSubmitPlForm`** (modal Añadir/Editar):
+  - CREATE → push virtual a `plsToCreate`.
+  - EDIT virtual → modifica draft inline en `plsToCreate`.
+  - EDIT real → push a `plsToUpdate` (estructura nueva) + marca el PL en plByGrupo con `_pending: 'edit'` para feedback visual.
+- **`handleDeletePl`**:
+  - Virtual → quita de `plsToCreate`.
+  - Real → push a `plsToDelete` + limpia `plsToUpdate` del mismo id (no tiene sentido PATCH+DELETE).
+- **`handleClearAllCourse`**: ya no hace `DELETE /clear-rangos`. Marca todos los reales en `plsToDelete` y vacía `plByGrupo` + `state`.
+- **`discardPendingTxForGrupo`**: refactor para restaurar `plByGrupo` desde `plsRealesOriginales` (snapshot completo) en lugar de solo filtrar `_pending`. Cubre el caso "borré reales por accidente, descarto y vuelven".
+- **`applyPendingTxForGrupo`**: añadido paso 2.b PATCH PLs reales editados desde `plsToUpdate` (nombre/fechas/jornada) entre DELETE y POST.
+- **`hasPendingTx`** + banner del summary actualizados para incluir `plsToUpdate.length`.
+
+Toasts cambian de "X creados" → "X creados (preview). Pulsa Guardar para persistir." Coherente con el resto.
+
+i18n × 5 con `createRangosSuccessPreview`, `rangoCreatedPreview`, `rangoUpdatedPreview`, `deleteRangoSuccessPreview`, `clearAllSuccessPreview`, `clearAllBodyPreview`.
+
+**Deuda residual Tanda B parte 3** (menor — ~1 sesión cuando proceda):
+
+1. **Editar minutos PLI desde modal Sliders** sigue PATCH/POST/DELETE inmediato. Hay que migrar a `pendingTx.pliPatches` (estructura ya existe) + estructura nueva `pendingTx.pliToggles: [{plKey, imparticionId, action: 'activate'|'deactivate'}]` para el checkbox activar/desactivar imparticion en rango. El header del modal con Σ planificado vs jornada debe componer base+pendingPatches en preview.
+
+2. **`runSolver` / `runSolverAllRangos` sobre PL virtual**: actualmente fallan con 422 porque pegan a `/api/v1/horarios/solver/{gid}` con `periodoLectivoId` negativo. Opción A (recomendada): redirigir a `/solver-dry-run` con el draft virtual del pendingTx. Opción B (mínima): deshabilitar los botones "Generar este horario" / "Generar todos" cuando `selectedPlId < 0` con tooltip "Pulsa Guardar primero".
+
+3. **Botón "Extender el curso N días"** del banner anual: hace PATCH directo al último PL + PATCH grupo. Migrar a `pendingTx.plsToUpdate` (último PL real) o modifica draft (último virtual) + set `pendingTx.grupoFechaFin`.
+
+Patrón establecido en `applyPendingTxForGrupo` y `discardPendingTxForGrupo` — la migración de cada caso sigue el mismo molde.
 
 ### 2026-04-30 — Tanda B: "Acciones del curso" no persisten hasta Guardar (parte 1)
 
