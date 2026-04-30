@@ -1339,6 +1339,8 @@
     "extendCourseGrupoError": "O período estendeuse pero a data do grupo non se puido actualizar. Revisa /admin/grupos.",
     "solverAll": "Xerar todos",
     "solverAllRunning": "Xerando todos os períodos…",
+    "solverAllProgress": "Suxerindo períodos do curso… {{current}}/{{total}}",
+    "clearRangeSuccess": "Período limpado",
     "solverAllHint": "Executa o solver en todos os períodos do curso, en orde cronolóxica",
     "solverAllNoRangos": "O grupo non ten períodos lectivos.",
     "solverAllConfirmTitle": "Suxerir todo o curso",

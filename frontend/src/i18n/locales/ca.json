@@ -1339,6 +1339,8 @@
     "extendCourseGrupoError": "El període s'ha estès però la data del grup no s'ha pogut actualitzar. Revisa /admin/grupos.",
     "solverAll": "Generar tots",
     "solverAllRunning": "Generant tots els períodes…",
+    "solverAllProgress": "Suggerint períodes del curs… {{current}}/{{total}}",
+    "clearRangeSuccess": "Període netejat",
     "solverAllHint": "Executa el solver en tots els períodes del curs, en ordre cronològic",
     "solverAllNoRangos": "El grup no té períodes lectius.",
     "solverAllConfirmTitle": "Suggerir tot el curs",

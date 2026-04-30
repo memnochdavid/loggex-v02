@@ -1339,6 +1339,8 @@
     "extendCourseGrupoError": "The term was extended but the group end date could not be updated. Check /admin/grupos.",
     "solverAll": "Generate all",
     "solverAllRunning": "Generating all terms…",
+    "solverAllProgress": "Suggesting course terms… {{current}}/{{total}}",
+    "clearRangeSuccess": "Term cleared",
     "solverAllHint": "Runs the solver on every term of the course, in chronological order",
     "solverAllNoRangos": "The group has no terms yet.",
     "solverAllConfirmTitle": "Suggest whole course",

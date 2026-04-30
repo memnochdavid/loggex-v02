@@ -27,6 +27,7 @@ import { toast } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
+import solverAnim from '../../public/solver.json';
 import styles from './HorariosEditor.module.css';
 
 // Convención del sistema: diaSemana 1=Lunes … 5=Viernes
@@ -236,7 +237,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [parallelBusy, setParallelBusy] = useState({});
   // Horas semanales de cada profe en otros grupos (no el actual): { profId: N }
   const [otherGroupsMinutes, setOtherGroupsMinutes] = useState({});
-  const [dragError, setDragError] = useState(null);
   // Estado por grupo: { [gid]: { placements: { "dia_slot": {imparticionId, aula, hid?} }, dirty: bool } }
   const [state, setState] = useState({});
   const [saving, setSaving] = useState(false);
@@ -300,6 +300,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [creatingRangos, setCreatingRangos] = useState(false);
   // Solver multi-rango: bandera para deshabilitar UI mientras corre el loop.
   const [solverAllRunning, setSolverAllRunning] = useState(false);
+  // Progreso multi-rango para el overlay Lottie: { current, total, plName? }.
+  const [solverProgress, setSolverProgress] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -1291,7 +1293,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Drag handlers
   const onDragStart = useCallback((e) => {
     setActiveDrag(e.active?.data?.current || null);
-    setDragError(null);
   }, []);
 
   const onDragEnd = useCallback((e) => {
@@ -1304,8 +1305,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (a.type === 'module' && o?.type === 'cell') {
       const validation = validateDrop(a, o.dia, o.slot);
       if (!validation.ok) {
-        setDragError(validation.reason);
-        window.setTimeout(() => setDragError(null), 4000);
+        toast.error(validation.reason);
         return;
       }
       const key = `${o.dia}_${slotsDia[o.slot][0]}`;
@@ -1346,8 +1346,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       // Validar que el profe del item movido no colisione en el destino con grupos paralelos
       const validation = validateDrop(a, o.dia, o.slot);
       if (!validation.ok) {
-        setDragError(validation.reason);
-        window.setTimeout(() => setDragError(null), 4000);
+        toast.error(validation.reason);
         return;
       }
       // Si hay un bloque en destino, validar también ese (va a ir a srcKey)
@@ -1358,8 +1357,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const dstDragLike = { type: 'placed', imparticionId: dstPlacement.imparticionId, slotId: dstKey };
         const v2 = validateDrop(dstDragLike, parseInt(srcDia, 10), srcSlotIdx);
         if (!v2.ok) {
-          setDragError(v2.reason);
-          window.setTimeout(() => setDragError(null), 4000);
+          toast.error(v2.reason);
           return;
         }
       }
@@ -1620,15 +1618,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
       const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
       if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
-        setDragError(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }));
-        window.setTimeout(() => setDragError(null), 4000);
+        toast.error(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }));
         return;
       }
       const profId = imp.profesor?.id;
       if (profId && parallelBusy[key]?.has(Number(profId))) {
         const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
-        setDragError(t('scheduleEditor.reasonTeacherBusy', { teacher }));
-        window.setTimeout(() => setDragError(null), 4000);
+        toast.error(t('scheduleEditor.reasonTeacherBusy', { teacher }));
         return;
       }
       const tapDur = slotMinutosByHi[slotsDia[slotIdx][0]] || 0;
@@ -2270,7 +2266,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const hasContent = Object.keys(targetPlacements).length > 0;
     if (!skipConfirm && hasContent && !(await confirm({ body: t('scheduleEditor.solverConfirmOverwrite') }))) return null;
     setSolving(true);
-    setDragError(null);
     try {
       // Cap anual por materia (Fase 5 fix afinado): pasamos al backend los
       // minutos anuales ya colocados en OTROS rangos del grupo. El planner
@@ -2368,8 +2363,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       setSolverSeed(seed);
       if (!data.complete && data.unplaced?.length) {
         const faltan = data.unplaced.map(u => `${u.materia}: ${u.horasRestantes}h`).join(', ');
-        setDragError(t('scheduleEditor.solverPartial', { items: faltan }));
-        window.setTimeout(() => setDragError(null), 6000);
+        toast.warning(t('scheduleEditor.solverPartial', { items: faltan }), { duration: 6000 });
       }
       return data;
     } catch (err) {
@@ -2422,7 +2416,6 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (!ok) return;
     }
     setSolverAllRunning(true);
-    setDragError(null);
     const errores = [];
     // Acumulador de minutos anuales colocados por imparticion. Lo mantenemos
     // localmente (en vez de leer state entre iteraciones) para evitar el
@@ -2489,7 +2482,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     };
 
     try {
+      let plIdx = 0;
       for (const pl of pls) {
+        plIdx++;
+        setSolverProgress({ current: plIdx, total: pls.length, plName: pl.nombre || '' });
         // Switch al PL para que la UI lo refleje durante la ejecución.
         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
         await new Promise(r => setTimeout(r, 50));
@@ -2649,6 +2645,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
     } finally {
       setSolverAllRunning(false);
+      setSolverProgress(null);
     }
     console.log(`[SolverAll] FIN: ${savedCount} guardados, ${errores.length} errores. accumPlacedFinal:`, accumPlacedByImp);
     console.groupEnd(); // SolverAll group
@@ -2676,6 +2673,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       },
     }));
     setCursoActionsOpen(false);
+    toast.success(t('scheduleEditor.clearRangeSuccess', { defaultValue: 'Rango limpiado' }));
   };
 
   // Limpiar todo el curso: borra TODOS los rangos del grupo + sus horarios y
@@ -3799,10 +3797,25 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </DndContext>
         )}
 
-        {dragError && (
-          <div className={styles.errorToast} role="alert">
-            <Ban size={18} />
-            <span>{dragError}</span>
+        {(solving || solverAllRunning) && (
+          <div className={styles.solverOverlay} role="status" aria-live="polite">
+            <div className={styles.solverOverlayInner}>
+              <Lottie animationData={solverAnim} loop style={{ width: 220, height: 220 }} />
+              <div className={styles.solverOverlayText}>
+                {solverAllRunning && solverProgress
+                  ? t('scheduleEditor.solverAllProgress', {
+                      defaultValue: 'Sugiriendo rangos del curso… {{current}}/{{total}}',
+                      current: solverProgress.current,
+                      total: solverProgress.total,
+                    })
+                  : solverAllRunning
+                    ? t('scheduleEditor.solverAllRunning', { defaultValue: 'Sugiriendo todo el curso…' })
+                    : t('scheduleEditor.solving', { defaultValue: 'Sugiriendo horario…' })}
+              </div>
+              {solverAllRunning && solverProgress?.plName && (
+                <div className={styles.solverOverlaySub}>{solverProgress.plName}</div>
+              )}
+            </div>
           </div>
         )}
 

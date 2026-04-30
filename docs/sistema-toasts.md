@@ -324,7 +324,9 @@ El resto del código (22 archivos que consumen `toast.*`) no necesita tocarse.
 
 ---
 
-## 12. Refactor pendiente — unificar el sistema de toasts (registrado 2026-04-28)
+## 12. Refactor de unificación del sistema de toasts ✅ Done (2026-04-30)
+
+> **Estado**: cerrado. Sistema unificado en sonner con estilo saturado bottom-right + close button arriba-derecha. Bitácora del cierre al final de esta sección.
 
 ### Problema
 
@@ -371,3 +373,74 @@ El usuario (sesión 2026-04-28) prefiere visualmente el estilo del **`.errorToas
 ### Prioridad
 
 Media. No bloquea producto; mejora coherencia visual y feedback. Recomendable hacerlo antes del primer despliegue a centro real.
+
+### Bitácora del cierre — 2026-04-30
+
+Refactor ejecutado en una sola sesión. Decisiones tomadas durante la implementación:
+
+**Close button** (precisión del usuario):
+- Posición: arriba-derecha del bloque (sonner por defecto lo pone arriba-izquierda → reposicionado vía `position: absolute; top: 8px; right: 8px; left: auto`).
+- Solo X color texto (heredado del toast: blanco en tipos semánticos, `--text-main` en neutro).
+- Sin parafernalias: eliminada la rotación 90° + scale del refactor previo.
+- Hover: fondo `color-mix(#fff 18%, transparent)` (sombreado sutil semitransparente).
+- Active/click: fondo `color-mix(#fff 28%, transparent)` (un escalón más opaco).
+- Visible siempre con `opacity: 0.85` → `1` en hover (en vez de `opacity: 0` hasta hover del toast como tenía el refactor previo).
+
+**Estilo de bloque**:
+- Fondo SATURADO al 100% del color semántico (`var(--toast-success/error/warning/info)` directo, sin `color-mix` con widget-bg).
+- Texto blanco en tipos semánticos. Border `color-mix(#fff 18%, transparent)` para separación visual sutil.
+- Box-shadow neutra (gris oscuro) en vez de glow del color semántico — los fondos ya son saturados, el glow saturaba demasiado.
+- Padding right ampliado a 40px para reservar espacio del close button (estaba pisando el texto).
+- Animación slide-in desde abajo (`@keyframes toastSlide` mismo del editor — movido al CSS global).
+
+**Migración de `setDragError`** (`HorariosEditor.jsx`):
+- 8 ocurrencias migradas a `toast.error(...)` (drops inválidos: profe ocupado, materia llena, celda ocupada).
+- 1 ocurrencia (`solverPartial` con duración 6000ms) migrada a `toast.warning(...)` con `duration: 6000` — semánticamente es aviso, no error.
+- 4 ocurrencias de `setDragError(null)` (limpieza al iniciar drag/solver) eliminadas — innecesarias, sonner gestiona dismiss automático.
+- State `dragError` y JSX `<div className={styles.errorToast}>` eliminados.
+- `setTimeout(() => setDragError(null), 4000)` eliminado — duplica el auto-dismiss de sonner (4000ms default).
+
+**Archivos modificados**:
+- `frontend/src/styles/toast.css` — reescritura completa (overrides sonner + keyframes + close button posicionado).
+- `frontend/src/pages/HorariosEditor.jsx` — quitado state `dragError`, JSX y todas las llamadas a `setDragError`. Añadido `toast.success(...)` a `handleClearActiveRange`.
+- `frontend/src/pages/HorariosEditor.module.css` — eliminadas clase `.errorToast`, keyframes `toastSlide` y regla en `@media (prefers-reduced-motion)`.
+- `frontend/src/App.jsx` — sin cambios (config Toaster ya correcta; `richColors` activa los `data-type` necesarios).
+
+**Decisión consciente — drop válido en rejilla NO emite toast.success**:
+La doc original (§12 tarea 5) sugería notificar éxito en cada drop válido. Tras revisarlo: el editor permite ráfagas de drops sucesivos y un toast por cada uno generaría ruido extremo. La animación de aterrizaje + el chip apareciendo en la celda son feedback visual suficiente. Toast de éxito reservado para acciones explícitas del usuario (limpiar rango, guardar, crear PL, etc.).
+
+**Verificación**:
+- Build vite OK (19.5s, 1992 módulos).
+- Sin nuevas referencias a `setDragError` ni `dragError` en el código.
+- Warnings de `Duplicate "subtitle" attribute` en `Configuracion.jsx` y `CalificacionesGrupo.jsx` son **preexistentes** y no relacionados con este refactor.
+
+**Pendiente de testing manual** (cuando el usuario abra el frontend):
+- Visual: verificar que los toasts aparecen bottom-right con fondo saturado y close button arriba-derecha como esperado.
+- Drag en `/admin/horarios`: tirar de un módulo a una celda con profe ocupado → toast.error en lugar del bloque rojo viejo.
+- Solver parcial: ejecutar solver en grupo cuya jornada sea insuficiente → toast.warning naranja con la lista de unplaced.
+- Limpiar rango: confirma → toast.success verde "Rango limpiado".
+
+### Deuda no abordada en este refactor
+
+- Auditar handlers CRUD de otras vistas que aún usen patrones antiguos (alertas, mensajes inline) — no detectados aún en esta sesión, salvo HorariosEditor que era el único con sistema duplicado.
+- Validación `Σ pesos = 1.0` en `PonderacionImparticion` (deuda residual de Calificaciones, no relacionada con toasts).
+
+### Add-on misma sesión — overlay Lottie del solver (2026-04-30)
+
+Petición complementaria del usuario: durante `runSolver` (un PL) y `runSolverAllRangos` (multi-PL), la UI no daba feedback visual de proceso en marcha — sólo se veía la tab de PL cambiando y los placements apareciendo a posteriori. Asset `frontend/public/solver.json` (Lottie) ya estaba commiteado pero sin cablear.
+
+**Implementación**:
+- Import `solverAnim from '../../public/solver.json'` en `HorariosEditor.jsx`.
+- Nuevo state `solverProgress = { current, total, plName }` que el bucle multi-rango va seteando antes de cada `runSolver`. Reset a `null` en el `finally`.
+- Overlay JSX condicionado a `solving || solverAllRunning`, posicionado tras el `DndContext` y antes del `<ModalView>` del blocker. Renderiza:
+  - Lottie `solverAnim` (220×220, `loop`).
+  - Texto principal con i18n: `solverAllProgress` (con `{{current}}/{{total}}`) si es multi-rango con progreso, `solverAllRunning` si es multi sin progreso aún, `solving` si es single-PL.
+  - Subtexto con `solverProgress.plName` si está disponible.
+- CSS nuevo en `HorariosEditor.module.css`: `.solverOverlay` (fixed inset:0, z-index 1500, fondo `gray-900 55%` + `backdrop-filter: blur(4px)`, fade-in `solverOverlayFade`), `.solverOverlayInner` (caja themed con border-radius + sombra grande), textos `.solverOverlayText` y `.solverOverlaySub`. Regla `prefers-reduced-motion` desactiva la animación de fade.
+- 2 claves i18n nuevas (`scheduleEditor.solverAllProgress` + `scheduleEditor.clearRangeSuccess` que también añadí esta sesión) en los 5 idiomas: es/en/ca/eu/gl.
+
+**Decisiones**:
+- `z-index: 1500` para quedar **por debajo** de los toasts de sonner (que en sonner van en su propio stacking context muy alto). Si el solver dispara un `toast.error/warning` (caso `solverPartial`), el toast queda por encima del overlay — correcto, porque ese toast aparece justo cuando el overlay desaparece.
+- El overlay no bloquea el toast de éxito/aviso final: se desmonta antes (en el `finally` del runSolver, donde se setea `solving=false`).
+- No se añadió botón "Cancelar solver" — el solver corre síncronamente en backend y abortarlo a mitad implica diseño aparte (deuda futura si fuera molesto en producción).
+

@@ -63,10 +63,14 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
                 
                 const scheduleData = await scheduleResponse.json();
                 
-                // CORRECCIÓN CRÍTICA: El controlador devuelve un array directo, no un objeto Hydra
+                // El endpoint /api/my-schedule puede devolver dos formatos:
+                //   - array directo (formato viejo)
+                //   - { events: [...], slots: [...] } (formato nuevo post-Fase 3 CCAA)
                 let allSlots = [];
                 if (Array.isArray(scheduleData)) {
                     allSlots = scheduleData;
+                } else if (Array.isArray(scheduleData?.events)) {
+                    allSlots = scheduleData.events;
                 } else {
                     allSlots = scheduleData['hydra:member'] || scheduleData.member || [];
                 }

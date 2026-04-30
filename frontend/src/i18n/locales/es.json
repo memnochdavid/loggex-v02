@@ -1637,6 +1637,8 @@
     "extendCourseGrupoError": "El rango se extendió pero la fecha del grupo no se pudo actualizar. Revisa /admin/grupos.",
     "solverAll": "Generar todos",
     "solverAllRunning": "Generando todos los rangos…",
+    "solverAllProgress": "Sugiriendo rangos del curso… {{current}}/{{total}}",
+    "clearRangeSuccess": "Rango limpiado",
     "solverAllHint": "Ejecuta el solver en todos los rangos del curso, en orden cronológico",
     "solverAllNoRangos": "El grupo no tiene rangos lectivos.",
     "solverAllConfirmTitle": "Sugerir todo el curso",

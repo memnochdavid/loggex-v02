@@ -1339,6 +1339,8 @@
     "extendCourseGrupoError": "Aldia luzatu da baina taldeko data ezin izan da eguneratu. /admin/grupos berrikusi.",
     "solverAll": "Guztiak sortu",
     "solverAllRunning": "Aldi guztiak sortzen…",
+    "solverAllProgress": "Ikasturteko aldiak iradokitzen… {{current}}/{{total}}",
+    "clearRangeSuccess": "Aldia hustu da",
     "solverAllHint": "Solver-a ikasturteko aldi guztietan exekutatzen du, ordena kronologikoan",
     "solverAllNoRangos": "Taldeak ez du aldi lektiborik.",
     "solverAllConfirmTitle": "Ikasturte osoa proposatu",

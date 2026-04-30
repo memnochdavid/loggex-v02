@@ -6,7 +6,7 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**🗒️ Cierre de jornada 2026-04-29 noche.** Sesión cerrada con 4 commits ya empujados (`39dc02d`, `6ef7be1`, `37f49a9`, `6a60db0`): Opción A `horasTotales` + CurriculumDistributor, bin-packing first-fit Fases 1-3, Modalidad Fase 5 UI. Cambios menores empujados al cerrar: `cosa` (backlog) ampliado con nuevas ideas de UX/bugs para triar (consumición horas anuales, UX de rango obligatorio en `/admin/horarios`, "Acciones del curso" persistiendo sin Guardar, etc.) — varias ya están representadas en las rutas 2-8 de abajo; otras necesitarán entrada propia o promoción. Asset Lottie `frontend/public/solver.json` añadido (sin cablear todavía, para futuro indicador "solver en marcha").
+**🗒️ Cierre de jornada 2026-04-29 noche.** Sesión cerrada con 4 commits ya empujados (`39dc02d`, `6ef7be1`, `37f49a9`, `6a60db0`): Opción A `horasTotales` + CurriculumDistributor, bin-packing first-fit Fases 1-3, Modalidad Fase 5 UI. Cambios menores empujados al cerrar: `cosa` (backlog) ampliado con nuevas ideas de UX/bugs para triar (consumición horas anuales, UX de rango obligatorio en `/admin/horarios`, "Acciones del curso" persistiendo sin Guardar, etc.) — varias ya están representadas en las rutas 2-8 de abajo; otras necesitarán entrada propia o promoción. Asset Lottie `frontend/public/solver.json` añadido y **cableado 2026-04-30** como overlay durante `runSolver` / `runSolverAllRangos` con progreso `current/total` + nombre del PL activo. Bitácora en `docs/sistema-toasts.md` §12 add-on.
 
 **Calendario escolar Fases 1+2+3 ✅ Done (2026-04-27 noche)** — modelo `Provincia`/`AmbitoFestivo` + 17 nacionales y 118 autonómicos cargados desde PDFs oficiales BOE 2025-26 + UI Centros (selector Provincia cascada CCAA) y Festivos (columna Ámbito + filtro + badges themed). Doc dedicado: **`hoja-de-ruta-calendario-escolar.md`**.
 
@@ -30,7 +30,7 @@
 3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
 4. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
 5. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 3.
-6. **Refactor toasts** (~0.5 sesión) — unificar sonner + `.errorToast` local en un sistema único con tonalidades coherentes. Registrado en `docs/sistema-toasts.md` §12.
+6. ~~**Refactor toasts**~~ ✅ **Done (2026-04-30)** — sistema unificado con fondos saturados bottom-right + close button arriba-derecha solo X. `setDragError` migrado a `toast.error/warning`, `.errorToast` local eliminado, keyframes movidos a CSS global. Bitácora completa en `docs/sistema-toasts.md` §12.
 7. **Asignar profesores** a las imparticiones autonómicas LOMLOE (Digitalización GS, Sostenibilidad, IPE I) en `/admin/imparticiones` (operativo, ~10 min).
 8. **Períodos Lectivos Fase 6** (~1 sesión) — merge `/admin/jornadas` + `/admin/horarios` (cosmético, baja prioridad).
 **PDF multi-página por rango ✅ Done (2026-04-28 noche):** el botón "Exportar PDF" de `/admin/horarios` genera un PDF con **una página por cada `PeriodoLectivo`** del grupo, ordenadas cronológicamente. Cada página repite la cabecera (logo + título + fecha) y añade una sub-cabecera con nombre+fechas del rango. Backend: `HorarioPdfController::horarioGrupo()` agrupa horarios por PL y construye array `paginas[]`. Twig refactorizado en 2 macros (`headerBlock`, `grillaBlock`) con branching multi/single-page para mantener compatibilidad con `/horario/me`.
@@ -193,7 +193,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `catalogo-oficial.md` | Arquitectura del catálogo + bitácora de §13 + secciones por etapa (FP, ESO) y §20 cross-ref CCAA |
 | `informe-mejoras.md` | Auditoría inicial del proyecto |
 | `async-select.md` | Manual del componente `AsyncSearchSelect` |
-| `sistema-toasts.md` | Manual del sistema de toasts. **§12 refactor pendiente** (unificar sonner con estilo `.errorToast` saturado, registrado 2026-04-28) |
+| `sistema-toasts.md` | Manual del sistema de toasts. **§12 refactor ✅ Done (2026-04-30)** — fondos saturados unificados, close button arriba-derecha, `.errorToast` local eliminado |
 
 ### 🪦 Superseded (candidatas)
 
