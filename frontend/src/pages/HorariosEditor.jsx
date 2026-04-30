@@ -309,6 +309,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [solverAllRunning, setSolverAllRunning] = useState(false);
   // Progreso multi-rango para el overlay Lottie: { current, total, plName? }.
   const [solverProgress, setSolverProgress] = useState(null);
+  // "Configurar curso óptimo" engloba PATCH grupo + crear PLs + distribuir
+  // currículo + correr solver. El overlay Lottie debe cubrir TODA la
+  // secuencia para evitar que el usuario crea que la operación ya terminó
+  // entre pasos. Levantado al principio de handleConfigureOptimalCourse y
+  // bajado en su finally; el overlay se muestra si cualquiera de
+  // (solving, solverAllRunning, configuringOptimal) está a true.
+  const [configuringOptimal, setConfiguringOptimal] = useState(false);
+  const [configuringStep, setConfiguringStep] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -2985,6 +2993,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!ok) { console.groupEnd(); return; }
     setCursoActionsOpen(false);
 
+    // Overlay Lottie cubre TODA la secuencia (Pasos 1-5). Sin esto, los
+    // PATCH/POST de los pasos 1-4 corren sin feedback visual y el usuario
+    // puede creer que la app está congelada.
+    setConfiguringOptimal(true);
+    setConfiguringStep('1/5');
+    try {
+
     // Paso 1: ajustar Grupo.fechaFin (PRE). Patch si: extender hacia adelante
     // (willExtend) O si hay acumulación previa que resetear (finResetNeeded).
     // El target final es siempre `newFinISO` (=base ideal + extensión si toca).
@@ -3015,6 +3030,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Paso 2: crear rangos pasando fechas EXPLÍCITAS (state setGrupos puede
     // no haber re-renderizado todavía; el closure de handleCreateRecommendedRangos
     // capturaría grupo stale).
+    setConfiguringStep('2/5');
     console.log(`[OptCurso] Paso 2: crear ${N} rangos cubriendo ${iniISO} → ${newFinISO}`);
     const rangosCreados = await handleCreateRecommendedRangos(null, N, {
       iniISO,
@@ -3031,6 +3047,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     })));
 
     // Paso 3: distribuir currículo. Si extendBy > 0, extender más y reintentar.
+    setConfiguringStep('3/5');
     let distribution = null;
     let plsActuales = rangosCreados;
     let currentGrupoFin = newFinISO;
@@ -3128,6 +3145,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
 
     // Paso 4: PATCH `pli.minutosSemanales` con la distribución.
+    setConfiguringStep('4/5');
     console.log('[OptCurso] Paso 4: PATCH PLIs con distribución');
     console.table(Object.entries(distribution).flatMap(([plId, byImp]) =>
       Object.entries(byImp).map(([impId, min]) => ({
@@ -3176,14 +3194,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       return;
     }
 
-    // Paso 5: lanzar el solver per-rango con autoSave=true para persistir
-    // los placements en BD inmediatamente. Sin autoSave, los placements
-    // quedarían en preview local y el PDF saldría vacío hasta que el admin
-    // pulsase "Guardar" rango por rango (UX rota del flow combinado).
-    console.log(`[OptCurso] Paso 5: runSolverAllRangos para ${plsActuales.length} rangos (autoSave=true)`);
-    await runSolverAllRangos(plsActuales, /* autoSave */ true);
+    // Paso 5: lanzar el solver per-rango con autoSave=false (preview local).
+    // Antes el flow llamaba con autoSave=true para que el PDF saliera "ya
+    // listo", pero el principio del editor es "nada se persiste hasta
+    // Guardar". Los placements del solver quedan dirty en cada rango y el
+    // banner "cambios sin guardar" guía al usuario a confirmar manualmente.
+    setConfiguringStep('5/5');
+    console.log(`[OptCurso] Paso 5: runSolverAllRangos para ${plsActuales.length} rangos (autoSave=false)`);
+    await runSolverAllRangos(plsActuales, /* autoSave */ false);
     console.log('[OptCurso] FIN');
     console.groupEnd();
+    toast.success(t('scheduleEditor.optimalSuccessSaveHint', {
+      defaultValue: 'Curso configurado. Pulsa "Guardar" para persistir los placements en cada rango.',
+    }), { duration: 6000 });
+    } finally {
+      setConfiguringOptimal(false);
+      setConfiguringStep(null);
+    }
   };
 
   const dirtyAny = Object.values(state).some(s => s?.dirty);
@@ -3347,7 +3374,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               <Button
                 type="button"
                 onClick={() => setCursoActionsOpen(v => !v)}
-                disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos}
+                disabled={!selectedGrupo || solving || saving || solverAllRunning || creatingRangos || configuringOptimal}
                 variant="secondary"
                 title={t('scheduleEditor.cursoActionsTitle', { defaultValue: 'Acciones del curso' })}
               >
@@ -3837,7 +3864,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           </DndContext>
         )}
 
-        {(solving || solverAllRunning) && (
+        {(solving || solverAllRunning || configuringOptimal) && (
           <div className={styles.solverOverlay} role="status" aria-live="polite">
             <div className={styles.solverOverlayInner}>
               <Lottie animationData={solverAnim} loop style={{ width: 220, height: 220 }} />
@@ -3850,7 +3877,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     })
                   : solverAllRunning
                     ? t('scheduleEditor.solverAllRunning', { defaultValue: 'Sugiriendo todo el curso…' })
-                    : t('scheduleEditor.solving', { defaultValue: 'Sugiriendo horario…' })}
+                    : configuringOptimal
+                      ? t('scheduleEditor.configuringOptimal', {
+                          defaultValue: 'Configurando curso óptimo… {{step}}',
+                          step: configuringStep || '',
+                        })
+                      : t('scheduleEditor.solving', { defaultValue: 'Sugiriendo horario…' })}
               </div>
               {solverAllRunning && solverProgress?.plName && (
                 <div className={styles.solverOverlaySub}>{solverProgress.plName}</div>

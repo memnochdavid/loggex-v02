@@ -1358,6 +1358,8 @@
     "solverAll": "Guztiak sortu",
     "solverAllRunning": "Aldi guztiak sortzen…",
     "solverAllProgress": "Ikasturteko aldiak iradokitzen… {{current}}/{{total}}",
+    "configuringOptimal": "Ikasturte optimoa konfiguratzen… {{step}}",
+    "optimalSuccessSaveHint": "Ikasturtea konfiguratuta. Aldi bakoitzeko placements iraunarazteko, sakatu \"Gorde\".",
     "clearRangeSuccess": "Aldia hustu da",
     "solverAllHint": "Solver-a ikasturteko aldi guztietan exekutatzen du, ordena kronologikoan",
     "solverAllNoRangos": "Taldeak ez du aldi lektiborik.",

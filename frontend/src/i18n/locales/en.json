@@ -1358,6 +1358,8 @@
     "solverAll": "Generate all",
     "solverAllRunning": "Generating all terms…",
     "solverAllProgress": "Suggesting course terms… {{current}}/{{total}}",
+    "configuringOptimal": "Configuring optimal course… {{step}}",
+    "optimalSuccessSaveHint": "Course configured. Press \"Save\" to persist the placements in each term.",
     "clearRangeSuccess": "Term cleared",
     "solverAllHint": "Runs the solver on every term of the course, in chronological order",
     "solverAllNoRangos": "The group has no terms yet.",

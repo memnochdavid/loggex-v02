@@ -1358,6 +1358,8 @@
     "solverAll": "Xerar todos",
     "solverAllRunning": "Xerando todos os períodos…",
     "solverAllProgress": "Suxerindo períodos do curso… {{current}}/{{total}}",
+    "configuringOptimal": "Configurando curso óptimo… {{step}}",
+    "optimalSuccessSaveHint": "Curso configurado. Preme \"Gardar\" para persistir os placements en cada período.",
     "clearRangeSuccess": "Período limpado",
     "solverAllHint": "Executa o solver en todos os períodos do curso, en orde cronolóxica",
     "solverAllNoRangos": "O grupo non ten períodos lectivos.",

@@ -1656,6 +1656,8 @@
     "solverAll": "Generar todos",
     "solverAllRunning": "Generando todos los rangos…",
     "solverAllProgress": "Sugiriendo rangos del curso… {{current}}/{{total}}",
+    "configuringOptimal": "Configurando curso óptimo… {{step}}",
+    "optimalSuccessSaveHint": "Curso configurado. Pulsa \"Guardar\" para persistir los placements en cada rango.",
     "clearRangeSuccess": "Rango limpiado",
     "solverAllHint": "Ejecuta el solver en todos los rangos del curso, en orden cronológico",
     "solverAllNoRangos": "El grupo no tiene rangos lectivos.",

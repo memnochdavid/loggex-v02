@@ -1358,6 +1358,8 @@
     "solverAll": "Generar tots",
     "solverAllRunning": "Generant tots els períodes…",
     "solverAllProgress": "Suggerint períodes del curs… {{current}}/{{total}}",
+    "configuringOptimal": "Configurant curs òptim… {{step}}",
+    "optimalSuccessSaveHint": "Curs configurat. Prem \"Desar\" per persistir els placements a cada període.",
     "clearRangeSuccess": "Període netejat",
     "solverAllHint": "Executa el solver en tots els períodes del curs, en ordre cronològic",
     "solverAllNoRangos": "El grup no té períodes lectius.",
