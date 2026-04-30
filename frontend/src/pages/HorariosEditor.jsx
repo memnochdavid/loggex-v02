@@ -3310,13 +3310,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
 
     // Paso 3 (DRY): distribuir currículo via dry-run. Si extendBy > 0,
-    // ajustar último rango virtual y reintentar. Bumpeado MAX_ATTEMPTS a 20
-    // porque el extendBy del distribuidor puede ser conservador (max 7d por
-    // iter en redistributionShortfall) y agotaba muy rápido.
+    // ajustar último rango virtual y reintentar. Si tras N intentos no se
+    // logra feasible, NO abortar — el distribuidor devuelve una distribución
+    // PARCIAL (lo que sí pudo asignar) y dejamos que el solver corra con
+    // esa distribución parcial. El usuario ve los placements en el editor
+    // y retoca a mano lo que quede sin cubrir (comportamiento del flow
+    // antiguo: best-effort, no aborto en redistributionShortfall).
     setConfiguringStep('3/5');
     let distribution = null;
     let attempts = 0;
     let lastShortfallSignature = null;
+    let stuck = false;
+    let lastDistJson = null;
     const MAX_DISTRIBUTE_ATTEMPTS = 20;
     while (attempts < MAX_DISTRIBUTE_ATTEMPTS) {
       const distRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/distribute-curriculum-dry-run`), {
@@ -3339,30 +3344,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         return;
       }
       const distJson = await distRes.json();
+      lastDistJson = distJson;
       console.log(`[OptCurso] Paso 3.${attempts + 1} response:`, distJson);
       if (distJson.feasible) {
         distribution = distJson.distribution;
         break;
       }
       const extendBy = distJson.extendBy || 0;
-      // Detectar si el loop está atascado: misma "firma" de shortfalls dos
-      // iteraciones seguidas → el extendBy no está progresando, abort.
+      // Detectar loop atascado: si el shortfall no progresa, salir y usar
+      // la distribución parcial.
       const shortfallSignature = JSON.stringify(distJson.shortfalls || {});
       if (extendBy > 0 && shortfallSignature === lastShortfallSignature) {
-        console.error(`[OptCurso] Stuck loop: shortfalls iguales tras extender. Abort.`);
-        const shortfallsHuman = Object.entries(distJson.shortfalls || {})
-          .map(([impId, min]) => {
-            const imp = imps.find(i => String(i.id) === String(impId));
-            const nombre = imp?.materia?.nombre || `imp ${impId}`;
-            return `${nombre}: ${Math.round(min / 60 * 10) / 10}h`;
-          })
-          .join(', ') || 'sin detalle';
-        toast.error(t('scheduleEditor.distributeStuck', {
-          defaultValue: 'El distribuidor no logra cubrir todas las materias incluso extendiendo el curso. Materias atascadas: {{materias}}',
-          materias: shortfallsHuman,
-        }), { duration: 10000 });
-        console.groupEnd();
-        return;
+        console.warn('[OptCurso] Loop atascado en distribuidor — uso distribución parcial.');
+        stuck = true;
+        break;
       }
       lastShortfallSignature = shortfallSignature;
       if (extendBy > 0 && attempts < MAX_DISTRIBUTE_ATTEMPTS - 1) {
@@ -3378,21 +3373,38 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         attempts++;
         continue;
       }
-      // distJson.feasible === false con extendBy === 0 → error de
-      // configuración (jornada no resoluble, sin slots, etc.) o redistribu-
-      // tion con shortfall irreductible. Mostramos el `reason` y `error`
-      // del backend para que el admin pueda diagnosticar.
-      console.error('[OptCurso] dry-run not feasible without extension:', distJson);
-      const detail = distJson.debug?.error || distJson.reason || 'sin detalle';
+      // Sin extendBy y sin progreso → salir del loop con distribución parcial.
+      console.warn('[OptCurso] Distribuidor sin extendBy: uso distribución parcial.');
+      break;
+    }
+
+    // Si no hay feasible, usar la distribución parcial del último response.
+    // El backend siempre devuelve `distribution` aun en redistributionShortfall
+    // (lo que sí se logró asignar). El solver corre con esa distribución y
+    // el usuario retoca manualmente las materias atascadas.
+    if (!distribution && lastDistJson?.distribution) {
+      distribution = lastDistJson.distribution;
+      const shortfallsHuman = Object.entries(lastDistJson.shortfalls || {})
+        .map(([impId, min]) => {
+          const imp = imps.find(i => String(i.id) === String(impId));
+          const nombre = imp?.materia?.nombre || `imp ${impId}`;
+          return `${nombre}: ${Math.round(min / 60 * 10) / 10}h`;
+        })
+        .join(', ');
+      if (shortfallsHuman) {
+        toast.warning(t('scheduleEditor.distributePartial', {
+          defaultValue: 'Distribución parcial: {{materias}}. El solver se ejecutará con lo que cabe; ajusta a mano lo que falte.',
+          materias: shortfallsHuman,
+        }), { duration: 10000 });
+      }
+    }
+    if (!distribution) {
+      // Caso patológico: el distribuidor no devolvió ni distribución parcial.
+      const detail = lastDistJson?.debug?.error || lastDistJson?.reason || 'sin detalle';
       toast.error(t('scheduleEditor.distributeShortfall', {
         defaultValue: 'El currículo no cabe en el calendario actual ni extendiendo el curso ({{detail}}).',
         detail,
       }));
-      console.groupEnd();
-      return;
-    }
-    if (!distribution) {
-      toast.error(t('scheduleEditor.distributeFailed', { defaultValue: 'No se pudo distribuir el currículo.' }));
       console.groupEnd();
       return;
     }

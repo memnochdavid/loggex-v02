@@ -1277,6 +1277,7 @@
     "distributeError": "Ezin izan da kurrikulua aldien artean banatu.",
     "distributeShortfall": "Kurrikulua ez da egungo egutegian sartzen, ikastaroa luzatuta ere ({{detail}}). Egiaztatu lan-eguna edo kurrikulu-orduak.",
     "distributeStuck": "Banatzaileak ez ditu gai guztiak estaltzen ikastaroa luzatuta ere. Trabatutako gaiak: {{materias}}",
+    "distributePartial": "Banaketa partziala: {{materias}} estali gabe. Solverra sartzen denarekin exekutatuko da; eskuz egokitu falta dena.",
     "distributeFailed": "Ezin izan da kurrikulua banatu.",
     "distributePatchError": "Errorea aldi bakoitzeko minutu-banaketa aplikatzean.",
     "extendError": "Errorea ikastaroa luzatzean.",

@@ -1575,6 +1575,7 @@
     "distributeError": "No se pudo distribuir el currículo entre los rangos.",
     "distributeShortfall": "El currículo no cabe en el calendario actual ni extendiendo el curso ({{detail}}). Revisa la jornada o las horas curriculares.",
     "distributeStuck": "El distribuidor no logra cubrir todas las materias incluso extendiendo el curso. Materias atascadas: {{materias}}",
+    "distributePartial": "Distribución parcial: faltan por cubrir {{materias}}. El solver se ejecutará con lo que cabe; ajusta a mano lo que falte.",
     "distributeFailed": "No se pudo distribuir el currículo.",
     "distributePatchError": "Error aplicando la distribución de minutos por rango.",
     "extendError": "Error extendiendo curso.",
