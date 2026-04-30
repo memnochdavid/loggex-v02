@@ -6,6 +6,33 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**🗒️ Cierre 2026-04-30 — PeriodoLectivo Fase 7 ✅ Done (calendario lectivo del centro con datos reales BOJA).** El INDEX ruta 3 cerrada en una sesión. Implementación completa con datos extraídos del PDF oficial BOJA Sevilla 2025-26 (Resolución firmada 29-may-2025, código verificación `Pk2jmHN9YZXCU9YPKJTUAQG6SSRYET`). El usuario fue explícito: "los datos de la base de datos son susceptibles a cambiar — prioriza datos reales de fuentes reales". Por eso la fuente de verdad es el JSON curado en MinIO con su PDF al lado, y los seeds idempotentes restauran BD al estado canónico.
+
+Cambios concretos:
+- Backend: enum `EtapaEducativa` (12 valores LOMLOE), entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` read-only, `Centro.fechaInicio/FinCurso` (override opcional), migración `Version20260430120000`, servicio `CalendarioLectivoService::semanasLectivas` con cascada `override > Centro > CCAA > fallback 36`.
+- Comandos: `app:calendario:ingest-escolar --ccaa=AN --source-dir=...` (sube PDF+JSON a MinIO), `app:calendario:seed-escolar --ccaa=AN` (idempotente: persiste etapas + vacaciones autonómicas como Festivo con rango + día provincial).
+- Endpoint: `GET /api/v1/centros/{id}/semanas-lectivas?etapa=fp` devuelve `{semanas, diasLectivos, fechaInicio, fechaFin, origen}`.
+- UI: `/admin/centros` modal con dos `<input type="date">` Inicio/Fin curso + sugerencia precargada del CCAA (i18n × 5). `HorariosEditor` y `CapacityPlanner` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback. Sólo afecta al fallback cuando `materia.horasTotales=null` (caso edge).
+- Staging temporal en `backend/var/staging/calendario-escolar-an/{source,curated}/ (gitignored, montado en contenedor como /var/www/html/var/staging/...)` siguiendo el patrón de `app:catalogo:ccaa:ingest`. Los PDFs y JSON viven en MinIO (`catalogo/calendario-escolar/{CCAA}/{source,curated}/`); `minio_backup/` los respalda vía `scripts/backup_storage.sh`.
+
+**Acciones del usuario para activar end-to-end** (no ejecutadas en esta sesión por permisos Docker):
+1. `docker compose exec backend php bin/console doctrine:migrations:migrate`
+2. `docker compose exec backend php bin/console app:calendario:ingest-escolar --ccaa=AN --source-dir=/var/www/html/var/staging/calendario-escolar-an` (el directorio se monta en el contenedor; ajustar a la ruta accesible)
+3. `docker compose exec backend php bin/console app:calendario:seed-escolar --ccaa=AN`
+4. F5 `/admin/centros` → editar EAG (CCAA Andalucía) → modal sugiere 15-sep-2025 → 22-jun-2026 → guardar.
+5. F5 `/admin/horarios` → grupo cualquiera → cálculos anuales usan semanas reales descontando festivos (Navidad, SS, día Comunidad Educativa, día provincial Sevilla).
+
+**Deuda residual**: las 7 provincias andaluzas restantes (AL, CA, CO, GR, HU, JA, MA) publican sus propias Resoluciones provinciales con su día no lectivo provincial — anotado en `calendario-escolar.json.deuda_residual`.
+
+**Add-on 2026-04-30 (mismo día) — Aplicabilidad de festivos por centro**:
+- 🐛 **Bug previo corregido** en `CurrentUserExtension.php`: filtraba `festivo.centro = miCentro OR centro IS NULL`, lo que dejaba ver autonómicos de TODAS las CCAAs y provinciales sueltos del país a un admin de centro. Ahora aplica la cascada `NACIONAL OR (AUTONOMICO ccaa = miCentro.ccaa) OR (PROVINCIAL provincia = miCentro.provincia) OR (LOCAL centro = miCentro)`. Un admin de Andalucía/Sevilla ahora ve solo sus festivos.
+- ✅ **Filtro `?aplicaACentro=X`**: nueva extension `FestivoAplicableExtension` para que SuperAdmin pueda ver "los festivos como los ve el centro X". `Festivos.jsx` migrado de `?centro=X` (LOCAL only) a `?aplicaACentro=X` (cascada completa).
+- ✅ **Botón "Cargar festivos del centro"** en `/fechas/`: invoca `POST /api/v1/centros/{id}/sync-festivos` que ejecuta upsert idempotente desde los JSONs curados en MinIO (BOE laboral + Resolución BOJA escolar) — persiste solo lo aplicable al centro (nacionales + autonómicos de su CCAA + vacaciones autonómicas + día Comunidad + provincial de su provincia + CalendarioEscolarCcaa por etapa). Servicio: `CentroFestivoSyncService`. UI con confirm + toast con stats. i18n × 5.
+
+Bitácora completa: `docs/hoja-de-ruta-periodos-lectivos.md` §3 Fase 7 + §6 entrada 2026-04-30.
+
+---
+
 **🗒️ Cierre de jornada 2026-04-29 noche.** Sesión cerrada con 4 commits ya empujados (`39dc02d`, `6ef7be1`, `37f49a9`, `6a60db0`): Opción A `horasTotales` + CurriculumDistributor, bin-packing first-fit Fases 1-3, Modalidad Fase 5 UI. Cambios menores empujados al cerrar: `cosa` (backlog) ampliado con nuevas ideas de UX/bugs para triar (consumición horas anuales, UX de rango obligatorio en `/admin/horarios`, "Acciones del curso" persistiendo sin Guardar, etc.) — varias ya están representadas en las rutas 2-8 de abajo; otras necesitarán entrada propia o promoción. Asset Lottie `frontend/public/solver.json` añadido y **cableado 2026-04-30** como overlay durante `runSolver` / `runSolverAllRangos` con progreso `current/total` + nombre del PL activo. Bitácora en `docs/sistema-toasts.md` §12 add-on.
 
 **Calendario escolar Fases 1+2+3 ✅ Done (2026-04-27 noche)** — modelo `Provincia`/`AmbitoFestivo` + 17 nacionales y 118 autonómicos cargados desde PDFs oficiales BOE 2025-26 + UI Centros (selector Provincia cascada CCAA) y Festivos (columna Ámbito + filtro + badges themed). Doc dedicado: **`hoja-de-ruta-calendario-escolar.md`**.
@@ -27,7 +54,7 @@
    - **Próximo: Fase 6** (~0.5 sesión) — PDF con sección "Otras horas curriculares" tras las páginas por rango.
    - Doc dedicado: `hoja-de-ruta-modalidad-imparticion.md`. **Fases 1-5 cubren ya todo el flujo operativo en UI**; Fase 6 es solo polish del PDF.
 2. **Solicitud de cambio de turno (profe → admin)** (~1 sesión) — entidad `SolicitudCambioTurno` + cola de aprobación + notificación vía Mensaje (Mercure live ya cubre). Promovido desde `pulido-ux.md` #8 tras verificar que no existía. Doc dedicado: `hoja-de-ruta-cambio-turno.md`. Fase 2 (reasignación automática) diferida.
-3. **Períodos Lectivos Fase 7** (~1 sesión) — `Centro.fechaInicioCurso/FinCurso` + vacaciones intermedias. Parametriza D-L (las 36 semanas LOMLOE hardcoded de Fase 5 se sustituyen por cálculo desde calendario lectivo real del centro). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`.
+3. ~~**Períodos Lectivos Fase 7**~~ ✅ **Done 2026-04-30** — `Centro.fechaInicio/FinCurso` + entidad `CalendarioEscolarCcaa` con datos reales BOJA Sevilla 2025-26. Parametriza D-L (las 36 sem LOMLOE hardcoded sustituidas por `CalendarioLectivoService::semanasLectivas` que descuenta festivos reales). Funde Fase 5 de `hoja-de-ruta-calendario-escolar.md`. Bitácora en `hoja-de-ruta-periodos-lectivos.md` §3 Fase 7.
 4. **Períodos Lectivos Fase 8** (~2-3 sesiones) — tab "Consumición de horas anuales": dashboard con vista "ahora" + proyección anual con doble eje (rango vs evaluación). Cierra el ciclo de gestión visualmente para jefe de estudios.
 5. **Calendario Fase 4** (~1.5h) — entidad `Municipio` + UI festivos locales manuales. Cross-ref con la ruta 3.
 6. ~~**Refactor toasts**~~ ✅ **Done (2026-04-30)** — sistema unificado con fondos saturados bottom-right + close button arriba-derecha solo X. `setDragError` migrado a `toast.error/warning`, `.errorToast` local eliminado, keyframes movidos a CSS global. Bitácora completa en `docs/sistema-toasts.md` §12.
@@ -167,9 +194,9 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Hecho | Pendiente |
 |---|---|---|
-| `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 todas ✅** + **Opción A 2026-04-29 (PRIORIDAD MÁXIMA)**: `Materia.horasTotales` como objetivo curricular (ley LOMLOE) en lugar de `min × 36` rígido. `semanasOptimas` con slots colocables. Cuota natural + reducción "menor penalty %". Resultados: 1º DAW 102-111% en 6 materias + Programación 88% (déficit estructural irreductible jornada 27.5h vs currículo 29h, requiere subir jornada a 30h o aceptar recreos lectivos LOMLOE). | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético), Fase 7 (calendario lectivo del centro — parametriza D-L), Fase 8 (dashboard horas anuales para jefe de estudios) |
+| `hoja-de-ruta-periodos-lectivos.md` | **Fases 1-5 + 7 todas ✅** + **Opción A 2026-04-29**: `Materia.horasTotales` como objetivo curricular (ley LOMLOE) en lugar de `min × 36` rígido. **Fase 7 ✅ 2026-04-30**: calendario lectivo real del centro (datos BOJA AN 2025-26 vía `app:calendario:seed-escolar`, `CalendarioLectivoService` cuenta semanas descontando festivos, UI Centro con sugerencia, sustituidas las 36 hardcoded en HorariosEditor + CapacityPlanner). | Fase 6 (merge /admin/jornadas + /admin/horarios — cosmético, baja prioridad), Fase 8 (dashboard horas anuales para jefe de estudios) |
 | `hoja-de-ruta-jornadas-recreos.md` | Fases A, C, D, G, **E ampliada** (D24=A en minutos). **§"PARCHE TEMPORAL" SUPERSEDED 2026-04-28** por periodos-lectivos sub-fase D | Fase B (asistente automático de tramos), Fase F (validador horarios afectados), Fase H (cache jornada en editor), **§14 sub-fases J-N** (minutosSemanales / capacity check / bloques largos / paralelismo refinado / round-up explícito) |
-| `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3** ✅ (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos) | Fase 4 (Municipio + UI locales), Fase 5 (calendario lectivo), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE) |
+| `hoja-de-ruta-calendario-escolar.md` | **Fases 1+2+3 ✅** (modelo Provincia + Festivo.ambito + datos BOE 2025-26 cargados + UI Centros/Festivos). **Fase 5 ✅ SUPERSEDED 2026-04-30** absorbida por periodos-lectivos Fase 7 con datos reales BOJA AN 2025-26. | Fase 4 (Municipio + UI locales), Fase 6 (distribución temporal materias), Fase 7 (cron anual fetch BOE/BOJA — pendiente) |
 | `hoja-de-ruta-calificaciones.md` | **Auditado 2026-04-29 + BD poblada (tarde)**: Fases A+B+C+D+E ✅ todas cerradas. `backup_tfg_full.sql` ahora contiene 174 tareas / 614 entregas / 614 calificaciones / 16 periodos / 87 ponderaciones / 725 asistencias / 17 mensajes / 10 comunicados / 87 temarios. Todos los archivos referencian a `Dummy.pdf` en MinIO. | B.1 validación Σ pesos=1.0 a nivel entidad (deuda menor; fixtures la cumplen pero la app no la fuerza). |
 | `home-widgets-roadmap.md` | TablonWidget, NotificationList | Resto de widgets marcados 🔴 |
 | `modernizacion-ui.md` | Manual vivo de modernización; varios plugins documentados | Sigue activo, registrar cada modernización nueva |

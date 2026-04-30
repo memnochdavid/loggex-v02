@@ -19,8 +19,10 @@ use App\Repository\CentroRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CentroRepository::class)]
 #[ORM\Table(name: 'centro')]
@@ -39,6 +41,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiFilter(SearchFilter::class, properties: ['nombre' => 'partial', 'cif' => 'partial', 'direccion' => 'partial'])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'cif', 'direccion'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'cif', 'activo', 'id'], arguments: ['orderParameterName' => 'order'])]
+#[Assert\Expression(
+    "this.getFechaInicioCurso() === null || this.getFechaFinCurso() === null || this.getFechaInicioCurso() < this.getFechaFinCurso()",
+    message: 'fechaInicioCurso debe ser anterior a fechaFinCurso.'
+)]
 class Centro
 {
     use TimestampableTrait;
@@ -103,6 +109,23 @@ class Centro
     #[ORM\JoinColumn(nullable: true, referencedColumnName: 'codigo')]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Provincia $provincia = null;
+
+    /**
+     * Inicio del régimen ordinario de clases del centro. Override del valor
+     * sugerido por `CalendarioEscolarCcaa(centro.ccaa, anioActual, etapa)`.
+     * NULL = el centro no ha rellenado y se cae al sugerido en runtime.
+     */
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?\DateTimeInterface $fechaInicioCurso = null;
+
+    /**
+     * Fin del régimen ordinario de clases del centro. Override del sugerido
+     * por `CalendarioEscolarCcaa`. NULL = se usa el del calendario CCAA.
+     */
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?\DateTimeInterface $fechaFinCurso = null;
 
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: User::class)]
     private Collection $usuarios;
@@ -227,6 +250,28 @@ class Centro
     public function setProvincia(?Provincia $provincia): static
     {
         $this->provincia = $provincia;
+        return $this;
+    }
+
+    public function getFechaInicioCurso(): ?\DateTimeInterface
+    {
+        return $this->fechaInicioCurso;
+    }
+
+    public function setFechaInicioCurso(?\DateTimeInterface $f): static
+    {
+        $this->fechaInicioCurso = $f;
+        return $this;
+    }
+
+    public function getFechaFinCurso(): ?\DateTimeInterface
+    {
+        return $this->fechaFinCurso;
+    }
+
+    public function setFechaFinCurso(?\DateTimeInterface $f): static
+    {
+        $this->fechaFinCurso = $f;
         return $this;
     }
 

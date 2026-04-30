@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\EtapaEducativa;
 use App\Entity\Grupo;
 use App\Entity\JornadaTipo;
 use App\Entity\PeriodoLectivo;
@@ -48,6 +49,7 @@ class CapacityPlanner
     public function __construct(
         private EntityManagerInterface $em,
         private PeriodoLectivoResolver $resolver,
+        private CalendarioLectivoService $calendario,
     ) {
     }
 
@@ -149,7 +151,18 @@ class CapacityPlanner
         // minutos anuales ya colocados en otros rangos antes de ejecutar el solver).
         // Si el array es null, no se aplica el cap (modo legacy / single-range).
         $TOLERANCIA_ANUAL_MIN = 0;           // sin holgura: el último rango se autorregula
-        $SEMANAS_REF_LOMLOE = 36;
+        // Semanas lectivas REALES del centro (Fase 7 PeriodoLectivo): se lee
+        // del CalendarioLectivoService que descuenta festivos de la ventana
+        // del centro. Si el centro no tiene fechas configuradas y no hay
+        // CalendarioEscolarCcaa para su CCAA/etapa, fallback a 36 LOMLOE.
+        $centro = $grupo->getItinerario()?->getCentro();
+        $semanasRefCentro = 36.0;
+        if ($centro !== null) {
+            $r = $this->calendario->semanasLectivas($centro, EtapaEducativa::FP);
+            if ($r['semanas'] !== null && $r['semanas'] > 0) {
+                $semanasRefCentro = $r['semanas'];
+            }
+        }
         $semanasRango = $this->calcularSemanasPL($periodoLectivo);
         // Total de semanas del grupo (todos sus PLs vivos). Necesario para la
         // cuota equitativa cuando hay multi-rango. Si solo hay un PL, coincide
@@ -201,7 +214,7 @@ class CapacityPlanner
                 // el calendario es generoso, lo que generaba round-up que
                 // saturaba la jornada y hacía la combinatoria infactible.
                 $usarEquitativa = $totalSemanasGrupo > 0
-                    && $totalSemanasGrupo < $SEMANAS_REF_LOMLOE;
+                    && $totalSemanasGrupo < $semanasRefCentro;
                 if ($usarEquitativa) {
                     $cuotaEquitativa = (int) round($objetivoAnual * ($semanasRango / $totalSemanasGrupo));
                     $cuotaEsteRango = min($cuotaNatural, $cuotaEquitativa, $maxRestante);

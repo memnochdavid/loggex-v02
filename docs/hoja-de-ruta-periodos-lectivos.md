@@ -1,6 +1,8 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-04-29)**: 🟢 **Fase 5 COMPLETA** + **Opción A (post-cierre 2026-04-29)**: el objetivo curricular ahora es `Materia.horasTotales × 60` (ley LOMLOE) en lugar de `min/sem × 36` (rígido). `semanasOptimas = max(36, ceil(Σ horasTotales × 60 / slotsSemanalMin))` adapta el calendario a la jornada slots real. La cuota equitativa cross-rango solo se aplica si calendario < 36 sem; con calendario ≥ 36 sem se usa cuota natural + reducción C. Verificado E2E con 3 grupos del centro EAG: 2º DAW/DAM al 101-108%; 1º DAW (déficit estructural irreductible jornada 27.5h vs currículo 29h) con Programación al 88% absorbiendo el déficit y 6 materias al 102-111%. Limitación restante = jornada física insuficiente (decisión operativa del centro, no algorítmica). Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios`), 7 (calendario lectivo del centro), 8 (dashboard horas anuales).
+> **Status (2026-04-30)**: 🟢 **Fase 7 COMPLETA** — calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
+>
+> **Status anterior (2026-04-29)**: Fase 5 COMPLETA + Opción A `Materia.horasTotales` como objetivo curricular. Verificado E2E centro EAG: 2º DAW/DAM al 101-108%; 1º DAW déficit estructural irreductible. Detalles abajo.
 
 ---
 
@@ -102,6 +104,7 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 | D-J | ¿Cómo gestionar la extensión de curso cuando faltan horas anuales? | **Opción A con modal de confirmación**: extender automáticamente el `fechaFin` del último rango lectivo y, en cascada, `Grupo.fechaFin`. Modal previo enseña diff exacto (campo, antes → después) antes de aplicar. Cerrada 2026-04-28. | Lo simple es lo correcto el 90% del tiempo. El modal protege ante cambios accidentales. Si el centro quiere asignar las semanas extra a un rango específico (FCT puro, recuperación), siempre puede crear/editar rangos a mano después. |
 | D-K | Modelo mental editor: ¿minutos semanales o horas anuales? | **Horas anuales** como vista principal del editor. Internamente `PLI.minutosSemanales` se mantiene (se calcula como `horasAnuales × 60 / semanasRango`). Cerrada 2026-04-28. | El currículo LOMLOE se mide en horas anuales; el admin piensa en horas anuales. Forzar a pensar en min/sem es una fricción artificial. El campo BD se mantiene para no romper solver y compatibilidad con CapacityPlanner. |
 | D-L | ¿Cómo se validan las "semanas lectivas de referencia" (~36) sin Fase 7? | Constante 36 (estándar LOMLOE FP) usada como default. Hace falta una clave en `Centro` o `Itinerario` para parametrizarlo (ESO Andalucía 35, Bach 33-34, otras CCAA distintas). **Diferida a Fase 7** (calendario lectivo del centro): cuando exista `Centro.fechaInicioCurso/FinCurso` + `Festivo[]`, las semanas se calculan automáticamente. Mientras tanto, 36 fijo + tooltip explicativo. Cerrada 2026-04-28. | Implementarlo de forma genérica desde el principio (`Centro.semanasLectivasReferencia` nullable) tendría sentido pero lo correcto es ya delegar al calendario real cuando llegue Fase 7. Hardcoding temporal aceptable. |
+| D-O | ¿Dónde viven las fechas oficiales del calendario escolar autonómico? | **Entidad nueva** `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` cargada por seed idempotente desde JSON curado en MinIO con PDF auditable. **No** se reusa `Festivo` para fechaInicio/Fin curso (no son festivos). Las vacaciones (Navidad, SS) **sí** se persisten como `Festivo` ámbito AUTONOMICO con rango. `Centro.fechaInicio/FinCurso` es **override opcional** del centro (NULL = la UI sugiere el del calendario CCAA del año actual). Cerrada 2026-04-30. | El usuario fue explícito: "los datos de la base de datos son susceptibles a cambiar — prioriza datos reales de fuentes reales". Por eso la fuente de verdad es el JSON curado en MinIO con su PDF al lado, y los seeds idempotentes restauran BD al estado canónico. Reusar `Festivo` para inicio/fin curso confundiría dos conceptos distintos (fiesta vs. ventana de curso). |
 
 ### Abiertas
 
@@ -303,13 +306,51 @@ Si una imparticion no tiene fila en un rango, **no existe** en ese rango (no ent
 
 **Esfuerzo**: ~1 sesión. Cosmético, puede aplazarse.
 
-### Fase 7 — Calendario lectivo (funde Fase 5 calendario-escolar)
+### Fase 7 — Calendario lectivo (funde Fase 5 calendario-escolar)  ✅ Done (2026-04-30)
 
-- Definir `Centro.fechaInicioCurso` / `fechaFinCurso` y vacaciones intermedias.
-- Validador: rangos de un grupo deben cubrir el calendario lectivo del centro sin huecos (al "cerrar curso", D-G).
-- Cross-ref a `hoja-de-ruta-calendario-escolar.md`: la antigua Fase 5 se cierra aquí.
+> Cierre Fase 5 calendario-escolar.md absorbido aquí (D-O).
 
-**Esfuerzo**: ~1 sesión.
+**Modelo (datos reales primero, no campos manuales)**:
+- ✅ Enum `EtapaEducativa` (12 valores LOMLOE: INFANTIL_2, PRIMARIA, ESPECIAL, ESO, BACH_1, BACH_2, FP, EPA, IDIOMAS, IDIOMAS_CERTIFICACION, ARTISTICAS, ARTISTICAS_SUPERIORES).
+- ✅ Entidad `CalendarioEscolarCcaa` (`backend/src/Entity/CalendarioEscolarCcaa.php`) read-only por API: `(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, diasLectivos, horasDocencia, fuenteUrl, fuenteFecha, comentario)` con UNIQUE `(ccaa, anioAcademico, etapa)`. Guarda los datos oficiales por etapa de cada CCAA × año. Persistido por seed desde MinIO; nunca editado manualmente desde la UI (susceptible a cambios = la fuente de verdad es el JSON curado en MinIO).
+- ✅ `Centro.fechaInicioCurso` / `Centro.fechaFinCurso` (DATE NULL) — override **opcional** del centro. Si NULL, la UI sugiere los valores del calendario CCAA del año actual y deja que el admin acepte o ajuste.
+- ✅ Migration `Version20260430120000` crea tabla nueva + columnas Centro NULL. Sin backfill (tabla nueva vacía; las columnas Centro se rellenan desde la UI).
+- ✅ Validator `Assert\Expression` en Centro para `fechaInicioCurso < fechaFinCurso`.
+
+**Pipeline de ingesta (mismo patrón que `app:calendario` para festivos laborales)**:
+- ✅ Staging en `backend/var/staging/calendario-escolar-{ccaa}/{source,curated}/ (gitignored, montado en contenedor como /var/www/html/var/staging/...; el patrón del proyecto NO commitea PDFs ni JSON: viven en MinIO)`. Auditable en git.
+- ✅ Comando `app:calendario:ingest-escolar --ccaa=AN --source-dir=PATH` sube PDFs a MinIO `catalogo/calendario-escolar/{CCAA}/source/` y `calendario-escolar.json` a `catalogo/calendario-escolar/{CCAA}/curated/`.
+- ✅ Comando `app:calendario:seed-escolar --ccaa=AN [--dry-run]` upsert idempotente: persiste CalendarioEscolarCcaa por etapa, Festivos AUTONOMICO con rango (vacaciones Navidad y Semana Santa), AUTONOMICO fecha única (Día Comunidad Educativa), PROVINCIAL fecha única (días no lectivos provinciales por código INE).
+
+**Datos reales 2025-26 piloto Andalucía (provincia de Sevilla)**:
+- Resolución firmada 29-may-2025 por el Delegado Territorial Miguel Ángel Arauz Rivero (cód. verificación `Pk2jmHN9YZXCU9YPKJTUAQG6SSRYET`). PDF en `catalogo/calendario-escolar/AN/source/resol-calendario-25-26.pdf (en MinIO)`.
+- Etapas (12 entradas): FP/ESO/Bach1/EPA = 15-sep-2025 → 22-jun-2026 (175 días, 1050h); Infantil 2/Primaria/Especial = 10-sep → 22-jun (178 días, 890h); Bach2 = 15-sep → 22-may; Idiomas = 22-sep → 22-jun; Artísticas/Sup. = 15/22-sep → 22-jun.
+- Vacaciones autonómicas: Navidad 22-dic-2025 → 6-ene-2026; Semana Santa 30-mar → 5-abr-2026.
+- Día no lectivo autonómico: Día de la Comunidad Educativa 27-feb-2026.
+- Día no lectivo provincial Sevilla: 7-ene-2026.
+
+**Servicio + endpoint**:
+- ✅ `CalendarioLectivoService::semanasLectivas(Centro, ?EtapaEducativa, ?fechaInicio, ?fechaFin, ?anioAcademico)` con cascada `override > Centro.fechaInicio/FinCurso > CalendarioEscolarCcaa(ccaa, anio, etapa) > fallback`. Cuenta días L-V dentro del rango descontando festivos aplicables (NACIONAL + AUTONOMICO ccaa + PROVINCIAL provincia + LOCAL centro), incluyendo rangos. Devuelve `{semanas: float|null, diasLectivos, fechaInicio, fechaFin, origen}`.
+- ✅ Endpoint `GET /api/v1/centros/{id}/semanas-lectivas?etapa=fp[&anio=YYYY-YYYY][&fechaInicio=...][&fechaFin=...]`.
+
+**UI**:
+- ✅ `/admin/centros` modal: dos `<input type="date">` (Inicio/Fin del curso académico) con sugerencia precargada del `CalendarioEscolarCcaa(centro.ccaa, anioActual, FP)` cuando hay CCAA. Helper text dinámico: "Sugerido por calendario {ccaa}: dd/mm/yyyy (puedes editar)" si hay sugerencia, hint genérico si no. i18n × 5 (`centers.fechaInicioCurso/fechaFinCurso/fechaCursoHint/fechaCursoSuggested`).
+- ✅ `CentroController::handleForm` acepta `fechaInicioCurso` y `fechaFinCurso` (vacío → null).
+- ✅ `HorariosEditor.jsx`: sustituidas las 3 ocurrencias de `36` hardcoded (banner anual, ModuleChip, semanasOptimas, modal "configurar curso óptimo") por `semanasReferenciaCentro` resuelto desde `GET /api/v1/centros/{id}/semanas-lectivas` (cacheado en `semanasLectivasByCentro`). Fallback a 36 cuando el centro no tiene calendario.
+- ✅ `CapacityPlanner` backend: `$SEMANAS_REF_LOMLOE = 36` reemplazado por `CalendarioLectivoService::semanasLectivas($centro, FP)['semanas'] ?? 36`. Solo afecta a la decisión de aplicar `cuotaEquitativa` (calendarios cortos).
+
+**Lo que NO cambia**:
+- El `objetivoAnual` de cada materia sigue siendo `materia.horasTotales × 60` (Opción A — ley LOMLOE). Solo el **fallback** cuando `horasTotales=null` (caso edge tras backfill) usa `min/sem × semanasReferenciaCentro` en lugar de `× 36`.
+- El validador "rangos cubren el calendario sin huecos" (D-G) queda como Fase 8 — el banner anual + extender curso ya guían al admin.
+
+**Cómo aplicarlo (acciones del usuario para activar end-to-end)**:
+1. `docker compose exec backend php bin/console doctrine:migrations:migrate`
+2. `docker compose exec backend php bin/console app:calendario:ingest-escolar --ccaa=AN --source-dir=/var/www/html/var/staging/calendario-escolar-an`
+3. `docker compose exec backend php bin/console app:calendario:seed-escolar --ccaa=AN`
+4. F5 en `/admin/centros` → editar EAG → CCAA Andalucía → modal sugiere 15-sep-2025 → 22-jun-2026 → guardar.
+5. F5 en `/admin/horarios` → seleccionar grupo → el cálculo "horas anuales" usa semanas reales descontando festivos.
+
+**Esfuerzo invertido**: ~1 sesión.
 
 ### Fase 8 — Tab "Consumición de horas anuales" por grupo
 

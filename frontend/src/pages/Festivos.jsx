@@ -10,7 +10,7 @@ import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Lock, DownloadCloud } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -70,6 +70,20 @@ const Festivos = ({ embedded = false, tabs = null }) => {
     centro: ''
   });
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // Centro objetivo del botón "Cargar festivos del centro":
+  //   - SuperAdmin: el seleccionado en el filtro (si lo hay).
+  //   - Admin de centro: su propio user.centro.id (siempre disponible).
+  const targetCentroId = useMemo(() => {
+    if (isSuperAdmin) return selectedCentro || '';
+    if (user?.centro) {
+      return typeof user.centro === 'string'
+        ? user.centro.split('/').pop()
+        : (user.centro.id || '');
+    }
+    return '';
+  }, [isSuperAdmin, selectedCentro, user]);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -112,8 +126,14 @@ const Festivos = ({ embedded = false, tabs = null }) => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
+      // Filtro por centro: usar `aplicaACentro` para que el backend devuelva
+      // la cascada NACIONAL + AUTONOMICO ccaa + PROVINCIAL provincia + LOCAL
+      // del centro elegido (no solo los LOCAL como hacía `centro=X`). Para
+      // admins de centro, `CurrentUserExtension` ya aplica la misma cascada
+      // sobre su user.centro automáticamente; este parámetro lo usa SuperAdmin
+      // para ver "los festivos como los ve el centro X".
       if (params.selectedCentro) {
-          url += `&centro=${params.selectedCentro}`;
+          url += `&aplicaACentro=${params.selectedCentro}`;
       }
       if (params.selectedAmbito) {
           url += `&ambito=${params.selectedAmbito}`;
@@ -364,6 +384,55 @@ const Festivos = ({ embedded = false, tabs = null }) => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData, t]);
 
+  // Sincronizar festivos del centro desde los JSONs curados en MinIO (BOE
+  // laboral + Resolución BOJA escolar autonómica). Idempotente: si ya están,
+  // no duplica. La cascada que persiste se calcula desde la CCAA y provincia
+  // del centro objetivo.
+  const handleSyncFestivos = useCallback(async () => {
+    if (!targetCentroId) return;
+    const ok = await confirm({
+      title: t('holidays.syncTitle', { defaultValue: 'Cargar festivos del centro' }),
+      body: t('holidays.syncConfirmBody', {
+        defaultValue: 'Se cargarán los festivos oficiales (BOE + BOJA) aplicables al centro: nacionales, autonómicos de la CCAA, vacaciones académicas, día de la Comunidad Educativa y día provincial. La operación es idempotente — los festivos ya existentes no se duplican.',
+      }),
+      confirmLabel: t('holidays.syncConfirm', { defaultValue: 'Cargar' }),
+    });
+    if (!ok) return;
+
+    setSyncing(true);
+    try {
+      const response = await fetch(getApiUrl(`/api/v1/centros/${targetCentroId}/sync-festivos`), {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
+      }
+      const stats = await response.json();
+      const total = (stats.nacionales || 0) + (stats.autonomicos || 0)
+        + (stats.provinciales || 0) + (stats.vacaciones || 0) + (stats.etapas || 0);
+      toast.success(t('holidays.syncDoneTitle', { defaultValue: 'Festivos cargados' }), {
+        description: t('holidays.syncDoneBody', {
+          defaultValue: '{{total}} entradas nuevas (nacionales {{nac}}, autonómicos {{aut}}, vacaciones {{vac}}, provinciales {{prov}}, etapas {{etapas}}). Sin cambios: {{sc}}.',
+          total, nac: stats.nacionales || 0, aut: stats.autonomicos || 0,
+          vac: stats.vacaciones || 0, prov: stats.provinciales || 0,
+          etapas: stats.etapas || 0, sc: stats.sinCambios || 0,
+        }),
+      });
+      (stats.mensajes || []).forEach(m => toast.warning(m));
+      fetchFestivosData({
+        page: currentPage, itemsPerPage, searchTerm, searchField,
+        selectedCentro, selectedAmbito, sortColumn, sortDirection,
+      });
+    } catch (err) {
+      console.error('Error sincronizando festivos:', err);
+      toast.error(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }, [targetCentroId, confirm, t, fetchFestivosData, currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedAmbito, sortColumn, sortDirection]);
+
   const columns = useMemo(() => [
     { header: t('holidays.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { 
@@ -479,10 +548,31 @@ const Festivos = ({ embedded = false, tabs = null }) => {
             onFieldChange={setSearchField}
         />
         {canCreate && (
-            <Button onClick={() => handleOpenModal()}>
-                <Plus size={18} style={{ marginRight: '8px' }} />
-                {t('common.new')}
-            </Button>
+            <div style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+                flexWrap: 'wrap',
+                marginLeft: 'auto',
+                flexShrink: 0,
+            }}>
+                {targetCentroId && (
+                    <Button
+                        onClick={handleSyncFestivos}
+                        variant="secondary"
+                        disabled={syncing}
+                        title={t('holidays.syncTooltip', { defaultValue: 'Carga festivos oficiales BOE + BOJA aplicables al centro (idempotente).' })}
+                    >
+                        <DownloadCloud size={18} style={{ marginRight: '8px' }} />
+                        {syncing
+                            ? t('holidays.syncing', { defaultValue: 'Cargando…' })
+                            : t('holidays.syncButton', { defaultValue: 'Cargar festivos del centro' })}
+                    </Button>
+                )}
+                <Button onClick={() => handleOpenModal()}>
+                    <Plus size={18} style={{ marginRight: '8px' }} />
+                    {t('common.new')}
+                </Button>
+            </div>
         )}
     </>
   );
@@ -493,6 +583,7 @@ const Festivos = ({ embedded = false, tabs = null }) => {
                     subtitle={embedded ? t('dates.subtitle') : t('holidays.subtitle')}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     middle={tabs}
+                    stackActionsEarly
         >
             {toolbar}
         </CrudHeader>

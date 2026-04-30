@@ -109,8 +109,26 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
                              ->setParameter('current_centro', $user->getCentro());
             } else {
                 if ($resourceClass === Festivo::class) {
-                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
-                    $queryBuilder->setParameter('current_centro', $user->getCentro());
+                    // Cascada de aplicabilidad por configuración del centro:
+                    //   NACIONAL                                   → siempre.
+                    //   AUTONOMICO ccaa = centro.ccaa              → solo si la CCAA coincide.
+                    //   PROVINCIAL provincia = centro.provincia    → solo si la provincia coincide.
+                    //   LOCAL centro = centro_actual               → solo del propio centro.
+                    // Sin esto, un admin de Andalucía vería los 118 autonómicos
+                    // de las 19 CCAAs y todos los provinciales sueltos del país.
+                    $centro = $user->getCentro();
+                    $queryBuilder->andWhere(
+                        sprintf(
+                            "(%s.ambito = 'nacional')"
+                            . " OR (%s.ambito = 'autonomico' AND %s.ccaa = :current_ccaa)"
+                            . " OR (%s.ambito = 'provincial' AND %s.provincia = :current_provincia)"
+                            . " OR (%s.ambito = 'local' AND %s.centro = :current_centro)",
+                            $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias
+                        )
+                    );
+                    $queryBuilder->setParameter('current_centro', $centro);
+                    $queryBuilder->setParameter('current_ccaa', $centro->getCcaa()?->value);
+                    $queryBuilder->setParameter('current_provincia', $centro->getProvincia());
                 } elseif ($resourceClass === User::class && in_array('ROLE_ADMIN', $user->getRoles())) {
                     // Admin de centro ve usuarios de su centro
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias))

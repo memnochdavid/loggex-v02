@@ -78,9 +78,15 @@ const Centros = () => {
         activo: true,
         ccaa: '',
         provincia: '',  // código INE
+        fechaInicioCurso: '',  // ISO YYYY-MM-DD ('' = sin override)
+        fechaFinCurso: '',
     });
     // Lista de provincias cargada upfront (52 fijas, no cambia).
     const [provincias, setProvincias] = useState([]);
+    // Sugerencia (CalendarioEscolarCcaa) para la CCAA actual del modal.
+    // Se rellena cuando ccaa cambia y se usa como hint y placeholder de las
+    // fechas del curso.
+    const [calendarioSugerido, setCalendarioSugerido] = useState(null);
     const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -166,6 +172,32 @@ const Centros = () => {
             .catch(err => console.error('Error cargando provincias:', err));
     }, []);
 
+    // Sugerencia de fechas del curso desde CalendarioEscolarCcaa cuando el
+    // modal está abierto y hay CCAA. La etapa por defecto es FP (única
+    // soportada hoy en EAG); cuando el centro tenga itinerarios mixtos será
+    // razonable inferirla del itinerario predominante. Hint informativo: el
+    // admin sigue pudiendo override.
+    useEffect(() => {
+        if (!isModalOpen || !formData.ccaa) {
+            setCalendarioSugerido(null);
+            return;
+        }
+        const today = new Date();
+        const y = today.getFullYear();
+        const anio = today.getMonth() + 1 >= 7 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+        const url = getApiUrl(`/api/calendario_escolar_ccaas?ccaa=${formData.ccaa}&anioAcademico=${anio}&etapa=fp`);
+        let cancelled = false;
+        fetch(url, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (cancelled || !data) return;
+                const items = data['hydra:member'] || data.member || [];
+                setCalendarioSugerido(items[0] || null);
+            })
+            .catch(() => { if (!cancelled) setCalendarioSugerido(null); });
+        return () => { cancelled = true; };
+    }, [isModalOpen, formData.ccaa]);
+
     // Efecto ÚNICO para cambios
     useEffect(() => {
         const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
@@ -238,6 +270,8 @@ const Centros = () => {
                 activo: centro.activo,
                 ccaa: centro.ccaa || '',
                 provincia: provinciaCodigo,
+                fechaInicioCurso: centro.fechaInicioCurso ? centro.fechaInicioCurso.slice(0, 10) : '',
+                fechaFinCurso: centro.fechaFinCurso ? centro.fechaFinCurso.slice(0, 10) : '',
             });
             setLogoPreview(centro.logo ? getLogoUrl(centro.logo) : null);
         } else {
@@ -250,9 +284,12 @@ const Centros = () => {
                 activo: true,
                 ccaa: '',
                 provincia: '',
+                fechaInicioCurso: '',
+                fechaFinCurso: '',
             });
             setLogoPreview(null);
         }
+        setCalendarioSugerido(null);
         setIsModalOpen(true);
     }, [getLogoUrl]);
 
@@ -303,6 +340,8 @@ const Centros = () => {
             data.append('activo', formData.activo ? 'true' : 'false');
             data.append('ccaa', formData.ccaa || '');
             data.append('provincia', formData.provincia || '');
+            data.append('fechaInicioCurso', formData.fechaInicioCurso || '');
+            data.append('fechaFinCurso', formData.fechaFinCurso || '');
 
             if (logoFile) {
                 data.append('logo', logoFile);
@@ -590,6 +629,56 @@ const Centros = () => {
                         />
                         <small className={styles.helpText}>
                             {t('centers.provinciaHint', { defaultValue: 'Filtrada por CCAA seleccionada. Necesaria para festivos provinciales y locales.' })}
+                        </small>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.fechaInicioCurso', { defaultValue: 'Inicio del curso académico' })}
+                        </label>
+                        <input
+                            type="date"
+                            name="fechaInicioCurso"
+                            value={formData.fechaInicioCurso}
+                            onChange={handleInputChange}
+                            className={styles.input}
+                            placeholder={calendarioSugerido?.fechaInicio?.slice(0, 10) || ''}
+                        />
+                        <small className={styles.helpText}>
+                            {calendarioSugerido?.fechaInicio
+                                ? t('centers.fechaCursoSuggested', {
+                                    defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
+                                    ccaa: formData.ccaa,
+                                    fecha: new Date(calendarioSugerido.fechaInicio).toLocaleDateString('es-ES'),
+                                })
+                                : t('centers.fechaCursoHint', {
+                                    defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
+                                })}
+                        </small>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.fechaFinCurso', { defaultValue: 'Fin del curso académico' })}
+                        </label>
+                        <input
+                            type="date"
+                            name="fechaFinCurso"
+                            value={formData.fechaFinCurso}
+                            onChange={handleInputChange}
+                            className={styles.input}
+                            placeholder={calendarioSugerido?.fechaFin?.slice(0, 10) || ''}
+                        />
+                        <small className={styles.helpText}>
+                            {calendarioSugerido?.fechaFin
+                                ? t('centers.fechaCursoSuggested', {
+                                    defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
+                                    ccaa: formData.ccaa,
+                                    fecha: new Date(calendarioSugerido.fechaFin).toLocaleDateString('es-ES'),
+                                })
+                                : t('centers.fechaCursoHint', {
+                                    defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
+                                })}
                         </small>
                     </div>
 

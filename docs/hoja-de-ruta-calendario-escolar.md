@@ -24,7 +24,7 @@
 ### Lo siguiente al retomar
 
 1. **Modelo Municipio + UI festivos locales manuales** (Fase 4) — el admin del centro añade los 2 festivos locales de su municipio cada año desde la UI. Requiere entidad `Municipio` con código INE 5 dígitos + FK desde `Centro` (opcional) y `Festivo`.
-2. **Calendario lectivo del centro** (Fase 5) — fechas inicio/fin del curso, vacaciones (Navidad, Semana Santa, verano), días no docentes puntuales (claustros, etc.). Ya hay `PeriodoEvaluativo` por grupo, pero falta `CalendarioEscolar` por centro/curso académico.
+2. ~~**Calendario lectivo del centro** (Fase 5)~~ ✅ **SUPERSEDED 2026-04-30** por `hoja-de-ruta-periodos-lectivos.md` Fase 7. Implementación con datos reales de la Resolución BOJA Sevilla 2025-26: entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` cargada por `app:calendario:seed-escolar` desde JSON curado en MinIO; vacaciones autonómicas (Navidad, SS) persistidas como `Festivo` ámbito AUTONOMICO con rango; `Centro.fechaInicio/FinCurso` como override opcional; `CalendarioLectivoService` cuenta semanas reales descontando festivos; `HorariosEditor` y `CapacityPlanner` migrados de `36` LOMLOE a semanas reales con fallback. Bitácora completa en periodos-lectivos §3 Fase 7.
 3. **Distribución temporal de materias** (Fase 6) — hoy el modelo asume "regular semanal todo el curso" para toda materia, lo que rompe con Proyecto Intermodular (bloque concentrado), FCT (en empresa) y Libre configuración (bolsa). Tres opciones: (A) flag `entraEnHorarioSemanal`, (B) enum `tipoDistribucion` + fechas, (C) entidad `MateriaTemporada`. Detalle en `hoja-de-ruta-jornadas-recreos.md` entrada "PARCHE TEMPORAL: jornadas pre Calendario Real".
 4. **Cron anual de actualización BOE** (Fase 7) — comando que descarga el PDF nuevo cada octubre/noviembre cuando se publica la Resolución DG Trabajo, lo compara contra el JSON cacheado, abre PR con diff propuesto. Vive en `hoja-de-ruta-redis-workers.md` cuando llegue Symfony Scheduler.
 
@@ -187,6 +187,16 @@ ALTER TABLE festivo ADD ambito VARCHAR(16) DEFAULT 'local',
 
 **Pendientes anotados:**
 - Modelo `Municipio` + UI festivos locales con búsqueda INE (Fase 4).
-- Calendario lectivo del centro (Fase 5).
+- ~~Calendario lectivo del centro (Fase 5)~~ ✅ Done 2026-04-30 (absorbido en periodos-lectivos Fase 7).
 - Distribución temporal de materias para resolver el parche de jornadas `pre Calendario Real` (Fase 6).
-- Cron anual fetch BOE (Fase 7).
+- Cron anual fetch BOE/BOJA (Fase 7).
+
+### 2026-04-30 — Fase 5 cerrada como Fase 7 de periodos-lectivos
+
+> Esta fase se renombró/absorbió en `hoja-de-ruta-periodos-lectivos.md` Fase 7 con datos reales de la Resolución BOJA Sevilla calendario escolar 2025-26. Bitácora completa allí (§3 Fase 7). Resumen:
+>
+> - PDFs auditables en MinIO `catalogo/calendario-escolar/AN/source/` (Sevilla + Granada) (firmado 29-may-2025 por el Delegado Territorial de Sevilla, código verificación `Pk2jmHN9YZXCU9YPKJTUAQG6SSRYET`).
+> - JSON curado en MinIO `catalogo/calendario-escolar/AN/curated/calendario-escolar.json` con 12 etapas LOMLOE + vacaciones autonómicas + día Comunidad Educativa + día provincial Sevilla.
+> - Backend: enum `EtapaEducativa`, entidad `CalendarioEscolarCcaa`, `Centro.fechaInicio/FinCurso`, `CalendarioLectivoService`, comandos `app:calendario:ingest-escolar` + `app:calendario:seed-escolar`, endpoint `GET /api/v1/centros/{id}/semanas-lectivas`.
+> - Frontend: UI Centro con sugerencia auto del CCAA, sustitución de la constante `36` LOMLOE en `HorariosEditor` y `CapacityPlanner` por `semanasReferenciaCentro` con fallback.
+> - Datos de las 7 provincias andaluzas restantes (AL, CA, CO, GR, HU, JA, MA) anotados como deuda residual en el JSON — cada una publica su propia Resolución provincial con su día no lectivo provincial específico.

@@ -119,13 +119,26 @@
 /* stackActionsEarly: cuando el header lleva muchos controles (p.ej. editor de
    horarios), preferimos bajar .actions a su propia fila ANTES de dejar que
    .middle (tabs) se parta. Actúa en la franja 1101–1600px; por encima caben
-   las 3 columnas, por debajo ya se apila todo por la media query general. */
+   las 3 columnas, por debajo ya se apila todo por la media query general.
+   Si además hay tabs (middle), los selects + buscador + botones suelen
+   exceder hasta los 1930px (caso /fechas/ tab Festivos): extendemos el
+   rango para esos headers concretos. */
 @media (min-width: 1101px) and (max-width: 1600px) {
     .container.stackActionsEarly {
         grid-template-columns: auto 1fr;
         row-gap: var(--space-3);
     }
     .container.stackActionsEarly .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+@media (min-width: 1601px) and (max-width: 1930px) {
+    .container.stackActionsEarly:has(.middle) {
+        grid-template-columns: auto 1fr;
+        row-gap: var(--space-3);
+    }
+    .container.stackActionsEarly:has(.middle) .actions {
         grid-column: 1 / -1;
         justify-content: flex-end;
     }
