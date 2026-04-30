@@ -1369,6 +1369,7 @@
     "pendingTxTitle": "Aldaketa zain (gorde gabe)",
     "pendingTxSummary": "{{create}} aldi sortzeko · {{del}} ezabatzeko · {{patches}} minutu doiketa",
     "pendingTxApply": "Gorde aldaketa guztiak",
+    "pendingTxHint": "Editorean \"Gorde\" sakatu berresteko, edo baztertu desegiteko.",
     "pendingTxApplying": "Aplikatzen…",
     "pendingTxDiscard": "Baztertu",
     "discardTxSuccess": "Aldaketak baztertuta",

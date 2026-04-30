@@ -1369,6 +1369,7 @@
     "pendingTxTitle": "Pending changes (unsaved)",
     "pendingTxSummary": "{{create}} terms to create · {{del}} to delete · {{patches}} minute adjustments",
     "pendingTxApply": "Save all changes",
+    "pendingTxHint": "Press \"Save\" in the editor to confirm, or discard to revert.",
     "pendingTxApplying": "Applying…",
     "pendingTxDiscard": "Discard",
     "discardTxSuccess": "Changes discarded",

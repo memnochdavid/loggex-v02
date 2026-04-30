@@ -3583,7 +3583,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
   };
 
-  const dirtyAny = Object.values(state).some(s => s?.dirty);
+  // dirtyAny: hay placements editados sin guardar O hay tx pendiente
+  // (cambios estructurales del grupo activo). El botón Guardar usa este
+  // flag para activarse y para decidir si abrir el modal "publicar
+  // incompleto" cuando la cobertura anual no llega al currículo.
+  const dirtyAny = Object.values(state).some(s => s?.dirty)
+    || (selectedGrupo && hasPendingTx(selectedGrupo));
 
   // Bloquea navegación SPA (sidebar, atrás…) si hay cambios sin guardar.
   // El modal custom sustituye al beforeunload nativo (que mostraba un alert feo
@@ -3839,22 +3844,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </span>
             </div>
             <div className={styles.plBannerHint}>
-              <Button
-                type="button"
-                variant="primary"
-                disabled={applyingPendingTx || saving}
-                onClick={performBatchSaveAllDirty}
-              >
-                {applyingPendingTx
-                  ? t('scheduleEditor.pendingTxApplying', { defaultValue: 'Aplicando…' })
-                  : t('scheduleEditor.pendingTxApply', { defaultValue: 'Guardar todos los cambios' })}
-              </Button>
+              <span style={{ marginRight: 12, color: 'var(--text-muted)' }}>
+                {t('scheduleEditor.pendingTxHint', {
+                  defaultValue: 'Pulsa "Guardar" en el editor para confirmar, o descarta para revertir.',
+                })}
+              </span>
               <Button
                 type="button"
                 variant="secondary"
                 disabled={applyingPendingTx || saving}
                 onClick={() => discardPendingTxForGrupo(selectedGrupo)}
-                style={{ marginLeft: 8 }}
               >
                 {t('scheduleEditor.pendingTxDiscard', { defaultValue: 'Descartar' })}
               </Button>

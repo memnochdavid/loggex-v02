@@ -1369,6 +1369,7 @@
     "pendingTxTitle": "Canvis pendents (sense desar)",
     "pendingTxSummary": "{{create}} períodes per crear · {{del}} per esborrar · {{patches}} ajustaments de minuts",
     "pendingTxApply": "Desar tots els canvis",
+    "pendingTxHint": "Prem \"Desar\" a l'editor per confirmar, o descarta per revertir.",
     "pendingTxApplying": "Aplicant…",
     "pendingTxDiscard": "Descartar",
     "discardTxSuccess": "Canvis descartats",

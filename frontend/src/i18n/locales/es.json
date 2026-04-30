@@ -1667,6 +1667,7 @@
     "pendingTxTitle": "Cambios pendientes (sin guardar)",
     "pendingTxSummary": "{{create}} rangos por crear · {{del}} por borrar · {{patches}} ajustes de minutos",
     "pendingTxApply": "Guardar todos los cambios",
+    "pendingTxHint": "Pulsa \"Guardar\" en el editor para confirmar, o descarta para revertir.",
     "pendingTxApplying": "Aplicando…",
     "pendingTxDiscard": "Descartar",
     "discardTxSuccess": "Cambios descartados",
