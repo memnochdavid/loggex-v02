@@ -257,7 +257,8 @@
                                                     <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
                                                 {% endif %}
                                                 {% if isPersonal and ev.grupoNombre %}
-                                                    <div class="ev-group">{{ ev.grupoAbreviatura ?: ev.grupoNombre }}</div>
+                                                    {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
+                                                    <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endif %}

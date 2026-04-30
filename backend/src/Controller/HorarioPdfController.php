@@ -333,6 +333,7 @@ class HorarioPdfController extends AbstractController
                 'aula' => $h->getAula(),
                 'grupoNombre' => $grupoEv?->getNombre(),
                 'grupoAbreviatura' => $grupoEv?->getAbreviatura(),
+                'grupoCurso' => $grupoEv?->getCurso(),
                 'color' => $this->colorForModule($materia?->getId() ?? 0),
             ];
         }
