@@ -297,12 +297,14 @@ class HorarioSolverBinPacking
                 'turno' => $turno?->value,
                 'diasLectivos' => $diasLectivos,
                 'slotsPorDia' => count($slots),
+                'slotDurations' => array_map(fn ($s) => $s[2], $slots),  // [60, 60, 90, ...] — Fase 2 classifier
                 'totalSlots' => count($cells),
                 'totalMinutosAColocar' => $totalMinAColocar,
                 'minutosColocados' => $minutosColocados,
                 'placedCount' => count($out),
                 'imparticiones' => $tasksPerImp,
                 'parallelBusyCellsCount' => count($parallelBusy),
+                'parallelBusy' => $parallelBusy,                          // [dia_hi => [profIds]] — Fase 2 classifier
                 'elapsedSec' => round(microtime(true) - $start, 3),
             ],
         ];

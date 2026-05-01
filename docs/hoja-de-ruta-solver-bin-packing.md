@@ -238,3 +238,13 @@ El sistema cubre el caso de uso (jornadas saturadas, cobertura aceptable) pero h
 Ninguna de estas iteraciones es bloqueante. El sistema actual cubre el 95% de los casos prácticos. Modalidad Fase 5 (UI editar modalidad en `/admin/materias` + `/admin/imparticiones`) tiene mayor impacto comercial y menor coste, así que el usuario decide priorizar esa.
 
 **Compromiso**: este doc queda abierto. Cuando la deuda residual moleste de verdad en producción real, retomamos con las opciones A-D según convenga.
+
+### 2026-05-01 — Promoción a doc dedicado: `hoja-de-ruta-solver-iterativo.md`
+
+El usuario retoma la deuda residual ("por qué el solver no sigue dando pasadas hasta colocar todo o probar imposibilidad, y por qué no explica por qué para"). Las ideas A-D anotadas arriba se materializan como acciones correctivas + clasificador de bottleneck en el nuevo doc. Este doc queda como referencia histórica del bin-packing core; el trabajo futuro sobre el solver continúa allí.
+
+Mapping de ideas A-D → fases del nuevo doc:
+- A (cambio de jornada) — operativo del centro, no del código.
+- B (limitar bucle reductivo) — Fase 1 (MAX_ITERATIONS configurable + regla anti-loop en Fase 3).
+- C (distribuir reducciones entre múltiples materias) — Fase 3 acción REDUCIR_CUOTA_OVERSHOOT.
+- D (rebalanceo cross-rango) — Fase 3.5 acción REDISTRIBUIR_CROSS_RANGO.

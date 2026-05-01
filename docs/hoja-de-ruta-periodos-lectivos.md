@@ -418,6 +418,46 @@ Dos vistas combinadas dentro de la pestaña:
 
 ## 6. Bitácora de implementación
 
+### 2026-05-01 — Tanda B parte 3: cierre del refactor "nada persiste hasta Guardar"
+
+Cerradas las 3 cosas pendientes anotadas en la entrada de Tanda B parte 2 + INDEX. Ahora **todo** el flujo del editor `/admin/horarios` respeta la regla "nada toca BD hasta Guardar" de extremo a extremo.
+
+**Cambios en `frontend/src/pages/HorariosEditor.jsx`**:
+
+1. **Modal "Materias del rango" (Sliders)** — sustituidas las funciones `activatePli`, `deactivatePli`, `updatePliMinutos` (que hacían POST/DELETE/PATCH inmediatos a `/api/periodo_lectivo_imparticions`) por dos helpers nuevos basados en pendingTx:
+   - `togglePliInTx(impId, makeActive)` — push a nueva estructura `tx.pliToggles: [{plKey, imparticionId, action: 'activate'|'deactivate'}]`. Si el nuevo estado coincide con el base (heredado de BD para PL real, "todas activas" para PL virtual), no genera toggle (no-op). Al desactivar, también limpia patches pendientes de la misma imp en el mismo PL.
+   - `setPliMinutosInTx(impId, newMinutos)` — push a `tx.pliPatches` (estructura ya existente, reusada). `newMinutos = null` resetea al default heredado.
+   - Helper `ensureTxInitialized(tx)` rellena `grupoFechaFinOriginal` + `plsRealesOriginales` la primera vez que se inicia tx desde el modal.
+   - `pliModalRows` reescrito para sintetizar el estado del modal aplicando overlay `base + toggles + patches`. Para PL virtual (id<0), el "base" es "todas las imps activas con minutos heredados de Materia" — que coincide con lo que `PeriodoLectivoCreateProcessor` del backend creará al persistir.
+   - `openPliModal` ya no fetchea para PL virtual (no existe en BD); inicializa `pliByPl[id] = []` y devuelve.
+   - Eliminados `markRowSaving` y state `pliRowSaving` (ya no hay async ops por fila).
+
+2. **`runSolver` sobre PL virtual** — añadido branching: si `targetPlId < 0`, redirige a `/api/v1/horarios/solver-dry-run/{gid}` con body `{rango: {tempId, nombre, fechaInicio, fechaFin, jornadaTipoId, plis}, alreadyPlacedByImp, seed, totalSemanasGrupoOverride}`. Las `plis` se construyen filtrando imps por toggles (`'deactivate'` excluye, `'activate'` o ausente incluye con minutos heredados null) y aplicando patches (`minutosSemanales` override). `totalSemanasGrupoOverride` suma semanas de reales vivos (excluyendo `plsToDelete`) + drafts virtuales del pendingTx para que el planner reparta el cap anual correctamente. Si `targetPlId >= 0` (PL real), comportamiento idéntico al anterior (`/solver/{gid}` con `periodoLectivoId`).
+   - `runSolverAllRangos` no necesita cambios: itera sobre `plByGrupo[selectedGrupo]` (que incluye virtuales) y delega a `runSolver`. La inner `reduceUnplacedQuotas` falla silenciosamente para PLs virtuales porque `pliCache` (cargado de BD vía `?periodoLectivo.grupo=`) no contiene entradas para ellos — break del retry loop sin tocar BD.
+
+3. **`handleConfirmExtendCourse`** (botón "Extender el curso N días" del banner anual) — ya no PATCH directo:
+   - Si el último PL es virtual → modifica el draft inline en `tx.plsToCreate` (cambia `fechaFin`).
+   - Si es real → push a `tx.plsToUpdate` con `{realId, fechaFin}` (preserva campos previos del update si ya existía entrada para el mismo realId).
+   - Si `sug.grupoNeedsPatch` → set `tx.grupoFechaFin`.
+   - Refleja el preview en `plByGrupo` (extiende fechaFin local + marca `_pending`) y en `setGrupos` (fechaFin local).
+   - Toast: "Extensión añadida al preview. Pulsa Guardar para persistir." (clave i18n nueva: `extendCoursePreview`).
+
+**Cambios en `applyPendingTxForGrupo`**:
+
+- Añadido **paso 3.b** (entre POST PLs nuevos y PATCH PLI minutos): procesar `tx.pliToggles`. Pre-fetcha PLIs por (PL real, incluidos los recién creados vía `tempIdToRealId`), luego para cada toggle:
+  - `'deactivate'` → DELETE el PLI si existe (silencioso si ya no está).
+  - `'activate'` → POST nuevo PLI si no existe (silencioso si ya estaba). Para PLs virtuales recién creados, el processor del backend ya auto-creó PLIs para todas las imps, así que `'activate'` será no-op típicamente.
+- Mantiene `pliByPlRealCache` actualizado tras cada toggle, así el paso 4 (PATCH minutos) lo reusa sin refetch.
+- El paso 4 ahora skipea silenciosamente patches cuyo PLI ya fue eliminado por un toggle previo.
+- Tras éxito, `setPliByPl({})` invalida la cache del modal (refresca al reabrir).
+
+**Otros**:
+
+- `hasPendingTx` y banner "Cambios pendientes (sin guardar)" ahora cuentan también `pliToggles.length` (clave i18n `pendingTxSummary` ampliada con `{{toggles}} activar/desactivar`).
+- Build (`npm run build` en contenedor frontend) limpio: 1 994 módulos transformados, 12.85s. Las 2 warnings de "Duplicate subtitle attribute" en `CalificacionesGrupo.jsx` y `Configuracion.jsx` son pre-existentes (no de este cambio).
+
+**Limitación conocida (no addressed)**: `runSolver` sobre PL **real** con pliPatches/pliToggles pendientes en pendingTx sigue usando `/solver/{gid}` que lee PLIs de BD, sin ver los overlays pendientes. Workaround: el usuario pulsa Guardar antes de re-solver para que sus ediciones del modal se reflejen. Documentar como limitación conocida en `docs/INDEX.md` cuando proceda; en la práctica raramente molesta porque los overlays de PLI sobre PL real surgen casi siempre desde "Configurar curso óptimo" que ya ejecuta el solver al final.
+
 ### 2026-04-30 noche — Tanda B parte 2: resto de acciones del curso (commit `d40b663`)
 
 Cerrado con un commit grande que refactoriza:

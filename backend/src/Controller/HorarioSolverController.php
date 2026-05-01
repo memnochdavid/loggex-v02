@@ -11,6 +11,7 @@ use App\Service\CapacityPlanner;
 use App\Service\CurriculumDistributor;
 use App\Service\HorarioSolver;
 use App\Service\HorarioSolverBinPacking;
+use App\Service\HorarioSolverIterativo;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -248,6 +249,193 @@ class HorarioSolverController extends AbstractController
 
         $result = $distributor->distribute($grupo, $pls);
         $result['dryRun'] = true;
+        return $this->json($result);
+    }
+
+    /**
+     * Solver iterativo (Fase 1, 2026-05-01). Envuelve el bin-packing en un
+     * bucle de pasadas que aplica REDUCIR_CUOTA_PROPIA in-memory cuando hay
+     * unplaced, hasta cuadrar o agotar opciones. NO toca BD entre pasadas.
+     *
+     * Body:
+     * {
+     *   "periodoLectivoId": int|null,         // null = activo (resolver)
+     *   "alreadyPlacedByImp": {impId: min},   // cap anual cross-rango
+     *   "maxIterations": int (default 6),
+     *   "totalSemanasGrupoOverride": float|null,
+     *   "rangoOverride": { tempId, fechaInicio, fechaFin, jornadaTipoId, plis: [...] }|null
+     *                                          // si presente, dry-run con PL virtual
+     *                                          // (mismo formato que /solver-dry-run)
+     * }
+     *
+     * Devuelve los campos de /solver/ + `iterationLog` + `diagnostic`. El
+     * `diagnostic` en Fase 1 es stub; el clasificador real llega en Fase 2.
+     *
+     * Doc: docs/hoja-de-ruta-solver-iterativo.md Fase 1.
+     */
+    #[Route('/api/v1/horarios/solver-iterativo/{grupoId}', name: 'api_horarios_solver_iterativo', methods: ['POST'], requirements: ['grupoId' => '\d+'])]
+    public function solveIterativo(
+        int $grupoId,
+        Request $request,
+        EntityManagerInterface $em,
+        HorarioSolverIterativo $solverIterativo,
+    ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['message' => 'Acceso denegado'], 403);
+        }
+
+        $grupo = $em->getRepository(Grupo::class)->find($grupoId);
+        if (!$grupo) {
+            return $this->json(['message' => 'Grupo no encontrado'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true) ?: [];
+        $seed = isset($data['seed']) ? (int) $data['seed'] : null;
+        $maxIterations = isset($data['maxIterations']) ? max(1, min(20, (int) $data['maxIterations'])) : 6;
+
+        $alreadyPlacedByImp = null;
+        if (isset($data['alreadyPlacedByImp']) && is_array($data['alreadyPlacedByImp'])) {
+            $alreadyPlacedByImp = [];
+            foreach ($data['alreadyPlacedByImp'] as $impId => $min) {
+                $alreadyPlacedByImp[(int) $impId] = (int) $min;
+            }
+        }
+        $totalSemanasOverride = isset($data['totalSemanasGrupoOverride'])
+            ? (float) $data['totalSemanasGrupoOverride'] : null;
+
+        // Modo dry-run (PL virtual): si viene `rangoOverride`, construimos PL
+        // + PLIs in-memory. Si no, resolvemos el PL real por id (o el activo).
+        $periodoLectivo = null;
+        $pliOverride = null;
+        if (isset($data['rangoOverride']) && is_array($data['rangoOverride'])) {
+            $rango = $data['rangoOverride'];
+            if (empty($rango['fechaInicio']) || empty($rango['fechaFin'])) {
+                return $this->json(['message' => 'rangoOverride.fechaInicio/fechaFin obligatorios'], 422);
+            }
+            $periodoLectivo = $this->buildVirtualPeriodoLectivo($em, $grupo, $rango);
+            $pliOverride = $this->buildVirtualPlis($em, $periodoLectivo, $rango['plis'] ?? []);
+        } elseif (isset($data['periodoLectivoId'])) {
+            $pl = $em->getRepository(PeriodoLectivo::class)->find((int) $data['periodoLectivoId']);
+            if ($pl === null || $pl->getGrupo()?->getId() !== $grupo->getId()) {
+                return $this->json(['message' => 'PeriodoLectivo no encontrado o no pertenece al grupo'], 422);
+            }
+            $periodoLectivo = $pl;
+        }
+
+        $result = $solverIterativo->solveIterativo(
+            $grupo,
+            $seed,
+            $periodoLectivo,
+            $alreadyPlacedByImp,
+            $pliOverride,
+            $totalSemanasOverride,
+            $maxIterations,
+        );
+        $result['solver'] = 'iterativo-fase1';
+        if ($pliOverride !== null) {
+            $result['dryRun'] = true;
+            $result['tempId'] = $data['rangoOverride']['tempId'] ?? null;
+        }
+        return $this->json($result);
+    }
+
+    /**
+     * Solver iterativo MULTI-RANGO (Fase 3.5, 2026-05-01). Acepta una lista
+     * de PLs (reales por id o virtuales con rangoOverride) y los procesa en
+     * orden cronológico, manteniendo el cap anual cumulativo entre ellos.
+     * Reemplaza la lógica equivalente que vivía en `runSolverAllRangos`
+     * frontend (loop con accumPlacedByImp local).
+     *
+     * Body:
+     * {
+     *   "rangos": [
+     *     {
+     *       "periodoLectivoId": int|null,             // resolver por id
+     *       "rangoOverride": {tempId, fechaInicio, fechaFin, jornadaTipoId, plis}|null,  // virtual
+     *     }, ...
+     *   ],
+     *   "seed": int|null,
+     *   "maxIterations": int (default 6),
+     *   "totalSemanasGrupoOverride": float|null
+     * }
+     *
+     * Devuelve `{perPl: [...], accumPlacedByImp, elapsedSec, rangosCount}`.
+     * Cada item de `perPl` incluye el resultado completo de `solveIterativo`
+     * (placements, unplaced, complete, iterationLog, diagnostic, iterativo)
+     * + metadata del PL (periodoLectivoId|tempId, plNombre, fechas, semanasPl).
+     */
+    #[Route('/api/v1/horarios/solver-iterativo-multi/{grupoId}', name: 'api_horarios_solver_iterativo_multi', methods: ['POST'], requirements: ['grupoId' => '\d+'])]
+    public function solveIterativoMulti(
+        int $grupoId,
+        Request $request,
+        EntityManagerInterface $em,
+        HorarioSolverIterativo $solverIterativo,
+    ): JsonResponse {
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['message' => 'Acceso denegado'], 403);
+        }
+
+        $grupo = $em->getRepository(Grupo::class)->find($grupoId);
+        if (!$grupo) {
+            return $this->json(['message' => 'Grupo no encontrado'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true) ?: [];
+        $rangosBody = $data['rangos'] ?? null;
+        if (!is_array($rangosBody) || empty($rangosBody)) {
+            return $this->json(['message' => 'rangos[] obligatorio'], 422);
+        }
+
+        $seed = isset($data['seed']) ? (int) $data['seed'] : null;
+        $maxIterations = isset($data['maxIterations']) ? max(1, min(20, (int) $data['maxIterations'])) : 6;
+        $totalSemanasOverride = isset($data['totalSemanasGrupoOverride'])
+            ? (float) $data['totalSemanasGrupoOverride'] : null;
+
+        // Resolver cada item del body a {periodoLectivo, pliOverride, tempId, plKey}.
+        // periodoLectivoId → real PL de BD. rangoOverride → PL virtual + plis in-memory.
+        $rangos = [];
+        foreach ($rangosBody as $idx => $item) {
+            if (!is_array($item)) {
+                return $this->json(['message' => "rangos[$idx] no es objeto"], 422);
+            }
+            if (isset($item['rangoOverride']) && is_array($item['rangoOverride'])) {
+                $r = $item['rangoOverride'];
+                if (empty($r['fechaInicio']) || empty($r['fechaFin'])) {
+                    return $this->json(['message' => "rangos[$idx].rangoOverride requiere fechaInicio/fechaFin"], 422);
+                }
+                $pl = $this->buildVirtualPeriodoLectivo($em, $grupo, $r);
+                $plis = $this->buildVirtualPlis($em, $pl, $r['plis'] ?? []);
+                $tempId = isset($r['tempId']) ? (int) $r['tempId'] : null;
+                $rangos[] = [
+                    'periodoLectivo' => $pl,
+                    'pliOverride' => $plis,
+                    'tempId' => $tempId,
+                    'plKey' => 'temp:' . ($tempId ?? "idx$idx"),
+                ];
+            } elseif (isset($item['periodoLectivoId'])) {
+                $pl = $em->getRepository(PeriodoLectivo::class)->find((int) $item['periodoLectivoId']);
+                if ($pl === null || $pl->getGrupo()?->getId() !== $grupo->getId()) {
+                    return $this->json(['message' => "rangos[$idx].periodoLectivoId no pertenece al grupo"], 422);
+                }
+                $rangos[] = [
+                    'periodoLectivo' => $pl,
+                    'pliOverride' => null,
+                    'tempId' => null,
+                    'plKey' => 'real:' . $pl->getId(),
+                ];
+            } else {
+                return $this->json(['message' => "rangos[$idx] debe traer periodoLectivoId o rangoOverride"], 422);
+            }
+        }
+
+        $result = $solverIterativo->solveMultiRango(
+            $grupo,
+            $rangos,
+            $seed,
+            $totalSemanasOverride,
+            $maxIterations,
+        );
+        $result['solver'] = 'iterativo-multi-fase35';
         return $this->json($result);
     }
 

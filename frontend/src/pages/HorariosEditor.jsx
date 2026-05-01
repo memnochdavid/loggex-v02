@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -282,14 +282,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [deletingPlId, setDeletingPlId] = useState(null);
   // Modal "Materias del rango" (Fase 4): editor de PLI por rango activo.
   // pliByPl: cache local { [plId]: PLI[] } recargado cada vez que se abre el
-  // modal, para reflejar cambios concurrentes. pliRowSaving: Set<impId> con
-  // las filas con PATCH/POST/DELETE en vuelo (deshabilita los inputs de
-  // esa fila para evitar carreras).
+  // modal con el estado base de BD. Las ediciones del modal NO tocan BD: se
+  // acumulan en pendingTxByGrupo[gid].pliPatches / pliToggles y se aplican
+  // tras Guardar (Tanda B parte 3, 2026-04-30).
   const [pliModalOpen, setPliModalOpen] = useState(false);
   const [pliModalPlId, setPliModalPlId] = useState(null);
   const [pliByPl, setPliByPl] = useState({});
   const [pliLoading, setPliLoading] = useState(false);
-  const [pliRowSaving, setPliRowSaving] = useState({});
   // Horarios persistidos del grupo entero (todos los PLs) — para que el chip
   // lateral pueda contar "horas anuales colocadas" sumando placements de TODOS
   // los rangos (Fase 5 sub-A). { [grupoId]: Horario[] }. El state local del
@@ -302,6 +301,41 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [extendingCourse, setExtendingCourse] = useState(false);
   // Acciones del curso (dropdown infoBar + modal Crear Rangos Recomendados).
   const [cursoActionsOpen, setCursoActionsOpen] = useState(false);
+  // Ref al botón "Acciones del curso" + style calculado al abrir, para que el
+  // menú flote con position: fixed sin contribuir al scroll de la página
+  // (cuando había muchos items o el viewport era corto, el menú abs-positioned
+  // empujaba el body y aparecía un scroll vertical no deseado).
+  const cursoActionsBtnRef = useRef(null);
+  const [cursoActionsMenuStyle, setCursoActionsMenuStyle] = useState(null);
+  useLayoutEffect(() => {
+    if (!cursoActionsOpen) {
+      setCursoActionsMenuStyle(null);
+      return;
+    }
+    const reposition = () => {
+      const el = cursoActionsBtnRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const margin = 8;
+      const top = r.bottom + 4;
+      const right = Math.max(margin, window.innerWidth - r.right);
+      const maxHeight = Math.max(160, window.innerHeight - top - margin);
+      setCursoActionsMenuStyle({
+        position: 'fixed',
+        top: `${top}px`,
+        right: `${right}px`,
+        maxHeight: `${maxHeight}px`,
+        overflowY: 'auto',
+      });
+    };
+    reposition();
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
+  }, [cursoActionsOpen]);
   const [createRangosModalOpen, setCreateRangosModalOpen] = useState(false);
   const [createRangosCount, setCreateRangosCount] = useState(3);
   const [creatingRangos, setCreatingRangos] = useState(false);
@@ -309,6 +343,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [solverAllRunning, setSolverAllRunning] = useState(false);
   // Progreso multi-rango para el overlay Lottie: { current, total, plName? }.
   const [solverProgress, setSolverProgress] = useState(null);
+  // Modal "Informe del solver" (Fase 4 solver-iterativo, 2026-05-01): se abre
+  // tras runSolverAllRangos cuando algún PL no completó. Incluye bottleneck
+  // detectado, sugerencias accionables y log de pasadas para que el admin
+  // entienda qué pasó y cómo arreglarlo.
+  const [solverReportOpen, setSolverReportOpen] = useState(false);
+  const [solverReportData, setSolverReportData] = useState(null);
+  const [solverReportExpandedPl, setSolverReportExpandedPl] = useState(null);
   // "Configurar curso óptimo" engloba PATCH grupo + crear PLs + distribuir
   // currículo + correr solver. El overlay Lottie debe cubrir TODA la
   // secuencia para evitar que el usuario crea que la operación ya terminó
@@ -1063,6 +1104,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // CapacityPlanner ("plan +50h cumple" vs "capacidad -119h faltan").
     let plannedMin = 0;
     let semanasTotal = 0;
+    // pendingTx para PLs virtuales (Configurar curso óptimo): los virtuales
+    // no tienen pl.imparticiones (no persistidas en BD), pero sus cuotas
+    // viven en pendingTx.pliPatches + pliToggles del grupo. Sin esto el
+    // banner reportaba "Planificado: 0h" para todo PL virtual.
+    const tx = pendingTxByGrupo[selectedGrupo] || {};
     pls.forEach(pl => {
       if (!pl.fechaInicio || !pl.fechaFin) return;
       const ini = new Date(pl.fechaInicio.slice(0, 10));
@@ -1070,15 +1116,42 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
       const semanas = days / 7;
       semanasTotal += semanas;
-      const plis = pl.imparticiones || [];
-      const sumPliMin = plis.reduce((acc, pli) => {
-        if (pli.deleted) return acc;
-        const overrideMin = pli.minutosSemanales;
-        if (overrideMin != null) return acc + overrideMin;
-        const impId = extractFkId(pli.imparticion);
-        const imp = impById[impId];
-        return acc + (imp?.materia?.minutosSemanales || 0);
-      }, 0);
+
+      let sumPliMin = 0;
+      const isVirtualPl = Number(pl.id) < 0;
+      if (isVirtualPl) {
+        // PL virtual: base = todas las imps del grupo activas con minutos
+        // heredados. Apply toggles ('deactivate' excluye) y patches (override
+        // minutosSemanales) del pendingTx para este plKey.
+        const togglesByImp = {};
+        (tx.pliToggles || []).forEach(p => {
+          if (String(p.plKey) === String(pl.id)) togglesByImp[String(p.imparticionId)] = p.action;
+        });
+        const patchesByImp = {};
+        (tx.pliPatches || []).forEach(p => {
+          if (String(p.plKey) === String(pl.id)) patchesByImp[String(p.imparticionId)] = p.minutosSemanales;
+        });
+        imps.forEach(imp => {
+          const tog = togglesByImp[String(imp.id)];
+          const isActive = tog ? tog === 'activate' : true;  // default activo
+          if (!isActive) return;
+          const patch = patchesByImp[String(imp.id)];
+          const min = (patch !== undefined && patch !== null) ? patch : (imp.materia?.minutosSemanales || 0);
+          sumPliMin += min;
+        });
+      } else {
+        // PL real: usa pl.imparticiones de BD.
+        const plis = pl.imparticiones || [];
+        sumPliMin = plis.reduce((acc, pli) => {
+          if (pli.deleted) return acc;
+          const overrideMin = pli.minutosSemanales;
+          if (overrideMin != null) return acc + overrideMin;
+          const impId = extractFkId(pli.imparticion);
+          const imp = impById[impId];
+          return acc + (imp?.materia?.minutosSemanales || 0);
+        }, 0);
+      }
+
       const minPerWeekColocables = jornadaSemanalMin > 0
         ? Math.min(sumPliMin, jornadaSemanalMin)
         : sumPliMin;
@@ -1104,7 +1177,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       plCount: pls.length,
       semanasTotal: Math.round(semanasTotal * 10) / 10,
     };
-  }, [selectedGrupo, plByGrupo, imps, impById, jornadaSemanalLectivaMin]);
+  }, [selectedGrupo, plByGrupo, imps, impById, jornadaSemanalLectivaMin, pendingTxByGrupo]);
 
   // Sugerencia de extensión de curso (Fase 5 sub-B): cuando el banner anual
   // muestra que faltan horas (tone warn/error), calcula cuántos días lectivos
@@ -1252,25 +1325,46 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   //   las semanas de este rango (placeholder).
   const pliModalRows = useMemo(() => {
     if (!pliModalPlId) return [];
-    const plis = pliByPl[pliModalPlId] || [];
-    const byImpId = {};
-    plis.forEach(pli => {
+    const plKey = pliModalPlId;
+    const isVirtualPl = Number(plKey) < 0;
+    // Estado base por imp:
+    //   - PL real: lo que está en pliByPl (cargado de BD).
+    //   - PL virtual: todas las imps activas con minutos heredados (lo que
+    //     PeriodoLectivoCreateProcessor del backend creará al persistir).
+    const basePlis = isVirtualPl ? [] : (pliByPl[plKey] || []);
+    const basePliByImpId = {};
+    basePlis.forEach(pli => {
       const impId = extractFkId(pli.imparticion);
-      if (impId) byImpId[String(impId)] = pli;
+      if (impId) basePliByImpId[String(impId)] = pli;
+    });
+    // Overlay de pendingTx: toggles primero (cambian isActive), luego patches
+    // (cambian minutos efectivos). Solo aplican al plKey en cuestión.
+    const tx = pendingTxByGrupo[selectedGrupo] || {};
+    const togglesByImp = {};
+    (tx.pliToggles || []).forEach(p => {
+      if (String(p.plKey) === String(plKey)) togglesByImp[String(p.imparticionId)] = p.action;
+    });
+    const patchesByImp = {};
+    (tx.pliPatches || []).forEach(p => {
+      if (String(p.plKey) === String(plKey)) patchesByImp[String(p.imparticionId)] = p.minutosSemanales;
     });
     const semanas = pliModalSemanasRango || 0;
     const minToHorasRango = (m) => semanas > 0 ? Math.round((m * semanas / 60) * 10) / 10 : 0;
     return imps.map(imp => {
-      const pli = byImpId[String(imp.id)] || null;
+      const basePli = basePliByImpId[String(imp.id)] || null;
+      const baseActive = isVirtualPl ? true : !!basePli;
+      const toggle = togglesByImp[String(imp.id)];
+      const isActive = toggle ? toggle === 'activate' : baseActive;
       const defaultMin = imp.materia?.minutosSemanales || 0;
-      const isActive = !!pli;
-      const isOverride = !!(pli && pli.minutosSemanales != null);
-      const effectiveMin = isActive
-        ? (pli.minutosSemanales != null ? pli.minutosSemanales : defaultMin)
-        : 0;
+      // Minutos efectivos: patch overrides base. null = heredar del default.
+      const hasPatch = Object.prototype.hasOwnProperty.call(patchesByImp, String(imp.id));
+      const baseOverrideMin = basePli?.minutosSemanales != null ? basePli.minutosSemanales : null;
+      const overrideMin = hasPatch ? patchesByImp[String(imp.id)] : baseOverrideMin;
+      const isOverride = isActive && overrideMin != null;
+      const effectiveMin = isActive ? (overrideMin != null ? overrideMin : defaultMin) : 0;
       return {
         imp,
-        pli,
+        pli: basePli,
         isActive,
         isOverride,
         effectiveMin,
@@ -1279,7 +1373,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         defaultHorasAnualesRango: minToHorasRango(defaultMin),
       };
     });
-  }, [pliModalPlId, pliByPl, imps, pliModalSemanasRango]);
+  }, [pliModalPlId, pliByPl, imps, pliModalSemanasRango, pendingTxByGrupo, selectedGrupo]);
 
   const pliModalSummary = useMemo(() => {
     if (!pliModalPlId) return null;
@@ -1678,34 +1772,90 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       tempIdToRealId[draft.tempId] = created.id ?? Number(created['@id']?.split('/').pop());
     }
 
+    // 3.b PROCESAR pliToggles (activar/desactivar imparticiones por rango).
+    //     'deactivate' → DELETE PLI si existe; 'activate' → POST PLI si no
+    //     existe. Para PL virtual recién creado, el processor del backend ya
+    //     ha auto-creado los PLIs de TODAS las imps del grupo, así que
+    //     'activate' será no-op (ya existe) y 'deactivate' los borra.
+    //     Tras procesar, refetch de PLIs por (PL real) afectado para que el
+    //     paso 4 tenga ids actualizados.
+    const togglesAndPatchesPlKeys = new Set([
+      ...(tx.pliToggles || []).map(p => Number(tempIdToRealId[p.plKey] ?? p.plKey)),
+      ...(tx.pliPatches || []).map(p => Number(tempIdToRealId[p.plKey] ?? p.plKey)),
+    ].filter(Boolean));
+    const pliByPlRealCache = {};
+    const refetchPlisFor = async (realPlId) => {
+      const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo=${realPlId}&pagination=false`), {
+        headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
+      });
+      if (!r.ok) return null;
+      const dd = await r.json();
+      const items = dd['hydra:member'] || dd.member || [];
+      const mapByImp = {};
+      items.forEach(pli => {
+        const impId = extractFkId(pli.imparticion);
+        if (impId) mapByImp[impId] = pli.id ?? Number(pli['@id']?.split('/').pop());
+      });
+      pliByPlRealCache[realPlId] = mapByImp;
+      return mapByImp;
+    };
+    if ((tx.pliToggles || []).length > 0) {
+      // Pre-cargar el mapa actual de PLIs por PL afectado.
+      for (const realPlId of togglesAndPatchesPlKeys) {
+        if (await refetchPlisFor(realPlId) === null) {
+          return { ok: false, error: `Fetch PLIs ${realPlId}` };
+        }
+      }
+      for (const toggle of tx.pliToggles) {
+        const realPlId = Number(tempIdToRealId[toggle.plKey] ?? toggle.plKey);
+        const existingPliId = pliByPlRealCache[realPlId]?.[toggle.imparticionId];
+        if (toggle.action === 'deactivate') {
+          if (!existingPliId) continue;  // ya no existe → no-op
+          const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${existingPliId}`), {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!r.ok && r.status !== 204) return { ok: false, error: `DELETE PLI ${existingPliId}: ${r.status}` };
+          delete pliByPlRealCache[realPlId][toggle.imparticionId];
+        } else if (toggle.action === 'activate') {
+          if (existingPliId) continue;  // ya existe → no-op
+          const r = await fetch(getApiUrl('/api/periodo_lectivo_imparticions'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              periodoLectivo: `/api/periodo_lectivos/${realPlId}`,
+              imparticion: `/api/imparticions/${toggle.imparticionId}`,
+              minutosSemanales: null,
+            }),
+          });
+          if (!r.ok) {
+            const txt = await r.text().catch(() => '');
+            return { ok: false, error: `POST PLI: ${r.status}: ${txt.slice(0, 200)}` };
+          }
+          const created = await r.json();
+          pliByPlRealCache[realPlId] = pliByPlRealCache[realPlId] || {};
+          pliByPlRealCache[realPlId][toggle.imparticionId] = created.id ?? Number(created['@id']?.split('/').pop());
+        }
+      }
+    }
+
     // 4. PATCH PLI minutosSemanales con la distribución calculada en dry-run.
     //    pliPatches es [{ plKey, imparticionId, minutosSemanales }] donde
     //    plKey puede ser un tempId (mapear a realId) o un realId existente.
     if ((tx.pliPatches || []).length > 0) {
-      // Refetch de PLIs por (PL real) para conocer el id de cada PLI.
-      const plKeys = [...new Set(tx.pliPatches.map(p => {
-        const realId = tempIdToRealId[p.plKey] ?? p.plKey;
-        return Number(realId);
-      }).filter(Boolean))];
-      const pliByPlReal = {};
-      for (const realPlId of plKeys) {
-        const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo=${realPlId}&pagination=false`), {
-          headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
-        });
-        if (!r.ok) return { ok: false, error: `Fetch PLIs ${realPlId}: ${r.status}` };
-        const dd = await r.json();
-        const items = dd['hydra:member'] || dd.member || [];
-        const mapByImp = {};
-        items.forEach(pli => {
-          const impId = extractFkId(pli.imparticion);
-          if (impId) mapByImp[impId] = pli.id ?? Number(pli['@id']?.split('/').pop());
-        });
-        pliByPlReal[realPlId] = mapByImp;
+      // Si los toggles no precargaron el cache para algún PL, hacerlo ahora.
+      for (const realPlId of togglesAndPatchesPlKeys) {
+        if (!pliByPlRealCache[realPlId]) {
+          if (await refetchPlisFor(realPlId) === null) {
+            return { ok: false, error: `Fetch PLIs ${realPlId}` };
+          }
+        }
       }
       for (const patch of tx.pliPatches) {
         const realPlId = Number(tempIdToRealId[patch.plKey] ?? patch.plKey);
-        const pliId = pliByPlReal[realPlId]?.[patch.imparticionId];
-        if (!pliId) continue;
+        const pliId = pliByPlRealCache[realPlId]?.[patch.imparticionId];
+        if (!pliId) continue;  // imp desactivada por toggle previo → skip
         const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pliId}`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
@@ -1848,7 +1998,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!tx) return false;
     return Boolean(tx.grupoFechaFin) || (tx.plsToDelete?.length || 0) > 0
       || (tx.plsToCreate?.length || 0) > 0 || (tx.plsToUpdate?.length || 0) > 0
-      || (tx.pliPatches?.length || 0) > 0;
+      || (tx.pliPatches?.length || 0) > 0 || (tx.pliToggles?.length || 0) > 0;
   };
 
   // Guardar TODOS los rangos dirty del grupo en una sola pasada. Si el grupo
@@ -1888,6 +2038,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           delete next[selectedGrupo];
           return next;
         });
+        // Invalida cache de PLIs (el modal lo refresca al reabrir; los toggles
+        // y patches del paso 3.b/4 cambiaron filas en BD).
+        setPliByPl({});
         if (placementsPosted > 0) {
           toast.success(t('scheduleEditor.applyTxSuccess', {
             defaultValue: 'Cambios aplicados: {{plsCreated}} rangos creados, {{placements}} placements persistidos.',
@@ -2399,13 +2552,22 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
   };
 
-  // Abre el modal "Materias del rango" para el PL pasado. Carga las PLIs vivas
-  // (la lista refleja el estado actual de la BD; soft-deletes no aplican —
-  // PLI usa hard-delete, ver entidad).
+  // Abre el modal "Materias del rango" para el PL pasado. Para PL real carga las
+  // PLIs vivas de BD; para PL virtual (id<0, aún no persistido) se inicializa
+  // el cache vacío y `pliModalRows` sintetiza el estado base (todas las imps
+  // activas con minutos heredados) que `pendingTx` puede overridear.
   const openPliModal = async (pl) => {
     if (!pl) return;
     setPliModalPlId(pl.id);
     setPliModalOpen(true);
+    if (Number(pl.id) < 0) {
+      // PL virtual: el processor del backend auto-creará un PLI por imp del
+      // grupo al persistirlo, así que el "estado base" es: todas activas con
+      // minutos heredados de Materia. Cualquier toggle/patch en pendingTx
+      // se aplicará tras el POST del PL en applyPendingTxForGrupo.
+      setPliByPl(prev => ({ ...prev, [pl.id]: [] }));
+      return;
+    }
     // Refresca siempre al abrir para evitar trabajar contra cache stale tras
     // ediciones del mismo modal en una sesión anterior.
     setPliLoading(true);
@@ -2429,170 +2591,140 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setPliModalPlId(null);
   };
 
-  // Marca una fila como saving (true) o libre (false).
-  const markRowSaving = (impId, value) => {
-    setPliRowSaving(prev => {
-      const next = { ...prev };
-      if (value) next[impId] = true;
-      else delete next[impId];
-      return next;
-    });
+  // Tanda B parte 3: las acciones del modal "Materias del rango" no tocan BD;
+  // acumulan toggles/patches en pendingTxByGrupo. Se aplican en orden estricto
+  // dentro de applyPendingTxForGrupo tras crear los PLs reales.
+  //   - togglePliInTx(impId, true|false): activa/desactiva la imp en este PL.
+  //   - setPliMinutosInTx(impId, minSem|null): setea (o resetea con null) los
+  //     minutos semanales del PLI en este PL.
+  // El estado "base" para overlays es:
+  //   - PL real: lo que hay en pliByPl[plKey] cargado de BD.
+  //   - PL virtual: todas las imps activas con minutos heredados (lo que el
+  //     PeriodoLectivoCreateProcessor del backend creará al persistir).
+
+  const ensureTxInitialized = (tx) => ({
+    ...tx,
+    grupoFechaFinOriginal: tx.grupoFechaFinOriginal ?? grupo?.fechaFin ?? null,
+    plsRealesOriginales: tx.plsRealesOriginales ?? (plByGrupo[selectedGrupo] || []).filter(p => !p._pending),
+  });
+
+  // Devuelve true si la imparticion estaba activa en el PL antes de cualquier
+  // pendingTx (estado base). Para PL virtual, el processor del backend creará
+  // un PLI por cada Imparticion → todas activas por defecto.
+  const isImpActiveInPlBase = (plKey, impId) => {
+    if (Number(plKey) < 0) return true;
+    const basePlis = pliByPl[plKey] || [];
+    return basePlis.some(p => Number(extractFkId(p.imparticion)) === Number(impId));
   };
 
-  // Activa una imparticion en el rango: POST /api/periodo_lectivo_imparticions
-  // con minutosSemanales NULL (= hereda Materia). El modal seguirá viendo el
-  // PLI tras el insert.
-  const activatePli = async (impId) => {
-    if (!pliModalPlId) return;
-    markRowSaving(impId, true);
-    try {
-      const body = {
-        periodoLectivo: `/api/periodo_lectivos/${pliModalPlId}`,
-        imparticion: `/api/imparticions/${impId}`,
-        minutosSemanales: null,
+  const togglePliInTx = (impId, makeActive) => {
+    if (!pliModalPlId || !selectedGrupo) return;
+    const plKey = pliModalPlId;
+    const baseActive = isImpActiveInPlBase(plKey, impId);
+    setPendingTxByGrupo(prev => {
+      const tx = ensureTxInitialized(prev[selectedGrupo] || {});
+      // Quitar toggle previo de la misma (plKey, impId).
+      const otherToggles = (tx.pliToggles || []).filter(p =>
+        !(String(p.plKey) === String(plKey) && Number(p.imparticionId) === Number(impId))
+      );
+      let newToggles = otherToggles;
+      // Si el nuevo estado coincide con el base, no hace falta toggle (no-op).
+      if (makeActive !== baseActive) {
+        newToggles = [...otherToggles, { plKey, imparticionId: Number(impId), action: makeActive ? 'activate' : 'deactivate' }];
+      }
+      // Al desactivar, limpiar cualquier patch pendiente de minutos para esa
+      // imp en este PL (deja de tener sentido).
+      let newPatches = (tx.pliPatches || []);
+      if (!makeActive) {
+        newPatches = newPatches.filter(p =>
+          !(String(p.plKey) === String(plKey) && Number(p.imparticionId) === Number(impId))
+        );
+      }
+      return {
+        ...prev,
+        [selectedGrupo]: {
+          ...tx,
+          pliToggles: newToggles,
+          pliPatches: newPatches,
+        },
       };
-      const res = await fetch(getApiUrl('/api/periodo_lectivo_imparticions'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-      }
-      const created = await res.json();
-      setPliByPl(prev => ({
-        ...prev,
-        [pliModalPlId]: [...(prev[pliModalPlId] || []), created],
-      }));
-      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
-      await refetchPlsForGroup(selectedGrupo);
-    } catch (err) {
-      console.error('Error activando PLI:', err);
-      toast.error(t('scheduleEditor.pliActivateError', { defaultValue: 'No se pudo activar la materia en el rango' }));
-    } finally {
-      markRowSaving(impId, false);
-    }
+    });
+    invalidateCapacityForPl(selectedGrupo, pliModalPlId);
   };
 
-  // Desactiva (hard-delete) una PLI del rango.
-  const deactivatePli = async (pli) => {
-    if (!pli || !pliModalPlId) return;
-    const impId = extractFkId(pli.imparticion);
-    markRowSaving(impId, true);
-    try {
-      const res = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
-        method: 'DELETE',
-        headers: { 'Accept': 'application/ld+json' },
-        credentials: 'include',
-      });
-      if (!res.ok && res.status !== 204) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-      }
-      setPliByPl(prev => ({
+  const setPliMinutosInTx = (impId, newMinutos) => {
+    if (!pliModalPlId || !selectedGrupo) return;
+    const plKey = pliModalPlId;
+    setPendingTxByGrupo(prev => {
+      const tx = ensureTxInitialized(prev[selectedGrupo] || {});
+      const others = (tx.pliPatches || []).filter(p =>
+        !(String(p.plKey) === String(plKey) && Number(p.imparticionId) === Number(impId))
+      );
+      return {
         ...prev,
-        [pliModalPlId]: (prev[pliModalPlId] || []).filter(p => String(p.id) !== String(pli.id)),
-      }));
-      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
-      await refetchPlsForGroup(selectedGrupo);
-    } catch (err) {
-      console.error('Error desactivando PLI:', err);
-      toast.error(t('scheduleEditor.pliDeactivateError', { defaultValue: 'No se pudo quitar la materia del rango' }));
-    } finally {
-      markRowSaving(impId, false);
-    }
+        [selectedGrupo]: {
+          ...tx,
+          pliPatches: [...others, { plKey, imparticionId: Number(impId), minutosSemanales: newMinutos }],
+        },
+      };
+    });
+    invalidateCapacityForPl(selectedGrupo, pliModalPlId);
   };
 
-  // PATCH minutos del PLI. Si valor es null → reset al default heredado de
-  // Materia. Si valor es un número, ese override manda en el rango.
-  const updatePliMinutos = async (pli, newMinutos) => {
-    if (!pli || !pliModalPlId) return;
-    const impId = extractFkId(pli.imparticion);
-    markRowSaving(impId, true);
-    try {
-      const res = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-        credentials: 'include',
-        body: JSON.stringify({ minutosSemanales: newMinutos }),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-      }
-      const updated = await res.json();
-      setPliByPl(prev => ({
-        ...prev,
-        [pliModalPlId]: (prev[pliModalPlId] || []).map(p => String(p.id) === String(pli.id) ? { ...p, ...updated } : p),
-      }));
-      invalidateCapacityForPl(selectedGrupo, pliModalPlId);
-      await refetchPlsForGroup(selectedGrupo);
-    } catch (err) {
-      console.error('Error guardando minutos PLI:', err);
-      toast.error(t('scheduleEditor.pliSaveError', { defaultValue: 'No se pudo guardar el cambio' }));
-    } finally {
-      markRowSaving(impId, false);
-    }
-  };
-
-  // ── Extender curso (Fase 5 sub-B) ────────────────────────────────────
-  // PATCH secuencial: primero el PL (extiende su fechaFin), luego el Grupo
-  // (extiende su fechaFin para abarcar el nuevo último rango). Si el PL falla,
-  // no tocamos el Grupo. Si el Grupo falla tras el PL OK, queda inconsistente
-  // (PL extendido pero Grupo no): aceptable porque la cadena de jornada usa
-  // PL.fechaFin para el solver y banners — el desalineamiento es cosmético y
-  // recuperable manualmente.
+  // ── Extender curso (Fase 5 sub-B / Tanda B parte 3) ──────────────────
+  // Tanda B parte 3: NO toca BD. Acumula los cambios en pendingTxByGrupo y
+  // refleja el preview localmente. Se persiste al pulsar Guardar:
+  //   - Si el último PL es real → push a tx.plsToUpdate.
+  //   - Si el último PL es virtual (draft) → modifica fechaFin del draft.
+  //   - Si el Grupo necesita extender fechaFin → set tx.grupoFechaFin.
   const handleConfirmExtendCourse = async () => {
     if (!extendCourseSuggestion || !selectedGrupo) return;
     const sug = extendCourseSuggestion;
     setExtendingCourse(true);
     try {
-      const r1 = await fetch(getApiUrl(`/api/periodo_lectivos/${sug.lastPl.id}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-        credentials: 'include',
-        body: JSON.stringify({ fechaFin: sug.newLastPlFinISO }),
-      });
-      if (!r1.ok) {
-        const txt = await r1.text().catch(() => '');
-        throw new Error(`PL: ${r1.status}: ${txt.slice(0, 200)}`);
-      }
-      // Sólo PATCH al Grupo si la fecha realmente cambia (caso típico: el Grupo
-      // ya termina más tarde que el último rango → no tocamos nada).
-      let updatedGrupo = null;
-      if (sug.grupoNeedsPatch) {
-        const r2 = await fetch(getApiUrl(`/api/grupos/${selectedGrupo}`), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-          credentials: 'include',
-          body: JSON.stringify({ fechaFin: sug.newGrupoFinISO }),
-        });
-        if (!r2.ok) {
-          const txt = await r2.text().catch(() => '');
-          // PL ya extendido, no rollback automático — alerta y log.
-          console.warn('Grupo PATCH falló tras PL OK:', r2.status, txt);
-          toast.error(t('scheduleEditor.extendCourseGrupoError', { defaultValue: 'El rango se extendió pero la fecha del grupo no se pudo actualizar. Revisa /admin/grupos.' }));
+      const isVirtualLast = Number(sug.lastPl.id) < 0;
+      setPendingTxByGrupo(prev => {
+        const tx = ensureTxInitialized(prev[selectedGrupo] || {});
+        let nextTx = { ...tx };
+        if (isVirtualLast) {
+          // Modificar el draft virtual: cambiar fechaFin in-place.
+          nextTx.plsToCreate = (tx.plsToCreate || []).map(d =>
+            String(d.tempId) === String(sug.lastPl.id)
+              ? { ...d, fechaFin: sug.newLastPlFinISO }
+              : d);
         } else {
-          updatedGrupo = await r2.json().catch(() => null);
+          // PL real: añadir/actualizar entrada en plsToUpdate.
+          const others = (tx.plsToUpdate || []).filter(u => String(u.realId) !== String(sug.lastPl.id));
+          // Si ya había un update previo de este PL, conservamos sus otros campos.
+          const previo = (tx.plsToUpdate || []).find(u => String(u.realId) === String(sug.lastPl.id)) || {};
+          nextTx.plsToUpdate = [...others, { ...previo, realId: Number(sug.lastPl.id), fechaFin: sug.newLastPlFinISO }];
         }
-      }
-      // Refrescar caches: PLs (banner anual + strip), grupos (memo grupo),
-      // capacity-check (la jornada efectiva no cambió, pero por si acaso).
-      await refetchPlsForGroup(selectedGrupo);
-      if (updatedGrupo) {
-        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, ...updatedGrupo } : g));
-      } else if (sug.grupoNeedsPatch) {
-        // Patch local optimista para que el banner refleje la fecha nueva
-        // aunque la respuesta del PATCH no se pudiera parsear.
-        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo) ? { ...g, fechaFin: sug.newGrupoFinISO } : g));
+        if (sug.grupoNeedsPatch) {
+          nextTx.grupoFechaFin = sug.newGrupoFinISO;
+        }
+        return { ...prev, [selectedGrupo]: nextTx };
+      });
+      // Reflejar preview local: extender fechaFin del último PL en plByGrupo.
+      setPlByGrupo(prev => {
+        const cur = prev[selectedGrupo] || [];
+        const next = cur.map(pl => String(pl.id) === String(sug.lastPl.id)
+          ? { ...pl, fechaFin: sug.newLastPlFinISO, _pending: pl._pending || (isVirtualLast ? 'create' : 'edit') }
+          : pl);
+        return { ...prev, [selectedGrupo]: next };
+      });
+      // Reflejar preview local: extender fechaFin del grupo si aplica.
+      if (sug.grupoNeedsPatch) {
+        setGrupos(prev => prev.map(g => String(g.id) === String(selectedGrupo)
+          ? { ...g, fechaFin: sug.newGrupoFinISO }
+          : g));
       }
       invalidateCapacityForPl(selectedGrupo, sug.lastPl.id);
       setExtendModalOpen(false);
-      toast.success(t('scheduleEditor.extendCourseSuccess', { defaultValue: 'Curso extendido' }));
+      toast.success(t('scheduleEditor.extendCoursePreview', {
+        defaultValue: 'Extensión añadida al preview. Pulsa Guardar para persistir.',
+      }));
     } catch (err) {
-      console.error('Error extendiendo curso:', err);
+      console.error('Error extendiendo curso (preview):', err);
       toast.error(t('scheduleEditor.extendCourseError', { defaultValue: 'No se pudo extender el curso' }));
     } finally {
       setExtendingCourse(false);
@@ -2666,8 +2798,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   //     excluyendo el PL activo (modo single-call). Cuando viene desde
   //     `runSolverAllRangos`, evita el problema de batching de React state
   //     entre iteraciones del loop.
+  //   - useIterativo: si true, redirige al endpoint /solver-iterativo/{gid}
+  //     que ejecuta el bucle reductivo in-memory en backend (Fase 1 del doc
+  //     `hoja-de-ruta-solver-iterativo.md`). Reemplaza el bucle frontend
+  //     `reduceUnplacedQuotas` que PATCH'eaba PLIs en BD entre intentos.
+  //   - suppressToast: si true, omite el toast de "propuesta parcial". Lo usa
+  //     `runSolverAllRangos` cuando el modal de informe (Fase 4) reemplaza
+  //     los toasts per-PL con un único modal final.
   // Devuelve el `data` del backend (o null si no se pudo ejecutar).
-  const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null, alreadyPlacedOverride = null) => {
+  const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null, alreadyPlacedOverride = null, useIterativo = false, suppressToast = false) => {
     if (!selectedGrupo) return null;
     const targetPlId = plIdOverride ?? selectedPlId;
     const targetStateKey = (selectedGrupo && targetPlId) ? `${selectedGrupo}_${targetPlId}` : '';
@@ -2718,17 +2857,105 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         });
         return acc;
       })();
-      const body = {
-        ...(seed !== null ? { seed } : {}),
-        ...(targetPlId ? { periodoLectivoId: targetPlId } : {}),
-        alreadyPlacedByImp: placedAnualOtrosRangos,
+      // Construye `rangoOverride` (formato del endpoint /solver-dry-run y
+      // /solver-iterativo) si el target es un PL virtual del pendingTx.
+      // Tanda B parte 3 (PL virtual) + Fase 1 solver-iterativo (2026-05-01)
+      // comparten esta misma estructura.
+      const isVirtualTarget = targetPlId != null && Number(targetPlId) < 0;
+      const buildRangoOverride = () => {
+        const tx = pendingTxByGrupo[selectedGrupo] || {};
+        const draft = (tx.plsToCreate || []).find(d => String(d.tempId) === String(targetPlId));
+        if (!draft) throw new Error('PL virtual no encontrado en pendingTx');
+        const togglesByImp = {};
+        (tx.pliToggles || []).forEach(p => {
+          if (String(p.plKey) === String(targetPlId)) togglesByImp[String(p.imparticionId)] = p.action;
+        });
+        const patchesByImp = {};
+        (tx.pliPatches || []).forEach(p => {
+          if (String(p.plKey) === String(targetPlId)) patchesByImp[String(p.imparticionId)] = p.minutosSemanales;
+        });
+        const plisBody = imps
+          .filter(imp => {
+            const tog = togglesByImp[String(imp.id)];
+            return tog ? tog === 'activate' : true;
+          })
+          .map(imp => ({
+            imparticionId: Number(imp.id),
+            minutosSemanales: Object.prototype.hasOwnProperty.call(patchesByImp, String(imp.id))
+              ? patchesByImp[String(imp.id)]
+              : null,
+          }));
+        const txDeleteSet = new Set((tx.plsToDelete || []).map(String));
+        const realesVivos = (plByGrupo[selectedGrupo] || [])
+          .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
+        const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
+        const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) => {
+          if (!pl.fechaInicio || !pl.fechaFin) return acc;
+          const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
+          return acc + Math.max(0, dias) / 7;
+        }, 0);
+        return {
+          rango: {
+            tempId: Number(targetPlId),
+            nombre: draft.nombre,
+            fechaInicio: draft.fechaInicio,
+            fechaFin: draft.fechaFin,
+            jornadaTipoId: draft.jornadaTipoId ?? null,
+            plis: plisBody,
+          },
+          totalSemanasGrupo,
+        };
       };
-      const res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
+
+      let res;
+      if (useIterativo) {
+        // Fase 1 (2026-05-01): bucle reductivo in-memory en backend. Mismo
+        // comportamiento que el viejo loop frontend pero sin PATCH a BD.
+        const body = {
+          ...(seed !== null ? { seed } : {}),
+          alreadyPlacedByImp: placedAnualOtrosRangos,
+          maxIterations: 6,
+        };
+        if (isVirtualTarget) {
+          const { rango, totalSemanasGrupo } = buildRangoOverride();
+          body.rangoOverride = rango;
+          body.totalSemanasGrupoOverride = totalSemanasGrupo;
+        } else if (targetPlId) {
+          body.periodoLectivoId = targetPlId;
+        }
+        res = await fetch(getApiUrl(`/api/v1/horarios/solver-iterativo/${selectedGrupo}`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+      } else if (isVirtualTarget) {
+        const { rango, totalSemanasGrupo } = buildRangoOverride();
+        const dryBody = {
+          rango,
+          ...(seed !== null ? { seed } : {}),
+          alreadyPlacedByImp: placedAnualOtrosRangos,
+          totalSemanasGrupoOverride: totalSemanasGrupo,
+        };
+        res = await fetch(getApiUrl(`/api/v1/horarios/solver-dry-run/${selectedGrupo}`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(dryBody),
+        });
+      } else {
+        const body = {
+          ...(seed !== null ? { seed } : {}),
+          ...(targetPlId ? { periodoLectivoId: targetPlId } : {}),
+          alreadyPlacedByImp: placedAnualOtrosRangos,
+        };
+        res = await fetch(getApiUrl(`/api/v1/horarios/solver/${selectedGrupo}`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        });
+      }
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
         throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
@@ -2748,6 +2975,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       console.log('Unplaced:', data.unplaced);
       // eslint-disable-next-line no-console
       console.log('Placements:', data.placements);
+      if (data.iterationLog) {
+        // eslint-disable-next-line no-console
+        console.log('Iteration log (Fase 1 solver-iterativo):', data.iterationLog);
+        // eslint-disable-next-line no-console
+        console.log('Diagnostic:', data.diagnostic);
+      }
       // eslint-disable-next-line no-console
       console.groupEnd();
       const newPlacements = {};
@@ -2770,9 +3003,31 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         },
       }));
       setSolverSeed(seed);
-      if (!data.complete && data.unplaced?.length) {
-        const faltan = data.unplaced.map(u => `${u.materia}: ${u.horasRestantes}h`).join(', ');
-        toast.warning(t('scheduleEditor.solverPartial', { items: faltan }), { duration: 6000 });
+      if (!data.complete && data.unplaced?.length && !suppressToast) {
+        // Fase 2 solver-iterativo (2026-05-01): si el backend devuelve
+        // diagnostic con primaryBottleneck (sólo en endpoint /solver-iterativo),
+        // mostramos toast enriquecido con título=bottleneck + descripción=
+        // primera sugerencia traducida con sus params. Si no, fallback al
+        // toast clásico con la lista de materias unplaced.
+        const diag = data.diagnostic;
+        if (diag?.primaryBottleneck && diag.primaryBottleneck !== 'NONE') {
+          const titleKey = `scheduleEditor.solverBottleneck.${diag.primaryBottleneck}`;
+          const title = t(titleKey, { defaultValue: diag.primaryBottleneck });
+          const firstSug = diag.suggestions?.[0];
+          const description = firstSug
+            ? t(`scheduleEditor.solverSuggestion.${firstSug.code}`, {
+                ...firstSug.params,
+                defaultValue: firstSug.code,
+              })
+            : '';
+          toast.warning(t('scheduleEditor.solverDiagnosticPartial', {
+            title,
+            defaultValue: 'Propuesta parcial · {{title}}',
+          }), { description, duration: 9000 });
+        } else {
+          const faltan = data.unplaced.map(u => `${u.materia}: ${u.horasRestantes}h`).join(', ');
+          toast.warning(t('scheduleEditor.solverPartial', { items: faltan }), { duration: 6000 });
+        }
       }
       return data;
     } catch (err) {
@@ -2826,221 +3081,220 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
     setSolverAllRunning(true);
     const errores = [];
-    // Acumulador de minutos anuales colocados por imparticion. Lo mantenemos
-    // localmente (en vez de leer state entre iteraciones) para evitar el
-    // problema de batching de React: setState es async, así que el siguiente
-    // runSolver podría leer state stale y NO ver los placements del rango
-    // anterior → cap anual no se aplicaría correctamente. Pasando este
-    // acumulador como `alreadyPlacedOverride`, el cap funciona deterministico.
-    const accumPlacedByImp = {};
     let savedCount = 0;
+    // Fase 4 solver-iterativo (2026-05-01): acumula el resultado per-PL para
+    // poder abrir el modal "Informe del solver" al terminar. Cada entrada
+    // incluye complete/placedCount/unplacedCount + diagnostic + iterationLog.
+    const perPlReports = [];
     console.group(`[SolverAll] grupo=${selectedGrupo} pls=${pls.length} autoSave=${autoSave}`);
 
-    // Pre-cache de PLIs del grupo (mapa "plId_impId" → pli).
-    // Lo usamos para reducir cuotas iterativamente cuando el solver da
-    // unplaced. Cargamos UNA VEZ al inicio y vamos actualizando local.
-    const pliCache = {};
+    // Fase 3.5 solver-iterativo (2026-05-01): UNA sola llamada al endpoint
+    // multi-rango `/api/v1/horarios/solver-iterativo-multi/{gid}`. El backend
+    // itera per-PL en orden cronológico, mantiene `accumPlacedByImp` cross-
+    // rango cumulativo (cap anual) y devuelve `perPl[]` con placements +
+    // diagnostic + iterationLog por rango. Sustituye el loop frontend.
+
     try {
-      const pliRes = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions?periodoLectivo.grupo=${selectedGrupo}&pagination=false`), {
-        headers: { 'Accept': 'application/ld+json' }, credentials: 'include',
-      });
-      if (pliRes.ok) {
-        const pliData = await pliRes.json();
-        const plis = pliData['hydra:member'] || pliData.member || [];
-        plis.forEach(pli => {
-          const plId = extractFkId(pli.periodoLectivo);
-          const impId = extractFkId(pli.imparticion);
-          if (plId && impId) pliCache[`${plId}_${impId}`] = pli;
+      // Construir el body: cada PL es real (periodoLectivoId) o virtual del
+      // pendingTx (rangoOverride con drafts + plis derivadas de toggles/patches).
+      const tx = pendingTxByGrupo[selectedGrupo] || {};
+      const txDeleteSet = new Set((tx.plsToDelete || []).map(String));
+      const realesVivos = (plByGrupo[selectedGrupo] || [])
+        .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
+      const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
+      const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) => {
+        if (!pl.fechaInicio || !pl.fechaFin) return acc;
+        const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
+        return acc + Math.max(0, dias) / 7;
+      }, 0);
+
+      const buildRangoItem = (pl) => {
+        if (Number(pl.id) >= 0) {
+          return { periodoLectivoId: Number(pl.id) };
+        }
+        // PL virtual del pendingTx: construir rangoOverride.
+        const draft = (tx.plsToCreate || []).find(d => String(d.tempId) === String(pl.id));
+        if (!draft) throw new Error(`PL virtual ${pl.id} no encontrado en pendingTx`);
+        const togglesByImp = {};
+        (tx.pliToggles || []).forEach(p => {
+          if (String(p.plKey) === String(pl.id)) togglesByImp[String(p.imparticionId)] = p.action;
         });
-      }
-    } catch (err) {
-      console.warn('[SolverAll] No se pudo cargar pliCache (iteración solver no funcionará):', err);
-    }
+        const patchesByImp = {};
+        (tx.pliPatches || []).forEach(p => {
+          if (String(p.plKey) === String(pl.id)) patchesByImp[String(p.imparticionId)] = p.minutosSemanales;
+        });
+        const plisBody = imps
+          .filter(imp => {
+            const tog = togglesByImp[String(imp.id)];
+            return tog ? tog === 'activate' : true;
+          })
+          .map(imp => ({
+            imparticionId: Number(imp.id),
+            minutosSemanales: Object.prototype.hasOwnProperty.call(patchesByImp, String(imp.id))
+              ? patchesByImp[String(imp.id)]
+              : null,
+          }));
+        return {
+          rangoOverride: {
+            tempId: Number(pl.id),
+            nombre: draft.nombre,
+            fechaInicio: draft.fechaInicio,
+            fechaFin: draft.fechaFin,
+            jornadaTipoId: draft.jornadaTipoId ?? null,
+            plis: plisBody,
+          },
+        };
+      };
 
-    // Helper: reducir cuotas de las materias unplaced. Devuelve true si
-    // hubo reducción (=> reintentar solver); false si no se puede reducir más.
-    const reduceUnplacedQuotas = async (plId, unplaced) => {
-      const SLOT_MIN = 60; // asumir slot mínimo 60 (FP Mañanas/Tardes)
-      let reduced = false;
-      for (const u of unplaced) {
-        const impId = u.imparticionId || u.impId;
-        if (!impId) continue;
-        const key = `${plId}_${impId}`;
-        const pli = pliCache[key];
-        if (!pli) continue;
-        const currentMin = (pli.minutosSemanales != null) ? pli.minutosSemanales : 0;
-        if (currentMin < SLOT_MIN) continue; // ya está en 0, no se puede reducir más
-        const newMin = currentMin - SLOT_MIN;
-        try {
-          const r = await fetch(getApiUrl(`/api/periodo_lectivo_imparticions/${pli.id}`), {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/merge-patch+json', 'Accept': 'application/ld+json' },
-            credentials: 'include',
-            body: JSON.stringify({ minutosSemanales: newMin }),
-          });
-          if (r.ok) {
-            pliCache[key] = { ...pli, minutosSemanales: newMin };
-            reduced = true;
-            console.log(`[SolverAll] reducida cuota PLI #${pli.id} (mat ${u.materia || impId}): ${currentMin} → ${newMin} min/sem`);
-          }
-        } catch (err) {
-          console.warn(`[SolverAll] error reduciendo PLI #${pli.id}:`, err);
-        }
-      }
-      return reduced;
-    };
+      const body = {
+        rangos: pls.map(buildRangoItem),
+        maxIterations: 6,
+        totalSemanasGrupoOverride: totalSemanasGrupo,
+      };
 
-    try {
-      let plIdx = 0;
+      const res = await fetch(getApiUrl(`/api/v1/horarios/solver-iterativo-multi/${selectedGrupo}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      console.log(`[SolverAll] multi response: ${data.perPl?.length || 0} PLs en ${data.elapsedSec}s. accumFinal:`, data.accumPlacedByImp);
+
+      // Procesar respuesta per-PL: actualizar state local + (si autoSave) POST batch.
       for (const pl of pls) {
-        plIdx++;
-        setSolverProgress({ current: plIdx, total: pls.length, plName: pl.nombre || '' });
-        // Switch al PL para que la UI lo refleje durante la ejecución.
-        setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
-        await new Promise(r => setTimeout(r, 50));
-        console.group(`[SolverAll] PL #${pl.id} ${pl.nombre} ${pl.fechaInicio?.slice(0, 10)} → ${pl.fechaFin?.slice(0, 10)}`);
-        console.log('[SolverAll] alreadyPlaced (cross-rango cumulativo):', { ...accumPlacedByImp });
-        try {
-          // Loop iterativo: si el solver da unplaced, reducir cuotas y reintentar.
-          // Garantiza que al final el rango esté `complete=true unplaced=0`.
-          const MAX_SOLVER_RETRIES = 6;
-          let solverAttempt = 0;
-          let data = null;
-          while (solverAttempt < MAX_SOLVER_RETRIES) {
-            data = await runSolver(null, /* skipConfirm */ true, pl.id, { ...accumPlacedByImp });
-            console.log(`[SolverAll] solver response (attempt ${solverAttempt + 1}): complete=${data?.complete} placed=${data?.placements?.length} unplaced=${data?.unplaced?.length}`);
-            if (!data?.unplaced?.length && data?.complete) break;
-            if (data?.unplaced?.length) {
-              console.warn('[SolverAll] UNPLACED:', data.unplaced);
-              const reduced = await reduceUnplacedQuotas(pl.id, data.unplaced);
-              if (!reduced) {
-                console.warn('[SolverAll] no se pudo reducir más, abandonando reintentos');
-                break;
-              }
-              solverAttempt++;
-              continue;
-            }
-            // complete=false sin unplaced: caso raro, abandonar
-            break;
-          }
-          if (data?.debug) {
-            console.log('[SolverAll] solver debug final:', data.debug);
-          }
-          // Acumular los minutos anuales colocados por imparticion en este rango.
-          // Usamos `pl.id` para mirar las semanas y multiplicar.
-          if (data?.placements) {
-            // Cuando viene de "Configurar curso óptimo" con plsOverride, el
-            // memo `semanasByPlId` puede no haberse re-renderizado todavía.
-            // Calculamos las semanas directamente del PL para evitar el stale.
-            let semanasPL = semanasByPlId[pl.id] || 0;
-            if (semanasPL === 0 && pl.fechaInicio && pl.fechaFin) {
-              const ini = new Date(pl.fechaInicio.slice(0, 10));
-              const fin = new Date(pl.fechaFin.slice(0, 10));
-              const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
-              semanasPL = days / 7;
-            }
-            const semanalMinPorImp = {};
-            data.placements.forEach(p => {
-              const dur = parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio);
-              if (dur <= 0) return;
-              semanalMinPorImp[p.imparticionId] = (semanalMinPorImp[p.imparticionId] || 0) + dur;
-            });
-            console.log(`[SolverAll] PL #${pl.id} sem=${semanasPL.toFixed(2)} placed by materia (sem):`,
-              Object.fromEntries(Object.entries(semanalMinPorImp).map(([impId, m]) => [
-                imps.find(i => String(i.id) === String(impId))?.materia?.nombre || impId,
-                `${m} min/sem (${(m / 60).toFixed(2)}h)`,
-              ])));
-            Object.entries(semanalMinPorImp).forEach(([impId, semanalMin]) => {
-              accumPlacedByImp[impId] = (accumPlacedByImp[impId] || 0) + semanalMin * semanasPL;
-            });
-
-            // autoSave: persistir el rango DIRECTAMENTE con los placements recién
-            // devueltos por el solver (evitamos closure-stale en `state`: los
-            // setState del solver son async y `performBatchSaveAllDirty` leería
-            // un `state` capturado anterior al solver → no encontraría dirty).
-            if (autoSave) {
-              const ops = data.placements.map(p => {
-                const hi = String(p.horaInicio).slice(0, 8);
-                const hf = String(p.horaFin).slice(0, 8);
-                return {
-                  op: 'create',
-                  clientKey: `${p.diaSemana}_${hi}`,
-                  diaSemana: p.diaSemana,
-                  horaInicio: hi.slice(0, 5),
-                  horaFin: hf.slice(0, 5),
-                  aula: p.aula,
-                  imparticion: p.imparticionId,
-                };
-              });
-              try {
-                const res = await fetch(getApiUrl('/api/v1/horarios/batch'), {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify({
-                    grupoId: Number(selectedGrupo),
-                    periodoLectivoId: Number(pl.id),
-                    baselineMaxUpdatedAt: null,
-                    operations: ops,
-                  }),
-                });
-                if (!res.ok) {
-                  const txt = await res.text().catch(() => '');
-                  throw new Error(`${res.status}: ${txt.slice(0, 200)}`);
-                }
-                const sd = await res.json();
-                // Marcar dirty=false en state local con baseline = newPlacements.
-                const newPlacements = {};
-                data.placements.forEach(p => {
-                  const hi = String(p.horaInicio).slice(0, 8);
-                  newPlacements[`${p.diaSemana}_${hi}`] = {
-                    imparticionId: p.imparticionId,
-                    aula: p.aula,
-                    horaInicio: hi,
-                    horaFin: String(p.horaFin).slice(0, 8),
-                  };
-                });
-                // Ajustar hid de los created.
-                (sd.created || []).forEach(({ clientKey, id }) => {
-                  if (clientKey && newPlacements[clientKey]) {
-                    newPlacements[clientKey] = { ...newPlacements[clientKey], hid: id };
-                  }
-                });
-                const skey = `${selectedGrupo}_${pl.id}`;
-                setState(prev => ({
-                  ...prev,
-                  [skey]: {
-                    ...(prev[skey] || {}),
-                    placements: newPlacements,
-                    baseline: { ...newPlacements },
-                    baselineMaxUpdatedAt: sd.maxUpdatedAt || null,
-                    dirty: false,
-                  },
-                }));
-                savedCount++;
-                console.log(`[SolverAll] PL #${pl.id} guardado: ${ops.length} placements persistidos`);
-              } catch (err) {
-                console.error(`[SolverAll] PL #${pl.id} save FAIL:`, err);
-                errores.push({ pl: pl.nombre || `#${pl.id}`, error: `Save: ${err?.message || String(err)}` });
-              }
-            }
-          }
-        } catch (err) {
-          console.error(`[SolverAll] PL #${pl.id} solver FAIL:`, err);
-          errores.push({ pl: pl.nombre || `#${pl.id}`, error: err?.message || String(err) });
+        const isVirtual = Number(pl.id) < 0;
+        const matchKey = isVirtual ? `temp:${pl.id}` : `real:${pl.id}`;
+        const r = (data.perPl || []).find(p => p.plKey === matchKey);
+        if (!r) {
+          errores.push({ pl: pl.nombre || `#${pl.id}`, error: 'PL no encontrado en respuesta del solver multi' });
+          continue;
         }
-        console.groupEnd(); // PL group
+        console.log(`[SolverAll] PL #${pl.id} ${pl.nombre}: complete=${r.complete} placed=${r.placements?.length} unplaced=${r.unplaced?.length} pasadas=${r.iterativo?.iterationsRun}`);
+
+        // Set placements en state local (dirty=true para que se guarden).
+        const skey = `${selectedGrupo}_${pl.id}`;
+        const newPlacements = {};
+        (r.placements || []).forEach(p => {
+          const hi = String(p.horaInicio).slice(0, 8);
+          newPlacements[`${p.diaSemana}_${hi}`] = {
+            imparticionId: p.imparticionId,
+            aula: p.aula,
+            horaInicio: hi,
+            horaFin: String(p.horaFin).slice(0, 8),
+          };
+        });
+        setState(prev => ({
+          ...prev,
+          [skey]: {
+            ...(prev[skey] || {}),
+            placements: newPlacements,
+            dirty: true,
+          },
+        }));
+
+        perPlReports.push({
+          plId: pl.id,
+          plNombre: pl.nombre || `PL #${pl.id}`,
+          plFechaInicio: pl.fechaInicio,
+          plFechaFin: pl.fechaFin,
+          complete: !!r.complete,
+          placedCount: (r.placements || []).length,
+          unplacedCount: (r.unplaced || []).length,
+          unplaced: r.unplaced || [],
+          diagnostic: r.diagnostic || null,
+          iterationLog: r.iterationLog || [],
+          iterationsRun: r.iterativo?.iterationsRun || 0,
+        });
+
+        // autoSave: POST batch a BD para PLs reales (los virtuales necesitan
+        // Guardar pendingTx primero; se omiten silenciosamente).
+        if (autoSave && !isVirtual) {
+          const ops = (r.placements || []).map(p => {
+            const hi = String(p.horaInicio).slice(0, 8);
+            return {
+              op: 'create',
+              clientKey: `${p.diaSemana}_${hi}`,
+              diaSemana: p.diaSemana,
+              horaInicio: hi.slice(0, 5),
+              horaFin: String(p.horaFin).slice(0, 5),
+              aula: p.aula,
+              imparticion: p.imparticionId,
+            };
+          });
+          try {
+            const saveRes = await fetch(getApiUrl('/api/v1/horarios/batch'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                grupoId: Number(selectedGrupo),
+                periodoLectivoId: Number(pl.id),
+                baselineMaxUpdatedAt: null,
+                operations: ops,
+              }),
+            });
+            if (!saveRes.ok) {
+              const txt = await saveRes.text().catch(() => '');
+              throw new Error(`${saveRes.status}: ${txt.slice(0, 200)}`);
+            }
+            const sd = await saveRes.json();
+            (sd.created || []).forEach(({ clientKey, id }) => {
+              if (clientKey && newPlacements[clientKey]) {
+                newPlacements[clientKey] = { ...newPlacements[clientKey], hid: id };
+              }
+            });
+            setState(prev => ({
+              ...prev,
+              [skey]: {
+                ...(prev[skey] || {}),
+                placements: newPlacements,
+                baseline: { ...newPlacements },
+                baselineMaxUpdatedAt: sd.maxUpdatedAt || null,
+                dirty: false,
+              },
+            }));
+            savedCount++;
+          } catch (err) {
+            console.error(`[SolverAll] PL #${pl.id} save FAIL:`, err);
+            errores.push({ pl: pl.nombre || `#${pl.id}`, error: `Save: ${err?.message || String(err)}` });
+          }
+        }
       }
+
       // Refetch global de horarios para que el cómputo cross-rango refleje BD.
       if (autoSave && savedCount > 0) {
         await refetchAllHorariosForGroup(selectedGrupo);
       }
+      // Fase 4 + Parte B (2026-05-01): si algún PL no completó O hay
+      // crossRangoShortfalls (cobertura anual < target), abrir el modal con
+      // toda la info. Si todo completó y sin shortfalls, toast OK.
+      const plsConProblemas = perPlReports.filter(r => !r.complete || (r.diagnostic?.primaryBottleneck && r.diagnostic.primaryBottleneck !== 'NONE'));
+      const crossRangoShortfalls = data.crossRangoShortfalls || [];
       if (errores.length > 0) {
         toast.error(t('scheduleEditor.solverAllPartial', {
           defaultValue: '{{count}} rangos fallaron: {{names}}',
           count: errores.length,
           names: errores.map(e => e.pl).join(', '),
         }));
+      } else if (plsConProblemas.length > 0 || crossRangoShortfalls.length > 0) {
+        // Abre el modal con el informe per-PL + cross-rango shortfalls.
+        const grupoNombre = grupos.find(g => String(g.id) === String(selectedGrupo));
+        setSolverReportData({
+          grupoNombre: grupoNombre ? `${grupoNombre.curso ?? ''}º ${grupoNombre.abreviatura || grupoNombre.nombre || ''}`.trim() : '',
+          autoSave,
+          savedCount,
+          totalPls: pls.length,
+          plsConProblemas: plsConProblemas.length,
+          perPl: perPlReports,
+          crossRangoShortfalls,
+        });
+        setSolverReportExpandedPl(plsConProblemas[0]?.plId ?? null);
+        setSolverReportOpen(true);
       } else if (autoSave) {
         toast.success(t('scheduleEditor.solverAllSavedSuccess', {
           defaultValue: 'Curso configurado y guardado: {{count}} rangos.',
@@ -3052,11 +3306,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           count: pls.length,
         }));
       }
+    } catch (err) {
+      console.error('[SolverAll] FAIL:', err);
+      toast.error(err?.message || String(err), {
+        description: t('scheduleEditor.solverAllErrorCtx', { defaultValue: 'No se pudo ejecutar el solver multi-rango' }),
+      });
     } finally {
       setSolverAllRunning(false);
       setSolverProgress(null);
     }
-    console.log(`[SolverAll] FIN: ${savedCount} guardados, ${errores.length} errores. accumPlacedFinal:`, accumPlacedByImp);
+    console.log(`[SolverAll] FIN: ${savedCount} guardados, ${errores.length} errores.`);
     console.groupEnd(); // SolverAll group
   };
 
@@ -3539,6 +3798,28 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       return;
     }
 
+    // Capturar issue del distribuidor para el modal de informe (Parte A
+    // 2026-05-01 hotfix): si feasible=false, el solver iterativo recibirá
+    // cuotas reducidas y completará perfectamente, así que las Fases 1-4
+    // no se activan. El shortfall del currículo se reporta vía esta info.
+    const distribuidorIssue = (lastDistJson && lastDistJson.feasible === false)
+      ? {
+          feasible: false,
+          reason: lastDistJson.reason || null,
+          extendBy: lastDistJson.extendBy || 0,
+          // Convertir shortfalls (impId → minutos) a [{impId, materia, horasFaltantes}]
+          shortfalls: Object.entries(lastDistJson.shortfalls || {}).map(([impId, min]) => {
+            const imp = imps.find(i => String(i.id) === String(impId));
+            return {
+              impId: Number(impId),
+              materia: imp?.materia?.nombre || `imp ${impId}`,
+              horasFaltantes: Math.round((Number(min) || 0) / 60 * 10) / 10,
+              minutosFaltantes: Number(min) || 0,
+            };
+          }),
+        }
+      : null;
+
     // Paso 4 (DRY): registrar pliPatches con la distribución por rango.
     setConfiguringStep('4/5');
     for (const [plKeyStr, byImp] of Object.entries(distribution)) {
@@ -3552,49 +3833,78 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
     }
 
-    // Paso 5 (DRY): solver-dry-run por cada PL virtual, acumulando placements
-    // en state[gid_tempId] con dirty=true. alreadyPlacedByImp se acumula
-    // entre rangos para que el cap anual cross-rango funcione.
+    // Paso 5 (DRY): UNA llamada al endpoint iterativo multi-rango con todos
+    // los PLs virtuales. Reemplaza el loop per-PL al solver-dry-run que NO
+    // iteraba (resultaba en placements idénticos al solver de una pasada,
+    // sin diagnóstico ni acciones correctivas — gap detectado 2026-05-01).
+    // Ahora cada PL pasa por el bucle iterativo + classifier + 3 acciones,
+    // y el modal de informe (Fase 4) se abre al final si hay problemas.
     setConfiguringStep('5/5');
+    const optimalPerPlReports = [];
+    let optimalMultiJson = null;  // disponible fuera del bloque para crossRangoShortfalls
     {
       const totalSemanasGrupo = pendingTx.plsToCreate.reduce((acc, pl) => {
         const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
         return acc + dias / 7;
       }, 0);
-      const alreadyPlacedByImp = {};
-      for (const pl of pendingTx.plsToCreate) {
+      const rangosBody = pendingTx.plsToCreate.map(pl => {
         const distForPl = distribution[pl.tempId] || {};
         const plisBody = Object.entries(distForPl).map(([impIdStr, minutos]) => ({
           imparticionId: Number(impIdStr),
           minutosSemanales: Number(minutos),
         }));
-        const solverRes = await fetch(getApiUrl(`/api/v1/horarios/solver-dry-run/${selectedGrupo}`), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            rango: {
-              tempId: pl.tempId,
-              fechaInicio: pl.fechaInicio,
-              fechaFin: pl.fechaFin,
-              jornadaTipoId: pl.jornadaTipoId,
-              plis: plisBody,
-            },
-            alreadyPlacedByImp,
-            totalSemanasGrupoOverride: totalSemanasGrupo,
-          }),
-        });
-        if (!solverRes.ok) {
-          toast.error(t('scheduleEditor.solverError', { defaultValue: 'El solver ha fallado en uno de los rangos virtuales.' }));
-          console.groupEnd();
-          return;
+        return {
+          rangoOverride: {
+            tempId: pl.tempId,
+            nombre: pl.nombre,
+            fechaInicio: pl.fechaInicio,
+            fechaFin: pl.fechaFin,
+            jornadaTipoId: pl.jornadaTipoId,
+            plis: plisBody,
+          },
+        };
+      });
+      const multiRes = await fetch(getApiUrl(`/api/v1/horarios/solver-iterativo-multi/${selectedGrupo}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          rangos: rangosBody,
+          maxIterations: 6,
+          totalSemanasGrupoOverride: totalSemanasGrupo,
+        }),
+      });
+      if (!multiRes.ok) {
+        const txt = await multiRes.text().catch(() => '');
+        toast.error(t('scheduleEditor.solverError', { defaultValue: 'El solver ha fallado en uno de los rangos virtuales.' }));
+        console.error('[OptCurso] solver-iterativo-multi FAIL:', multiRes.status, txt);
+        console.groupEnd();
+        return;
+      }
+      const multiJson = await multiRes.json();
+      optimalMultiJson = multiJson;  // expuesto al scope exterior (Parte B 2026-05-01)
+      console.log(`[OptCurso] iterativo-multi: ${multiJson.perPl?.length || 0} PLs en ${multiJson.elapsedSec}s.`);
+      console.log(`[OptCurso] outer iterations: ${multiJson.outerIterationsRun}, stoppedReason: ${multiJson.stoppedReason}`);
+      if (multiJson.redistributionLog?.length > 0) {
+        console.log(`[OptCurso] REDISTRIBUTIONS (cross-rango): ${multiJson.redistributionLog.length} movimientos`, multiJson.redistributionLog);
+      }
+      console.log('[OptCurso] crossRangoShortfalls residuales:', multiJson.crossRangoShortfalls);
+      console.log('[OptCurso] targetAnualByImp:', multiJson.targetAnualByImp);
+      console.log('[OptCurso] accumPlacedByImp:', multiJson.accumPlacedByImp);
+
+      // Mapear cada respuesta a su PL virtual via plKey="temp:tempId" y
+      // setear state[gid_tempId] con placements + acumular reports.
+      for (const pl of pendingTx.plsToCreate) {
+        const matchKey = `temp:${pl.tempId}`;
+        const r = (multiJson.perPl || []).find(p => p.plKey === matchKey);
+        if (!r) {
+          console.warn(`[OptCurso] PL virtual ${pl.tempId} no encontrado en respuesta`);
+          continue;
         }
-        const solverJson = await solverRes.json();
         const placements = {};
-        (solverJson.placements || []).forEach(p => {
+        (r.placements || []).forEach(p => {
           const hi = String(p.horaInicio).slice(0, 8);
-          const key = `${p.diaSemana}_${hi}`;
-          placements[key] = {
+          placements[`${p.diaSemana}_${hi}`] = {
             imparticionId: p.imparticionId,
             aula: p.aula,
             horaInicio: hi,
@@ -3609,11 +3919,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             dirty: true,
           },
         }));
-        const semanasPl = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 / 7 + 1/7;
-        Object.values(placements).forEach(p => {
-          const dur = parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio);
-          if (dur <= 0) return;
-          alreadyPlacedByImp[p.imparticionId] = (alreadyPlacedByImp[p.imparticionId] || 0) + dur * semanasPl;
+        optimalPerPlReports.push({
+          plId: pl.tempId,
+          plNombre: pl.nombre || `Rango virtual ${pl.tempId}`,
+          plFechaInicio: pl.fechaInicio,
+          plFechaFin: pl.fechaFin,
+          complete: !!r.complete,
+          placedCount: (r.placements || []).length,
+          unplacedCount: (r.unplaced || []).length,
+          unplaced: r.unplaced || [],
+          diagnostic: r.diagnostic || null,
+          iterationLog: r.iterationLog || [],
+          iterationsRun: r.iterativo?.iterationsRun || 0,
         });
       }
     }
@@ -3624,9 +3941,53 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: String(pendingTx.plsToCreate[0].tempId) }));
     }
     console.groupEnd();
-    toast.success(t('scheduleEditor.optimalPreviewReady', {
-      defaultValue: 'Preview lista. Pulsa "Guardar" para persistir o "Descartar" para revertir.',
-    }), { duration: 6000 });
+
+    // Abrir modal de informe SOLO si tras la redistribución cross-rango
+    // sigue habiendo problemas reales:
+    //  - algún PL virtual no completó (bottleneck del solver), o
+    //  - hay crossRangoShortfalls residuales (la redistribución no logró
+    //    cubrirlo todo).
+    // El shortfall del distribuidor inicial NO basta para abrir el modal:
+    // si la redistribución cross-rango lo arregló, el currículo ya cuadra y
+    // no hay nada que reportar al admin. Solo se muestra la sección
+    // "Cobertura curricular" si crossRangoShortfalls residuales lo confirman.
+    const optimalPlsConProblemas = optimalPerPlReports.filter(r => !r.complete || (r.diagnostic?.primaryBottleneck && r.diagnostic.primaryBottleneck !== 'NONE'));
+    const optimalCrossRangoShortfalls = optimalMultiJson?.crossRangoShortfalls || [];
+    const hasCrossRangoShortfalls = optimalCrossRangoShortfalls.length > 0;
+    // Sólo enseñar el bloque del distribuidor si SIGUE habiendo shortfall tras
+    // la redistribución (= solver no pudo cubrirlo). Si el cross-rango quedó
+    // vacío, el distribuidor inicial ya no es información útil.
+    const distribuidorEffective = (distribuidorIssue && hasCrossRangoShortfalls) ? distribuidorIssue : null;
+    const shouldOpenReport = optimalPlsConProblemas.length > 0 || hasCrossRangoShortfalls;
+    if (shouldOpenReport) {
+      const grupoNombre = grupos.find(g => String(g.id) === String(selectedGrupo));
+      setSolverReportData({
+        grupoNombre: grupoNombre ? `${grupoNombre.curso ?? ''}º ${grupoNombre.abreviatura || grupoNombre.nombre || ''}`.trim() : '',
+        autoSave: false,
+        savedCount: 0,
+        totalPls: optimalPerPlReports.length,
+        plsConProblemas: optimalPlsConProblemas.length,
+        perPl: optimalPerPlReports,
+        distribuidor: distribuidorEffective,
+        crossRangoShortfalls: optimalCrossRangoShortfalls,
+      });
+      setSolverReportExpandedPl(optimalPlsConProblemas[0]?.plId ?? null);
+      setSolverReportOpen(true);
+      const warningKey = distribuidorEffective
+        ? 'scheduleEditor.optimalPreviewReadyDistribuidor'
+        : 'scheduleEditor.optimalPreviewReadyWithIssues';
+      const warningDefault = distribuidorEffective
+        ? 'Preview lista pero el currículo no cabe en el calendario. Revisa el informe.'
+        : 'Preview lista pero {{count}} rango(s) con problemas. Revisa el informe.';
+      toast.warning(t(warningKey, {
+        defaultValue: warningDefault,
+        count: optimalPlsConProblemas.length,
+      }), { duration: 6000 });
+    } else {
+      toast.success(t('scheduleEditor.optimalPreviewReady', {
+        defaultValue: 'Preview lista. Pulsa "Guardar" para persistir o "Descartar" para revertir.',
+      }), { duration: 6000 });
+    }
     } catch (err) {
       console.error('[OptCurso] FAIL:', err);
       toast.error(err.message || t('scheduleEditor.optimalGenericError', { defaultValue: 'Error generando el curso óptimo.' }));
@@ -3801,7 +4162,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 );
               })}
             </div>
-            <div className={styles.cursoActionsWrapper}>
+            <div className={styles.cursoActionsWrapper} ref={cursoActionsBtnRef}>
               <Button
                 type="button"
                 onClick={() => setCursoActionsOpen(v => !v)}
@@ -3818,7 +4179,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     className={styles.cursoActionsBackdrop}
                     onClick={() => setCursoActionsOpen(false)}
                   />
-                  <div className={styles.cursoActionsMenu} role="menu">
+                  <div className={styles.cursoActionsMenu} role="menu" style={cursoActionsMenuStyle || undefined}>
                     <button
                       type="button"
                       className={`${styles.cursoActionsItem} ${styles.cursoActionsItemPrimary || ''}`}
@@ -3892,11 +4253,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               <strong>{t('scheduleEditor.pendingTxTitle', { defaultValue: 'Cambios pendientes (sin guardar)' })}</strong>
               <span className={styles.plBannerMeta}>
                 {t('scheduleEditor.pendingTxSummary', {
-                  defaultValue: '{{create}} crear · {{update}} editar · {{del}} borrar · {{patches}} ajustes minutos',
+                  defaultValue: '{{create}} crear · {{update}} editar · {{del}} borrar · {{patches}} ajustes minutos · {{toggles}} activar/desactivar',
                   create: pendingTxByGrupo[selectedGrupo]?.plsToCreate?.length || 0,
                   update: pendingTxByGrupo[selectedGrupo]?.plsToUpdate?.length || 0,
                   del: pendingTxByGrupo[selectedGrupo]?.plsToDelete?.length || 0,
                   patches: pendingTxByGrupo[selectedGrupo]?.pliPatches?.length || 0,
+                  toggles: pendingTxByGrupo[selectedGrupo]?.pliToggles?.length || 0,
                 })}
               </span>
             </div>
@@ -4612,22 +4974,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   </thead>
                   <tbody>
                     {pliModalRows.map(row => {
-                      const saving = !!pliRowSaving[row.imp.id];
-                      // Key compuesta: fuerza re-mount del input tras cada save para
-                      // sincronizar defaultValue con el backend (uncontrolled pattern).
-                      const inputKey = `${row.pli?.id || 'noPli'}_${row.pli?.minutosSemanales ?? 'null'}_${row.imp.id}_${pliModalSemanasRango}`;
+                      // Key compuesta: fuerza re-mount del input cuando el overlay
+                      // de pendingTx cambia el valor efectivo (uncontrolled pattern).
+                      const inputKey = `${pliModalPlId}_${row.imp.id}_${row.effectiveMin}_${row.isOverride ? 'ovr' : 'def'}_${pliModalSemanasRango}`;
                       return (
-                        <tr key={row.imp.id} className={`${row.isActive ? '' : styles.pliRowInactive} ${saving ? styles.pliRowSaving : ''}`}>
+                        <tr key={row.imp.id} className={row.isActive ? '' : styles.pliRowInactive}>
                           <td className={styles.pliColActive}>
                             <label className={styles.pliCheckbox}>
                               <input
                                 type="checkbox"
                                 checked={row.isActive}
-                                disabled={saving}
-                                onChange={() => {
-                                  if (row.isActive && row.pli) deactivatePli(row.pli);
-                                  else activatePli(row.imp.id);
-                                }}
+                                onChange={() => togglePliInTx(row.imp.id, !row.isActive)}
                               />
                             </label>
                           </td>
@@ -4674,22 +5031,21 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               className={styles.pliMinutosInput}
                               defaultValue={row.isOverride ? row.effectiveHorasAnualesRango : ''}
                               placeholder={row.defaultHorasAnualesRango > 0 ? String(row.defaultHorasAnualesRango) : '0'}
-                              disabled={!row.isActive || saving || pliModalSemanasRango <= 0}
+                              disabled={!row.isActive || pliModalSemanasRango <= 0}
                               onBlur={(e) => {
-                                if (!row.pli || pliModalSemanasRango <= 0) return;
+                                if (pliModalSemanasRango <= 0) return;
                                 const raw = e.target.value.trim();
                                 if (raw === '') {
-                                  if (row.isOverride) updatePliMinutos(row.pli, null);
+                                  if (row.isOverride) setPliMinutosInTx(row.imp.id, null);
                                   return;
                                 }
                                 const horas = parseFloat(raw.replace(',', '.'));
                                 if (!Number.isFinite(horas) || horas < 0) return;
                                 // Convertir a min/sem (BD trabaja en minutos semanales).
                                 const minSem = Math.round(horas * 60 / pliModalSemanasRango);
-                                const current = row.pli.minutosSemanales;
-                                if (current === minSem) return;  // no-op si igual al guardado
-                                if (current == null && minSem === row.defaultMin) return;  // no-op si igual al default
-                                updatePliMinutos(row.pli, minSem);
+                                if (row.isOverride && row.effectiveMin === minSem) return;  // no-op si ya coincide con override
+                                if (!row.isOverride && minSem === row.defaultMin) return;  // no-op si igual al default
+                                setPliMinutosInTx(row.imp.id, minSem);
                               }}
                             />
                             {row.isActive && (
@@ -4712,8 +5068,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               <button
                                 type="button"
                                 className={styles.pliResetBtn}
-                                disabled={saving}
-                                onClick={() => updatePliMinutos(row.pli, null)}
+                                onClick={() => setPliMinutosInTx(row.imp.id, null)}
                                 aria-label={t('scheduleEditor.pliReset', { defaultValue: 'Volver al default' })}
                                 title={t('scheduleEditor.pliReset', { defaultValue: 'Volver al default' })}
                               >
@@ -4876,6 +5231,258 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </small>
             </label>
           </div>
+        </ModalView>
+
+        {/* Modal "Informe del solver" — Fase 4 solver-iterativo (2026-05-01).
+            Se abre tras runSolverAllRangos cuando algún PL no completó.
+            Muestra resumen per-PL + bottleneck + sugerencias accionables +
+            log de pasadas (collapsible). Reemplaza los toasts per-PL. */}
+        <ModalView
+          isOpen={solverReportOpen}
+          onClose={() => setSolverReportOpen(false)}
+          title={t('scheduleEditor.solverReportTitle', {
+            defaultValue: 'Informe del solver — {{grupo}}',
+            grupo: solverReportData?.grupoNombre || '',
+          })}
+          cancelText={t('common.close', { defaultValue: 'Cerrar' })}
+          size="large"
+        >
+          {solverReportData && (
+            <div className={styles.solverReportBody}>
+              <p className={styles.solverReportIntro}>
+                {t('scheduleEditor.solverReportIntro', {
+                  defaultValue: 'El solver procesó {{total}} rangos. {{conIssues}} no quedaron completos. Revisa cada uno para entender qué falla y qué hacer al respecto.',
+                  total: solverReportData.totalPls,
+                  conIssues: solverReportData.plsConProblemas,
+                })}
+              </p>
+
+              {/* Sección "Cobertura curricular del distribuidor" — Parte A
+                  hotfix 2026-05-01. Se muestra cuando el distribuidor
+                  dio feasible=false (currículo no cabe en el calendario).
+                  Aunque el solver complete con cuotas reducidas, el
+                  shortfall del currículo merece ser visible. */}
+              {solverReportData.distribuidor && (
+                <div className={`${styles.solverReportItem} ${styles.solverReportItemIssue}`}>
+                  <div className={styles.solverReportItemHeader} style={{ cursor: 'default' }}>
+                    <span className={styles.solverReportItemHeaderTitle}>
+                      <AlertTriangle size={14} style={{ marginRight: 6 }} />
+                      <strong>{t('scheduleEditor.solverReportDistribuidorTitle', { defaultValue: 'Cobertura curricular' })}</strong>
+                      <span className={styles.solverReportItemMeta}>
+                        {t('scheduleEditor.solverReportDistribuidorSummary', {
+                          defaultValue: '{{count}} materia(s) con horas anuales no cubiertas',
+                          count: solverReportData.distribuidor.shortfalls.length,
+                        })}
+                      </span>
+                    </span>
+                    <span className={styles.solverReportItemBottleneck}>
+                      {t('scheduleEditor.solverReportDistribuidorBadge', { defaultValue: 'Currículo no cabe' })}
+                    </span>
+                  </div>
+                  <div className={styles.solverReportItemBody}>
+                    <div className={styles.solverReportSuggestions}>
+                      <h4 className={styles.solverReportSuggestionsTitle}>
+                        {t('scheduleEditor.solverReportDistribuidorIntroTitle', { defaultValue: 'Lo que está pasando' })}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+                        {t('scheduleEditor.solverReportDistribuidorIntro', {
+                          defaultValue: 'El currículo del grupo pide más horas anuales de las que caben en el calendario propuesto. El distribuidor ha repartido lo que sí entra; las materias siguientes quedan por debajo de su currículo:',
+                        })}
+                      </p>
+                    </div>
+                    <div className={styles.solverReportUnplaced}>
+                      <h4 className={styles.solverReportUnplacedTitle}>
+                        {t('scheduleEditor.solverReportDistribuidorShortfallsTitle', { defaultValue: 'Materias con shortfall' })}
+                      </h4>
+                      <ul className={styles.solverReportUnplacedList}>
+                        {solverReportData.distribuidor.shortfalls.map((s, idx) => (
+                          <li key={idx}>{s.materia} — <strong>{s.horasFaltantes}h anuales sin cubrir</strong></li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className={styles.solverReportSuggestions}>
+                      <h4 className={styles.solverReportSuggestionsTitle}>
+                        {t('scheduleEditor.solverReportSuggestionsTitle', { defaultValue: 'Acciones sugeridas' })}
+                      </h4>
+                      <ul className={styles.solverReportSuggestionsList}>
+                        {solverReportData.distribuidor.extendBy > 0 && (
+                          <li>
+                            {t('scheduleEditor.solverSuggestion.EXTEND_CALENDAR_DAYS', {
+                              defaultValue: 'Extiende el calendario {{dias}} días naturales para absorber las horas que faltan.',
+                              dias: solverReportData.distribuidor.extendBy,
+                            })}
+                          </li>
+                        )}
+                        <li>
+                          {t('scheduleEditor.solverSuggestion.RAISE_JORNADA_GENERIC', {
+                            defaultValue: 'Sube la jornada del centro (más horas/día) en /admin/jornadas.',
+                          })}
+                        </li>
+                        <li>
+                          {t('scheduleEditor.solverSuggestion.MARK_AS_NON_PRESENCIAL_GENERIC', {
+                            defaultValue: 'Marca alguna de las materias afectadas como AUTÓNOMA o FCT en /admin/materias o /admin/imparticiones — cuentan al currículo sin ocupar slot presencial.',
+                          })}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cross-rango shortfalls — Parte B 2026-05-01. Materias con
+                  cobertura anual < 95% del target distribuido. Distinto del
+                  shortfall del distribuidor: aquí el distribuidor sí cuadró
+                  pero el solver no pudo colocar todo (típicamente por
+                  conflict profe parcial cross-rango). */}
+              {solverReportData.crossRangoShortfalls?.length > 0 && (
+                <div className={`${styles.solverReportItem} ${styles.solverReportItemIssue}`}>
+                  <div className={styles.solverReportItemHeader} style={{ cursor: 'default' }}>
+                    <span className={styles.solverReportItemHeaderTitle}>
+                      <AlertTriangle size={14} style={{ marginRight: 6 }} />
+                      <strong>{t('scheduleEditor.solverReportCrossRangoTitle', { defaultValue: 'Shortfall cross-rango' })}</strong>
+                      <span className={styles.solverReportItemMeta}>
+                        {t('scheduleEditor.solverReportCrossRangoSummary', {
+                          defaultValue: '{{count}} materia(s) por debajo del 95% del currículo anual',
+                          count: solverReportData.crossRangoShortfalls.length,
+                        })}
+                      </span>
+                    </span>
+                  </div>
+                  <div className={styles.solverReportItemBody}>
+                    <div className={styles.solverReportSuggestions}>
+                      <p style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+                        {t('scheduleEditor.solverReportCrossRangoIntro', {
+                          defaultValue: 'Aunque cada rango individual cuadra, las siguientes materias quedan por debajo de su currículo anual sumando todos los rangos. Suele indicar conflict de profesor que aparece en algunos rangos pero no en otros.',
+                        })}
+                      </p>
+                    </div>
+                    <div className={styles.solverReportUnplaced}>
+                      <h4 className={styles.solverReportUnplacedTitle}>
+                        {t('scheduleEditor.solverReportCrossRangoListTitle', { defaultValue: 'Materias afectadas' })}
+                      </h4>
+                      <ul className={styles.solverReportUnplacedList}>
+                        {solverReportData.crossRangoShortfalls.map((s, idx) => (
+                          <li key={idx}>
+                            {s.materia || `imp ${s.imparticionId}`} — <strong>{s.coberturaPct}%</strong>
+                            {' '}({s.horasFaltantes}h sin cubrir)
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.solverReportList}>
+                {solverReportData.perPl.map(plRep => {
+                  const isExpanded = solverReportExpandedPl === plRep.plId;
+                  const hasIssues = !plRep.complete || (plRep.diagnostic?.primaryBottleneck && plRep.diagnostic.primaryBottleneck !== 'NONE');
+                  const bottleneckTitle = plRep.diagnostic?.primaryBottleneck
+                    ? t(`scheduleEditor.solverBottleneck.${plRep.diagnostic.primaryBottleneck}`, { defaultValue: plRep.diagnostic.primaryBottleneck })
+                    : null;
+                  return (
+                    <div
+                      key={plRep.plId}
+                      className={`${styles.solverReportItem} ${hasIssues ? styles.solverReportItemIssue : styles.solverReportItemOk}`}
+                    >
+                      <button
+                        type="button"
+                        className={styles.solverReportItemHeader}
+                        onClick={() => setSolverReportExpandedPl(isExpanded ? null : plRep.plId)}
+                      >
+                        <span className={styles.solverReportItemHeaderTitle}>
+                          {hasIssues
+                            ? <AlertTriangle size={14} style={{ marginRight: 6 }} />
+                            : <CheckCircle2 size={14} style={{ marginRight: 6 }} />}
+                          <strong>{plRep.plNombre}</strong>
+                          <span className={styles.solverReportItemMeta}>
+                            {t('scheduleEditor.solverReportItemSummary', {
+                              defaultValue: '{{placed}} colocados · {{unplaced}} sin colocar · {{pasadas}} pasadas',
+                              placed: plRep.placedCount,
+                              unplaced: plRep.unplacedCount,
+                              pasadas: plRep.iterationsRun,
+                            })}
+                          </span>
+                        </span>
+                        {bottleneckTitle && (
+                          <span className={styles.solverReportItemBottleneck}>{bottleneckTitle}</span>
+                        )}
+                      </button>
+                      {isExpanded && hasIssues && (
+                        <div className={styles.solverReportItemBody}>
+                          {plRep.diagnostic?.suggestions?.length > 0 && (
+                            <div className={styles.solverReportSuggestions}>
+                              <h4 className={styles.solverReportSuggestionsTitle}>
+                                {t('scheduleEditor.solverReportSuggestionsTitle', { defaultValue: 'Acciones sugeridas' })}
+                              </h4>
+                              <ul className={styles.solverReportSuggestionsList}>
+                                {plRep.diagnostic.suggestions.map((sug, idx) => (
+                                  <li key={idx}>
+                                    {t(`scheduleEditor.solverSuggestion.${sug.code}`, { ...sug.params, defaultValue: sug.code })}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {plRep.unplaced?.length > 0 && (
+                            <div className={styles.solverReportUnplaced}>
+                              <h4 className={styles.solverReportUnplacedTitle}>
+                                {t('scheduleEditor.solverReportUnplacedTitle', { defaultValue: 'Materias sin colocar' })}
+                              </h4>
+                              <ul className={styles.solverReportUnplacedList}>
+                                {plRep.unplaced.map((u, idx) => (
+                                  <li key={idx}>{u.materia} — <strong>{u.horasRestantes ?? (u.minutosRestantes / 60).toFixed(1)}h</strong></li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {plRep.iterationLog?.length > 0 && (
+                            <div className={styles.solverReportLog}>
+                              <h4 className={styles.solverReportLogTitle}>
+                                {t('scheduleEditor.solverReportLogTitle', { defaultValue: 'Log de pasadas' })}
+                              </h4>
+                              <table className={styles.solverReportLogTable}>
+                                <thead>
+                                  <tr>
+                                    <th>{t('scheduleEditor.solverReportColPasada', { defaultValue: '#' })}</th>
+                                    <th>{t('scheduleEditor.solverReportColBottleneck', { defaultValue: 'Bottleneck' })}</th>
+                                    <th>{t('scheduleEditor.solverReportColAccion', { defaultValue: 'Acción' })}</th>
+                                    <th>{t('scheduleEditor.solverReportColMateria', { defaultValue: 'Materia' })}</th>
+                                    <th>{t('scheduleEditor.solverReportColMinutos', { defaultValue: 'Min/sem' })}</th>
+                                    <th>{t('scheduleEditor.solverReportColUnplaced', { defaultValue: 'Sin colocar' })}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {plRep.iterationLog.map((step, idx) => (
+                                    <tr key={idx}>
+                                      <td>{step.pasada}</td>
+                                      <td>
+                                        {step.bottleneck
+                                          ? t(`scheduleEditor.solverBottleneck.${step.bottleneck}`, { defaultValue: step.bottleneck })
+                                          : '—'}
+                                      </td>
+                                      <td>{step.accion || '—'}</td>
+                                      <td>{step.target?.materia || '—'}</td>
+                                      <td>
+                                        {step.target?.minutosAntes != null
+                                          ? `${step.target.minutosAntes} → ${step.target.minutosDespues}`
+                                          : '—'}
+                                      </td>
+                                      <td>{step.unplacedCount ?? '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </ModalView>
       </Container>
     </Wrapper>

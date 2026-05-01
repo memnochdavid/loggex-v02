@@ -6,6 +6,20 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**🗒️ Cierre 2026-05-01 — Tanda B parte 3 ✅ Done.** Cerradas las 3 cosas que aún tocaban BD inmediatamente, cerrando del todo el refactor "nada persiste hasta Guardar" en `/admin/horarios`:
+
+1. **Modal "Materias del rango" (Sliders)** — reemplazadas `activatePli/deactivatePli/updatePliMinutos` por `togglePliInTx` (push a nueva estructura `tx.pliToggles: [{plKey, imparticionId, action}]`) y `setPliMinutosInTx` (push a `tx.pliPatches`). `pliModalRows` reescrito con overlay `base + toggles + patches`; para PL virtual el "base" es "todas las imps activas con minutos heredados" (lo que el processor del backend creará al persistir). `openPliModal` skipea fetch para PL virtual (id<0).
+2. **`runSolver` sobre PL virtual** — branching: si `targetPlId<0`, redirige a `/api/v1/horarios/solver-dry-run/{gid}` con body `{rango: {tempId, fechaInicio, fechaFin, jornadaTipoId, plis}, alreadyPlacedByImp, totalSemanasGrupoOverride}` derivado del draft + toggles + patches del pendingTx. `runSolverAllRangos` no necesita cambios (delega a `runSolver`).
+3. **`handleConfirmExtendCourse`** — ya no PATCH BD: si último PL es virtual, modifica draft inline en `tx.plsToCreate`; si real, push a `tx.plsToUpdate`. Si grupo necesita extender, set `tx.grupoFechaFin`. Refleja preview en `plByGrupo` + `setGrupos` localmente.
+
+`applyPendingTxForGrupo` añade **paso 3.b** entre POST PLs nuevos y PATCH PLI minutos: procesa `tx.pliToggles` (DELETE/POST de PLIs según action), manteniendo `pliByPlRealCache` para que el paso 4 lo reuse. Tras éxito, `setPliByPl({})` invalida cache del modal. Banner "Cambios pendientes" amplía summary con `{{toggles}} activar/desactivar`. Build OK (12.85s).
+
+Bitácora completa: `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-05-01.
+
+**Limitación conocida**: `runSolver` sobre PL **real** con toggles/patches pendientes sigue usando `/solver/{gid}` (lee BD, sin overlays). Workaround: Guardar antes de re-solver. En la práctica raramente molesta — los overlays sobre real surgen casi siempre desde "Configurar curso óptimo" que ejecuta el solver al final.
+
+---
+
 **🗒️ Cierre 2026-04-30 noche — Tanda B partes 1 y 2 ✅ Done** (commits `2f57fc2`, `d40b663`). Refactor "nada persiste hasta Guardar" en `/admin/horarios` para todas las acciones del curso del menú "Acciones del curso" + Crear/Editar/Borrar PL desde modal y pills:
 
 - **Backend**: endpoints `/api/v1/horarios/solver-dry-run/{gid}` y `/api/v1/grupos/{gid}/distribute-curriculum-dry-run` (commit `ba18788`); solver/planner/distribuidor aceptan `?array $pliOverride` y `?array $plsOverride` para operar in-memory.
@@ -19,35 +33,9 @@ Bitácora completa: `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-04-30.
 
 ---
 
-### 🟡 Tanda B parte 3 — pendiente al retomar
+### ✅ Tanda B parte 3 — cerrada (2026-05-01)
 
-**Cosas que SIGUEN persistiendo en BD inmediatamente** (no respetan "nada hasta Guardar"):
-
-1. **Editar minutos PLI desde modal "Materias del rango" (icono Sliders)**:
-   - Archivo: `frontend/src/pages/HorariosEditor.jsx`.
-   - Localización: `grep -n "/api/periodo_lectivo_imparticions" HorariosEditor.jsx` — hay PATCH/POST/DELETE inmediatos del PLI cuando el admin cambia minutos, activa/desactiva imparticion en el rango, o resetea al default heredado.
-   - Refactor: en lugar de PATCH directo, push a `pendingTxByGrupo[gid].pliPatches: [{plKey, imparticionId, minutosSemanales}]`. Si el plKey es virtual (tempId<0), el lookup de `applyPendingTxForGrupo` ya lo resuelve (paso 4 hace `tempIdToRealId[plKey] ?? plKey`). Para activar/desactivar imparticion: necesita estructura nueva `pendingTx.pliToggles: [{plKey, imparticionId, action: 'activate'|'deactivate'}]` — el apply lo traduce a POST/DELETE de `PeriodoLectivoImparticion`.
-   - El header del modal tiene Σ planificado vs jornada del rango — ese cálculo se hace localmente y debe seguir mostrando preview con los pliPatches pendientes superpuestos al PLI base.
-
-2. **`runSolver` / `runSolverAllRangos` sobre PL virtual**:
-   - Archivos y líneas: `runSolver` (~línea 2400) y `runSolverAllRangos` (~línea 2530) en `HorariosEditor.jsx`.
-   - Hoy: pegan a `/api/v1/horarios/solver/{gid}` con `periodoLectivoId` real. Si es tempId negativo → 422 del backend.
-   - Opción A (recomendada): si `selectedPlId < 0` (o `plIdOverride < 0`), redirigir a `/api/v1/horarios/solver-dry-run/{gid}` construyendo el body con el draft virtual del pendingTx (`pendingTx.plsToCreate.find(d => d.tempId === plId)`) y los plis del distribute-dry-run o de pliPatches.
-   - Opción B (mínima): deshabilitar los botones "Generar este horario" / "Generar todos" cuando hay PL virtual activo, con tooltip "Pulsa Guardar primero o usa Configurar curso óptimo".
-
-3. **`extendCourseSuggestion` (botón "Extender el curso N días" del banner anual)**:
-   - Archivo `HorariosEditor.jsx`, función que dispara `setExtendModalOpen(true)` y al confirmar hace PATCH a último PL real + PATCH grupo.
-   - Refactor: en lugar de PATCH directo, push a `pendingTx.plsToUpdate` (si el último PL es real) o modifica el draft (si es virtual) + set `pendingTx.grupoFechaFin`.
-
-**Cómo retomar (next session prompt)**:
-
-```
-examina index.md
-# luego:
-sigue con la parte 3 (Sliders PLI + solver dry-run sobre virtual)
-```
-
-El patrón ya está establecido en `applyPendingTxForGrupo` y `discardPendingTxForGrupo`. Estimación: 1-2 sesiones más para cerrar las 3 cosas pendientes.
+Las 3 cosas que aún persistían en BD inmediatamente quedaron migradas a `pendingTx`. Detalle arriba en el cierre 2026-05-01 + bitácora `hoja-de-ruta-periodos-lectivos.md` §6 entrada 2026-05-01.
 
 ---
 
@@ -256,7 +244,8 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
-| `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Deuda residual aplazada (~1-2 sesiones futuras) | Bin-packing first-fit es default. Satura jornadas. Deuda residual: undershoot 81-88% en materias pequeñas con conflict profe (DIG, IPEI II), overshoot 116-123% en materias FP Mañanas por slot de 90 asimétrico. 4 ideas de resolución (A-D) en doc §7. Aplazado para priorizar Modalidad Fase 5. |
+| `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Deuda residual aplazada (~1-2 sesiones futuras) | Bin-packing first-fit es default. Satura jornadas. Deuda residual: undershoot 81-88% en materias pequeñas con conflict profe (DIG, IPEI II), overshoot 116-123% en materias FP Mañanas por slot de 90 asimétrico. 4 ideas de resolución (A-D) en doc §7. **Reemplazado por `hoja-de-ruta-solver-iterativo.md`** (2026-05-01) — las ideas A-D se materializan en las acciones correctivas de la Fase 3 del nuevo doc. |
+| `hoja-de-ruta-solver-iterativo.md` | **🆕 Fases 1+2+3+3.5+4 + Hotfix REDISTRIBUIR_CROSS_RANGO ✅ Done (2026-05-01)** | Doc completo. Backend iterativo in-memory (Fase 1) + `BottleneckClassifier` (Fase 2) + `CorrectiveActionExecutor` (Fase 3) + endpoint multi-rango (Fase 3.5) + modal informe (Fase 4) + **bucle outer en `solveMultiRango` que mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o agotar opciones**. Validado E2E con 1º DAW EAG: imp 38 al 0% → 125% tras 1 movimiento outer. El solver ahora SÍ itera de principio a fin como pidió el usuario. |
 
 ### 📋 Referencia / manuales
 
