@@ -240,31 +240,47 @@
                         {% for slot in bloque.slots %}
                             {% set slotKey = slot.horaInicio ~ '-' ~ slot.horaFin %}
                             {% set fila = matriz[slotKey] is defined ? matriz[slotKey] : {} %}
+                            {# Si TODOS los días en esta fila son skip (continuación
+                               de bloques que empezaron antes), ocultar la fila. #}
+                            {% set allSkipped = fila|length == diasSemana|length %}
+                            {% if allSkipped %}
+                                {% for d in diasSemana %}
+                                    {% set cd = fila[d] is defined ? fila[d] : null %}
+                                    {% if not cd or not cd.skip %}{% set allSkipped = false %}{% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% if not allSkipped %}
                             <tr>
                                 <td class="hour-cell">
                                     {{ slot.horaInicio }}<br>{{ slot.horaFin }}
                                 </td>
                                 {% for d in diasSemana %}
                                     {% set ev = fila[d] is defined ? fila[d] : null %}
-                                    <td class="day-cell">
-                                        {% if ev %}
-                                            <div class="event" style="background-color: {{ ev.color }};">
-                                                <div class="ev-mod">{{ ev.materia }}</div>
-                                                {% if ev.profesor %}
-                                                    <div class="ev-meta">{{ ev.profesor }}</div>
-                                                {% endif %}
-                                                {% if ev.aula %}
-                                                    <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
-                                                {% endif %}
-                                                {% if isPersonal and ev.grupoNombre %}
-                                                    {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
-                                                    <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    </td>
+                                    {% if ev and ev.skip %}
+                                        {# Celda omitida: cubierta por el rowspan
+                                           del bloque que empezó en una fila anterior. #}
+                                    {% else %}
+                                        <td class="day-cell"{% if ev and ev.rowSpan|default(1) > 1 %} rowspan="{{ ev.rowSpan }}"{% endif %}>
+                                            {% if ev %}
+                                                <div class="event" style="background-color: {{ ev.color }};">
+                                                    <div class="ev-mod">{{ ev.materia }}</div>
+                                                    {% if ev.profesor %}
+                                                        <div class="ev-meta">{{ ev.profesor }}</div>
+                                                    {% endif %}
+                                                    {% if ev.aula %}
+                                                        <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
+                                                    {% endif %}
+                                                    {% if isPersonal and ev.grupoNombre %}
+                                                        {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
+                                                        <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
                                 {% endfor %}
                             </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

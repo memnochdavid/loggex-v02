@@ -16,6 +16,7 @@ use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\PeriodoLectivoRepository;
 use App\State\PeriodoLectivoCreateProcessor;
+use App\State\PeriodoLectivoSoftDeleteProcessor;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -52,7 +53,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(processor: PeriodoLectivoCreateProcessor::class),
         new Put(),
         new Patch(),
-        new Delete(processor: SoftDeleteProcessor::class)
+        new Delete(processor: PeriodoLectivoSoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['periodo_lectivo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['periodo_lectivo:write']]

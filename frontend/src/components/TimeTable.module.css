@@ -128,8 +128,11 @@
 .cell {
     /* border-bottom: 1px solid var(--border-color); */ /* Quitado borde explícito */
     /* border-right: 1px solid var(--border-color); */ /* Quitado borde explícito */
-    padding: 0.15rem; /* Reducido */
-    min-height: 45px; /* Reducido de 60px para permitir más compactación */
+    padding: 0.1rem; /* Reducido */
+    /* min-height bajado (2026-05-01) — con jornada granular 30min hay
+       más filas (11+ vs 6 antes); mantener 45px hacía la grilla 2× más
+       alta. 22px ≈ media altura del slot original = 44px por bloque 60min. */
+    min-height: 22px;
     position: relative;
     background-color: var(--bg-card); /* Usar variable maestra */
 }
@@ -358,6 +361,28 @@
     background-color: var(--bg-input); /* Usar variable maestra */
     border-radius: var(--radius-md);
     font-style: italic;
+}
+
+/* Recreo: banda diagonal que cubre toda la fila (5 columnas días). */
+.recreoStrip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary, var(--text-muted));
+    user-select: none;
+    background: repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--color-text-secondary, var(--text-muted)) 10%, transparent),
+        color-mix(in srgb, var(--color-text-secondary, var(--text-muted)) 10%, transparent) 6px,
+        color-mix(in srgb, var(--color-text-secondary, var(--text-muted)) 20%, transparent) 6px,
+        color-mix(in srgb, var(--color-text-secondary, var(--text-muted)) 20%, transparent) 12px
+    );
+    border-bottom: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
 }
 
 @media (prefers-reduced-motion: reduce) {

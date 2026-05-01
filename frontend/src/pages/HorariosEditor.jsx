@@ -168,38 +168,49 @@ const OtrasHorasItem = ({ imparticion, minutosSemanales, modalidad, color, t }) 
 };
 
 // ─── Bloque dentro de un slot (draggable para eliminar al panel) ───────
-const SlotBlock = ({ slotId, imparticion, color, aula }) => {
+const SlotBlock = ({ slotId, imparticion, color, aula, isContinuation = false }) => {
   const id = `slot:${slotId}`;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: { type: 'placed', slotId, imparticionId: imparticion.id },
+    disabled: isContinuation,  // las continuaciones NO son drag handles
   });
   const profeFull = `${imparticion.profesor?.nombre || ''} ${imparticion.profesor?.apellidos || ''}`.trim() || '—';
+  // Continuación = celda visualmente "tapada" por un bloque que empezó en
+  // un slot anterior. Sin texto, sin border-top, mismo color de fondo →
+  // ilusión de bloque continuo a través de varias filas de la rejilla.
+  const cls = isContinuation
+    ? `${styles.slotBlock} ${styles.slotBlockContinuation}`
+    : styles.slotBlock;
   return (
     <div
       ref={setNodeRef}
-      className={styles.slotBlock}
+      className={cls}
       style={{ backgroundColor: color, opacity: isDragging ? 0.4 : 1 }}
-      {...listeners}
-      {...attributes}
+      {...(isContinuation ? {} : listeners)}
+      {...(isContinuation ? {} : attributes)}
     >
-      <span className={styles.slotBlockTitle}>
-        {imparticion.materia && <MateriaLabel materia={imparticion.materia} />}
-      </span>
-      <span className={styles.slotBlockProfe}>
-        {(imparticion.profesor?.apellidos || '').split(' ')[0]}
-      </span>
-      <div className={styles.slotTooltip} role="tooltip">
-        <strong>{imparticion.materia?.nombre || '—'}</strong>
-        <span>{profeFull}</span>
-        {aula && <span className={styles.slotTooltipAula}>{aula}</span>}
-      </div>
+      {!isContinuation && (
+        <>
+          <span className={styles.slotBlockTitle}>
+            {imparticion.materia && <MateriaLabel materia={imparticion.materia} />}
+          </span>
+          <span className={styles.slotBlockProfe}>
+            {(imparticion.profesor?.apellidos || '').split(' ')[0]}
+          </span>
+          <div className={styles.slotTooltip} role="tooltip">
+            <strong>{imparticion.materia?.nombre || '—'}</strong>
+            <span>{profeFull}</span>
+            {aula && <span className={styles.slotTooltipAula}>{aula}</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
 // ─── Celda droppable ───────────────────────────────────────────────────
-const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, onTap }) => {
+const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, onTap, gridRowSpan = 1 }) => {
   const id = `cell:${dia}:${slot}`;
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -215,8 +226,9 @@ const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, on
     else if (tapValid === true) cls += ` ${styles.slotDropValid}`;
   }
   if (isOver) cls += ` ${styles.slotDropActive}`;
+  const style = gridRowSpan > 1 ? { gridRow: `span ${gridRowSpan}` } : undefined;
   return (
-    <div ref={setNodeRef} className={cls} onClick={onTap}>
+    <div ref={setNodeRef} className={cls} style={style} onClick={onTap}>
       {content}
     </div>
   );
@@ -855,17 +867,29 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Etiqueta del turno (informativa, viene de la jornada). Sin jornada, queda en blanco.
   const turnoGrupo = jornadaActual?.turno === 'tarde' ? 'T' : 'M';
 
-  // Minutos colocados por imparticion (suma duración real de los slots ocupados,
-  // no número de slots — los slots pueden tener duración mixta 60/90/120 min).
+  // Helper: duración real de un placement. Con el solver de bloques (2026-05-01),
+  // un placement puede abarcar N slots de 30min (bloques de 60-120min). La
+  // duración correcta es `horaFin - horaInicio` del placement, NO la del slot
+  // inicio. Si no hay horaFin (caso legacy), fallback a la duración del slot.
+  const getPlacementDur = (p) => {
+    if (!p) return 0;
+    if (p.horaFin && p.horaInicio) {
+      return Math.max(0, parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio));
+    }
+    return slotMinutosByHi[p.horaInicio] || 0;
+  };
+
+  // Minutos colocados por imparticion (suma duración real de los placements).
   // OJO: este es SEMANAL del PL activo (lo usan solver/CapacityPlanner). Para
   // el chip lateral usamos `minutosAnualesColocadosByImp` (Fase 5 sub-A).
   const minutosColocados = useMemo(() => {
     const m = {};
     Object.values(placements).forEach(p => {
-      const dur = slotMinutosByHi[p.horaInicio] || 0;
+      const dur = getPlacementDur(p);
       m[p.imparticionId] = (m[p.imparticionId] || 0) + dur;
     });
     return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placements, slotMinutosByHi]);
 
   // Semanas por PL del grupo (lookup table) — usado por los memos anuales.
@@ -906,10 +930,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const localKey = `${selectedGrupo}_${pl.id}`;
       const localState = state[localKey];
       if (localState?.placements) {
-        // State local (sin guardar incluido). Usa la duración del slot map del PL
-        // activo como aproximación (jornada típicamente igual entre rangos).
+        // State local (sin guardar incluido). Duración real del placement
+        // (puede ser bloque 60-120min, no solo slot 30min).
         Object.values(localState.placements).forEach(p => {
-          const dur = slotMinutosByHi[p.horaInicio] || 0;
+          const dur = getPlacementDur(p);
           if (dur <= 0) return;
           acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanas;
         });
@@ -925,6 +949,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
     });
     return acc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGrupo, plByGrupo, allHorariosByGroup, semanasByPlId, state, slotMinutosByHi]);
 
   // Objetivo anual por imparticion (Opción A 2026-04-29): usa
@@ -997,7 +1022,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return Math.ceil(objetivoAnualPresencialMin / slotsSemanalMin);
   }, [imps, slotsSemanalMin, semanasReferenciaCentro]);
   const colocadosMinutos = Object.values(placements).reduce(
-    (a, p) => a + (slotMinutosByHi[p.horaInicio] || 0), 0
+    (a, p) => a + getPlacementDur(p), 0
   );
   // Display semanal del badge: muestra "X/Yh" con cap a slots colocables si
   // hay sobrecarga (no engañar al admin con un target inalcanzable).
@@ -1407,7 +1432,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const imp = impById[p.imparticionId];
       const pid = imp?.profesor?.id;
       if (!pid) return;
-      const dur = slotMinutosByHi[p.horaInicio] || 0;
+      const dur = getPlacementDur(p);
       currentMinPerProf[pid] = (currentMinPerProf[pid] || 0) + dur;
     });
     const profesUnicos = new Map();
@@ -1448,8 +1473,21 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
         return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }) };
       }
-      // Regla extra: la celda debe estar vacía
-      if (placements[key]) {
+      // Regla extra: la celda debe estar vacía. Con bloques de 60-120min
+      // (granularidad 30min), un slot puede estar cubierto por un placement
+      // que arrancó en un slot anterior — comprobamos también ese caso.
+      const horaInicioStr = slotsDia[slotIdx][0];
+      const covered = (() => {
+        for (const [k, p] of Object.entries(placements)) {
+          const sep = k.indexOf('_');
+          if (sep <= 0) continue;
+          if (Number(k.slice(0, sep)) !== diaIdx) continue;
+          const pHi = k.slice(sep + 1);
+          if (pHi <= horaInicioStr && (p.horaFin || '') > horaInicioStr) return true;
+        }
+        return false;
+      })();
+      if (covered) {
         return { ok: false, reason: t('scheduleEditor.reasonCellOccupied') };
       }
     }
@@ -2841,7 +2879,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           const localState = state[localKey];
           if (localState?.placements) {
             Object.values(localState.placements).forEach(p => {
-              const dur = slotMinutosByHi[p.horaInicio] || 0;
+              const dur = getPlacementDur(p);
               if (dur <= 0) return;
               acc[p.imparticionId] = (acc[p.imparticionId] || 0) + dur * semanas;
             });
@@ -4014,10 +4052,31 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     dirtyAny && currentLocation.pathname !== nextLocation.pathname
   );
 
+  // Bloques contiguos (2026-05-01): un placement puede abarcar N slots de
+  // 30min. El placement vive en el state con key = `${dia}_${horaInicioBloque}`
+  // y `horaFin` = fin del bloque. Para renderizar la rejilla, cada slot de
+  // 30min llama a findCoveringPlacement que detecta si está cubierto por algún
+  // bloque (sea inicio o continuación). Las celdas continuación renderizan
+  // un SlotBlock con isContinuation=true (sin texto, sin border-top).
+  const findCoveringPlacement = (dia, horaInicioStr) => {
+    for (const [key, p] of Object.entries(placements)) {
+      const sep = key.indexOf('_');
+      if (sep <= 0) continue;
+      if (Number(key.slice(0, sep)) !== dia) continue;
+      const pHi = key.slice(sep + 1);
+      // pHi y horaInicioStr están en formato "HH:MM:SS" — comparación lex OK.
+      if (pHi <= horaInicioStr && (p.horaFin || '') > horaInicioStr) {
+        return { key, p, isStart: pHi === horaInicioStr };
+      }
+    }
+    return null;
+  };
+
   const renderSlotContent = (dia, slotIdx) => {
-    const key = `${dia}_${slotsDia[slotIdx][0]}`;
-    const p = placements[key];
-    if (!p) return null;
+    const horaInicioStr = slotsDia[slotIdx][0];
+    const found = findCoveringPlacement(dia, horaInicioStr);
+    if (!found) return null;
+    const { key, p, isStart } = found;
     const imp = imps.find(i => i.id === p.imparticionId);
     if (!imp) return null;
     return (
@@ -4026,6 +4085,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         imparticion={imp}
         color={colorForModule(imp.materia?.id || p.imparticionId)}
         aula={p.aula}
+        isContinuation={!isStart}
       />
     );
   };
@@ -4535,27 +4595,39 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </aside>
 
               <div className={styles.grid}>
-                <div className={styles.gridHeader}>
-                  <div>Hora</div>
-                  {DIAS.map(d => {
-                    const full = t(d.i18n);
-                    return (
-                      <div key={d.idx}>
-                        <span className={styles.dayFull}>{full}</span>
-                        <span className={styles.dayShort}>{full.charAt(0).toUpperCase()}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <div className={styles.gridHeaderCell}>Hora</div>
+                {DIAS.map(d => {
+                  const full = t(d.i18n);
+                  return (
+                    <div key={`hd-${d.idx}`} className={styles.gridHeaderCell}>
+                      <span className={styles.dayFull}>{full}</span>
+                      <span className={styles.dayShort}>{full.charAt(0).toUpperCase()}</span>
+                    </div>
+                  );
+                })}
                 {(() => {
-                  // Recorremos los tramos en orden y vamos contando los slots
-                  // para mantener `slotIdx` consistente con `slotsDia` (que
-                  // los placements ya usan como clave).
+                  // Refactor 2026-05-01: rejilla del admin reescrita a UN
+                  // único CSS Grid (vs múltiples .gridRow). Permite que los
+                  // bloques de 60-120min ocupen N filas físicas con
+                  // gridRow: span N (las celdas continuación retornan null).
+                  // Visualmente: bloques continuos sin gaps internos, igual
+                  // que TimeTable / PDF.
                   let slotIdxCounter = -1;
+                  // Helper: cuántos slots de slotsDia cubre un placement.
+                  const calcSlotSpan = (p) => {
+                    if (!p || !p.horaFin || !p.horaInicio) return 1;
+                    let n = 0;
+                    for (const s of slotsDia) {
+                      if (s[0] < p.horaInicio) continue;
+                      if (s[0] >= p.horaFin) break;
+                      n++;
+                    }
+                    return Math.max(1, n);
+                  };
                   return tramosOrdenados.map((tramo, tramoPos) => {
                     if (tramo.tipo === 'recreo') {
                       return (
-                        <div key={`recreo-${tramoPos}`} className={`${styles.gridRow} ${styles.gridRowRecreo}`}>
+                        <React.Fragment key={`recreo-${tramoPos}`}>
                           <div className={styles.timeLabel}>
                             <span>{fmtHora(tramo.horaInicio)}</span>
                             <span className={styles.timeLabelSep}>–</span>
@@ -4568,19 +4640,25 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                           >
                             <span>{tramo.etiqueta || t('jornadas.tipoRecreo', { defaultValue: 'Recreo' })}</span>
                           </div>
-                        </div>
+                        </React.Fragment>
                       );
                     }
                     slotIdxCounter += 1;
                     const slotIdx = slotIdxCounter;
                     return (
-                      <div key={`slot-${slotIdx}`} className={styles.gridRow}>
+                      <React.Fragment key={`slot-${slotIdx}`}>
                         <div className={styles.timeLabel}>
                           <span>{fmtHora(tramo.horaInicio)}</span>
                           <span className={styles.timeLabelSep}>–</span>
                           <span>{fmtHora(tramo.horaFin)}</span>
                         </div>
                         {DIAS.map((d) => {
+                          // Si la celda está cubierta por un bloque que
+                          // empezó en un slot anterior, no renderizar nada
+                          // (el bloque la ocupa con gridRow: span N).
+                          const found = findCoveringPlacement(d.idx, tramo.horaInicio);
+                          if (found && !found.isStart) return null;
+                          const span = found ? calcSlotSpan(found.p) : 1;
                           const validation = activeDrag ? validateDrop(activeDrag, d.idx, slotIdx) : null;
                           const tapValid = !activeDrag && selectedImpId ? validateTap(d.idx, slotIdx) : null;
                           return (
@@ -4594,10 +4672,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               tapMode={!!selectedImpId}
                               tapValid={tapValid}
                               onTap={() => handleTapCell(d.idx, slotIdx)}
+                              gridRowSpan={span}
                             />
                           );
                         })}
-                      </div>
+                      </React.Fragment>
                     );
                   });
                 })()}

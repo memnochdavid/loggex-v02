@@ -39,6 +39,12 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class HorarioSolverBinPacking
 {
+    /** Bloque mínimo (= 1 hora pedagógica). Granularidad menor permitida en jornada. */
+    private const MIN_BLOQUE_MIN = 60;
+    /** Bloque máximo y cap diario por materia (= 2 horas seguidas). */
+    private const MAX_BLOQUE_MIN = 120;
+    private const MAX_DIARIO_MIN_POR_MATERIA = 120;
+
     public function __construct(
         private EntityManagerInterface $em,
         private PeriodoLectivoResolver $resolver,
@@ -118,118 +124,84 @@ class HorarioSolverBinPacking
         $turno = $jornada->getTurno();
         $parallelBusy = $this->buildParallelBusy($grupo, $turno);
 
-        // Construir celdas en orden HORA-primero, DÍA-después. Garantiza
-        // distribución uniforme de una misma materia entre días: si Sistemas
-        // (5h/sem) recibe los 5 primeros slots, serán "8:30 lun, 8:30 mar,
-        // 8:30 mié, 8:30 jue, 8:30 vie" — un slot por día. Si fuese día-
-        // primero (8:30 lun, 9:30 lun, ..., 13:00 lun, 8:30 mar, ...),
-        // Sistemas ocuparía todo el lunes y nada el resto.
-        $cells = [];
-        foreach ($slots as $slot) {
-            foreach ($diasLectivos as $dia) {
-                $cells[] = [
-                    'dia' => $dia,
-                    'hi' => $slot[0],
-                    'hf' => $slot[1],
-                    'min' => $slot[2],
-                ];
-            }
-        }
+        // ── BLOQUES CONTIGUOS (2026-05-01) ────────────────────────────
+        // Reemplaza el modelo "1 placement = 1 slot" por "1 placement = 1
+        // bloque contiguo de N slots de la misma materia en el mismo día".
+        // Restricciones:
+        //   - bloque mínimo: MIN_BLOQUE_MIN minutos (default 60).
+        //   - bloque máximo: MAX_BLOQUE_MIN minutos (default 120).
+        //   - cap diario por materia: MAX_DIARIO_MIN_POR_MATERIA (default 120).
+        //   - profe libre en TODOS los slots del bloque.
+        //   - tramo contiguo: secuencia de slots consecutivos sin recreo
+        //     entre medias (un recreo rompe el tramo).
+        //
+        // Algoritmo:
+        //   foreach día lectivo:
+        //     foreach tramo contiguo del día:
+        //       while quedan slots libres:
+        //         elegir mejor materia candidata + tamaño bloque
+        //         si no hay → dejar resto de tramo vacío
+        //         sino → colocar bloque (1 placement con horaInicio del primer
+        //                slot, horaFin del último slot del bloque)
+        //
+        // El frontend renderiza cada placement con altura = duración / slot
+        // mínimo de la jornada (CSS grid-row span N). Una jornada con slots
+        // de 30min y un placement de 60min = span 2.
 
-        $placements = [];           // ['dia_hi' => placement]
-        $profBusyLocal = [];        // ['dia_hi' => [profIds]]
-        $aulaBusyLocal = [];        // ['dia_hi' => [aulasOcupadas]] — futuro
+        $tramosContiguos = $this->buildTramosContiguos($jornada);  // [[slot, slot, ...], ...]
+        $placements = [];
+        $profBusyLocal = [];        // ['dia_hi' => [profIds]] — slot a slot
 
-        foreach ($cells as $cell) {
-            $key = $cell['dia'] . '_' . $cell['hi'];
-            $duracion = $cell['min'];
+        // Orden DÍA-primero, TRAMO-después. Distribución diaria gestionada
+        // vía CAP_DIARIO + score que premia materias con menos colocadas hoy.
+        foreach ($diasLectivos as $dia) {
+            $colocadosHoy = [];     // [impId => minutos colocados HOY]
 
-            $isBusyForProf = function (?int $pid) use ($key, $profBusyLocal, $parallelBusy) {
-                if ($pid === null) return false;
-                if (isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) return true;
-                if (isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true)) return true;
-                return false;
-            };
+            foreach ($tramosContiguos as $tramo) {
+                $slotsLibres = $tramo;  // copia: lista de [hi, hf, dur]
 
-            // PASE A — estricto: materias con líquido SUFICIENTE para el slot
-            // sin overshoot. Prioriza líquido descendente. Esto evita el caso
-            // patológico donde una materia con líquido=30 (residual) ocupa un
-            // slot de 90 (overshoot 60min en una asignación). Per-rango el
-            // overshoot total queda acotado a la última asignación de cada
-            // materia, en lugar de cualquier asignación.
-            $bestImpId = null;
-            $bestLiquido = -1;
-            foreach ($imps as $impId => $imp) {
-                if ($liquido[$impId] < $duracion) continue;
-                if ($isBusyForProf($imp->getProfesor()?->getId())) continue;
-                if ($liquido[$impId] > $bestLiquido) {
-                    $bestLiquido = $liquido[$impId];
-                    $bestImpId = $impId;
-                }
-            }
+                while (!empty($slotsLibres)) {
+                    $best = $this->elegirMejorBloque(
+                        $slotsLibres,
+                        $imps,
+                        $liquido,
+                        $minutosTarget,
+                        $colocadosHoy,
+                        $dia,
+                        $profBusyLocal,
+                        $parallelBusy,
+                    );
+                    if ($best === null) break;  // sin candidato → dejar resto vacío
 
-            // PASE B — overshoot último slot: si pase A no encontró candidato,
-            // materias con líquido > 0 pero < duración_slot. Acepta overshoot
-            // ≤ duración - 1. Prioriza la materia con mayor líquido residual.
-            // Tope: cobertura tras añadir slot ≤ 130% del target. Sin este
-            // tope, una materia pequeña (DIG target 60 con líquido=60) podía
-            // recibir un slot de 90 (cobertura final 150/60 = 250% del target
-            // del rango, inflando la materia anual al 140%+).
-            if ($bestImpId === null) {
-                foreach ($imps as $impId => $imp) {
-                    if ($liquido[$impId] <= 0) continue;
-                    if ($liquido[$impId] >= $duracion) continue; // ya considerado en pase A
-                    if ($isBusyForProf($imp->getProfesor()?->getId())) continue;
-                    $target = $minutosTarget[$impId];
-                    if ($target <= 0) continue;
-                    $cubierto = $target - $liquido[$impId];
-                    $coberturaTrasAdd = ($cubierto + $duracion) / $target;
-                    if ($coberturaTrasAdd > 1.30) continue;
-                    if ($liquido[$impId] > $bestLiquido) {
-                        $bestLiquido = $liquido[$impId];
-                        $bestImpId = $impId;
+                    $impId = $best['impId'];
+                    $imp = $imps[$impId];
+                    $bloqueSlots = array_slice($slotsLibres, 0, $best['nSlots']);
+                    $bloqueDur = array_sum(array_map(fn ($s) => $s[2], $bloqueSlots));
+                    $hi = $bloqueSlots[0][0];
+                    $hf = $bloqueSlots[count($bloqueSlots) - 1][1];
+
+                    $placements[] = [
+                        'imp' => $imp,
+                        'dia' => $dia,
+                        'hi' => $hi,
+                        'hf' => $hf,
+                        'min' => $bloqueDur,
+                    ];
+
+                    // Marcar profe ocupado en TODOS los slots del bloque.
+                    $pid = $imp->getProfesor()?->getId();
+                    if ($pid !== null) {
+                        foreach ($bloqueSlots as $slot) {
+                            $key = $dia . '_' . $slot[0];
+                            $profBusyLocal[$key][] = $pid;
+                        }
                     }
+                    $liquido[$impId] -= $bloqueDur;
+                    $colocadosHoy[$impId] = ($colocadosHoy[$impId] ?? 0) + $bloqueDur;
+                    // Consumir los slots usados.
+                    $slotsLibres = array_slice($slotsLibres, $best['nSlots']);
                 }
             }
-
-            // PASE C — rellenar saturado: materias ya cubiertas (líquido ≤ 0)
-            // pero con cobertura tras añadir slot ≤ 130% del target. Garantiza
-            // saturación de la jornada sin inflar materias pequeñas demasiado.
-            if ($bestImpId === null) {
-                $bestRatio = INF;
-                foreach ($imps as $impId => $imp) {
-                    if ($isBusyForProf($imp->getProfesor()?->getId())) continue;
-                    $target = $minutosTarget[$impId];
-                    if ($target <= 0) continue;
-                    $cubierto = $target - $liquido[$impId];
-                    $coberturaTrasAdd = ($cubierto + $duracion) / $target;
-                    if ($coberturaTrasAdd > 1.30) continue;
-                    $ratioActual = $cubierto / $target;
-                    if ($ratioActual < $bestRatio) {
-                        $bestRatio = $ratioActual;
-                        $bestImpId = $impId;
-                    }
-                }
-            }
-
-            if ($bestImpId === null) {
-                // Slot vacío (todas materias con profe ocupado o tope 130%).
-                continue;
-            }
-
-            $imp = $imps[$bestImpId];
-            $placements[$key] = [
-                'imp' => $imp,
-                'hi' => $cell['hi'],
-                'hf' => $cell['hf'],
-                'dia' => $cell['dia'],
-                'min' => $duracion,
-            ];
-            $pid = $imp->getProfesor()?->getId();
-            if ($pid !== null) {
-                $profBusyLocal[$key][] = $pid;
-            }
-            $liquido[$bestImpId] -= $duracion;
         }
 
         // Construir output (compatible con HorarioSolver).
@@ -289,7 +261,7 @@ class HorarioSolverBinPacking
             'periodoLectivoId' => $periodoLectivo->getId(),
             'periodoLectivoNombre' => $periodoLectivo->getNombre(),
             'debug' => [
-                'algoritmo' => 'bin-packing-first-fit',
+                'algoritmo' => 'bin-packing-bloques',
                 'periodoLectivoId' => $periodoLectivo->getId(),
                 'periodoLectivoNombre' => $periodoLectivo->getNombre(),
                 'jornadaId' => $jornada->getId(),
@@ -297,8 +269,9 @@ class HorarioSolverBinPacking
                 'turno' => $turno?->value,
                 'diasLectivos' => $diasLectivos,
                 'slotsPorDia' => count($slots),
-                'slotDurations' => array_map(fn ($s) => $s[2], $slots),  // [60, 60, 90, ...] — Fase 2 classifier
-                'totalSlots' => count($cells),
+                'slotDurations' => array_map(fn ($s) => $s[2], $slots),  // [30, 30, 30, ...] — Fase 2 classifier
+                'totalSlots' => count($slots) * count($diasLectivos),
+                'tramosContiguosPorDia' => array_map(fn ($t) => count($t), $tramosContiguos),
                 'totalMinutosAColocar' => $totalMinAColocar,
                 'minutosColocados' => $minutosColocados,
                 'placedCount' => count($out),
@@ -308,6 +281,206 @@ class HorarioSolverBinPacking
                 'elapsedSec' => round(microtime(true) - $start, 3),
             ],
         ];
+    }
+
+    /**
+     * Devuelve los slots agrupados en tramos contiguos. Un tramo contiguo
+     * = secuencia de slots `SLOT` consecutivos sin recreo entre medias.
+     * Ejemplo (FP Mañanas tras migración 30min):
+     *   slots 0-3 (08:30-10:30, 4×30min), recreo, slots 5-8 (10:50-12:50,
+     *   4×30min), recreo, slots 10-12 (13:00-14:30, 3×30min)
+     *   → 3 tramos contiguos: [4 slots], [4 slots], [3 slots].
+     *
+     * El solver coloca bloques DENTRO de cada tramo contiguo (un bloque no
+     * puede atravesar un recreo).
+     *
+     * @return array<int, array<int, array{0: string, 1: string, 2: int}>>
+     *         Cada entrada exterior es un tramo contiguo; cada interior es
+     *         un slot [horaInicio, horaFin, duracionMin].
+     */
+    private function buildTramosContiguos(JornadaTipo $jornada): array
+    {
+        $tramos = $jornada->getTramos()->toArray();
+        usort($tramos, fn ($a, $b) => $a->getHoraInicio() <=> $b->getHoraInicio());
+        $out = [];
+        $current = [];
+        foreach ($tramos as $t) {
+            if ($t->getTipo() !== TipoTramo::SLOT) {
+                // Recreo (o cualquier no-SLOT) cierra el tramo contiguo actual.
+                if (!empty($current)) {
+                    $out[] = $current;
+                    $current = [];
+                }
+                continue;
+            }
+            $hi = $t->getHoraInicio()?->format('H:i');
+            $hf = $t->getHoraFin()?->format('H:i');
+            if ($hi === null || $hf === null) continue;
+            $current[] = [$hi, $hf, $t->getDuracionMinutos()];
+        }
+        if (!empty($current)) {
+            $out[] = $current;
+        }
+        return $out;
+    }
+
+    /**
+     * Elige la mejor materia + tamaño de bloque a colocar al inicio de
+     * `$slotsLibres` (lista de slots consecutivos restantes en el tramo
+     * contiguo actual del día).
+     *
+     * Restricciones por candidato:
+     *   - liquido > 0
+     *   - colocadoHoy + bloque ≤ MAX_DIARIO_MIN_POR_MATERIA
+     *   - bloque cabe en slots libres del tramo
+     *   - profe libre en TODOS los slots del bloque
+     *
+     * Tamaño del bloque (en minutos): el más grande posible que cumpla
+     * `60 ≤ bloque ≤ min(120, líquido restante, capacidad diaria restante,
+     * minutos disponibles en slots libres)`. Si la materia tiene líquido
+     * < 60, intenta aún colocar 60min (overshoot acotado a último slot del
+     * mínimo) si el ratio de cobertura final ≤ 1.30 del target.
+     *
+     * Score: prioriza líquido descendente; empate → menor minutos colocados
+     * hoy (favorece distribución diaria entre materias).
+     *
+     * @param array<int, array{0: string, 1: string, 2: int}> $slotsLibres
+     * @return array{impId: int, nSlots: int}|null  null = no hay candidato
+     */
+    private function elegirMejorBloque(
+        array $slotsLibres,
+        array $imps,
+        array $liquido,
+        array $minutosTarget,
+        array $colocadosHoy,
+        int $dia,
+        array $profBusyLocal,
+        array $parallelBusy,
+    ): ?array {
+        if (empty($slotsLibres)) return null;
+        // Asumimos slots de duración uniforme dentro de un tramo contiguo
+        // (típico en jornadas reales: todo 30min o todo 60min).
+        $slotDur = $slotsLibres[0][2];
+        if ($slotDur <= 0) return null;
+        // Minutos disponibles en lo que queda del tramo.
+        $minutosDisponibles = count($slotsLibres) * $slotDur;
+
+        $best = null;  // ['impId', 'nSlots', 'durMin', 'score']
+        foreach ($imps as $impId => $imp) {
+            $liquidoImp = $liquido[$impId];
+            if ($liquidoImp <= 0) continue;  // ya cubierto (overshoot opcional vía pase B abajo)
+            $colocadoHoyImp = $colocadosHoy[$impId] ?? 0;
+            $capRestanteHoy = self::MAX_DIARIO_MIN_POR_MATERIA - $colocadoHoyImp;
+            if ($capRestanteHoy < self::MIN_BLOQUE_MIN) continue;  // ya tiene 60+ hoy o muy cerca
+
+            // Tamaño deseado (en minutos):
+            //   tope superior: min(MAX_BLOQUE, líquido, cap diario, disponible)
+            //   tope inferior: MIN_BLOQUE_MIN
+            $durDeseada = min(
+                self::MAX_BLOQUE_MIN,
+                $liquidoImp,
+                $capRestanteHoy,
+                $minutosDisponibles,
+            );
+            // Si líquido < MIN_BLOQUE pero cap permite 60min, podemos aceptar overshoot
+            // hasta llegar a MIN_BLOQUE_MIN siempre que no superemos 130% del target.
+            if ($durDeseada < self::MIN_BLOQUE_MIN) {
+                $target = $minutosTarget[$impId];
+                if ($target <= 0) continue;
+                // Overshoot tras colocar bloque mínimo
+                $cubierto = $target - $liquidoImp;
+                $coberturaTrasAdd = ($cubierto + self::MIN_BLOQUE_MIN) / $target;
+                if ($coberturaTrasAdd > 1.30) continue;
+                $durDeseada = self::MIN_BLOQUE_MIN;
+                if ($durDeseada > min($capRestanteHoy, $minutosDisponibles)) continue;
+            }
+            // Redondear hacia abajo a múltiplo de slotDur, sin bajar de MIN_BLOQUE_MIN.
+            $nSlotsDeseado = (int) floor($durDeseada / $slotDur);
+            if ($nSlotsDeseado * $slotDur < self::MIN_BLOQUE_MIN) continue;
+
+            // Probar el tamaño deseado y, si profe ocupado, ir bajando hasta
+            // MIN_BLOQUE_MIN. Esto absorbe el caso "profe libre solo 60min,
+            // pero materia querría bloque de 90".
+            $nSlotsFinal = null;
+            $pid = $imp->getProfesor()?->getId();
+            for ($n = $nSlotsDeseado; $n * $slotDur >= self::MIN_BLOQUE_MIN; $n--) {
+                $libreEnTodos = true;
+                for ($i = 0; $i < $n; $i++) {
+                    $key = $dia . '_' . $slotsLibres[$i][0];
+                    if ($pid !== null && (
+                        (isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) ||
+                        (isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true))
+                    )) {
+                        $libreEnTodos = false;
+                        break;
+                    }
+                }
+                if ($libreEnTodos) {
+                    $nSlotsFinal = $n;
+                    break;
+                }
+            }
+            if ($nSlotsFinal === null) continue;
+
+            $durFinal = $nSlotsFinal * $slotDur;
+            // Score: líquido pendiente (mayor prioridad) menos lo colocado hoy
+            // (favorece distribución diaria — materias que no han recibido nada
+            // hoy ganan a las que ya tienen slots).
+            $score = $liquidoImp - $colocadoHoyImp;
+            if ($best === null || $score > $best['score']) {
+                $best = [
+                    'impId' => $impId,
+                    'nSlots' => $nSlotsFinal,
+                    'durMin' => $durFinal,
+                    'score' => $score,
+                ];
+            }
+        }
+
+        if ($best !== null) {
+            return ['impId' => $best['impId'], 'nSlots' => $best['nSlots']];
+        }
+
+        // Pase de "saturar la jornada": ninguna materia con líquido > 0 cabe.
+        // Buscar materias ya cubiertas (líquido ≤ 0) cuya cobertura tras
+        // añadir un bloque mínimo no supere el 130% del target. Garantiza
+        // que la jornada quede ocupada (sin huecos) sin inflar materias
+        // pequeñas demasiado.
+        $bestRatio = INF;
+        $bestSat = null;
+        foreach ($imps as $impId => $imp) {
+            $colocadoHoyImp = $colocadosHoy[$impId] ?? 0;
+            $capRestanteHoy = self::MAX_DIARIO_MIN_POR_MATERIA - $colocadoHoyImp;
+            if ($capRestanteHoy < self::MIN_BLOQUE_MIN) continue;
+            $target = $minutosTarget[$impId];
+            if ($target <= 0) continue;
+            $cubierto = $target - $liquido[$impId];
+            $coberturaTrasAdd = ($cubierto + self::MIN_BLOQUE_MIN) / $target;
+            if ($coberturaTrasAdd > 1.30) continue;
+            $ratioActual = $cubierto / $target;
+            if ($ratioActual >= $bestRatio) continue;
+
+            // Verificar profe libre.
+            $pid = $imp->getProfesor()?->getId();
+            $nSlots = (int) (self::MIN_BLOQUE_MIN / max(1, $slotsLibres[0][2]));
+            if ($nSlots * $slotsLibres[0][2] < self::MIN_BLOQUE_MIN) continue;
+            if ($nSlots > count($slotsLibres)) continue;
+            $libre = true;
+            for ($i = 0; $i < $nSlots; $i++) {
+                $key = $dia . '_' . $slotsLibres[$i][0];
+                if ($pid !== null && (
+                    (isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) ||
+                    (isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true))
+                )) {
+                    $libre = false;
+                    break;
+                }
+            }
+            if (!$libre) continue;
+            $bestRatio = $ratioActual;
+            $bestSat = ['impId' => $impId, 'nSlots' => $nSlots];
+        }
+        return $bestSat;
     }
 
     /**

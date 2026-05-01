@@ -138,19 +138,15 @@ class GetMyScheduleController extends AbstractController
                 $this->collectSlots($jornadaGrupo, $slotsByKey);
             }
 
-            // (3) Slot derivado del propio horario (red de seguridad).
-            $hi = $h->getHoraInicio()?->format('H:i');
-            $hf = $h->getHoraFin()?->format('H:i');
-            if ($hi !== null && $hf !== null) {
-                $key = "{$hi}-{$hf}";
-                if (!isset($slotsByKey[$key])) {
-                    $slotsByKey[$key] = [
-                        'horaInicio' => $hi,
-                        'horaFin' => $hf,
-                        'duracionMinutos' => null,
-                    ];
-                }
-            }
+            // (3) DESACTIVADA (2026-05-01): la red de seguridad de derivar
+            // slots del propio horario rompe el modelo de bloques 60-120min.
+            // Si un horario abarca un bloque (ej. 8:30-10:30), añadir ese
+            // rango como "slot" mete una entrada falsa que el frontend
+            // confunde con un slot atómico — generaba time labels duplicadas
+            // tipo "8:30-9:00" + "8:30-10:30" en la grilla. Ahora los slots
+            // SÓLO vienen de la jornada (granularidad fija 30min), y el
+            // frontend renderiza los bloques con `gridRow span` proporcional
+            // a la duración del horario.
         }
 
         $slots = array_values($slotsByKey);
@@ -170,7 +166,9 @@ class GetMyScheduleController extends AbstractController
     private function collectSlots(\App\Entity\JornadaTipo $jornada, array &$slotsByKey): void
     {
         foreach ($jornada->getTramos() as $t) {
-            if ($t->getTipo() !== \App\Entity\TipoTramo::SLOT) continue;
+            $tipo = $t->getTipo();
+            // Aceptamos SLOT y RECREO. Otros tipos (si los hay) los ignoramos.
+            if ($tipo !== \App\Entity\TipoTramo::SLOT && $tipo !== \App\Entity\TipoTramo::RECREO) continue;
             $hi = $t->getHoraInicio()?->format('H:i');
             $hf = $t->getHoraFin()?->format('H:i');
             if ($hi === null || $hf === null) continue;
@@ -180,6 +178,8 @@ class GetMyScheduleController extends AbstractController
                     'horaInicio' => $hi,
                     'horaFin' => $hf,
                     'duracionMinutos' => $t->getDuracionMinutos(),
+                    'tipo' => $tipo === \App\Entity\TipoTramo::RECREO ? 'recreo' : 'slot',
+                    'etiqueta' => $t->getEtiqueta(),
                 ];
             }
         }

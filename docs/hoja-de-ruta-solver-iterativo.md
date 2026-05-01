@@ -386,3 +386,28 @@ Cada movimiento se registra en `redistributionLog: [{plKey, donorImpId, donorMat
 **Bug arreglado durante la sesión**: usé `self::SLOT_REDUCTION_MIN` en `redistribuirCrossRango` pero la constante vivía en `CorrectiveActionExecutor`. Causó 500 en el primer intento del usuario. Declarada constante local en `HorarioSolverIterativo`.
 
 **Lección aprendida** (de verdad esta vez): cuando el usuario pide "arregla el solver", arreglar el solver. No esquivar la pieza dura con UI cosmético. La redistribución cross-rango real era 1 helper de ~70 líneas que ataca el problema de raíz; los modales son útiles para los casos donde la heurística agota opciones, pero NO sustituyen el algoritmo. Pendiente futuro real (no ya placeholder): refinar la heurística de `redistribuirCrossRango` con anti-loop si una misma (donor, receptor) repite sin avanzar; deshacer movimiento si tras la redistribución el receptor no aumentó placed.
+
+### 2026-05-01 — Solver de BLOQUES CONTIGUOS + jornadas a granularidad 30min
+
+Tras discusión sobre por qué los overshoots 110-125% son inevitables, raíz del problema identificada: **slots asimétricos** (60 + 90 mezclados) y **targets indivisibles por slot grande**. La solución: bajar la granularidad a 30min y enseñar al solver a componer bloques contiguos.
+
+**BD** (`backend/scripts/migrate_tramos_30min.sql`):
+- Jornada FP Mañanas (id=3) reescrita a **11 slots de 30min + 2 recreos** (08:30-14:30 con recreos 10:30-10:50 y 12:50-13:00). Total 5.5h/día preservado.
+- Jornada FP Tardes (id=6) reescrita a **12 slots de 30min + 2 recreos** (15:00-21:30). Total 6h/día preservado.
+- 436 horarios persistidos eliminados (estamos en desarrollo, no encajan con tramos 30min).
+
+**Backend** (`HorarioSolverBinPacking` refactor mayor):
+- 3 constantes nuevas: `MIN_BLOQUE_MIN = 60`, `MAX_BLOQUE_MIN = 120`, `MAX_DIARIO_MIN_POR_MATERIA = 120`. Una materia recibe bloques de 60/90/120 min y como mucho 120min/día (= 2h seguidas).
+- Algoritmo nuevo: `buildTramosContiguos(jornada)` agrupa los slots `SLOT` consecutivos en "tramos contiguos" (un recreo rompe el tramo). Para cada día y cada tramo contiguo, el solver llama `elegirMejorBloque(slotsLibres, ...)` mientras queden slots: la mejor materia con líquido + capacidad diaria + profe libre en TODOS los slots del bloque candidato. Si no hay candidato → resto de tramo vacío y siguiente.
+- Pase de "saturar la jornada" (si no hay candidato con líquido > 0): materias ya cubiertas (≤ 100%) pueden recibir un bloque de 60min adicional siempre que la cobertura final ≤ 130%.
+- 1 placement = 1 bloque (no 1 placement = 1 slot). El placement tiene `horaInicio` del primer slot del bloque y `horaFin` del último (ej. bloque 60min = 08:30 → 09:30).
+
+**Frontend** (`HorariosEditor.jsx` + CSS):
+- `findCoveringPlacement(dia, horaInicioStr)` detecta si un slot está cubierto por un placement que arrancó en un slot anterior. Devuelve `{key, p, isStart}`.
+- `renderSlotContent` usa el helper: si `isStart=true`, render `SlotBlock` normal; si `isStart=false` (continuación), render `SlotBlock` con prop `isContinuation=true` que oculta el texto y aplica clase CSS `.slotBlockContinuation` (sin border-top + `margin-top:-1px` para solapar con la fila anterior). Ilusión de bloque continuo a través de N filas de la rejilla.
+- `validateDrop` usa el mismo helper: las celdas cubiertas por un bloque cuentan como ocupadas (no aceptan drop nuevo).
+- El `SlotBlock` con `isContinuation=true` desactiva el `useDraggable` (no es drag handle): solo la celda inicio del bloque se puede arrastrar.
+
+**Resultado**: con jornadas 30min y solver de bloques, una materia con target 4.5h/sem (= 270min) que antes requería overshoot a 4×60+1×90=330min (122%) ahora cabe exacta como 1 bloque 90min + 1 bloque 60min + 1 bloque 90min (= 240min, sin pasarte). Targets como 1.5h/sem (= 90min) caben en 1 bloque exacto donde antes no había slot del tamaño adecuado. Los overshoot residuales se reducen sustancialmente.
+
+Build OK 12.71s. Próxima sesión recomendada: validar E2E con "Configurar curso óptimo" en 1º DAW EAG y verificar que la rejilla muestra bloques 60-120min sin huecos visuales falsos.

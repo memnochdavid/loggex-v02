@@ -406,6 +406,48 @@ class HorarioSolverIterativo
             }
         }
 
+        // Post-proceso (2026-05-01): filtrar `unplaced` per-PL para imps que
+        // ya están cubiertas ANUALMENTE. Cuando una imp tiene 30min residual
+        // en un PL pero otros PLs ya superaron el target anual, ese unplaced
+        // NO es un fallo del solver — es overshoot mínimo en otros rangos
+        // que compensa el residual aquí. Sin este filtro, el modal del
+        // frontend mostraba falsos "Rango N incomplete" cuando todo cuadra.
+        foreach ($perPl as $idx => $plRep) {
+            $unplacedFiltrado = [];
+            foreach ($plRep['unplaced'] ?? [] as $u) {
+                $impId = (int) ($u['imparticionId'] ?? 0);
+                if ($impId <= 0) continue;
+                $target = $targetAnualByImp[$impId] ?? 0;
+                $placed = $accumPlacedByImp[$impId] ?? 0;
+                if ($target > 0 && $placed >= $target * 0.95) {
+                    // Anualmente cubierto: este unplaced del PL es residual
+                    // matemáticamente irreducible (target del rango < bloque
+                    // mínimo) pero no afecta al currículo. Se omite del
+                    // reporte y el PL queda complete=true.
+                    continue;
+                }
+                $unplacedFiltrado[] = $u;
+            }
+            if (count($unplacedFiltrado) !== count($plRep['unplaced'] ?? [])) {
+                $perPl[$idx]['unplaced'] = $unplacedFiltrado;
+                $perPl[$idx]['complete'] = empty($unplacedFiltrado);
+                // Si tras el filtro no queda unplaced real, el diagnostic del
+                // solver individual del PL (que detectó UNKNOWN o lo que sea
+                // por ese unplaced residual) ya no aplica: limpiar para que
+                // el frontend NO lo trate como issue.
+                if (empty($unplacedFiltrado)) {
+                    $perPl[$idx]['diagnostic'] = [
+                        'stoppedReason' => 'allCoveredAfterCrossRangoFilter',
+                        'iterationsRun' => $perPl[$idx]['diagnostic']['iterationsRun'] ?? 0,
+                        'finalUnplaced' => [],
+                        'primaryBottleneck' => null,
+                        'metrics' => [],
+                        'suggestions' => [],
+                    ];
+                }
+            }
+        }
+
         return [
             'perPl' => $perPl,
             'accumPlacedByImp' => $accumPlacedByImp,

@@ -114,15 +114,20 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
         if (Array.isArray(slots) && slots.length > 0) {
             return slots
                 .filter(s => parseInt(s.horaInicio.split(':')[0], 10) < 15)
-                .map(s => ({ start: s.horaInicio, end: s.horaFin }));
+                .map(s => ({
+                    start: s.horaInicio,
+                    end: s.horaFin,
+                    tipo: s.tipo || 'slot',
+                    etiqueta: s.etiqueta || null,
+                }));
         }
         return [
-            { start: '08:30', end: '09:30' },
-            { start: '09:30', end: '10:30' },
-            { start: '10:30', end: '11:30' },
-            { start: '11:30', end: '12:30' },
-            { start: '12:30', end: '13:30' },
-            { start: '13:30', end: '14:30' },
+            { start: '08:30', end: '09:30', tipo: 'slot' },
+            { start: '09:30', end: '10:30', tipo: 'slot' },
+            { start: '10:30', end: '11:30', tipo: 'slot' },
+            { start: '11:30', end: '12:30', tipo: 'slot' },
+            { start: '12:30', end: '13:30', tipo: 'slot' },
+            { start: '13:30', end: '14:30', tipo: 'slot' },
         ];
     }, [slots]);
 
@@ -130,15 +135,20 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
         if (Array.isArray(slots) && slots.length > 0) {
             return slots
                 .filter(s => parseInt(s.horaInicio.split(':')[0], 10) >= 15)
-                .map(s => ({ start: s.horaInicio, end: s.horaFin }));
+                .map(s => ({
+                    start: s.horaInicio,
+                    end: s.horaFin,
+                    tipo: s.tipo || 'slot',
+                    etiqueta: s.etiqueta || null,
+                }));
         }
         return [
-            { start: '15:00', end: '16:00' },
-            { start: '16:00', end: '17:00' },
-            { start: '17:00', end: '18:00' },
-            { start: '18:00', end: '19:00' },
-            { start: '19:00', end: '20:00' },
-            { start: '20:00', end: '21:00' },
+            { start: '15:00', end: '16:00', tipo: 'slot' },
+            { start: '16:00', end: '17:00', tipo: 'slot' },
+            { start: '17:00', end: '18:00', tipo: 'slot' },
+            { start: '18:00', end: '19:00', tipo: 'slot' },
+            { start: '19:00', end: '20:00', tipo: 'slot' },
+            { start: '20:00', end: '21:00', tipo: 'slot' },
         ];
     }, [slots]);
 
@@ -176,7 +186,11 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
             }
         });
 
-        // 2. Colocar eventos en la matriz (solo si no es festivo)
+        // 2. Colocar eventos en la matriz (solo si no es festivo).
+        // Soporta BLOQUES (1 evento que cubre varios slots de 30min, p.ej.
+        // 8:30→9:30): el evento se coloca en su slot inicio con rowSpan = N
+        // (cuántos slots de la jornada cubre); los slots intermedios y final
+        // se marcan skip=true para no renderizarse.
         if (Array.isArray(events)) {
             slots.forEach((slot, hIndex) => {
                 days.forEach((day, dIndex) => {
@@ -186,8 +200,19 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                         e.diaSemana === (dIndex + 1) &&
                         e.horaInicio === slot.start
                     );
-                    if (event) {
-                        grid[hIndex][dIndex] = { event, rowSpan: 1, skip: false };
+                    if (!event) return;
+
+                    // Calcular cuántos slots cubre el evento (event.horaFin > slot.start de cada uno).
+                    let span = 1;
+                    for (let k = hIndex + 1; k < slots.length; k++) {
+                        if (slots[k].start >= event.horaFin) break;
+                        span++;
+                    }
+                    grid[hIndex][dIndex] = { event, rowSpan: span, skip: false };
+                    // Marcar slots cubiertos por el bloque como skip.
+                    for (let k = 1; k < span; k++) {
+                        if (grid[hIndex + k][dIndex]) continue;
+                        grid[hIndex + k][dIndex] = { skip: true };
                     }
                 });
             });
@@ -301,12 +326,85 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                         </div>
                     ))}
 
-                    {/* Filas Horas */}
-                    {slots.map((slot, hIndex) => (
+                    {/* Filas Horas. La time-cell muestra el rango del TRAMO
+                        CONTIGUO entero (sin recreos entre medias) — ej.
+                        "8:30-10:30" cubre 4 slots de 30min consecutivos hasta
+                        el siguiente recreo. La time-cell del primer slot del
+                        tramo tiene gridRow span = N; las time-cells de los
+                        slots siguientes dentro del mismo tramo NO se
+                        renderizan (la time-cell del inicio las cubre). Las
+                        celdas día siguen siendo per-slot con sus propios
+                        rowSpan según la duración del evento (60-120min). */}
+                    {(() => {
+                        // Pre-calcular tramos contiguos de tipo SLOT (sin recreos
+                        // entre medias). Los recreos rompen el tramo y se
+                        // renderizan como una fila completa propia.
+                        const tramoInfo = new Array(slots.length);
+                        let i = 0;
+                        while (i < slots.length) {
+                            // Salto recreos: cada uno es su propio "tramo" de 1.
+                            if (slots[i].tipo === 'recreo') {
+                                tramoInfo[i] = { isStart: true, span: 1, tramoStart: slots[i].start, tramoEnd: slots[i].end, isRecreo: true };
+                                i++;
+                                continue;
+                            }
+                            let j = i;
+                            while (j + 1 < slots.length
+                                && slots[j + 1].tipo === 'slot'
+                                && slots[j].end === slots[j + 1].start) {
+                                j++;
+                            }
+                            const span = j - i + 1;
+                            const tramoEnd = slots[j].end;
+                            for (let k = i; k <= j; k++) {
+                                tramoInfo[k] = {
+                                    isStart: k === i,
+                                    span: k === i ? span : 0,
+                                    tramoEnd,
+                                    tramoStart: slots[i].start,
+                                    isRecreo: false,
+                                };
+                            }
+                            i = j + 1;
+                        }
+
+                        return slots.map((slot, hIndex) => {
+                            const tInfo = tramoInfo[hIndex];
+                            // Recreo: renderizar como banda diagonal por día,
+                            // saltando días con festivo (cuya celda ya está
+                            // cubierta por rowSpan del festivo desde fila 0).
+                            // Sin saltarlos, CSS Grid se desordena visualmente.
+                            if (tInfo.isRecreo) {
+                                return (
+                                    <React.Fragment key={hIndex}>
+                                        <div className={styles.timeCell}>
+                                            {tInfo.tramoStart} - {tInfo.tramoEnd}
+                                        </div>
+                                        {days.map((_, dIndex) => {
+                                            const cd = gridData[hIndex][dIndex];
+                                            if (cd && cd.isFestivo) return null;
+                                            return (
+                                                <div
+                                                    key={`recreo-${dIndex}`}
+                                                    className={styles.recreoStrip}
+                                                >
+                                                    {dIndex === 0 && (slot.etiqueta || t('timetable.recreo', { defaultValue: 'Recreo' }))}
+                                                </div>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                );
+                            }
+                            return (
                         <React.Fragment key={hIndex}>
-                            <div className={styles.timeCell}>
-                                {slot.start} - {slot.end}
-                            </div>
+                            {tInfo.isStart && (
+                                <div
+                                    className={styles.timeCell}
+                                    style={tInfo.span > 1 ? { gridRow: `span ${tInfo.span}` } : undefined}
+                                >
+                                    {tInfo.tramoStart} - {tInfo.tramoEnd}
+                                </div>
+                            )}
                             {days.map((day, dIndex) => {
                                 const cellData = gridData[hIndex][dIndex];
                                 const isHighlighted = selectedDayIndex === (dIndex + 1);
@@ -363,7 +461,9 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                 );
                             })}
                         </React.Fragment>
-                    ))}
+                        );
+                    });
+                    })()}
                 </div>
             </div>
         );

@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\Grupo;
 use App\Entity\Horario;
+use App\Entity\JornadaTipo;
 use App\Entity\Matricula;
 use App\Entity\PeriodoLectivo;
+use App\Entity\TipoTramo;
 use App\Entity\User;
 use App\Service\PdfBranding;
 use App\Service\PdfGenerator;
@@ -137,7 +139,8 @@ class HorarioPdfController extends AbstractController
                 grupo: $grupo,
                 usuarioPersonal: null,
                 horarios: $entry['horarios'],
-                lang: $lang
+                lang: $lang,
+                jornada: $pl?->getEffectiveJornadaTipo()
             );
             $paginas[] = [
                 'plNombre' => $pl?->getNombre(),
@@ -282,21 +285,39 @@ class HorarioPdfController extends AbstractController
         ?Grupo $grupo,
         ?User $usuarioPersonal,
         array $horarios,
-        string $lang
+        string $lang,
+        ?JornadaTipo $jornada = null
     ): array {
-        // Slots únicos derivados de los horarios reales (orden por hora_inicio)
-        $slotsMap = [];
-        foreach ($horarios as $h) {
-            $hi = $h->getHoraInicio()?->format('H:i');
-            $hf = $h->getHoraFin()?->format('H:i');
-            if (!$hi || !$hf) continue;
-            $key = $hi . '-' . $hf;
-            if (!isset($slotsMap[$key])) {
-                $slotsMap[$key] = ['key' => $key, 'horaInicio' => $hi, 'horaFin' => $hf];
+        // Slots base: si tenemos jornada explícita (caso PL), usar sus tramos
+        // SLOT (sin recreos). Si no, derivar del propio set de horarios reales
+        // (modo legacy). La jornada da granularidad fija (30min) y permite
+        // que los bloques 60-120min se rendericen con rowspan correctamente
+        // aunque distintos días tengan bloques desalineados.
+        $slots = [];
+        if ($jornada !== null) {
+            $tramos = $jornada->getTramos()->toArray();
+            usort($tramos, fn ($a, $b) => $a->getHoraInicio() <=> $b->getHoraInicio());
+            foreach ($tramos as $t) {
+                if ($t->getTipo() !== TipoTramo::SLOT) continue;
+                $hi = $t->getHoraInicio()?->format('H:i');
+                $hf = $t->getHoraFin()?->format('H:i');
+                if (!$hi || !$hf) continue;
+                $slots[] = ['key' => $hi . '-' . $hf, 'horaInicio' => $hi, 'horaFin' => $hf];
             }
+        } else {
+            $slotsMap = [];
+            foreach ($horarios as $h) {
+                $hi = $h->getHoraInicio()?->format('H:i');
+                $hf = $h->getHoraFin()?->format('H:i');
+                if (!$hi || !$hf) continue;
+                $key = $hi . '-' . $hf;
+                if (!isset($slotsMap[$key])) {
+                    $slotsMap[$key] = ['key' => $key, 'horaInicio' => $hi, 'horaFin' => $hf];
+                }
+            }
+            uasort($slotsMap, fn($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+            $slots = array_values($slotsMap);
         }
-        uasort($slotsMap, fn($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
-        $slots = array_values($slotsMap);
 
         // Particionado mañana/tarde: corte en 14:30
         $slotsManana = [];
@@ -309,7 +330,11 @@ class HorarioPdfController extends AbstractController
             }
         }
 
-        // Matriz [slotKey][diaSemana] => evento
+        // Matriz [slotKey][diaSemana] => {evento, rowSpan, skip}
+        // - Cada horario es UN bloque (60-120min). Se coloca en su slot inicio
+        //   con rowSpan = N (cuántos slots de la jornada cubre).
+        // - Los slots intermedios y final se marcan skip=true → el twig los omite.
+        // - Si todos los días en una fila son skip, el twig oculta la fila.
         $matriz = [];
         foreach ($horarios as $h) {
             $hi = $h->getHoraInicio()?->format('H:i');
@@ -326,7 +351,31 @@ class HorarioPdfController extends AbstractController
                 ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
                 : null;
 
-            $matriz[$key][$dia] = [
+            // Calcular rowSpan: cuántos slots de la jornada cubre el bloque.
+            $rowSpan = 1;
+            $slotsCubiertos = [];
+            $startedCovering = false;
+            foreach ($slots as $s) {
+                if ($s['horaInicio'] === $hi) {
+                    $startedCovering = true;
+                    continue; // saltar el slot inicio (es el del propio evento)
+                }
+                if (!$startedCovering) continue;
+                if ($s['horaInicio'] >= $hf) break;
+                $slotsCubiertos[] = $s['key'];
+                $rowSpan++;
+            }
+
+            // Para que la fila inicio pueda buscar la celda usando el key del SLOT
+            // (no el del evento), buscamos el slot cuyo horaInicio == hi y usamos
+            // su key. Si no existe (bloque desalineado), fallback al key del evento.
+            $startSlotKey = null;
+            foreach ($slots as $s) {
+                if ($s['horaInicio'] === $hi) { $startSlotKey = $s['key']; break; }
+            }
+            $cellKey = $startSlotKey ?? $key;
+
+            $matriz[$cellKey][$dia] = [
                 'materia' => $materia?->getNombre() ?? '—',
                 'moduloId' => $materia?->getId() ?? 0,
                 'profesor' => $profNombre,
@@ -335,7 +384,15 @@ class HorarioPdfController extends AbstractController
                 'grupoAbreviatura' => $grupoEv?->getAbreviatura(),
                 'grupoCurso' => $grupoEv?->getCurso(),
                 'color' => $this->colorForModule($materia?->getId() ?? 0),
+                'rowSpan' => $rowSpan,
+                'skip' => false,
             ];
+            // Marcar slots cubiertos como skip (no renderizar celda).
+            foreach ($slotsCubiertos as $skKey) {
+                if (!isset($matriz[$skKey][$dia])) {
+                    $matriz[$skKey][$dia] = ['skip' => true];
+                }
+            }
         }
 
         $diasSemana = [1, 2, 3, 4, 5];
