@@ -2414,8 +2414,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
 
     // Modo CREATE: añadir un PL virtual a plsToCreate.
+    // Si el usuario NO selecciona jornada en el modal, heredamos la jornada
+    // efectiva del grupo (cadena Grupo.override → Itinerario.jornadaTipo).
+    // Sin esto, un PL virtual sin jornada explícita rompía la rejilla
+    // (slotsDia=[] → empty state "no jornada"), problema visible cuando el
+    // itinerario no tiene jornada asignada y el grupo tampoco override.
     const tempId = tempIdSeqRef.current;
     tempIdSeqRef.current -= 1;
+    const explicitJid = plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null;
+    const inheritedJid = explicitJid ?? (Number(resolveEffectiveJornadaId(grupo)) || null);
     const draft = {
       tempId,
       id: tempId,
@@ -2423,8 +2430,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       nombre: plForm.nombre,
       fechaInicio: plForm.fechaInicio,
       fechaFin: plForm.fechaFin,
-      jornadaTipoId: plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null,
-      jornadaTipo: plForm.jornadaTipoId ? { id: Number(plForm.jornadaTipoId) } : null,
+      jornadaTipoId: inheritedJid,
+      jornadaTipo: inheritedJid ? { id: inheritedJid } : null,
       orden: (plByGrupo[selectedGrupo]?.length || 0),
     };
     setPendingTxByGrupo(prev => {
@@ -2447,6 +2454,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
       };
     });
+    // Inicializar state[gid_tempId] vacío para que grupoState sea truthy y
+    // la rejilla se renderice (sin esto, empty state "Selecciona un grupo").
+    setState(prev => ({
+      ...prev,
+      [`${selectedGrupo}_${tempId}`]: {
+        placements: {},
+        baseline: {},
+        dirty: false,
+      },
+    }));
     setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: String(tempId) }));
     setPlPickerOpen(false);
     toast.success(t('scheduleEditor.rangoCreatedPreview', {
@@ -3483,6 +3500,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const diasPorTramo = Math.floor(totalDias / N);
     const remainder = totalDias - diasPorTramo * N;
 
+    // Heredar la jornada efectiva del grupo (cadena Grupo.override →
+    // Itinerario.jornadaTipo) en cada PL virtual. Sin esto, si la cadena
+    // de fallback a nivel de PL devolviera null, la rejilla del editor
+    // mostraría empty state "no jornada" — caso visible cuando el itinerario
+    // no tiene jornada asignada.
+    const jornadaIdHeredada = Number(resolveEffectiveJornadaId(grupo)) || null;
+
     // Construir N virtuales con tempIds negativos.
     const plsToCreate = [];
     let cursor = new Date(ini);
@@ -3500,8 +3524,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         nombre: t('scheduleEditor.recommendedRangoNombre', { defaultValue: 'Rango {{n}}', n: i + 1 }),
         fechaInicio: tramoIni.toISOString().slice(0, 10),
         fechaFin: tramoFin.toISOString().slice(0, 10),
-        jornadaTipo: null,
-        jornadaTipoId: null,
+        jornadaTipo: jornadaIdHeredada ? { id: jornadaIdHeredada } : null,
+        jornadaTipoId: jornadaIdHeredada,
         orden: i,
       });
       cursor.setDate(cursor.getDate() + dias);
@@ -3529,6 +3553,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setCapacityByGrupo(prev => {
       const next = { ...prev };
       Object.keys(next).forEach(k => { if (k.startsWith(`${selectedGrupo}_`)) delete next[k]; });
+      return next;
+    });
+    // Inicializar state[gid_tempId] vacío para cada PL virtual: sin esto,
+    // grupoState es undefined y la rejilla muestra "Selecciona un grupo".
+    setState(prev => {
+      const next = { ...prev };
+      plsToCreate.forEach(pl => {
+        next[`${selectedGrupo}_${pl.tempId}`] = {
+          placements: {},
+          baseline: {},
+          dirty: false,
+        };
+      });
       return next;
     });
     if (plsToCreate[0]) {
@@ -4745,7 +4782,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                             {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
                           </Button>
                           <Button
-                            onClick={runSolverAllRangos}
+                            onClick={() => runSolverAllRangos()}
                             disabled={baseDisabled || solverHardBlocked || solverAllRunning || (plByGrupo[selectedGrupo] || []).length === 0}
                             variant="secondary"
                             title={blockTitle || t('scheduleEditor.solverAllHint', { defaultValue: 'Ejecuta el solver en todos los rangos del curso, en orden cronológico' })}

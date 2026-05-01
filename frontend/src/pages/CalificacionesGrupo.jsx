@@ -626,10 +626,9 @@ const CalificacionesGrupo = () => {
                 <CrudHeader
                     title={t('grades.title')}
 
-                    subtitle={t('grades.subtitle')}
                     subtitle={mediasData?.imparticion
                         ? `${mediasData.imparticion?.materia} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`
-                        : undefined}
+                        : t('grades.subtitle')}
                     logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (
