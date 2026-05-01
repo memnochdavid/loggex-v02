@@ -6,7 +6,30 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**🗒️ Cierre 2026-05-01 — Tanda B parte 3 ✅ Done.** Cerradas las 3 cosas que aún tocaban BD inmediatamente, cerrando del todo el refactor "nada persiste hasta Guardar" en `/admin/horarios`:
+**🗒️ Cierre 2026-05-01 noche — Solver iterativo + bloques contiguos + jornadas 30min + rejillas reescritas ✅ Done.** Sesión maratón con cambios estructurales en solver, BD, rejillas y vistas. Trabajo agrupado por bloques temáticos:
+
+1. **Solver iterativo (Fases 1–5 + redistribución cross-rango real)** — `HorarioSolverIterativo` con bucle outer que mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o probar imposibilidad heurística. `BottleneckClassifier` + `CorrectiveActionExecutor` (3 acciones). Endpoints `/solver-iterativo/{gid}` y `/solver-iterativo-multi/{gid}`. Modal "Informe del solver" con bottleneck/sugerencias/log de pasadas. Validado E2E con 1º DAW EAG: imp 38 al 0% inicial → 125% tras 1 movimiento outer.
+2. **Solver de BLOQUES CONTIGUOS** — `HorarioSolverBinPacking` reescrito a bloques 60-120min sobre granularidad 30min, máx 120/día/materia. `buildTramosContiguos(jornada)` agrupa SLOTs entre recreos; `elegirMejorBloque` busca candidato por día respetando profe libre + cap diario. 1 placement = 1 bloque (no 1/slot).
+3. **BD: jornadas a 30min** — `backend/scripts/migrate_tramos_30min.sql` reescribe FP Mañanas (id=3) y FP Tardes (id=6) a 11/12 slots de 30min + recreos preservando totales 5.5h/6h/día. Permite que el solver de bloques componga combos exactos para targets indivisibles antes (1.5h, 0.5h sueltas).
+4. **`PeriodoLectivoSoftDeleteProcessor`** — cascadea soft-delete a `Horario` + `PeriodoLectivoImparticion`. Sin esto, "Configurar curso óptimo" dejaba horarios huérfanos vivos apuntando a PL `deleted` → `EntityNotFoundException` 500 en `/api/my-schedule`.
+5. **Rejillas reescritas para mostrar bloques con rowspan**:
+   - `/admin/horarios`: refactor a UN único CSS Grid global. Celdas día con `gridRow: span N`; continuación retorna null. `infoBar` con `grid-column: 1/-1`. Bordes separadores explícitos.
+   - `/horarios` (TimeTable): time labels agrupadas por **tramo contiguo** ("8:30-10:30"). Recreos como banda diagonal saltando columnas con festivo. min-height celdas 45→22px.
+   - PDFs (`HorarioPdfController` + `pdf/horario.html.twig`): matriz con rowSpan/skip. `<td rowspan="N">`, ocultar filas all-skip.
+6. **GetMyScheduleController limpiado** — quitada fuente (3) "slots derivados de horarios" que mezclaba slots atómicos con bloques. Endpoint incluye recreos (campo `tipo`). **OJO**: cachea response 5min vía `CacheInterface`; cualquier cambio aquí requiere `cache:pool:clear cache.app`.
+7. **Helper `getPlacementDur(p)`** — `horaFin - horaInicio` (no `slotMinutosByHi[hi]` que daba 30min para bloques). Sustituido en 5 cálculos: `minutosColocados`, `minutosAnualesColocadosByImp`, `colocadosMinutos`, `profeCarga`, `placedAnualOtrosRangos`.
+8. **Banner anual lee pendingTx** para PLs virtuales (id<0) — antes mostraba "Planificado: 0h" y proponía "Extender curso 245 días".
+9. **PLs manuales / recomendados heredan jornada** del grupo + inicializan `state[gid_tempId]` vacío para que `grupoState` sea truthy y la rejilla aparezca.
+
+**Bugs corregidos (lista de cosas a no repetir)**: `SLOT_REDUCTION_MIN` no existía en HorarioSolverIterativo; `const t` shadow del t() i18n en IIFE; `optimalMultiJson` fuera de scope; modal "Acciones del curso" transparente y generaba scroll; falsos positivos en modal de informe (unplaced residual cubierto anualmente); sección distribuidor histórica tras redistribución resuelta; `onClick={runSolverAllRangos}` directo (event como plsOverride); duplicate `subtitle` en `Configuracion.jsx` + `CalificacionesGrupo.jsx` que rompía el build.
+
+Bitácora completa: `hoja-de-ruta-solver-iterativo.md` (5 entradas seguidas del 2026-05-01).
+
+**Pendiente futuro residual** (no bloqueante): refinar heurística `redistribuirCrossRango` con anti-loop (no repetir donor/receptor sin avance) y rollback si receptor no aumenta placed.
+
+---
+
+**🗒️ Cierre 2026-05-01 mañana — Tanda B parte 3 ✅ Done.** Cerradas las 3 cosas que aún tocaban BD inmediatamente, cerrando del todo el refactor "nada persiste hasta Guardar" en `/admin/horarios`:
 
 1. **Modal "Materias del rango" (Sliders)** — reemplazadas `activatePli/deactivatePli/updatePliMinutos` por `togglePliInTx` (push a nueva estructura `tx.pliToggles: [{plKey, imparticionId, action}]`) y `setPliMinutosInTx` (push a `tx.pliPatches`). `pliModalRows` reescrito con overlay `base + toggles + patches`; para PL virtual el "base" es "todas las imps activas con minutos heredados" (lo que el processor del backend creará al persistir). `openPliModal` skipea fetch para PL virtual (id<0).
 2. **`runSolver` sobre PL virtual** — branching: si `targetPlId<0`, redirige a `/api/v1/horarios/solver-dry-run/{gid}` con body `{rango: {tempId, fechaInicio, fechaFin, jornadaTipoId, plis}, alreadyPlacedByImp, totalSemanasGrupoOverride}` derivado del draft + toggles + patches del pendingTx. `runSolverAllRangos` no necesita cambios (delega a `runSolver`).
@@ -244,8 +267,8 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Mercure + workers tiempo real | Bajo: polling actual aguanta hasta cierto volumen |
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
-| `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Deuda residual aplazada (~1-2 sesiones futuras) | Bin-packing first-fit es default. Satura jornadas. Deuda residual: undershoot 81-88% en materias pequeñas con conflict profe (DIG, IPEI II), overshoot 116-123% en materias FP Mañanas por slot de 90 asimétrico. 4 ideas de resolución (A-D) en doc §7. **Reemplazado por `hoja-de-ruta-solver-iterativo.md`** (2026-05-01) — las ideas A-D se materializan en las acciones correctivas de la Fase 3 del nuevo doc. |
-| `hoja-de-ruta-solver-iterativo.md` | **🆕 Fases 1+2+3+3.5+4 + Hotfix REDISTRIBUIR_CROSS_RANGO ✅ Done (2026-05-01)** | Doc completo. Backend iterativo in-memory (Fase 1) + `BottleneckClassifier` (Fase 2) + `CorrectiveActionExecutor` (Fase 3) + endpoint multi-rango (Fase 3.5) + modal informe (Fase 4) + **bucle outer en `solveMultiRango` que mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o agotar opciones**. Validado E2E con 1º DAW EAG: imp 38 al 0% → 125% tras 1 movimiento outer. El solver ahora SÍ itera de principio a fin como pidió el usuario. |
+| `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Bin-packing reescrito a BLOQUES CONTIGUOS 2026-05-01 (cierra deuda residual del slot 90 asimétrico) | Bin-packing first-fit es default. Reescrito a bloques contiguos 60-120min (máx 120/día/materia) sobre granularidad 30min en `hoja-de-ruta-solver-iterativo.md` 2026-05-01. Las 4 ideas A-D del §7 se materializan en las acciones correctivas + el cambio de granularidad de la jornada. |
+| `hoja-de-ruta-solver-iterativo.md` | **🆕 Fases 1-5 + REDISTRIBUIR_CROSS_RANGO + bloques + jornadas 30min + cascade soft-delete + rejillas reescritas ✅ Done (2026-05-01)** | Doc completo. `HorarioSolverIterativo` con bucle outer + `BottleneckClassifier` + `CorrectiveActionExecutor` (3 acciones) + endpoint multi-rango. Modal "Informe del solver" con bottleneck/sugerencias/log. Bin-packing reescrito a BLOQUES CONTIGUOS sobre slots 30min. `PeriodoLectivoSoftDeleteProcessor` cascadea a Horario+PLI. Rejillas (`/admin/horarios`, `/horarios`, PDFs) renderizan bloques 60-120min con rowspan. Validado E2E con 1º DAW EAG. Pendiente futuro no bloqueante: anti-loop refinado en redistribuirCrossRango. |
 
 ### 📋 Referencia / manuales
 

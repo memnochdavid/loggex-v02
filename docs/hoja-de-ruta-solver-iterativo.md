@@ -6,7 +6,7 @@
 
 ## ⚡ Snapshot para retomar
 
-**Estado**: **Fases 1+2+3+3.5+4 + Hotfix REDISTRIBUIR_CROSS_RANGO ✅ Done (2026-05-01)**. Doc completo. El bucle outer de `solveMultiRango` mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o demostrar (heurísticamente) que es imposible. Validado E2E con 1º DAW EAG: imp 38 al 0% inicial → 125% tras 1 movimiento outer (`stoppedReason: allCovered`).
+**Estado**: **Fases 1+2+3+3.5+4 + REDISTRIBUIR_CROSS_RANGO + Solver de bloques (jornada 30min) + cascade soft-delete PL + rejillas reescritas ✅ Done (2026-05-01)**. Doc completo y validado E2E. El bucle outer de `solveMultiRango` mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o demostrar (heurísticamente) imposibilidad. Solver bin-packing trabaja en BLOQUES contiguos (60-120min, máx 120/día/materia) sobre granularidad 30min. Las 3 vistas (`/admin/horarios` editor, `/horarios` TimeTable, PDFs) renderizan bloques con rowspan correctamente.
 
 ---
 
@@ -411,3 +411,48 @@ Tras discusión sobre por qué los overshoots 110-125% son inevitables, raíz de
 **Resultado**: con jornadas 30min y solver de bloques, una materia con target 4.5h/sem (= 270min) que antes requería overshoot a 4×60+1×90=330min (122%) ahora cabe exacta como 1 bloque 90min + 1 bloque 60min + 1 bloque 90min (= 240min, sin pasarte). Targets como 1.5h/sem (= 90min) caben en 1 bloque exacto donde antes no había slot del tamaño adecuado. Los overshoot residuales se reducen sustancialmente.
 
 Build OK 12.71s. Próxima sesión recomendada: validar E2E con "Configurar curso óptimo" en 1º DAW EAG y verificar que la rejilla muestra bloques 60-120min sin huecos visuales falsos.
+
+### 2026-05-01 — Cierre: vistas /horarios + PDFs + cascade soft-delete + fixes UX
+
+Tras el solver de bloques, validación E2E descubrió cascada de bugs en vistas y flujos paralelos. Cerrados todos en una serie de hotfixes.
+
+**Vista `/horarios` (TimeTable + endpoint my-schedule)**:
+- `GetMyScheduleController::collectSlots` ahora devuelve también tramos `RECREO` (campo `tipo: 'recreo' | 'slot'`). Quitada la fuente (3) "slots derivados de horarios" que generaba time labels mezcladas atómicas + bloques (`8:30-9:00`, `8:30-10:30`, `9:00-10:30`...).
+- `TimeTable.processEvents` calcula `rowSpan` correcto cuando un evento abarca varios slots; marca skip en intermedios.
+- Time labels se agrupan por **tramo contiguo** (secuencia de slots SLOT sin recreo entre medias): la time-cell del primer slot ocupa `gridRow: span N` y muestra `"tramoStart - tramoEnd"` (ej. `"8:30 - 10:30"`). Tramo recreo se renderiza como banda diagonal saltando columnas con festivo (sin colisión con `gridRow span` del festivo).
+- `min-height` de celdas reducido (45 → 22px) para granularidad 30min.
+- **Importante**: `GetMyScheduleController` cachea el response 5min vía `CacheInterface`. Cualquier cambio en este flujo requiere `php bin/console cache:pool:clear cache.app` o esperar a que expire.
+
+**Vista `/admin/horarios` (rejilla del editor)**:
+- Refactorizada de múltiples `<div class="gridRow">` (cada uno su propio CSS Grid de 6 columnas) a UN único CSS Grid global. Permite que las celdas día apliquen `gridRow: span N` para cubrir N slots de 30min con UN bloque continuo (60-120min). Las celdas continuación retornan `null` y la inicio se renderiza con altura proporcional.
+- `SlotCell` acepta prop `gridRowSpan`. Helper `calcSlotSpan(p)` cuenta slots cubiertos por `slotsDia.filter(s => s.start >= p.horaInicio && s.start < p.horaFin)`.
+- `.infoBar` con `grid-column: 1 / -1` para línea horizontal completa al pie de la rejilla.
+- Bordes separadores añadidos a `.slot`, `.timeLabel`, `.gridHeaderCell` (antes venían de `.gridRow > div` y se perdieron al refactorizar).
+
+**PDFs (`/horarios` y `/admin/horarios`)**:
+- `HorarioPdfController::buildScheduleContext` acepta opcional `?JornadaTipo $jornada`. En modo multi-rango (`paginas[]`) recibe la jornada del PL para construir slots base de la jornada (no derivados de horarios). Matriz construida con `rowSpan` + `skip` per-celda.
+- `pdf/horario.html.twig` usa `<td rowspan="N">` cuando aplica, omite celdas `skip` y oculta filas donde todos los días son skip.
+
+**Cascade soft-delete del `PeriodoLectivo`**:
+- Nuevo `PeriodoLectivoSoftDeleteProcessor` (sustituye al genérico `SoftDeleteProcessor` solo para esta entidad). Antes de marcar el PL como `deleted`, hace UPDATE masivo a `Horario` y `PeriodoLectivoImparticion` con `WHERE periodoLectivo = :pl AND deleted = false`. Sin esto, "Configurar curso óptimo" dejaba horarios huérfanos vivos apuntando a PL `deleted` → `EntityNotFoundException` en `/api/my-schedule` cuando Doctrine hidrataba el proxy lazy.
+- Script `backend/scripts/limpiar_horarios_pl_soft_deleted.sql` para limpiar inconsistencias preexistentes.
+
+**Bugs corregidos**:
+- `SLOT_REDUCTION_MIN` no existía en `HorarioSolverIterativo` (referenciada en `redistribuirCrossRango`) → 500. Declarada constante local.
+- `const t = tramoInfo[hIndex]` dentro del IIFE de TimeTable shadow'eaba la función `t()` de i18n → "t is not a function". Renombrado a `tInfo`.
+- `optimalMultiJson` fuera de scope tras el bloque del paso 5: movido a let exterior.
+- Modal "Acciones del curso" transparente → opaco con `--bg-card-solid`, igualado al desplegable de idioma del header.
+- Modal "Acciones del curso" generaba scroll vertical de página al desplegar → `position: fixed` con coordenadas calculadas del rect del botón vía `useLayoutEffect`.
+- `handleSubmitPlForm` modo CREATE y `handleCreateRecommendedRangos`: heredan jornada efectiva del grupo cuando el usuario no la elige (sin esto, rejilla mostraba empty state "no jornada"). Inicializan también `state[gid_tempId]` vacío para que `grupoState` sea truthy y la rejilla aparezca.
+- Botón "Generar todos" tenía `onClick={runSolverAllRangos}` directo → React inyectaba `MouseEvent` como primer arg (`plsOverride`) → `event.slice is not a function`. Cambiado a `onClick={() => runSolverAllRangos()}`.
+- `Configuracion.jsx` y `CalificacionesGrupo.jsx` con duplicate `subtitle` attribute en `<CrudHeader>` rompían el build. Colapsados en ternario.
+- Modal "Informe del solver": falsos positivos cuando una imp tiene unplaced residual (< MIN_BLOQUE_MIN min/sem) en un PL pero anualmente está cubierta por overshoot en otros. `solveMultiRango` ahora filtra `unplaced` per-PL si `placed_anual >= target_anual × 0.95` y limpia el `diagnostic` per-PL para que el frontend no lo trate como issue.
+- Sección "Cobertura curricular" (distribuidor) del modal sólo se muestra si tras la redistribución cross-rango sigue habiendo shortfall residual (no info histórica del distribuidor que el solver ya resolvió).
+
+**Helper `getPlacementDur(p)`** (`HorariosEditor.jsx`): usa `parseHmsToMin(p.horaFin) - parseHmsToMin(p.horaInicio)` (no `slotMinutosByHi[p.horaInicio]` que daba solo 30min para bloques). Sustituido en 5 cálculos: `minutosColocados`, `minutosAnualesColocadosByImp`, `colocadosMinutos`, `profeCarga`, `placedAnualOtrosRangos` en runSolver.
+
+**Banner anual lee pendingTx**: el `horasAnualesBanner` para PLs virtuales (id<0) construye `sumPliMin` desde `imps × default heredado + pliPatches/pliToggles` del pendingTx. Sin esto, reportaba "Planificado: 0h" para PLs virtuales (no tienen `pl.imparticiones` en BD) → "Te faltan 1044h anuales · Extender curso 245 días" absurdo.
+
+**Migración a tramos 30min** (`backend/scripts/migrate_tramos_30min.sql`): jornadas FP Mañanas (id=3) y FP Tardes (id=6) reescritas a 11/12 slots de 30min + recreos. Totales 5.5h y 6h/día preservados.
+
+Build OK final 13.99s. Doc cerrado y validado E2E.
