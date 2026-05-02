@@ -47,10 +47,15 @@ const DIAS = [
 const fmtHora = (s) => s.slice(0, 5);
 
 // "HH:MM:SS" o "HH:MM" → minutos desde medianoche.
+// También admite ISO 8601 con fecha base (p.ej. "1970-01-01T08:30:00+00:00"),
+// que es como API Platform serializa por defecto los TIME_MUTABLE de Doctrine.
+// Antes hacía split(':') ingenuo y convertía "1970-01-01T08" → parseInt = 1970,
+// con lo que para items leídos crudos del API daba duración 0 (horaFin-horaInicio).
 const parseHmsToMin = (hms) => {
   if (!hms) return 0;
-  const [h = '0', m = '0'] = String(hms).split(':');
-  return (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+  const m = String(hms).match(/(\d{1,2}):(\d{2})/);
+  if (!m) return 0;
+  return (parseInt(m[1], 10) || 0) * 60 + (parseInt(m[2], 10) || 0);
 };
 
 // Convierte minutos a horas decimales (1 decimal); 90 → 1.5, 60 → 1.

@@ -6,6 +6,10 @@
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**🗒️ Cierre 2026-05-02 — Fix `parseHmsToMin` robusto a ISO (chip cross-rango + cap solver) ✅ Done.** Bug del backlog `cosa`: en `/admin/horarios` panel Materias, chips y badge "Completo · X/Yh" solo contaban horas del rango activo; había que pasar por todos los PLs uno a uno para que se fuera sumando. Causa: API Platform serializa `Horario.horaInicio` (TIME_MUTABLE) como ISO `"1970-01-01T08:30:00+00:00"` y `parseHmsToMin` hacía `split(':')` ingenuo → `parseInt("1970-01-01T08") = 1970` → `dur = 0` para cualquier item leído crudo del API. Solo pasaban OK los items que iban por `normHora` previo (state local del PL activo, tramosOrdenados); los del fallback `persistedByPl` daban 0 → no sumaban al chip cross-rango. Fix: 1 sola función reescrita con regex `(\d{1,2}):(\d{2})`. Beneficio colateral: `placedAnualOtrosRangos` que se manda al solver como `alreadyPlacedByImp` ahora vale los minutos reales (antes 0) → menos overshoot inicial → menos trabajo para `redistribuirCrossRango`. Solver sin regresiones, validado E2E con DAW grupo 1. Bitácora: `hoja-de-ruta-solver-iterativo.md` 2026-05-02.
+
+---
+
 **🗒️ Cierre 2026-05-01 noche — Solver iterativo + bloques contiguos + jornadas 30min + rejillas reescritas ✅ Done.** Sesión maratón con cambios estructurales en solver, BD, rejillas y vistas. Trabajo agrupado por bloques temáticos:
 
 1. **Solver iterativo (Fases 1–5 + redistribución cross-rango real)** — `HorarioSolverIterativo` con bucle outer que mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o probar imposibilidad heurística. `BottleneckClassifier` + `CorrectiveActionExecutor` (3 acciones). Endpoints `/solver-iterativo/{gid}` y `/solver-iterativo-multi/{gid}`. Modal "Informe del solver" con bottleneck/sugerencias/log de pasadas. Validado E2E con 1º DAW EAG: imp 38 al 0% inicial → 125% tras 1 movimiento outer.

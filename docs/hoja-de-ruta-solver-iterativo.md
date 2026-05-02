@@ -456,3 +456,23 @@ Tras el solver de bloques, validación E2E descubrió cascada de bugs en vistas 
 **Migración a tramos 30min** (`backend/scripts/migrate_tramos_30min.sql`): jornadas FP Mañanas (id=3) y FP Tardes (id=6) reescritas a 11/12 slots de 30min + recreos. Totales 5.5h y 6h/día preservados.
 
 Build OK final 13.99s. Doc cerrado y validado E2E.
+
+### 2026-05-02 — Fix `parseHmsToMin` robusto a ISO (chip cross-rango + cap solver)
+
+**Síntoma reportado** (backlog `cosa`): en `/admin/horarios` panel Materias, los chips de las asignaturas y el badge "Completo · X/Yh" solo contabilizaban las horas del rango activo, no las cross-rango. El admin tenía que clickear uno por uno cada PL del strip para que el cálculo se fuera completando — al final acababa mostrando lo correcto, pero al entrar al editor mostraba "borrador" amarillo aunque la BD tuviera el currículo cubierto.
+
+**Causa raíz**: `parseHmsToMin` (helper top-level de `HorariosEditor.jsx`) hacía `String(hms).split(':')` ingenuo. API Platform serializa `Horario.horaInicio`/`horaFin` (Doctrine `TIME_MUTABLE`) por defecto como ISO 8601 con fecha base — `"1970-01-01T08:30:00+00:00"`. Para esa string, `split(':')` da `["1970-01-01T08","30","00+00","00"]` y `parseInt("1970-01-01T08", 10)` devuelve `1970` (parseInt corta en el primer no-dígito). Resultado: para CUALQUIER hora ISO, `parseHmsToMin` devolvía `1970*60 + 30 = 118230`. La diferencia `horaFin - horaInicio` daba **0** sistemáticamente.
+
+**Por qué pasaba desapercibido en algunos cálculos pero no en otros**:
+- En `state[gid_plId].placements`, los items pasan por `normHora(v)` regex `(\d{2}):(\d{2})(?::(\d{2}))?` antes de guardarse → ya normalizados a `"HH:MM:SS"` → `parseHmsToMin` funciona OK.
+- En `tramosOrdenados` también hay `normHoraSlot` previa → no afecta.
+- **Donde sí afectaba** (3 sitios que leen items crudos del API):
+  - L943 `minutosAnualesColocadosByImp` cálculo cross-rango — el chip lateral y el badge dependen de él. **Bug visible.**
+  - L764 `otherGroupsMinutes` — minutos del profe en otros grupos para visualización. Mostraba 0 a todos los profes (no afecta solver, solo display panel "Carga profes").
+  - L2905 `placedAnualOtrosRangos` que se manda al backend solver como `alreadyPlacedByImp`. **Mandaba 0 al solver** → el planner no descontaba lo ya colocado en otros rangos → cada rango asignaba al target completo → overshoot 125% que la fase outer `redistribuirCrossRango` tenía que limpiar.
+
+**Fix**: `parseHmsToMin` reescrito con regex `/(\d{1,2}):(\d{2})/.match(s)` que ignora la fecha y extrae solo `HH:MM`. Compatible con `"08:30"`, `"08:30:00"` e ISO `"1970-01-01T08:30:00+00:00"`. 1 sola función tocada (líneas 50-58 de `HorariosEditor.jsx`).
+
+**Efecto colateral positivo (no negativo) en el solver**: ahora `placedAnualOtrosRangos` calcula los minutos reales colocados en otros rangos → el backend recibe el cap correcto en `alreadyPlacedByImp` → el solver respeta el cap desde la primera pasada → menos overshoot inicial → menos trabajo para `redistribuirCrossRango`. Validado E2E con DAW grupo 1 (3 PLs persistidos): chip y badge muestran totales correctos sin necesidad de visitar cada rango. Solver sigue funcionando sin regresiones.
+
+Build OK 13.52s. Bug del backlog `cosa` cerrado.
