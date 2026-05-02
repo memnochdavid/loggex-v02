@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -33,7 +34,12 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
 )]
-#[ApiFilter(SearchFilter::class, properties: ['alumno' => 'exact', 'tarea' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: [
+    'alumno' => 'exact',
+    'tarea' => 'exact',
+    'tarea.imparticion.profesor' => 'exact',
+])]
+#[ApiFilter(ExistsFilter::class, properties: ['calificacion'])]
 #[ApiFilter(OrderFilter::class, properties: ['fechaEntrega', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Entrega
 {

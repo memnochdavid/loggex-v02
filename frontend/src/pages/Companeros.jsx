@@ -98,11 +98,17 @@ const Companeros = () => {
                 if (response.ok) {
                     const data = await response.json();
                     const items = data['hydra:member'] || data.member || [];
-                    // Extraer alumnos únicos
+                    // Mismo formato que el endpoint /api/v1/alumno/companeros:
+                    // adjuntamos el grupo seleccionado en `grupos` para que la
+                    // card muestre "1º DAW" igual que en el rol alumno.
+                    const grupoSel = grupos.find(g => String(g.id) === String(selectedGrupo));
+                    const grupoInfo = grupoSel
+                        ? [{ id: grupoSel.id, curso: grupoSel.curso, nombre: grupoSel.nombre, abreviatura: grupoSel.abreviatura }]
+                        : [];
                     const alumnosMap = new Map();
                     items.forEach(m => {
                         if (m.alumno && !alumnosMap.has(m.alumno.id)) {
-                            alumnosMap.set(m.alumno.id, m.alumno);
+                            alumnosMap.set(m.alumno.id, { ...m.alumno, grupos: grupoInfo });
                         }
                     });
                     setCompaneros(Array.from(alumnosMap.values()));

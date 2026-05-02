@@ -6,6 +6,7 @@ import { getAssetUrl } from '../config/api';
 import ModalView from './ModalView';
 import UserProfileView from './UserProfileView';
 import { useTranslation } from 'react-i18next';
+import { formatGrupoNombre } from '../utils/grupo';
 
 const UserCard = ({ user, onMessage }) => {
     const { t } = useTranslation();
@@ -56,7 +57,7 @@ const UserCard = ({ user, onMessage }) => {
                     {user.grupos && user.grupos.length > 0 && (
                         <div className={styles.groups}>
                             <Users size={14} />
-                            <span>{user.grupos.join(', ')}</span>
+                            <span>{user.grupos.map(g => typeof g === 'string' ? g : formatGrupoNombre(g)).join(', ')}</span>
                         </div>
                     )}
                 </div>

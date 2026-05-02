@@ -60,9 +60,22 @@ class GetCompanerosController extends AbstractController
                     'grupos' => []
                 ];
             }
-            // Evitar duplicados de grupo
-            if (!in_array($grupo->getNombre(), $companeros[$id]['grupos'])) {
-                $companeros[$id]['grupos'][] = $grupo->getNombre();
+            // Evitar duplicados de grupo (clave: id del grupo). Devolvemos objeto
+            // {curso, nombre, abreviatura} para que el frontend pueda formatearlo
+            // con `formatGrupoNombre` ("1º DAW") en lugar de mostrar solo el
+            // nombre suelto.
+            $grupoId = $grupo->getId();
+            $yaIncluido = false;
+            foreach ($companeros[$id]['grupos'] as $g) {
+                if (($g['id'] ?? null) === $grupoId) { $yaIncluido = true; break; }
+            }
+            if (!$yaIncluido) {
+                $companeros[$id]['grupos'][] = [
+                    'id' => $grupoId,
+                    'curso' => $grupo->getCurso(),
+                    'nombre' => $grupo->getNombre(),
+                    'abreviatura' => $grupo->getAbreviatura(),
+                ];
             }
         }
 

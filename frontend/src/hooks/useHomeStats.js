@@ -21,9 +21,13 @@ export default function useHomeStats(intervalMs = 60000) {
     });
 
     const isAlumno = user?.roles?.includes('ROLE_ALUMNO');
-    const isProfesor = user?.roles?.includes('ROLE_PROFESOR')
-        || user?.roles?.includes('ROLE_ADMIN')
-        || user?.roles?.includes('ROLE_SUPERADMIN');
+    // El widget "Por corregir" debe contar SOLO las entregas de imparticiones
+    // del usuario como profesor. Antes incluíamos ROLE_ADMIN/SUPERADMIN aquí,
+    // pero el `CurrentUserExtension` filtra por centro, no por user.id, así que
+    // un admin que también es profesor recibía TODAS las entregas sin calificar
+    // del centro entero (caso real: +600). Mantenemos `isProfesor` estricto y
+    // además filtramos server-side por `tarea.imparticion.profesor=user.id`.
+    const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
 
     useEffect(() => {
         if (!user?.id) return;
@@ -53,10 +57,14 @@ export default function useHomeStats(intervalMs = 60000) {
                 .then(r => (r.ok ? r.json() : []))
                 .catch(() => []);
 
-            // Entregas por corregir (solo profe)
-            const entregasPromise = isProfesor
+            // Entregas por corregir (solo profe). Filtros server-side:
+            //  · `exists[calificacion]=false`: entregas aún sin calificar.
+            //  · `tarea.imparticion.profesor=<user.id>`: SOLO de imparticiones
+            //    donde el user es el profesor. Imprescindible para que el admin
+            //    que también es profesor no cuente las entregas del centro entero.
+            const entregasPromise = (isProfesor && user?.id)
                 ? fetch(
-                      getApiUrl('/api/entregas?calificacion=null&pagination=false'),
+                      getApiUrl(`/api/entregas?exists[calificacion]=false&tarea.imparticion.profesor=${user.id}&pagination=false`),
                       { headers: { Accept: 'application/ld+json' }, credentials: 'include' }
                   )
                       .then(r => (r.ok ? r.json() : null))
