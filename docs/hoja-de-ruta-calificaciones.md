@@ -8,9 +8,9 @@ y poblado de datos de prueba (entregas + calificaciones) para el centro Escuela 
 
 ## ⚡ Snapshot para retomar
 
-**Fases A–F ✅ implementadas (auditoría 2026-04-29 + Fase F 2026-05-02).** BD poblada con fixtures + cierre manual de tareas vencidas con 0 automático operativo.
+**Fases A–F ✅ implementadas y cerradas al 100% (auditoría 2026-04-29 + Fase F 2026-05-02 + deuda residual cerrada 2026-05-02).** BD poblada con fixtures + cierre manual de tareas vencidas con 0 automático operativo + validador `Assert\Callback` que bloquea POST/PUT API Platform tras `fechaLimite`.
 
-**Próximo punto recomendado** (deuda residual de Fase F): añadir validador en `Entrega` que rechace POST/PUT con `tarea.fechaLimite < now`. Sin esto un alumno puede entregar tarde y duplicar la entrega sintética que el cierre auto creó.
+**Próxima acción opcional** (no bloqueante): conectar Fase F al cron via Symfony Scheduler (`composer require symfony/scheduler`, ~30 min). El comando `app:tareas:cerrar-vencidas` ya está listo para ello.
 
 | Fase | Código | BD/datos | Notas |
 |------|--------|----------|-------|
@@ -23,9 +23,8 @@ y poblado de datos de prueba (entregas + calificaciones) para el centro Escuela 
 
 **Próximas acciones recomendadas:**
 
-1. **Validador "no entregar fuera de plazo"** (deuda residual de Fase F): añadir `Assert\Callback` en `Entrega` que rechace POST/PUT si `tarea.fechaLimite < now`. Necesario para evitar duplicidades tras el cierre auto. ~15 min.
-2. **B.1 validación Σ=1.0** — añadir `Assert\Callback` o validador de colección en entidad/repo.
-3. **Cron de cierre auto (A1 de Fase F)** — `composer require symfony/scheduler` + Schedule que despache `CerrarTareasMessage` cada noche. ~30 min.
+1. **B.1 validación Σ=1.0** — añadir `Assert\Callback` o validador de colección en entidad/repo.
+2. **Cron de cierre auto (A1 de Fase F)** — `composer require symfony/scheduler` + Schedule que despache `CerrarTareasMessage` cada noche. ~30 min.
 
 ---
 
@@ -589,6 +588,30 @@ Petición del usuario tras detectar el bug del widget "Por corregir" (que mostra
 
 **Comportamiento sobre `motivosNoEvaluable` (`CalificacionMediaController`)** — efecto colateral discutido y aceptado: una tarea **obligatoria** sin entrega tras el cierre auto deja de marcar al alumno como "no evaluable por obligatoria_no_entregada" porque ya tiene nota concreta (=0). Si la tarea tiene `notaMinima > 0`, el 0 dispara otro motivo (`nota_minima_no_alcanzada`) y el alumno sigue NE pero por motivo distinto. Si no tiene `notaMinima`, el 0 entra en la media y el alumno pasa a evaluable con nota baja. El usuario validó esta semántica.
 
-**Deuda residual detectada (NO implementada en esta sesión)**:
-- **No hay validación que impida al alumno entregar después de `tarea.fechaLimite`**. El usuario lo daba por sentado pero verifiqué `Entrega.php` y los controllers: no existe. Si después del cierre auto un alumno entrega, podría duplicar la entrega sintética (no hay unique constraint en `(tarea, alumno)` en BD). Fix corto en sesión futura: validador en POST/PUT de Entrega que rechaza si `tarea.fechaLimite < now`, + opcional unique constraint en BD.
+**Deuda residual**:
 - **Conexión a Symfony Scheduler (A1)** — el comando ya existe y es idempotente; falta `composer require symfony/scheduler` + un Schedule que despache cada noche. Encaja con los workers Redis ya levantados. ~30 min en sesión futura.
+
+### 2026-05-02 — Cierre de deuda residual de Fase F: validador "no entregar fuera de plazo" ✅ Done
+
+Reanudación inmediata para cerrar la deuda anotada en la entrada anterior. Auditoría reveló que el bloqueo **ya existía parcialmente** en `UploadEntregaController.php:57-61` (cubre el flujo natural del alumno: `POST /api/entregas/upload`):
+
+```php
+if (!$esAdmin && $tarea->getFechaLimite() && new \DateTime() > $tarea->getFechaLimite()) {
+    return $this->json(['message' => 'El plazo de entrega ha finalizado'], 403);
+}
+```
+
+Lo que faltaba era cubrir POST/PUT directos al recurso API Platform `/api/entregas` (que solo pueden hacer profe/admin/superadmin por la `security` de Post/Put — no es el flujo normal del alumno, pero cierra la superficie completa).
+
+**Implementación**: `Assert\Callback` `validateDentroDePlazo` en `Entrega.php` que añade violación con `propertyPath=tarea` y mensaje "El plazo de entrega ha finalizado…" cuando `tarea.fechaLimite < now`. Bloquea POST/PUT API Platform devolviendo 422 ConstraintViolation.
+
+**Por qué el cierre auto sigue funcionando tras añadir el validador**: el `CierreTareasVencidasService` usa `EntityManager::persist()` directo, y los validators Symfony NO se ejecutan en ese flujo (solo se aplican vía `ValidatorInterface::validate()`, que API Platform invoca en POST/PUT). El callback solo afecta a recursos creados/modificados via API REST. Verificado E2E:
+- POST `/api/entregas` con tarea vencida (id 31, plazo 2025-11-05) → **422** con el mensaje correcto.
+- POST `/api/entregas` con tarea futura (id 174, plazo 2026-05-15) → **201** OK.
+- `app:tareas:cerrar-vencidas --dry-run --imparticion=37` → sigue contando tareas/alumnos correctamente (idempotente; tras pruebas previas dio 0 cierres residuales).
+
+**Por qué no se añadió unique constraint `(tarea, alumno)` en BD**: verificado que **no hay duplicados** ni activos ni con soft-deleted en BD actual. Una constraint normal chocaría con la lógica de soft-delete (al revivir una entrega borrada conflictaría con la nueva). MariaDB no soporta unique conditional sin trigger. Decisión: confiar en la lógica de aplicación (UploadController reusa entrega existente, servicio cierre es idempotente, validador entidad bloquea POST tarde). Si en el futuro aparece un bug de duplicidad se añade trigger.
+
+**Bug menor encontrado durante test**: opcache de PHP-FPM no recogía cambios al añadir el callback hasta `docker compose restart backend`. `cache:clear` no basta. Si tras añadir un validator nuevo algo no funciona, reiniciar el servicio backend.
+
+**Estado de Fase F**: cerrada al 100%. La cola pendiente queda solo en el cron opcional (A1) — feature nice-to-have, no bloqueante.

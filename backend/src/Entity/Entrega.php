@@ -19,6 +19,8 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: EntregaRepository::class)]
 #[ORM\Table(name: 'entrega')]
@@ -168,5 +170,31 @@ class Entrega
         $this->calificacion = $calificacion;
 
         return $this;
+    }
+
+    /**
+     * Bloquea POST/PUT vía API Platform si el plazo de la tarea ya venció.
+     *
+     * El flujo natural del alumno (`POST /api/entregas/upload`) ya valida esto
+     * en `UploadEntregaController`. Este callback cubre el resto de superficies:
+     * POST/PUT directos a `/api/entregas` (que solo pueden hacer ROLE_PROFESOR/
+     * ADMIN/SUPERADMIN por la `security` del Post/Put).
+     *
+     * Importante: el cierre automático (`CierreTareasVencidasService`) crea
+     * Entregas sintéticas TRAS el plazo y eso es intencional. Los validators
+     * Symfony NO se ejecutan al hacer `EntityManager::persist()` directo, así
+     * que el servicio sigue funcionando — solo se aplica este callback en los
+     * flujos que pasan por el ValidatorInterface (API Platform y los forms).
+     */
+    #[Assert\Callback]
+    public function validateDentroDePlazo(ExecutionContextInterface $context): void
+    {
+        if (!$this->tarea) return;
+        $limite = $this->tarea->getFechaLimite();
+        if (!$limite) return;
+        if ($limite >= new \DateTime()) return;
+        $context->buildViolation('El plazo de entrega ha finalizado; no se puede crear ni modificar una entrega para esta tarea.')
+            ->atPath('tarea')
+            ->addViolation();
     }
 }
