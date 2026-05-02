@@ -202,6 +202,7 @@ const CalificacionesGrupo = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const confirm = useConfirm();
     const [searchParams] = useSearchParams();
     const imparticionId = searchParams.get('imparticion');
     const isMobile = useMediaQuery('(max-width: 768px)');
@@ -442,6 +443,63 @@ const CalificacionesGrupo = () => {
 
         fetchAll();
     }, [selectedImparticion, selectedPeriodo, imparticiones, t]);
+
+    // Cierra con un 0 automático las tareas vencidas sin entrega de la
+    // imparticion actual. Hace primero un dry-run (preview) y, si el usuario
+    // confirma con número >0, ejecuta el cierre real y refresca medias+tareas.
+    const [closingOverdue, setClosingOverdue] = useState(false);
+    const handleCerrarVencidas = useCallback(async () => {
+        if (!selectedImparticion) return;
+        setClosingOverdue(true);
+        try {
+            const previewRes = await fetch(getApiUrl('/api/v1/tareas/cerrar-vencidas'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ imparticionId: Number(selectedImparticion), dryRun: true }),
+            });
+            if (!previewRes.ok) {
+                toast.error(t('grades.closeOverdueError', { defaultValue: 'Error al previsualizar el cierre.' }));
+                return;
+            }
+            const preview = await previewRes.json();
+            if ((preview.alumnosCerrados || 0) === 0) {
+                toast.info(t('grades.closeOverdueNothing', { defaultValue: 'No hay tareas vencidas pendientes de cerrar.' }));
+                return;
+            }
+            const ok = await confirm({
+                title: t('grades.closeOverdueTitle', { defaultValue: 'Cerrar tareas vencidas' }),
+                body: t('grades.closeOverdueConfirm', {
+                    defaultValue: 'Se cerrarán {{count}} entregas de {{tareas}} tarea(s) vencida(s) con un 0 automático. ¿Continuar?',
+                    count: preview.alumnosCerrados,
+                    tareas: preview.tareasProcesadas,
+                }),
+                variant: 'warning',
+            });
+            if (!ok) return;
+            const realRes = await fetch(getApiUrl('/api/v1/tareas/cerrar-vencidas'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ imparticionId: Number(selectedImparticion), dryRun: false }),
+            });
+            if (!realRes.ok) {
+                toast.error(t('grades.closeOverdueError', { defaultValue: 'Error al cerrar tareas vencidas.' }));
+                return;
+            }
+            const stats = await realRes.json();
+            toast.success(t('grades.closeOverdueOk', {
+                defaultValue: 'Cerradas {{count}} entregas con 0 (de {{tareas}} tareas).',
+                count: stats.alumnosCerrados,
+                tareas: stats.tareasProcesadas,
+            }));
+            await reloadMedias();
+        } catch {
+            toast.error(t('grades.closeOverdueError', { defaultValue: 'Error al cerrar tareas vencidas.' }));
+        } finally {
+            setClosingOverdue(false);
+        }
+    }, [selectedImparticion, confirm, t]);
 
     // Función para recargar medias (tras guardar ponderaciones)
     const reloadMedias = async () => {
@@ -700,7 +758,7 @@ const CalificacionesGrupo = () => {
 
                 {/* Tabs principales: Alumnos | Ponderaciones */}
                 {isProfesor && selectedImparticion && (
-                    <div className={styles.tabBar}>
+                    <div className={styles.tabBar} style={{ alignItems: 'center' }}>
                         <button
                             type="button"
                             className={`${styles.tab} ${mainTab === 'alumnos' ? styles.tabActive : ''}`}
@@ -715,6 +773,17 @@ const CalificacionesGrupo = () => {
                         >
                             {t('grades.weights')}
                         </button>
+                        <Button
+                            variant="secondary"
+                            onClick={handleCerrarVencidas}
+                            disabled={closingOverdue}
+                            style={{ marginLeft: 'auto' }}
+                            title={t('grades.closeOverdueTitle', { defaultValue: 'Cerrar tareas vencidas' })}
+                        >
+                            {closingOverdue
+                                ? t('grades.closingOverdue', { defaultValue: 'Cerrando…' })
+                                : t('grades.closeOverdueAction', { defaultValue: 'Cerrar tareas vencidas' })}
+                        </Button>
                     </div>
                 )}
 
