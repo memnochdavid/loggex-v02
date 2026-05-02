@@ -6,9 +6,11 @@ y poblado de datos de prueba (entregas + calificaciones) para el centro Escuela 
 
 ---
 
-## ⚡ Snapshot para retomar (auditoría 2026-04-29)
+## ⚡ Snapshot para retomar
 
-**Todas las fases ✅ implementadas y BD poblada (2026-04-29 tarde).** Fixtures inyectados en `backup_tfg_full.sql` y validados; un `./scripts/restore_db.sh` deja Loggex listo para probar todo el ciclo evaluativo.
+**Fases A–F ✅ implementadas (auditoría 2026-04-29 + Fase F 2026-05-02).** BD poblada con fixtures + cierre manual de tareas vencidas con 0 automático operativo.
+
+**Próximo punto recomendado** (deuda residual de Fase F): añadir validador en `Entrega` que rechace POST/PUT con `tarea.fechaLimite < now`. Sin esto un alumno puede entregar tarde y duplicar la entrega sintética que el cierre auto creó.
 
 | Fase | Código | BD/datos | Notas |
 |------|--------|----------|-------|
@@ -17,13 +19,13 @@ y poblado de datos de prueba (entregas + calificaciones) para el centro Escuela 
 | C — Periodos evaluativos | ✅ Entidad `PeriodoEvaluativo` (tipo enum, peso, grupo) + lógica de media ponderada por periodo en `nota-final` | ❌ 0 periodos en BD | C.5 (poblar 3 ord + 1 extra por grupo de Escuela Arte Granada) sin ejecutar. |
 | D — Vistas frontend | ✅ `CalificacionesAdmin.jsx`, `CalificacionesGrupo.jsx`, `CalificacionesDetalle.jsx`, `MisCalificaciones.jsx` | — | D.1 (config ponderaciones) integrada en `CalificacionesGrupo` con `ThemedNumberInput`. Vista `CalificacionesAdmin` agrupa por itinerario (no árbol Centro→Ciclo→Grupo→Modulo como pedía D.5, pero cumple el rol). |
 | E — Boletines PDF | ✅ `dompdf/dompdf ^3.1`, `templates/pdf/boletin.html.twig`, `BoletinController` (individual + masivos PDF/ZIP), `PdfGenerator`, `PdfBranding` (logo MinIO → tmp → base64), i18n × 5 | — | Botones de descarga integrados en `CalificacionesAdmin` (admin) y `MisCalificaciones` (alumno). |
+| F — Cierre tareas vencidas con 0 auto | ✅ `Service/CierreTareasVencidasService` + `Command app:tareas:cerrar-vencidas` + `POST /api/v1/tareas/cerrar-vencidas` + botón UI en `CalificacionesGrupo` (2026-05-02) | — | Idempotente. Crea Entrega sintética + Calificacion(0). Sin tocar modelo. Permisos por rol. Comando deja base lista para Symfony Scheduler futuro (cron). |
 
 **Próximas acciones recomendadas:**
 
-1. **Re-aplicar Fase A** sobre BD actual: o bien hacer el seed idempotente (`DELETE FROM calificacion WHERE entrega_id IN (...); DELETE FROM entrega WHERE tarea_id IN (...); DELETE FROM tarea WHERE id BETWEEN 17 AND 160;`) o regenerarlo, y ejecutar.
-2. **Fase C.5** — poblar 4 periodos por grupo (3 ord + 1 extra) con fechas coherentes con `Grupo.fechaInicio/fechaFin`.
-3. **B.1 validación Σ=1.0** — añadir `Assert\Callback` o validador de colección en entidad/repo.
-4. **Fase E** ya cerrada como ruta crítica — no pendiente.
+1. **Validador "no entregar fuera de plazo"** (deuda residual de Fase F): añadir `Assert\Callback` en `Entrega` que rechace POST/PUT si `tarea.fechaLimite < now`. Necesario para evitar duplicidades tras el cierre auto. ~15 min.
+2. **B.1 validación Σ=1.0** — añadir `Assert\Callback` o validador de colección en entidad/repo.
+3. **Cron de cierre auto (A1 de Fase F)** — `composer require symfony/scheduler` + Schedule que despache `CerrarTareasMessage` cada noche. ~30 min.
 
 ---
 
@@ -557,3 +559,36 @@ Petición del usuario: "edita el .sql y mete registros creíbles para probar ent
 - ✅ A.4 BD poblada (sin reescribir el seed antiguo `scripts/seed_calificaciones.sql`, que queda histórico — los nuevos fixtures viven directamente en `backup_tfg_full.sql`).
 - ✅ C.5 Periodos evaluativos poblados (4 por grupo).
 - ⏳ B.1 Validación Σ pesos = 1.0 a nivel entidad sigue pendiente (fixtures la cumplen pero la app no la fuerza).
+
+### 2026-05-02 — Fase F: Cierre manual de tareas vencidas con 0 automático ✅ Done
+
+Petición del usuario tras detectar el bug del widget "Por corregir" (que mostraba "+600" mentirosamente al admin con rol profe — ver bitácora `hoja-de-ruta-solver-iterativo.md` 2026-05-02 sobre el fix paralelo de `parseHmsToMin`): si una tarea vence sin entrega, debería calificarse a 0 automáticamente para que las medias reflejen la realidad pedagógica del centro.
+
+**Decisión de diseño** (tras discutir 5 puntos con el usuario):
+1. **Disparador**: opción **C (botón manual)**. Cron (A1) queda preparado en el comando para una sesión futura — el usuario decidió "vamos con C de momento". Cero dependencias nuevas.
+2. **Modelo BD**: **sin tocar**. Crea Entrega sintética + Calificacion(0). Replica exactamente lo que haría el profe a mano. Idempotente: si ya hay entrega para `(tarea, alumno)`, no la duplica.
+3. **Entregas tardías**: el usuario afirma "actualmente y debe seguir siendo así, un alumno no puede entregar fuera de plazo". **Verificado durante implementación: NO existe esa validación**. Anotada como deuda residual abajo. El profesor puede editar manualmente la nota cuando quiera (el 0 no es inmutable).
+4. **Filtros**: ninguno. Toda tarea cuyo plazo venció sin entrega → 0. Sin matices por `obligatoria` o `visible`.
+5. **Notificación al alumno**: diferida a la ruta Mercure cuando se ataque (`hoja-de-ruta-redis-workers.md`).
+
+**Archivos creados**:
+- `backend/src/Service/CierreTareasVencidasService.php` — método `procesar(?Imparticion $imp = null, bool $dryRun = false): array`. Devuelve `{tareasProcesadas, tareasOmitidas, alumnosCerrados, dryRun}`.
+- `backend/src/Command/CierreTareasVencidasCommand.php` — `app:tareas:cerrar-vencidas [--imparticion=ID] [--dry-run]`. Listo para conectar a Symfony Scheduler en sesión futura sin cambios.
+- `backend/src/Controller/CierreTareasVencidasController.php` — `POST /api/v1/tareas/cerrar-vencidas` body opcional `{imparticionId, dryRun}`. Permisos por rol: profe→solo sus imparticiones, admin→cualquier imp del centro, super→todas. Sin `imparticionId` el endpoint exige super admin (evita disparos masivos accidentales desde un click mal puesto).
+
+**Archivos modificados**:
+- `frontend/src/pages/CalificacionesGrupo.jsx` — botón "Cerrar tareas vencidas" en barra de tabs (visible cuando hay imparticion seleccionada). Flujo: dry-run primero → preview en confirm modal con número de entregas/tareas afectadas → ejecución real → `reloadMedias()` → toast.
+- 5 archivos i18n con 8 claves nuevas en `grades.*` (es/en/ca/eu/gl).
+
+**Bug fix incluido durante implementación**: `useConfirm()` solo estaba inicializado dentro del componente interno `ItemsWeightEditor` del archivo. El componente principal `CalificacionesGrupo` no tenía esa línea, así que `confirm({...})` caía en `window.confirm()` global del navegador y mostraba el clásico `[object Object]` (string-conversion del objeto pasado). Movida la inicialización al scope correcto.
+
+**Validación E2E**:
+- Comando dry-run global: 145 tareas vencidas, 111 alumnos a cerrar.
+- Endpoint dry-run sara@eag.com (PROFESOR+ADMIN, centro 3) imp 37: 5 tareas, 3 alumnos.
+- Permisos: imp en otro centro → 404. Sara como admin puede cerrar imp ajena del mismo centro (correcto: el rol admin gobierna sobre imps de su centro).
+
+**Comportamiento sobre `motivosNoEvaluable` (`CalificacionMediaController`)** — efecto colateral discutido y aceptado: una tarea **obligatoria** sin entrega tras el cierre auto deja de marcar al alumno como "no evaluable por obligatoria_no_entregada" porque ya tiene nota concreta (=0). Si la tarea tiene `notaMinima > 0`, el 0 dispara otro motivo (`nota_minima_no_alcanzada`) y el alumno sigue NE pero por motivo distinto. Si no tiene `notaMinima`, el 0 entra en la media y el alumno pasa a evaluable con nota baja. El usuario validó esta semántica.
+
+**Deuda residual detectada (NO implementada en esta sesión)**:
+- **No hay validación que impida al alumno entregar después de `tarea.fechaLimite`**. El usuario lo daba por sentado pero verifiqué `Entrega.php` y los controllers: no existe. Si después del cierre auto un alumno entrega, podría duplicar la entrega sintética (no hay unique constraint en `(tarea, alumno)` en BD). Fix corto en sesión futura: validador en POST/PUT de Entrega que rechaza si `tarea.fechaLimite < now`, + opcional unique constraint en BD.
+- **Conexión a Symfony Scheduler (A1)** — el comando ya existe y es idempotente; falta `composer require symfony/scheduler` + un Schedule que despache cada noche. Encaja con los workers Redis ya levantados. ~30 min en sesión futura.
