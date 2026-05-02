@@ -10,18 +10,18 @@ unificar vistas /jornadas y admin/horarios. igual que se puede seleccionar una p
 
 
 
-subtítulos en todas las vistas, bajo lottie y título, con mini descripción de qué hay en esa vista.
+~~subtítulos en todas las vistas, bajo lottie y título, con mini descripción de qué hay en esa vista.~~ ✅ Done (CrudHeader prop subtitle, 30+ vistas).
 
-admin/horarios, columna grupo, el texto debe ser "[curso]º [abreviatura]"
+~~admin/horarios, columna grupo, el texto debe ser "[curso]º [abreviatura]"~~ ✅ Done.
 
-en todas las datatables de las vistas crud, la columna Acciones, debe tener un justify-content: end. incluido la cabecera con el texto Acciones.
+~~en todas las datatables de las vistas crud, la columna Acciones, debe tener un justify-content: end. incluido la cabecera con el texto Acciones.~~ ✅ Done (DataTable.module.css .actionsCell).
 
-en el sidebar, dentro de accordionview desplegado, haces scroll interior (si lo tiene) y entras a algún acceso de los que presenta. pues bien, ese scroll se vuelve arriba, escondiendo a veces el acceso a la ruta a la que se ha llegado. se debe corregir, quedando sin alterar ese scroll interior. ojo con no perjudicar los tutoriales, que también tocan esos elementos.
+~~en el sidebar, dentro de accordionview desplegado, haces scroll interior (si lo tiene) y entras a algún acceso de los que presenta. pues bien, ese scroll se vuelve arriba, escondiendo a veces el acceso a la ruta a la que se ha llegado. se debe corregir, quedando sin alterar ese scroll interior. ojo con no perjudicar los tutoriales, que también tocan esos elementos.~~ ✅ Done (AccordionView con sessionStorage scrollTop).
 
 
 revisar hardcodes. sobre todo en banners y toasts. vistas nuevas de catálogos.
 
-la vista /horarios sólo muestra un timetable con horario de mañana. si un profe tien clases por la tarde, no puede verlo. si imprimes el pdf sí aparece.
+~~la vista /horarios sólo muestra un timetable con horario de mañana. si un profe tien clases por la tarde, no puede verlo. si imprimes el pdf sí aparece.~~ ✅ Done.
 
 
 ~~en admin/horarios, panel Materias: aunque todo está bien, cuando pasas entre rangos, a veces alguno aparece Completo · 25/27.5h en verde o borrador en amarillo. hay un bug en el que si no visualizas manualmente cada rango lectivo, se muestra el mensaje "borrador..." amarillo. si empiezas a cambiar entre rangos, finalmente se pone verde.~~ ✅ Done 2026-05-02 (fix parseHmsToMin robusto a ISO).
@@ -31,21 +31,21 @@ asegurarse de que los profes pueedn pedir cambiar turno.
 ------------
 
 en rol profe:
-/calificaciones/ -> el select de materia puede crecer muchísimo. debemos dividir el filtrado en varios select. pero select con búsqueda server-sided.
+~~/calificaciones/ -> el select de materia puede crecer muchísimo. debemos dividir el filtrado en varios select. pero select con búsqueda server-sided.~~ ✅ Done.
 
-en/mis-temarios -> no se muestra opción de edición (sé que puede joder los fixtures con Dummy.pdf, pero la opción debe estar )
+~~en/mis-temarios -> no se muestra opción de edición (sé que puede joder los fixtures con Dummy.pdf, pero la opción debe estar )~~ ✅ Done.
 
-en /mis-temarios: falta el º despueś de nobre de grupo
+~~en /mis-temarios: falta el º despueś de nobre de grupo~~ ✅ Done.
 en /companeros los cards de alumnos deben mostrar el curso "[curso]º "
-toasts en /calificaciones al guardar ponderaciones, etc
+~~toasts en /calificaciones al guardar ponderaciones, etc~~ ✅ Done (verificado 2026-05-02: toast.success/error en CalificacionesGrupo.jsx).
 
 en home: 600+ sin corregir.
 
 
 -------------
 
-otra cosa es que tal y como está todo ahora en /admid/horarios, no se puede usar ninguna funcion hasta que creas un rango manualmente. eso no tiene sentido, ya que para usar el auto que destruira el rango creado manualmente primero debes crear un rango manualmente. hay que replantear la ux ahí.
-un problema es que hay varias funciones que, a pesar de pedir confirmación, persisten cambios sin que el usuario tenga que pulsar Guardar. hablo de las "Acciones del curso". nada debe persistir sin que se pulse en Guardar.
+~~otra cosa es que tal y como está todo ahora en /admid/horarios, no se puede usar ninguna funcion hasta que creas un rango manualmente. eso no tiene sentido, ya que para usar el auto que destruira el rango creado manualmente primero debes crear un rango manualmente. hay que replantear la ux ahí.~~ ✅ Done.
+~~un problema es que hay varias funciones que, a pesar de pedir confirmación, persisten cambios sin que el usuario tenga que pulsar Guardar. hablo de las "Acciones del curso". nada debe persistir sin que se pulse en Guardar.~~ ✅ Done (Tanda B partes 2-3, pendingTxByGrupo).
 
 
 --------
