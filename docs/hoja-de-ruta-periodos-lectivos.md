@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-05-03)**: 🟡 **Fase 8 EN PROGRESO — Sesiones 1+2 ✅ Done**: tab "Consumición de horas anuales" en `/admin/horarios` con backend completo (rangos + evaluaciones), tabla tonalizada, filas plegables, toggle de eje y banner del grupo. Falta solo **sesión 3**: timeline de proyección con `recharts` + banner sugerencia. Decisiones tomadas al arrancar: cálculo **teórico** primero (días lectivos × min/sem; `Asistencia` queda como mejora futura); doble eje rango↔evaluación desde sesión 2. Detalle vivo en §3 Fase 8 sub-sección "🟡 En progreso" y bitácora §6 (entradas 2026-05-03 sesión 1 y sesión 2).
+> **Status (2026-05-03)**: 🟢 **Fase 8 COMPLETA**: tab "Consumición de horas anuales" en `/admin/horarios` cerrado en 3 sesiones del mismo día. Toggle "Tabla / Proyección" + toggle "Rangos / Evaluaciones". Vista Tabla con tonalidad y filas plegables. Vista Proyección con `recharts` (currículo lineal + planificado acumulado + impartido teórico, ReferenceLine vertical en "hoy") y panel de sugerencias para materias en déficit. Decisiones cerradas: D-M (cálculo teórico, `Asistencia` diferida como mejora futura), D-N (endpoint agregado único), D-O (recharts). Bitácora §6 entradas 2026-05-03 (sesión 1, sesión 2, sesión 3) con detalle de archivos por sesión. Mejoras futuras (no bloqueantes): cambiar a `Asistencia` real para "minutosImpartidosHoy" cuando la BD tenga asistencia poblada; quitar el comando `app:fase8:consumicion` cuando deje de hacer falta como herramienta de debug.
 >
 > **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B partes 1+2 ✅** (commits `2f57fc2`, `d40b663`): TODAS las acciones del curso refactorizadas a "nada persiste hasta Guardar". Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Editar PL, Borrar PL, Limpiar todo → acumulan en `pendingTxByGrupo[gid]` con virtuales (`plsToCreate` con tempId<0), updates (`plsToUpdate`), borrados (`plsToDelete`) y patches PLI (`pliPatches`). Botón Guardar único aplica tx en orden estricto. Botón Descartar restaura snapshot. **Tanda B parte 3 pendiente** (deuda menor): editar minutos PLI desde modal Sliders sigue PATCH inmediato; runSolver/runSolverAllRangos sobre virtual fallan; botón "Extender curso" hace PATCH inmediato. Plan de retomada en `INDEX.md` "Tanda B parte 3 — pendiente al retomar". **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
 >
@@ -402,8 +402,8 @@ Dos vistas combinadas dentro de la pestaña:
 | Sesión | Alcance | Estado |
 |---|---|---|
 | 1 | Backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + comando debug `app:fase8:consumicion` + tab nuevo en `HorariosAdmin.jsx` con tabla mínima | ✅ Done 2026-05-03 (commit `e068bfb`) |
-| 2 | Doble eje: backend rellena `evaluaciones[]` con desglose `porEvaluacion[]` por materia (intersección PL ∩ PE). Frontend: toggle "Rangos / Evaluaciones", tonalidad por fila (verde Δ% > -3, amarillo (-10, -3], rojo ≤ -10, neutral si curr=0), filas plegables con desglose por sub-rango/sub-evaluación, banner cabecera tonalizado con resumen del grupo | ✅ Done 2026-05-03 |
-| 3 | Vista "proyección": timeline con `recharts` (líneas ideal vs proyectada por materia) + banner sugerencia ("amplía rango FCT N días") | 🔴 |
+| 2 | Doble eje: backend rellena `evaluaciones[]` con desglose `porEvaluacion[]` por materia (intersección PL ∩ PE). Frontend: toggle "Rangos / Evaluaciones", tonalidad por fila (verde Δ% > -3, amarillo (-10, -3], rojo ≤ -10, neutral si curr=0), filas plegables con desglose por sub-rango/sub-evaluación, banner cabecera tonalizado con resumen del grupo | ✅ Done 2026-05-03 (commit `b1143ad`) |
+| 3 | Vista "Proyección": toggle "Tabla / Proyección", LineChart con 3 series (currículo lineal, planificado acumulado, impartido teórico) por materia, ReferenceLine vertical en "hoy", panel de sugerencias listando materias en déficit, persistencia de preferencias en `sessionStorage` | ✅ Done 2026-05-03 |
 
 **Decisiones tomadas al arrancar (2026-05-03)**:
 
@@ -435,6 +435,40 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-05-03 — Fase 8 sesión 3 ✅ (vista Proyección con timeline + sugerencias) — **Fase 8 COMPLETA**
+
+Cerrada Fase 8 entera el mismo día que arrancó. Sesión 3 añade el modo "Proyección" con `recharts` y deja la fase entera cerrada en doc.
+
+**Frontend** (`HorariosConsumicion.jsx` ampliado, mismo archivo de sesión 2):
+- Nueva dependencia `recharts ^3.8.1` (instalada vía `npm install recharts` desde el contenedor `frontend`).
+- Toggle "Tabla / Proyección" en cabecera (par de pills idéntico al toggle de eje). Cuando vista=tabla aparece debajo el toggle "Rangos / Evaluaciones"; cuando vista=proyección se oculta porque la proyección hoy solo trabaja con eje rangos.
+- **Vista Proyección**:
+  - Selector de materia (`ThemedSelect`) con todas las imparticiones del grupo.
+  - Resumen lateral con tono según Δ%: currículo, plan al cierre del curso, Δ%.
+  - `LineChart` (recharts) con 3 series:
+    - **Ideal currículo** (gris discontinuo): lineal proporcional a `diasLectivosAcumulados / diasLectivosTotales` × objetivo anual. No es estrictamente recta porque los rangos no reparten días lectivos uniformemente, pero se acerca.
+    - **Planificado** (color primario, sólido): acumulado de `porRango[].minutosPlanificados` en cada hito.
+    - **Impartido** (verde sólido): acumulado de `porRango[].minutosImpartidos` hasta el último rango cuyo fin ≤ fechaReferencia. Un hito intermedio extra `fechaReferencia` se inserta si la fecha cae dentro de un rango (con plan calculado proporcionalmente al tramo transcurrido del rango). Tras `fechaReferencia` la serie es `null` y `connectNulls={false}` corta la línea.
+  - `ReferenceLine` vertical sobre el hito "hoy" cuando se inserta.
+  - Tooltip de recharts customizado al theme (border, bg, font 12px).
+- **Panel de sugerencias**: lista hasta 5 materias con Δ% < -3 ordenadas por gravedad. Cada una con `materia: faltan {h} h ({delta}%)`. Footnote con sugerencias genéricas (ampliar último rango, subir minutos, ampliar jornada). Si no hay déficit en ninguna, banner verde "el planificado cubre el currículo".
+- **Persistencia** en `sessionStorage` (`horariosConsumicion.prefs.v1` con `{vista, eje}`). El usuario que cambia de tab y vuelve mantiene su elección.
+
+**i18n × 5**: 16 claves nuevas por idioma (`viewToggleLabel`, `viewTabla`, `viewProyeccion`, `selectMateria`, `chartYAxis`, `chartToday`, `chartLegendIdeal/Plan/Imp`, `chartFinalCurr/Plan`, `suggestionTitle/Item/Hint/AllOk`).
+
+**CSS** ampliado: `.toggleStack`, `.proyeccionWrap`, `.proyeccionToolbar`, `.materiaPicker`, `.materiaSummary`, `.chartBox`, `.suggestions*`, `.suggestionsOk` (color-mix sobre `--warning` / `--success`).
+
+**Bundle**: `npx vite build` pasa de 3293 kB → 3784 kB minified (+484 kB) por incluir recharts. El warning de chunk grande ya estaba en sesión 1; ahora se acentúa pero no rompe nada. Mitigable con dynamic import (`React.lazy(() => import('./HorariosConsumicion'))`) cuando el bundle empiece a doler — no urgente.
+
+**Decisiones implícitas**:
+- **Recharts 3 vs `victory`/`nivo`**: recharts 3 es la opción estándar en React 19, mantenimiento activo, API simple, peso aceptable.
+- **Una materia por chart, no una por línea de las 7 a la vez**: 7 líneas saturarían visualmente; el dropdown deja al admin enfocar la materia que le interesa. Si en el futuro se quiere multi-materia, se cambia a `<Line>` por imp generadas en bucle.
+- **Eje rangos único en Proyección por ahora**: la proyección por evaluaciones tendría sentido pero en este pase se queda fuera; la sugerencia se basa en Δ% total del año (que es lo que importa al planificar). Si llega demanda, sesión futura.
+
+**Fase 8 cerrada el mismo día que arrancó**. Las 3 sesiones planeadas (~2-3 sesiones según estimación inicial del doc) cupieron en un único día porque la base estaba bien puesta y cada sesión añade una capa clara sobre la anterior.
+
+---
 
 ### 2026-05-03 — Fase 8 sesión 2 ✅ (doble eje + tonalidad + plegables + banner)
 
