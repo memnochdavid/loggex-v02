@@ -54,6 +54,14 @@ export default defineConfig({
       'perfect-freehand',
       '@dnd-kit/core',
       '@dnd-kit/modifiers',
+      // Recharts (Fase 8 PL — vista Proyección del tab Consumición).
+      // Recharts 2 importa `default` desde subpaths de lodash CJS
+      // (`import get from 'lodash/get'`). Sin pre-bundling, Vite carga
+      // el .js como ESM nativo y peta con "does not provide an export
+      // named 'default'". Pre-bundleando recharts, esbuild interopera
+      // CJS↔ESM correctamente.
+      'recharts',
+      'sonner',
     ],
     // noDiscovery desactiva el escaneo on-demand de nuevas dependencias
     // durante el dev. Cualquier dep debe estar en `include` o en los
