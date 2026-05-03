@@ -5,6 +5,7 @@ import styles from './Crud.module.css';
 import calStyles from './Calificaciones.module.css';
 import Horarios from './Horarios';
 import HorariosEditor from './HorariosEditor';
+import HorariosConsumicion from './HorariosConsumicion';
 
 const HorariosAdmin = () => {
     const { t } = useTranslation();
@@ -26,6 +27,13 @@ const HorariosAdmin = () => {
             >
                 {t('scheduleEditor.tabList')}
             </button>
+            <button
+                type="button"
+                className={`${calStyles.tab} ${tab === 'consumicion' ? calStyles.tabActive : ''}`}
+                onClick={() => setTab('consumicion')}
+            >
+                {t('scheduleEditor.tabConsumption')}
+            </button>
         </div>
     );
 
@@ -33,8 +41,9 @@ const HorariosAdmin = () => {
         <Layout>
             <div className={styles.container}>
                 <div key={tab} className={calStyles.tabContent}>
-                    {tab === 'editor' && <HorariosEditor embedded tabs={tabs} />}
-                    {tab === 'lista'  && <Horarios       embedded tabs={tabs} />}
+                    {tab === 'editor'      && <HorariosEditor      embedded tabs={tabs} />}
+                    {tab === 'lista'       && <Horarios            embedded tabs={tabs} />}
+                    {tab === 'consumicion' && <HorariosConsumicion embedded tabs={tabs} />}
                 </div>
             </div>
         </Layout>

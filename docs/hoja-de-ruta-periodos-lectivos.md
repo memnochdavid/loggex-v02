@@ -1,5 +1,7 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
+> **Status (2026-05-03)**: 🟡 **Fase 8 ARRANCADA — Sesión 1**: tab "Consumición de horas anuales" en `/admin/horarios`. Plan incremental en 3 sesiones: (1) backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + tab vacío en `HorariosAdmin.jsx`; (2) vista "ahora" tabla por materia con tonalidad; (3) vista "proyección" timeline con `recharts`. Decisiones tomadas al arrancar: cálculo **teórico** primero (días lectivos × min/sem; `Asistencia` queda como mejora futura); doble eje rango↔evaluación desde sesión 2. Detalle vivo en §3 Fase 8 sub-sección "🟡 En progreso".
+>
 > **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B partes 1+2 ✅** (commits `2f57fc2`, `d40b663`): TODAS las acciones del curso refactorizadas a "nada persiste hasta Guardar". Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Editar PL, Borrar PL, Limpiar todo → acumulan en `pendingTxByGrupo[gid]` con virtuales (`plsToCreate` con tempId<0), updates (`plsToUpdate`), borrados (`plsToDelete`) y patches PLI (`pliPatches`). Botón Guardar único aplica tx en orden estricto. Botón Descartar restaura snapshot. **Tanda B parte 3 pendiente** (deuda menor): editar minutos PLI desde modal Sliders sigue PATCH inmediato; runSolver/runSolverAllRangos sobre virtual fallan; botón "Extender curso" hace PATCH inmediato. Plan de retomada en `INDEX.md` "Tanda B parte 3 — pendiente al retomar". **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
 >
 > **Status anterior (2026-04-29)**: Fase 5 COMPLETA + Opción A `Materia.horasTotales` como objetivo curricular. Verificado E2E centro EAG: 2º DAW/DAM al 101-108%; 1º DAW déficit estructural irreductible. Detalles abajo.
@@ -393,6 +395,22 @@ Dos vistas combinadas dentro de la pestaña:
 
 **Prerrequisitos**: Fases 1-7 completas. Funciona aún sin Asistencia (cálculo teórico) pero gana mucho con ella.
 
+#### 🟡 En progreso (arrancada 2026-05-03)
+
+**Plan incremental confirmado**:
+
+| Sesión | Alcance | Estado |
+|---|---|---|
+| 1 | Backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + comando debug `app:fase8:consumicion` + tab nuevo en `HorariosAdmin.jsx` con tabla mínima | ✅ Done 2026-05-03 (sin commit aún) |
+| 2 | Tonalidad por fila (verde/amarillo/rojo según Δ%), toggle rango↔evaluación (servicio rellenará `evaluaciones[]`), sub-totales por rango plegables, banner cabecera | 🔴 |
+| 3 | Vista "proyección": timeline con `recharts` (líneas ideal vs proyectada por materia) + banner sugerencia ("amplía rango FCT N días") | 🔴 |
+
+**Decisiones tomadas al arrancar (2026-05-03)**:
+
+- **D-M Cálculo teórico primero, Asistencia como mejora futura**: las horas "impartidas hasta hoy" se calculan como `díasLectivosTranscurridosDelRango × minutosPorDíaDeLaMateria` (derivable de la jornada del rango y el reparto semanal), no se leen de `Asistencia`. Razón: BD actual no tiene asistencia poblada para todo el curso; el dato teórico ya cuadra cuando los profes "imparten lo planificado". Si en el futuro se quiere fidelidad real, se cambia el servicio sin tocar el endpoint ni el frontend.
+- **D-N Endpoint único agregado** en lugar de cálculo en frontend: el cliente recibe `{materias: [{materiaId, nombre, minutosCurriculo, minutosPlanificadoTotal, minutosImpartidosHoy, minutosProyectadoTotal, porRango: [...]}]}` ya cocinado. Razón: la lógica de "días lectivos descontando festivos" ya vive en `CalendarioLectivoService` (backend), duplicarla en frontend sería frágil.
+- **D-O Recharts para vista proyección** (sesión 3): es la librería estándar React, ligera, ya hay precedente en el ecosistema (no instalada todavía — verificar antes).
+
 ---
 
 ## 4. Impacto en otros docs
@@ -417,6 +435,44 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-05-03 — Fase 8 sesión 1 ✅ (backend + tab básico)
+
+Iniciada Fase 8 "Consumición de horas anuales" como tab nuevo en `/admin/horarios`. Plan incremental en 3 sesiones (ver §3 Fase 8 sub-sección "🟡 En progreso"). Decisiones tomadas al arrancar: D-M (cálculo teórico primero, Asistencia diferida), D-N (endpoint agregado único en backend), D-O (recharts para timeline en sesión 3).
+
+**Sesión 1 entregada**:
+
+Backend:
+- `backend/src/Service/ConsumicionAnualService.php` (nuevo) — agrega por imparticion del grupo: minutosCurriculo (`Materia.getObjetivoAnualMinutos`), minutosPlanificadoTotal (Σ rango: PLI.effectiveMinSem × semanas rango), minutosImpartidosHoy (mismo cómputo aplicado al sub-rango `[PL.fechaInicio, min(fechaRef, PL.fechaFin)]`), minutosProyectadoTotal (= planificado total en sesión 1). Reusa `CalendarioLectivoService::semanasLectivas` con override de fechas para contar días lectivos por rango descontando festivos. Itera sobre **todas** las imparticiones del grupo (no filtra por modalidad — el dashboard mide currículo, no placement); modalidad va al output como dato.
+- `backend/src/Controller/GrupoConsumicionController.php` (nuevo) — `GET /api/v1/grupos/{id}/consumicion-anual?fechaReferencia=YYYY-MM-DD` (default = hoy). 400 si fecha inválida.
+- `backend/src/Command/ConsumicionAnualDebugCommand.php` (nuevo) — `app:fase8:consumicion <grupoId> [--fecha=...] [--summary]`. Útil para validar sin pasar por HTTP+JWT. **Mantener** como herramienta de debug; quitar solo cuando Fase 8 sesión 3 esté cerrada y la UI sea la única vía de validación.
+
+Frontend:
+- `frontend/src/pages/HorariosConsumicion.jsx` (nuevo) — tab embedded con selector de grupo + cabecera de stat (% curso transcurrido, días) + tabla mínima por materia (curr/plan/imp hoy/Δ%). **Sin tonalidad ni chart** todavía (sesión 2/3).
+- `frontend/src/pages/HorariosConsumicion.module.css` (nuevo).
+- `frontend/src/pages/HorariosAdmin.jsx` — tercer tab "Consumición" añadido (junto a Editor/Lista).
+- i18n × 5 idiomas: `scheduleEditor.tabConsumption` + bloque `scheduleEditor.consumption.*` (12 claves cada uno) en `es/en/ca/eu/gl.json`.
+
+Doc:
+- §3 Fase 8 nueva sub-sección "🟡 En progreso" con tabla de sesiones + bloque de decisiones D-M / D-N / D-O.
+- INDEX.md "Primera acción al retomar" actualizada al estado de Fase 8 en curso; tabla de hojas de ruta marca Fase 8 como 🟡 EN PROGRESO.
+
+**Validación E2E backend** (con `app:fase8:consumicion 1 --summary`, grupo 1º DAW EAG, fecha ref 2026-05-03):
+- 79.1% del curso transcurrido (159/201 días lectivos), 3 rangos × 13.0-13.8 sem cada uno con jornada 30h/sem.
+- 7 materias presenciales con Δ% entre -0.6% y -6.9% (déficit estructural conocido del 1º DAW EAG; coherente con el INDEX que apunta a jornada 30h vs currículo 29h LOMLOE).
+- Ratio impartido/planificado ≈ 79.7% ≈ % del curso transcurrido. Cuadra dentro del margen del round.
+
+Grupo sin rangos (id=4, 2º DAM): devuelve `rangos: []`, materias con planificado/impartido = 0 y currículo correcto. La UI muestra el mensaje `consumption.noRanges`.
+
+**Validación frontend**: `npx vite build` OK (12.51s, 1996 módulos transformados, sin errores). Validación visual en navegador **pendiente del usuario** — yo no puedo abrir el browser.
+
+**Pendiente sesión 2** (próximo):
+- Tonalidad por fila: verde (Δ% > -3%), amarillo (-10% < Δ% ≤ -3%), rojo (Δ% ≤ -10%) — reusar variables `--success`, `--warning`, `--danger`.
+- Toggle rango↔evaluación: switch en cabecera. El servicio ya devuelve `evaluaciones: []` vacío como slot reservado; sesión 2 lo rellena desplegando por `PeriodoEvaluativo` del grupo.
+- Sub-totales por rango plegables (ya viene `porRango[]` en el JSON, no usado en sesión 1).
+- Banner header con tonalidad cuando el grupo entero está en deuda > umbral.
+
+---
 
 ### 2026-05-01 — Tanda B parte 3: cierre del refactor "nada persiste hasta Guardar"
 
