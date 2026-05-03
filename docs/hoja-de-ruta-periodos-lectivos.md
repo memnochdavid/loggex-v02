@@ -1,6 +1,6 @@
 # Períodos lectivos (rangos de fecha) y solver por rango
 
-> **Status (2026-05-03)**: 🟡 **Fase 8 ARRANCADA — Sesión 1**: tab "Consumición de horas anuales" en `/admin/horarios`. Plan incremental en 3 sesiones: (1) backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + tab vacío en `HorariosAdmin.jsx`; (2) vista "ahora" tabla por materia con tonalidad; (3) vista "proyección" timeline con `recharts`. Decisiones tomadas al arrancar: cálculo **teórico** primero (días lectivos × min/sem; `Asistencia` queda como mejora futura); doble eje rango↔evaluación desde sesión 2. Detalle vivo en §3 Fase 8 sub-sección "🟡 En progreso".
+> **Status (2026-05-03)**: 🟡 **Fase 8 EN PROGRESO — Sesiones 1+2 ✅ Done**: tab "Consumición de horas anuales" en `/admin/horarios` con backend completo (rangos + evaluaciones), tabla tonalizada, filas plegables, toggle de eje y banner del grupo. Falta solo **sesión 3**: timeline de proyección con `recharts` + banner sugerencia. Decisiones tomadas al arrancar: cálculo **teórico** primero (días lectivos × min/sem; `Asistencia` queda como mejora futura); doble eje rango↔evaluación desde sesión 2. Detalle vivo en §3 Fase 8 sub-sección "🟡 En progreso" y bitácora §6 (entradas 2026-05-03 sesión 1 y sesión 2).
 >
 > **Status (2026-04-30 noche)**: 🟢 **Fase 7 COMPLETA** + **Tanda B partes 1+2 ✅** (commits `2f57fc2`, `d40b663`): TODAS las acciones del curso refactorizadas a "nada persiste hasta Guardar". Configurar curso óptimo, Crear Rangos Recomendados, Añadir manual, Editar PL, Borrar PL, Limpiar todo → acumulan en `pendingTxByGrupo[gid]` con virtuales (`plsToCreate` con tempId<0), updates (`plsToUpdate`), borrados (`plsToDelete`) y patches PLI (`pliPatches`). Botón Guardar único aplica tx en orden estricto. Botón Descartar restaura snapshot. **Tanda B parte 3 pendiente** (deuda menor): editar minutos PLI desde modal Sliders sigue PATCH inmediato; runSolver/runSolverAllRangos sobre virtual fallan; botón "Extender curso" hace PATCH inmediato. Plan de retomada en `INDEX.md` "Tanda B parte 3 — pendiente al retomar". **Fase 7 anterior**: calendario lectivo del centro implementado con datos reales BOJA (Resolución provincial Sevilla curso 2025-26 firmada 29-may-2025). Modelo: enum `EtapaEducativa` (12 valores LOMLOE) + entidad `CalendarioEscolarCcaa(ccaa, anioAcademico, etapa, fechaInicio, fechaFin, ...)` + `Centro.fechaInicio/FinCurso` (override opcional). Pipeline `app:calendario:ingest-escolar` + `app:calendario:seed-escolar` (idempotente). Servicio `CalendarioLectivoService` cuenta días L-V descontando festivos aplicables. Endpoint `GET /api/v1/centros/{id}/semanas-lectivas`. UI Centro con sugerencia auto del CCAA. `HorariosEditor.jsx` y `CapacityPlanner.php` migrados de `36` hardcoded a `semanasReferenciaCentro` con fallback a 36. Quedan Fase 6 (merge `/admin/jornadas` + `/admin/horarios` — cosmético) y Fase 8 (dashboard horas anuales para jefe de estudios).
 >
@@ -401,8 +401,8 @@ Dos vistas combinadas dentro de la pestaña:
 
 | Sesión | Alcance | Estado |
 |---|---|---|
-| 1 | Backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + comando debug `app:fase8:consumicion` + tab nuevo en `HorariosAdmin.jsx` con tabla mínima | ✅ Done 2026-05-03 (sin commit aún) |
-| 2 | Tonalidad por fila (verde/amarillo/rojo según Δ%), toggle rango↔evaluación (servicio rellenará `evaluaciones[]`), sub-totales por rango plegables, banner cabecera | 🔴 |
+| 1 | Backend `ConsumicionAnualService` + endpoint `GET /api/v1/grupos/{id}/consumicion-anual` + comando debug `app:fase8:consumicion` + tab nuevo en `HorariosAdmin.jsx` con tabla mínima | ✅ Done 2026-05-03 (commit `e068bfb`) |
+| 2 | Doble eje: backend rellena `evaluaciones[]` con desglose `porEvaluacion[]` por materia (intersección PL ∩ PE). Frontend: toggle "Rangos / Evaluaciones", tonalidad por fila (verde Δ% > -3, amarillo (-10, -3], rojo ≤ -10, neutral si curr=0), filas plegables con desglose por sub-rango/sub-evaluación, banner cabecera tonalizado con resumen del grupo | ✅ Done 2026-05-03 |
 | 3 | Vista "proyección": timeline con `recharts` (líneas ideal vs proyectada por materia) + banner sugerencia ("amplía rango FCT N días") | 🔴 |
 
 **Decisiones tomadas al arrancar (2026-05-03)**:
@@ -435,6 +435,37 @@ Dos vistas combinadas dentro de la pestaña:
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-05-03 — Fase 8 sesión 2 ✅ (doble eje + tonalidad + plegables + banner)
+
+Cerrada sesión 2 de Fase 8 en la misma fecha que la sesión 1 — ritmo aceptable porque la base ya estaba puesta y la sesión 2 añade una capa visual clara sobre el output del servicio.
+
+**Backend** (`backend/src/Service/ConsumicionAnualService.php`):
+- Nuevo eje "evaluaciones" en el output: lista `evaluaciones[]` (id, nombre, tipo, fechas, peso, semanas/días totales y transcurridos) y por cada materia un array `porEvaluacion[]` con `{evaluacionId, minutosPlanificados, minutosImpartidos}`.
+- Helper privado `calcularMinutosEnEvaluacion(centro, pe, pls, pliIndex, imp, fechaRef)` calcula la intersección `[max(PL.ini, PE.ini), min(PL.fin, PE.fin)]` por cada rango y multiplica `PLI.minSem × semanas(intersección)`. Permite que una imparticion presente en varios rangos contribuya a la evaluación correcta cuando los rangos se solapan con la ventana de la evaluación.
+- Currículo NO se reparte por evaluación — sigue siendo el objetivo anual de la materia. Decisión coherente con el doc §3 Fase 8: la pregunta del eje evaluaciones es "¿cuánto se habrá impartido al cerrar cada evaluación?", no "¿qué % de la nota toca a cada evaluación?".
+- Cache local `cacheVentana[Y-m-d|Y-m-d]` por invocación de `computeForGrupo` (reset al inicio de cada llamada). Evita recomputar el mismo `[fechaInicio, fechaFin]` cuando varias imparticiones × rangos × evaluaciones cruzan la misma ventana. En el caso 1º DAW EAG (3 PLs × 4 PE × 7 imps) baja de ~84 llamadas crudas a ~14 distintas + acceso O(1) al cache.
+
+Validación E2E con grupo 1 (1º DAW EAG, fechaRef 2026-05-03):
+- 4 evaluaciones detectadas: 1ª (sept-dic) 15.8 sem · 2ª (ene-mar) 10.4 sem · 3ª (mar-may) 9.6 sem (5.6 transcurridas) · Extraordinaria (jun) 4 sem (0 transcurridas).
+- Bases de Datos: por evaluación 69h+57.2h+48.3h+20h = 194.5h plan, vs 207.5h por rango. Diferencia ≈13h debida a los gaps temporales entre evaluaciones que sí están cubiertos por algún rango (p.ej. 30-may al 1-jun, 27-30-jun). Cuadra con la lógica de intersección.
+
+**Frontend** (`HorariosConsumicion.jsx` + `.module.css` reescritos):
+- Toggle "Rangos / Evaluaciones" en cabecera (pill `axisToggle` con role `tablist`). Disabled del lado de Evaluaciones cuando el grupo no tiene `PeriodoEvaluativo`, con tooltip explicativo. Cambiar de eje colapsa cualquier fila expandida.
+- Tonalidad por fila: clases `row_ok` / `row_warn` / `row_error` / `row_neutral` con bg sutil (`color-mix(... 6-8%)` sobre vars `--success` / `--warning` / `--danger`) y la celda Δ% lleva el color saturado del estado. Umbrales: `>= -3` ok, `[-10, -3)` warn, `< -10` error, `curr=0` neutral (ej. FCT con minutosCurriculo=0).
+- Filas plegables con `<ChevronRight>` que rota 90° al expandir. Sub-fila (`detailRow`) muestra el desglose del eje activo: cada item con nombre + fechas dd/mm/yyyy + min/sem (solo en eje rangos) + plan h + impartido h + meta de semanas (totales y transcurridas).
+- Banner cabecera con cuatro variantes (`banner_ok` / `banner_warn` / `banner_error` / `banner_neutral`) tonalizadas con `color-mix`. Calcula Δ% del grupo agregando Σ minutosCurriculo y Σ minutosPlanificadoTotal de todas las imparticiones; muestra title + sub-line con currículo/planificado/impartido en horas.
+- 5 i18n locales: 16 claves nuevas por idioma (`axisToggleLabel`, `axisRangos`, `axisEvaluaciones`, `noEvaluations`, `evalsSummary`, 4× `banner_*`, `bannerStats`, 4× `detail*`, `projectionComing`).
+
+Build OK (`npx vite build`, 14.52s, 1996 módulos, sin errores). Validación visual en navegador **pendiente del usuario**.
+
+**Pendiente sesión 3**:
+- Vista "proyección" timeline con `recharts` (verificar instalación; no está en `package.json` aún). Eje X = semanas/meses del curso, eje Y = horas acumuladas. Línea ideal del currículo (lineal del 0 al objetivo anual) + línea proyectada (acumulando por rangos según la planificación actual). Una línea por materia.
+- Banner sugerencia cuando alguna materia no llega al 100% al final del curso ("amplía rango FCT N días" / "añade X minutos/sem en el rango Y").
+- Toggle entre vista tabla (sesión 2) y vista proyección (sesión 3). El toggle "Rangos / Evaluaciones" sigue aplicando dentro de cada vista.
+- Persistencia del eje activo y del modo de vista en `sessionStorage` para que no se pierda al cambiar de tab.
+
+---
 
 ### 2026-05-03 — Fase 8 sesión 1 ✅ (backend + tab básico)
 

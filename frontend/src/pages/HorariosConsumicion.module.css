@@ -26,6 +26,92 @@
   border-radius: 6px;
 }
 
+.axisToggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  margin-left: auto;
+}
+
+.axisPill {
+  padding: 0.4rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.axisPill:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.axisPill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.axisPillActive {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast, #fff);
+}
+
+.axisPillActive:hover {
+  color: var(--color-primary-contrast, #fff);
+}
+
+/* ---- Banner cabecera ---- */
+
+.banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.bannerTitle {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.bannerStats {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.banner_ok {
+  background: color-mix(in srgb, var(--success, #22c55e) 12%, transparent);
+  border-color: color-mix(in srgb, var(--success, #22c55e) 45%, transparent);
+  color: var(--success, #16a34a);
+}
+
+.banner_warn {
+  background: color-mix(in srgb, var(--warning, #f59e0b) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 45%, transparent);
+  color: var(--warning, #d97706);
+}
+
+.banner_error {
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+  border-color: color-mix(in srgb, var(--danger, #ef4444) 45%, transparent);
+  color: var(--danger, #dc2626);
+}
+
+.banner_neutral {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* ---- Tabla ---- */
+
 .rangosSummary {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -69,13 +155,13 @@
   top: 0;
 }
 
-.table tbody tr:hover {
-  background: var(--bg-hover);
-}
-
 .numCol {
   text-align: right !important;
   font-variant-numeric: tabular-nums;
+}
+
+.deltaCell {
+  font-weight: 600;
 }
 
 .modalidad {
@@ -83,6 +169,123 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.expanderCol {
+  width: 28px;
+  text-align: center !important;
+  padding: 0 !important;
+}
+
+.chevron {
+  transition: transform 0.18s ease;
+  color: var(--text-muted);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+  color: var(--text-primary);
+}
+
+.expandableRow {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.expandableRow:hover {
+  filter: brightness(1.02);
+}
+
+.expandedRow {
+  border-bottom: 0;
+}
+
+/* Tonalidad por fila — sutil, no satura. La columna Δ% lleva el color del
+   texto para que el estado salte a la vista sin necesitar leer la cifra. */
+
+.row_ok {
+  background: color-mix(in srgb, var(--success, #22c55e) 6%, transparent);
+}
+.row_ok .deltaCell {
+  color: var(--success, #16a34a);
+}
+
+.row_warn {
+  background: color-mix(in srgb, var(--warning, #f59e0b) 7%, transparent);
+}
+.row_warn .deltaCell {
+  color: var(--warning, #d97706);
+}
+
+.row_error {
+  background: color-mix(in srgb, var(--danger, #ef4444) 8%, transparent);
+}
+.row_error .deltaCell {
+  color: var(--danger, #dc2626);
+}
+
+.row_neutral .deltaCell {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---- Detail row (sub-rangos / sub-evaluaciones) ---- */
+
+.detailRow {
+  background: var(--bg-secondary);
+}
+
+.detailRow td {
+  padding: 0.4rem 0.4rem 0.6rem 2.4rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detailWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.detailItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  font-size: 0.85rem;
+}
+
+.detailItemName {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detailItemDates {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.detailItemBody {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.detailItemMeta {
+  margin-left: auto;
+  color: var(--text-muted);
 }
 
 .footnote {
