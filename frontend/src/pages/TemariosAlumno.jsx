@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
@@ -12,6 +12,7 @@ import bookAnimation from "../../public/book.json";
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 
 const TemariosAlumno = () => {
   const { t } = useTranslation();
@@ -109,8 +110,7 @@ const TemariosAlumno = () => {
       }
   }, [selectedGrupo, isSuperAdmin]);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       if (!user) return;
 
       try {
@@ -216,10 +216,23 @@ const TemariosAlumno = () => {
       } finally {
         setLoading(false);
       }
-    };
+  }, [user, isSuperAdmin, selectedCentro, selectedGrupo, selectedMateria, t]);
 
+  useEffect(() => {
     fetchData();
-  }, [user, selectedCentro, selectedGrupo, selectedMateria]);
+  }, [fetchData]);
+
+  // Mercure live: cuando un profe sube/edita/borra un Temario en cualquiera
+  // de las imparticiones visibles, el alumno (o SuperAdmin) refresca sin F5.
+  // Topics firmados en MercureAuthController por imparticion del grupo del alumno.
+  const liveTopics = useMemo(() => {
+      const impIds = asignaturas.map(a => a.id).filter(Boolean);
+      const topics = impIds.map(id => `/imparticiones/${id}/temarios`);
+      if (isSuperAdmin) topics.push('/admin/temarios');
+      return topics;
+  }, [asignaturas, isSuperAdmin]);
+
+  useLiveRefetch(liveTopics, () => fetchData());
 
   // Cargar períodos evaluativos de todos los grupos implicados
   useEffect(() => {

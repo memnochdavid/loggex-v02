@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ import Lottie from 'lottie-react';
 import statsAnimation from '../../public/stats.json';
 import { toast } from '../utils/toast';
 import { formatGrupoNombre } from '../utils/grupo';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 
 // Header de cada módulo dentro del AccordionView. Dispara la carga lazy de
 // tareas la primera vez que el item se expande.
@@ -220,39 +221,56 @@ const MisCalificaciones = () => {
         fetchPeriodos();
     }, [user, isSuperAdmin, selectedAlumno, selectedGrupo]);
 
-    // Cargar calificaciones
-    useEffect(() => {
+    // Cargar calificaciones (extraído a useCallback para que useLiveRefetch
+    // pueda dispararlo cuando llegue un evento de calificación nueva/editada).
+    const fetchCalificaciones = useCallback(async () => {
         if (isSuperAdmin && !selectedAlumno) {
             setData(null);
             setLoading(false);
             return;
         }
-        const fetchCalificaciones = async () => {
-            setLoading(true);
-            try {
-                let url = getApiUrl('/api/v1/alumno/mis-calificaciones');
-                const params = new URLSearchParams();
-                if (selectedPeriodo) params.set('periodo', selectedPeriodo);
-                if (isSuperAdmin && selectedAlumno) params.set('alumnoId', selectedAlumno);
-                const qs = params.toString();
-                if (qs) url += `?${qs}`;
+        setLoading(true);
+        try {
+            let url = getApiUrl('/api/v1/alumno/mis-calificaciones');
+            const params = new URLSearchParams();
+            if (selectedPeriodo) params.set('periodo', selectedPeriodo);
+            if (isSuperAdmin && selectedAlumno) params.set('alumnoId', selectedAlumno);
+            const qs = params.toString();
+            if (qs) url += `?${qs}`;
 
-                const response = await fetch(url, { credentials: 'include' });
-                if (!response.ok) throw new Error();
-                setData(await response.json());
-                setError(null);
-                setModuleTasks({});
-                // No cerramos el accordion al cambiar de filtro. El useEffect de
-                // sincronización (abajo) recargará las tareas del módulo expandido
-                // o lo cerrará si ya no existe en los nuevos datos.
-            } catch {
-                setError(t('grades.errorLoading'));
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCalificaciones();
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error();
+            setData(await response.json());
+            setError(null);
+            setModuleTasks({});
+            // No cerramos el accordion al cambiar de filtro. El useEffect de
+            // sincronización (abajo) recargará las tareas del módulo expandido
+            // o lo cerrará si ya no existe en los nuevos datos.
+        } catch {
+            setError(t('grades.errorLoading'));
+        } finally {
+            setLoading(false);
+        }
     }, [selectedPeriodo, selectedAlumno, isSuperAdmin, t]);
+
+    useEffect(() => {
+        fetchCalificaciones();
+    }, [fetchCalificaciones]);
+
+    // Mercure live: el alumno (o SuperAdmin viendo a otro alumno) refresca
+    // medias y tareas sin F5 cuando el profe pone/edita la nota.
+    // - Alumno normal: solo su topic personal /users/{id}/calificaciones.
+    // - SuperAdmin: /admin/calificaciones (cubierto por wildcard /admin/{rec}).
+    //   Calificacion publica a ambos topics, así cualquiera de los dos suscriptores recibe.
+    // Al limpiar moduleTasks, el useEffect de sincronización vuelve a cargar
+    // las tareas del módulo expandido con las notas nuevas.
+    const liveTopics = useMemo(() => {
+        if (!user) return [];
+        if (isSuperAdmin) return ['/admin/calificaciones'];
+        return [`/users/${user.id}/calificaciones`];
+    }, [user, isSuperAdmin]);
+
+    useLiveRefetch(liveTopics, () => fetchCalificaciones());
 
     // Tras cada fetch: si el módulo expandido sigue existiendo, recarga sus tareas
     // (se limpian al cambiar de filtro). Si ya no existe, cierra el accordion.

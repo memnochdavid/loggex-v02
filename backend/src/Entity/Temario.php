@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\TemarioRepository;
@@ -33,6 +34,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     denormalizationContext: ['groups' => ['temario:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: ['imparticion' => 'exact'])]
+// Topic admin plano `/admin/temarios` para SuperAdmin (cubierto por wildcard
+// `/admin/{rec}` en JWT). Topic por imparticion `/imparticiones/{id}/temarios`
+// firmado individualmente al profesor titular y a los alumnos del grupo en
+// MercureAuthController, así no hay fuga de datos entre imparticiones ajenas.
+#[LivePublish(
+    topics: ['/admin/temarios', '/imparticiones/{imparticion.id}/temarios'],
+    payloadGroups: ['temario:read', 'timestamp:read', 'softdelete:read'],
+)]
 class Temario
 {
     use TimestampableTrait;

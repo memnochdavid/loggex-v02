@@ -33,6 +33,9 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  *   /global/comunicados            -> comunicados globales (todos los usuarios)
  *   /admin/centros/{cid}/{rec}     -> live updates de vistas admin del centro
  *   /imparticiones/{id}/entregas   -> entregas de una imparticion (solo su profesor)
+ *   /imparticiones/{id}/temarios   -> temarios de una imparticion (profe titular + alumnos del grupo)
+ *   /users/{id}/asistencias        -> asistencias del alumno (vista MisFaltas)
+ *   /users/{id}/calificaciones     -> calificaciones del alumno (vista MisCalificaciones)
  */
 class MercureAuthController extends AbstractController
 {
@@ -56,6 +59,10 @@ class MercureAuthController extends AbstractController
             "/users/{$userId}/messages",
             "/users/{$userId}/notifications",
             "/users/{$userId}/stats",
+            // Asistencias propias: vista MisFaltas refresca cuando el profe pasa lista.
+            "/users/{$userId}/asistencias",
+            // Calificaciones propias: vista MisCalificaciones refresca cuando el profe pone/edita la nota.
+            "/users/{$userId}/calificaciones",
             // Comunicados globales: cualquier usuario autenticado los recibe.
             '/global/comunicados',
         ];
@@ -106,8 +113,12 @@ class MercureAuthController extends AbstractController
             ->getResult();
 
         $grupoIds = [];
+        // Imparticiones donde el user puede leer temarios (como profe titular o como
+        // alumno del grupo). Acumulamos antes de emitir topics para evitar duplicados.
+        $temarioImpIds = [];
         foreach ($impIds as $row) {
             $topics[] = "/imparticiones/{$row['id']}/entregas";
+            $temarioImpIds[$row['id']] = true;
             if ($row['gid']) {
                 $grupoIds[$row['gid']] = true;
             }
@@ -129,6 +140,25 @@ class MercureAuthController extends AbstractController
         }
         foreach (array_keys($grupoIds) as $gid) {
             $topics[] = "/grupos/{$gid}/schedule";
+        }
+
+        // Imparticiones de los grupos del alumno: temarios del profe → alumno.
+        // Mismo razonamiento de seguridad que entregas: enumeramos para no firmar
+        // un URI template abierto. Reutilizamos la lista de gids del alumno.
+        if ($alumnoGrupoIds) {
+            $impFromMatriculas = $this->imparticionRepo->createQueryBuilder('i')
+                ->select('i.id')
+                ->where('IDENTITY(i.grupo) IN (:gids)')
+                ->andWhere('i.deleted = false')
+                ->setParameter('gids', array_values(array_filter($alumnoGrupoIds)))
+                ->getQuery()
+                ->getSingleColumnResult();
+            foreach ($impFromMatriculas as $impId) {
+                $temarioImpIds[$impId] = true;
+            }
+        }
+        foreach (array_keys($temarioImpIds) as $impId) {
+            $topics[] = "/imparticiones/{$impId}/temarios";
         }
 
         // URL pública del hub relativa al host actual del request. Así Caddy

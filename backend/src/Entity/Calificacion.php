@@ -33,11 +33,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['calificacion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['calificacion:write']]
 )]
-// Topic plano /admin/calificaciones (path entity → entrega → tarea → imparticion
-// → grupo → centro es demasiado largo y frágil para placeholders). El backend
-// filtra por centro en GET, basta con refetch al evento.
+// Topic admin plano `/admin/calificaciones` (path entity → entrega → tarea →
+// imparticion → grupo → centro es demasiado largo y frágil para placeholders).
+// Topic personal `/users/{entrega.alumno.id}/calificaciones` para que el alumno
+// vea su `/mis-calificaciones` actualizada cuando el profe pone/edita la nota.
+// El SuperAdmin ya recibe vía `/admin/{rec}` cuando filtra por otro alumno.
 #[LivePublish(
-    topics: ['/admin/calificaciones'],
+    topics: ['/admin/calificaciones', '/users/{entrega.alumno.id}/calificaciones'],
     payloadGroups: ['calificacion:read', 'timestamp:read', 'softdelete:read'],
 )]
 class Calificacion
