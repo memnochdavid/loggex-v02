@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ComunicadoRepository;
@@ -30,6 +31,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['comunicado:read', 'timestamp:read', 'softdelete:read', 'user:read', 'centro:read']],
     denormalizationContext: ['groups' => ['comunicado:write']]
+)]
+// Comunicados con `centro` no-null se publican al topic del centro; los
+// comunicados globales (centro=null, global=true) NO disparan este live aún
+// porque el placeholder `{centro.id}` no resuelve y el topic se descarta.
+// Pendiente para sesión 2: topic `/global/comunicados` + condición en el
+// atributo (ver hoja-de-ruta-redis-workers.md §"Deuda live updates CRUD").
+#[LivePublish(
+    topics: ['/centros/{centro.id}/comunicados'],
+    payloadGroups: ['comunicado:read', 'timestamp:read', 'softdelete:read', 'user:read', 'centro:read'],
 )]
 class Comunicado
 {

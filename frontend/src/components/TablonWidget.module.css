@@ -84,6 +84,8 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .cardTitle {
@@ -91,16 +93,21 @@
     font-size: 1.05rem;
     color: var(--color-text-main);
     line-height: 1.4;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
 }
 
 .badges {
     display: flex;
     gap: 0.5rem;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .badgeGlobal, .badgeCentro {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-size: 0.7rem;
@@ -109,6 +116,19 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    max-width: 100%;
+    line-height: 1.3;
+}
+
+.badgeGlobal svg, .badgeCentro svg {
+    flex-shrink: 0;
+}
+
+.badgeText {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
 }
 
 .badgeGlobal {

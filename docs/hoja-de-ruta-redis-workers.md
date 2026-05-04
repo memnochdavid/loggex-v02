@@ -1,19 +1,25 @@
 # Hoja de Ruta: Redis + Mercure + Workers para Tiempo Real
 
-## ⚡ Snapshot para retomar (2026-04-27)
+## ⚡ Snapshot para retomar (2026-05-04)
 
-**Implementado parcialmente:**
+**Sesión 1 Live CRUD ✅ Done (2026-05-04) — framework + smoke test Comunicado.**
+Ver §"Bitácora Live CRUD" al final del doc para el detalle.
+
+**Implementado:**
 - Bundle `symfony/mercure-bundle` instalado y registrado.
 - Contenedor `mercure` corriendo en Docker.
 - `MercurePublishSubscriber` escucha `Mensaje::postPersist/postUpdate` y publica eventos `new_message` / `message_read` a topics `/users/{id}/messages` y `/users/{id}/notifications`.
 - `Symfony Messenger` con cola async para `PublishMercureUpdate` (no bloquea HTTP).
 - Frontend: hook `useMercure(topics, onEvent)` con EventSource, reconexión automática y cookie firmada vía `/api/me/mercure-subscribe`.
 - Consumido por: `NotificationList`, `Mensajes.jsx`, `useUnreadMessages.js`.
+- **Framework Live CRUD declarativo (sesión 1 2026-05-04)**: atributo `#[LivePublish]`, `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hook frontend `useLiveCollection`. Aplicado a `Comunicado` + `TablonWidget` como smoke test (validar end-to-end pendiente del usuario).
 
 **Deuda principal — live updates CRUD:**
-- Hoy cuando el admin edita Itinerario, Grupo, Imparticion, Matricula, Festivo, Materia, Calificacion, Tarea, Entrega, etc., **otros usuarios viendo esa misma vista NO ven el cambio hasta hacer F5**. El usuario percibe esto como bug porque "Mercure ya está" — pero en realidad solo cubre mensajería.
+- Quedan por migrar las vistas de prioridad alta+media (Imparticion, Matricula, Grupo, Itinerario, Horario, Festivo, Tarea, Entrega, Calificacion). Plan: ~2 sesiones más siguiendo el patrón ya validado.
+- Falta extender `MercureAuthController` con topics `/admin/centros/{cid}/{rec}` para que admins puedan suscribirse a vistas de gestión. Se hará en sesión 2 al migrar la primera vista admin.
+- Comunicados globales (`global=true`, `centro=null`) aún no propagan: el placeholder `{centro.id}` no resuelve y el topic se descarta. Requiere mecanismo de "topic condicional" en el atributo.
 
-Ver §"Deuda — Live updates CRUD para todas las vistas con persistencia" más abajo.
+Ver §"Deuda — Live updates CRUD para todas las vistas con persistencia" + §"Bitácora Live CRUD" más abajo.
 
 ---
 
@@ -631,5 +637,85 @@ Hasta que se implemente, **toda nueva vista CRUD que se cree debe**:
 
 - **Cron anual fetch BOE** (calendario laboral) que vive aquí cuando llegue Symfony Scheduler.
 - **Notificaciones tipo "el admin acaba de matricular un alumno en tu grupo"** se beneficia del mismo sistema con un topic adicional por usuario afectado.
+
+---
+
+## Bitácora Live CRUD
+
+### Sesión 1 ✅ Done (2026-05-04) — Framework + smoke test Comunicado
+
+**Objetivo:** dejar el patrón declarativo listo y validado con UNA entidad antes de migrar el resto. Permite que cada vista posterior se migre con ~30 min de cambio.
+
+**Implementado:**
+
+1. **`backend/src/Attribute/LivePublish.php`** — atributo PHP `#[LivePublish]` con campos:
+   - `topics: string[]` — atajo aplicado a persist+update+remove.
+   - `topicsOnPersist|Update|Remove: ?string[]` — overrides por evento.
+   - `payloadGroups: string[]` — grupos de serialización para `data` del payload.
+   - `private: bool` — privado (true) por defecto: solo suscriptores con JWT que incluya el topic lo reciben.
+   - Soporta placeholders `{prop}` y `{prop.subprop}` con notación dot (PropertyAccess).
+
+2. **`backend/src/EventSubscriber/LivePublishSubscriber.php`** — listener Doctrine genérico (postPersist/postUpdate/postRemove). Para cualquier entidad marcada con el atributo:
+   - Lee atributo (cache estático por clase, lectura de reflexión solo la primera vez).
+   - Expande topics; si algún placeholder no resuelve (objeto null), descarta ese topic silenciosamente.
+   - Serializa con `payloadGroups` (omite `data` en `remove`).
+   - Despacha `PublishMercureUpdate` al bus async (Redis), no bloquea HTTP.
+   - Payload: `{ type: 'persist'|'update'|'remove', entity: 'Comunicado', id: 123, data: {...}|null }`.
+
+3. **`backend/src/Command/MercureInvalidateCommand.php`** — `app:mercure:invalidate -t /topic1 -t /topic2 -r "razón"`. Despacha update con `type: 'invalidate'` para señalizar refetch a clientes tras seeds o INSERT/UPDATE SQL directos (Doctrine no se entera → el subscriber no dispara).
+   - **Gotcha Windows**: Git Bash mangla los paths que empiezan por `/` (los convierte a `C:/Program Files/Git/...`). Workaround: prefijar `MSYS_NO_PATHCONV=1` o ejecutar desde dentro del contenedor (`docker compose exec backend bash`).
+
+4. **`frontend/src/hooks/useLiveCollection.js`** — hook que combina:
+   - Fetch inicial al endpoint REST.
+   - Suscripción a topics Mercure vía `useMercure`.
+   - Refetch debounced 200ms al recibir cualquier evento (colapsa ráfagas, p.ej. una migración batch).
+   - Token de in-flight para descartar respuestas obsoletas (race condition de fetch).
+   - Endpoint REST queda como fuente de verdad — no hay reducer optimista por id (evita inconsistencias con filtros, ordenación o filtro por centro hechos en backend).
+   - API: `useLiveCollection({ endpoint, topics, parseItems?, parseTotal?, headers?, enabled?, debounceMs?, onEvent? })`.
+
+5. **`backend/src/Entity/Comunicado.php`** — primera entidad con `#[LivePublish]`:
+   ```php
+   #[LivePublish(
+     topics: ['/centros/{centro.id}/comunicados'],
+     payloadGroups: ['comunicado:read', 'timestamp:read', 'softdelete:read', 'user:read', 'centro:read'],
+   )]
+   ```
+   - `/centros/{centroId}/comunicados` ya estaba firmado en el JWT del `MercureAuthController`, así que **no hizo falta tocar auth**.
+
+6. **`frontend/src/components/TablonWidget.jsx`** — migrado de `useEffect+fetch+manual refetch` a `useLiveCollection`. Conserva el `refetch()` explícito tras handleSave/handleDelete por inmediatez UX (no esperar a que llegue el SSE de vuelta).
+
+**Smoke tests ejecutados:**
+- ✅ `php bin/console debug:container LivePublishSubscriber` → registrado con tags `postPersist`, `postUpdate`, `postRemove`, autowired `MessageBusInterface` + `SerializerInterface`.
+- ✅ `php bin/console list app:mercure` → `app:mercure:invalidate` aparece junto a los `:test` y `:test-async` existentes.
+- ✅ `app:mercure:invalidate -t /centros/1/comunicados -r "smoke"` → `[OK] Publicado update invalidate a 1 topic(s) [privado]`. Job entra al stream Redis sin error.
+- ⏳ **Pendiente verificación visual usuario**: abrir TablonWidget en dos pestañas, crear/editar/eliminar comunicado en una y verificar que la otra refresca sola.
+
+**Limitaciones conocidas (apuntadas para sesión 2):**
+
+| Limitación | Mitigación |
+|---|---|
+| Comunicados globales (`global=true`, `centro=null`) no se propagan: el placeholder `{centro.id}` falla y el topic se descarta. | Añadir mecanismo `condition` al atributo o `topicsConditional` (mapa expr→topics). Mientras: el publicador ve el cambio (refetch local), el resto necesita F5. |
+| `MercureAuthController` solo firma `/users/{id}/*` y `/centros/{id}/comunicados`. Vistas admin necesitarán topics tipo `/admin/centros/{cid}/{rec}`. | Extender en sesión 2 al migrar la primera vista admin. Recomendado URI template `/admin/centros/{cid}/{rec}` para admins de centro y `/admin/centros/{cid}/{rec}` con cid wildcard para superadmin. |
+| El subscriber re-serializa la entidad en cada flush. Para entidades con relaciones pesadas o bulk operations puede ser caro. | Aceptable para CRUD UI normal. Si aparece bottleneck: mover serialización al worker (que ya recibe el update via bus). |
+| Si la cola Redis cae, los eventos se pierden silenciosamente. | Asumido: live update es best-effort; el siguiente fetch de la vista (F5 manual o navegación) recupera consistencia. |
+
+### Próximos pasos (sesión 2 — ~3-4h)
+
+**Orden propuesto** (de menos riesgo a más):
+
+1. **Extender `MercureAuthController`**: añadir topics admin/centro al JWT firmado según rol. Sin esto, los admins no pueden suscribirse a `/admin/centros/{cid}/{rec}`.
+2. **Mecanismo de topics condicionales** en `#[LivePublish]` (probablemente `topicsConditional: ['expr' => ['/topic']]` con ExpressionLanguage). Resuelve el caso comunicados globales y abre puertas a entidades con routing dinámico.
+3. **Migrar `/admin/imparticiones`** (alta prioridad #1 del roadmap) — incluye `useLiveCollection` con paginación.
+4. **Migrar `/admin/matriculas`** (alta prioridad #2).
+5. **Migrar `/admin/grupos`**, `/admin/itinerarios`.
+
+Las vistas con paginación/filtros pueden necesitar pasar query params al fetch inicial dentro de `useLiveCollection` (ya soportado vía `endpoint`). Conviene re-evaluar el debounce si vista tiene >50 items por página (refetch puede ser caro).
+
+### Sesión 3 (estimado)
+
+- `/admin/horarios` (clave para multi-edición), `/admin/festivos`, `/admin/tareas`, `/admin/calificaciones`.
+- Vistas de profesor: `/horarios` personal, `/entregas` por imparticion.
+- Documentar el patrón en `CLAUDE.md` para que cualquier vista nueva use `useLiveCollection` por defecto.
+- Retirar la "regla obligatoria" de F5 manual del `INDEX.md` cuando la cobertura llegue al 100% de vistas alta+media.
 
 ---

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './TablonWidget.module.css';
@@ -9,14 +9,12 @@ import ModalView from './ModalView';
 import { useTranslation } from 'react-i18next';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import useLiveCollection from '../hooks/useLiveCollection';
 
 const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const confirm = useConfirm();
-    const [comunicados, setComunicados] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingComunicado, setEditingComunicado] = useState(null);
     const [formData, setFormData] = useState({
@@ -35,35 +33,26 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
         openModal: () => openModal()
     }));
 
-    const fetchComunicados = async () => {
-        setLoading(true);
-        try {
-            let url = getApiUrl('/api/comunicados?order[createdAt]=desc');
-            const response = await fetch(url, {
-                headers: { 'Accept': 'application/ld+json' },
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error(t('bulletin.errorLoading'));
-            const data = await response.json();
-            let items = data['hydra:member'] || data['member'] || [];
-            
-            // Asegurar orden descendente (más nuevo primero) en el frontend
-            items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Topic Mercure por centro: cualquier alta/edición/borrado de comunicado
+    // del centro dispara refetch en todas las pestañas conectadas.
+    // Limitación conocida: comunicados globales (centro=null) no se propagan
+    // todavía — pendiente sesión 2 de la hoja Mercure.
+    const liveTopics = useMemo(() => (
+        user?.centro?.id ? [`/centros/${user.centro.id}/comunicados`] : []
+    ), [user?.centro?.id]);
 
-            setComunicados(items);
-        } catch (err) {
-            console.error(err);
-            setError(t('bulletin.errorLoading'));
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { items: comunicados, loading, error, refetch: fetchComunicados } = useLiveCollection({
+        endpoint: user ? getApiUrl('/api/comunicados?order[createdAt]=desc') : null,
+        topics: liveTopics,
+        enabled: !!user,
+        parseItems: (data) => {
+            const items = data?.['hydra:member'] || data?.member || [];
+            // Defensive sort: la API ya ordena, pero garantizamos descendente.
+            return [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        },
+    });
 
-    useEffect(() => {
-        if (user) fetchComunicados();
-    }, [user]);
-
-    // Efecto para hacer scroll al inicio cuando cambian los comunicados
+    // Scroll al inicio cuando cambia la lista (nuevo comunicado entra arriba).
     useEffect(() => {
         if (listRef.current) {
             listRef.current.scrollTop = 0;
@@ -162,7 +151,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
     };
 
     if (loading) return <div className={styles.loading}>{t('bulletin.loading')}</div>;
-    if (error) return <div className={styles.error}>{error}</div>;
+    if (error) return <div className={styles.error}>{t('bulletin.errorLoading')}</div>;
 
     return (
         <div className={styles.widget}>
@@ -190,10 +179,14 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                                 <span className={styles.cardTitle}>{comunicado.titulo}</span>
                                 <div className={styles.badges}>
                                     {comunicado.global ? (
-                                        <span className={styles.badgeGlobal} title={t('bulletin.global')}><Globe size={14} /> {t('bulletin.global')}</span>
+                                        <span className={styles.badgeGlobal} title={t('bulletin.global')}>
+                                            <Globe size={14} />
+                                            <span className={styles.badgeText}>{t('bulletin.global')}</span>
+                                        </span>
                                     ) : (
                                         <span className={styles.badgeCentro} title={comunicado.centro?.nombre || t('bulletin.defaultCenter')}>
-                                            <Building2 size={14} /> {comunicado.centro?.nombre || t('bulletin.defaultCenter')}
+                                            <Building2 size={14} />
+                                            <span className={styles.badgeText}>{comunicado.centro?.nombre || t('bulletin.defaultCenter')}</span>
                                         </span>
                                     )}
                                 </div>
