@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
@@ -13,6 +13,7 @@ import checkAnimation from '../../public/check.json';
 import { useTranslation } from 'react-i18next';
 import LoadingView from '../components/LoadingView';
 import { formatGrupoNombre } from '../utils/grupo';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 
 
 const MisFaltas = () => {
@@ -108,6 +109,20 @@ const MisFaltas = () => {
             fetchData();
         }
     }, [user, selectedCentro, selectedGrupo, selectedAlumno]);
+
+    // Mercure live: cuando el profe pasa lista, el alumno refresca sin F5.
+    // Asistencia entity publica a /admin/asistencias y /users/{alumnoId}/asistencias.
+    // - Alumno normal: solo su topic personal
+    // - SuperAdmin: /admin/asistencias (cubierto por wildcard /admin/{rec} en JWT).
+    //   Cuando filtra por alumno X, el evento llega vía /admin/asistencias y el
+    //   refetch (que ya filtra por selectedAlumno) recoge solo lo relevante.
+    const liveTopics = useMemo(() => {
+        if (!user) return [];
+        if (isSuperAdmin) return ['/admin/asistencias'];
+        return [`/users/${user.id}/asistencias`];
+    }, [user, isSuperAdmin]);
+
+    useLiveRefetch(liveTopics, () => fetchData());
 
     const fetchData = async () => {
         setLoading(true);

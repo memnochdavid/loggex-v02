@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
@@ -16,6 +16,7 @@ import LoadingView from '../components/LoadingView';
 import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
 import { toast, parseErrorResponse } from '../utils/toast';
 import { useConfirm } from '../context/ConfirmContext';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 
 const TemariosProfesor = () => {
   const { t } = useTranslation();
@@ -157,6 +158,19 @@ const TemariosProfesor = () => {
   useEffect(() => {
     fetchData();
   }, [user, selectedCentro, selectedGrupo]);
+
+  // Mercure live: refetch cuando llega un Temario nuevo / editado / borrado
+  // de cualquier imparticion visible. Topic /imparticiones/{id}/temarios va
+  // firmado a profe titular y a alumnos del grupo. SuperAdmin recibe vía
+  // /admin/temarios (cubierto por wildcard /admin/{rec} en su JWT).
+  const liveTopics = useMemo(() => {
+      const impIds = asignaturas.map(a => a.id).filter(Boolean);
+      const topics = impIds.map(id => `/imparticiones/${id}/temarios`);
+      if (isSuperAdmin) topics.push('/admin/temarios');
+      return topics;
+  }, [asignaturas, isSuperAdmin]);
+
+  useLiveRefetch(liveTopics, () => fetchData());
 
   const handleAddClick = (imparticionId) => {
     setCurrentImparticionId(imparticionId);

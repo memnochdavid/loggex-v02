@@ -2,8 +2,8 @@
 
 ## ⚡ Snapshot para retomar (2026-05-04)
 
-**✅ COBERTURA TOTAL — Sesiones 1+2+3+4 Live CRUD Done (2026-05-04).**
-Toda la deuda Live CRUD cerrada. Solo queda fuera por diseño: `HorariosEditor` (sistema `pendingTx` con draft local).
+**✅ COBERTURA TOTAL — Sesiones 1+2+3+4+5+6 Live CRUD Done (2026-05-04).**
+Toda la deuda Live CRUD cerrada. Solo queda fuera por diseño: `HorariosEditor` (sistema `pendingTx` con draft local) y `Configuracion.jsx` (TemaVisual, baja frecuencia).
 Patrón estándar documentado en `CLAUDE.md`. Ver §"Bitácora Live CRUD" al final del doc para el detalle por sesión.
 
 **Implementado:**
@@ -18,11 +18,12 @@ Patrón estándar documentado en `CLAUDE.md`. Ver §"Bitácora Live CRUD" al fin
   - Admins: `/admin/centros/{cid}/{rec}` (cid concreto) + `/admin/{rec}` (planos).
   - Superadmin: wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`.
   - Todos: `/global/comunicados`.
-  - Profesores: lista concreta `/imparticiones/{id}/entregas` (sus imparticiones) — listada porque firmar URI template dejaría suscribirse a cualquier impartición.
+  - Profesores: lista concreta `/imparticiones/{id}/entregas` y `/imparticiones/{id}/temarios` (sus imparticiones) — listada porque firmar URI template dejaría suscribirse a cualquier impartición.
+  - Alumnos: lista concreta `/imparticiones/{id}/temarios` (imparticiones de sus grupos vía matriculas) + `/users/{id}/asistencias` (sus faltas) + `/users/{id}/calificaciones` (sus notas).
   - Cualquier user: lista concreta `/grupos/{gid}/schedule` (grupos donde es alumno o profe).
   - Admin/Superadmin: además URI template `/grupos/{gid}/schedule` para que `HorariosConsumicion` reciba cualquier grupo del centro (datos protegidos en GET por `CurrentUserExtension`).
-- **Entidades con `#[LivePublish]`** (15 total): Comunicado, Imparticion, Matricula, Grupo, Itinerario, Festivo, Tarea, Calificacion, Horario (admin + grupo), Entrega (admin + imparticion), User, Materia, Centro, JornadaTipo, PeriodoEvaluativo.
-- **Vistas migradas (16 vistas)**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`, `/admin/festivos`, `/admin/calificaciones`, `/admin/horarios` tab Lista, `/admin/horarios` tab Consumición, `Entregas.jsx` (profe), `/horarios` personal (alumno + profe en modo calendario), `/admin/usuarios`, `/admin/materias`, `/admin/centros`, `/admin/jornadas`, `/admin/evaluaciones`.
+- **Entidades con `#[LivePublish]`** (17 total): Comunicado, Imparticion, Matricula, Grupo, Itinerario, Festivo, Tarea, Calificacion (admin + alumno), Horario (admin + grupo), Entrega (admin + imparticion), User, Materia, Centro, JornadaTipo, PeriodoEvaluativo, **Temario** (admin + imparticion), **Asistencia** (admin + alumno).
+- **Vistas migradas (20 vistas)**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`, `/admin/festivos`, `/admin/calificaciones`, `/admin/horarios` tab Lista, `/admin/horarios` tab Consumición, `Entregas.jsx` (profe), `/horarios` personal (alumno + profe en modo calendario), `/admin/usuarios`, `/admin/materias`, `/admin/centros`, `/admin/jornadas`, `/admin/evaluaciones`, **`TemariosAlumno`**, **`TemariosProfesor`**, **`MisFaltas`**, **`MisCalificaciones`**.
 
 **Excluido por diseño** (no es deuda):
 - **HorariosEditor** (5613 líneas, sistema `pendingTx`) — tab "Editor" de `/admin/horarios`. El draft local "todo a memoria hasta Guardar" colisionaría con un refetch externo. Los otros 2 tabs del wrapper (Lista y Consumición) sí están cubiertos.
@@ -853,5 +854,42 @@ Tras audit de DataTable (16 archivos), detectado que se habían dejado fuera 5 v
 | `Entregas.jsx` por imparticion (vista profe) | ~30 min | Requiere topic `/imparticiones/{id}/entregas` firmado en JWT con lista concreta de imparticiones del profesor. Profe-facing → menor frecuencia que admin. |
 | `/horarios` personal del profesor | ~30 min | Mismo modelo que Entregas: topic `/users/{id}/schedule` + JWT específico. |
 | `HorariosEditor` (5613 líneas, `pendingTx`) | N/A — descartado | Por diseño: el editor mantiene draft local hasta Guardar. Refetch externo destruiría cambios pendientes. La vista lista (`Horarios.jsx`) sí está cubierta. |
+
+---
+
+### Sesión 6 ✅ Done (2026-05-04) — Vistas alumno/profe restantes (Temarios + MisFaltas + MisCalificaciones)
+
+**Disparado por**: usuario reportó "subo un temario desde profe y al alumno le requiere F5", y tras cerrar Temario+Asistencia detectó un tercer gap análogo: "el alumno cuya nota es cambiada debe usar F5 para ver sus cambios desde /mis-calificaciones".
+
+**Hecho:**
+
+1. **Entidades nuevas con `#[LivePublish]`** (2) + ampliación de `Calificacion`:
+   - **`Temario`** → `['/admin/temarios', '/imparticiones/{imparticion.id}/temarios']`. Doble topic: admin/superadmin reciben vía wildcard `/admin/{rec}` ya firmado, profe titular y alumnos del grupo reciben vía topic por imparticion (firmado individualmente para evitar fuga de datos).
+   - **`Asistencia`** → `['/admin/asistencias', '/users/{alumno.id}/asistencias']`. Admin recibe broadcast plano; cada alumno recibe únicamente sus propias asistencias en su topic personal.
+   - **`Calificacion`** ampliada → topic existente `/admin/calificaciones` + nuevo `/users/{entrega.alumno.id}/calificaciones`. La path entity → entrega → alumno se resuelve por PropertyAccess sin problemas. Cubre `/mis-calificaciones` del alumno y SuperAdmin sigue viendo todo vía wildcard.
+
+2. **`MercureAuthController` ampliado** — el JWT ahora también firma:
+   - `/users/{userId}/asistencias` y `/users/{userId}/calificaciones` para todos los users (cubren vistas `MisFaltas` y `MisCalificaciones`).
+   - `/imparticiones/{impId}/temarios` para profes (sus imparticiones) **y para alumnos** (imparticiones de los grupos donde están matriculados, vía `MatriculaRepository` → `ImparticionRepository`). Acumulado en un set con las imparticiones del profe (deduplicación) antes de emitir topics, así un user que sea profe y alumno en el mismo grupo no firma duplicados.
+   - **Tradeoff JWT**: alumno típico de FP con 1 grupo y ~15 imparticiones añade ~15 topics extra de temarios → +450B. Aceptable dentro del límite de 4KB de cookies. Si crece más: misma mitigación que entregas (sub-cookie o endpoint dedicado por imparticion).
+
+3. **Vistas migradas a `useLiveRefetch`** (4):
+   - **`TemariosProfesor.jsx`** — topics derivados de `asignaturas[].id` (las imparticiones cargadas del profe). SuperAdmin además se suscribe a `/admin/temarios` (cubierto por wildcard).
+   - **`TemariosAlumno.jsx`** — mismo patrón. **Refactor**: el `fetchData` interno del useEffect se extrajo a `useCallback` con dependencias `[user, isSuperAdmin, selectedCentro, selectedGrupo, selectedMateria, t]` para que `useLiveRefetch` pueda reusarlo sin reiniciar la suscripción cada render. El `useEffect` queda con `[fetchData]` como única dependencia.
+   - **`MisFaltas.jsx`** — topic personal `/users/${user.id}/asistencias`. SuperAdmin sintoniza `/admin/asistencias` (cubierto por wildcard). Cuando filtra por alumno X, el evento llega vía el topic admin y el `fetchData` ya filtra por `selectedAlumno`.
+   - **`MisCalificaciones.jsx`** — mismo patrón que `MisFaltas`. Refactor `fetchCalificaciones` a `useCallback` (dentro vacía `moduleTasks` para forzar recarga lazy del módulo expandido vía el `useEffect` de sincronización ya existente). SuperAdmin → `/admin/calificaciones`; alumno → `/users/${user.id}/calificaciones`.
+
+**Smoke tests ejecutados (sesión 6):**
+- ✅ `app:mercure:invalidate -t /admin/temarios -t /admin/asistencias -t /admin/calificaciones -t /imparticiones/1/temarios -t /users/1/asistencias -t /users/1/calificaciones` → publica 6 topics correctamente.
+- ⏳ **Verificación visual usuario pendiente** (confirmado parcialmente — temarios funcionan):
+   - ✅ Profe sube/edita/borra temario → alumno ve el cambio sin F5 (confirmado por el usuario tras commit).
+   - ⏳ Profe pasa lista → alumno con `MisFaltas` abierto ve la falta sin F5.
+   - ⏳ Profe pone/edita nota → alumno con `MisCalificaciones` abierto ve la nueva nota sin F5 (caso reportado al añadir Calificacion personal).
+   - ⏳ SuperAdmin con `MisFaltas` o `MisCalificaciones` filtrado por alumno X ve actualizaciones.
+
+**Excluido por diseño** (validado con el usuario en esta sesión):
+- **`TemaVisual`**: el usuario confirmó explícitamente que no necesita live ("TemaVisual no lo necesita"). El `Configuracion.jsx` ya estaba excluido por baja frecuencia.
+
+**Total final: 17 entidades + 20 vistas live**. Sólo quedan fuera por diseño documentado: `HorariosEditor` (pendingTx), `Configuracion.jsx` (baja frecuencia), `TemaVisual`, vistas de catálogo oficial (read-only seeds).
 
 ---

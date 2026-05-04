@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\AsistenciaRepository;
@@ -40,6 +41,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'imparticion.grupo.centro' => 'exact',
     'imparticion.materia' => 'exact'
 ])]
+// Topic admin plano para SuperAdmin (cubierto por wildcard `/admin/{rec}`) y
+// topic por alumno para que `/mis-faltas` refresque sin afectar al resto.
+// El profesor que pasa lista en su vista no se beneficia (no es vista live);
+// si en el futuro hay vista profe live de asistencia, añadir
+// `/imparticiones/{imparticion.id}/asistencias` aquí.
+#[LivePublish(
+    topics: ['/admin/asistencias', '/users/{alumno.id}/asistencias'],
+    payloadGroups: ['asistencia:read', 'timestamp:read', 'softdelete:read'],
+)]
 class Asistencia
 {
     use TimestampableTrait;
