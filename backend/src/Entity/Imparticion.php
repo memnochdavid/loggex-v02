@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
@@ -34,6 +35,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['imparticion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['imparticion:write']]
+)]
+// Live updates al topic admin del centro al que pertenece el grupo. Si el
+// grupo aún no tiene centro (caso resync CCAA con grupo huérfano) el topic
+// se descarta y el evento no se publica — aceptable.
+#[LivePublish(
+    topics: ['/admin/centros/{grupo.centro.id}/imparticiones'],
+    payloadGroups: ['imparticion:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'profesor' => 'exact',

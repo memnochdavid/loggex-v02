@@ -2,7 +2,7 @@
 
 ## ⚡ Snapshot para retomar (2026-05-04)
 
-**Sesión 1 Live CRUD ✅ Done (2026-05-04) — framework + smoke test Comunicado.**
+**Sesiones 1+2 Live CRUD ✅ Done (2026-05-04).** 4 vistas admin alta prioridad migradas + framework completo (auth + topics condicionales).
 Ver §"Bitácora Live CRUD" al final del doc para el detalle.
 
 **Implementado:**
@@ -12,12 +12,13 @@ Ver §"Bitácora Live CRUD" al final del doc para el detalle.
 - `Symfony Messenger` con cola async para `PublishMercureUpdate` (no bloquea HTTP).
 - Frontend: hook `useMercure(topics, onEvent)` con EventSource, reconexión automática y cookie firmada vía `/api/me/mercure-subscribe`.
 - Consumido por: `NotificationList`, `Mensajes.jsx`, `useUnreadMessages.js`.
-- **Framework Live CRUD declarativo (sesión 1 2026-05-04)**: atributo `#[LivePublish]`, `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hook frontend `useLiveCollection`. Aplicado a `Comunicado` + `TablonWidget` como smoke test (validar end-to-end pendiente del usuario).
+- **Framework Live CRUD declarativo (sesión 1)**: atributo `#[LivePublish]` (con `topicsConditional` ExpressionLanguage añadido en sesión 2), `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hooks frontend `useLiveCollection` + `useLiveRefetch` (variante ligera para CRUD complejos con paginación/filtros).
+- **JWT extendido (sesión 2)**: `MercureAuthController` firma topics admin/centro: admins reciben `/admin/centros/{cid}/{rec}` con cid concreto; superadmin recibe wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`. Todos los usuarios autenticados firman `/global/comunicados`.
+- **Vistas migradas**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`.
 
-**Deuda principal — live updates CRUD:**
-- Quedan por migrar las vistas de prioridad alta+media (Imparticion, Matricula, Grupo, Itinerario, Horario, Festivo, Tarea, Entrega, Calificacion). Plan: ~2 sesiones más siguiendo el patrón ya validado.
-- Falta extender `MercureAuthController` con topics `/admin/centros/{cid}/{rec}` para que admins puedan suscribirse a vistas de gestión. Se hará en sesión 2 al migrar la primera vista admin.
-- Comunicados globales (`global=true`, `centro=null`) aún no propagan: el placeholder `{centro.id}` no resuelve y el topic se descarta. Requiere mecanismo de "topic condicional" en el atributo.
+**Deuda restante:**
+- Vistas pendientes (sesión 3 estimada ~3-4h): `/admin/horarios` (multi-edición), `/admin/festivos`, `/admin/tareas`, `/admin/calificaciones`, `/horarios` (vista personal), `/entregas`.
+- Cuando la cobertura llegue al 100% de alta+media: retirar la "regla obligatoria de F5" del `INDEX.md` y documentar `useLiveRefetch` como patrón estándar en `CLAUDE.md`.
 
 Ver §"Deuda — Live updates CRUD para todas las vistas con persistencia" + §"Bitácora Live CRUD" más abajo.
 
@@ -699,23 +700,69 @@ Hasta que se implemente, **toda nueva vista CRUD que se cree debe**:
 | El subscriber re-serializa la entidad en cada flush. Para entidades con relaciones pesadas o bulk operations puede ser caro. | Aceptable para CRUD UI normal. Si aparece bottleneck: mover serialización al worker (que ya recibe el update via bus). |
 | Si la cola Redis cae, los eventos se pierden silenciosamente. | Asumido: live update es best-effort; el siguiente fetch de la vista (F5 manual o navegación) recupera consistencia. |
 
-### Próximos pasos (sesión 2 — ~3-4h)
+### Sesión 2 ✅ Done (2026-05-04) — Auth + condicionales + 4 vistas admin
 
-**Orden propuesto** (de menos riesgo a más):
+**Hecho:**
 
-1. **Extender `MercureAuthController`**: añadir topics admin/centro al JWT firmado según rol. Sin esto, los admins no pueden suscribirse a `/admin/centros/{cid}/{rec}`.
-2. **Mecanismo de topics condicionales** en `#[LivePublish]` (probablemente `topicsConditional: ['expr' => ['/topic']]` con ExpressionLanguage). Resuelve el caso comunicados globales y abre puertas a entidades con routing dinámico.
-3. **Migrar `/admin/imparticiones`** (alta prioridad #1 del roadmap) — incluye `useLiveCollection` con paginación.
-4. **Migrar `/admin/matriculas`** (alta prioridad #2).
-5. **Migrar `/admin/grupos`**, `/admin/itinerarios`.
+1. **`MercureAuthController` extendido** — el JWT ahora firma:
+   - `/global/comunicados` para todos los usuarios autenticados (cierra el caso comunicados globales).
+   - `/admin/centros/{cid}/{rec}` con `cid` concreto para `ROLE_ADMIN` con centro.
+   - `/admin/centros/{cid}/{rec}` (wildcard) + `/admin/{rec}` para `ROLE_SUPERADMIN`.
+   - Convenciones documentadas en el docblock del controlador.
 
-Las vistas con paginación/filtros pueden necesitar pasar query params al fetch inicial dentro de `useLiveCollection` (ya soportado vía `endpoint`). Conviene re-evaluar el debounce si vista tiene >50 items por página (refetch puede ser caro).
+2. **`#[LivePublish]` ampliado con `topicsConditional`** — mapa `expresión ExpressionLanguage => topics[]`. La expresión recibe variable `entity` y, si es truthy, los topics correspondientes se publican (con expansión de placeholders también). Cualquier excepción durante la evaluación se trata como falso (fail-safe).
+   - **Aplicado a `Comunicado`**: `'entity.isGlobal()' => ['/global/comunicados']`. Ahora los globales sí propagan.
+   - `TablonWidget` actualizado para suscribirse a `/global/comunicados` además del topic del centro.
 
-### Sesión 3 (estimado)
+3. **Hook frontend `useLiveRefetch(topics, refetchFn)`** — nuevo, sibling de `useLiveCollection`. Pensado para CRUD complejos que ya tienen su propia lógica de fetch (paginación, search debouncing, AbortController, filtros): solo añade el live signal sin reemplazar nada. `refetchFn` se mantiene en una ref para que pueda cerrar sobre el state actual sin reiniciar la suscripción cada render.
 
-- `/admin/horarios` (clave para multi-edición), `/admin/festivos`, `/admin/tareas`, `/admin/calificaciones`.
-- Vistas de profesor: `/horarios` personal, `/entregas` por imparticion.
-- Documentar el patrón en `CLAUDE.md` para que cualquier vista nueva use `useLiveCollection` por defecto.
-- Retirar la "regla obligatoria" de F5 manual del `INDEX.md` cuando la cobertura llegue al 100% de vistas alta+media.
+4. **Entidades marcadas con `#[LivePublish]`**: `Imparticion` (`{grupo.centro.id}`), `Matricula` (`{grupo.centro.id}`), `Grupo` (`{centro.id}`), `Itinerario` (`{centro.id}`). Topic estándar: `/admin/centros/{cid}/{recurso}`.
+
+5. **Vistas migradas a `useLiveRefetch`**: `Imparticiones.jsx`, `Matriculas.jsx`, `Grupos.jsx`, `Itinerarios.jsx`. En todas: superadmin sin filtro de centro se suscribe a la URI template `/admin/centros/{cid}/imparticiones` (con `{cid}` literal — RFC 6570) → recibe eventos de cualquier centro; con filtro de centro recibe solo del filtrado.
+
+**Smoke tests ejecutados (sesión 2):**
+- ✅ `cache:clear` post-cambios → OK.
+- ✅ `debug:container LivePublishSubscriber` → registrado con los 3 tags Doctrine.
+- ✅ `app:mercure:invalidate -t /admin/centros/1/imparticiones -t /admin/centros/1/grupos` → publica 2 topics correctamente.
+- ⏳ **Verificación visual usuario pendiente**:
+   - Crear/editar/eliminar imparticion en una pestaña → otra refresca sola.
+   - Mismo test con matricula, grupo, itinerario.
+   - Comunicado global creado por superadmin → todos lo ven sin F5.
+   - `app:mercure:invalidate` tras seed SQL → los admins conectados ven el cambio sin F5.
+
+**Patrón estándar para nuevas vistas CRUD** (a documentar en CLAUDE.md cuando cierre la cobertura):
+
+```jsx
+import useLiveRefetch from '../hooks/useLiveRefetch';
+
+const liveTopics = useMemo(() => {
+    const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+    return cid ? [`/admin/centros/${cid}/<recurso>`] : [];
+}, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+useLiveRefetch(liveTopics, () => fetchData({ ...currentParams }));
+```
+
+Y en la entidad:
+```php
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/<recurso>'],   // o {grupo.centro.id} si llega vía grupo
+    payloadGroups: ['<entity>:read', 'timestamp:read', 'softdelete:read'],
+)]
+```
+
+### Próximos pasos (sesión 3 — ~3-4h)
+
+**Vistas pendientes** (orden propuesto):
+
+1. **`/admin/horarios`** — clave por multi-edición (varios profes editando el mismo grupo). Topic: `/admin/grupos/{id}/horarios`. Requiere extender JWT para profesores con acceso al grupo.
+2. **`/admin/festivos`** — Topic: `/admin/centros/{cid}/festivos`.
+3. **`/admin/tareas`**, `/admin/calificaciones` — pueden compartir topic por grupo: `/admin/grupos/{id}/tareas`, `/admin/grupos/{id}/calificaciones`.
+4. **Vistas profesor**: `/horarios` personal (`/users/{id}/schedule`), `/entregas` por imparticion (`/imparticiones/{id}/entregas`).
+
+**Cierre de la deuda** cuando la cobertura llegue al 100% de alta+media:
+- Documentar `useLiveRefetch` como patrón estándar en `CLAUDE.md`.
+- Retirar la "regla obligatoria de F5 manual" del `INDEX.md`.
+- Eliminar este §"Deuda Live updates CRUD" del doc o marcarlo cerrado.
 
 ---

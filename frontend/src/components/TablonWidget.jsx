@@ -33,13 +33,14 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
         openModal: () => openModal()
     }));
 
-    // Topic Mercure por centro: cualquier alta/edición/borrado de comunicado
-    // del centro dispara refetch en todas las pestañas conectadas.
-    // Limitación conocida: comunicados globales (centro=null) no se propagan
-    // todavía — pendiente sesión 2 de la hoja Mercure.
-    const liveTopics = useMemo(() => (
-        user?.centro?.id ? [`/centros/${user.centro.id}/comunicados`] : []
-    ), [user?.centro?.id]);
+    // Topics Mercure: suscribimos a comunicados globales (todos los usuarios)
+    // y a los del centro (si el usuario tiene). Cualquier alta/edición/borrado
+    // dispara refetch en todas las pestañas conectadas.
+    const liveTopics = useMemo(() => {
+        const topics = ['/global/comunicados'];
+        if (user?.centro?.id) topics.push(`/centros/${user.centro.id}/comunicados`);
+        return topics;
+    }, [user?.centro?.id]);
 
     const { items: comunicados, loading, error, refetch: fetchComunicados } = useLiveCollection({
         endpoint: user ? getApiUrl('/api/comunicados?order[createdAt]=desc') : null,

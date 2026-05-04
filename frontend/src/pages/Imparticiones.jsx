@@ -12,6 +12,7 @@ import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -208,6 +209,33 @@ const Imparticiones = () => {
       }
     }
   }, []); 
+
+  // Mercure live: refetch automático cuando cualquier admin (incluido este
+  // usuario en otra pestaña, otro admin del centro, comando CLI o seed) crea,
+  // edita o borra una imparticion del centro visible. La extensión
+  // CurrentUserExtension del backend ya filtra el GET por centro, así que
+  // basta con refetch al evento.
+  // - Admin: solo su centro.
+  // - Superadmin con filtro: el centro filtrado.
+  // - Superadmin sin filtro: URI template `{cid}` (matches cualquier centro).
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/imparticiones`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchImparticionesData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedProfesor,
+          sortColumn,
+          sortDirection,
+      });
+  });
 
   // Efecto ÚNICO para cambios
   useEffect(() => {

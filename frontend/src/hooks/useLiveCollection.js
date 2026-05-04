@@ -42,18 +42,27 @@ export default function useLiveCollection({
     const inFlightRef = useRef(0);
     const onEventRef = useRef(onEvent);
     onEventRef.current = onEvent;
+    // Callbacks/headers en refs para que llamadas con arrow inline (identidad
+    // nueva cada render) NO invaliden la identidad de fetchOnce y disparen
+    // un loop de fetch + setLoading.
+    const parseItemsRef = useRef(parseItems);
+    parseItemsRef.current = parseItems;
+    const parseTotalRef = useRef(parseTotal);
+    parseTotalRef.current = parseTotal;
+    const headersRef = useRef(headers);
+    headersRef.current = headers;
 
     const fetchOnce = useCallback(async () => {
         if (!endpoint || !enabled) return;
         const myToken = ++inFlightRef.current;
         try {
-            const res = await fetch(endpoint, { headers, credentials: 'include' });
+            const res = await fetch(endpoint, { headers: headersRef.current, credentials: 'include' });
             if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const data = await res.json();
             // Si llegó otra petición posterior, descartar este resultado.
             if (myToken !== inFlightRef.current) return;
-            setItems(parseItems(data));
-            setTotal(parseTotal(data));
+            setItems(parseItemsRef.current(data));
+            setTotal(parseTotalRef.current(data));
             setError(null);
         } catch (err) {
             if (myToken !== inFlightRef.current) return;
@@ -61,7 +70,7 @@ export default function useLiveCollection({
         } finally {
             if (myToken === inFlightRef.current) setLoading(false);
         }
-    }, [endpoint, enabled, parseItems, parseTotal, headers]);
+    }, [endpoint, enabled]);
 
     useEffect(() => {
         if (!enabled) return;

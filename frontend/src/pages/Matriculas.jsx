@@ -10,6 +10,7 @@ import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -173,10 +174,33 @@ const Matriculas = () => {
     }
   }, []); 
 
+  // Mercure live: refetch automático ante cualquier alta/edición/borrado de
+  // matrícula del centro visible. Soporta el caso de uso original de la deuda
+  // (superadmin matricula 20 alumnos vía SQL → admin del centro debe verlos
+  // sin F5; combinar con `app:mercure:invalidate -t /admin/centros/X/matriculas`
+  // tras seeds SQL para forzar la propagación).
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/matriculas`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchMatriculasData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedGrupo,
+          sortColumn,
+          sortDirection,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 

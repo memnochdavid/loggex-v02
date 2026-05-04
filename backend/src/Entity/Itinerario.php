@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Traits\SoftDeletableTrait;
@@ -35,6 +36,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['itinerario:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['itinerario:write']]
+)]
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/itinerarios'],
+    payloadGroups: ['itinerario:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',

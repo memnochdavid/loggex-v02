@@ -17,9 +17,17 @@ use Attribute;
  * centro=null) se descartan silenciosamente — útil para entidades cuya
  * relación opcional decide a qué canal va el evento.
  *
+ * Topics condicionales (`topicsConditional`): mapa `expresión => topics[]`.
+ * La expresión se evalúa con Symfony ExpressionLanguage exponiendo la
+ * variable `entity`. Útil para routing dinámico que no se puede expresar
+ * con placeholders puros.
+ *
  * Ejemplo:
  *   #[LivePublish(
  *     topics: ['/centros/{centro.id}/comunicados'],
+ *     topicsConditional: [
+ *       'entity.isGlobal()' => ['/global/comunicados'],
+ *     ],
  *     payloadGroups: ['comunicado:read', 'centro:read', 'user:read', 'timestamp:read'],
  *   )]
  *   class Comunicado { ... }
@@ -28,18 +36,20 @@ use Attribute;
 final class LivePublish
 {
     /**
-     * @param string[]      $topics          Topics aplicados a persist+update+remove (atajo común)
-     * @param string[]|null $topicsOnPersist Override para postPersist (si null, usa $topics)
-     * @param string[]|null $topicsOnUpdate  Override para postUpdate
-     * @param string[]|null $topicsOnRemove  Override para postRemove
-     * @param string[]      $payloadGroups   Grupos de serialización para `data` del payload
-     * @param bool          $private         Update privado (true) — sólo suscriptores con JWT que incluya el topic lo reciben
+     * @param string[]                  $topics            Topics aplicados a persist+update+remove (atajo común)
+     * @param string[]|null             $topicsOnPersist   Override para postPersist (si null, usa $topics)
+     * @param string[]|null             $topicsOnUpdate    Override para postUpdate
+     * @param string[]|null             $topicsOnRemove    Override para postRemove
+     * @param array<string, string[]>   $topicsConditional Mapa `expresión ExpressionLanguage => topics[]`. Si la expresión es truthy, los topics se añaden a la lista de publicación.
+     * @param string[]                  $payloadGroups     Grupos de serialización para `data` del payload
+     * @param bool                      $private           Update privado (true) — sólo suscriptores con JWT que incluya el topic lo reciben
      */
     public function __construct(
         public readonly array $topics = [],
         public readonly ?array $topicsOnPersist = null,
         public readonly ?array $topicsOnUpdate = null,
         public readonly ?array $topicsOnRemove = null,
+        public readonly array $topicsConditional = [],
         public readonly array $payloadGroups = [],
         public readonly bool $private = true,
     ) {

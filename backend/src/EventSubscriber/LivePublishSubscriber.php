@@ -9,6 +9,7 @@ use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -39,6 +40,7 @@ class LivePublishSubscriber
     private static array $attrCache = [];
 
     private PropertyAccessorInterface $accessor;
+    private ?ExpressionLanguage $expressionLanguage = null;
 
     public function __construct(
         private readonly MessageBusInterface $bus,
@@ -85,6 +87,21 @@ class LivePublishSubscriber
                 $expanded[] = $t;
             }
         }
+
+        // Topics condicionales: evalúa cada expresión y, si es truthy,
+        // añade los topics correspondientes (también con expansión de placeholders).
+        foreach ($attr->topicsConditional as $expression => $conditionalTopics) {
+            if (!$this->evaluateCondition($expression, $entity)) {
+                continue;
+            }
+            foreach ($conditionalTopics as $tpl) {
+                $t = $this->expand($tpl, $entity);
+                if ($t !== null) {
+                    $expanded[] = $t;
+                }
+            }
+        }
+
         if (!$expanded) {
             return;
         }
@@ -124,6 +141,21 @@ class LivePublishSubscriber
         $attr = $attrs ? $attrs[0]->newInstance() : false;
         self::$attrCache[$class] = $attr;
         return $attr ?: null;
+    }
+
+    /**
+     * Evalúa una expresión ExpressionLanguage con la variable `entity`.
+     * Cualquier excepción durante la evaluación se trata como falso (fail-safe:
+     * mejor no publicar que publicar con condición rota).
+     */
+    private function evaluateCondition(string $expression, object $entity): bool
+    {
+        $this->expressionLanguage ??= new ExpressionLanguage();
+        try {
+            return (bool) $this->expressionLanguage->evaluate($expression, ['entity' => $entity]);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

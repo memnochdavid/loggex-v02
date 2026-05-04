@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\MatriculaRepository;
@@ -31,6 +32,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['matricula:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['matricula:write']]
+)]
+#[LivePublish(
+    topics: ['/admin/centros/{grupo.centro.id}/matriculas'],
+    payloadGroups: ['matricula:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'alumno' => 'exact',

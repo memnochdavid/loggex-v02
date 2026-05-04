@@ -27,6 +27,10 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  *   /users/{id}/notifications   -> notificaciones agregadas
  *   /users/{id}/stats           -> contadores del Home
  *   /centros/{id}/comunicados   -> comunicados del centro (broadcast)
+ *   /global/comunicados         -> comunicados globales (todos los usuarios)
+ *   /admin/centros/{cid}/{rec}  -> live updates de vistas admin del centro
+ *                                  (admins firman para SU centro;
+ *                                   superadmin firma con cid wildcard)
  */
 class MercureAuthController extends AbstractController
 {
@@ -47,11 +51,29 @@ class MercureAuthController extends AbstractController
             "/users/{$userId}/messages",
             "/users/{$userId}/notifications",
             "/users/{$userId}/stats",
+            // Comunicados globales: cualquier usuario autenticado los recibe.
+            '/global/comunicados',
         ];
 
         $centro = $user->getCentro();
         if ($centro) {
             $topics[] = "/centros/{$centro->getId()}/comunicados";
+        }
+
+        $roles = $user->getRoles();
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $roles, true);
+        $isAdmin = $isSuperAdmin || in_array('ROLE_ADMIN', $roles, true);
+
+        // Topics admin: URI templates RFC 6570. `{rec}` matchea cualquier
+        // segmento (imparticiones, matriculas, grupos, itinerarios, …).
+        if ($isSuperAdmin) {
+            // Superadmin: cualquier centro, cualquier recurso.
+            $topics[] = '/admin/centros/{cid}/{rec}';
+            // Top-level admin (p.ej. /admin/centros listado de centros).
+            $topics[] = '/admin/{rec}';
+        } elseif ($isAdmin && $centro) {
+            // Admin de centro: solo SU centro.
+            $topics[] = "/admin/centros/{$centro->getId()}/{rec}";
         }
 
         // URL pública del hub relativa al host actual del request. Así Caddy

@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
@@ -37,6 +38,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['grupo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['grupo:write']]
+)]
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/grupos'],
+    payloadGroups: ['grupo:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
