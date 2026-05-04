@@ -9,6 +9,7 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -146,10 +147,29 @@ const Usuarios = () => {
     }
   }, []); 
 
+  // Mercure live: refetch ante alta/edición/borrado de usuarios del centro.
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/usuarios`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchUsuariosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin,
+      });
+  });
+
   // Efecto ÚNICO
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 

@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Catalogo\TipoMateria;
@@ -36,6 +37,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['materia:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['materia:write']]
+)]
+#[LivePublish(
+    topics: ['/admin/centros/{itinerario.centro.id}/materias'],
+    payloadGroups: ['materia:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',

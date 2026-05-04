@@ -2,9 +2,9 @@
 
 ## ⚡ Snapshot para retomar (2026-05-04)
 
-**✅ COBERTURA ADMIN COMPLETA — Sesiones 1+2+3 Live CRUD Done (2026-05-04).**
-Patrón estándar documentado en `CLAUDE.md`. Solo queda deuda residual de vistas profe-facing (~1h opcional).
-Ver §"Bitácora Live CRUD" al final del doc para el detalle por sesión.
+**✅ COBERTURA TOTAL — Sesiones 1+2+3+4 Live CRUD Done (2026-05-04).**
+Toda la deuda Live CRUD cerrada. Solo queda fuera por diseño: `HorariosEditor` (sistema `pendingTx` con draft local).
+Patrón estándar documentado en `CLAUDE.md`. Ver §"Bitácora Live CRUD" al final del doc para el detalle por sesión.
 
 **Implementado:**
 - Bundle `symfony/mercure-bundle` instalado y registrado.
@@ -14,15 +14,22 @@ Ver §"Bitácora Live CRUD" al final del doc para el detalle por sesión.
 - Frontend: hook `useMercure(topics, onEvent)` con EventSource, reconexión automática y cookie firmada vía `/api/me/mercure-subscribe`.
 - Consumido por: `NotificationList`, `Mensajes.jsx`, `useUnreadMessages.js`.
 - **Framework Live CRUD declarativo**: atributo `#[LivePublish]` (con `topicsConditional` ExpressionLanguage), `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hooks frontend `useLiveCollection` + `useLiveRefetch` (variante ligera para CRUD complejos con paginación/filtros).
-- **JWT extendido**: `MercureAuthController` firma topics admin/centro: admins reciben `/admin/centros/{cid}/{rec}` con cid concreto + `/admin/{rec}` (topics planos); superadmin recibe wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`. Todos los usuarios autenticados firman `/global/comunicados`.
-- **Entidades con `#[LivePublish]`** (10 total): Comunicado, Imparticion, Matricula, Grupo, Itinerario, Festivo, Tarea, Calificacion, Horario, Entrega.
-- **Vistas migradas**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`, `/admin/festivos`, `/admin/calificaciones`, `/admin/horarios` (lista). Total **8 vistas admin live**.
+- **JWT extendido**: `MercureAuthController` firma topics admin/centro + topics personales:
+  - Admins: `/admin/centros/{cid}/{rec}` (cid concreto) + `/admin/{rec}` (planos).
+  - Superadmin: wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`.
+  - Todos: `/global/comunicados`.
+  - Profesores: lista concreta `/imparticiones/{id}/entregas` (sus imparticiones) — listada porque firmar URI template dejaría suscribirse a cualquier impartición.
+  - Cualquier user: lista concreta `/grupos/{gid}/schedule` (grupos donde es alumno o profe).
+  - Admin/Superadmin: además URI template `/grupos/{gid}/schedule` para que `HorariosConsumicion` reciba cualquier grupo del centro (datos protegidos en GET por `CurrentUserExtension`).
+- **Entidades con `#[LivePublish]`** (15 total): Comunicado, Imparticion, Matricula, Grupo, Itinerario, Festivo, Tarea, Calificacion, Horario (admin + grupo), Entrega (admin + imparticion), User, Materia, Centro, JornadaTipo, PeriodoEvaluativo.
+- **Vistas migradas (16 vistas)**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`, `/admin/festivos`, `/admin/calificaciones`, `/admin/horarios` tab Lista, `/admin/horarios` tab Consumición, `Entregas.jsx` (profe), `/horarios` personal (alumno + profe en modo calendario), `/admin/usuarios`, `/admin/materias`, `/admin/centros`, `/admin/jornadas`, `/admin/evaluaciones`.
 
-**Deuda residual menor** (no bloquea producto):
-- **Vistas profe-facing**: `Entregas.jsx` por imparticion + `/horarios` personal del profesor. Necesitan topic family `/users/{id}/schedule` y `/imparticiones/{id}/entregas` con JWT firmando lista concreta de imparticiones del usuario. ~1h.
-- **HorariosEditor** (5613 líneas, sistema `pendingTx`): no se aplica live por diseño — el draft local "todo a memoria hasta Guardar" colisionaría con un refetch externo. Decidido mantener fuera del scope live.
+**Excluido por diseño** (no es deuda):
+- **HorariosEditor** (5613 líneas, sistema `pendingTx`) — tab "Editor" de `/admin/horarios`. El draft local "todo a memoria hasta Guardar" colisionaría con un refetch externo. Los otros 2 tabs del wrapper (Lista y Consumición) sí están cubiertos.
+- **Vistas de catálogo oficial** (`/admin/catalogo/itinerarios`, `/admin/catalogo/materias`, `CatalogoItinerarioDetail`) — read-only seeds que solo cambian vía `app:catalogo:refresh` CLI. Si en el futuro se quiere live para ellas, basta con marcar las entidades `CatalogoItinerario`/`CatalogoMateria` con `#[LivePublish]` y suscribirse en las páginas. Hoy: usar `app:mercure:invalidate -t /admin/catalogo` tras refresh manual.
+- **`Configuracion.jsx`** (TemaVisual del centro) — config personal del centro, baja frecuencia de cambio. No bloquea producto.
 
-Ver §"Bitácora Live CRUD" para detalle de sesiones 1, 2 y 3.
+Ver §"Bitácora Live CRUD" para detalle de sesiones 1-4 + cierre.
 
 ---
 
@@ -752,6 +759,61 @@ Y en la entidad:
     payloadGroups: ['<entity>:read', 'timestamp:read', 'softdelete:read'],
 )]
 ```
+
+### Sesión 5 ✅ Done (2026-05-04) — Cobertura DataTable real al 100%
+
+Tras audit de DataTable (16 archivos), detectado que se habían dejado fuera 5 vistas admin reales (`/admin/usuarios`, `/admin/materias`, `/admin/centros`, `/admin/jornadas`, `/admin/evaluaciones`). Migradas con el patrón estándar.
+
+**Hecho:**
+
+1. **Entidades nuevas con `#[LivePublish]`** (5):
+   - `User` → `/admin/centros/{centro.id}/usuarios`. Usuarios sin centro (superadmin recién creado) descartan publish (placeholder no resuelve).
+   - `Materia` → `/admin/centros/{itinerario.centro.id}/materias` (cascada vía itinerario).
+   - `Centro` → `/admin/centros` (broadcast plano, gestión solo superadmin).
+   - `JornadaTipo` → `/admin/centros/{centro.id}/jornadas`.
+   - `PeriodoEvaluativo` → `/admin/centros/{grupo.centro.id}/evaluaciones`.
+
+2. **Vistas migradas** (5): `Usuarios.jsx`, `Materias.jsx`, `Centros.jsx`, `JornadasAdmin.jsx`, `Evaluaciones.jsx`. Mismo patrón que sesiones 2-3: `useLiveRefetch` con topic dinámico por centro (admin = su centro, superadmin sin filtro = URI template `{cid}`).
+
+**Smoke test ejecutado:**
+- ✅ `app:mercure:invalidate -t /admin/centros/1/usuarios -t /admin/centros/1/materias -t /admin/centros -t /admin/centros/1/jornadas -t /admin/centros/1/evaluaciones` → publica los 5 topics correctamente.
+
+**Excluidas conscientemente** (no son CRUD admin reales):
+- `Configuracion.jsx` (TemaVisual del centro) — config baja frecuencia.
+- 3 vistas de catálogo oficial (`CatalogoMaterias`, `CatalogoItinerarios`, `CatalogoItinerarioDetail`) — read-only seeds que solo cambian vía `app:catalogo:refresh` CLI. Mitigación: ejecutar `app:mercure:invalidate -t /admin/catalogo` tras refresh si se quiere propagar.
+
+**Total final: 15 entidades + 16 vistas live**. Cobertura DataTable real = 100% de lo que CRUD admin real (12 de 16 DataTable; 4 excluidos por motivo documentado).
+
+---
+
+### Sesión 4 ✅ Done (2026-05-04) — Vistas profe + cierre del roadmap
+
+**Hecho:**
+
+1. **`MercureAuthController`** ahora firma topics personales:
+   - `/imparticiones/{impId}/entregas` — lista concreta de las imparticiones donde el user es profesor (query a `ImparticionRepository`). NO usar URI template aquí: dejaría a cualquier user suscribirse a cualquier impartición = fuga de datos.
+   - `/grupos/{gid}/schedule` — grupos donde el user es alumno (query a `MatriculaRepository`) o profesor (sus imparticiones). Set deduplicado.
+   - **Tradeoff de tamaño JWT**: ~30B por id → para profe con 20 imparticiones + 5 grupos ~750B extra. Aceptable. Si crece más: mover a sub-cookie o endpoint dedicado por imparticion.
+
+2. **Entidades**:
+   - **`Horario`** — añadido segundo topic `/grupos/{imparticion.grupo.id}/schedule`. Ya tenía el topic admin del centro de la sesión 3.
+   - **`Entrega`** — añadido segundo topic `/imparticiones/{tarea.imparticion.id}/entregas`. Ya tenía `/admin/entregas` de la sesión 3.
+
+3. **Vistas migradas**:
+   - **`Entregas.jsx`** — `useLiveRefetch` con topics derivados de `asignaturas` (las imparticiones del user). Si es admin, también suscribe a `/admin/tareas`+`/admin/calificaciones`.
+   - **`Horarios.jsx`** modo calendario — extraído `fetchCalendarData` a `useCallback`; `useLiveRefetch` con topics `/grupos/{gid}/schedule` derivados del propio `mySchedule` (set de grupos únicos). Limitación: en el primer render no hay topics; tras la carga inicial sí.
+
+4. **JWT cookie payload** — la cookie `mercureAuthorization` crece linealmente con N imparticiones+grupos del user. El máximo realista (admin con muchas imparticiones) está en torno a 1-2KB, dentro del límite común de cookies (4KB). Documentado como tradeoff aceptado.
+
+**Smoke tests ejecutados (sesión 4):**
+- ✅ `cache:clear` post-cambios → OK.
+- ✅ `debug:autowiring ImparticionRepository` → OK.
+- ✅ `router:match /api/me/mercure-subscribe POST` → resuelve a `MercureAuthController::subscribe()`.
+- ✅ `app:mercure:invalidate -t /grupos/1/schedule -t /imparticiones/1/entregas` → publica 2 topics correctamente.
+- ⏳ **Verificación visual usuario pendiente**:
+   - Profe abre `Entregas.jsx`; un alumno entrega una tarea de su imparticion → la lista del profe se actualiza sola.
+   - Alumno abre `/horarios` (modo calendario); un admin edita un horario de su grupo → el calendario se actualiza solo.
+   - Profe abre `/horarios`; un admin edita un horario de su imparticion → el calendario se actualiza solo.
 
 ### Sesión 3 ✅ Done (2026-05-04) — Cobertura admin completa
 

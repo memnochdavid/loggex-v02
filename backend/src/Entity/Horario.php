@@ -34,12 +34,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['horario:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['horario:write']]
 )]
-// Topic por centro: granularidad por-grupo sería más fina, pero el path
-// horario.imparticion.grupo.centro es estable y un único topic /admin/centros/{cid}/horarios
-// vale para multi-edición (todos los admins del centro reciben todos los cambios).
-// Tradeoff: refresca aunque el cambio sea de otro grupo del mismo centro.
+// Topic admin por centro + topic por grupo para vista personal del user.
+// El topic /grupos/{gid}/schedule lo reciben profe del grupo + alumnos
+// matriculados (firmados en JWT). Refresca su vista personal de horario.
 #[LivePublish(
-    topics: ['/admin/centros/{imparticion.grupo.centro.id}/horarios'],
+    topics: [
+        '/admin/centros/{imparticion.grupo.centro.id}/horarios',
+        '/grupos/{imparticion.grupo.id}/schedule',
+    ],
     payloadGroups: ['horario:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [

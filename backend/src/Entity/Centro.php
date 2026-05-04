@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Catalogo\CatalogoCentro;
 use App\Entity\Traits\SoftDeletableTrait;
@@ -37,6 +38,14 @@ use Symfony\Component\Validator\Constraints as Assert;
     ],
     normalizationContext: ['groups' => ['centro:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['centro:write']]
+)]
+// Topic plano /admin/centros (broadcast a admins). Solo superadmin gestiona
+// centros; admins normales pueden recibir eventos de su propio centro pero
+// no aplica filtrado fino aquí — la página /admin/centros solo es accesible
+// a superadmin.
+#[LivePublish(
+    topics: ['/admin/centros'],
+    payloadGroups: ['centro:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: ['nombre' => 'partial', 'cif' => 'partial', 'direccion' => 'partial'])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'cif', 'direccion'])]

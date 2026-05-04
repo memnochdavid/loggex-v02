@@ -167,62 +167,81 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   }, [selectedCentro, isSuperAdmin, canEdit]);
 
   // Carga de vista calendario (no usa DataTable, lógica separada)
+  const fetchCalendarData = useCallback(() => {
+      setLoading(true);
+
+      const fetchSchedule = fetch(getApiUrl(`/api/my-schedule?_=${Date.now()}`), {
+          headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          credentials: 'include',
+          cache: 'no-store',
+      }).then(res => res.json());
+
+      let urlFestivos = getApiUrl('/api/festivos?pagination=false');
+      const fetchFestivos = fetch(urlFestivos, {
+          headers: { 'Accept': 'application/ld+json' },
+          credentials: 'include'
+      }).then(res => res.json());
+
+      let urlTareas = getApiUrl('/api/tareas?pagination=false');
+      const fetchTareas = fetch(urlTareas, {
+          headers: { 'Accept': 'application/ld+json' },
+          credentials: 'include'
+      }).then(res => res.json());
+
+      Promise.all([fetchSchedule, fetchFestivos, fetchTareas])
+      .then(([scheduleData, festivosData, tareasData]) => {
+          // Endpoint puede devolver array (formato viejo) o {events, slots}
+          // (formato nuevo, post-Fase 3 CCAA). Compat retroactiva.
+          if (Array.isArray(scheduleData)) {
+              setMySchedule(scheduleData);
+              setMyScheduleSlots(null);
+          } else {
+              setMySchedule(scheduleData?.events || []);
+              setMyScheduleSlots(scheduleData?.slots?.length ? scheduleData.slots : null);
+          }
+
+          let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
+          if (isSuperAdmin && selectedCentro) {
+              allFestivos = allFestivos.filter(f => {
+                  if (!f.centro) return true;
+                  const centroId = typeof f.centro === 'string' ? f.centro.split('/').pop() : f.centro.id;
+                  return String(centroId) === String(selectedCentro);
+              });
+          }
+          setFestivos(allFestivos);
+
+          const allTareas = tareasData['hydra:member'] || tareasData.member || [];
+          setTareas(allTareas);
+
+          setLoading(false);
+      })
+      .catch(err => {
+          console.error(err);
+          setError(t('schedules.errorLoadSchedule'));
+          setLoading(false);
+      });
+  }, [selectedCentro, isSuperAdmin, t]);
+
   useEffect(() => {
-      if (viewMode === 'calendar') {
-          setLoading(true);
-          
-          const fetchSchedule = fetch(getApiUrl(`/api/my-schedule?_=${Date.now()}`), {
-              headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-              credentials: 'include',
-              cache: 'no-store',
-          }).then(res => res.json());
+      if (viewMode === 'calendar') fetchCalendarData();
+  }, [viewMode, fetchCalendarData]);
 
-          let urlFestivos = getApiUrl('/api/festivos?pagination=false');
-          const fetchFestivos = fetch(urlFestivos, {
-              headers: { 'Accept': 'application/ld+json' },
-              credentials: 'include'
-          }).then(res => res.json());
-
-          let urlTareas = getApiUrl('/api/tareas?pagination=false');
-          const fetchTareas = fetch(urlTareas, {
-              headers: { 'Accept': 'application/ld+json' },
-              credentials: 'include'
-          }).then(res => res.json());
-
-          Promise.all([fetchSchedule, fetchFestivos, fetchTareas])
-          .then(([scheduleData, festivosData, tareasData]) => {
-              // Endpoint puede devolver array (formato viejo) o {events, slots}
-              // (formato nuevo, post-Fase 3 CCAA). Compat retroactiva.
-              if (Array.isArray(scheduleData)) {
-                  setMySchedule(scheduleData);
-                  setMyScheduleSlots(null);
-              } else {
-                  setMySchedule(scheduleData?.events || []);
-                  setMyScheduleSlots(scheduleData?.slots?.length ? scheduleData.slots : null);
-              }
-              
-              let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
-              if (isSuperAdmin && selectedCentro) {
-                  allFestivos = allFestivos.filter(f => {
-                      if (!f.centro) return true;
-                      const centroId = typeof f.centro === 'string' ? f.centro.split('/').pop() : f.centro.id;
-                      return String(centroId) === String(selectedCentro);
-                  });
-              }
-              setFestivos(allFestivos);
-
-              const allTareas = tareasData['hydra:member'] || tareasData.member || [];
-              setTareas(allTareas);
-
-              setLoading(false);
-          })
-          .catch(err => {
-              console.error(err);
-              setError(t('schedules.errorLoadSchedule'));
-              setLoading(false);
-          });
+  // Mercure live para vista calendario: suscribe a los grupos del user
+  // (firmados en JWT como /grupos/{gid}/schedule). Los grupos se extraen
+  // del propio mySchedule tras la carga inicial → en el primer render no
+  // hay topics, en renders subsiguientes sí.
+  const personalScheduleTopics = useMemo(() => {
+      if (viewMode !== 'calendar' || !Array.isArray(mySchedule)) return [];
+      const grupoIds = new Set();
+      for (const e of mySchedule) {
+          const g = e?.imparticion?.grupo;
+          const gid = typeof g === 'object' ? g?.id : (typeof g === 'string' ? g.split('/').pop() : null);
+          if (gid) grupoIds.add(gid);
       }
-  }, [viewMode, selectedCentro, isSuperAdmin]);
+      return Array.from(grupoIds).map(gid => `/grupos/${gid}/schedule`);
+  }, [viewMode, mySchedule]);
+
+  useLiveRefetch(personalScheduleTopics, fetchCalendarData);
 
   const getHorarioId = (h) => {
     if (h.id) return h.id;

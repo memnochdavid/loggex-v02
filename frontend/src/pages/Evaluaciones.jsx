@@ -8,6 +8,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -111,6 +112,14 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
   }, [currentPage, itemsPerPage, selectedCentro, selectedGrupo, sortColumn, sortDirection, isSuperAdmin, user?.centro]);
 
   useEffect(() => { fetchPeriodos(); }, [fetchPeriodos]);
+
+  // Mercure live: refetch ante cambios en periodos evaluativos del centro.
+  const liveTopics = useMemo(() => {
+    const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+    return cid ? [`/admin/centros/${cid}/evaluaciones`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, fetchPeriodos);
 
   const handleSort = (col) => {
     if (sortColumn === col) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');

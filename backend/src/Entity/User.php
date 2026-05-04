@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
@@ -37,6 +38,13 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     ],
     normalizationContext: ['groups' => ['user:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['user:write']]
+)]
+// Topic admin por centro. Usuarios sin centro (superadmins recién creados)
+// se descartan — el placeholder {centro.id} no resuelve. Acceptable: no hay
+// vista admin que los liste por centro.
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/usuarios'],
+    payloadGroups: ['user:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',

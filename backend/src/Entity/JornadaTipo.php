@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\JornadaTipoRepository;
@@ -54,6 +55,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'turno', 'id'], arguments: ['orderParameterName' => 'order'])]
 #[JornadaCoherente]
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/jornadas'],
+    payloadGroups: ['jornada:read', 'tramo:read', 'timestamp:read', 'softdelete:read'],
+)]
 class JornadaTipo
 {
     use TimestampableTrait;

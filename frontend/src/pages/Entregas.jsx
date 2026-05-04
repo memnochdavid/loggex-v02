@@ -11,6 +11,7 @@ import SuperAdminFilters from '../components/SuperAdminFilters';
 import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
 import useImparticiones from '../hooks/useImparticiones';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { FileText, Calendar, Upload, Eye, Download, Award, MessageSquare, Edit2, Trash2, Paperclip, BarChart3, RotateCcw } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -40,6 +41,27 @@ const Entregas = () => {
   const [periodos, setPeriodos] = useState([]);
   const [selectedPeriodo, setSelectedPeriodo] = useState('');
   const [deliveryFilter, setDeliveryFilter] = useState('all'); // all | delivered | pending
+
+  // Mercure live: refetch cuando llega una entrega (alumno entrega) o cambia
+  // calificación / tarea de cualquier imparticion del usuario. Topics:
+  // - /imparticiones/{id}/entregas: profesor recibe sus imparticiones
+  // - /admin/tareas, /admin/calificaciones: admins también
+  // El JWT firma /imparticiones/{id}/entregas con la lista del profe — si el
+  // user no es profe de ninguna, no se suscribe al topic concreto.
+  const liveTopics = useMemo(() => {
+      if (!asignaturas?.length) return [];
+      const impIds = asignaturas
+          .map(a => a.id || a['@id']?.split('/').pop())
+          .filter(Boolean);
+      const topics = impIds.map(id => `/imparticiones/${id}/entregas`);
+      // Tareas/calificaciones: solo admin, broadcast simple
+      if (isAdmin || isSuperAdmin) {
+          topics.push('/admin/tareas', '/admin/calificaciones');
+      }
+      return topics;
+  }, [asignaturas, isAdmin, isSuperAdmin]);
+
+  useLiveRefetch(liveTopics, () => fetchData());
 
   const tabs = [
     { key: 'todos', label: t('grades.filterAll') },

@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -183,10 +184,30 @@ const Materias = () => {
     }
   }, []); 
 
+  // Mercure live: refetch ante alta/edición/borrado de materias del centro.
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/materias`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchMateriasData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedItinerario,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 

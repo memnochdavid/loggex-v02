@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\PeriodoEvaluativoRepository;
@@ -33,6 +34,10 @@ use Symfony\Component\Validator\Constraints as Assert;
     ],
     normalizationContext: ['groups' => ['periodo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['periodo:write']]
+)]
+#[LivePublish(
+    topics: ['/admin/centros/{grupo.centro.id}/evaluaciones'],
+    payloadGroups: ['periodo:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'grupo' => 'exact',

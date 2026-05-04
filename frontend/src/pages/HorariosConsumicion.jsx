@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, AlertTriangle, Sparkles } from 'lucide-react';
 import {
@@ -13,6 +13,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { getApiUrl } from '../config/api';
 import ThemedSelect from '../components/ThemedSelect';
 import CrudHeader from '../components/CrudHeader';
@@ -95,7 +96,7 @@ const HorariosConsumicion = ({ embedded = false, tabs = null }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, user?.centro?.id]);
 
-  useEffect(() => {
+  const fetchConsumicion = useCallback(() => {
     if (!selectedGrupo) {
       setData(null);
       return;
@@ -110,6 +111,20 @@ const HorariosConsumicion = ({ embedded = false, tabs = null }) => {
       .then(d => setData(d))
       .finally(() => setLoading(false));
   }, [selectedGrupo]);
+
+  useEffect(() => {
+    fetchConsumicion();
+  }, [fetchConsumicion]);
+
+  // Mercure live: la consumición depende de los horarios + imparticiones del
+  // grupo. Suscribimos al topic schedule del grupo seleccionado (admins lo
+  // tienen firmado vía /admin/centros/{cid}/{rec} cuando el centro coincide;
+  // SuperAdmin tiene el wildcard que también lo cubre).
+  const liveTopics = useMemo(() => (
+    selectedGrupo ? [`/grupos/${selectedGrupo}/schedule`] : []
+  ), [selectedGrupo]);
+
+  useLiveRefetch(liveTopics, fetchConsumicion);
 
   // Cuando llega data nueva, default selectedMateria a la primera con currículo > 0.
   useEffect(() => {

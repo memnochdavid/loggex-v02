@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
 import ThemedSelect from '../components/ThemedSelect';
 
@@ -198,10 +199,24 @@ const Centros = () => {
         return () => { cancelled = true; };
     }, [isModalOpen, formData.ccaa]);
 
+    // Mercure live: topic plano /admin/centros (broadcast a admins). Solo
+    // superadmin gestiona centros, así que el público es muy reducido y el
+    // ruido cero.
+    useLiveRefetch(['/admin/centros'], () => {
+        fetchCentrosData({
+            page: currentPage,
+            itemsPerPage,
+            searchTerm,
+            searchField,
+            sortColumn,
+            sortDirection,
+        });
+    });
+
     // Efecto ÚNICO para cambios
     useEffect(() => {
         const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-        
+
         prevSearchTerm.current = searchTerm;
         prevSearchField.current = searchField;
 

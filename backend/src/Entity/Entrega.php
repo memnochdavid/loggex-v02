@@ -37,12 +37,15 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
 )]
-// Topic plano /admin/entregas (broadcast a admins). Las vistas profe-facing
-// (Entregas.jsx por imparticion) necesitan un topic /imparticiones/{id}/entregas
-// firmado en el JWT con la lista concreta de imparticiones del profesor —
-// pendiente de diseño de auth, ver §"Deuda Live updates CRUD" del roadmap.
+// Dos topics:
+//  - /admin/entregas: broadcast a admins (vista admin global).
+//  - /imparticiones/{impId}/entregas: profesor-facing (Entregas.jsx por imparticion).
+//    JWT firma esta lista con las imparticiones donde el user es profesor.
 #[LivePublish(
-    topics: ['/admin/entregas'],
+    topics: [
+        '/admin/entregas',
+        '/imparticiones/{tarea.imparticion.id}/entregas',
+    ],
     payloadGroups: ['entrega:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
