@@ -610,7 +610,7 @@
     "absencesCount": "Hutsak: ",
     "lateCount": "Atzerapenak: ",
     "justifiedCount": "Justifikatuak: ",
-    "totalHours": "Emandako Ordu Guztira: ",
+    "totalHours": "Ikastaroko ordu guztira: ",
     "errorLoading": "Ezin izan dira huts-egiteak kargatu. Saiatu berriro geroago.",
     "errorConnection": "Konexio-errorea zerbitzariarekin."
   },

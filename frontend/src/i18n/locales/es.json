@@ -899,7 +899,7 @@
     "absencesCount": "Faltas: ",
     "lateCount": "Retrasos: ",
     "justifiedCount": "Justificadas: ",
-    "totalHours": "Total Horas Impartidas: ",
+    "totalHours": "Horas totales del curso: ",
     "errorLoading": "No se pudieron cargar las faltas. Inténtalo más tarde.",
     "errorConnection": "Error de conexión con el servidor."
   },

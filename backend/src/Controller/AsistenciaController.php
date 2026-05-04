@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Asistencia;
-use App\Entity\Festivo;
 use App\Entity\Imparticion;
 use App\Entity\Matricula;
 use App\Entity\User;
@@ -138,27 +137,38 @@ class AsistenciaController extends AbstractController
                 }
             }
 
-            // 1. Obtener matrículas del alumno objetivo
-            $matriculas = $entityManager->getRepository(Matricula::class)->findBy(['alumno' => $targetUser]);
-
-            // Optimización: Cargar festivos una sola vez
-            $festivos = $entityManager->getRepository(Festivo::class)->findAll();
+            // 1. Obtener matrículas activas del alumno objetivo. Filtrar deleted
+            // explícitamente: si hay una matrícula soft-deleted y otra viva en el
+            // mismo grupo (caso real visto en BD), sin este filtro el bucle siguiente
+            // procesa el grupo dos veces y duplica las asistencias del summary.
+            $matriculas = $entityManager->getRepository(Matricula::class)->findBy([
+                'alumno' => $targetUser,
+                'deleted' => false,
+            ]);
 
             $summary = [];
 
             foreach ($matriculas as $matricula) {
                 $grupo = $matricula->getGrupo();
-                $fechaInicio = $grupo->getFechaInicio();
-                $fechaFin = $grupo->getFechaFin();
 
                 // 2. Obtener imparticiones (asignaturas) del grupo
                 $imparticiones = $entityManager->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
 
                 foreach ($imparticiones as $imparticion) {
                     $key = $imparticion->getId();
-                    $moduloNombre = $imparticion->getMateria()->getNombre();
+                    $materia = $imparticion->getMateria();
+                    $moduloNombre = $materia->getNombre();
                     $profesor = $imparticion->getProfesor();
                     $profesorNombre = $profesor ? ($profesor->getNombre() . ' ' . $profesor->getApellidos()) : 'Sin profesor';
+
+                    // 3. Horas totales anuales (denominador del porcentaje).
+                    // Fuente de verdad: catálogo oficial BOE / BOJA. Helper
+                    // `getObjetivoAnualMinutos()` aplica cascada `horasTotales × 60`
+                    // (dato legal LOMLOE) → `minutosSemanales × 36` (fallback).
+                    // Si la materia no tiene NINGUNO de los dos, el porcentaje
+                    // queda null (no calculable) en lugar de 0% engañoso.
+                    $objetivoMinutos = $materia->getObjetivoAnualMinutos();
+                    $totalHorasAnuales = (int) round($objetivoMinutos / 60);
 
                     // Inicializar estructura para esta asignatura
                     if (!isset($summary[$key])) {
@@ -168,16 +178,10 @@ class AsistenciaController extends AbstractController
                             'faltas' => 0,
                             'retrasos' => 0,
                             'justificadas' => 0,
-                            'porcentajeFaltas' => 0,
-                            'totalHoras' => 0,
+                            'porcentajeFaltas' => $totalHorasAnuales > 0 ? 0 : null,
+                            'totalHoras' => $totalHorasAnuales,
                             'detalles' => []
                         ];
-                    }
-
-                    // 3. Calcular total de horas lectivas si hay fechas definidas
-                    if ($fechaInicio && $fechaFin) {
-                        $totalHoras = $this->calcularHorasLectivas($imparticion, $fechaInicio, $fechaFin, $festivos);
-                        $summary[$key]['totalHoras'] = $totalHoras;
                     }
 
                     // 4. Buscar asistencias del alumno en esta impartición
@@ -202,11 +206,12 @@ class AsistenciaController extends AbstractController
                         ];
                     }
 
-                    // Calcular porcentaje
-                    if ($summary[$key]['totalHoras'] > 0) {
-                        // Consideramos F y J como faltas para el porcentaje
+                    // 5. Porcentaje sobre el TOTAL ANUAL legal (umbral pérdida
+                    // evaluación continua FP Andalucía: 25-30% según orden
+                    // autonómica). F y J cuentan como ausencia para el cálculo.
+                    if ($totalHorasAnuales > 0) {
                         $totalAusencias = $summary[$key]['faltas'] + $summary[$key]['justificadas'];
-                        $summary[$key]['porcentajeFaltas'] = round(($totalAusencias / $summary[$key]['totalHoras']) * 100, 2);
+                        $summary[$key]['porcentajeFaltas'] = round(($totalAusencias / $totalHorasAnuales) * 100, 2);
                     }
 
                     // Ordenar detalles por fecha descendente
@@ -223,93 +228,4 @@ class AsistenciaController extends AbstractController
         }
     }
 
-    /**
-     * @param Imparticion $imparticion
-     * @param \DateTimeInterface $inicio
-     * @param \DateTimeInterface $fin
-     * @param Festivo[] $festivos
-     * @return int
-     */
-    private function calcularHorasLectivas(Imparticion $imparticion, \DateTimeInterface $inicio, \DateTimeInterface $fin, array $festivos): int
-    {
-        $totalHoras = 0;
-        $horarios = $imparticion->getHorarios(); // Colección de Horario
-
-        // Mapear días de la semana a horas de clase: 1 (Lunes) => total_horas
-        $horariosPorDia = [];
-        foreach ($horarios as $h) {
-            $dia = $h->getDiaSemana();
-            if (!isset($horariosPorDia[$dia])) {
-                $horariosPorDia[$dia] = 0;
-            }
-
-            $hInicio = $h->getHoraInicio();
-            $hFin = $h->getHoraFin();
-
-            if ($hInicio && $hFin) {
-                $diff = $hFin->diff($hInicio);
-                $horas = $diff->h + ($diff->i / 60);
-                $horariosPorDia[$dia] += $horas;
-            }
-        }
-
-        // Pre-procesar festivos a formato 'Y-m-d' para comparaciones rápidas
-        $diasFestivos = [];
-        foreach ($festivos as $f) {
-            $fInicio = $f->getFechaInicio();
-            if (!$fInicio) continue;
-
-            $fFin = $f->getFechaFin() ?? $fInicio;
-
-            // Iterar rango de festivo y guardar cada día
-            $fCurrent = clone $fInicio;
-            $fCurrent->setTime(0,0,0);
-            $fEnd = clone $fFin;
-            $fEnd->setTime(0,0,0);
-
-            // Protección contra bucles infinitos en festivos (max 30 días por festivo)
-            $festivoCount = 0;
-            while ($fCurrent <= $fEnd && $festivoCount < 30) {
-                $diasFestivos[$fCurrent->format('Y-m-d')] = true;
-                $fCurrent->modify('+1 day');
-                $festivoCount++;
-            }
-        }
-
-        // Iterar día a día
-        $current = clone $inicio;
-        $current->setTime(0, 0, 0);
-
-        $hoy = new \DateTime();
-        $hoy->setTime(0, 0, 0);
-
-        $finClone = clone $fin;
-        $finClone->setTime(0, 0, 0);
-
-        // El límite es la fecha de fin de curso o hoy, lo que ocurra antes
-        $limite = ($finClone < $hoy) ? $finClone : $hoy;
-
-        // Protección contra bucles infinitos o rangos muy grandes (ej: 2 años)
-        $maxDays = 730;
-        $count = 0;
-
-        while ($current <= $limite && $count < $maxDays) {
-            $count++;
-            $currentStr = $current->format('Y-m-d');
-
-            // 1. Verificar si es festivo (búsqueda O(1))
-            if (!isset($diasFestivos[$currentStr])) {
-                // 2. Verificar si hay clase ese día de la semana (1=Lunes, 7=Domingo)
-                $diaSemana = (int)$current->format('N');
-
-                if (isset($horariosPorDia[$diaSemana])) {
-                    $totalHoras += $horariosPorDia[$diaSemana];
-                }
-            }
-
-            $current->modify('+1 day');
-        }
-
-        return (int)round($totalHoras);
-    }
 }

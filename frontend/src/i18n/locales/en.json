@@ -610,7 +610,7 @@
     "absencesCount": "Absences: ",
     "lateCount": "Late: ",
     "justifiedCount": "Justified: ",
-    "totalHours": "Total Hours Taught: ",
+    "totalHours": "Total course hours: ",
     "errorLoading": "Could not load absences. Please try again later.",
     "errorConnection": "Server connection error."
   },

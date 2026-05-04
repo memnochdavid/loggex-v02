@@ -195,8 +195,13 @@ const MisFaltas = () => {
             <div style={{ width: '100%', paddingRight: '1rem' }}>
                 <div className={styles.accordionHeaderContentAttendance}>
                     <span style={{ flex: 1 }}>{item.title}</span>
-                    {/* Mostrar barra solo si hay porcentaje calculado (Alumno normal y Superadmin ahora) */}
-                    {item.porcentajeFaltas !== undefined && (
+                    {/* `porcentajeFaltas == null` ⇒ materia sin horas anuales
+                        configuradas (`Materia.horasTotales` y `minutosSemanales`
+                        ambos NULL). Mostrar "—" en lugar de barra a 0% para no
+                        engañar visualmente. */}
+                    {item.porcentajeFaltas == null ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                    ) : (
                         <ShowProgress percentage={item.porcentajeFaltas} height="15px" showLabel={true} />
                     )}
                 </div>

@@ -610,7 +610,7 @@
     "absencesCount": "Faltes: ",
     "lateCount": "Retards: ",
     "justifiedCount": "Justificades: ",
-    "totalHours": "Total Hores Impartides: ",
+    "totalHours": "Total hores del curs: ",
     "errorLoading": "No s'han pogut carregar les faltes. Intenta-ho més tard.",
     "errorConnection": "Error de connexió amb el servidor."
   },
