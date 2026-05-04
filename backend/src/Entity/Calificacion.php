@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CalificacionRepository;
@@ -31,6 +32,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['calificacion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['calificacion:write']]
+)]
+// Topic plano /admin/calificaciones (path entity → entrega → tarea → imparticion
+// → grupo → centro es demasiado largo y frágil para placeholders). El backend
+// filtra por centro en GET, basta con refetch al evento.
+#[LivePublish(
+    topics: ['/admin/calificaciones'],
+    payloadGroups: ['calificacion:read', 'timestamp:read', 'softdelete:read'],
 )]
 class Calificacion
 {

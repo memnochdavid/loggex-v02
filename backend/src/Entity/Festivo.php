@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\FestivoRepository;
@@ -31,6 +32,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['festivo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['festivo:write']]
+)]
+// Topic plano /admin/festivos (no por centro): los festivos NACIONAL/AUTO/PROV
+// pueden tener centro=null y aplican a múltiples centros vía cascada — un
+// topic global para admins evita el modelado complejo de matchers por ámbito.
+#[LivePublish(
+    topics: ['/admin/festivos'],
+    payloadGroups: ['festivo:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: ['centro' => 'exact', 'ambito' => 'exact', 'ccaa' => 'exact', 'provincia' => 'exact'])]
 class Festivo

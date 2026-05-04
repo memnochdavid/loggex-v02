@@ -14,6 +14,7 @@ import ModalView from '../components/ModalView';
 import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
@@ -283,6 +284,31 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       }
     }
   }, []); 
+
+  // Mercure live: refetch ante alta/edición/borrado de horarios del centro.
+  // Solo aplica a admins (vista lista); para usuario normal este hook no se
+  // suscribe (topics vacíos) ya que /admin/centros/{cid}/horarios requiere
+  // rol admin en JWT.
+  // Nota: NO se aplica a HorariosEditor (el editor con pendingTx) — el refetch
+  // colisionaría con el draft local. El editor mantiene su modelo de "todo
+  // local hasta Guardar" por diseño.
+  const liveTopics = useMemo(() => {
+      if (!canEdit) return [];
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid && viewMode === 'list' ? [`/admin/centros/${cid}/horarios`] : [];
+  }, [canEdit, isSuperAdmin, selectedCentro, user?.centro?.id, viewMode]);
+
+  useLiveRefetch(liveTopics, () => {
+      if (viewMode !== 'list') return;
+      fetchHorariosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          sortColumn,
+          sortDirection,
+      });
+  });
 
   // Efecto ÚNICO para cambios en modo lista
   useEffect(() => {

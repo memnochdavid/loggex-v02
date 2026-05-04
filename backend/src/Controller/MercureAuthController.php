@@ -69,11 +69,14 @@ class MercureAuthController extends AbstractController
         if ($isSuperAdmin) {
             // Superadmin: cualquier centro, cualquier recurso.
             $topics[] = '/admin/centros/{cid}/{rec}';
-            // Top-level admin (p.ej. /admin/centros listado de centros).
+            // Top-level admin (p.ej. /admin/centros, /admin/festivos, /admin/usuarios…).
             $topics[] = '/admin/{rec}';
         } elseif ($isAdmin && $centro) {
             // Admin de centro: solo SU centro.
             $topics[] = "/admin/centros/{$centro->getId()}/{rec}";
+            // Topics admin globales (no por centro): festivos NACIONALES/AUTO/PROV
+            // que aplican al centro vía cascada en backend, comunicados globales, …
+            $topics[] = '/admin/{rec}';
         }
 
         // URL pública del hub relativa al host actual del request. Así Caddy

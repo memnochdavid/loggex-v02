@@ -2,8 +2,9 @@
 
 ## ⚡ Snapshot para retomar (2026-05-04)
 
-**Sesiones 1+2 Live CRUD ✅ Done (2026-05-04).** 4 vistas admin alta prioridad migradas + framework completo (auth + topics condicionales).
-Ver §"Bitácora Live CRUD" al final del doc para el detalle.
+**✅ COBERTURA ADMIN COMPLETA — Sesiones 1+2+3 Live CRUD Done (2026-05-04).**
+Patrón estándar documentado en `CLAUDE.md`. Solo queda deuda residual de vistas profe-facing (~1h opcional).
+Ver §"Bitácora Live CRUD" al final del doc para el detalle por sesión.
 
 **Implementado:**
 - Bundle `symfony/mercure-bundle` instalado y registrado.
@@ -12,15 +13,16 @@ Ver §"Bitácora Live CRUD" al final del doc para el detalle.
 - `Symfony Messenger` con cola async para `PublishMercureUpdate` (no bloquea HTTP).
 - Frontend: hook `useMercure(topics, onEvent)` con EventSource, reconexión automática y cookie firmada vía `/api/me/mercure-subscribe`.
 - Consumido por: `NotificationList`, `Mensajes.jsx`, `useUnreadMessages.js`.
-- **Framework Live CRUD declarativo (sesión 1)**: atributo `#[LivePublish]` (con `topicsConditional` ExpressionLanguage añadido en sesión 2), `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hooks frontend `useLiveCollection` + `useLiveRefetch` (variante ligera para CRUD complejos con paginación/filtros).
-- **JWT extendido (sesión 2)**: `MercureAuthController` firma topics admin/centro: admins reciben `/admin/centros/{cid}/{rec}` con cid concreto; superadmin recibe wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`. Todos los usuarios autenticados firman `/global/comunicados`.
-- **Vistas migradas**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`.
+- **Framework Live CRUD declarativo**: atributo `#[LivePublish]` (con `topicsConditional` ExpressionLanguage), `LivePublishSubscriber` genérico (postPersist/Update/Remove), comando `app:mercure:invalidate` (fallback SQL), hooks frontend `useLiveCollection` + `useLiveRefetch` (variante ligera para CRUD complejos con paginación/filtros).
+- **JWT extendido**: `MercureAuthController` firma topics admin/centro: admins reciben `/admin/centros/{cid}/{rec}` con cid concreto + `/admin/{rec}` (topics planos); superadmin recibe wildcard `/admin/centros/{cid}/{rec}` + `/admin/{rec}`. Todos los usuarios autenticados firman `/global/comunicados`.
+- **Entidades con `#[LivePublish]`** (10 total): Comunicado, Imparticion, Matricula, Grupo, Itinerario, Festivo, Tarea, Calificacion, Horario, Entrega.
+- **Vistas migradas**: `TablonWidget` (Comunicado), `/admin/imparticiones`, `/admin/matriculas`, `/admin/grupos`, `/admin/itinerarios`, `/admin/festivos`, `/admin/calificaciones`, `/admin/horarios` (lista). Total **8 vistas admin live**.
 
-**Deuda restante:**
-- Vistas pendientes (sesión 3 estimada ~3-4h): `/admin/horarios` (multi-edición), `/admin/festivos`, `/admin/tareas`, `/admin/calificaciones`, `/horarios` (vista personal), `/entregas`.
-- Cuando la cobertura llegue al 100% de alta+media: retirar la "regla obligatoria de F5" del `INDEX.md` y documentar `useLiveRefetch` como patrón estándar en `CLAUDE.md`.
+**Deuda residual menor** (no bloquea producto):
+- **Vistas profe-facing**: `Entregas.jsx` por imparticion + `/horarios` personal del profesor. Necesitan topic family `/users/{id}/schedule` y `/imparticiones/{id}/entregas` con JWT firmando lista concreta de imparticiones del usuario. ~1h.
+- **HorariosEditor** (5613 líneas, sistema `pendingTx`): no se aplica live por diseño — el draft local "todo a memoria hasta Guardar" colisionaría con un refetch externo. Decidido mantener fuera del scope live.
 
-Ver §"Deuda — Live updates CRUD para todas las vistas con persistencia" + §"Bitácora Live CRUD" más abajo.
+Ver §"Bitácora Live CRUD" para detalle de sesiones 1, 2 y 3.
 
 ---
 
@@ -751,18 +753,43 @@ Y en la entidad:
 )]
 ```
 
-### Próximos pasos (sesión 3 — ~3-4h)
+### Sesión 3 ✅ Done (2026-05-04) — Cobertura admin completa
 
-**Vistas pendientes** (orden propuesto):
+**Hecho:**
 
-1. **`/admin/horarios`** — clave por multi-edición (varios profes editando el mismo grupo). Topic: `/admin/grupos/{id}/horarios`. Requiere extender JWT para profesores con acceso al grupo.
-2. **`/admin/festivos`** — Topic: `/admin/centros/{cid}/festivos`.
-3. **`/admin/tareas`**, `/admin/calificaciones` — pueden compartir topic por grupo: `/admin/grupos/{id}/tareas`, `/admin/grupos/{id}/calificaciones`.
-4. **Vistas profesor**: `/horarios` personal (`/users/{id}/schedule`), `/entregas` por imparticion (`/imparticiones/{id}/entregas`).
+1. **`MercureAuthController`** — añadido `/admin/{rec}` también para admins (no solo superadmin). Cubre topics planos como `/admin/festivos`, `/admin/tareas`, `/admin/calificaciones`, `/admin/entregas`.
 
-**Cierre de la deuda** cuando la cobertura llegue al 100% de alta+media:
-- Documentar `useLiveRefetch` como patrón estándar en `CLAUDE.md`.
-- Retirar la "regla obligatoria de F5 manual" del `INDEX.md`.
-- Eliminar este §"Deuda Live updates CRUD" del doc o marcarlo cerrado.
+2. **Entidades marcadas con `#[LivePublish]`** (sesión 3):
+   - **`Festivo`** → topic plano `/admin/festivos`. La cascada NACIONAL/AUTONOMICO/PROVINCIAL/LOCAL la hace el backend en GET; basta con un topic broadcast a admins.
+   - **`Tarea`** → topic plano `/admin/tareas`. Path entity → imparticion → grupo → centro era frágil; broadcast simple con filtro server-side.
+   - **`Calificacion`** → topic plano `/admin/calificaciones`. Path entity → entrega → tarea → imparticion → grupo → centro demasiado largo.
+   - **`Horario`** → topic por centro `/admin/centros/{imparticion.grupo.centro.id}/horarios`. Granularidad por-grupo sería más fina pero el path es estable.
+   - **`Entrega`** → topic plano `/admin/entregas`. Profe-facing live difiere a deuda residual.
+
+3. **Vistas migradas a `useLiveRefetch`**:
+   - `Festivos.jsx` — topic estático `/admin/festivos`.
+   - `CalificacionesAdmin.jsx` — refetch del endpoint `resumen-calificaciones` ante eventos en `/admin/calificaciones` o `/admin/tareas`. Reestructurado para extraer `fetchResumen` a `useCallback`.
+   - `Horarios.jsx` (lista) — topic dinámico por centro, **solo cuando `viewMode === 'list'` y user `canEdit`**. El editor (`HorariosEditor`) NO se migra por diseño — su sistema `pendingTx` mantiene draft local hasta Guardar y un refetch externo lo destruiría.
+
+4. **Documentación cerrada**:
+   - `CLAUDE.md` §"Patrones y Convenciones" — añadida sección **Live updates (Mercure)** con uso de `useLiveRefetch`/`useLiveCollection`, topic estándar `/admin/centros/{cid}/{recurso}` o plano `/admin/{recurso}`, y la regla operativa: tras `mysql -e ...` ejecutar `app:mercure:invalidate -t /topic`.
+   - `INDEX.md` — bloque deuda transformado en bloque "✅ Done" con regla operativa y deuda residual menor (vistas profe + HorariosEditor por diseño).
+   - Tabla de roadmaps activos: `hoja-de-ruta-redis-workers.md` marcado como cerrado para producto (movible a 🟢 cerradas).
+
+**Smoke tests ejecutados (sesión 3):**
+- ✅ `cache:clear` post-cambios → OK.
+- ✅ `app:mercure:invalidate -t /admin/centros/1/horarios -t /admin/festivos -t /admin/calificaciones` → publica 3 topics correctamente.
+- ⏳ **Verificación visual usuario pendiente**:
+   - `/admin/festivos`: crear festivo en pestaña A → otra refresca.
+   - `/admin/calificaciones`: añadir calificación en otra ruta → CalificacionesAdmin recalcula resumen.
+   - `/admin/horarios` (vista lista): añadir/eliminar horario → otra pestaña refresca.
+
+**Deuda residual** (no bloquea producto):
+
+| Item | Esfuerzo | Por qué se difiere |
+|---|---|---|
+| `Entregas.jsx` por imparticion (vista profe) | ~30 min | Requiere topic `/imparticiones/{id}/entregas` firmado en JWT con lista concreta de imparticiones del profesor. Profe-facing → menor frecuencia que admin. |
+| `/horarios` personal del profesor | ~30 min | Mismo modelo que Entregas: topic `/users/{id}/schedule` + JWT específico. |
+| `HorariosEditor` (5613 líneas, `pendingTx`) | N/A — descartado | Por diseño: el editor mantiene draft local hasta Guardar. Refetch externo destruiría cambios pendientes. La vista lista (`Horarios.jsx`) sí está cubierta. |
 
 ---

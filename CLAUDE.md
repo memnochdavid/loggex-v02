@@ -62,6 +62,7 @@ frontend/
 - **Estilos**: CSS Modules (`Componente.module.css`), tematización dinámica por centro
 - **Frontend CRUD**: Las páginas CRUD siguen un patrón similar (DataTable + formularios modales)
 - **Componentes clave**: `DataTable` (tabla con paginación/ordenación), `TimeTable` (horario semanal visual), `CalendarView` (calendario mensual)
+- **Live updates (Mercure)**: Toda entidad cuyas vistas se beneficien de tiempo real lleva `#[LivePublish]` (ver `backend/src/Attribute/LivePublish.php`). El `LivePublishSubscriber` genérico publica al hub en cada postPersist/Update/Remove. En el frontend, las páginas CRUD usan `useLiveRefetch(topics, refetchFn)` (variante ligera para CRUD complejos con paginación/filtros) o `useLiveCollection(...)` (para listas simples). Topic estándar: `/admin/centros/{cid}/{recurso}` para vistas admin, `/admin/{recurso}` para topics planos. Tras `mysql -e 'INSERT/UPDATE...'` o seeds SQL ejecutar `app:mercure:invalidate -t /topic` para que los clientes conectados refresquen. Doc dedicado: `docs/hoja-de-ruta-redis-workers.md` §"Bitácora Live CRUD".
 
 ## Comandos Útiles
 ```bash

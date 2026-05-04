@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import AccordionView from '../components/AccordionView';
@@ -6,6 +6,7 @@ import Button from '../components/Button';
 import ThemedSelect from '../components/ThemedSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
@@ -103,34 +104,39 @@ const CalificacionesAdmin = () => {
     }, []);
 
     // Cargar resumen (filtrado server-side por centro, año y periodo)
-    useEffect(() => {
+    const fetchResumen = useCallback(async () => {
         // SuperAdmin debe seleccionar centro primero
         if (isSuperAdmin && !selectedCentro) {
             setData(null);
             setLoading(false);
             return;
         }
-        const fetchResumen = async () => {
-            setLoading(true);
-            try {
-                const params = new URLSearchParams();
-                if (selectedPeriodo) params.set('periodo', selectedPeriodo);
-                if (selectedYear) params.set('anioEscolar', selectedYear);
-                if (selectedCentro) params.set('centro', selectedCentro);
-                const qs = params.toString();
-                const url = getApiUrl(`/api/v1/centro/resumen-calificaciones${qs ? `?${qs}` : ''}`);
-                const response = await fetch(url, { credentials: 'include' });
-                if (!response.ok) throw new Error();
-                setData(await response.json());
-                setError(null);
-            } catch {
-                setError(t('grades.errorLoading'));
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchResumen();
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (selectedPeriodo) params.set('periodo', selectedPeriodo);
+            if (selectedYear) params.set('anioEscolar', selectedYear);
+            if (selectedCentro) params.set('centro', selectedCentro);
+            const qs = params.toString();
+            const url = getApiUrl(`/api/v1/centro/resumen-calificaciones${qs ? `?${qs}` : ''}`);
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error();
+            setData(await response.json());
+            setError(null);
+        } catch {
+            setError(t('grades.errorLoading'));
+        } finally {
+            setLoading(false);
+        }
     }, [selectedPeriodo, selectedYear, selectedCentro, isSuperAdmin, t]);
+
+    useEffect(() => {
+        fetchResumen();
+    }, [fetchResumen]);
+
+    // Mercure live: cualquier alta/edición/borrado de calificación o tarea
+    // recalcula el resumen. Topics planos /admin/calificaciones, /admin/tareas.
+    useLiveRefetch(['/admin/calificaciones', '/admin/tareas'], fetchResumen);
 
     // Años disponibles vienen del backend
     const availableYears = data?.aniosDisponibles || [];

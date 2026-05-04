@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\TareaRepository;
@@ -36,6 +37,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['tarea:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['tarea:write']]
+)]
+// Topic plano /admin/tareas: la cascada por centro se hace en backend
+// (CurrentUserExtension). Todos los admins reciben la señal y refetch.
+// La vista de evaluación/grupo concreto puede subscribirse al mismo topic
+// y refetch su slice — el filtro queda en el endpoint REST.
+#[LivePublish(
+    topics: ['/admin/tareas'],
+    payloadGroups: ['tarea:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'imparticion' => 'exact',

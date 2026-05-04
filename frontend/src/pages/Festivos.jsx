@@ -10,6 +10,7 @@ import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2, Lock, DownloadCloud } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -174,10 +175,27 @@ const Festivos = ({ embedded = false, tabs = null }) => {
     }
   }, []); 
 
+  // Mercure live: topic plano /admin/festivos. Cualquier cambio (incluido el
+  // botón "Cargar festivos del centro" que crea muchos a la vez) se propaga
+  // a todos los admins. La cascada por aplicabilidad la hace el backend en
+  // el GET; basta con refetch al evento.
+  useLiveRefetch(['/admin/festivos'], () => {
+      fetchFestivosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedAmbito,
+          sortColumn,
+          sortDirection,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 

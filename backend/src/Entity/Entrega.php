@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\EntregaRepository;
@@ -35,6 +36,14 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     ],
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
+)]
+// Topic plano /admin/entregas (broadcast a admins). Las vistas profe-facing
+// (Entregas.jsx por imparticion) necesitan un topic /imparticiones/{id}/entregas
+// firmado en el JWT con la lista concreta de imparticiones del profesor —
+// pendiente de diseño de auth, ver §"Deuda Live updates CRUD" del roadmap.
+#[LivePublish(
+    topics: ['/admin/entregas'],
+    payloadGroups: ['entrega:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'alumno' => 'exact',

@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\HorarioRepository;
@@ -32,6 +33,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['horario:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['horario:write']]
+)]
+// Topic por centro: granularidad por-grupo sería más fina, pero el path
+// horario.imparticion.grupo.centro es estable y un único topic /admin/centros/{cid}/horarios
+// vale para multi-edición (todos los admins del centro reciben todos los cambios).
+// Tradeoff: refresca aunque el cambio sea de otro grupo del mismo centro.
+#[LivePublish(
+    topics: ['/admin/centros/{imparticion.grupo.centro.id}/horarios'],
+    payloadGroups: ['horario:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'imparticion' => 'exact',
