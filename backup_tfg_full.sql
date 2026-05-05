@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -863,12 +863,12 @@ INSERT INTO `calificacion` VALUES
 (3,4.95,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,3),
 (4,5.45,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,4),
 (5,5.45,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,5),
-(6,3.05,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,6),
+(6,8,NULL,'2026-04-29 09:00:00','2026-05-05 10:23:44',0,NULL,6),
 (7,7.58,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,7),
 (8,5.25,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,8),
 (9,8.38,'Perfecto, has cubierto todos los puntos.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,9),
 (10,5.79,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,10),
-(11,4.31,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,11),
+(11,9,NULL,'2026-04-29 09:00:00','2026-05-05 10:35:40',0,NULL,11),
 (12,3.64,'Faltan apartados clave del enunciado. Revisa lo entregado.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,12),
 (13,7.19,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,13),
 (14,4.84,'No se cumple con lo solicitado. Recuperación necesaria.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,14),
@@ -877,7 +877,7 @@ INSERT INTO `calificacion` VALUES
 (17,6.04,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,17),
 (18,5.54,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,18),
 (19,9.85,'Perfecto, has cubierto todos los puntos.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,19),
-(20,5.53,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,20),
+(20,7,'Cumple con lo pedido, mejorable la presentación.','2026-04-29 09:00:00','2026-05-05 10:35:59',0,NULL,20),
 (21,7.08,'Bien ejecutado, podría mejorar la estructura.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,21),
 (22,9.25,'Perfecto, has cubierto todos los puntos.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,22),
 (23,7.18,'Aceptable. Faltan algunos detalles que vimos en clase.','2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,23),
@@ -4675,7 +4675,8 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260428180000','2026-04-28 04:20:35',522),
 ('DoctrineMigrations\\Version20260429120000','2026-04-29 08:15:53',99),
 ('DoctrineMigrations\\Version20260429140000','2026-04-29 08:26:31',131),
-('DoctrineMigrations\\Version20260429180000','2026-04-29 11:24:05',90);
+('DoctrineMigrations\\Version20260429180000','2026-04-29 11:24:05',90),
+('DoctrineMigrations\\Version20260505120000','2026-05-05 10:04:38',746);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -6730,6 +6731,50 @@ LOCK TABLES `messenger_messages` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `notificacion`
+--
+
+DROP TABLE IF EXISTS `notificacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notificacion` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `tipo` varchar(64) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `mensaje` longtext DEFAULT NULL,
+  `enlace` varchar(500) DEFAULT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payload`)),
+  `leida` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_creacion` datetime NOT NULL,
+  `leida_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDX_notif_usuario` (`usuario_id`),
+  KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
+  CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `notificacion`
+--
+
+LOCK TABLES `notificacion` WRITE;
+/*!40000 ALTER TABLE `notificacion` DISABLE KEYS */;
+INSERT INTO `notificacion` VALUES
+(1,57,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/tareas/177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',1,'2026-05-05 10:34:49','2026-05-05 10:39:48','2026-05-05 10:34:49','2026-05-05 10:34:49'),
+(2,58,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/tareas/177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
+(3,59,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/tareas/177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
+(4,60,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/tareas/177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
+(5,61,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/tareas/177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
+(6,57,'calificacion_actualizada','Tu calificación se ha actualizado','Tu nota de \"Sistemas informáticos - Trabajo Tema 3\" se ha actualizado a 9.','/calificaciones?tarea=3','{\"entregaId\":11,\"tareaId\":3,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Trabajo Tema 3\",\"nota\":9.0}',1,'2026-05-05 10:35:40','2026-05-05 10:39:48','2026-05-05 10:35:40','2026-05-05 10:35:40'),
+(7,57,'calificacion_actualizada','Tu calificación se ha actualizado','Tu nota de \"Sistemas informáticos - Práctica integradora\" se ha actualizado a 7.','/calificaciones?tarea=5','{\"entregaId\":20,\"tareaId\":5,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Pr\\u00e1ctica integradora\",\"nota\":7.0}',1,'2026-05-05 10:35:59','2026-05-05 10:36:08','2026-05-05 10:35:59','2026-05-05 10:36:08');
+/*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `periodo_evaluativo`
 --
 
@@ -7660,7 +7705,7 @@ CREATE TABLE `tarea` (
   KEY `IDX_3CA053669588CB6` (`tarea_original_id`),
   CONSTRAINT `FK_3CA053665396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`),
   CONSTRAINT `FK_3CA053669588CB6` FOREIGN KEY (`tarea_original_id`) REFERENCES `tarea` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=175 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=178 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7843,7 +7888,10 @@ INSERT INTO `tarea` VALUES
 (171,'Itinerario Personal Empleabilidad II - Trabajo Tema 3','<p>Trabajo Tema 3 de Itinerario Personal Empleabilidad II. Material disponible adjunto.</p>','Dummy.pdf','2025-12-15 23:59:00','2025-12-01 00:00:00',1,'tarea',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,68,NULL),
 (172,'Itinerario Personal Empleabilidad II - Examen Tema 4','<p>Examen Tema 4 de Itinerario Personal Empleabilidad II. Material disponible adjunto.</p>','Dummy.pdf','2026-02-12 23:59:00','2026-01-29 00:00:00',1,'examen',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,68,NULL),
 (173,'Itinerario Personal Empleabilidad II - Práctica integradora','<p>Práctica integradora de Itinerario Personal Empleabilidad II. Material disponible adjunto.</p>','Dummy.pdf','2026-03-18 23:59:00','2026-03-04 00:00:00',1,'tarea',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,68,NULL),
-(174,'Itinerario Personal Empleabilidad II - Proyecto final tema','<p>Proyecto final tema de Itinerario Personal Empleabilidad II. Material disponible adjunto.</p>','Dummy.pdf','2026-05-15 23:59:00','2026-05-01 00:00:00',1,'practica',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,68,NULL);
+(174,'Itinerario Personal Empleabilidad II - Proyecto final tema','<p>Proyecto final tema de Itinerario Personal Empleabilidad II. Material disponible adjunto.</p>','Dummy.pdf','2026-05-15 23:59:00','2026-05-01 00:00:00',1,'practica',NULL,1,NULL,'2026-04-29 09:00:00','2026-04-29 09:00:00',0,NULL,68,NULL),
+(175,'tarea de prueba','',NULL,'2026-05-05 23:59:00',NULL,1,'tarea',NULL,1,NULL,'2026-05-05 10:25:38','2026-05-05 10:25:38',0,NULL,37,NULL),
+(176,'tarea de prueba','',NULL,'2026-05-05 23:59:00',NULL,1,'tarea',NULL,1,NULL,'2026-05-05 10:25:50','2026-05-05 10:25:50',0,NULL,37,NULL),
+(177,'tarea de prueba','',NULL,'2026-05-06 23:59:00',NULL,1,'tarea',NULL,1,NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49',0,NULL,37,NULL);
 /*!40000 ALTER TABLE `tarea` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -8092,4 +8140,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-04 17:25:45
+-- Dump completed on 2026-05-05 12:47:09
