@@ -1726,6 +1726,7 @@
       "filterFamilia": "Familia",
       "filterNivel": "Nivel",
       "filterCcaa": "CCAA",
+      "filterCcaaNacional": "Só nacional (sen overlay)",
       "filterAll": "Todas",
       "filterVigente": "Vixente",
       "filterVigenteYes": "Vixentes",
@@ -1781,6 +1782,8 @@
       "filterTipo": "Tipo",
       "filterCurso": "Curso",
       "filterItinerario": "Itinerario",
+      "filterCcaa": "CCAA",
+      "filterCcaaNacional": "Só nacional (sen overlay)",
       "filterAll": "Todos",
       "columnCodigo": "Código",
       "columnNombre": "Nome",
@@ -1788,7 +1791,8 @@
       "columnCurso": "Curso",
       "columnHoras": "Horas",
       "columnEcts": "ECTS",
-      "columnItinerario": "Itinerario"
+      "columnItinerario": "Itinerario",
+      "columnCcaa": "CCAA"
     },
     "centros": {
       "title": "Centros oficiais",

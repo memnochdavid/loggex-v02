@@ -274,3 +274,21 @@ Ideas que se descartan hasta que el resto esté maduro:
 - Integración de calendarios externos (Google Calendar import/export).
 - Dashboards multicentro comparativos para SuperAdmin.
 - Tema de Home independiente del tema global.
+
+---
+
+## 8. Bitácora
+
+### 2026-05-05 — Fix `UpcomingEventsWidget` duplicaba bloques por PeriodoLectivo
+
+**Síntoma**: el widget "Horario de Hoy" mostraba cada bloque del día N veces (una por cada `PeriodoLectivo` cronológico del grupo). Para un grupo con 3 rangos (`Rango 1`, `Rango 2`, `Rango 3`), un bloque de 8:30-10:30 Programación aparecía 3 veces seguidas con la misma hora y materia.
+
+**Causa**: tras la Fase 1 de PeriodoLectivo (commit 2026-04-28), cada PL tiene su propia tabla de horarios. La query DQL de `GetMyScheduleController` devolvía todos los horarios del usuario sin filtrar por PL. El widget pintaba un `<li>` por cada Horario, sin saber que tres de ellos representan el mismo bloque pero en rangos cronológicos distintos.
+
+**Fix**:
+- `GetMyScheduleController::computeSchedule` ahora añade `periodoLectivoId`, `periodoLectivoFechaInicio` y `periodoLectivoFechaFin` a cada `event`. El campo es nullable para compatibilidad con horarios pre-Fase 1 (improbable, pero limpio).
+- `UpcomingEventsWidget` filtra adicionalmente: `today ∈ [periodoLectivoFechaInicio, periodoLectivoFechaFin]`. Si el evento no trae rango (compat), pasa el filtro.
+
+**Cache**: el endpoint cachea response 5min via `CacheInterface` (`cache.app`, key `schedule_{userId}`). Tras desplegar este fix, los responses cacheados no incluyen los nuevos campos hasta que expire o se purgue. Para acelerar: `docker compose exec backend php bin/console cache:pool:clear cache.app` + reload del frontend.
+
+**Bug latente relacionado (no arreglado en este pase)**: la página `/horarios` (`Horarios.jsx:685`) pasa el `mySchedule` completo al `TimeTable` sin filtrar por la fecha visualizada (`selectedDate`). El alumno con 3 PLs ve 3 capas solapadas si la rejilla intenta pintar dos bloques en la misma celda. El widget puede ser síntoma más visible porque pinta lista plana; la rejilla puede enmascarar el problema con z-index. Si se reproduce, aplicar el mismo filtro pero usando `selectedDate` en lugar de `today`.

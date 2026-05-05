@@ -110,6 +110,14 @@ class GetMyScheduleController extends AbstractController
                 $profesorNombre = $h->getImparticion()->getProfesor()->getNombre() . ' ' . $h->getImparticion()->getProfesor()->getApellidos();
             }
 
+            // Rango del PeriodoLectivo del horario, para que el frontend pueda
+            // filtrar por fecha visualizada. Sin esto, un grupo con 3 PLs
+            // cronológicos muestra 3 copias del mismo bloque (mismo día y
+            // hora) en widgets/grillas que no controlan el rango.
+            $pl = $h->getPeriodoLectivo();
+            $plFechaInicio = $pl?->getFechaInicio()?->format('Y-m-d');
+            $plFechaFin    = $pl?->getFechaFin()?->format('Y-m-d');
+
             $events[] = [
                 'id' => $h->getId(),
                 'diaSemana' => $h->getDiaSemana(),
@@ -123,7 +131,10 @@ class GetMyScheduleController extends AbstractController
                 'grupoAbreviatura' => $grupo->getAbreviatura(),
                 'grupoCurso' => $grupo->getCurso(),
                 'profesor' => $profesorNombre,
-                'imparticionId' => $h->getImparticion()->getId()
+                'imparticionId' => $h->getImparticion()->getId(),
+                'periodoLectivoId' => $pl?->getId(),
+                'periodoLectivoFechaInicio' => $plFechaInicio,
+                'periodoLectivoFechaFin' => $plFechaFin,
             ];
 
             // (1) Jornada efectiva del PL del horario, si existe.

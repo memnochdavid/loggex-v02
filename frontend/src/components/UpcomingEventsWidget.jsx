@@ -75,11 +75,21 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
                     allSlots = scheduleData['hydra:member'] || scheduleData.member || [];
                 }
 
-                // 3. Filtrar por el día de hoy
+                // 3. Filtrar por el día de hoy + por el PeriodoLectivo activo
+                // hoy. Sin el filtro de PL, un grupo con N rangos cronológicos
+                // (típico: trimestres/evaluaciones) duplica cada bloque N veces
+                // porque cada PL tiene su propia copia del horario semanal.
                 const todaySlots = allSlots
                     .filter(slot => parseInt(slot.diaSemana) === isoDayOfWeek)
+                    .filter(slot => {
+                        // Si el slot no trae rango (caso compat con eventos sin PL),
+                        // se acepta — el filtro solo descarta los que SÍ trae rango
+                        // pero hoy queda fuera.
+                        if (!slot.periodoLectivoFechaInicio || !slot.periodoLectivoFechaFin) return true;
+                        return todayISO >= slot.periodoLectivoFechaInicio && todayISO <= slot.periodoLectivoFechaFin;
+                    })
                     .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-                
+
                 setEvents(todaySlots);
 
             } catch (error) {

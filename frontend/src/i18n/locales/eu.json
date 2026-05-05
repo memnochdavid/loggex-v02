@@ -1726,6 +1726,7 @@
       "filterFamilia": "Familia",
       "filterNivel": "Maila",
       "filterCcaa": "EAE",
+      "filterCcaaNacional": "Estatu mailakoak soilik (overlayrik gabe)",
       "filterAll": "Denak",
       "filterVigente": "Indarrean",
       "filterVigenteYes": "Indarrean",
@@ -1781,6 +1782,8 @@
       "filterTipo": "Mota",
       "filterCurso": "Ikasturtea",
       "filterItinerario": "Ibilbidea",
+      "filterCcaa": "EAE",
+      "filterCcaaNacional": "Estatu mailakoak soilik (overlayrik gabe)",
       "filterAll": "Denak",
       "columnCodigo": "Kodea",
       "columnNombre": "Izena",
@@ -1788,7 +1791,8 @@
       "columnCurso": "Ikasturtea",
       "columnHoras": "Orduak",
       "columnEcts": "ECTS",
-      "columnItinerario": "Ibilbidea"
+      "columnItinerario": "Ibilbidea",
+      "columnCcaa": "EAE"
     },
     "centros": {
       "title": "Ikastetxe ofizialak",

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
+import { formatGrupoAbrev } from '../utils/grupo';
 
 /**
  * Hook compartido para cargar imparticiones con filtros de SuperAdmin.
@@ -161,16 +162,14 @@ const useImparticiones = () => {
 
                 const mapped = items.map(imp => {
                     const nombreModulo = imp.materia?.nombre || t('common.unknownModule');
-                    const nombreGrupo = imp.grupo?.abreviatura || imp.grupo?.nombre || t('common.unknownGroup');
-                    const cursoGrupo = imp.grupo?.curso ?? null;
                     const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
 
                     // Formato consistente con `/admin/horarios` columna Grupo
-                    // (pulido-ux Ronda 1 #2): `[curso]º [abreviatura]` cuando
-                    // hay curso. Fallback a solo `[abreviatura]` si null.
-                    const grupoLabel = cursoGrupo != null
-                        ? `${cursoGrupo}º ${nombreGrupo}`
-                        : nombreGrupo;
+                    // (pulido-ux Ronda 1 #2 + R2.4): `[curso]º [abreviatura]`.
+                    // `formatGrupoAbrev` ya hace fallback limpio a abreviatura/
+                    // nombre y omite el `º` si curso es null. Si grupo viene
+                    // como IRI sin populate, devuelve '' → caemos a unknown.
+                    const grupoLabel = formatGrupoAbrev(imp.grupo) || t('common.unknownGroup');
 
                     let title = `${nombreModulo} - ${grupoLabel}`;
                     if ((isAlumno || isSuperAdmin) && nombreProfesor) {

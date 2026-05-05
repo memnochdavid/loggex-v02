@@ -409,4 +409,30 @@ Inicio › Administración › Grupos
 
 **R2.2 — i18n `/admin/catalogo` falta en en/ca/gl/eu**. El bloque `catalogo` (112 claves anidadas en sub-bloques `banner/acerca/itinerarios/itinerarioDetail/materias/centros/etapaLabel/tipoLabel`) **solo existía en `es.json`**. En los otros 4 idiomas caía al fallback español (las vistas de catálogo se veían en español aunque el usuario eligiese otro idioma). Script Python one-shot con dict de traducciones por idioma, deep-merge dentro del bloque existente (idempotente). Las traducciones a EN son cuidadas (con notas explicativas para conceptos como "FP Básica" → "FP Básica" mantenido sin traducir + glosa "vocational training"); CA/GL/EU son traducciones razonables aprovechando cognados con español, pendiente revisión de un hablante nativo si surge demanda comercial. Script borrado tras ejecutar.
 
+### 2026-05-05 (tarde) — R2.2 + R2.4 + R2.6 reabiertos y cerrados (fixes residuales)
+
+Tras smoke-test del usuario sobre los cierres de la mañana, 3 de los 5 ítems aparecieron parcialmente rotos. Causas reales y correcciones:
+
+**R2.2 (residual) — 4 claves i18n faltaban en los 5 idiomas, se mostraban en español.** El script de la mañana cubrió 112 claves del bloque `catalogo` pero **dejó fuera** `catalogo.materias.filterCcaa`, `catalogo.materias.columnCcaa`, `catalogo.materias.filterCcaaNacional` y `catalogo.itinerarios.filterCcaaNacional`. El código las llamaba con `defaultValue: 'Overlays CCAA' / 'Overlay CCAA' / 'Solo nacional (sin overlay)'` (5/6 sitios), por lo que en EN/CA/GL/EU el usuario veía esos defaults en castellano. Fix:
+  - Añadidas las 4 claves a `es/en/ca/gl/eu.json` con traducciones nativas (`Region` en EN, `EAE` en EU, `CCAA` en ES/CA/GL).
+  - Eliminados los 6 `defaultValue` hardcoded de `CatalogoItinerarios.jsx` (líneas 227, 343, 349) y `CatalogoMaterias.jsx` (líneas 211, 285, 291). Cumple regla del proyecto: "los `defaultValue` son código muerto que oculta dependencias rotas" (CLAUDE.md §regla de oro tematización + §"Patrones").
+
+**R2.4 (residual) — `useImparticiones.js` construía el label manualmente.** El fix de la mañana añadió `${cursoGrupo}º ${nombreGrupo}` inline pero ignoró el helper `formatGrupoAbrev` que ya hacía exactamente eso (con misma regla en otras 8 vistas). Refactor a `formatGrupoAbrev(imp.grupo) || t('common.unknownGroup')` para una sola fuente de verdad y manejo limpio del caso edge en que el grupo venga como IRI string sin populate.
+
+**R2.6 (residual) — datos sucios en BD.** El fix del dispatcher (commit `dd06005` 2026-05-05 14:42) corrigió los `enlace` futuros pero las 7 notificaciones generadas por el smoke-test de la mañana (10:34-10:35) quedaron en BD con los enlaces antiguos (`/tareas/177`, `/calificaciones?tarea=X`). UPDATE manual:
+
+```sql
+UPDATE notificacion SET enlace = REPLACE(enlace, '/tareas/', '/entregas?tarea=')
+  WHERE tipo = 'tarea_nueva' AND enlace LIKE '/tareas/%';
+UPDATE notificacion SET enlace = REPLACE(enlace, '/calificaciones?tarea=', '/mis-calificaciones?tarea=')
+  WHERE tipo IN ('calificacion_publicada','calificacion_actualizada')
+    AND enlace LIKE '/calificaciones?tarea=%';
+UPDATE notificacion SET enlace = REPLACE(enlace, '/calificaciones?tarea=', '/entregas?tarea=')
+  WHERE tipo = 'entrega_recibida' AND enlace LIKE '/calificaciones?tarea=%';
+```
+
+Resultado: las 7 filas (5 `tarea_nueva` + 2 `calificacion_actualizada`) quedan apuntando a la ruta correcta. **Acción del usuario**: si tras la sesión genera notifs y los enlaces siguen viejos, reiniciar backend (`docker compose restart backend`) — opcache PHP-FPM puede mantener el dispatcher viejo en memoria pese al cambio en disco (mismo síndrome del 2026-05-02 con el validator de Entrega; INDEX:74).
+
+**R2.3 y R2.5 — sin cambios.** Tras revisar deep-link de `Entregas.jsx` y guard `PrivateRoute.jsx`, ambos están correctos en código (R2.5: `App.jsx:267` con `allowedRoles={['ROLE_PROFESOR','ROLE_ADMIN']}`; R2.3: `Entregas.jsx:349-402` con fallback a `?tarea=Y` aislado y guard `useRef`). El usuario reportó síntomas pero no se reproducen leyendo el código actual; muy probablemente cache de Vite/navegador. Se recomienda hard-reload (Ctrl+Shift+R) tras los fixes residuales de esta sesión.
+
 **HMR**: backend reiniciado para opcache (cambio en NotificationDispatcher). Vite HMR aceptó los cambios frontend sin errores.

@@ -224,7 +224,7 @@ const CatalogoItinerarios = () => {
             accessor: (it) => it.duracionTotalEcts ?? '—',
         },
         {
-            header: t('catalogo.itinerarios.columnCcaa', { defaultValue: 'Overlays CCAA' }),
+            header: t('catalogo.itinerarios.columnCcaa'),
             accessor: (it) => {
                 const id = getId(it);
                 const overlays = overlaysPorItinerario[id] || [];
@@ -340,13 +340,13 @@ const CatalogoItinerarios = () => {
                     </div>
 
                     <div className={styles.toolbarField}>
-                        <label className={styles.toolbarLabel}>{t('catalogo.itinerarios.filterCcaa', { defaultValue: 'Overlay CCAA' })}</label>
+                        <label className={styles.toolbarLabel}>{t('catalogo.itinerarios.filterCcaa')}</label>
                         <ThemedSelect
                             value={filterCcaa}
                             onChange={(v) => { setFilterCcaa(v); setCurrentPage(1); }}
                             options={[
                                 { value: '', label: t('catalogo.itinerarios.filterAll') },
-                                { value: 'nacional', label: t('catalogo.itinerarios.filterCcaaNacional', { defaultValue: 'Solo nacional (sin overlay)' }) },
+                                { value: 'nacional', label: t('catalogo.itinerarios.filterCcaaNacional') },
                                 ...CCAA_OPTIONS.map(o => ({ value: o.value, label: `${o.label} (${o.value})` })),
                             ]}
                         />

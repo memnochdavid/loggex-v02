@@ -1726,6 +1726,7 @@
       "filterFamilia": "Família",
       "filterNivel": "Nivell",
       "filterCcaa": "CCAA",
+      "filterCcaaNacional": "Només nacional (sense overlay)",
       "filterAll": "Totes",
       "filterVigente": "Vigent",
       "filterVigenteYes": "Vigents",
@@ -1781,6 +1782,8 @@
       "filterTipo": "Tipus",
       "filterCurso": "Curs",
       "filterItinerario": "Itinerari",
+      "filterCcaa": "CCAA",
+      "filterCcaaNacional": "Només nacional (sense overlay)",
       "filterAll": "Tots",
       "columnCodigo": "Codi",
       "columnNombre": "Nom",
@@ -1788,7 +1791,8 @@
       "columnCurso": "Curs",
       "columnHoras": "Hores",
       "columnEcts": "ECTS",
-      "columnItinerario": "Itinerari"
+      "columnItinerario": "Itinerari",
+      "columnCcaa": "CCAA"
     },
     "centros": {
       "title": "Centres oficials",

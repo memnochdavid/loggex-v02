@@ -208,7 +208,7 @@ const CatalogoMaterias = () => {
             },
         },
         {
-            header: t('catalogo.materias.columnCcaa', { defaultValue: 'Overlays CCAA' }),
+            header: t('catalogo.materias.columnCcaa'),
             accessor: (m) => {
                 const overlays = overlaysPorMateria[m.id] || [];
                 if (overlays.length === 0) return <span className={styles.badgeNeutral}>—</span>;
@@ -282,13 +282,13 @@ const CatalogoMaterias = () => {
                     </div>
 
                     <div className={styles.toolbarField}>
-                        <label className={styles.toolbarLabel}>{t('catalogo.materias.filterCcaa', { defaultValue: 'Overlay CCAA' })}</label>
+                        <label className={styles.toolbarLabel}>{t('catalogo.materias.filterCcaa')}</label>
                         <ThemedSelect
                             value={filterCcaa}
                             onChange={(v) => { setFilterCcaa(v); setCurrentPage(1); }}
                             options={[
                                 { value: '', label: t('catalogo.materias.filterAll') },
-                                { value: 'nacional', label: t('catalogo.materias.filterCcaaNacional', { defaultValue: 'Solo nacional (sin overlay)' }) },
+                                { value: 'nacional', label: t('catalogo.materias.filterCcaaNacional') },
                                 ...CCAA_OPTIONS.map(o => ({ value: o.value, label: `${o.label} (${o.value})` })),
                             ]}
                         />

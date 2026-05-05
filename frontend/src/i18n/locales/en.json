@@ -1740,6 +1740,7 @@
       "filterFamilia": "Family",
       "filterNivel": "Level",
       "filterCcaa": "Region",
+      "filterCcaaNacional": "National only (no regional overlay)",
       "filterAll": "All",
       "filterVigente": "Status",
       "filterVigenteYes": "Active",
@@ -1795,6 +1796,8 @@
       "filterTipo": "Type",
       "filterCurso": "Year",
       "filterItinerario": "Program",
+      "filterCcaa": "Region",
+      "filterCcaaNacional": "National only (no regional overlay)",
       "filterAll": "All",
       "columnCodigo": "Code",
       "columnNombre": "Name",
@@ -1802,7 +1805,8 @@
       "columnCurso": "Year",
       "columnHoras": "Hours",
       "columnEcts": "ECTS",
-      "columnItinerario": "Program"
+      "columnItinerario": "Program",
+      "columnCcaa": "Region"
     },
     "centros": {
       "title": "Official centers",
