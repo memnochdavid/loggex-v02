@@ -114,19 +114,23 @@
   "notifications": {
     "empty": "No recent notifications",
     "markAllRead": "Mark all as read",
-    "viewAll": "View all",
-    "loading": "Loading notifications...",
+    "viewAll": "View all messages",
+    "loading": "Loading messages...",
     "errorLoad": "Could not load notifications",
     "justNow": "Just now",
     "minutesAgo": "{{count}} min ago",
     "hoursAgo": "{{count}} h ago",
     "daysAgo": "{{count}} d ago",
-    "unread": "Unread",
+    "unread": " unread",
     "markedAllRead": "{{count}} notifications marked as read",
     "types": {
       "calificacion_publicada": {
         "title": "Your grade is available",
         "body": "You scored {{nota}} on \"{{tareaTitulo}}\""
+      },
+      "calificacion_actualizada": {
+        "title": "Your grade has been updated",
+        "body": "Your score on \"{{tareaTitulo}}\" has been updated to {{nota}}"
       },
       "tarea_nueva": {
         "title": "New task available",
@@ -144,7 +148,9 @@
         "title": "Task overdue without submission",
         "body": "The task \"{{titulo}}\" expired without your submission"
       }
-    }
+    },
+    "noNewMessages": "No new messages",
+    "noRecentMessages": "No recent messages"
   },
   "footer": {
     "developedBy": "Developed by",
@@ -703,13 +709,6 @@
   },
   "calendar": {
     "holiday": "Holiday"
-  },
-  "notifications": {
-    "loading": "Loading messages...",
-    "unread": " unread",
-    "noNewMessages": "No new messages",
-    "noRecentMessages": "No recent messages",
-    "viewAll": "View all messages"
   },
   "accordion": {
     "add": "Add"

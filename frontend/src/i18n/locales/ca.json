@@ -114,19 +114,23 @@
   "notifications": {
     "empty": "Sense notificacions recents",
     "markAllRead": "Marca-les totes com a llegides",
-    "viewAll": "Mostra-les totes",
-    "loading": "Carregant notificacions...",
+    "viewAll": "Veure tots els missatges",
+    "loading": "Carregant missatges...",
     "errorLoad": "No s'han pogut carregar les notificacions",
     "justNow": "Ara mateix",
     "minutesAgo": "Fa {{count}} min",
     "hoursAgo": "Fa {{count}} h",
     "daysAgo": "Fa {{count}} d",
-    "unread": "No llegides",
+    "unread": " no llegits",
     "markedAllRead": "{{count}} notificacions marcades com a llegides",
     "types": {
       "calificacion_publicada": {
         "title": "La teva qualificació està disponible",
         "body": "Has obtingut {{nota}} a \"{{tareaTitulo}}\""
+      },
+      "calificacion_actualizada": {
+        "title": "La teva qualificació s'ha actualitzat",
+        "body": "La teva nota de \"{{tareaTitulo}}\" s'ha actualitzat a {{nota}}"
       },
       "tarea_nueva": {
         "title": "Nova tasca disponible",
@@ -144,7 +148,9 @@
         "title": "Tasca caducada sense lliurament",
         "body": "La tasca \"{{titulo}}\" ha caducat sense que l'hagis lliurat"
       }
-    }
+    },
+    "noNewMessages": "No tens missatges nous",
+    "noRecentMessages": "No hi ha missatges recents"
   },
   "footer": {
     "developedBy": "Desenvolupat per",
@@ -703,13 +709,6 @@
   },
   "calendar": {
     "holiday": "Festiu"
-  },
-  "notifications": {
-    "loading": "Carregant missatges...",
-    "unread": " no llegits",
-    "noNewMessages": "No tens missatges nous",
-    "noRecentMessages": "No hi ha missatges recents",
-    "viewAll": "Veure tots els missatges"
   },
   "accordion": {
     "add": "Afegir"

@@ -8,7 +8,8 @@ import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
 import NameTitle from '../components/NameTitle';
 import NotificationList from '../components/NotificationList';
-import { Bell, MessageCircleQuestion } from 'lucide-react';
+import SystemNotificationsList from '../components/SystemNotificationsList';
+import { Bell, Mail, MessageCircleQuestion } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import LanguageSelector from '../components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
@@ -36,11 +37,14 @@ const Header = () => {
     const {user} = useAuth();
     const {toggleSidebar} = useUI();
     const isMobile = useMediaQuery('(max-width: 1220px)');
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);            // mensajes
+    const [systemUnreadCount, setSystemUnreadCount] = useState(0); // notificaciones del sistema
+    const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+    const [isSystemNotifsOpen, setIsSystemNotifsOpen] = useState(false);
     const [supportLoading, setSupportLoading] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const notifRef = useRef(null);
+    const messagesRef = useRef(null);
+    const systemNotifsRef = useRef(null);
     const navigate = useNavigate();
 
     const getCentroLogoUrl = () => {
@@ -57,29 +61,38 @@ const Header = () => {
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-    // Cerrar dropdown al hacer clic fuera
+    // Cerrar ambos dropdowns al hacer clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (notifRef.current && !notifRef.current.contains(event.target)) {
-                setIsNotifOpen(false);
+            if (messagesRef.current && !messagesRef.current.contains(event.target)) {
+                setIsMessagesOpen(false);
+            }
+            if (systemNotifsRef.current && !systemNotifsRef.current.contains(event.target)) {
+                setIsSystemNotifsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Cerrar dropdown con Escape (devolver foco al trigger)
+    // Cerrar dropdowns con Escape (devolver foco al trigger del que esté abierto)
     useEffect(() => {
-        if (!isNotifOpen) return;
+        if (!isMessagesOpen && !isSystemNotifsOpen) return;
         const onKey = (e) => {
             if (e.key === 'Escape') {
-                setIsNotifOpen(false);
-                notifRef.current?.querySelector('button')?.focus();
+                if (isMessagesOpen) {
+                    setIsMessagesOpen(false);
+                    messagesRef.current?.querySelector('button')?.focus();
+                }
+                if (isSystemNotifsOpen) {
+                    setIsSystemNotifsOpen(false);
+                    systemNotifsRef.current?.querySelector('button')?.focus();
+                }
             }
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [isNotifOpen]);
+    }, [isMessagesOpen, isSystemNotifsOpen]);
 
     // Elevación progresiva al hacer scroll (throttle vía rAF).
     useEffect(() => {
@@ -99,14 +112,21 @@ const Header = () => {
         };
     }, []);
 
-    const handleNotificationClick = (sender) => {
-        setIsNotifOpen(false);
+    const handleMessageClick = (sender) => {
+        setIsMessagesOpen(false);
         navigate('/mensajes', { state: { chatWith: sender } });
     };
 
-    const handleViewAll = () => {
-        setIsNotifOpen(false);
+    const handleViewAllMessages = () => {
+        setIsMessagesOpen(false);
         navigate('/mensajes');
+    };
+
+    const handleSystemNotifClick = (notif) => {
+        setIsSystemNotifsOpen(false);
+        if (notif?.enlace) {
+            navigate(notif.enlace);
+        }
     };
 
     const handleSupportClick = async (e) => {
@@ -175,7 +195,8 @@ const Header = () => {
         />
     );
 
-    const hasUnread = unreadCount > 0;
+    const hasUnreadMessages = unreadCount > 0;
+    const hasUnreadSystemNotifs = systemUnreadCount > 0;
 
     return (
         <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
@@ -237,49 +258,118 @@ const Header = () => {
 
                 {user ? (
                     <div className={styles.userActions}>
+                        {/* Botón Mensajes (icono Mail) — comunicación inter-personal.
+                            Antes usaba el icono Bell por motivos históricos; el swap
+                            arregla la disonancia semántica con el botón nuevo de
+                            Notificaciones. Ver `docs/hoja-de-ruta-notificaciones.md`
+                            decisión D1. */}
                         <div
-                            className={`${styles.notificationContainer} ${hasUnread ? styles.hasUnread : ''}`}
-                            ref={notifRef}
-                            data-tour="header-notifications"
+                            className={`${styles.notificationContainer} ${hasUnreadMessages ? styles.hasUnread : ''}`}
+                            ref={messagesRef}
+                            data-tour="header-messages"
                         >
                             <button
                                 className={styles.notificationButton}
-                                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                                title={t('header.notifications')}
-                                aria-label={t('header.notifications')}
+                                onClick={() => {
+                                    setIsMessagesOpen(prev => !prev);
+                                    setIsSystemNotifsOpen(false);
+                                }}
+                                title={t('header.messages')}
+                                aria-label={t('header.messages')}
                                 aria-haspopup="dialog"
-                                aria-expanded={isNotifOpen}
+                                aria-expanded={isMessagesOpen}
                             >
-                                <Bell size={22} aria-hidden="true" />
+                                <Mail size={22} aria-hidden="true" />
                             </button>
 
-                            {hasUnread && (
+                            {hasUnreadMessages && (
                                 <span
                                     className={styles.badge}
-                                    onClick={() => setIsNotifOpen(!isNotifOpen)}
+                                    onClick={() => {
+                                        setIsMessagesOpen(prev => !prev);
+                                        setIsSystemNotifsOpen(false);
+                                    }}
                                     aria-hidden="true"
                                 >
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </span>
                             )}
 
-                            {isNotifOpen && (
-                                <div className={styles.dropdown} role="dialog" aria-label={t('header.notifications')}>
+                            {isMessagesOpen && (
+                                <div className={styles.dropdown} role="dialog" aria-label={t('header.messages')}>
                                     <NotificationList
-                                        title={t('header.notifications')}
+                                        title={t('header.messages')}
                                         showUnreadCountInHeader={true}
                                         onUnreadCountChange={setUnreadCount}
-                                        onItemClick={handleNotificationClick}
-                                        onViewAll={handleViewAll}
+                                        onItemClick={handleMessageClick}
+                                        onViewAll={handleViewAllMessages}
                                         limit={5}
                                     />
                                 </div>
                             )}
 
-                            {!isNotifOpen && (
+                            {!isMessagesOpen && (
                                 <div style={{ display: 'none' }}>
                                     <NotificationList
                                         onUnreadCountChange={setUnreadCount}
+                                        limit={0}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Botón Notificaciones del sistema (icono Bell) — eventos
+                            del dominio: corrección publicada, tarea nueva,
+                            entrega recibida, etc. Mismo patrón visual que el de
+                            mensajes. Ver `docs/hoja-de-ruta-notificaciones.md`. */}
+                        <div
+                            className={`${styles.notificationContainer} ${hasUnreadSystemNotifs ? styles.hasUnread : ''}`}
+                            ref={systemNotifsRef}
+                            data-tour="header-notifications"
+                        >
+                            <button
+                                className={styles.notificationButton}
+                                onClick={() => {
+                                    setIsSystemNotifsOpen(prev => !prev);
+                                    setIsMessagesOpen(false);
+                                }}
+                                title={t('header.notifications')}
+                                aria-label={t('header.notifications')}
+                                aria-haspopup="dialog"
+                                aria-expanded={isSystemNotifsOpen}
+                            >
+                                <Bell size={22} aria-hidden="true" />
+                            </button>
+
+                            {hasUnreadSystemNotifs && (
+                                <span
+                                    className={styles.badge}
+                                    onClick={() => {
+                                        setIsSystemNotifsOpen(prev => !prev);
+                                        setIsMessagesOpen(false);
+                                    }}
+                                    aria-hidden="true"
+                                >
+                                    {systemUnreadCount > 9 ? '9+' : systemUnreadCount}
+                                </span>
+                            )}
+
+                            {isSystemNotifsOpen && (
+                                <div className={styles.dropdown} role="dialog" aria-label={t('header.notifications')}>
+                                    <SystemNotificationsList
+                                        title={t('header.notifications')}
+                                        showUnreadCountInHeader={true}
+                                        onUnreadCountChange={setSystemUnreadCount}
+                                        onItemClick={handleSystemNotifClick}
+                                        limit={5}
+                                    />
+                                </div>
+                            )}
+
+                            {!isSystemNotifsOpen && (
+                                <div style={{ display: 'none' }}>
+                                    <SystemNotificationsList
+                                        onUnreadCountChange={setSystemUnreadCount}
                                         limit={0}
                                     />
                                 </div>

@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Calificacion;
 use App\Entity\Comunicado;
 use App\Entity\Entrega;
+use App\Entity\Matricula;
 use App\Entity\Notificacion;
 use App\Entity\Tarea;
 use App\Entity\User;
@@ -37,9 +38,31 @@ class NotificationDispatcher
     }
 
     /**
-     * Notifica al alumno de la entrega que su calificación está publicada.
+     * Notifica al alumno de la entrega que su calificación está publicada
+     * (creación inicial — `Calificacion::postPersist`).
      */
     public function notifyCalificacionPublicada(Calificacion $cal): void
+    {
+        $this->notifyCalificacion($cal, 'calificacion_publicada', 'Tu calificación está disponible');
+    }
+
+    /**
+     * Notifica al alumno cuando el profe rectifica/edita una nota ya publicada
+     * (`Calificacion::preUpdate` filtrado por cambio en el campo `nota`).
+     * Tipo distinto al de creación para que el frontend pueda mostrar un copy
+     * adecuado ("se ha actualizado") y eventualmente un icono diferenciado.
+     */
+    public function notifyCalificacionActualizada(Calificacion $cal): void
+    {
+        $this->notifyCalificacion($cal, 'calificacion_actualizada', 'Tu calificación se ha actualizado');
+    }
+
+    /**
+     * Implementación común de los dos métodos `notifyCalificacion*` (publicada
+     * y actualizada). Solo cambian `tipo` y `titulo`; el resto del payload y
+     * el cuerpo dependen del mismo conjunto de campos.
+     */
+    private function notifyCalificacion(Calificacion $cal, string $tipo, string $titulo): void
     {
         $entrega = $cal->getEntrega();
         if ($entrega === null) {
@@ -54,10 +77,16 @@ class NotificationDispatcher
         $tareaTitulo = $tarea->getTitulo() ?? '';
         $nota = $cal->getNota();
 
+        // Mensaje en español como fallback. El frontend traduce vía clave
+        // `notifications.types.{tipo}.body` interpolando `payload`.
+        $mensaje = $tipo === 'calificacion_actualizada'
+            ? sprintf('Tu nota de "%s" se ha actualizado a %s.', $tareaTitulo, $this->fmtNota($nota))
+            : sprintf('Has obtenido %s en "%s".', $this->fmtNota($nota), $tareaTitulo);
+
         $this->createPersist($alumno, [
-            'tipo'    => 'calificacion_publicada',
-            'titulo'  => 'Tu calificación está disponible',
-            'mensaje' => sprintf('Has obtenido %s en "%s".', $this->fmtNota($nota), $tareaTitulo),
+            'tipo'    => $tipo,
+            'titulo'  => $titulo,
+            'mensaje' => $mensaje,
             'enlace'  => sprintf('/calificaciones?tarea=%d', $tarea->getId()),
             'payload' => [
                 'entregaId'   => $entrega->getId(),
@@ -90,10 +119,16 @@ class NotificationDispatcher
         $titulo = $tarea->getTitulo() ?? '';
         $fechaLim = $tarea->getFechaLimite();
 
-        foreach ($grupo->getMatriculas() as $matricula) {
-            if ($matricula->isDeleted()) {
-                continue;
-            }
+        // Query directa al repo en vez de `$grupo->getMatriculas()` (Grupo no
+        // expone el getter; además evitamos lazy loading durante postFlush).
+        $matriculas = $this->em->getRepository(Matricula::class)->createQueryBuilder('m')
+            ->andWhere('m.grupo = :grupo')
+            ->andWhere('m.deleted = :false')
+            ->setParameter('grupo', $grupo)
+            ->setParameter('false', false)
+            ->getQuery()->getResult();
+
+        foreach ($matriculas as $matricula) {
             $alumno = $matricula->getAlumno();
             if ($alumno === null) {
                 continue;

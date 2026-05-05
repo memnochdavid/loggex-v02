@@ -13,7 +13,7 @@
 | Fase | Alcance | Esfuerzo | Estado |
 |---|---|---|---|
 | 1 | Backend: entidad `Notificacion` + propagación por evento Doctrine + endpoint REST + Mercure live (reusar framework `#[LivePublish]`) | ~1 sesión | 🟢 **Done 2026-05-05** (pendiente correr migración + smoke test) |
-| 2 | Frontend: nuevo botón **campanita** en header con dropdown de notificaciones del sistema; el actual de mensajes intercambia su icono `Bell` por uno de mensaje (`Mail` / `MessageCircle`) y conserva su lista | ~0.5 sesión | 🔴 |
+| 2 | Frontend: nuevo botón **campanita** en header con dropdown de notificaciones del sistema; el actual de mensajes intercambia su icono `Bell` por uno de mensaje (`Mail` / `MessageCircle`) y conserva su lista | ~0.5 sesión | 🟢 **Done 2026-05-05** (HMR OK; pendiente smoke test visual con datos reales) |
 | 3 | Reglas de propagación por tipo de evento (cataloga qué eventos generan notificación y a quién) + tipos iconados + i18n × 5 | ~0.5 sesión | 🟢 **Done 2026-05-05** (catálogo cerrado + dispatcher + i18n × 5; iconos por tipo se asignarán en Fase 2 al crear el dropdown) |
 
 **Total**: ~2 sesiones bien planificadas.
@@ -219,6 +219,64 @@ Antes de Fase 2, fijar la lista cerrada de tipos. **No añadir tipos en código 
 **JSON validado**: los 5 locales parsean correctamente con `json.load()`.
 
 **Pendiente**: Fase 2 frontend.
+
+### 2026-05-05 — Fase 2 frontend ✅ implementada (HMR OK; pendiente smoke visual)
+
+**Ficheros creados:**
+
+- `frontend/src/components/SystemNotificationsList.jsx` — dropdown de notificaciones del sistema. Reusa `NotificationList.module.css` para layout (DRY) y añade `SystemNotificationsList.module.css` con detalles propios (icono por tipo, dot de no-leída, tono atenuado de leídas). Endpoints: `GET /api/notificacions?order[fechaCreacion]=desc&itemsPerPage=N` para la lista + `GET /api/notificacions?leida=false&itemsPerPage=1` para el contador exacto via `hydra:totalItems`. Mercure: filtra por `event.entity === 'Notificacion'` para coexistir con eventos de mensaje en el mismo topic `/users/{id}/notifications`. Optimistic update al marcar leída; refetch externo via Mercure como red de seguridad.
+- `frontend/src/components/SystemNotificationsList.module.css` — solo estilos específicos (icono por tipo + dot de no-leída + atenuación de leídas). 100% tematizado: `var(--widget-icon-color)`, `var(--color-primary)`, `color-mix()` sobre variables. Cero literales hex. `prefers-reduced-motion` respetado (oculta box-shadow del dot).
+
+**Ficheros modificados:**
+
+- `frontend/src/layout/Header.jsx`:
+  - Imports: `SystemNotificationsList` + icono `Mail` añadidos.
+  - Estado dual: `unreadCount`/`isMessagesOpen`/`messagesRef` (existentes renombrados) + `systemUnreadCount`/`isSystemNotifsOpen`/`systemNotifsRef` (nuevos).
+  - Click fuera + Escape cierran ambos dropdowns; abrir uno cierra el otro automáticamente (mejora UX vs. dejar ambos abiertos solapados).
+  - Botón Mensajes: icono `Mail`, label `t('header.messages')`, `data-tour="header-messages"`.
+  - Botón Notificaciones (nuevo): icono `Bell`, label `t('header.notifications')`, `data-tour="header-notifications"` (mantiene el selector del tutorial existente apuntando ahora al botón nuevo, semánticamente correcto).
+  - Ambos reusan el CSS `notificationContainer/notificationButton/badge/dropdown` del Header — visualmente idénticos, garantizado.
+  - Handlers separados: `handleMessageClick`/`handleViewAllMessages` (mensajes) + `handleSystemNotifClick` (notificaciones — navega a `notif.enlace` si existe).
+
+**Decisiones tomadas durante la implementación:**
+
+- **D8 (nueva)** — abrir un dropdown cierra el otro automáticamente. Razón: dejar ambos abiertos los solaparía visualmente y crearía ruido. Patrón GitHub/Slack.
+- **D9 (nueva)** — la cuenta exacta de no-leídas se obtiene con un GET separado (`itemsPerPage=1`, lee `hydra:totalItems`) en lugar de pedir todas y contar. Beneficio: si un usuario tiene 200 notificaciones no-leídas, no descargamos 200 sino 1 + el header. Desventaja: 2 fetches por refetch — aceptable porque ambos son cache-friendly.
+- **D10 (nueva)** — el `data-tour="header-notifications"` del Header.jsx ahora apunta al botón nuevo (campanita). Semánticamente más correcto que mantenerlo en el botón de mensajes. Si algún paso del tutorial dependía de eso, hay que revisarlo en `hoja-de-ruta-tutorial.md` cuando se ataque la próxima ronda.
+- **D11 (nueva)** — sin endpoint custom ni vista "Ver todas las notificaciones" — la campanita ES la vista. Diferente del botón de mensajes (que sí navega a `/mensajes`). Razón: las notificaciones son efímeras (se leen y se archivan), no hay valor en una vista dedicada hoy. Si surge demanda, se añade después.
+
+**Vinculación visual con NotificationList** (mensajes):
+- Reusar `sharedStyles` de `NotificationList.module.css` garantiza idéntica densidad, padding, hover, focus y animaciones — se ve como "el mismo dropdown, distinto contenido".
+
+**Smoke tests funcionales pendientes (necesitan navegador con sesión iniciada)**:
+
+1. Login → header muestra 2 botones (Mail + Bell) con badges en 0.
+2. Crear una `Tarea` con `visible=true` desde admin → todos los alumnos del grupo ven el badge de `Bell` subir a 1; al abrir, ven la notificación con icono `BookOpen`, título traducido, cuerpo con `{{titulo}}` interpolado, tiempo relativo "Ahora mismo".
+3. Click en el item → navega a `/tareas/{id}` y la notificación se marca leída (badge baja a 0).
+4. "Marcar todas como leídas" en el footer → vacía el badge y elimina puntos de no-leída.
+5. En otra pestaña/navegador con el mismo usuario: una notificación llega vía Mercure y la lista se refresca sin recargar.
+6. Verificar que abrir un botón cierra el otro.
+7. Verificar Escape y click-fuera (ambos dropdowns).
+
+**Estado del producto end-to-end**:
+
+- ✅ Backend operativo (Fase 1).
+- ✅ i18n × 5 (Fase 3).
+- ✅ Frontend integrado (Fase 2 — HMR sin errores).
+- 🔬 Pendiente solo validación visual con datos reales (5 minutos en navegador).
+
+### 2026-05-05 — Hotfix: bug 500 al crear Tarea + nuevo tipo `calificacion_actualizada`
+
+**Bug 500**: al crear una tarea (`POST /api/tareas/upload`), el dispatcher fallaba con `Call to undefined method App\Entity\Grupo::getMatriculas()`. La propiedad `Grupo::$matriculas` existe pero el getter público no — el patrón del proyecto consulta `Matricula` directamente vía repo. **Fix**: `notifyTareaNueva` ahora hace `MatriculaRepository::createQueryBuilder('m')->andWhere(grupo + deleted=false)` en vez de iterar la colección lazy. Beneficio adicional: SQL explícito sin riesgo de lazy-load durante postFlush.
+
+**Feature: edición de nota notifica al alumno**. Hasta ahora solo la creación de Calificacion notificaba; rectificar la nota era silencioso (reportado por el usuario). Implementación:
+
+- Nuevo método `NotificationDispatcher::notifyCalificacionActualizada($cal)` con tipo `calificacion_actualizada`. Refactor con helper privado `notifyCalificacion()` para no duplicar payload entre publicada y actualizada.
+- Subscriber escucha también `Events::preUpdate` y solo encola la Calificacion si **`hasChangedField('nota')`** es true. Editar solo `feedbackProfesor` u otros campos NO notifica (decisión: evitar spam por correcciones internas que el alumno no necesita ver).
+- Cola separada `pendingCalUpdate[]` en el subscriber para no mezclar con `pendingPersist[]` (tipos de proceso distintos).
+- Catálogo § 3 ampliado: `calificacion_actualizada` con icono `Edit3` (Lucide). Cuerpo i18n: "Tu nota de \"X\" se ha actualizado a Y" (interpolación de payload). Aplicado a los 5 idiomas.
+
+**D12 cerrada** — `preUpdate` filtra por campo cambiado (`hasChangedField`). Razón: una rectificación de feedback sin cambio de nota no merece notificación al alumno; solo el cambio del valor numérico tiene impacto pedagógico real.
 
 ---
 

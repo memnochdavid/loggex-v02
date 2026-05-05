@@ -114,19 +114,23 @@
   "notifications": {
     "empty": "Sin notificaciones recientes",
     "markAllRead": "Marcar todas como leídas",
-    "viewAll": "Ver todas",
-    "loading": "Cargando notificaciones...",
+    "viewAll": "Ver todos los mensajes",
+    "loading": "Cargando mensajes...",
     "errorLoad": "No se pudieron cargar las notificaciones",
     "justNow": "Ahora mismo",
     "minutesAgo": "Hace {{count}} min",
     "hoursAgo": "Hace {{count}} h",
     "daysAgo": "Hace {{count}} d",
-    "unread": "No leídas",
+    "unread": " no leídos",
     "markedAllRead": "{{count}} notificaciones marcadas como leídas",
     "types": {
       "calificacion_publicada": {
         "title": "Tu calificación está disponible",
         "body": "Has obtenido {{nota}} en \"{{tareaTitulo}}\""
+      },
+      "calificacion_actualizada": {
+        "title": "Tu calificación se ha actualizado",
+        "body": "Tu nota de \"{{tareaTitulo}}\" se ha actualizado a {{nota}}"
       },
       "tarea_nueva": {
         "title": "Nueva tarea disponible",
@@ -144,7 +148,9 @@
         "title": "Tarea vencida sin entrega",
         "body": "La tarea \"{{titulo}}\" ha vencido sin que la entregaras"
       }
-    }
+    },
+    "noNewMessages": "No tienes mensajes nuevos",
+    "noRecentMessages": "No hay mensajes recientes"
   },
   "footer": {
     "developedBy": "Desarrollado por",
@@ -993,13 +999,6 @@
   "calendar": {
     "holiday": "Festivo"
   },
-  "notifications": {
-    "loading": "Cargando mensajes...",
-    "unread": " no leídos",
-    "noNewMessages": "No tienes mensajes nuevos",
-    "noRecentMessages": "No hay mensajes recientes",
-    "viewAll": "Ver todos los mensajes"
-  },
   "accordion": {
     "add": "Añadir"
   },
@@ -1773,7 +1772,7 @@
     "optimalPreviewReady": "Preview lista. Pulsa \"Guardar\" para persistir o \"Descartar\" para revertir.",
     "optimalGenericError": "Error generando el curso óptimo.",
     "optimalNoJornada": "El grupo no tiene jornada asignada (ni override ni en el itinerario). Asigna una desde /admin/jornadas o el selector del editor antes de configurar el curso óptimo.",
-    "solverError": "El solver ha fallado en uno de los rangos virtuales.",
+    "solverError": "Error del solver: {{message}}",
     "pendingTxTitle": "Cambios pendientes (sin guardar)",
     "pendingTxSummary": "{{create}} rangos por crear · {{del}} por borrar · {{patches}} ajustes de minutos",
     "pendingTxApply": "Guardar todos los cambios",
@@ -1863,7 +1862,6 @@
     "solving": "Calculando…",
     "solverConfirmOverwrite": "Hay un horario en curso. ¿Sobrescribir con la propuesta del solver?",
     "solverPartial": "Propuesta parcial. Sin colocar: {{items}}",
-    "solverError": "Error del solver: {{message}}",
     "solverDiagnosticPartial": "Propuesta parcial · {{title}}",
     "solverReportTitle": "Informe del solver — {{grupo}}",
     "solverReportIntro": "El solver procesó {{total}} rangos. {{conIssues}} no quedaron completos. Revisa cada uno para entender qué falla y qué hacer al respecto.",

@@ -114,19 +114,23 @@
   "notifications": {
     "empty": "Azken aldiko jakinarazpenik ez",
     "markAllRead": "Markatu denak irakurritako gisa",
-    "viewAll": "Ikusi denak",
-    "loading": "Jakinarazpenak kargatzen...",
+    "viewAll": "Ikusi mezu guztiak",
+    "loading": "Mezuak kargatzen...",
     "errorLoad": "Ezin izan dira jakinarazpenak kargatu",
     "justNow": "Oraintxe bertan",
     "minutesAgo": "Duela {{count}} min",
     "hoursAgo": "Duela {{count}} h",
     "daysAgo": "Duela {{count}} d",
-    "unread": "Irakurri gabe",
+    "unread": " irakurri gabe",
     "markedAllRead": "{{count}} jakinarazpen irakurritako gisa markatuta",
     "types": {
       "calificacion_publicada": {
         "title": "Zure nota eskuragarri dago",
         "body": "{{nota}} lortu duzu \"{{tareaTitulo}}\" lanean"
+      },
+      "calificacion_actualizada": {
+        "title": "Zure nota eguneratu da",
+        "body": "\"{{tareaTitulo}}\" lanaren zure nota {{nota}}-(e)ra eguneratu da"
       },
       "tarea_nueva": {
         "title": "Lan berri bat eskuragarri",
@@ -144,7 +148,9 @@
         "title": "Lana iraungia bidali gabe",
         "body": "\"{{titulo}}\" lana iraungi da bidali gabe"
       }
-    }
+    },
+    "noNewMessages": "Ez duzu mezu berririk",
+    "noRecentMessages": "Ez dago azken mezurik"
   },
   "footer": {
     "developedBy": "Garatzailea",
@@ -703,13 +709,6 @@
   },
   "calendar": {
     "holiday": "Jaieguna"
-  },
-  "notifications": {
-    "loading": "Mezuak kargatzen...",
-    "unread": " irakurri gabe",
-    "noNewMessages": "Ez duzu mezu berririk",
-    "noRecentMessages": "Ez dago azken mezurik",
-    "viewAll": "Ikusi mezu guztiak"
   },
   "accordion": {
     "add": "Gehitu"

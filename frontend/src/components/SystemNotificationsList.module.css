@@ -1,0 +1,43 @@
+/**
+ * Estilos específicos de la cola de notificaciones del sistema.
+ * El layout grande (contenedor, lista, footer, item button) se reusa de
+ * NotificationList.module.css. Aquí van solo los detalles propios:
+ *  - Avatar reemplazado por icono semántico del tipo de notificación.
+ *  - Punto de "no leída" junto al título.
+ *  - Tono atenuado de las leídas (resta protagonismo en la lista).
+ *
+ * REGLA DE TEMATIZACIÓN: cero literales hex. Todo desde variables CSS del
+ * tema o color-mix sobre variables. Ver CLAUDE.md §"REGLA DE ORO".
+ */
+
+.iconWrap {
+    color: var(--widget-icon-color, var(--color-primary));
+    background-color: color-mix(in srgb, var(--widget-icon-color, var(--color-primary)) 12%, transparent);
+}
+
+.unreadDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--widget-icon-color, var(--color-primary));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--widget-icon-color, var(--color-primary)) 18%, transparent);
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+/* La fila de "no leída" mantiene su intensidad; la leída se atenúa.
+   El item button ya tiene su propio hover/focus en NotificationList.module.css
+   y se respeta tal cual. */
+.read {
+    opacity: 0.78;
+}
+
+.unread {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .unreadDot {
+        box-shadow: none;
+    }
+}

@@ -114,19 +114,23 @@
   "notifications": {
     "empty": "Sen notificacións recentes",
     "markAllRead": "Marcar todas como lidas",
-    "viewAll": "Ver todas",
-    "loading": "Cargando notificacións...",
+    "viewAll": "Ver todas as mensaxes",
+    "loading": "Cargando mensaxes...",
     "errorLoad": "Non se puideron cargar as notificacións",
     "justNow": "Agora mesmo",
     "minutesAgo": "Hai {{count}} min",
     "hoursAgo": "Hai {{count}} h",
     "daysAgo": "Hai {{count}} d",
-    "unread": "Non lidas",
+    "unread": " non lidas",
     "markedAllRead": "{{count}} notificacións marcadas como lidas",
     "types": {
       "calificacion_publicada": {
         "title": "A túa cualificación está dispoñible",
         "body": "Obtiveches {{nota}} en \"{{tareaTitulo}}\""
+      },
+      "calificacion_actualizada": {
+        "title": "A túa cualificación actualizouse",
+        "body": "A túa nota de \"{{tareaTitulo}}\" actualizouse a {{nota}}"
       },
       "tarea_nueva": {
         "title": "Nova tarefa dispoñible",
@@ -144,7 +148,9 @@
         "title": "Tarefa vencida sen entrega",
         "body": "A tarefa \"{{titulo}}\" venceu sen que a entregases"
       }
-    }
+    },
+    "noNewMessages": "Non tes mensaxes novas",
+    "noRecentMessages": "Non hai mensaxes recentes"
   },
   "footer": {
     "developedBy": "Desenvolvido por",
@@ -703,13 +709,6 @@
   },
   "calendar": {
     "holiday": "Festivo"
-  },
-  "notifications": {
-    "loading": "Cargando mensaxes...",
-    "unread": " non lidas",
-    "noNewMessages": "Non tes mensaxes novas",
-    "noRecentMessages": "Non hai mensaxes recentes",
-    "viewAll": "Ver todas as mensaxes"
   },
   "accordion": {
     "add": "Engadir"
