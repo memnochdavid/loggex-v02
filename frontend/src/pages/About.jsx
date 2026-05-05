@@ -6,6 +6,7 @@ import {
     HardDrive, Globe, Palette, Users, Lock, Sparkles, Zap,
     GitBranch, Package, ExternalLink, ArrowRight,
     CalendarClock, FileText, PenLine, Radio,
+    BookOpenCheck, MapPin,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -101,6 +102,9 @@ const About = () => {
                 { label: t('about.animations'), value: 'Lottie React' },
                 { label: t('about.dragDrop'), value: '@dnd-kit · react-draggable' },
                 { label: t('about.signature'), value: 'perfect-freehand' },
+                { label: t('about.charts'), value: 'Recharts' },
+                { label: t('about.toasts'), value: 'Sonner' },
+                { label: t('about.tutorials'), value: 'React Joyride' },
             ],
         },
         {
@@ -115,6 +119,10 @@ const About = () => {
                 { label: t('about.security'), value: 'JWT (LexikJWT)' },
                 { label: t('about.orm'), value: 'Doctrine ORM 3' },
                 { label: t('about.pdf'), value: 'dompdf 3' },
+                { label: t('about.email'), value: 'Symfony Mailer' },
+                { label: t('about.logging'), value: 'Monolog' },
+                { label: t('about.notifications'), value: 'Symfony Notifier' },
+                { label: t('about.tests'), value: 'PHPUnit 12' },
                 { label: t('about.cors'), value: 'NelmioCorsBundle' },
             ],
         },
@@ -155,6 +163,19 @@ const About = () => {
                 { label: t('about.latency'), value: '< 50 ms' },
             ],
         },
+        {
+            id: 'catalog',
+            title: t('about.catalogTitle'),
+            icon: <BookOpenCheck />,
+            color: 'rose',
+            items: [
+                { label: t('about.catalogSource'), value: t('about.catalogSourceValue') },
+                { label: t('about.catalogScope'), value: t('about.catalogScopeValue') },
+                { label: t('about.catalogTerritory'), value: t('about.catalogTerritoryValue') },
+                { label: t('about.catalogOverlay'), value: t('about.catalogOverlayValue') },
+                { label: t('about.catalogProvenance'), value: t('about.catalogProvenanceValue') },
+            ],
+        },
     ];
 
     const features = [
@@ -168,11 +189,13 @@ const About = () => {
         { icon: <Users />, key: 'Attendance' },
         { icon: <Sparkles />, key: 'Messaging' },
         { icon: <Radio />, key: 'RealTime' },
+        { icon: <BookOpenCheck />, key: 'OfficialCatalog' },
+        { icon: <MapPin />, key: 'TerritorialCalendar' },
     ];
 
     const stats = [
         { value: 5, label: t('about.statLanguages'), icon: <Globe /> },
-        { value: 20, label: t('about.statEntities'), icon: <Layers /> },
+        { value: 31, label: t('about.statEntities'), icon: <Layers /> },
         { value: 4, label: t('about.statRoles'), icon: <Users /> },
         { value: 80, label: t('about.statThemeVars'), suffix: '+', icon: <Palette /> },
     ];

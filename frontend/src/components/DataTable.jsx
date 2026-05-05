@@ -35,7 +35,7 @@ const DataTable = ({
     sortColumn,
     sortDirection,
     onSort,
-    pageSizeOptions = [10, 20, 30, 50, 100],
+    pageSizeOptions = [5, 10, 20, 30, 50, 100],
     mobileBreakpoint = '768px',
     mobileHeaderColumns = 1
 }) => {

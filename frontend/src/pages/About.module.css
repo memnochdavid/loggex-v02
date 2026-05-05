@@ -675,6 +675,7 @@
 .card_amber    { --card-accent: #fcd34d; }
 .card_violet   { --card-accent: #c4b5fd; }
 .card_cyan     { --card-accent: #67e8f9; }
+.card_rose     { --card-accent: #f0abfc; }
 
 .cardHeader {
     display: flex;
@@ -822,12 +823,18 @@
     filter: drop-shadow(0 0 10px rgba(165, 180, 252, 0.5));
 }
 
+.featureBody {
+    flex: 1;
+    min-width: 0;
+}
+
 .featureBody h4 {
     margin: 0 0 var(--space-1) 0;
     color: white;
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: -0.005em;
+    overflow-wrap: anywhere;
 }
 
 .featureBody p {
@@ -835,6 +842,7 @@
     color: var(--about-text-soft);
     margin: 0;
     line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
 /* =================================================================
