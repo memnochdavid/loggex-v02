@@ -28,13 +28,17 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CentroRepository::class)]
 #[ORM\Table(name: 'centro')]
 #[ORM\HasLifecycleCallbacks]
+// Defensa en profundidad (R2.5 / INDEX:25): el frontend bloquea /centros
+// con `PrivateRoute allowedRoles={['ROLE_SUPERADMIN']}` (App.jsx:122),
+// pero un curl directo con JWT de admin de centro saltaba ese guard. Las
+// 5 operaciones de API Platform exigen ahora explícitamente ROLE_SUPERADMIN.
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete(processor: SoftDeleteProcessor::class)
+        new Get(security: "is_granted('ROLE_SUPERADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Post(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Put(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Delete(security: "is_granted('ROLE_SUPERADMIN')", processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['centro:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['centro:write']]

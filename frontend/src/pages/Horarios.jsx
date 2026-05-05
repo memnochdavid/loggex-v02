@@ -49,12 +49,31 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   // Alineación del calendar con el grid del TimeTable: si hay mañana+tarde,
   // el TimeTable muestra tabs encima del grid → offset al calendar para que
   // sus días queden a la altura del grid, no de los tabs.
+  // Filtra mySchedule por el PeriodoLectivo activo en `selectedDate`. Sin
+  // este filtro, un grupo con N rangos cronológicos (típico: 3 evaluaciones)
+  // muestra los N placements solapados en la rejilla cuando el alumno/profe
+  // navega por semanas — síndrome equivalente al del widget Home arreglado
+  // antes (`docs/home-widgets-roadmap.md` §8). El backend ya envía
+  // `periodoLectivoFechaInicio/Fin` por evento; aquí lo consumimos.
+  const visibleSchedule = useMemo(() => {
+    if (!Array.isArray(mySchedule) || mySchedule.length === 0) return mySchedule;
+    const y = selectedDate.getFullYear();
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedDate.getDate()).padStart(2, '0');
+    const dateISO = `${y}-${m}-${d}`;
+    return mySchedule.filter(e => {
+      // Compat: si el event no trae los campos del PL, no descartarlo.
+      if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return true;
+      return dateISO >= e.periodoLectivoFechaInicio && dateISO <= e.periodoLectivoFechaFin;
+    });
+  }, [mySchedule, selectedDate]);
+
   const hasBothShifts = useMemo(() => {
-    if (!Array.isArray(mySchedule) || mySchedule.length === 0) return false;
-    const morning = mySchedule.some(e => parseInt(e.horaInicio.split(':')[0]) < 15);
-    const afternoon = mySchedule.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15);
+    if (!Array.isArray(visibleSchedule) || visibleSchedule.length === 0) return false;
+    const morning = visibleSchedule.some(e => parseInt(e.horaInicio.split(':')[0]) < 15);
+    const afternoon = visibleSchedule.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15);
     return morning && afternoon;
-  }, [mySchedule]);
+  }, [visibleSchedule]);
   const [festivos, setFestivos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
@@ -600,6 +619,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     <>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
                     subtitle={t('schedules.subtitle')}
+                    breadcrumbs={embedded ? undefined : [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('schedules.title') },
+                    ]}
                     logo={<Lottie animationData={calendarAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     middle={tabs}
         >
@@ -682,7 +705,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 <div className={styles.calendarViewModeContainer}>
                     <div className={styles.timeTableWrapper}>
                         <TimeTable
-                            events={mySchedule}
+                            events={visibleSchedule}
                             slots={myScheduleSlots}
                             festivos={festivos}
                             tareas={tareas}

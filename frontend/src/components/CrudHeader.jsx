@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from './CrudHeader.module.css';
+import Breadcrumbs from './Breadcrumbs';
 
-const CrudHeader = ({ title, subtitle, logo, middle, children, stackActionsEarly = false }) => {
+const CrudHeader = ({ title, subtitle, logo, middle, children, stackActionsEarly = false, breadcrumbs }) => {
     const [showLottie, setShowLottie] = useState(true);
 
     useEffect(() => {
@@ -43,6 +44,7 @@ const CrudHeader = ({ title, subtitle, logo, middle, children, stackActionsEarly
                     </div>
                 )}
                 <div className={styles.textContainer}>
+                    {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
                     <h1 className={styles.title}>{title}</h1>
                     {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
                 </div>

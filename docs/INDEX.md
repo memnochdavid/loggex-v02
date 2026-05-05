@@ -21,8 +21,8 @@
 
 **Otros ítems abiertos en paralelo (menor prioridad):**
 
-- 🔴 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Encima del título en `CrudHeader`, ~0.5 sesión. **Único ítem vivo de Ronda 2** tras cerrar R2.2-R2.6 el 2026-05-05.
-- 🐛 **Bug de seguridad `/centros` — 50% cerrado**. Frontend ya bloquea (R2.5: `PrivateRoute allowedRoles={['ROLE_SUPERADMIN']}`). **Falta backend**: añadir `#[IsGranted('ROLE_SUPERADMIN')]` a las operaciones de `Centro` API Platform. Sin esto, una llamada `curl` directa con JWT de admin de centro a `/api/centros` sigue funcionando. Detalles en `hoja-de-ruta-mejoras-tecnicas.md` §1.3. Defensa en profundidad obligatoria antes de demo.
+- 🟡 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Componente `Breadcrumbs.jsx` listo + 3 vistas migradas (Centros, Grupos, Horarios). **Pendiente barrido** del resto de vistas con `CrudHeader` (~1 sesión mecánica).
+- ✅ ~~**Bug de seguridad `/centros`**~~ Cerrado 2026-05-05 noche: las 5 operaciones API Platform (`Get`, `GetCollection`, `Post`, `Put`, `Delete`) llevan ahora `security: "is_granted('ROLE_SUPERADMIN')"`. Defensa en profundidad completa.
 
 ---
 

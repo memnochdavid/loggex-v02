@@ -1,0 +1,65 @@
+.breadcrumbs {
+    margin: 0 0 var(--space-1) 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.2;
+    /* Truncado en una línea: si la cadena no cabe, se elimina el desbordamiento.
+       En móvil la pinta tipográfica garantiza una línea sola. */
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+.link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+    border-radius: 4px;
+    padding: 0 2px;
+}
+
+.link:hover {
+    color: var(--color-primary-500);
+}
+
+.link:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+.current {
+    color: var(--text-main);
+    font-weight: var(--font-medium);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.separator {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+/* Reduced-motion: las migas son decoración, sin animaciones. La regla
+   `transition: color` ya respeta `prefers-reduced-motion: reduce` por
+   defecto en navegadores modernos cuando es solo cambio de color. */

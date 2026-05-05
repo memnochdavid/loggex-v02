@@ -24,7 +24,7 @@
 
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
-| R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | 🔴 sin empezar |
+| R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | 🟡 Componente listo + 3 vistas migradas (2026-05-05). Pendiente barrer el resto de vistas con `CrudHeader`. |
 | R2.2 | `/admin/catalogo` y subvistas no se traducen (i18n × 5) | i18n / Bug | ✅ 2026-05-05 (bloque `catalogo` faltaba en en/ca/gl/eu — caía a fallback español; añadido el bloque completo de 112 claves a los 4 idiomas) |
 | R2.3 | Profe en `/horarios` → click evento → `/entregas?imparticion=X&tarea=Y` no auto-despliega el accordion correspondiente | Bug UX | ✅ 2026-05-05 (deep-link reescrito robusto + fallback: si no encuentra la tarea concreta al menos expande el accordion de la imparticion; búsqueda fallback por sólo `?tarea=Y`) |
 | R2.4 | Profe en `/entregas`: header del accordion `[materia] - [abrev]` debería ser `[materia] - [curso]º [abrev]` (formato consistente con `/admin/horarios`, Ronda 1 #2) | UX | ✅ 2026-05-05 (`useImparticiones` añade `[curso]º` al label; `Grupo.curso` ya estaba en `imparticion:read`) |
@@ -436,3 +436,24 @@ Resultado: las 7 filas (5 `tarea_nueva` + 2 `calificacion_actualizada`) quedan a
 **R2.3 y R2.5 — sin cambios.** Tras revisar deep-link de `Entregas.jsx` y guard `PrivateRoute.jsx`, ambos están correctos en código (R2.5: `App.jsx:267` con `allowedRoles={['ROLE_PROFESOR','ROLE_ADMIN']}`; R2.3: `Entregas.jsx:349-402` con fallback a `?tarea=Y` aislado y guard `useRef`). El usuario reportó síntomas pero no se reproducen leyendo el código actual; muy probablemente cache de Vite/navegador. Se recomienda hard-reload (Ctrl+Shift+R) tras los fixes residuales de esta sesión.
 
 **HMR**: backend reiniciado para opcache (cambio en NotificationDispatcher). Vite HMR aceptó los cambios frontend sin errores.
+
+### 2026-05-05 (noche) — R2.1 Componente Breadcrumbs + 3 vistas migradas
+
+Componente compartido `Breadcrumbs.jsx` (`frontend/src/components/Breadcrumbs.jsx` + module CSS) con su prop opcional integrado en `CrudHeader.jsx`. Si `breadcrumbs={undefined}`, no se renderiza nada — vistas existentes no rompen.
+
+**Especificación implementada** (consenso doc R2.1):
+- Encima del título dentro de `.textContainer` del `CrudHeader`.
+- Tipografía 0.8rem, color `var(--text-muted)`, separador chevron (Lucide `ChevronRight`).
+- Última miga = texto plano con `var(--text-main)` + `font-medium` (vista actual). Resto = `<Link>` de React Router con hover `var(--color-primary-500)`.
+- Truncado: `nowrap` + `overflow:hidden` + `text-overflow:ellipsis` en la `<ol>` para que no envuelva en 2 líneas en móvil.
+- 100% tematizado, cero literales hex (regla de oro).
+- `aria-label="Breadcrumb"` + `aria-current="page"` en la última miga (a11y).
+
+**Vistas migradas como muestra**:
+- `Centros.jsx`: `Inicio › Superadmin › Centros oficiales`.
+- `Grupos.jsx`: `Inicio › Administración › Grupos`.
+- `Horarios.jsx` (no embedded): `Inicio › Mi horario`.
+
+**Pendiente**: barrer el resto de vistas con `CrudHeader` (Usuarios, Itinerarios, Materias, Matriculas, Imparticiones, Fechas, Entregas, MisCalificaciones, Calificaciones, Mensajes, Claustro, Companeros, Catalogo*, etc.). Trabajo mecánico, ~1 sesión, ya con el componente listo.
+
+Reusamos las labels existentes del bloque `sidebar` (`sidebar.home`, `sidebar.admin`, `sidebar.superadmin`) — no añade keys i18n nuevas.
