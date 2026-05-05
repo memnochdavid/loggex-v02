@@ -25,8 +25,13 @@
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
 | R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | 🔴 sin empezar |
+| R2.2 | `/admin/catalogo` y subvistas no se traducen (i18n × 5) | i18n / Bug | ✅ 2026-05-05 (bloque `catalogo` faltaba en en/ca/gl/eu — caía a fallback español; añadido el bloque completo de 112 claves a los 4 idiomas) |
+| R2.3 | Profe en `/horarios` → click evento → `/entregas?imparticion=X&tarea=Y` no auto-despliega el accordion correspondiente | Bug UX | ✅ 2026-05-05 (deep-link reescrito robusto + fallback: si no encuentra la tarea concreta al menos expande el accordion de la imparticion; búsqueda fallback por sólo `?tarea=Y`) |
+| R2.4 | Profe en `/entregas`: header del accordion `[materia] - [abrev]` debería ser `[materia] - [curso]º [abrev]` (formato consistente con `/admin/horarios`, Ronda 1 #2) | UX | ✅ 2026-05-05 (`useImparticiones` añade `[curso]º` al label; `Grupo.curso` ya estaba en `imparticion:read`) |
+| R2.5 | **Bug seguridad**: `/calificaciones` accesible por alumno (debería ser solo profe/admin/superadmin); el alumno tiene `/mis-calificaciones`. Hace falta guard de ruta a nivel de App.jsx, no solo redirección desde sidebar | **Bug seguridad** | ✅ 2026-05-05 (`PrivateRoute` ampliado con prop `allowedRoles`; aplicado a las 22 rutas; SuperAdmin pasa cualquier guard automáticamente) |
+| R2.6 | Enlaces de notificaciones para alumno apuntan a rutas incorrectas: `calificacion_publicada`/`actualizada` → `/calificaciones?tarea=X` (profe-only, ahora bloqueada por R2.5) → debe ir a `/mis-calificaciones` con la entrega expandida; `tarea_nueva` → `/tareas/{id}` da 404 (la ruta no existe) | Bug | ✅ 2026-05-05 (dispatcher backend cambiado: `calificacion*` → `/mis-calificaciones?tarea=X`, `tarea_nueva` → `/entregas?tarea=X`; deep-link en MisCalificaciones resuelve tarea→imparticion via `GET /api/tareas/{id}` y expande el accordion correspondiente) |
 
-**Total Ronda 2**: ~0.5 sesión (R2.1 aislado; siguientes ítems se irán anotando aquí).
+**Total Ronda 2**: ~1-1.5 sesiones (R2.5 y R2.6 son los más urgentes — ambos son bugs de seguridad/funcionalidad reportados en producción).
 
 ### Orden recomendado
 
@@ -362,3 +367,46 @@ Inicio › Administración › Grupos
 
 - Cross-ref con Ronda 1 #1 (subtítulos): mismo componente `CrudHeader`. Coordinar para no romper layout vertical (breadcrumb arriba + título + subtítulo + ...).
 - Cross-ref con `hoja-de-ruta-tutorial.md`: si hay tutoriales que apuntan a posiciones del header, validar selectores tras el refactor.
+
+---
+
+## Bitácora Ronda 2
+
+### 2026-05-05 — R2.2 + R2.3 + R2.4 + R2.5 + R2.6 cerrados en una sesión
+
+5 ítems atendidos del tirón tras la implementación del sistema de notificaciones. Reportados por el usuario tras smoke-test del primer commit operativo de la campanita.
+
+**R2.5 — Bug seguridad `/calificaciones` accesible por alumno** (también `/centros` por admin de centro, etc.). `PrivateRoute` ampliado con prop opcional `allowedRoles={[...]}`; SuperAdmin pasa cualquier guard automáticamente; usuarios no autorizados se redirigen a `/`. Aplicado a 22 rutas en `App.jsx`.
+
+**Matriz de permisos por ruta** (resultado del barrido R2.5 — referencia para futuras rutas nuevas):
+
+| Ruta | Roles permitidos | Notas |
+|---|---|---|
+| `/centros` | SuperAdmin | Gestión de centros del sistema. Bug crítico cerrado en frontend; backend pendiente (`mejoras-tecnicas.md` §1.3). |
+| `/usuarios`, `/itinerarios`, `/grupos`, `/materias`, `/matriculas`, `/imparticiones`, `/fechas` | Admin | CRUD del centro. |
+| `/admin/horarios`, `/admin/jornadas`, `/admin/calificaciones`, `/admin/catalogo/*` | Admin | Vistas administrativas. |
+| `/calificaciones`, `/calificaciones/detalle` | Profesor + Admin | Vista de profe (sus grupos+tareas para corregir). |
+| `/mis-calificaciones` | Alumno | Vista personal del alumno (separada de la profe). |
+| `/entregas` | Profesor + Alumno | Profe ve para corregir, alumno ve para entregar. |
+| `/faltas`, `/apuntes`, `/companeros`, `/mis-profesores` | Alumno | Vistas personales del alumno. |
+| `/mis-temarios`, `/mis-alumnos` | Profesor | Vistas personales del profe. |
+| `/`, `/perfil`, `/configuracion`, `/horarios`, `/horarios/editor`, `/mensajes`, `/claustro` | Cualquier autenticado | Sin restricción de rol. |
+
+**Convención**: SuperAdmin pasa cualquier guard automáticamente (early return en `PrivateRoute`). Para añadir una ruta nueva: si solo es para un rol concreto, declarar `allowedRoles={['ROLE_X']}`; si es para varios, `['ROLE_X', 'ROLE_Y']`; si es para cualquier autenticado, omitir el prop.
+
+**Defensa en profundidad**: el guard frontend NO sustituye al guard backend. Una llamada `curl` directa con JWT puede saltarse el frontend. Para cada ruta sensible, asegurar que el endpoint API correspondiente exige el rol con `#[IsGranted(...)]` o filtra los datos vía `CurrentUserExtension` + `ApiPlatform Voter`.
+
+**R2.6 — Notification links rotos para alumno**.
+- Backend `NotificationDispatcher`:
+  - `calificacion_publicada/actualizada.enlace` cambiado de `/calificaciones?tarea=X` (profe-only, ahora bloqueada por R2.5) → `/mis-calificaciones?tarea=X`.
+  - `tarea_nueva.enlace` cambiado de `/tareas/{id}` (404, ruta inexistente) → `/entregas?tarea=X`.
+- Frontend deep-link en `MisCalificaciones`: nuevo `useEffect` con `useRef` guard que lee `?tarea=X`, hace `GET /api/tareas/{id}` para resolver la imparticion, expande el accordion del módulo correspondiente y limpia el query param. Falla silenciosamente si la tarea no se puede resolver.
+- Frontend deep-link en `Entregas`: reescritura robusta. Acepta `?imparticion=X&tarea=Y` (caso /horarios), `?tarea=Y` aislado (caso notificación) buscando en todas las imparticiones, y degrada a expandir solo el accordion si no encuentra la tarea concreta. Guard con `useRef` para no re-disparar tras refetch via Mercure.
+
+**R2.3 — Profe `/horarios` → `/entregas` no abría accordion**. Corregido por la reescritura del deep-link de R2.6 (mismo cambio): el path para profe (`isAlumno=false`) ya pasaba por `setExpandedId(imp.id)` + `handleViewEntregas(...)` pero el flujo era frágil cuando alguno de los lookups fallaba. Ahora siempre que se resuelva la imparticion se expande, aunque la tarea no aparezca en el JSON cargado todavía (caso de Mercure latente).
+
+**R2.4 — Header accordion `/entregas` con curso**. `useImparticiones.js`: `grupoLabel` ahora es `${cursoGrupo}º ${nombreGrupo}` cuando `grupo.curso != null` (fallback a solo `nombreGrupo`). Resultado: en lugar de `Sistemas Informáticos - DAW1`, se ve `Sistemas Informáticos - 1º DAW1`. Consistente con `/admin/horarios` columna Grupo (Ronda 1 #2) y headers de `/admin/calificaciones` (Ronda 1 addendum).
+
+**R2.2 — i18n `/admin/catalogo` falta en en/ca/gl/eu**. El bloque `catalogo` (112 claves anidadas en sub-bloques `banner/acerca/itinerarios/itinerarioDetail/materias/centros/etapaLabel/tipoLabel`) **solo existía en `es.json`**. En los otros 4 idiomas caía al fallback español (las vistas de catálogo se veían en español aunque el usuario eligiese otro idioma). Script Python one-shot con dict de traducciones por idioma, deep-merge dentro del bloque existente (idempotente). Las traducciones a EN son cuidadas (con notas explicativas para conceptos como "FP Básica" → "FP Básica" mantenido sin traducir + glosa "vocational training"); CA/GL/EU son traducciones razonables aprovechando cognados con español, pendiente revisión de un hablante nativo si surge demanda comercial. Script borrado tras ejecutar.
+
+**HMR**: backend reiniciado para opcache (cambio en NotificationDispatcher). Vite HMR aceptó los cambios frontend sin errores.

@@ -114,44 +114,48 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
                 
+                {/* SuperAdmin only: gestión de centros del sistema. Bug
+                    documentado en mejoras-tecnicas.md §1.3 (admin de centro
+                    podía acceder vía URL directa). Backend pendiente de
+                    cerrar el agujero per `IsGranted('ROLE_SUPERADMIN')`. */}
                 <Route path="/centros" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_SUPERADMIN']}>
                     <Centros />
                   </PrivateRoute>
                 } />
 
                 <Route path="/usuarios" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Usuarios />
                   </PrivateRoute>
                 } />
 
                 <Route path="/itinerarios" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Itinerarios />
                   </PrivateRoute>
                 } />
 
                 <Route path="/grupos" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Grupos />
                   </PrivateRoute>
                 } />
 
                 <Route path="/materias" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Materias />
                   </PrivateRoute>
                 } />
 
                 <Route path="/matriculas" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Matriculas />
                   </PrivateRoute>
                 } />
 
                 <Route path="/imparticiones" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Imparticiones />
                   </PrivateRoute>
                 } />
@@ -169,43 +173,46 @@ const router = createBrowserRouter(
                 } />
 
                 <Route path="/admin/horarios" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <HorariosAdmin />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/jornadas" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <JornadasAdmin />
                   </PrivateRoute>
                 } />
 
                 <Route path="/fechas" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Fechas />
                   </PrivateRoute>
                 } />
 
+                {/* /entregas: profe ve sus tareas+entregas para corregir;
+                    alumno ve sus propias tareas+entregas para entregar.
+                    Admin no necesita esta vista (admin tiene calificaciones-admin). */}
                 <Route path="/entregas" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_PROFESOR', 'ROLE_ALUMNO']}>
                     <Entregas />
                   </PrivateRoute>
                 } />
 
                 <Route path="/faltas" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <MisFaltas />
                   </PrivateRoute>
                 } />
 
                 <Route path="/apuntes" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <TemariosAlumno />
                   </PrivateRoute>
                 } />
 
                 <Route path="/mis-temarios" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_PROFESOR']}>
                     <TemariosProfesor />
                   </PrivateRoute>
                 } />
@@ -222,20 +229,21 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
+                {/* Compañeros: solo alumnos (ven a sus pares de grupo). */}
                 <Route path="/companeros" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <Companeros />
                   </PrivateRoute>
                 } />
 
                 <Route path="/mis-profesores" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <MisProfesores />
                   </PrivateRoute>
                 } />
 
                 <Route path="/mis-alumnos" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_PROFESOR']}>
                     <MisAlumnos />
                   </PrivateRoute>
                 } />
@@ -252,56 +260,59 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
+                {/* /calificaciones: vista de profe (sus grupos+tareas para
+                    corregir). Alumno tiene su propia /mis-calificaciones.
+                    Bug detectado en sesión 2026-05-05 (R2.5). */}
                 <Route path="/calificaciones" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_PROFESOR', 'ROLE_ADMIN']}>
                     <CalificacionesGrupo />
                   </PrivateRoute>
                 } />
 
                 <Route path="/calificaciones/detalle" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_PROFESOR', 'ROLE_ADMIN']}>
                     <CalificacionesDetalle />
                   </PrivateRoute>
                 } />
 
                 <Route path="/mis-calificaciones" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <MisCalificaciones />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/calificaciones" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CalificacionesAdmin />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/catalogo/itinerarios" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CatalogoItinerarios />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/catalogo/itinerarios/:id" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CatalogoItinerarioDetail />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/catalogo/materias" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CatalogoMaterias />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/catalogo/centros" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CatalogoCentros />
                   </PrivateRoute>
                 } />
 
                 <Route path="/admin/catalogo/acerca" element={
-                  <PrivateRoute>
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CatalogoAcerca />
                   </PrivateRoute>
                 } />

@@ -336,25 +336,64 @@ const Entregas = () => {
     }
   };
 
-  // Deep-link desde /tareas: ?imparticion=X&tarea=Y → abrir accordion + modal de entregas
+  // Deep-link desde /horarios, /tareas o notificaciones:
+  //   ?imparticion=X&tarea=Y → abrir accordion + modal de entregas
+  //   ?tarea=Y               → buscar la tarea en cualquier imparticion (fallback
+  //                            cuando solo se conoce la tarea, p.ej. notificación
+  //                            del alumno con tarea_nueva).
+  //
+  // Robustez (R2.3): aunque no se encuentre la tarea concreta, expandimos al
+  // menos el accordion de la imparticion para que el usuario vea algo. Guard
+  // con useRef para no re-disparar tras el refetch de useImparticiones.
+  const deepLinkProcessedRef = useRef(false);
   useEffect(() => {
+    if (deepLinkProcessedRef.current) return;
+    if (asignaturas.length === 0) return;
+
     const impParam = searchParams.get('imparticion');
     const tareaParam = searchParams.get('tarea');
-    if (!impParam || !tareaParam || asignaturas.length === 0) return;
+    if (!impParam && !tareaParam) return;
 
-    const imp = asignaturas.find(a => String(a.id) === String(impParam));
-    if (!imp) return;
-    const tarea = (imp.tareas || []).find(tr => String(tr.id) === String(tareaParam));
-    if (!tarea) return;
+    // Resolver imparticion: por param explícito, o buscando la tarea entre todas.
+    let imp = impParam
+      ? asignaturas.find(a => String(a.id) === String(impParam))
+      : null;
+    let tarea = null;
 
-    setExpandedId(imp.id);
-    if (isAlumno) {
-      handleOpenUploadModal(tarea);
-    } else {
-      handleViewEntregas(tarea, imp.id);
+    if (tareaParam) {
+      if (imp) {
+        tarea = (imp.tareas || []).find(tr => String(tr.id) === String(tareaParam));
+      }
+      // Fallback: si no la encontramos en la imparticion declarada (o no se
+      // declaró), buscamos en TODAS las asignaturas. Cubre el caso del alumno
+      // que sigue una notificación `tarea_nueva` con solo `?tarea=Y`.
+      if (!tarea) {
+        for (const a of asignaturas) {
+          const t = (a.tareas || []).find(tr => String(tr.id) === String(tareaParam));
+          if (t) {
+            tarea = t;
+            imp = a;
+            break;
+          }
+        }
+      }
     }
 
-    // Limpiar los params para que no se vuelva a disparar
+    if (!imp) return;  // ni imparticion ni tarea resoluble → nada que abrir.
+
+    deepLinkProcessedRef.current = true;
+    setExpandedId(imp.id);
+
+    if (tarea) {
+      if (isAlumno) {
+        handleOpenUploadModal(tarea);
+      } else {
+        handleViewEntregas(tarea, imp.id);
+      }
+    }
+    // Si no hay tarea concreta, ya hemos expandido el accordion — feedback
+    // mínimo aceptable. El usuario ve la lista y puede actuar.
+
     const next = new URLSearchParams(searchParams);
     next.delete('imparticion');
     next.delete('tarea');

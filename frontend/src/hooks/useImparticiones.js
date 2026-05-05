@@ -162,9 +162,17 @@ const useImparticiones = () => {
                 const mapped = items.map(imp => {
                     const nombreModulo = imp.materia?.nombre || t('common.unknownModule');
                     const nombreGrupo = imp.grupo?.abreviatura || imp.grupo?.nombre || t('common.unknownGroup');
+                    const cursoGrupo = imp.grupo?.curso ?? null;
                     const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
 
-                    let title = `${nombreModulo} - ${nombreGrupo}`;
+                    // Formato consistente con `/admin/horarios` columna Grupo
+                    // (pulido-ux Ronda 1 #2): `[curso]º [abreviatura]` cuando
+                    // hay curso. Fallback a solo `[abreviatura]` si null.
+                    const grupoLabel = cursoGrupo != null
+                        ? `${cursoGrupo}º ${nombreGrupo}`
+                        : nombreGrupo;
+
+                    let title = `${nombreModulo} - ${grupoLabel}`;
                     if ((isAlumno || isSuperAdmin) && nombreProfesor) {
                         title += ` (${nombreProfesor})`;
                     }

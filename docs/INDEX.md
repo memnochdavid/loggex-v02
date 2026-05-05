@@ -19,10 +19,10 @@
 
 **Por qué primera**: el bucle de feedback hoy está roto — el alumno no se entera de que su examen ha sido corregido salvo que entre activamente; el profe no ve si llega una entrega nueva. Es bloqueante para "Loggex se vende a un centro real sin que los usuarios se sientan ciegos".
 
-**Otros ítems abiertos en paralelo (menor prioridad, no bloquean lo de arriba):**
+**Otros ítems abiertos en paralelo (menor prioridad):**
 
-- 🔴 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Encima del título en `CrudHeader`, ~0.5 sesión.
-- 🐛 **Bug de seguridad detectado 2026-05-05**: la ruta `/centros` es accesible desde un **admin de centro** (debería ser SuperAdmin-only). Anotado en `hoja-de-ruta-mejoras-tecnicas.md` §1.3 con plan de fix concreto (backend + guard frontend + test). Atacar antes de la primera demo a cliente.
+- 🔴 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Encima del título en `CrudHeader`, ~0.5 sesión. **Único ítem vivo de Ronda 2** tras cerrar R2.2-R2.6 el 2026-05-05.
+- 🐛 **Bug de seguridad `/centros` — 50% cerrado**. Frontend ya bloquea (R2.5: `PrivateRoute allowedRoles={['ROLE_SUPERADMIN']}`). **Falta backend**: añadir `#[IsGranted('ROLE_SUPERADMIN')]` a las operaciones de `Centro` API Platform. Sin esto, una llamada `curl` directa con JWT de admin de centro a `/api/centros` sigue funcionando. Detalles en `hoja-de-ruta-mejoras-tecnicas.md` §1.3. Defensa en profundidad obligatoria antes de demo.
 
 ---
 
@@ -342,7 +342,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 |---|---|---|
 | **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
-| `hoja-de-ruta-pulido-ux.md` | 🟡 **Ronda 1 ✅ Done (2026-04-28)** + **Ronda 2 abierta 2026-05-05** (R2.1: breadcrumbs en `CrudHeader`, ~0.5 sesión) | Ronda 2 acumula nuevos ítems UX detectados en el día a día. |
+| `hoja-de-ruta-pulido-ux.md` | 🟡 **Ronda 1 ✅ + Ronda 2 al 83% (5/6 ítems ✅, R2.1 pendiente)** — R2.2-R2.6 cerrados 2026-05-05 (i18n catálogo × 4 idiomas, deep-links, header con curso, **bug seguridad /calificaciones**, links de notificaciones) | Único ítem vivo: R2.1 breadcrumbs (~0.5 sesión). |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Live CRUD ✅ Cobertura total (sesiones 1+2+3+4+5 — 2026-05-04). **15 entidades, 16 vistas live**. | **Cerrado**. Movible a 🟢 cerradas. |

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styles from './Calificaciones.module.css';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -271,6 +272,49 @@ const MisCalificaciones = () => {
     }, [user, isSuperAdmin]);
 
     useLiveRefetch(liveTopics, () => fetchCalificaciones());
+
+    // Deep-link desde notificaciones del alumno (R2.6 — pulido-ux Ronda 2):
+    //   `calificacion_publicada` y `calificacion_actualizada` apuntan a
+    //   `/mis-calificaciones?tarea=X`. Resolvemos la imparticion de esa tarea
+    //   con un GET a `/api/tareas/{id}` y expandimos su accordion.
+    //
+    // Guard con useRef para no re-disparar tras refetch via Mercure.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const deepLinkProcessedRef = useRef(false);
+    useEffect(() => {
+        if (deepLinkProcessedRef.current) return;
+        if (!data?.modulos || data.modulos.length === 0) return;
+        const tareaParam = searchParams.get('tarea');
+        if (!tareaParam) return;
+
+        deepLinkProcessedRef.current = true;
+        (async () => {
+            try {
+                const res = await fetch(getApiUrl(`/api/tareas/${tareaParam}`), {
+                    headers: { 'Accept': 'application/ld+json' },
+                    credentials: 'include',
+                });
+                if (!res.ok) return;
+                const tarea = await res.json();
+                const impRel = tarea.imparticion;
+                const impId = typeof impRel === 'string'
+                    ? impRel.split('/').pop()
+                    : (impRel?.id ?? impRel?.['@id']?.split('/').pop());
+                if (!impId) return;
+                const mod = data.modulos.find(m => String(m.imparticion.id) === String(impId));
+                if (mod) {
+                    setExpandedModuleId(mod.imparticion.id);
+                }
+            } catch {
+                // Silencioso: si falla, simplemente no auto-expandimos.
+            } finally {
+                const next = new URLSearchParams(searchParams);
+                next.delete('tarea');
+                setSearchParams(next, { replace: true });
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data]);
 
     // Tras cada fetch: si el módulo expandido sigue existiendo, recarga sus tareas
     // (se limpian al cambiar de filtro). Si ya no existe, cierra el accordion.

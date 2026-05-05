@@ -83,11 +83,16 @@ class NotificationDispatcher
             ? sprintf('Tu nota de "%s" se ha actualizado a %s.', $tareaTitulo, $this->fmtNota($nota))
             : sprintf('Has obtenido %s en "%s".', $this->fmtNota($nota), $tareaTitulo);
 
+        // El destinatario es el alumno → enlace a su vista personal de
+        // calificaciones, NO a `/calificaciones` (vista de profe, bloqueada
+        // para alumno por PrivateRoute con allowedRoles tras R2.5). El query
+        // `?tarea=X` permite a `MisCalificaciones` auto-expandir el accordion
+        // de la imparticion de esa tarea (ver R2.6 del doc pulido-ux).
         $this->createPersist($alumno, [
             'tipo'    => $tipo,
             'titulo'  => $titulo,
             'mensaje' => $mensaje,
-            'enlace'  => sprintf('/calificaciones?tarea=%d', $tarea->getId()),
+            'enlace'  => sprintf('/mis-calificaciones?tarea=%d', $tarea->getId()),
             'payload' => [
                 'entregaId'   => $entrega->getId(),
                 'tareaId'     => $tarea->getId(),
@@ -142,7 +147,10 @@ class NotificationDispatcher
                     $titulo,
                     $fechaLim ? ' (entrega hasta el ' . $fechaLim->format('d/m/Y') . ')' : ''
                 ),
-                'enlace'  => sprintf('/tareas/%d', $tarea->getId()),
+                // `/tareas/{id}` no existe como ruta del frontend (404).
+                // El alumno entrega tareas desde `/entregas` con
+                // `?tarea=X` para auto-abrir su accordion (R2.6).
+                'enlace'  => sprintf('/entregas?tarea=%d', $tarea->getId()),
                 'payload' => [
                     'tareaId'     => $tarea->getId(),
                     'titulo'      => $titulo,
