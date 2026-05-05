@@ -599,6 +599,13 @@ const Festivos = ({ embedded = false, tabs = null }) => {
     <>
         <CrudHeader title={embedded ? t('dates.title') : t('holidays.title')}
                     subtitle={embedded ? t('dates.subtitle') : t('holidays.subtitle')}
+                    breadcrumbs={embedded ? [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('dates.title') },
+                    ] : [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('holidays.title') },
+                    ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     middle={tabs}
                     stackActionsEarly

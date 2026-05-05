@@ -1,3 +1,18 @@
+.outer {
+    margin-bottom: var(--space-3);
+}
+
+/* Cuando hay breadcrumbs, el margin-bottom va en el outer y el container
+   interno no aporta el suyo, para no acumular separación. */
+.outerWithBreadcrumbs .container {
+    margin-bottom: 0;
+}
+
+.breadcrumbsRow {
+    /* Borde izquierdo absoluto del header — alineado al lottie/título. */
+    margin-bottom: var(--space-2);
+}
+
 .container {
     display: grid;
     grid-template-columns: auto 1fr auto;

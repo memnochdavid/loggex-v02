@@ -497,6 +497,10 @@ const HorariosConsumicion = ({ embedded = false, tabs = null }) => {
       <CrudHeader
         title={t('scheduleEditor.consumption.title')}
         subtitle={t('scheduleEditor.consumption.subtitle')}
+        breadcrumbs={[
+            { label: t('sidebar.home'), to: '/' },
+            { label: t('sidebar.scheduleAdmin') },
+        ]}
         middle={tabs}
       />
 

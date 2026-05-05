@@ -492,7 +492,6 @@ const Grupos = () => {
  subtitle={t('groups.subtitle')}
                     breadcrumbs={[
                         { label: t('sidebar.home'), to: '/' },
-                        { label: t('sidebar.admin'), to: '/' },
                         { label: t('groups.title') },
                     ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}

@@ -25,6 +25,10 @@ const CatalogoAcerca = () => {
                 <CrudHeader
                     title={t('catalogo.acerca.title')}
                     subtitle={t('catalogo.acerca.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('catalogo.acerca.title') },
+                    ]}
                     logo={<Lottie animationData={apiAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 />
 

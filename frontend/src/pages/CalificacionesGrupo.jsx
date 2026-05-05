@@ -683,6 +683,10 @@ const CalificacionesGrupo = () => {
             <div className={styles.container}>
                 <CrudHeader
                     title={t('grades.title')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('grades.title') },
+                    ]}
 
                     subtitle={mediasData?.imparticion
                         ? `${mediasData.imparticion?.materia} — ${mediasData.imparticion.grupo} — ${mediasData.imparticion.profesor}`

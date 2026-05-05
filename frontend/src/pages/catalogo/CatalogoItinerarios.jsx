@@ -277,6 +277,10 @@ const CatalogoItinerarios = () => {
                 <CrudHeader
                     title={t('catalogo.itinerarios.title')}
                     subtitle={t('catalogo.itinerarios.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('catalogo.itinerarios.title') },
+                    ]}
                     logo={<Lottie animationData={apiAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 />
 

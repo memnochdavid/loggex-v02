@@ -331,6 +331,10 @@ const TemariosAlumno = () => {
       <div className={styles.container}>
         <CrudHeader title={t('studentMaterials.title')}
  subtitle={t('studentMaterials.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('studentMaterials.title') },
+                    ]}
                     logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

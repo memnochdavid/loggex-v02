@@ -705,6 +705,10 @@ const Entregas = () => {
       <div className={styles.container}>
         <CrudHeader
           title={t('deliveries.title')}
+          breadcrumbs={[
+              { label: t('sidebar.home'), to: '/' },
+              { label: t('deliveries.title') },
+          ]}
 
           subtitle={t('deliveries.subtitle')}
           logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}

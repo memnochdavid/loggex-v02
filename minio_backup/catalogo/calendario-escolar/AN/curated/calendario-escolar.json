@@ -1,0 +1,144 @@
+{
+  "ccaa": "AN",
+  "anio_academico": "2025-2026",
+  "fuente": {
+    "tipo": "Resoluciones provinciales de las Delegaciones Territoriales",
+    "provincias_extraidas": ["SE", "GR"],
+    "firmantes_y_fechas": [
+      {"provincia": "SE", "firmante": "Miguel Ángel Arauz Rivero", "fecha": "2025-05-29", "codigo_verificacion": "Pk2jmHN9YZXCU9YPKJTUAQG6SSRYET", "url": "https://www.juntadeandalucia.es/educacion/portales/documents/1176698/2082871/RESOL%20CALEND%2025_26(F).pdf/d6d9771b-6ad8-1787-5bae-0d739c4b178c?version=1.0"},
+      {"provincia": "GR", "fecha": "2025-05-30", "url": "https://www.juntadeandalucia.es/educacion/portales/documents/1197087/2016119/Resoluci%C3%B3n%20de%2030%20de%20mayo%20de%202025%20calendario%20escolar%202025-2026%20en%20Granada.pdf/6f7d1f52-5444-f226-1166-5f15ef909a40?version=1.0"}
+    ],
+    "normativa_base": [
+      "Decreto 301/2009, de 14 de julio",
+      "Decreto 499/2019, de 26 de junio",
+      "Decreto 183/2020, de 10 de noviembre",
+      "Decreto-ley 6/2023, de 11 de julio"
+    ],
+    "snapshot_paths_minio": [
+      "catalogo/calendario-escolar/AN/source/resol-calendario-25-26.pdf",
+      "catalogo/calendario-escolar/AN/source/resol-calendario-25-26-granada.pdf"
+    ]
+  },
+  "curso_academico": {
+    "fechaInicio": "2025-09-01",
+    "fechaFin": "2026-06-30",
+    "comentario": "Ventana administrativa del curso. El régimen ordinario de clases empieza más tarde según etapa."
+  },
+  "etapas": {
+    "INFANTIL_2": {
+      "fechaInicio": "2025-09-10",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 178,
+      "horasDocenciaDirecta": 890
+    },
+    "PRIMARIA": {
+      "fechaInicio": "2025-09-10",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 178,
+      "horasDocenciaDirecta": 890
+    },
+    "ESPECIAL": {
+      "fechaInicio": "2025-09-10",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 178,
+      "horasDocenciaDirecta": 890
+    },
+    "ESO": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 175,
+      "horasDocenciaDirecta": 1050
+    },
+    "BACH_1": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 175,
+      "horasDocenciaDirecta": 1050
+    },
+    "BACH_2": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-05-22",
+      "diasLectivos": null,
+      "horasDocenciaDirecta": null,
+      "comentario": "Tras 22-may continúa actividad 25-may→22-jun para recuperaciones y preparación EvAU."
+    },
+    "FP": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 175,
+      "horasDocenciaDirecta": 1050,
+      "comentario": "Cifras del régimen general. Cada ciclo (Grado Medio/Superior) puede tener cómputo distinto según su RD; el solver debe usar Materia.horasTotales."
+    },
+    "EPA": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 175,
+      "horasDocenciaDirecta": 1050
+    },
+    "IDIOMAS": {
+      "fechaInicio": "2025-09-22",
+      "fechaFin": "2026-06-22"
+    },
+    "IDIOMAS_CERTIFICACION": {
+      "fechaInicio": "2025-09-22",
+      "fechaFin": "2026-05-29"
+    },
+    "ARTISTICAS": {
+      "fechaInicio": "2025-09-15",
+      "fechaFin": "2026-06-22",
+      "diasLectivos": 175
+    },
+    "ARTISTICAS_SUPERIORES": {
+      "fechaInicio": "2025-09-22",
+      "fechaFin": "2026-06-22"
+    }
+  },
+  "vacaciones_autonomicas": [
+    {
+      "nombre": "Vacaciones de Navidad",
+      "fechaInicio": "2025-12-22",
+      "fechaFin": "2026-01-06",
+      "exclusiones": ["INFANTIL_1"]
+    },
+    {
+      "nombre": "Vacaciones de Semana Santa",
+      "fechaInicio": "2026-03-30",
+      "fechaFin": "2026-04-05",
+      "exclusiones": ["INFANTIL_1"]
+    }
+  ],
+  "dias_no_lectivos_autonomicos": [],
+  "dias_no_lectivos_provinciales": {
+    "SE": [
+      {
+        "nombre": "Día de la Comunidad Educativa (Sevilla)",
+        "fecha": "2026-02-27"
+      },
+      {
+        "nombre": "Día no lectivo provincial (Sevilla)",
+        "fecha": "2026-01-07",
+        "exclusiones": ["INFANTIL_1"]
+      }
+    ],
+    "GR": [
+      {
+        "nombre": "Día de la Comunidad Educativa (Granada)",
+        "fecha": "2026-03-02"
+      },
+      {
+        "nombre": "Día no lectivo provincial otoño (Granada)",
+        "fecha": "2025-11-03"
+      },
+      {
+        "nombre": "Día no lectivo provincial primavera (Granada)",
+        "fecha": "2026-06-05"
+      }
+    ]
+  },
+  "deuda_residual": [
+    "Faltan las Resoluciones provinciales de Almería (AL=04), Cádiz (CA=11), Córdoba (CO=14), Huelva (HU=21), Jaén (JA=23) y Málaga (MA=29). Cada una publica su Día de la Comunidad Educativa propio (varía la fecha) y sus días no lectivos provinciales. Pendiente: descargar las 6 restantes y completar `dias_no_lectivos_provinciales`.",
+    "El Día de la Comunidad Educativa NO es estrictamente autonómico aunque se llame así: cada provincia fija una fecha distinta en su Resolución (Sevilla 27-feb, Granada 2-mar). Por eso se modela como `dias_no_lectivos_provinciales[provincia]`, no como `dias_no_lectivos_autonomicos`. Iteración previa lo había clasificado como autonómico — corregido 2026-04-30 al incorporar Granada.",
+    "Las fiestas locales municipales (hasta 2 días) las añade el centro a través de Festivo ámbito=LOCAL. No se pueden enumerar aquí porque varían por municipio.",
+    "Hasta 2-3 días de libre disposición por Consejo Escolar Municipal o de Centro — gestión local del centro, no autonómica."
+  ]
+}

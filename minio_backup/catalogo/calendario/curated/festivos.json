@@ -1,0 +1,676 @@
+{
+  "fuente": {
+    "origen": "BOE Resolución DG Trabajo (calendario laboral anual)",
+    "metodologia": "pdftotext -layout + parser por posición de columnas"
+  },
+  "ccaaNombres": {
+    "AN": "Andalucía",
+    "AR": "Aragón",
+    "AS": "Asturias",
+    "IB": "Illes Balears",
+    "CN": "Canarias",
+    "CB": "Cantabria",
+    "CM": "Castilla-La Mancha",
+    "CL": "Castilla y León",
+    "CT": "Cataluña",
+    "EX": "Extremadura",
+    "GA": "Galicia",
+    "MD": "Comunidad de Madrid",
+    "MC": "Región de Murcia",
+    "NC": "Navarra",
+    "PV": "País Vasco",
+    "RI": "La Rioja",
+    "VC": "Comunitat Valenciana",
+    "CE": "Ceuta",
+    "ML": "Melilla"
+  },
+  "anios": {
+    "2025": {
+      "pdf": "calendario-laboral-2025.pdf",
+      "nacionales": [
+        {
+          "fecha": "2025-01-01",
+          "nombre": "Año Nuevo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-01-06",
+          "nombre": "Epifanía del Señor",
+          "sustituible": true
+        },
+        {
+          "fecha": "2025-04-18",
+          "nombre": "Viernes Santo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-05-01",
+          "nombre": "Fiesta del Trabajo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-08-15",
+          "nombre": "Asunción de la Virgen",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-11-01",
+          "nombre": "Todos los Santos",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-12-06",
+          "nombre": "Día de la Constitución Española",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-12-08",
+          "nombre": "Inmaculada Concepción",
+          "sustituible": false
+        },
+        {
+          "fecha": "2025-12-25",
+          "nombre": "Natividad del Señor",
+          "sustituible": false
+        }
+      ],
+      "autonomicos": {
+        "AN": [
+          {
+            "fecha": "2025-02-28",
+            "nombre": "Día de Andalucía"
+          },
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          }
+        ],
+        "AR": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-04-23",
+            "nombre": "San Jorge/Día de Aragón"
+          }
+        ],
+        "AS": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          }
+        ],
+        "IB": [
+          {
+            "fecha": "2025-03-01",
+            "nombre": "Día de les Illes Balears"
+          },
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-09-08",
+            "nombre": "Día de Asturias"
+          },
+          {
+            "fecha": "2025-12-26",
+            "nombre": "San Esteban"
+          }
+        ],
+        "CN": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-05-30",
+            "nombre": "Día de Canarias"
+          }
+        ],
+        "CB": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          }
+        ],
+        "CM": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-05-31",
+            "nombre": "Día de Castilla-La Mancha"
+          },
+          {
+            "fecha": "2025-07-28",
+            "nombre": "Día de las Instituciones de Cantabria"
+          },
+          {
+            "fecha": "2025-09-15",
+            "nombre": "La Bien Aparecida"
+          }
+        ],
+        "CL": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-04-23",
+            "nombre": "Fiesta de Castilla y León"
+          },
+          {
+            "fecha": "2025-06-19",
+            "nombre": "Fiesta del Corpus Christi"
+          }
+        ],
+        "CT": [
+          {
+            "fecha": "2025-04-21",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2025-12-26",
+            "nombre": "San Esteban"
+          }
+        ],
+        "EX": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-06-24",
+            "nombre": "San Juan"
+          },
+          {
+            "fecha": "2025-09-11",
+            "nombre": "Fiesta Nacional de Cataluña"
+          }
+        ],
+        "GA": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-05-17",
+            "nombre": "Día de las Letras Gallegas"
+          },
+          {
+            "fecha": "2025-09-08",
+            "nombre": "Día de Extremadura"
+          }
+        ],
+        "MD": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-05-02",
+            "nombre": "Fiesta de la Comunidad de Madrid"
+          },
+          {
+            "fecha": "2025-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "MC": [
+          {
+            "fecha": "2025-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "NC": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-04-21",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2025-06-09",
+            "nombre": "Día de la Región de Murcia"
+          }
+        ],
+        "PV": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-04-21",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2025-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "RI": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-04-21",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2025-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "VC": [
+          {
+            "fecha": "2025-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2025-04-21",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2025-06-09",
+            "nombre": "Día de la Rioja"
+          }
+        ],
+        "CE": [
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-06-24",
+            "nombre": "San Juan"
+          },
+          {
+            "fecha": "2025-10-09",
+            "nombre": "Día de la Comunitat Valenciana"
+          }
+        ],
+        "ML": [
+          {
+            "fecha": "2025-03-31",
+            "nombre": "Fiesta del Eid Fitr"
+          },
+          {
+            "fecha": "2025-04-17",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2025-06-06",
+            "nombre": "Fiesta del Sacrificio - Eidul Adha"
+          },
+          {
+            "fecha": "2025-06-06",
+            "nombre": "Fiesta del Sacrificio - Aid Al Adha"
+          },
+          {
+            "fecha": "2025-08-05",
+            "nombre": "Nuestra Señora de África"
+          }
+        ]
+      }
+    },
+    "2026": {
+      "pdf": "calendario-laboral-2026.pdf",
+      "nacionales": [
+        {
+          "fecha": "2026-01-01",
+          "nombre": "Año Nuevo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-01-06",
+          "nombre": "Epifanía del Señor",
+          "sustituible": true
+        },
+        {
+          "fecha": "2026-04-03",
+          "nombre": "Viernes Santo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-05-01",
+          "nombre": "Fiesta del Trabajo",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-08-15",
+          "nombre": "Asunción de la Virgen",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-10-12",
+          "nombre": "Fiesta Nacional de España",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-12-08",
+          "nombre": "Inmaculada Concepción",
+          "sustituible": false
+        },
+        {
+          "fecha": "2026-12-25",
+          "nombre": "Natividad del Señor",
+          "sustituible": false
+        }
+      ],
+      "autonomicos": {
+        "AN": [
+          {
+            "fecha": "2026-02-28",
+            "nombre": "Día de Andalucía"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "AR": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-23",
+            "nombre": "San Jorge/Día de Aragón"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "AS": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-09-08",
+            "nombre": "Día de Asturias"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "IB": [
+          {
+            "fecha": "2026-03-02",
+            "nombre": "Lunes siguiente al Día de les Illes Balears"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-12-26",
+            "nombre": "San Esteban"
+          }
+        ],
+        "CN": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-05-30",
+            "nombre": "Día de Canarias"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "CB": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-07-28",
+            "nombre": "Día de las Instituciones de Cantabria"
+          },
+          {
+            "fecha": "2026-09-15",
+            "nombre": "La Bien Aparecida"
+          }
+        ],
+        "CM": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-06-04",
+            "nombre": "Corpus Christi"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "CL": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-23",
+            "nombre": "Fiesta de Castilla y León"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "CT": [
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-06-24",
+            "nombre": "San Juan"
+          },
+          {
+            "fecha": "2026-09-11",
+            "nombre": "Fiesta Nacional de Cataluña"
+          },
+          {
+            "fecha": "2026-12-26",
+            "nombre": "San Esteban"
+          }
+        ],
+        "EX": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-09-08",
+            "nombre": "Día de Extremadura"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "GA": [
+          {
+            "fecha": "2026-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-06-24",
+            "nombre": "San Juan"
+          },
+          {
+            "fecha": "2026-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "MD": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-05-02",
+            "nombre": "Fiesta de la Comunidad de Madrid"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "MC": [
+          {
+            "fecha": "2026-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-06-09",
+            "nombre": "Día de la Región de Murcia"
+          }
+        ],
+        "NC": [
+          {
+            "fecha": "2026-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-11-02",
+            "nombre": "Día siguiente a Todos los Santos"
+          }
+        ],
+        "PV": [
+          {
+            "fecha": "2026-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-07-25",
+            "nombre": "Santiago Apóstol/Día Nacional de Galicia"
+          }
+        ],
+        "RI": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-06-09",
+            "nombre": "Día de la Rioja"
+          }
+        ],
+        "VC": [
+          {
+            "fecha": "2026-03-19",
+            "nombre": "San José"
+          },
+          {
+            "fecha": "2026-04-06",
+            "nombre": "Lunes de Pascua"
+          },
+          {
+            "fecha": "2026-06-24",
+            "nombre": "San Juan"
+          },
+          {
+            "fecha": "2026-10-09",
+            "nombre": "Día de la Comunitat Valenciana"
+          }
+        ],
+        "CE": [
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-05-27",
+            "nombre": "Fiesta Sacrificio-Eidul Adha"
+          },
+          {
+            "fecha": "2026-08-05",
+            "nombre": "Nuestra Señora de África"
+          },
+          {
+            "fecha": "2026-09-02",
+            "nombre": "Día de Ceuta"
+          }
+        ],
+        "ML": [
+          {
+            "fecha": "2026-03-20",
+            "nombre": "Fiesta del Eid Fitr"
+          },
+          {
+            "fecha": "2026-04-02",
+            "nombre": "Jueves Santo"
+          },
+          {
+            "fecha": "2026-05-27",
+            "nombre": "Fiesta Sacrificio-Aid al Adha"
+          }
+        ]
+      }
+    }
+  }
+}

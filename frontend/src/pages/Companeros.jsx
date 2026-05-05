@@ -147,6 +147,10 @@ const Companeros = () => {
             <div className={styles.container}>
                 <CrudHeader title={t('classmates.title')}
  subtitle={t('classmates.subtitle')}
+                            breadcrumbs={[
+                                { label: t('sidebar.home'), to: '/' },
+                                { label: t('classmates.title') },
+                            ]}
                             logo={<Lottie animationData={bookAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

@@ -1,8 +1,8 @@
 .breadcrumbs {
     margin: 0 0 var(--space-1) 0;
-    font-size: 0.8rem;
+    font-size: var(--text-base);
     color: var(--text-muted);
-    line-height: 1.2;
+    line-height: 1.4;
     /* Truncado en una línea: si la cadena no cabe, se elimina el desbordamiento.
        En móvil la pinta tipográfica garantiza una línea sola. */
     max-width: 100%;

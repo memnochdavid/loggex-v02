@@ -285,6 +285,13 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
     <>
       <CrudHeader title={embedded ? t('dates.title') : t('dates.tabEvaluations')}
                   subtitle={embedded ? t('dates.subtitle') : t('dates.evaluationsSubtitle')}
+                  breadcrumbs={embedded ? [
+                      { label: t('sidebar.home'), to: '/' },
+                      { label: t('dates.title') },
+                  ] : [
+                      { label: t('sidebar.home'), to: '/' },
+                      { label: t('dates.tabEvaluations') },
+                  ]}
                   logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                   middle={tabs}>
         {toolbar}

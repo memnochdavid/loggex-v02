@@ -447,6 +447,10 @@ const Usuarios = () => {
         <div className={styles.container}>
         <CrudHeader title={t('users.title')}
                     subtitle={t('users.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('users.title') },
+                    ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

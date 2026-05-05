@@ -440,6 +440,10 @@ const JornadasAdmin = () => {
         <CrudHeader
           title={t('jornadas.title', { defaultValue: 'Jornadas' })}
           subtitle={t('jornadas.subtitle')}
+          breadcrumbs={[
+              { label: t('sidebar.home'), to: '/' },
+              { label: t('sidebar.jornadas') },
+          ]}
           logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
           {isSuperAdmin && (

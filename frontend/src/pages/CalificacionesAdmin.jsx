@@ -268,6 +268,10 @@ const CalificacionesAdmin = () => {
                 <CrudHeader
                     title={t('grades.adminTitle')}
                     subtitle={t('grades.adminSubtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('grades.adminTitle') },
+                    ]}
                     logo={<Lottie animationData={statsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

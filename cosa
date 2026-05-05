@@ -1,10 +1,2 @@
-se me ocurre añadir una vista o apartado en admin/horarios para cada grupo donde el admin pueda con un vistazo ver la consumición de horas en todo el año. con periodosLectivos y con evaluaciones. vistazo "ahora" y proyecciones en el tiempo según la config de horarios actual.
-
-revisar hardcodes. sobre todo en banners y toasts. vistas nuevas de catálogos.
-
-asegurarse de que los profes pueedn pedir cambiar turno.
-
---------------
 
 
--/admin/catalogo e hijos no se traducen.-(alumno) los eventos listados en /horarios, al ser clickados, te llevan a /entregas y abren el modal de esa entrega para entregarla, eso está ok. (profe), te lleva a /entregas?imparticion=[id]&tarea=[id], pero no despliega ningun accordion.-(profe) en /entregas, los header de los accordionView muestra "[materia] - [abreviatura grupo]", debería ser "[materia] - [abreviatura grupo]º".-revisar las rutas protegidas: acabo de acceder a /calificaciones desde un rol de alumno (sale error al cargar las calificaciones, pero directamente no debería cargar la ruta).-rol alumno. al pulsar en una notificación. tanto de actualización de nota (lleva a ruta protegida de profe, debe ser a /mis-calificaciones y que se muestre dentro del accordionview la entrega que sea), como de nueva tarea: por ejemplo /tareas/177 lleva a un 404.

@@ -253,6 +253,10 @@ const MisFaltas = () => {
             <div className={styles.container}>
                 <CrudHeader title={t('myAbsences.title')}
  subtitle={t('myAbsences.subtitle')}
+                            breadcrumbs={[
+                                { label: t('sidebar.home'), to: '/' },
+                                { label: t('myAbsences.title') },
+                            ]}
                             logo={<Lottie animationData={checkAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

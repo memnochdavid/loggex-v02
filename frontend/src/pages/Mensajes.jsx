@@ -334,6 +334,10 @@ const Mensajes = () => {
                 <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
                     <CrudHeader title={t('messages.title')}
  subtitle={t('messages.subtitle')}
+                                breadcrumbs={[
+                                    { label: t('sidebar.home'), to: '/' },
+                                    { label: t('messages.title') },
+                                ]}
                                 logo={<Lottie animationData={messageAnimation} loop={true}
                                               style={{width: 60, height: 60}}/>}
                     />

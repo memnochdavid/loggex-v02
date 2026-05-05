@@ -280,6 +280,10 @@ const MisAlumnos = () => {
             <div className={styles.container}>
                 <CrudHeader title={t('myStudents.title')}
  subtitle={t('myStudents.subtitle')}
+                            breadcrumbs={[
+                                { label: t('sidebar.home'), to: '/' },
+                                { label: t('myStudents.title') },
+                            ]}
                             logo={<Lottie animationData={pupilsAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     {isSuperAdmin && (

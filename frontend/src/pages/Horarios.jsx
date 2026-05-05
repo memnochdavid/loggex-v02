@@ -619,7 +619,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     <>
         <CrudHeader title={embedded ? 'Horarios' : t('schedules.title')}
                     subtitle={t('schedules.subtitle')}
-                    breadcrumbs={embedded ? undefined : [
+                    breadcrumbs={embedded ? [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('sidebar.scheduleAdmin') },
+                    ] : [
                         { label: t('sidebar.home'), to: '/' },
                         { label: t('schedules.title') },
                     ]}

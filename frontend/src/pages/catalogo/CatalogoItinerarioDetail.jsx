@@ -7,7 +7,7 @@ import Layout from '../../components/Layout';
 import CrudHeader from '../../components/CrudHeader';
 import DataTable from '../../components/DataTable';
 import DataProvenanceBanner from '../../components/DataProvenanceBanner';
-import { TableSkeleton } from '../../components/Skeleton';
+import { Skeleton } from '../../components/Skeleton';
 import { getApiUrl } from '../../config/api';
 import apiAnimation from '../../../public/api.json';
 import crudStyles from '../Crud.module.css';
@@ -72,17 +72,27 @@ const CatalogoItinerarioDetail = () => {
         { header: t('catalogo.itinerarioDetail.moduleColumns.ects'), accessor: (m) => m.ects ?? '—' },
     ];
 
+    const baseBreadcrumbs = [
+        { label: t('sidebar.home'), to: '/' },
+        { label: t('catalogo.itinerarios.title'), to: '/admin/catalogo/itinerarios' },
+    ];
+
     if (loading) {
         return (
             <Layout>
                 <div className={crudStyles.container}>
                     <CrudHeader
                         title={t('catalogo.itinerarioDetail.title')}
+                        breadcrumbs={[...baseBreadcrumbs, { label: t('catalogo.itinerarioDetail.title') }]}
                         logo={<Lottie animationData={apiAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     />
                     <DataProvenanceBanner />
                     <div className={styles.identificationCard}>
-                        <TableSkeleton columns={1} rows={6} />
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} style={{ marginBottom: '0.75rem' }}>
+                                <Skeleton variant="line" width={['60%', '80%', '45%', '70%', '55%', '85%'][i % 6]} height="0.9em" />
+                            </div>
+                        ))}
                     </div>
                 </div>
             </Layout>
@@ -95,6 +105,7 @@ const CatalogoItinerarioDetail = () => {
                 <div className={crudStyles.container}>
                     <CrudHeader
                         title={t('catalogo.itinerarioDetail.title')}
+                        breadcrumbs={[...baseBreadcrumbs, { label: t('catalogo.itinerarioDetail.title') }]}
                         logo={<Lottie animationData={apiAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                     />
                     <div className={crudStyles.errorContainer}>
@@ -122,6 +133,7 @@ const CatalogoItinerarioDetail = () => {
                 <CrudHeader
                     title={item.nombre}
                     subtitle={`${t(`catalogo.etapaLabel.${item.etapa}`, item.etapa)} · ${item.codigoOficial}`}
+                    breadcrumbs={[...baseBreadcrumbs, { label: item.nombre }]}
                     logo={<Lottie animationData={apiAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
                     <Link to="/admin/catalogo/itinerarios" className={styles.normativaLink}>

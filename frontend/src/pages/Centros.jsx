@@ -508,7 +508,6 @@ const Centros = () => {
  subtitle={t('centers.subtitle')}
                             breadcrumbs={[
                                 { label: t('sidebar.home'), to: '/' },
-                                { label: t('sidebar.superadmin'), to: '/' },
                                 { label: t('centers.title') },
                             ]}
                             logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}

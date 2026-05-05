@@ -990,6 +990,10 @@ const Configuracion = () => {
             <div className={styles.container}>
                 <CrudHeader
                     title={t('config.title')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('config.title') },
+                    ]}
 
                     subtitle={user.centro && user.centro.id !== 'global'
                         ? t('config.subtitleCenter', { centerName: user.centro.nombre })

@@ -583,6 +583,10 @@ const Itinerarios = () => {
         <div className={styles.container}>
         <CrudHeader title={t('itinerarios.title')}
  subtitle={t('itinerarios.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('itinerarios.title') },
+                    ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

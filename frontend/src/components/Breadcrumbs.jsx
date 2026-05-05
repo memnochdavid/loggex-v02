@@ -27,7 +27,7 @@ const Breadcrumbs = ({ items }) => {
                                 <span className={styles.current} aria-current={isLast ? 'page' : undefined}>{item.label}</span>
                             )}
                             {!isLast && (
-                                <ChevronRight size={12} className={styles.separator} aria-hidden="true" />
+                                <ChevronRight size={16} className={styles.separator} aria-hidden="true" />
                             )}
                         </li>
                     );

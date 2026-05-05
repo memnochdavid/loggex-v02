@@ -30,28 +30,34 @@ const CrudHeader = ({ title, subtitle, logo, middle, children, stackActionsEarly
     const shouldShowLogo = logo && (!isLottie || showLottie);
 
     return (
-        <div className={`${styles.container} ${stackActionsEarly ? styles.stackActionsEarly : ''}`}>
-            <div className={styles.titleGroup}>
-                {shouldShowLogo && (
-                    <div className={styles.logoContainer}>
-                        {isLottie ? logo : (
-                            typeof logo === 'string' ? (
-                                <img src={logo} alt="Logo" className={styles.logo} />
-                            ) : (
-                                logo
-                            )
-                        )}
-                    </div>
-                )}
-                <div className={styles.textContainer}>
-                    {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
-                    <h1 className={styles.title}>{title}</h1>
-                    {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+        <div className={`${styles.outer} ${breadcrumbs ? styles.outerWithBreadcrumbs : ''}`}>
+            {breadcrumbs && (
+                <div className={styles.breadcrumbsRow}>
+                    <Breadcrumbs items={breadcrumbs} />
                 </div>
-            </div>
-            {middle && <div className={styles.middle}>{middle}</div>}
-            <div className={styles.actions}>
-                {children}
+            )}
+            <div className={`${styles.container} ${stackActionsEarly ? styles.stackActionsEarly : ''}`}>
+                <div className={styles.titleGroup}>
+                    {shouldShowLogo && (
+                        <div className={styles.logoContainer}>
+                            {isLottie ? logo : (
+                                typeof logo === 'string' ? (
+                                    <img src={logo} alt="Logo" className={styles.logo} />
+                                ) : (
+                                    logo
+                                )
+                            )}
+                        </div>
+                    )}
+                    <div className={styles.textContainer}>
+                        <h1 className={styles.title}>{title}</h1>
+                        {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+                    </div>
+                </div>
+                {middle && <div className={styles.middle}>{middle}</div>}
+                <div className={styles.actions}>
+                    {children}
+                </div>
             </div>
         </div>
     );

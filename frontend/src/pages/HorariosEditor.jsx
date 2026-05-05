@@ -4214,6 +4214,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         <CrudHeader
           title={embedded ? t('schedules.title') : t('scheduleEditor.title')}
           subtitle={embedded ? t('schedules.subtitle') : t('scheduleEditor.subtitle')}
+          breadcrumbs={embedded ? [
+              { label: t('sidebar.home'), to: '/' },
+              { label: t('sidebar.scheduleAdmin') },
+          ] : [
+              { label: t('sidebar.home'), to: '/' },
+              { label: t('scheduleEditor.title') },
+          ]}
           logo={<Lottie animationData={timeAnim} loop={true} style={{ width: 56, height: 56 }} />}
           middle={tabs}
           stackActionsEarly

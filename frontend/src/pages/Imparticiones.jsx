@@ -547,6 +547,10 @@ const Imparticiones = () => {
         <div className={styles.container}>
         <CrudHeader title={t('teaching.title')}
  subtitle={t('teaching.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('teaching.title') },
+                    ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (

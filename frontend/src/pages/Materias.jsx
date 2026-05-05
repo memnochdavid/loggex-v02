@@ -500,6 +500,10 @@ const Materias = () => {
         <div className={styles.container}>
         <CrudHeader title={t('materias.title')}
  subtitle={t('materias.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('materias.title') },
+                    ]}
                     logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
