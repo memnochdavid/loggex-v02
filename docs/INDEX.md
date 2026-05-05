@@ -21,8 +21,9 @@
 
 **Otros ítems abiertos en paralelo (menor prioridad):**
 
-- 🟡 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Componente `Breadcrumbs.jsx` listo + 3 vistas migradas (Centros, Grupos, Horarios). **Pendiente barrido** del resto de vistas con `CrudHeader` (~1 sesión mecánica).
+- ✅ ~~**Breadcrumbs en cabeceras**~~ Cerrado 2026-05-05 noche (R2.1): componente `Breadcrumbs.jsx` reusable + barrido completo de 27 vistas con `CrudHeader` + wrappers `/fechas` y `/admin/horarios` con tabs embedded. **Ronda 2 cerrada al 100%**.
 - ✅ ~~**Bug de seguridad `/centros`**~~ Cerrado 2026-05-05 noche: las 5 operaciones API Platform (`Get`, `GetCollection`, `Post`, `Put`, `Delete`) llevan ahora `security: "is_granted('ROLE_SUPERADMIN')"`. Defensa en profundidad completa.
+- ✅ ~~**Bug latente filtro PL en `/horarios`**~~ Cerrado 2026-05-05 noche: `Horarios.jsx` filtra `mySchedule` por `selectedDate ∈ [periodoLectivoFechaInicio, periodoLectivoFechaFin]` antes de pasar al `TimeTable`. Sin solapes al navegar entre semanas.
 
 ---
 
@@ -342,7 +343,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 |---|---|---|
 | **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
-| `hoja-de-ruta-pulido-ux.md` | 🟡 **Ronda 1 ✅ + Ronda 2 al 83% (5/6 ítems ✅, R2.1 pendiente)** — R2.2-R2.6 cerrados 2026-05-05 (i18n catálogo × 4 idiomas, deep-links, header con curso, **bug seguridad /calificaciones**, links de notificaciones) | Único ítem vivo: R2.1 breadcrumbs (~0.5 sesión). |
+| `hoja-de-ruta-pulido-ux.md` | 🟢 **Ronda 1 + Ronda 2 ✅ Done (2026-05-05)** — Los 6 ítems R2.1-R2.6 cerrados. R2.1 incluye barrido de 27 vistas + 2 wrappers de tabs + fix DOM nesting de TableSkeleton. | Doc cerrado. |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Live CRUD ✅ Cobertura total (sesiones 1+2+3+4+5 — 2026-05-04). **15 entidades, 16 vistas live**. | **Cerrado**. Movible a 🟢 cerradas. |

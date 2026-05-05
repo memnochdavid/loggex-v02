@@ -1,7 +1,7 @@
 # Pulido UX — ajustes y bugs detectados
 
 > **Status (2026-05-05)**: 🟡 **Ronda 1 ✅ Done (2026-04-28, 8 ítems)** — bitácora abajo.
-> **Ronda 2 🔴 abierta (2026-05-05)** con nuevos ítems detectados. Ver §"Ronda 2" más abajo.
+> **Ronda 2 ✅ cerrada (2026-05-05 noche)**. Los 6 ítems R2.1-R2.6 cerrados: R2.1 con barrido completo de breadcrumbs en TODAS las vistas con `CrudHeader` (incluyendo wrappers `/fechas` y `/admin/horarios`), R2.2-R2.6 cerrados de mañana + residuales de tarde. Ver §"Bitácora Ronda 2".
 
 ---
 
@@ -24,7 +24,7 @@
 
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
-| R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | 🟡 Componente listo + 3 vistas migradas (2026-05-05). Pendiente barrer el resto de vistas con `CrudHeader`. |
+| R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | ✅ 2026-05-05 noche (componente `Breadcrumbs.jsx` + barrido de 27 vistas + wrappers `/fechas` y `/admin/horarios` con tabs embedded + fix DOM nesting de TableSkeleton). |
 | R2.2 | `/admin/catalogo` y subvistas no se traducen (i18n × 5) | i18n / Bug | ✅ 2026-05-05 (bloque `catalogo` faltaba en en/ca/gl/eu — caía a fallback español; añadido el bloque completo de 112 claves a los 4 idiomas) |
 | R2.3 | Profe en `/horarios` → click evento → `/entregas?imparticion=X&tarea=Y` no auto-despliega el accordion correspondiente | Bug UX | ✅ 2026-05-05 (deep-link reescrito robusto + fallback: si no encuentra la tarea concreta al menos expande el accordion de la imparticion; búsqueda fallback por sólo `?tarea=Y`) |
 | R2.4 | Profe en `/entregas`: header del accordion `[materia] - [abrev]` debería ser `[materia] - [curso]º [abrev]` (formato consistente con `/admin/horarios`, Ronda 1 #2) | UX | ✅ 2026-05-05 (`useImparticiones` añade `[curso]º` al label; `Grupo.curso` ya estaba en `imparticion:read`) |
@@ -437,23 +437,43 @@ Resultado: las 7 filas (5 `tarea_nueva` + 2 `calificacion_actualizada`) quedan a
 
 **HMR**: backend reiniciado para opcache (cambio en NotificationDispatcher). Vite HMR aceptó los cambios frontend sin errores.
 
-### 2026-05-05 (noche) — R2.1 Componente Breadcrumbs + 3 vistas migradas
+### 2026-05-05 (noche) — R2.1 Breadcrumbs ✅ Done — barrido completo
+
+**Fase 1 (componente + 3 vistas muestra)**:
 
 Componente compartido `Breadcrumbs.jsx` (`frontend/src/components/Breadcrumbs.jsx` + module CSS) con su prop opcional integrado en `CrudHeader.jsx`. Si `breadcrumbs={undefined}`, no se renderiza nada — vistas existentes no rompen.
 
-**Especificación implementada** (consenso doc R2.1):
-- Encima del título dentro de `.textContainer` del `CrudHeader`.
-- Tipografía 0.8rem, color `var(--text-muted)`, separador chevron (Lucide `ChevronRight`).
-- Última miga = texto plano con `var(--text-main)` + `font-medium` (vista actual). Resto = `<Link>` de React Router con hover `var(--color-primary-500)`.
-- Truncado: `nowrap` + `overflow:hidden` + `text-overflow:ellipsis` en la `<ol>` para que no envuelva en 2 líneas en móvil.
-- 100% tematizado, cero literales hex (regla de oro).
-- `aria-label="Breadcrumb"` + `aria-current="page"` en la última miga (a11y).
+Especificación implementada:
+- Inicialmente DENTRO de `.textContainer` (al lado del logo). El usuario pidió moverlas **encima de todo el header alineadas al borde izquierdo del lottie/título** → refactor a `.outer > .breadcrumbsRow + .container` con `margin-bottom` reasignado al outer.
+- Tipografía igual al subtítulo (`var(--text-base)`, `line-height: 1.4`) — el usuario pidió ajustar el tamaño después del primer commit. Icono `ChevronRight` Lucide a 16px proporcional.
+- Última miga = texto plano con `var(--text-main)` + `font-medium`. Resto = `<Link>` con hover `var(--color-primary-500)`.
+- Truncado nowrap + ellipsis para móvil.
+- 100% tematizado, cero literales hex.
+- `aria-label="Breadcrumb"` + `aria-current="page"` (a11y).
 
-**Vistas migradas como muestra**:
-- `Centros.jsx`: `Inicio › Superadmin › Centros oficiales`.
-- `Grupos.jsx`: `Inicio › Administración › Grupos`.
-- `Horarios.jsx` (no embedded): `Inicio › Mi horario`.
+**Fase 2 (barrido completo)**:
 
-**Pendiente**: barrer el resto de vistas con `CrudHeader` (Usuarios, Itinerarios, Materias, Matriculas, Imparticiones, Fechas, Entregas, MisCalificaciones, Calificaciones, Mensajes, Claustro, Companeros, Catalogo*, etc.). Trabajo mecánico, ~1 sesión, ya con el componente listo.
+Migradas TODAS las vistas con `<CrudHeader>` del proyecto. Total: 27 vistas + 2 wrappers con tabs embedded (`/fechas`, `/admin/horarios`).
 
-Reusamos las labels existentes del bloque `sidebar` (`sidebar.home`, `sidebar.admin`, `sidebar.superadmin`) — no añade keys i18n nuevas.
+**Decisión de diseño (consenso usuario)**: cuando NO existe una vista intermedia real entre `Inicio` y la vista actual, el breadcrumb tiene 2 niveles solo (`Inicio › Vista`). NO se inventan niveles fantasma "Administración" / "Profesor" / "Alumno" como categorías del sidebar — esas son agrupaciones del menú, no vistas navegables. Inicialmente había añadido esos niveles intermedios; tras feedback del usuario un `sed` global los eliminó.
+
+Estructura final de breadcrumbs:
+
+| Vista | Breadcrumb |
+|---|---|
+| `/centros` | `Inicio › Centros oficiales` |
+| `/grupos` `/usuarios` `/itinerarios` `/materias` `/matriculas` `/imparticiones` `/admin/jornadas` `/admin/calificaciones` | `Inicio › Vista` |
+| `/fechas` (Festivos & Evaluaciones embedded) | `Inicio › Fechas` |
+| `/admin/horarios` (HorariosEditor + Horarios + HorariosConsumicion embedded) | `Inicio › Horarios (administración)` |
+| `/horarios` (standalone) | `Inicio › Mi horario` |
+| `/admin/catalogo/*` | `Inicio › Catálogo X` (sin nivel intermedio "Catálogo oficial") |
+| `/admin/catalogo/itinerarios/{id}` | `Inicio › Itinerarios catálogo › {nombre dinámico}` (caso especial: padre real) |
+| Profesor (`/calificaciones`, `/mis-temarios`, `/claustro`, `/mis-alumnos`) | `Inicio › Vista` |
+| Alumno (`/mis-calificaciones`, `/apuntes`, `/faltas`, `/companeros`, `/mis-profesores`) | `Inicio › Vista` |
+| `/entregas`, `/mensajes`, `/configuracion` | `Inicio › Vista` |
+
+Reusamos las labels existentes del bloque `sidebar` y los blocks de cada vista (`grades.title`, etc.) — cero keys i18n nuevas.
+
+**Excluido por diseño**: `HorariosConsumicion.jsx` siempre va embedded (es un tab del wrapper `/admin/horarios`); recibe el mismo breadcrumb que sus vistas hermanas (`Inicio › Horarios (administración)`).
+
+**Bug fix colateral**: en `CatalogoItinerarioDetail.jsx` el placeholder de carga usaba `<TableSkeleton>` (que produce `<tr>`) dentro de un `<div>`, generando warning DOM nesting (`<tr> cannot be a child of <div>`). Sustituido por `<Skeleton>` simples (líneas en `<div>`s). El componente `TableSkeleton` sigue válido para uso dentro de DataTable que sí provee la jerarquía `<table><tbody>` envolvente.
