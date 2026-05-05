@@ -104,11 +104,47 @@
     "support": "Support",
     "apiDocs": "API Docs",
     "notifications": "Notifications",
+    "messages": "Messages",
     "login": "Login",
     "about": "About",
     "noSupportFound": "No support staff available at the moment.",
     "errorSupport": "Error connecting to support.",
     "apiDocsTooltip": "API Platform Documentation"
+  },
+  "notifications": {
+    "empty": "No recent notifications",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all",
+    "loading": "Loading notifications...",
+    "errorLoad": "Could not load notifications",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} h ago",
+    "daysAgo": "{{count}} d ago",
+    "unread": "Unread",
+    "markedAllRead": "{{count}} notifications marked as read",
+    "types": {
+      "calificacion_publicada": {
+        "title": "Your grade is available",
+        "body": "You scored {{nota}} on \"{{tareaTitulo}}\""
+      },
+      "tarea_nueva": {
+        "title": "New task available",
+        "body": "New task: \"{{titulo}}\""
+      },
+      "comunicado_nuevo": {
+        "title": "New announcement",
+        "body": "Published: \"{{titulo}}\""
+      },
+      "entrega_recibida": {
+        "title": "New submission received",
+        "body": "{{alumnoNombre}} submitted \"{{tareaTitulo}}\""
+      },
+      "tarea_vencida_sin_entrega": {
+        "title": "Task overdue without submission",
+        "body": "The task \"{{titulo}}\" expired without your submission"
+      }
+    }
   },
   "footer": {
     "developedBy": "Developed by",

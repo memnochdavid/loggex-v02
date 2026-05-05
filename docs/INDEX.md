@@ -6,11 +6,16 @@
 
 ## 🚨 PRÓXIMA SESIÓN — MÁXIMA PRIORIDAD (2026-05-05)
 
-**🔥 NUEVO — Sistema de notificaciones del sistema (campanita + propagación a afectados)**. Doc dedicado: **`hoja-de-ruta-notificaciones.md`**. 3 fases (~2 sesiones) que cubren:
+**🔥 Sistema de notificaciones del sistema (campanita + propagación a afectados)** — Doc: **`hoja-de-ruta-notificaciones.md`**.
 
-1. **Backend**: entidad `Notificacion` per-destinatario + `NotificationDispatcher` + subscribers Doctrine sobre `Calificacion`/`Tarea`/`Comunicado`/`Entrega` + endpoint REST + `#[LivePublish]` topic `/users/{id}/notificaciones`.
-2. **Frontend**: refactor del header — **DOS botones** (decisión D1 cerrada 2026-05-05): el actual de mensajes intercambia su icono `Bell` → `Mail`/`MessageCircle`, y se añade un botón nuevo con icono `Bell` que despliega la cola de notificaciones del sistema (visualmente idéntico al de mensajes). Click en una notificación → navega a la vista oportuna y la marca como leída.
-3. **Catálogo cerrado de tipos** (en doc §3): `calificacion_publicada`, `tarea_nueva`, `comunicado_nuevo`, `entrega_recibida`, `tarea_vencida_sin_entrega`. **Regla**: un mensaje NO genera notificación adicional (evita contadores duplicados).
+**Estado actualizado 2026-05-05**:
+
+1. ✅ **Fase 1 backend implementada** (commit pendiente): entidad `Notificacion` + repo + migración `Version20260505120000` + `NotificationDispatcher` con 4 métodos `notify*()` + `NotificationDispatchSubscriber` (postPersist + postFlush con guard de re-entrancy) + endpoint custom `POST /api/notificaciones/marcar-todas-leidas` + filtro en `CurrentUserExtension` + topic Mercure `/users/{id}/notifications` (ya en el JWT).
+   - **Pendiente para activar end-to-end**: correr migración + cache:clear + smoke tests (detalle en §Bitácora 2026-05-05 del doc).
+2. 🔴 **Fase 2 frontend**: refactor del header — **DOS botones** (decisión D1 cerrada 2026-05-05): el actual de mensajes intercambia su icono `Bell` → `Mail`/`MessageCircle`, y se añade un botón nuevo con icono `Bell` que despliega la cola de notificaciones del sistema. Click en una notificación → navega a la vista oportuna y la marca como leída.
+3. ✅ **Fase 3 catálogo + i18n** (2026-05-05): catálogo cerrado + dispatcher + i18n × 5 idiomas (`notifications.types.{tipo}.{title|body}` + UI strings: empty/markAllRead/viewAll/relative time). `header.messages` añadido para el botón renombrado en Fase 2. Iconos por tipo se cablean al crear `<NotificationsList>` (Fase 2).
+
+**Regla de oro**: un mensaje NO genera notificación adicional (evita contadores duplicados).
 
 **Por qué primera**: el bucle de feedback hoy está roto — el alumno no se entera de que su examen ha sido corregido salvo que entre activamente; el profe no ve si llega una entrega nueva. Es bloqueante para "Loggex se vende a un centro real sin que los usuarios se sientan ciegos".
 

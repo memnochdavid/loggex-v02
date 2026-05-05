@@ -104,11 +104,47 @@
     "support": "Soporte",
     "apiDocs": "API Docs",
     "notifications": "Notificaciones",
+    "messages": "Mensajes",
     "login": "Login",
     "about": "About",
     "noSupportFound": "No se ha encontrado personal de soporte disponible en este momento.",
     "errorSupport": "Error al conectar con soporte.",
     "apiDocsTooltip": "Documentación API Platform"
+  },
+  "notifications": {
+    "empty": "Sin notificaciones recientes",
+    "markAllRead": "Marcar todas como leídas",
+    "viewAll": "Ver todas",
+    "loading": "Cargando notificaciones...",
+    "errorLoad": "No se pudieron cargar las notificaciones",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {{count}} min",
+    "hoursAgo": "Hace {{count}} h",
+    "daysAgo": "Hace {{count}} d",
+    "unread": "No leídas",
+    "markedAllRead": "{{count}} notificaciones marcadas como leídas",
+    "types": {
+      "calificacion_publicada": {
+        "title": "Tu calificación está disponible",
+        "body": "Has obtenido {{nota}} en \"{{tareaTitulo}}\""
+      },
+      "tarea_nueva": {
+        "title": "Nueva tarea disponible",
+        "body": "Nueva tarea: \"{{titulo}}\""
+      },
+      "comunicado_nuevo": {
+        "title": "Nuevo comunicado",
+        "body": "Se ha publicado: \"{{titulo}}\""
+      },
+      "entrega_recibida": {
+        "title": "Nueva entrega recibida",
+        "body": "{{alumnoNombre}} ha entregado \"{{tareaTitulo}}\""
+      },
+      "tarea_vencida_sin_entrega": {
+        "title": "Tarea vencida sin entrega",
+        "body": "La tarea \"{{titulo}}\" ha vencido sin que la entregaras"
+      }
+    }
   },
   "footer": {
     "developedBy": "Desarrollado por",

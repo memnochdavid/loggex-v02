@@ -13,6 +13,7 @@ use App\Entity\Entrega;
 use App\Entity\Festivo;
 use App\Entity\Mensaje;
 use App\Entity\Materia;
+use App\Entity\Notificacion;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
@@ -48,7 +49,8 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             Tarea::class,
             Entrega::class,
             Calificacion::class,
-            Comunicado::class
+            Comunicado::class,
+            Notificacion::class
         ];
 
         if (!in_array($resourceClass, $supportedClasses)) {
@@ -66,6 +68,14 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         // Lógica específica para Mensajes
         if ($resourceClass === Mensaje::class) {
             $queryBuilder->andWhere(sprintf('%s.remitente = :current_user_id OR %s.destinatario = :current_user_id', $rootAlias, $rootAlias))
+                ->setParameter('current_user_id', $user->getId());
+            return;
+        }
+
+        // Notificaciones — cada usuario solo ve las suyas. SuperAdmin queda
+        // exento del filtro por el early return de arriba.
+        if ($resourceClass === Notificacion::class) {
+            $queryBuilder->andWhere(sprintf('%s.usuario = :current_user_id', $rootAlias))
                 ->setParameter('current_user_id', $user->getId());
             return;
         }

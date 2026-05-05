@@ -104,11 +104,47 @@
     "support": "Suport",
     "apiDocs": "API Docs",
     "notifications": "Notificacions",
+    "messages": "Missatges",
     "login": "Login",
     "about": "About",
     "noSupportFound": "No s'ha trobat personal de suport disponible en aquest moment.",
     "errorSupport": "Error en connectar amb suport.",
     "apiDocsTooltip": "Documentació API Platform"
+  },
+  "notifications": {
+    "empty": "Sense notificacions recents",
+    "markAllRead": "Marca-les totes com a llegides",
+    "viewAll": "Mostra-les totes",
+    "loading": "Carregant notificacions...",
+    "errorLoad": "No s'han pogut carregar les notificacions",
+    "justNow": "Ara mateix",
+    "minutesAgo": "Fa {{count}} min",
+    "hoursAgo": "Fa {{count}} h",
+    "daysAgo": "Fa {{count}} d",
+    "unread": "No llegides",
+    "markedAllRead": "{{count}} notificacions marcades com a llegides",
+    "types": {
+      "calificacion_publicada": {
+        "title": "La teva qualificació està disponible",
+        "body": "Has obtingut {{nota}} a \"{{tareaTitulo}}\""
+      },
+      "tarea_nueva": {
+        "title": "Nova tasca disponible",
+        "body": "Nova tasca: \"{{titulo}}\""
+      },
+      "comunicado_nuevo": {
+        "title": "Nou comunicat",
+        "body": "S'ha publicat: \"{{titulo}}\""
+      },
+      "entrega_recibida": {
+        "title": "Nou lliurament rebut",
+        "body": "{{alumnoNombre}} ha lliurat \"{{tareaTitulo}}\""
+      },
+      "tarea_vencida_sin_entrega": {
+        "title": "Tasca caducada sense lliurament",
+        "body": "La tasca \"{{titulo}}\" ha caducat sense que l'hagis lliurat"
+      }
+    }
   },
   "footer": {
     "developedBy": "Desenvolupat per",

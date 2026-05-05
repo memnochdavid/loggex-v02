@@ -104,11 +104,47 @@
     "support": "Laguntza",
     "apiDocs": "API Docs",
     "notifications": "Jakinarazpenak",
+    "messages": "Mezuak",
     "login": "Login",
     "about": "About",
     "noSupportFound": "Ez da laguntza-pertsonalik aurkitu une honetan.",
     "errorSupport": "Errorea laguntzarekin konektatzean.",
     "apiDocsTooltip": "API Platform dokumentazioa"
+  },
+  "notifications": {
+    "empty": "Azken aldiko jakinarazpenik ez",
+    "markAllRead": "Markatu denak irakurritako gisa",
+    "viewAll": "Ikusi denak",
+    "loading": "Jakinarazpenak kargatzen...",
+    "errorLoad": "Ezin izan dira jakinarazpenak kargatu",
+    "justNow": "Oraintxe bertan",
+    "minutesAgo": "Duela {{count}} min",
+    "hoursAgo": "Duela {{count}} h",
+    "daysAgo": "Duela {{count}} d",
+    "unread": "Irakurri gabe",
+    "markedAllRead": "{{count}} jakinarazpen irakurritako gisa markatuta",
+    "types": {
+      "calificacion_publicada": {
+        "title": "Zure nota eskuragarri dago",
+        "body": "{{nota}} lortu duzu \"{{tareaTitulo}}\" lanean"
+      },
+      "tarea_nueva": {
+        "title": "Lan berri bat eskuragarri",
+        "body": "Lan berria: \"{{titulo}}\""
+      },
+      "comunicado_nuevo": {
+        "title": "Iragarki berria",
+        "body": "Argitaratuta: \"{{titulo}}\""
+      },
+      "entrega_recibida": {
+        "title": "Bidalketa berria jasota",
+        "body": "{{alumnoNombre}}-(e)k \"{{tareaTitulo}}\" bidali du"
+      },
+      "tarea_vencida_sin_entrega": {
+        "title": "Lana iraungia bidali gabe",
+        "body": "\"{{titulo}}\" lana iraungi da bidali gabe"
+      }
+    }
   },
   "footer": {
     "developedBy": "Garatzailea",

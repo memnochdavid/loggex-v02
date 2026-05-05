@@ -104,11 +104,47 @@
     "support": "Soporte",
     "apiDocs": "API Docs",
     "notifications": "Notificacións",
+    "messages": "Mensaxes",
     "login": "Login",
     "about": "About",
     "noSupportFound": "Non se atopou persoal de soporte dispoñible neste momento.",
     "errorSupport": "Erro ao conectar con soporte.",
     "apiDocsTooltip": "Documentación API Platform"
+  },
+  "notifications": {
+    "empty": "Sen notificacións recentes",
+    "markAllRead": "Marcar todas como lidas",
+    "viewAll": "Ver todas",
+    "loading": "Cargando notificacións...",
+    "errorLoad": "Non se puideron cargar as notificacións",
+    "justNow": "Agora mesmo",
+    "minutesAgo": "Hai {{count}} min",
+    "hoursAgo": "Hai {{count}} h",
+    "daysAgo": "Hai {{count}} d",
+    "unread": "Non lidas",
+    "markedAllRead": "{{count}} notificacións marcadas como lidas",
+    "types": {
+      "calificacion_publicada": {
+        "title": "A túa cualificación está dispoñible",
+        "body": "Obtiveches {{nota}} en \"{{tareaTitulo}}\""
+      },
+      "tarea_nueva": {
+        "title": "Nova tarefa dispoñible",
+        "body": "Nova tarefa: \"{{titulo}}\""
+      },
+      "comunicado_nuevo": {
+        "title": "Novo comunicado",
+        "body": "Publicouse: \"{{titulo}}\""
+      },
+      "entrega_recibida": {
+        "title": "Nova entrega recibida",
+        "body": "{{alumnoNombre}} entregou \"{{tareaTitulo}}\""
+      },
+      "tarea_vencida_sin_entrega": {
+        "title": "Tarefa vencida sen entrega",
+        "body": "A tarefa \"{{titulo}}\" venceu sen que a entregases"
+      }
+    }
   },
   "footer": {
     "developedBy": "Desenvolvido por",
