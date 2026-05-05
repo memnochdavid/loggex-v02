@@ -100,47 +100,29 @@ class CurriculumDistributor
             if (empty($slotDurations)) {
                 return $this->errorResult(sprintf('PL #%d sin slots colocables.', $pl->getId()));
             }
-            // slotMin_j: el slot más pequeño (granularidad de los m_ij del rango).
-            // Las materias asumen múltiplos de slotMin_j en su minutosSemanales.
-            $slotMin = min($slotDurations);
+            // slotMin_j: granularidad pedagógica de los m_ij del rango.
+            // max(60, slot_atómico) garantiza que `pli.minutosSemanales` sea
+            // múltiplo de 60min (= 1 hora pedagógica) cuando los slots
+            // atómicos son 30min, evitando que el solver reciba liquidos
+            // residuales de 30 que se traducen en bloques sueltos.
+            $slotMin = max(60, min($slotDurations));
             $cap = $capPorDia * $diasCount;
             $semanas = $this->calcularSemanasEnteras($pl);
             if ($semanas < 1) {
                 return $this->errorResult(sprintf('PL #%d con < 1 semana.', $pl->getId()));
             }
-            // (semanasEnteras solo se usa para el sanity check >= 1 sem)
-            // Slots aprovechables/sem = nº slots reales × días lectivos.
-            // (Antes: intdiv(cap, slotMin), pero esto sobreestimaba cuando hay
-            // slots de duración mixta — ej jornada 4×60+1×90/día = 25 slots
-            // reales/sem, no 27 como daba la división.)
             $capSlotsPorSem = count($slotDurations) * $diasCount;
-            // Semanas FRACCIONALES (días/7) — refleja las ocurrencias reales
-            // del día_semana que el solver físico contará. Antes usaba
-            // round(días/7) entero, pero eso sobreestimaba un rango con 88
-            // días (12.57 sem reales) al pedir K basados en 13 sem → predicción
-            // sobre rangos extendidos (18 vs 17.57) causaba overshoot/shortfall
-            // dependiendo del signo del round.
             $semanasFrac = $this->calcularSemanasFraccionales($pl);
-            // capMin TARGET = capSlotsPorSem × slotMin (no cap_total). Esto
-            // controla el número de PLACEMENTS físicos que el solver puede
-            // colocar respetando combos delta=0. Para FP Mañanas (4×60+1×90):
-            //   - cap_total = 1650 min, capSlotsPorSem = 25, slotMin = 60.
-            //   - capMinTarget = 25 × 60 = 1500 min.
-            //   - 150 min residuales (= slot de 90 fuera del target).
-            // El solver físico puede usar el slot de 90 si encuentra combo
-            // delta=0 (ej: target 240 = 1×60+2×90=240, libera 1 placement).
-            // Pero el distribuidor NO sobre-asigna cuotas para llenar 1650 →
-            // evita unplaced cuando el solver no encuentra combos.
             $capMinTarget = $capSlotsPorSem * $slotMin;
             $plMeta[$pl->getId()] = [
                 'pl' => $pl,
-                'cap' => $cap,                              // min/sem cap real (jornada slots)
-                'capTarget' => $capMinTarget,               // min/sem target del distribuidor
-                'slotMin' => $slotMin,                      // granularidad
+                'cap' => $cap,
+                'capTarget' => $capMinTarget,
+                'slotMin' => $slotMin,
                 'capSlotsPorSem' => $capSlotsPorSem,
                 'semanas' => $semanasFrac,
                 'aporteSlot' => $slotMin * $semanasFrac,
-                'capMinLibres' => $capMinTarget,            // min libres respecto al target
+                'capMinLibres' => $capMinTarget,
             ];
             $lastCap = $cap;
             $lastPlId = $pl->getId();
@@ -218,46 +200,20 @@ class CurriculumDistributor
             }
         }
 
-        // Distribución slot-discreto con **round-UP estricto per materia**:
-        //
-        // Filosofía (consenso 2026-04-29): el solver físico (CapacityPlanner +
-        // backtracking) ahora prefiere combos con delta=0 (penalty fuerte por
-        // delta>0). Esto significa que si el distribuidor pide 180 min/sem, el
-        // solver coloca 180 exactos cuando puede. Por tanto, el distribuidor
-        // **debe pedir cuotas que ya garanticen ≥ 100% por materia**: no puede
-        // confiar en que el solver "redondee al alza" como antes.
-        //
-        // Algoritmo:
-        // 1. Para cada materia (orden por menor número de slots necesarios →
-        //    asegura que las pequeñas como DIG reciban su cuota antes de
-        //    que las grandes consuman toda la capacidad):
-        //    - Asignar slots greedy al rango con MÁS holgura mientras
-        //      `restante > 0`. Cada slot añade `aporteSlot_j` minutos.
-        //    - Cuando `restante ≤ 0`, la materia está cubierta (overshoot
-        //      ≤ aporteSlot máximo de un solo slot, ≤ 1.5h típicamente).
-        //
-        // 2. Si alguna materia se queda con `restante > 0` (capacidad agotada
-        //    sin cubrir): devolver `extendBy` proporcional al mayor faltante.
-        //    El frontend extiende y reintenta.
-        //
-        // Orden ASC por slots necesarios = priorizar pequeñas. Las grandes
-        // van al final con la capacidad restante. Si las grandes saturan
-        // antes de cubrirse: shortfall y extender. Resultado: nadie queda
-        // sin asignar (no más DIG=0 ni IPEI1=0).
+        // Orden ASC de imps por slots necesarios (las pequeñas reservan
+        // sus slots antes de que las grandes consuman toda la capacidad).
         $impIdsOrdenados = array_keys($impsPres);
-        // Usar el aporteSlot promedio para estimar slots necesarios.
         $aporteSlotPromedio = 0;
         foreach ($plMeta as $meta) $aporteSlotPromedio += $meta['aporteSlot'];
         $aporteSlotPromedio = count($plMeta) > 0 ? $aporteSlotPromedio / count($plMeta) : 1;
         usort($impIdsOrdenados, function ($a, $b) use ($impsPres, $aporteSlotPromedio) {
             $slotsA = (int) ceil($impsPres[$a]['objetivo'] / max(1, $aporteSlotPromedio));
             $slotsB = (int) ceil($impsPres[$b]['objetivo'] / max(1, $aporteSlotPromedio));
-            return $slotsA <=> $slotsB; // ASC: menos slots primero
+            return $slotsA <=> $slotsB;
         });
 
-        // Pase 1: cubrir currículo curricular per materia (orden ASC slots
-        // necesarios). Greedy con criterio "overshoot mínimo": cada slot va
-        // al rango cuya aporte está más cerca del faltante restante.
+        // Pase greedy: por imp en orden ASC, asignar slots al PL con menor
+        // overshoot hasta cubrir restante.
         foreach ($impIdsOrdenados as $impId) {
             $iter = 0;
             while ($impsPres[$impId]['restante'] > 0 && $iter++ < 2000) {

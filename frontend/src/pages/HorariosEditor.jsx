@@ -100,11 +100,13 @@ const consumeAulaModalidad = (modalidad) => modalidad === 'presencial';
 const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, selected, onSelect }) => {
   const id = `mod:${imparticion.id}`;
   const done = minutosColocados >= minutosTotales && minutosTotales > 0;
-  const disabled = done;
+  // Antes done deshabilitaba drag y click. Eliminado (2026-05-05): el admin
+  // debe poder añadir más bloques aunque la imp esté al 100% para cuadrar
+  // casos reales (refuerzo, semana intensiva). El estilo `moduleChipDone`
+  // sigue marcando visualmente la imp completa.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: { type: 'module', imparticionId: imparticion.id },
-    disabled,
   });
 
   const horasColocadas = minToHoras(minutosColocados);
@@ -117,7 +119,6 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
       {...listeners}
       {...attributes}
       onClick={(e) => {
-        if (disabled) return;
         // El click no debe disparar si el drag lo interceptó; dnd-kit con distance:4 deja pasar clicks cortos.
         e.stopPropagation();
         onSelect?.(imparticion.id);
@@ -1469,15 +1470,13 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const imp = impById[impId];
     if (!imp) return { ok: false, reason: t('scheduleEditor.reasonUnknownImp') };
 
-    // Regla 1: horas anuales restantes > 0 (Fase 5 sub-A — antes era semanal del
-    // PL activo; ahora bloqueamos sólo cuando se han colocado las horas anuales
-    // completas del currículo en cualquier rango del grupo).
+    // Antes había una regla "módulo lleno" que bloqueaba colocar si la imp
+    // ya tenía su currículo anual cubierto. Eliminada (2026-05-05): el solver
+    // automático respeta el currículo, pero el admin debe poder cuadrar
+    // manualmente con overshoot cuando el caso real lo requiere (ej. clase
+    // de refuerzo, semana intensiva). El chip lateral muestra X/Y horas y
+    // colorea overshoot — feedback suficiente sin bloquear.
     if (drag.type === 'module') {
-      const totalAnualMin = minutosAnualesObjetivoByImp[impId] || 0;
-      const colocadasAnualMin = minutosAnualesColocadosByImp[impId] || 0;
-      if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
-        return { ok: false, reason: t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }) };
-      }
       // Regla extra: la celda debe estar vacía. Con bloques de 60-120min
       // (granularidad 30min), un slot puede estar cubierto por un placement
       // que arrancó en un slot anterior — comprobamos también ese caso.
@@ -2189,13 +2188,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       })() : placements;
       const imp = impById[selectedImpId];
       if (!imp) return;
-      // Tap-mode: misma regla anual que el drag (Fase 5 sub-A).
-      const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
-      const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
-      if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) {
-        toast.error(t('scheduleEditor.reasonModuleFull', { total: minToHoras(totalAnualMin), module: imp.materia?.nombre }));
-        return;
-      }
+      // Sin bloqueo por "módulo lleno" (2026-05-05): el admin puede colocar
+      // con overshoot si el caso real lo requiere. El chip lateral indica
+      // visualmente cuando se sobrepasa el target anual.
       const profId = imp.profesor?.id;
       if (profId && parallelBusy[key]?.has(Number(profId))) {
         const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
@@ -2221,6 +2216,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }));
       // Si la materia, tras este tap, alcanza el objetivo anual, deseleccionamos.
       // Aproximación: añadimos al colocado anual el tap como `tapDur × semanas activo`.
+      const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
+      const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
       const semanasActivo = selectedPlId ? (semanasByPlId[selectedPlId] || 0) : 0;
       if (totalAnualMin > 0 && colocadasAnualMin + tapDur * semanasActivo >= totalAnualMin) {
         setSelectedImpId(null);
@@ -2238,21 +2235,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     }
   }, [selectedImpId, placements, impById, parallelBusy, selectedGrupo, slotsDia, slotMinutosByHi, grupo, t]);
 
-  // Validación ligera para pintar tap-mode (Fase 5 sub-A: usa cuota anual igual
-  // que el drag y el handler de tap; estaban desincronizados con el modelo).
+  // Validación ligera para pintar tap-mode. Se ha quitado el bloqueo por
+  // "imp completa" (2026-05-05): el admin puede tap-add aunque la imp ya
+  // tenga su currículo cubierto.
   const validateTap = useCallback((diaIdx, slotIdx) => {
     if (!selectedImpId) return null;
     const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const totalAnualMin = minutosAnualesObjetivoByImp[selectedImpId] || 0;
-    const colocadasAnualMin = minutosAnualesColocadosByImp[selectedImpId] || 0;
-    if (totalAnualMin > 0 && colocadasAnualMin >= totalAnualMin) return false;
     const profId = imp.profesor?.id;
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
     return true;
-  }, [selectedImpId, slotsDia, placements, impById, minutosAnualesObjetivoByImp, minutosAnualesColocadosByImp, parallelBusy]);
+  }, [selectedImpId, slotsDia, placements, impById, parallelBusy]);
 
   // ESC deselecciona
   useEffect(() => {
@@ -3608,19 +3603,44 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }));
       return;
     }
-    const N = Math.max(1, parseInt(createRangosCount, 10) || 3);
-    const iniISO = grupo.fechaInicio?.slice(0, 10);
+
+    // Fase B (2026-05-05): preguntar al backend cuántos rangos crear y con
+    // qué fechas, en lugar de usar el hard-code N=3 + cálculo equiespaciado.
+    // El planner combina calendario real, evaluaciones del grupo y horas
+    // curriculares para devolver una propuesta razonada.
+    let plannerJson = null;
+    try {
+      const planRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/plan-rangos`), {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include',
+      });
+      if (planRes.ok) {
+        plannerJson = await planRes.json();
+      }
+    } catch (err) {
+      console.warn('[OptCurso] planner falló, fallback a cálculo equiespaciado:', err);
+    }
+
+    const plannerRangos = plannerJson?.rangos ?? [];
+    const plannerDiag = plannerJson?.diagnostico ?? null;
+    // Si el planner devolvió algo usable, sus rangos mandan.
+    const plannerOk = plannerRangos.length > 0 && plannerDiag !== null;
+
+    const iniISO = plannerOk
+      ? plannerRangos[0].fechaInicio
+      : grupo.fechaInicio?.slice(0, 10);
     if (!iniISO) {
       toast.error(t('scheduleEditor.createRangosNoFechas', { defaultValue: 'El grupo no tiene fechaInicio/fechaFin. Edítalo primero en /admin/grupos.' }));
       return;
     }
-    // Base ideal de fechaFin: junio 30 del segundo año académico. Esto resetea
-    // cualquier acumulación de extends de pruebas anteriores (ej fechaFin
-    // 2030-11-20 tras múltiples ejecuciones de "Configurar curso óptimo").
-    // El sistema extenderá DESDE esta base si hace falta, no desde fechaFin
-    // acumulado.
+
+    // Base ideal de fechaFin: el último rango del planner (si existe), o
+    // junio 30 del segundo año académico como fallback histórico. El base
+    // resetea acumulación de extends de pruebas anteriores.
     let finISO;
-    if (grupo.anioEscolar) {
+    if (plannerOk) {
+      finISO = plannerDiag.fechaFin || plannerRangos[plannerRangos.length - 1].fechaFin;
+    } else if (grupo.anioEscolar) {
       const partes = grupo.anioEscolar.split('-');
       const segundoAnio = partes[1] || String(Number(partes[0]) + 1);
       finISO = `${segundoAnio}-06-30`;
@@ -3634,17 +3654,27 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       console.log(`[OptCurso] Reset Grupo.fechaFin: ${finISOPrev} → ${finISO} (eliminando acumulación previa)`);
     }
 
-    // Calcular si hay que extender Grupo.fechaFin para cubrir semanasOptimas.
-    const ini = new Date(iniISO);
-    const fin = new Date(finISO);
-    const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
-    const diasNecesarios = semanasOptimas * 7;
-    const willExtend = diasNecesarios > totalDiasCalendario;
-    const diasExtension = willExtend ? (diasNecesarios - totalDiasCalendario) : 0;
-    const newFechaFinDate = willExtend
-      ? new Date(fin.getTime() + diasExtension * 86400000)
-      : fin;
-    const newFinISO = newFechaFinDate.toISOString().slice(0, 10);
+    // Decidir N + extensión a partir del planner (si lo hubo) o del cálculo
+    // equiespaciado clásico como fallback.
+    let N, willExtend, diasExtension, newFinISO;
+    if (plannerOk) {
+      N = plannerRangos.length;
+      willExtend = !plannerDiag.feasible && (plannerDiag.extendDias || 0) > 0;
+      diasExtension = plannerDiag.extendDias || 0;
+      newFinISO = plannerDiag.fechaFinExtendida || finISO;
+    } else {
+      N = Math.max(1, parseInt(createRangosCount, 10) || 3);
+      const ini = new Date(iniISO);
+      const fin = new Date(finISO);
+      const totalDiasCalendario = Math.max(1, Math.round((fin - ini) / 86400000) + 1);
+      const diasNecesarios = semanasOptimas * 7;
+      willExtend = diasNecesarios > totalDiasCalendario;
+      diasExtension = willExtend ? (diasNecesarios - totalDiasCalendario) : 0;
+      const newFechaFinDate = willExtend
+        ? new Date(fin.getTime() + diasExtension * 86400000)
+        : fin;
+      newFinISO = newFechaFinDate.toISOString().slice(0, 10);
+    }
 
     console.group(`[OptCurso] grupo=${selectedGrupo} (${grupo?.nombre || '?'})`);
     console.log('[OptCurso] inputs:', {
@@ -3652,11 +3682,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       grupoNombre: grupo?.nombre,
       itinerario: grupo?.itinerario?.nombre,
       iniISO, finISO,
-      totalDiasCalendario,
       semanasOptimas,
-      diasNecesarios,
       willExtend, diasExtension, newFinISO,
       N,
+      plannerOk,
+      plannerDiagnostico: plannerDiag,
       slotsSemanalMin,
       jornadaSemanalLectivaMin,
       impsCount: imps.length,
@@ -3734,8 +3764,40 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     };
 
     // Paso 2 (DRY): construir N PLs virtuales con tempIds negativos.
+    // Si el planner devolvió rangos razonados (alineados con evaluaciones o
+    // con el rango único "Curso completo"), los usamos tal cual. Si NO hay
+    // planner (fallback), reparte el calendario equiespaciadamente entre N
+    // rangos (comportamiento histórico).
     setConfiguringStep('2/5');
-    {
+    if (plannerOk) {
+      // El planner ya extendió la fecha del último rango si era necesario
+      // (campo fechaFinExtendida en diagnostico). Si extendDias > 0, ajustamos
+      // el último rango a esa fecha para no perder la cobertura.
+      const rangosAjustados = plannerRangos.map((r, i) => ({
+        ...r,
+        fechaFin: (i === plannerRangos.length - 1 && diasExtension > 0)
+          ? newFinISO
+          : r.fechaFin,
+      }));
+      rangosAjustados.forEach((r, i) => {
+        const tempId = tempIdSeqRef.current;
+        tempIdSeqRef.current -= 1;
+        pendingTx.plsToCreate.push({
+          tempId,
+          id: tempId,
+          _pending: 'create',
+          nombre: r.nombre,
+          fechaInicio: r.fechaInicio,
+          fechaFin: r.fechaFin,
+          jornadaTipo: { id: r.jornadaTipoId || jornadaIdEfectiva },
+          jornadaTipoId: r.jornadaTipoId || jornadaIdEfectiva,
+          orden: i,
+          // Metadatos del planner para futuros reportes (no se persisten).
+          _plannerEtiqueta: r.etiqueta,
+          _plannerRazon: r.razon,
+        });
+      });
+    } else {
       const totalDias = Math.max(1, Math.round((new Date(newFinISO) - new Date(iniISO)) / 86400000) + 1);
       const diasPorRango = Math.floor(totalDias / N);
       let cursor = new Date(iniISO);
@@ -3748,15 +3810,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           : new Date(cursor.getTime() + (diasPorRango - 1) * 86400000);
         pendingTx.plsToCreate.push({
           tempId,
-          id: tempId,                // así el strip lo trata como cualquier PL
+          id: tempId,
           _pending: 'create',
           nombre: `Rango ${i + 1}`,
           fechaInicio: inicioRango.toISOString().slice(0, 10),
           fechaFin: finRango.toISOString().slice(0, 10),
-          // Jornada explícita: heredamos la efectiva del grupo aquí mismo
-          // para que el backend dry-run no dependa de la cadena de fallback
-          // (que podría fallar si grupo.override + itinerario.jornadaTipo
-          // ambos son null al mismo tiempo).
           jornadaTipo: { id: jornadaIdEfectiva },
           jornadaTipoId: jornadaIdEfectiva,
           orden: i,
@@ -3835,9 +3893,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const lastFin = new Date(lastVirt.fechaFin);
         lastFin.setDate(lastFin.getDate() + extendBy);
         lastVirt.fechaFin = lastFin.toISOString().slice(0, 10);
-        const newGrupoFin = new Date(pendingTx.grupoFechaFin || grupo.fechaFin);
-        newGrupoFin.setDate(newGrupoFin.getDate() + extendBy);
-        pendingTx.grupoFechaFin = newGrupoFin.toISOString().slice(0, 10);
+        // Base para extender Grupo.fechaFin: pendingTx.grupoFechaFin si ya
+        // existe; si no, grupo.fechaFin (si existe en BD); como último
+        // recurso, la nueva fechaFin del último PL virtual recién extendido.
+        // Sin esto, grupos con `fechaFin = NULL` rompían con
+        // `RangeError: Invalid time value` en toISOString().
+        const baseFinISO = pendingTx.grupoFechaFin
+          || grupo.fechaFin?.slice(0, 10)
+          || lastVirt.fechaFin;
+        if (baseFinISO) {
+          const newGrupoFin = new Date(baseFinISO);
+          // Si baseFinISO ya es la nueva fechaFin del último PL extendido,
+          // NO sumar extendBy de nuevo (sería doble extensión).
+          if (baseFinISO !== lastVirt.fechaFin) {
+            newGrupoFin.setDate(newGrupoFin.getDate() + extendBy);
+          }
+          pendingTx.grupoFechaFin = newGrupoFin.toISOString().slice(0, 10);
+        }
         setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pendingTx.plsToCreate.slice() }));
         attempts++;
         continue;

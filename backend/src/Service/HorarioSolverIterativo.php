@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Grupo;
 use App\Entity\PeriodoLectivo;
 use App\Entity\PeriodoLectivoImparticion;
+use App\Entity\TipoTramo;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -339,6 +340,19 @@ class HorarioSolverIterativo
         $outerIterationsRun = 0;
         $stoppedReason = 'maxOuterIterations';
 
+        // Estado entre outer iterations:
+        // - blockedPairs: parejas (donor, receptor, plKey) que no produjeron
+        //   aumento en `placed[receptor]` tras un movimiento previo. Se omiten
+        //   en futuros redistribuciones para evitar oscilaciones.
+        // - pendingVerification: movimientos hechos en la outer iter N que
+        //   se verifican en la N+1 comparando placed[receptor] antes/después.
+        //   Si no aumentó, se revierten y la pareja se añade a blockedPairs.
+        // - lastMovementsSignature: firma del set de movimientos del outer iter
+        //   anterior. Si la del actual coincide → oscilación, abortamos.
+        $blockedPairs = [];
+        $pendingVerification = [];
+        $lastMovementsSignature = null;
+
         for ($outerIter = 1; $outerIter <= self::MAX_OUTER_ITERATIONS; $outerIter++) {
             $outerIterationsRun = $outerIter;
             $perPl = [];
@@ -380,6 +394,28 @@ class HorarioSolverIterativo
                 ]);
             }
 
+            // Verificación de movimientos pendientes (outer iter anterior):
+            // si placed[receptor] no aumentó tras el movimiento, revertirlo
+            // (donor recupera sus 60min, receptor los pierde) y bloquear la
+            // pareja para futuras iteraciones. Esto evita que un movimiento
+            // inútil consuma cuota del donante sin beneficio neto.
+            foreach ($pendingVerification as $verif) {
+                $receptorId = $verif['receptorImpId'];
+                $placedAntes = $verif['placedReceptorAntes'];
+                $placedAhora = $accumPlacedByImp[$receptorId] ?? 0;
+                if ($placedAhora <= $placedAntes) {
+                    $this->revertMovement($verif, $workingPlisByPl);
+                    $pairKey = $verif['plKey'].':'.$verif['donorImpId'].':'.$receptorId;
+                    $blockedPairs[$pairKey] = true;
+                    $redistributionLog[] = array_merge($verif, [
+                        'reverted' => true,
+                        'reason' => 'receptor_no_aumento',
+                        'placedReceptorDespues' => $placedAhora,
+                    ]);
+                }
+            }
+            $pendingVerification = [];
+
             // Calcular shortfalls cross-rango.
             $crossRangoShortfalls = $this->computeCrossRangoShortfalls(
                 $targetAnualByImp,
@@ -392,18 +428,36 @@ class HorarioSolverIterativo
             }
 
             // Intentar redistribuir: mueve cuota in-memory en workingPlisByPl.
-            $movements = $this->redistribuirCrossRango(
+            // Donante elegido por overshoot anual absoluto (no relativo de un
+            // PL) y verificación de que tras ceder mantiene cobertura ≥ 95%.
+            // `blockedPairs` skipea parejas que ya fallaron antes.
+            [$movements, $newPending] = $this->redistribuirCrossRango(
                 $crossRangoShortfalls,
                 $perPl,
                 $workingPlisByPl,
                 $outerIter,
+                $blockedPairs,
+                $accumPlacedByImp,
+                $targetAnualByImp,
+                $semanasByPlKey,
             );
             $redistributionLog = array_merge($redistributionLog, $movements);
+            $pendingVerification = $newPending;
             if (empty($movements)) {
                 // Heurística agotada: ningún movimiento mejora el shortfall.
                 $stoppedReason = 'noRedistributionPossible';
                 break;
             }
+
+            // Anti-loop outer: si el set de movimientos repite exactamente lo
+            // del iter anterior (mismas parejas donor↔receptor en mismo PL),
+            // estamos oscilando. Abortar para no consumir las 12 iteraciones.
+            $signature = $this->signMovements($movements);
+            if ($lastMovementsSignature !== null && $signature === $lastMovementsSignature) {
+                $stoppedReason = 'oscillating';
+                break;
+            }
+            $lastMovementsSignature = $signature;
         }
 
         // Post-proceso (2026-05-01): filtrar `unplaced` per-PL para imps que
@@ -502,28 +556,32 @@ class HorarioSolverIterativo
     /**
      * Intenta mover cuota in-memory para reducir los shortfalls cross-rango.
      *
-     * Para cada imp con shortfall (sorted: la más urgente primero):
-     *   - Busca un PL receptor donde la imp esté activa (presente en
-     *     workingPlisByPl[plKey]) y haya OTRA imp con cobertura > 110%
-     *     del target proporcional del PL (overshoot que pueda ceder).
-     *   - Mueve `SLOT_REDUCTION_MIN` (60 min/sem) del PLI donante al
-     *     PLI receptor: reduce minutosSemanales del donante, aumenta
-     *     el del receptor.
-     *   - Como mucho un movimiento por shortfall por iteración outer
-     *     (evita movimientos masivos que disparen efectos secundarios).
+     * Para cada imp con shortfall (más urgente primero):
+     *   - Busca un PL receptor donde la imp esté activa.
+     *   - Selecciona donante candidato con MAYOR overshoot ANUAL absoluto
+     *     (no relativo a un solo PL) que tras ceder 60min/sem mantenga
+     *     `placed_anual_estimado >= target_anual × 0.95`.
+     *   - Skipea parejas en `$blockedPairs` (movimientos que ya fallaron).
+     *   - Devuelve también `pendingVerification[]`: las metadatas de cada
+     *     movimiento (donor/receptor + placed_antes) para que el caller
+     *     verifique en la siguiente iter outer si el receptor aumentó. Si
+     *     no, el caller revertirá y bloqueará la pareja.
      *
-     * Devuelve el log de movimientos. Lista vacía = no hay movimiento
-     * posible (heurística agotada).
-     *
-     * @return array<array{plKey:string, donorImpId:int, donorMateria:?string, receptorImpId:int, receptorMateria:?string, minutosMovidos:int, outerIter:int}>
+     * @return array{0: array<array<string,mixed>>, 1: array<array<string,mixed>>}
+     *         [movements, pendingVerification]
      */
     private function redistribuirCrossRango(
         array $shortfalls,
         array $perPl,
         array &$workingPlisByPl,
         int $outerIter,
+        array $blockedPairs,
+        array $accumPlacedByImp,
+        array $targetAnualByImp,
+        array $semanasByPlKey,
     ): array {
         $movements = [];
+        $pendingVerification = [];
         // Mapa rápido plKey → debug.imparticiones (target/placed por imp en ese PL).
         $debugImpsByPlKey = [];
         foreach ($perPl as $plRep) {
@@ -545,16 +603,22 @@ class HorarioSolverIterativo
                 }
                 if ($pliReceptor === null) continue;
 
-                // Buscar una imp donante en este PL con overshoot > 110% del target del PL.
-                $debugImps = $debugImpsByPlKey[$plKey] ?? [];
-                foreach ($debugImps as $row) {
+                // Construir lista de candidatos a donante para este (PL, receptor)
+                // ordenada por overshoot anual absoluto DESC. Filtros:
+                //   - No la propia receptor.
+                //   - Pareja no bloqueada previamente.
+                //   - Donante presente en este PL.
+                //   - Donante con cuota ≥ SLOT_REDUCTION_MIN (algo que ceder).
+                //   - Tras ceder, donante mantiene placed_anual_estimado ≥ 95%
+                //     de su target_anual (no rompe su propia cobertura).
+                $semanasPl = $semanasByPlKey[$plKey] ?? 0.0;
+                $candidatos = [];
+                foreach ($debugImpsByPlKey[$plKey] ?? [] as $row) {
                     $donorImpId = (int) ($row['imparticionId'] ?? 0);
-                    if ($donorImpId === $impId) continue;       // no la propia
-                    $target = (int) ($row['minutosTarget'] ?? 0);
-                    $placed = (int) ($row['minutosColocados'] ?? 0);
-                    if ($target <= 0) continue;
-                    if ($placed < $target * 1.10) continue;     // sin overshoot
-                    // Encontrar el PLI donante en workingPlis.
+                    if ($donorImpId <= 0 || $donorImpId === $impId) continue;
+                    $pairKey = $plKey.':'.$donorImpId.':'.$impId;
+                    if (isset($blockedPairs[$pairKey])) continue;
+
                     $pliDonor = null;
                     foreach ($plis as $pli) {
                         if ($pli->getImparticion()?->getId() === $donorImpId) {
@@ -564,26 +628,133 @@ class HorarioSolverIterativo
                     }
                     if ($pliDonor === null) continue;
                     $donorMin = $pliDonor->getEffectiveMinutosSemanales();
-                    if ($donorMin < self::SLOT_REDUCTION_MIN) continue;  // ya en mínimo
+                    if ($donorMin < self::SLOT_REDUCTION_MIN) continue;
 
-                    // Movimiento: -60 al donante, +60 al receptor.
-                    $pliDonor->setMinutosSemanales($donorMin - self::SLOT_REDUCTION_MIN);
-                    $pliReceptor->setMinutosSemanales($pliReceptor->getEffectiveMinutosSemanales() + self::SLOT_REDUCTION_MIN);
-                    $movements[] = [
-                        'plKey' => $plKey,
+                    $donorTargetAnual = $targetAnualByImp[$donorImpId] ?? 0;
+                    $donorPlacedAnual = $accumPlacedByImp[$donorImpId] ?? 0;
+                    if ($donorTargetAnual <= 0) continue;
+
+                    // Overshoot ANUAL absoluto en minutos. Solo donantes con sobra real.
+                    $overshootAnual = $donorPlacedAnual - $donorTargetAnual;
+                    if ($overshootAnual <= 0) continue;
+
+                    // Estimación del placed anual tras ceder 60min/sem en este PL:
+                    // se restan 60 × semanasPl minutos del donante.
+                    $estimatedPlacedTrasCeder = $donorPlacedAnual - (int) round(self::SLOT_REDUCTION_MIN * $semanasPl);
+                    if ($estimatedPlacedTrasCeder < $donorTargetAnual * 0.95) continue;
+
+                    $candidatos[] = [
                         'donorImpId' => $donorImpId,
-                        'donorMateria' => $row['materia'] ?? null,
-                        'receptorImpId' => $impId,
-                        'receptorMateria' => $sf['materia'] ?? null,
-                        'minutosMovidos' => self::SLOT_REDUCTION_MIN,
-                        'outerIter' => $outerIter,
+                        'pliDonor' => $pliDonor,
+                        'donorMin' => $donorMin,
+                        'overshootAnual' => $overshootAnual,
+                        'materia' => $row['materia'] ?? null,
                     ];
-                    $movedThisShortfall = true;
-                    break;
                 }
+
+                if (empty($candidatos)) continue;
+                // Ordenar por overshoot DESC: el que más le sobra es el mejor.
+                usort($candidatos, fn ($a, $b) => $b['overshootAnual'] <=> $a['overshootAnual']);
+                $cand = $candidatos[0];
+
+                // VIABILIDAD DEL RECEPTOR: el solver físico tiene cap diario
+                // (MAX_DIARIO_MIN_POR_MATERIA = 120 → max 1 slot/día/imp).
+                // Si tras el movimiento el receptor superase el techo viable
+                // (= N_dias × max_dur_slot), el solver no podrá colocar la
+                // cuota nueva → REDUCIR_CUOTA_PROPIA destructiva → cascada.
+                // Skip pareja si el receptor ya está en su techo viable.
+                $maxPliViable = $this->calcMaxPliViableForPl($pliReceptor->getPeriodoLectivo());
+                $receptorActual = $pliReceptor->getEffectiveMinutosSemanales();
+                if ($maxPliViable !== null && $receptorActual + self::SLOT_REDUCTION_MIN > $maxPliViable) {
+                    continue;
+                }
+
+                // Movimiento: -60 al donante, +60 al receptor.
+                $cand['pliDonor']->setMinutosSemanales($cand['donorMin'] - self::SLOT_REDUCTION_MIN);
+                $pliReceptor->setMinutosSemanales($receptorActual + self::SLOT_REDUCTION_MIN);
+
+                $movement = [
+                    'plKey' => $plKey,
+                    'donorImpId' => $cand['donorImpId'],
+                    'donorMateria' => $cand['materia'],
+                    'receptorImpId' => $impId,
+                    'receptorMateria' => $sf['materia'] ?? null,
+                    'minutosMovidos' => self::SLOT_REDUCTION_MIN,
+                    'outerIter' => $outerIter,
+                ];
+                $movements[] = $movement;
+                $pendingVerification[] = array_merge($movement, [
+                    'placedReceptorAntes' => $accumPlacedByImp[$impId] ?? 0,
+                ]);
+                $movedThisShortfall = true;
             }
         }
-        return $movements;
+        return [$movements, $pendingVerification];
+    }
+
+    /**
+     * Revierte un movimiento previo: restaura los minutosSemanales del donante
+     * y receptor en el PL afectado. Llamado cuando el verificador detecta que
+     * el receptor no aumentó `placed_anual` tras el movimiento.
+     */
+    private function revertMovement(array $verif, array &$workingPlisByPl): void
+    {
+        $plKey = $verif['plKey'];
+        $donorImpId = $verif['donorImpId'];
+        $receptorImpId = $verif['receptorImpId'];
+        $minutos = $verif['minutosMovidos'];
+        $plis = $workingPlisByPl[$plKey] ?? [];
+        foreach ($plis as $pli) {
+            $impId = $pli->getImparticion()?->getId();
+            if ($impId === $donorImpId) {
+                $pli->setMinutosSemanales($pli->getEffectiveMinutosSemanales() + $minutos);
+            } elseif ($impId === $receptorImpId) {
+                $pli->setMinutosSemanales(max(0, $pli->getEffectiveMinutosSemanales() - $minutos));
+            }
+        }
+    }
+
+    /**
+     * Calcula el techo de minutos/sem viable para una imp en este PL: el
+     * solver físico tiene cap diario por imp (MAX_DIARIO_MIN_POR_MATERIA = 120
+     * en bin-packing), lo que limita a 1 slot por día. Por tanto el max
+     * pli/sem que el solver puede colocar = N_dias_lectivos × max_slot_dur.
+     *
+     * Devuelve null si la jornada no se puede resolver (no aplicar check).
+     */
+    private function calcMaxPliViableForPl(?PeriodoLectivo $pl): ?int
+    {
+        if ($pl === null) return null;
+        $jornada = $pl->getEffectiveJornadaTipo();
+        if ($jornada === null) return null;
+        $diasLectivos = $jornada->getDiasLectivos() ?: [1, 2, 3, 4, 5];
+        $maxSlotDur = 0;
+        foreach ($jornada->getTramos() as $t) {
+            if ($t->getTipo() !== TipoTramo::SLOT) continue;
+            $hi = $t->getHoraInicio();
+            $hf = $t->getHoraFin();
+            if ($hi === null || $hf === null) continue;
+            $dur = ((int) $hf->format('H')) * 60 + (int) $hf->format('i')
+                 - (((int) $hi->format('H')) * 60 + (int) $hi->format('i'));
+            if ($dur > $maxSlotDur) $maxSlotDur = $dur;
+        }
+        if ($maxSlotDur <= 0) return null;
+        return count($diasLectivos) * $maxSlotDur;
+    }
+
+    /**
+     * Firma estable de un set de movimientos para detectar oscilación entre
+     * outer iterations. Dos sets con las mismas parejas (donor, receptor, plKey)
+     * en cualquier orden producen la misma firma.
+     */
+    private function signMovements(array $movements): string
+    {
+        $tokens = [];
+        foreach ($movements as $m) {
+            $tokens[] = $m['plKey'].':'.$m['donorImpId'].':'.$m['receptorImpId'];
+        }
+        sort($tokens);
+        return implode('|', $tokens);
     }
 
     private function minsBetween(string $hi, string $hf): int

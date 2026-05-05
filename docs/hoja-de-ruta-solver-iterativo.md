@@ -6,7 +6,7 @@
 
 ## ⚡ Snapshot para retomar
 
-**Estado**: **Fases 1+2+3+3.5+4 + REDISTRIBUIR_CROSS_RANGO + Solver de bloques (jornada 30min) + cascade soft-delete PL + rejillas reescritas ✅ Done (2026-05-01)**. Doc completo y validado E2E. El bucle outer de `solveMultiRango` mueve cuota in-memory entre rangos hasta cuadrar todos los targets anuales o demostrar (heurísticamente) imposibilidad. Solver bin-packing trabaja en BLOQUES contiguos (60-120min, máx 120/día/materia) sobre granularidad 30min. Las 3 vistas (`/admin/horarios` editor, `/horarios` TimeTable, PDFs) renderizan bloques con rowspan correctamente.
+**Estado**: **Fases 1+2+3+3.5+4 + REDISTRIBUIR_CROSS_RANGO + Solver de bloques (jornada 30min) + cascade soft-delete PL + rejillas reescritas ✅ (2026-05-01) + Fase A (rollback/anti-loop/mejor donante) + Fase B (PeriodoLectivoPlanner) ✅ (2026-05-05)**. El bucle outer de `solveMultiRango` mueve cuota in-memory entre rangos con anti-loop, rollback y elección de donante por overshoot anual absoluto. El número de rangos lectivos lo decide el backend (`PeriodoLectivoPlanner`) según calendario real, evaluaciones del grupo y horas curriculares — ya no es un hard-code N=3.
 
 ---
 
@@ -476,3 +476,59 @@ Build OK final 13.99s. Doc cerrado y validado E2E.
 **Efecto colateral positivo (no negativo) en el solver**: ahora `placedAnualOtrosRangos` calcula los minutos reales colocados en otros rangos → el backend recibe el cap correcto en `alreadyPlacedByImp` → el solver respeta el cap desde la primera pasada → menos overshoot inicial → menos trabajo para `redistribuirCrossRango`. Validado E2E con DAW grupo 1 (3 PLs persistidos): chip y badge muestran totales correctos sin necesidad de visitar cada rango. Solver sigue funcionando sin regresiones.
 
 Build OK 13.52s. Bug del backlog `cosa` cerrado.
+
+### 2026-05-05 — Fase A (rollback/anti-loop/mejor donante) + Fase B (PeriodoLectivoPlanner)
+
+Tras feedback del usuario "el solver no llega al 100% y siempre crea 3 rangos sin razón". Dos bloques de trabajo en una sesión:
+
+**Fase A — Cerrar deuda de `redistribuirCrossRango`** (`HorarioSolverIterativo.php`):
+
+1. **Mejor donante** (`redistribuirCrossRango:548-620`): la elección del donante ya no se hace por "el primer overshoot >110% del rango actual". Ahora:
+   - Calcula el overshoot ANUAL absoluto (`placed_anual - target_anual`) de cada candidato.
+   - Filtra los que tras ceder 60min/sem en este PL mantendrían `placed_anual_estimado >= target × 0.95`.
+   - Ordena DESC por overshoot absoluto.
+   - El primero que pasa los filtros es el donante.
+   - Resultado: redistribuciones más estables, no se "rompe" la cobertura de la materia que cede.
+
+2. **Rollback automático** (`solveMultiRango:342-403`): cada movimiento se registra en `pendingVerification[]` con `placedReceptorAntes`. En la siguiente outer iter, antes de redistribuir nuevo, se verifica si `accumPlacedByImp[receptor]` aumentó. Si NO → revertir el movimiento (donante recupera 60min, receptor los pierde) y bloquear la pareja `(donor, receptor, plKey)` para futuras iteraciones via `blockedPairs`. Helper nuevo `revertMovement()`.
+
+3. **Anti-loop outer** (`solveMultiRango:402-409`): firma estable del set de movimientos por iter (`signMovements()`) — sort lexicográfico de `plKey:donorId:receptorId`. Si la firma del iter actual coincide con la del anterior → `stoppedReason='oscillating'` y se aborta. Las 12 outer iterations dejan de consumirse en bucles inútiles.
+
+**Fase B — `PeriodoLectivoPlanner`** (servicio backend nuevo + endpoint + cableado frontend):
+
+1. Nuevo servicio `App\Service\PeriodoLectivoPlanner` (~250 líneas). Reemplaza el hard-code `N=3` del frontend (`createRangosCount`).
+   - Resuelve ventana del curso: `Grupo.fechaInicio/Fin` → fallback `Centro.fechaInicio/FinCurso` → fallback año académico del grupo.
+   - Calcula semanas/días lectivos vía `CalendarioLectivoService::semanasLectivas()` (descontando festivos aplicables al centro).
+   - Suma `Materia.getObjetivoAnualMinutos()` sobre imps presenciales del grupo.
+   - Calcula jornada semanal: `Σ slots SLOT × 5 días`.
+   - Decide rangos:
+     - Si el grupo tiene `PeriodoEvaluativo` (1ª/2ª/3ª/ORDINARIA_FINAL, NO `EXTRAORDINARIA`): 1 rango por evaluación con sus fechas reales + un rango "cola" si queda calendario tras la última evaluación.
+     - Sin evaluaciones: 1 único rango "Curso completo". Es la opción natural; el admin decide si lo parte manualmente.
+   - Si Σ currículo > capacidad → calcula `extendDias` para cubrir el déficit y propone extender el último rango.
+
+2. Endpoint `GET /api/v1/grupos/{grupoId}/plan-rangos` en `HorarioSolverController.php` (route `api_grupo_plan_rangos`). Devuelve `{rangos, diagnostico}`.
+
+3. Frontend (`HorariosEditor.jsx::handleConfigureOptimalCourse`):
+   - Antes de cualquier cálculo, fetch al planner. Si OK, sus rangos mandan: `N = plannerRangos.length`, `iniISO/finISO` derivados de los rangos, `willExtend/extendDias` del diagnóstico.
+   - Si el planner falla (red, error 500 transitorio, datos faltantes) → fallback al cálculo equiespaciado clásico con `createRangosCount` (compat).
+   - Paso 2 (construir PLs virtuales) reescrito: si `plannerOk`, itera los rangos del planner (con sus nombres "Hasta 1ª evaluación", "Tras última evaluación", etc.) en lugar de `Rango 1/2/3`. Adjunta `_plannerEtiqueta` y `_plannerRazon` como metadatos del frontend para futuras vistas/debug.
+
+**Resultado**: el flujo "Configurar curso óptimo" ya:
+- No crea siempre 3 rangos. Decide N en función del centro/grupo.
+- Si el grupo tiene 3 evaluaciones reales configuradas → 3 rangos alineados con sus fechas reales (no equiespaciados).
+- Si no tiene evaluaciones → 1 único rango cubriendo todo el curso (lo más simple y natural).
+- El solver itera más estable (sin oscilaciones), revierte movimientos inútiles, y elige donantes que no rompen su propia cobertura.
+
+**Acción del usuario**: tras aplicar este cambio, reiniciar backend (opcache PHP-FPM tiene en memoria el dispatcher viejo del controlador) y purgar cache.app por si hay respuestas cacheadas:
+
+```
+docker compose exec backend php bin/console cache:pool:clear cache.app
+docker compose restart backend
+```
+
+(O ejecutar `./scripts/clear_cache_hard.sh` que ya purga ambos tras el fix del 2026-05-05.)
+
+**Pendiente futuro residual** (no urgente):
+- **Fase C** del plan original: `solveMultiRango` debería poder CREAR un rango nuevo (extender el calendario o partir el último PL en dos) si las 12 outer iterations + redistribución no logran cubrir el currículo. Hoy reporta `stoppedReason='noRedistributionPossible'` y delega al usuario; podría intentarlo automáticamente.
+- **Fase D**: backtracking limitado en `HorarioSolverBinPacking::elegirMejorBloque` para casos de conflict profe (mover un placement ya hecho a otro slot del mismo profe).
+- **Variables que faltan**: `User.disponibilidadHoraria`, `User.jornadaSemanalMin`, `Aula` como entidad (hoy es string en `Imparticion.aulaEspecifica`).

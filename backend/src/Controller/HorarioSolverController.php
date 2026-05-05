@@ -12,6 +12,7 @@ use App\Service\CurriculumDistributor;
 use App\Service\HorarioSolver;
 use App\Service\HorarioSolverBinPacking;
 use App\Service\HorarioSolverIterativo;
+use App\Service\PeriodoLectivoPlanner;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -437,6 +438,31 @@ class HorarioSolverController extends AbstractController
         );
         $result['solver'] = 'iterativo-multi-fase35';
         return $this->json($result);
+    }
+
+    /**
+     * Devuelve la propuesta dinámica de rangos lectivos óptima para un grupo.
+     *
+     * Reemplaza el hard-code N=3 del frontend (`createRangosCount`). El
+     * planner combina calendario real, horas curriculares y evaluaciones
+     * configuradas para decidir cuántos rangos crear y con qué fechas.
+     *
+     * Output: lista de rangos sugeridos + diagnóstico (semanas lectivas,
+     * curriculum vs capacidad, si requiere extender).
+     *
+     * Doc: `docs/hoja-de-ruta-solver-iterativo.md` Fase B (2026-05-05).
+     */
+    #[Route('/api/v1/grupos/{grupoId}/plan-rangos', name: 'api_grupo_plan_rangos', methods: ['GET'], requirements: ['grupoId' => '\d+'])]
+    public function planRangos(
+        int $grupoId,
+        EntityManagerInterface $em,
+        PeriodoLectivoPlanner $planner,
+    ): JsonResponse {
+        $grupo = $em->getRepository(Grupo::class)->find($grupoId);
+        if (!$grupo) {
+            return $this->json(['error' => 'Grupo no encontrado'], 404);
+        }
+        return $this->json($planner->plan($grupo));
     }
 
     /**
