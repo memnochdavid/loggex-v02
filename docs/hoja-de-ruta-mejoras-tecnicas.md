@@ -70,8 +70,12 @@ El proyecto tiene credenciales expuestas en el repositorio, endpoints sin autent
 - [ ] Anadir `#[IsGranted('ROLE_SUPERADMIN')]` a `DebugLogController`
 - [ ] Anadir `#[IsGranted('ROLE_ADMIN')]` a las operaciones de escritura de `CentroController`
 - [ ] Revisar que todos los controllers custom tienen anotaciones de seguridad
+- [ ] **🐛 BUG REAL DETECTADO 2026-05-05** — la ruta `/centros` (gestión de centros) es accesible desde un **admin de centro** cuando debería ser exclusiva de SuperAdmin. Verificado en sesión por el usuario. Acción concreta:
+  - Backend: confirmar que las operaciones de `Centro` (entidad + controller custom si lo hay) exigen `ROLE_SUPERADMIN` (no solo `ROLE_ADMIN`) en `Get`, `GetCollection`, `Post`, `Put`, `Delete`.
+  - Frontend: `App.jsx` o equivalente debe envolver la ruta `/centros` con un guard `requireRole='ROLE_SUPERADMIN'`; el sidebar ya esconde el enlace para no-superadmin pero la URL directa funciona — la causa del fallo. Reusar el patrón de guard de otras vistas SuperAdmin-only si existe; si no, crearlo aquí.
+  - Test: 401/403 al hacer `GET /api/centros` con JWT de admin de centro; redirección al home si navega a `/centros` con sesión admin.
 
-**Criterio de aceptacion:** peticiones anonimas a estos endpoints devuelven 401/403.
+**Criterio de aceptacion:** peticiones anonimas a estos endpoints devuelven 401/403; un admin de centro autenticado recibe 403 en `/api/centros` y es redirigido al intentar `GET /centros` en el frontend.
 
 #### 1.4 Validacion de uploads
 

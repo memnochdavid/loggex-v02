@@ -59,9 +59,34 @@ frontend/
 - **Soft Delete**: Los registros se marcan `deleted = true`, no se eliminan físicamente
 - **Timestamps**: `TimestampableTrait` para `createdAt`/`updatedAt` automáticos
 - **Seguridad por centro**: `CurrentUserExtension` filtra datos automáticamente para no-SuperAdmin
-- **Estilos**: CSS Modules (`Componente.module.css`), tematización dinámica por centro
 - **Frontend CRUD**: Las páginas CRUD siguen un patrón similar (DataTable + formularios modales)
 - **Componentes clave**: `DataTable` (tabla con paginación/ordenación), `TimeTable` (horario semanal visual), `CalendarView` (calendario mensual)
+
+### ⚠️ REGLA DE ORO — TEMATIZACIÓN OBLIGATORIA (no negociable)
+
+**Todo elemento de UI debe responder al tema activo en cada momento.** Cada centro elige ~80+ variables CSS (colores, opacidades, radios, blur, fondos animados, paginación, sidebar, scrollbar, calendarios, modales…) que se inyectan dinámicamente vía `frontend/src/utils/theme.js` sobre `:root`. Hardcodear estilos rompe la promesa central del producto.
+
+**Prohibido:**
+- ❌ Colores hex/rgb/hsl literales en JSX o CSS modules para fondos, bordes, textos, sombras, gradientes (ej. `color: '#64748b'`, `background: '#fff'`, `border: '1px solid #e5e7eb'`).
+- ❌ Fallbacks hex en `var(--color-X, #XXXXXX)` — las variables están **siempre definidas** en `index.css`. El fallback es código muerto y oculta dependencias rotas. (Eliminados 62 fallbacks en pulido-ux Ronda 1 #5.)
+- ❌ Radios, sombras, blur, opacidades fijos en componentes que el usuario tematiza.
+- ❌ Renombrar variables existentes (`--bg-card`, `--color-primary-*`, `--bg-sidebar`, …).
+- ❌ Usar literales en componentes nuevos "porque es solo un detalle". El detalle se acumula y el tema se rompe.
+
+**Permitido:**
+- ✅ Variables CSS del tema: `var(--bg-card)`, `var(--color-primary-500)`, `var(--text-main)`, `var(--text-muted)`, `var(--bg-sidebar)`, etc.
+- ✅ Colores semánticos definidos en `index.css`: `--color-success/warning/error/danger/info` (siempre presentes).
+- ✅ `color-mix(in srgb, var(--color-primary-500), …)` para derivados sutiles (focus rings, hovers).
+- ✅ Tokens de motion (`--dur-fast`, `--ease-out-back`, …) — son ortogonales al tema.
+- ✅ Tipografía, espaciado, micro-interacciones, animaciones (no afectan al tema visual del centro).
+
+**Casos límite documentados:**
+- `Configuracion.jsx` previews (placeholders neutros que NO representan la app real → exentos por diseño).
+- `Perfil.jsx` firma sobre `#fff` (representa "papel" donde se ve la firma → deuda menor anotada, no rota nada).
+
+**Doc dedicado**: `docs/modernizacion-ui.md` §"REGLA DE ORO" tiene la versión extendida con ejemplos. Antes de tocar UI nueva o existente: lee esa sección y comprueba que todo lo que añades se rige por variables del tema.
+
+- **Live updates (Mercure)**: Toda entidad cuyas vistas se beneficien de tiempo real lleva `#[LivePublish]` (ver `backend/src/Attribute/LivePublish.php`). El `LivePublishSubscriber` genérico publica al hub en cada postPersist/Update/Remove. En el frontend, las páginas CRUD usan `useLiveRefetch(topics, refetchFn)` (variante ligera para CRUD complejos con paginación/filtros) o `useLiveCollection(...)` (para listas simples). Topic estándar: `/admin/centros/{cid}/{recurso}` para vistas admin, `/admin/{recurso}` para topics planos. Tras `mysql -e 'INSERT/UPDATE...'` o seeds SQL ejecutar `app:mercure:invalidate -t /topic` para que los clientes conectados refresquen. Doc dedicado: `docs/hoja-de-ruta-redis-workers.md` §"Bitácora Live CRUD".
 - **Live updates (Mercure)**: Toda entidad cuyas vistas se beneficien de tiempo real lleva `#[LivePublish]` (ver `backend/src/Attribute/LivePublish.php`). El `LivePublishSubscriber` genérico publica al hub en cada postPersist/Update/Remove. En el frontend, las páginas CRUD usan `useLiveRefetch(topics, refetchFn)` (variante ligera para CRUD complejos con paginación/filtros) o `useLiveCollection(...)` (para listas simples). Topic estándar: `/admin/centros/{cid}/{recurso}` para vistas admin, `/admin/{recurso}` para topics planos. Tras `mysql -e 'INSERT/UPDATE...'` o seeds SQL ejecutar `app:mercure:invalidate -t /topic` para que los clientes conectados refresquen. Doc dedicado: `docs/hoja-de-ruta-redis-workers.md` §"Bitácora Live CRUD".
 
 ## Comandos Útiles

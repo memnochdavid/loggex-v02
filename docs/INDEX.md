@@ -4,6 +4,52 @@
 
 ---
 
+## 🚨 PRÓXIMA SESIÓN — MÁXIMA PRIORIDAD (2026-05-05)
+
+**🔥 NUEVO — Sistema de notificaciones del sistema (campanita + propagación a afectados)**. Doc dedicado: **`hoja-de-ruta-notificaciones.md`**. 3 fases (~2 sesiones) que cubren:
+
+1. **Backend**: entidad `Notificacion` per-destinatario + `NotificationDispatcher` + subscribers Doctrine sobre `Calificacion`/`Tarea`/`Comunicado`/`Entrega` + endpoint REST + `#[LivePublish]` topic `/users/{id}/notificaciones`.
+2. **Frontend**: refactor del header — **DOS botones** (decisión D1 cerrada 2026-05-05): el actual de mensajes intercambia su icono `Bell` → `Mail`/`MessageCircle`, y se añade un botón nuevo con icono `Bell` que despliega la cola de notificaciones del sistema (visualmente idéntico al de mensajes). Click en una notificación → navega a la vista oportuna y la marca como leída.
+3. **Catálogo cerrado de tipos** (en doc §3): `calificacion_publicada`, `tarea_nueva`, `comunicado_nuevo`, `entrega_recibida`, `tarea_vencida_sin_entrega`. **Regla**: un mensaje NO genera notificación adicional (evita contadores duplicados).
+
+**Por qué primera**: el bucle de feedback hoy está roto — el alumno no se entera de que su examen ha sido corregido salvo que entre activamente; el profe no ve si llega una entrega nueva. Es bloqueante para "Loggex se vende a un centro real sin que los usuarios se sientan ciegos".
+
+**Otros ítems abiertos en paralelo (menor prioridad, no bloquean lo de arriba):**
+
+- 🔴 **Breadcrumbs en cabeceras** — Ronda 2 de `hoja-de-ruta-pulido-ux.md` (R2.1). Encima del título en `CrudHeader`, ~0.5 sesión.
+- 🐛 **Bug de seguridad detectado 2026-05-05**: la ruta `/centros` es accesible desde un **admin de centro** (debería ser SuperAdmin-only). Anotado en `hoja-de-ruta-mejoras-tecnicas.md` §1.3 con plan de fix concreto (backend + guard frontend + test). Atacar antes de la primera demo a cliente.
+
+---
+
+## 📐 Reglas transversales (aplican a TODA sesión)
+
+Estas reglas son **innegociables** y aplican a cualquier ítem que se ataque, esté en la ruta crítica o no. Si un ítem nuevo entra en conflicto con alguna, es la regla la que gana.
+
+### 🎨 Tematización obligatoria — NO hardcodear estilos
+
+**Todo elemento UI debe responder al tema activo del centro en cada momento.** El usuario configura ~80+ variables CSS desde `Configuracion.jsx` que se inyectan en `:root` vía `frontend/src/utils/theme.js`. Hardcodear estilos rompe la promesa central del producto.
+
+- ❌ Colores hex/rgb/hsl literales para fondos, bordes, textos, sombras, gradientes.
+- ❌ Fallbacks hex en `var(--color-X, #XXXXXX)` — las variables están siempre definidas, los fallbacks son código muerto que oculta dependencias rotas.
+- ❌ Radios, sombras, blur, opacidades fijos en componentes que el usuario tematiza.
+- ✅ Variables del tema: `var(--bg-card)`, `var(--color-primary-500)`, `var(--text-muted)`, etc.
+- ✅ Semánticos: `--color-success/warning/error/danger/info`.
+- ✅ Motion tokens (`--dur-*`, `--ease-*`) — son ortogonales al tema.
+
+**Esto aplica también a componentes nuevos.** Antes de añadir UI nueva (botón campanita, dropdown de notificaciones, breadcrumbs, lo que sea): comprobar que todo color/borde/radio/sombra sale de variables del tema.
+
+Doc completo: `CLAUDE.md` §"REGLA DE ORO" + `docs/modernizacion-ui.md` §"REGLA DE ORO".
+
+### 📋 Bitácora obligatoria al cerrar punto
+
+Ver §"REGLA OBLIGATORIA" más abajo. Cada punto cerrado deja constancia en su doc antes de cerrar la sesión.
+
+### 🔒 Confirmar antes de commit/push
+
+Confirmación explícita por operación. No commit/push automático tras cerrar trabajo.
+
+---
+
 ## 🚨 Primera acción al retomar la próxima sesión
 
 **🟢 CERRADA 2026-05-03 — Fase 8 PeriodoLectivo: dashboard "Consumición de horas anuales" en `/admin/horarios`.** Tres sesiones cerradas el mismo día: (1) backend `ConsumicionAnualService` + endpoint + tab + tabla básica (commit `e068bfb`), (2) doble eje rangos↔evaluaciones + tonalidad + filas plegables + banner del grupo (commit `b1143ad`), (3) vista "Proyección" con `recharts` (3 series: currículo lineal, planificado acumulado, impartido teórico) + ReferenceLine en "hoy" + panel sugerencias para materias en déficit + persistencia en `sessionStorage`. `recharts ^3.8.1` añadido a `frontend/package.json`. Bundle frontend de 3293 → 3784 kB minified (+484 kB por la lib; mitigable con dynamic import si empieza a doler). Doc completo en `hoja-de-ruta-periodos-lectivos.md` Status + §3 Fase 8 + bitácora §6 (3 entradas 2026-05-03). Mejoras futuras (no bloqueantes): cambiar a `Asistencia` real cuando la BD esté poblada; retirar `app:fase8:consumicion` cuando deje de ser útil; proyección por evaluaciones si llega demanda.
@@ -289,8 +335,9 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
+| **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
-| `hoja-de-ruta-pulido-ux.md` | ✅ Done 2026-04-28 (8 ítems en una sesión) | — (mover a 🟢 cerradas en próxima revisión del INDEX) |
+| `hoja-de-ruta-pulido-ux.md` | 🟡 **Ronda 1 ✅ Done (2026-04-28)** + **Ronda 2 abierta 2026-05-05** (R2.1: breadcrumbs en `CrudHeader`, ~0.5 sesión) | Ronda 2 acumula nuevos ítems UX detectados en el día a día. |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. |
 | `hoja-de-ruta-curriculum-ccaa.md` | Fases 1+2 ✅ Done; quedan 3-9 (~5-8 sesiones) | **CRÍTICO**: sin Fase 3 (BOJA Andalucía) el solver sigue sin cuadrar para centros reales |
 | `hoja-de-ruta-redis-workers.md` | Live CRUD ✅ Cobertura total (sesiones 1+2+3+4+5 — 2026-05-04). **15 entidades, 16 vistas live**. | **Cerrado**. Movible a 🟢 cerradas. |
@@ -409,10 +456,16 @@ Doc: `hoja-de-ruta-calificaciones.md`.
    ┌─────────────────────────────────────┐
    │ hoja-de-ruta-calificaciones.md      │  ciclo evaluativo, boletines
    │  (A-D probable ✅, E pendiente)     │
+   └──────────────┬──────────────────────┘
+                  │ Calificacion::postPersist → notif al alumno
+                  ▼
+   ┌─────────────────────────────────────┐
+   │ hoja-de-ruta-notificaciones.md 🔥   │  bucle de feedback del sistema
+   │  (🔴 MÁXIMA PRIORIDAD, ~2 sesiones) │  campanita + propagación a afectados
    └─────────────────────────────────────┘
 ```
 
-`rename-fp-neutral.md`, `tutorial.md` y `editor-horarios.md` son históricos que ya no condicionan ninguna ruta nueva. `redis-workers.md`, `mejoras-tecnicas.md` y `home-widgets-roadmap.md` son ortogonales al producto core.
+`rename-fp-neutral.md`, `tutorial.md` y `editor-horarios.md` son históricos que ya no condicionan ninguna ruta nueva. `redis-workers.md`, `mejoras-tecnicas.md` y `home-widgets-roadmap.md` son ortogonales al producto core. `notificaciones.md` se cruza con `redis-workers.md` (reusa Mercure + `#[LivePublish]`) y con `home-widgets-roadmap.md` §3.13 (sustituye el ítem "Actividad reciente" ampliándolo a feature transversal).
 
 ---
 

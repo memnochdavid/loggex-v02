@@ -1,12 +1,13 @@
 # Pulido UX — ajustes y bugs detectados
 
-> **Status (2026-04-28)**: ✅ **Done**. Los 8 ítems cerrados en una sola sesión. #8 promovido a `hoja-de-ruta-cambio-turno.md` por no existir la feature.
+> **Status (2026-05-05)**: 🟡 **Ronda 1 ✅ Done (2026-04-28, 8 ítems)** — bitácora abajo.
+> **Ronda 2 🔴 abierta (2026-05-05)** con nuevos ítems detectados. Ver §"Ronda 2" más abajo.
 
 ---
 
 ## ⚡ Snapshot para retomar
 
-### Resumen
+### Ronda 1 — cerrada 2026-04-28
 
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
@@ -19,7 +20,13 @@
 | 7 | `admin/horarios` panel Materias: badge "Completo · 25/27.5h" inconsistente al pasar entre rangos | **Bug funcional** | ✅ 2026-04-28 |
 | 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | ✅ 2026-04-28 (no existía → promovido a `hoja-de-ruta-cambio-turno.md`) |
 
-**Total**: ~1.5-2 sesiones (sin contar #8 si toca implementar desde cero).
+### Ronda 2 — abierta 2026-05-05
+
+| # | Ítem | Tipo | Estado |
+|---|---|---|---|
+| R2.1 | Breadcrumbs en todas las vistas (CrudHeader) | UX | 🔴 sin empezar |
+
+**Total Ronda 2**: ~0.5 sesión (R2.1 aislado; siguientes ítems se irán anotando aquí).
 
 ### Orden recomendado
 
@@ -310,3 +317,48 @@ i18n: 24 claves nuevas en 5 idiomas (es/en/ca/eu/gl) inyectadas vía script Pyth
 ### 2026-04-28 — Addendum (post-cierre): consistencia de header de grupo
 
 Continuación natural de #2 detectada por el usuario tras el cierre: en `/admin/calificaciones` (`CalificacionesAdmin.jsx`) los headers del `AccordionView` mostraban `"[nombre] ([anioEscolar])"`. Cambio al mismo formato que la columna Grupo de `/admin/horarios`: `"[curso]º [nombre]"` con fallback a `[nombre]` si `curso` es null. Backend: `/api/v1/centro/resumen-calificaciones` ahora devuelve `grupo.curso` en el JSON (antes faltaba).
+
+---
+
+# Ronda 2 — abierta 2026-05-05
+
+## R2.1 — Breadcrumbs en cabeceras de vista
+
+### Qué
+
+Todas las vistas con `CrudHeader` deben mostrar una línea de migas de pan **encima del título** que refleje la jerarquía de navegación, p. ej.:
+
+```
+Inicio › Administración › Grupos
+```
+
+### Dónde
+
+- Componente compartido: `frontend/src/components/CrudHeader.jsx` (o equivalente — confirmar al empezar la sesión).
+- Nuevo prop opcional `breadcrumbs={[{ label, to }, …]}`. Si `undefined`, no renderiza nada → no rompe vistas existentes hasta que se vayan migrando.
+- Aplicar en todas las vistas `/admin/*` y las del rol profesor/alumno (`/horarios`, `/calificaciones`, `/tareas`, …) en una sola pasada (similar a #1 de Ronda 1).
+
+### Reglas de UX
+
+- **Emplazamiento**: encima del título, dentro de `CrudHeader`. Es el patrón clásico (Material, Bootstrap, GitHub, Atlassian). No competir con el subtítulo descriptivo de Ronda 1.
+- **Tipografía y color**: pequeña (`0.75-0.8rem`), color `var(--text-muted)`. Sin negritas. Separador `›` (chevron) o `/` (decidir D-R2.1.A en sesión).
+- **🎨 Tematización obligatoria**: cero literales hex/rgb. Color del separador, hover de las migas clicables, borde inferior si lo hay — todo desde variables del tema (`var(--text-muted)`, `var(--color-primary-500)` para hover, `var(--border-soft)` si aplica). Ver `CLAUDE.md` §"REGLA DE ORO".
+- **Click**: cada miga (excepto la última) navega a `to`; la última (= vista actual) es texto plano sin link.
+- **i18n**: las labels usan claves i18n × 5 idiomas. Reusar las que ya existen para nombres de secciones del sidebar cuando se pueda, evitando duplicación.
+- **Truncado en móvil**: si la cadena no cabe, mostrar solo `… › [última]` con tooltip de la cadena completa. No envolver en 2 líneas.
+- **Reduced-motion**: sin animaciones de entrada en breadcrumbs (decoración, no contenido nuevo).
+
+### Edge cases
+
+- Vistas sin contexto claro (Login, About): no llevan breadcrumbs (no pasar prop).
+- Vistas con título dinámico (`CatalogoItinerarioDetail`): última miga es el título dinámico.
+- SuperAdmin que ve vista per-centro: incluir `[Centro] › [Sección] › [Vista]` cuando aplique.
+
+### Esfuerzo
+
+~0.5 sesión (gran parte es i18n × 5 + barrido de vistas).
+
+### Cross-ref
+
+- Cross-ref con Ronda 1 #1 (subtítulos): mismo componente `CrudHeader`. Coordinar para no romper layout vertical (breadcrumb arriba + título + subtítulo + ...).
+- Cross-ref con `hoja-de-ruta-tutorial.md`: si hay tutoriales que apuntan a posiciones del header, validar selectores tras el refactor.
