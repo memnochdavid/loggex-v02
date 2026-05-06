@@ -4,7 +4,7 @@
 
 ---
 
-## 🚨 REFACTOR EN MARCHA — MÁXIMA PRIORIDAD (2026-05-06)
+## 🚨 REFACTOR EN MARCHA — Fase B cerrada (2026-05-06 noche), C+D pendientes
 
 **🏗️ Modelo semanal puro (PL = semana lectiva)** — Doc: **`hoja-de-ruta-modelo-semanal.md`** · Branch: **`develop-semanas-lectivas`**.
 
@@ -17,11 +17,11 @@ D-PRINCIPAL cerrada con resultado **MODELO SEMANAL PURO** tras counterfactual de
 | **A1** Diseño schema | ✅ Done (commit `059890c`) | D-A a D-E cerradas con análisis del codebase. PL.tipo discriminator + plantillaBase FK self-ref + lazy on-demand. |
 | **A2** Migration | ✅ Done (commit `a28d812`) | `Version20260506180000`: wipe Horarios/PLIs/PLs + ALTER columns + 2 índices nuevos. Aplicada en BD dev. |
 | **A3** Entity + service + processors | ✅ Done (commit `a28d812`) | `TipoPeriodoLectivo` enum, `PeriodoLectivo` con asserts, resolver, `HorarioRenderService` (nuevo), `GrupoPlantillaSubscriber` (auto-crea PLANTILLA postPersist), `app:semanas:seed-plantillas`. 4 PLANTILLAs + 33 PLIs sembrados en BD dev. |
-| **B** Frontend HorariosEditor | 🟡 **Parcial** | 12 hot-spots arreglados + helper `frontend/src/utils/pl-utils.js` + bug TDZ resuelto. Editor renderiza grupos con pill PLANTILLA. Pendiente: reescribir "Configurar curso óptimo", "Crear rangos recomendados", UI dedicada gestión SEMANA, header del modal Sliders, revisar `runSolver` single-rango. |
-| **C** Solvers | 🔴 Pendiente | `HorarioSolverIterativo` + `BottleneckClassifier` + `CapacityPlanner` + `HorarioSolverBinPacking` deben operar sobre PLANTILLA con semanas heredando. |
+| **B** Frontend HorariosEditor | ✅ **Done (2026-05-06 sesiones 2-4, commits `5624582`/`b2785c6`/`d370257`/`9befa14`/`25df9b6`/`e4e10df`)** | `handleConfigureOptimalCourse` reescrita con distribución temporal heterogénea por SEMANAs (PLANTILLA default + N SEMANAs con cuotas heterogéneas vía `CurriculumDistributor`). Backend nuevo: `PlantillaCabidaValidator` + endpoint `GET /grupos/{id}/plantilla-cabida`. Bugs colaterales arreglados: state stale al duplicar PLANTILLAs, PLIs huérfanos en SEMANAs, `TimeTable.jsx` (caja roja con guion + altura proporcional), rejilla mostraba mañana en grupos con override de tarde, PLANTILLA con jornadaTipo asignada pisa al override del grupo (forzado NULL en processor), fallback inflador `min × 36 / 60` en `MaterializationController`/`GrupoResyncCcaaController` eliminado. Validado con 1º DAW + 1º DAM EAG: cubre currículo legal en calendario real (15-sep → 22-jun) con jornada 27.5h sin extender a julio. |
+| **C** Solvers | 🔴 Pendiente | `HorarioSolverIterativo` + `BottleneckClassifier` + `CapacityPlanner` + `HorarioSolverBinPacking` deben operar sobre PLANTILLA con semanas heredando (hoy se simula con `rangoOverride` y fechas del grupo — funciona pero es deuda). |
 | **D** Vistas dependientes | 🔴 Pendiente | Tab Consumición, banner anual cobertura, `/horario/me` (my-schedule), `HorarioPdfController`. |
 
-**Cómo retomar desde otra máquina**: ver §12 "Cómo retomar desde otra máquina" en `hoja-de-ruta-modelo-semanal.md`. Resumen: `git checkout develop-semanas-lectivas && git pull && docker compose up -d`. La migration `Version20260506180000` se aplica con `doctrine:migrations:migrate --no-interaction` y luego `app:semanas:seed-plantillas --with-plis` para tener PLANTILLAs por grupo. Detalle de los pendientes de Fase B en §12 del doc.
+**Cómo retomar desde otra máquina**: ver §12 "Cómo retomar desde otra máquina" en `hoja-de-ruta-modelo-semanal.md`. Resumen: `git checkout develop-semanas-lectivas && git pull && docker compose up -d`. La migration `Version20260506180000` se aplica con `doctrine:migrations:migrate --no-interaction` y luego `app:semanas:seed-plantillas --with-plis` para tener PLANTILLAs por grupo. Bitácora completa de Fase B en §9 sesiones 2-4 del doc.
 
 **Bloquea durante el refactor**: features que toquen `PeriodoLectivo`/`Horario`/`HorariosEditor` en `develop`. Otras features paralelas (notificaciones validación visual, calificaciones B.1, catálogo) pueden seguir en `develop`.
 
@@ -366,7 +366,8 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| **`hoja-de-ruta-modelo-semanal.md`** 🏗️ | **REFACTOR EN MARCHA** branch `develop-semanas-lectivas`. Fases A1+A2+A3 ✅ commit `a28d812`. Fase B 🟡 parcial sin commitear todavía. Fases C+D 🔴 pendientes. | D-PRINCIPAL cerrada con resultado MODELO SEMANAL PURO. PL pasa de rango contiguo a semana lectiva + plantilla. Detalle del estado en §"Estado de fases" arriba y §12 del doc. |
+| **`hoja-de-ruta-modelo-semanal.md`** 🏗️ | **REFACTOR EN MARCHA** branch `develop-semanas-lectivas`. Fases A1+A2+A3 ✅ commit `a28d812`. **Fase B ✅ Done (2026-05-06 sesiones 2-4)** commits `5624582`/`b2785c6`/`d370257`/`9befa14`/`25df9b6`. Fases C+D 🔴 pendientes. | D-PRINCIPAL cerrada con resultado MODELO SEMANAL PURO. PL pasa de rango contiguo a semana lectiva + plantilla. Detalle del estado en §"Estado de fases" arriba y §9 del doc. |
+| **`hoja-de-ruta-clases-compartidas.md`** 🆕 (2026-05-06 noche) | **Roadmap dedicado, sin código.** ~4-4.5 sesiones cuando se aborde. Plan A→E. | Caso real EAG: 1º DAW + 1º DAM LOMLOE comparten currículo entero por RD 405/2023 → físicamente la misma clase con mismo profe en misma aula. Hoy el solver bloquea con falsos conflictos de profesor. Feature desbloquea pase de lista combinado, PDF correcto, y solver coordinado entre grupos hermanos. Recomendado: opción B (heurística + 1 columna `Horario.gemeloId` self-FK). Detección por niveles 🟢/🟡/🔴 con sugerencias de unificación cuando los profes no coinciden 100%. |
 | **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
 | `hoja-de-ruta-pulido-ux.md` | 🟢 **Ronda 1 + Ronda 2 ✅ Done (2026-05-05)** — Los 6 ítems R2.1-R2.6 cerrados. R2.1 incluye barrido de 27 vistas + 2 wrappers de tabs + fix DOM nesting de TableSkeleton. | Doc cerrado. |
