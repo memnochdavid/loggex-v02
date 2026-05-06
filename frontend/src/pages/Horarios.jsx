@@ -55,15 +55,44 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   // navega por semanas — síndrome equivalente al del widget Home arreglado
   // antes (`docs/home-widgets-roadmap.md` §8). El backend ya envía
   // `periodoLectivoFechaInicio/Fin` por evento; aquí lo consumimos.
+  // Filtra mySchedule por la fecha seleccionada respetando la cascada del
+  // modelo semanal (refactor 2026-05-06):
+  //   - Para cada (grupoId, imparticionId): si HAY un evento de SEMANA cuya
+  //     fecha cubre `selectedDate`, mostrarlo.
+  //   - Si NO hay SEMANA que cubra, fallback a la PLANTILLA del grupo.
+  //   - Eventos legacy sin `periodoLectivoTipo` se incluyen tal cual (compat).
+  // Sin esta lógica, PLANTILLA + SEMANAs aparecían duplicados en la rejilla
+  // (la PLANTILLA tiene fechas NULL → siempre "matchea" cualquier fecha →
+  // se mezclaba con la SEMANA correspondiente).
   const visibleSchedule = useMemo(() => {
     if (!Array.isArray(mySchedule) || mySchedule.length === 0) return mySchedule;
     const y = selectedDate.getFullYear();
     const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const d = String(selectedDate.getDate()).padStart(2, '0');
     const dateISO = `${y}-${m}-${d}`;
+
+    // Detectar qué (grupoId) tienen SEMANA cubriendo la fecha → para esos
+    // grupos, ocultar la PLANTILLA. Para los demás, usar la PLANTILLA.
+    const semanaActivaPorGrupo = new Set();
+    for (const e of mySchedule) {
+      if (e.periodoLectivoTipo !== 'semana') continue;
+      if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) continue;
+      if (dateISO < e.periodoLectivoFechaInicio || dateISO > e.periodoLectivoFechaFin) continue;
+      if (e.grupoId != null) semanaActivaPorGrupo.add(String(e.grupoId));
+    }
+
     return mySchedule.filter(e => {
-      // Compat: si el event no trae los campos del PL, no descartarlo.
-      if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return true;
+      // Eventos sin tipo: legacy/compat — incluir.
+      if (!e.periodoLectivoTipo) {
+        if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return true;
+        return dateISO >= e.periodoLectivoFechaInicio && dateISO <= e.periodoLectivoFechaFin;
+      }
+      if (e.periodoLectivoTipo === 'plantilla') {
+        // PLANTILLA: solo se muestra si NO hay SEMANA activa para su grupo.
+        return !semanaActivaPorGrupo.has(String(e.grupoId));
+      }
+      // SEMANA: solo si su rango cubre la fecha.
+      if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return false;
       return dateISO >= e.periodoLectivoFechaInicio && dateISO <= e.periodoLectivoFechaFin;
     });
   }, [mySchedule, selectedDate]);

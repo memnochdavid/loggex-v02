@@ -117,6 +117,11 @@ class GetMyScheduleController extends AbstractController
             $pl = $h->getPeriodoLectivo();
             $plFechaInicio = $pl?->getFechaInicio()?->format('Y-m-d');
             $plFechaFin    = $pl?->getFechaFin()?->format('Y-m-d');
+            // Refactor modelo semanal (2026-05-06): exponemos `tipo` para que
+            // el frontend haga la cascada SEMANA-cubre-fecha → PLANTILLA sin
+            // duplicar (la PLANTILLA tiene fechas NULL → si no exponemos tipo
+            // queda como "matchea cualquier fecha" y se mezcla con SEMANAs).
+            $plTipo = $pl?->getTipo()?->value;
 
             $events[] = [
                 'id' => $h->getId(),
@@ -130,9 +135,11 @@ class GetMyScheduleController extends AbstractController
                 'grupo' => $grupo->getNombre(),
                 'grupoAbreviatura' => $grupo->getAbreviatura(),
                 'grupoCurso' => $grupo->getCurso(),
+                'grupoId' => $grupo->getId(),  // necesario para agrupar en frontend
                 'profesor' => $profesorNombre,
                 'imparticionId' => $h->getImparticion()->getId(),
                 'periodoLectivoId' => $pl?->getId(),
+                'periodoLectivoTipo' => $plTipo,  // 'plantilla' | 'semana' | null
                 'periodoLectivoFechaInicio' => $plFechaInicio,
                 'periodoLectivoFechaFin' => $plFechaFin,
             ];
