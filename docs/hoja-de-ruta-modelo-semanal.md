@@ -247,6 +247,90 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-06 (noche, sesión 3) — `handleConfigureOptimalCourse` v3: distribución temporal por SEMANAs
+
+**Causa del giro**: la versión v2 (sesión 2) aplicaba una **cuota uniforme** sobre la PLANTILLA y reducía proporcionalmente cuando no cabía. Resultado: cualquier déficit estructural se concentraba en la materia menos elástica → "Sistemas Informáticos al 85%" para grupos con jornada apretada. El usuario señaló que el modelo semanal puro debía resolverlo redistribuyendo cuotas semana a semana ("hasta sem X se cursan todas; cuando una se acaba, las grandes absorben sus slots"). Mi v2 ignoraba esa promesa central del refactor.
+
+**v3 implementa la distribución temporal**:
+- **Pipeline**: cabida (informativo) → `plan-rangos` (puntos de corte dinámicos N) → `distribute-curriculum-dry-run` con N tramos virtuales → crear N **SEMANAs** (`tipo: 'semana'`, `plantillaBase: PLANTILLA.id`) en `pendingTx.plsToCreate` → `solver-iterativo-multi` con N `rangoOverride` → `state[gid_tempId]` por SEMANA.
+- **PLANTILLA intacta**: NO se borra, NO se modifica. Cubre las semanas no incluidas en ninguna SEMANA explícita (cascada del `PeriodoLectivoResolver`).
+- **Cuotas heterogéneas**: el `CurriculumDistributor` (que sigue vivo desde el flujo viejo) reparte minutos por (tramo, imparticion) respetando jornada de cada tramo + cap anual por materia. Materias pequeñas se concentran al inicio; materias grandes ocupan slots liberados al final → cobertura típica 100% del currículo legal cuando capacidad anual ≥ Σ horasTotales.
+- **Confirm dialog rediseñado**: muestra los N tramos del planner con sus etiquetas/razones; cuando hay déficit estructural muestra las 4 palancas en una lista (extender calendario con N concreto, subir slots de jornada, marcar AUTÓNOMA/FCT, aceptar déficit).
+- **Loop de extensión retrocompatible**: si el distribuidor pide `extendBy>0`, se extiende el último tramo virtual (NO se toca `Grupo.fechaFin`). Tras ≤12 intentos, si no hay feasible se avanza con la distribución parcial y el solver hace lo mejor posible — comportamiento idéntico al flujo viejo.
+- **`tempIdSeqRef` para los tempIds negativos**, `applyPendingTxForGrupo` los mapea a IDs reales al guardar (ya soporta `tipo`/`plantillaBase` en el body POST PL — verificado en `HorariosEditor.jsx:1798-1823`).
+
+**Diferencias respecto al flujo viejo (que sí usaba el distribuidor)**:
+- Cada PL nuevo lleva `tipo: 'semana'` + `plantillaBase` apuntando a la PLANTILLA del grupo.
+- NO se borran PLs anteriores (la PLANTILLA persiste, siempre).
+- NO se extiende `Grupo.fechaFin` automáticamente. Si hace falta más calendario, el sistema lo sugiere y el admin edita `Centro.fechaInicio/FinCurso` a mano.
+
+**Deuda Fase C anotada**: el solver iterativo aún calcula `semanasPlPre` desde fechas (`HorarioSolverIterativo:311`). Por eso pasamos las SEMANAs como `rangoOverride` con fechas, no como `periodoLectivoId` (que apuntaría a una PLANTILLA sin fechas). El refactor del solver para operar nativamente sobre `PeriodoLectivo.tipo=PLANTILLA` (con `semanasReferenciaCentro` como referencia) está pendiente.
+
+**Bug fix #2 (sesión 3, mismo turno) — PLANTILLA borrable + déficit estructural oculto**:
+- **Síntoma 1**: el admin podía ejecutar "Limpiar curso" o equivalente que borraba TODOS los PLs incluyendo la PLANTILLA. Tras eso, "Configurar curso óptimo" fallaba porque `findPlantilla()` retornaba null. **Fix**: el handler ahora detecta ausencia de PLANTILLA y la crea al vuelo (POST PL `tipo: plantilla` sin fechas; el processor auto-crea sus PLIs heredados), antes de continuar. Toast informativo "PLANTILLA del grupo creada automáticamente".
+- **Síntoma 2** (más sutil, revelado por logs `crossRangoShortfalls: Array(0)` con currículo claramente sin cubrir): el `CurriculumDistributor` declara `feasible: true` cuando las cuotas SEMANALES reducidas cuadran con la jornada (Σ ≤ jornada lectiva), pero internamente OCULTA el déficit anual cuando `Σ horasTotales > capacidad anual del aula`. Caso 1º DAW EAG: currículo legal 1044h × 60 = 62.640 min/año, capacidad aula 1650 × 36.4 = 60.060 min/año → déficit estructural de 43h/año que NINGÚN reparto cross-rango resuelve. El usuario ve "el horario sigue sin tener todas las horas" porque `accumPlacedByImp` < `Σ horasTotales × 60`, aun con `crossRangoShortfalls: []`.
+- **Intento de fix #1 (revertido)**: el handler detectaba `cabida.objetivoAnualPresencialMin > cabida.capacidadAnualSlotsMin` y AUTO-EXTENDÍA el último tramo virtual `ceil(deficit / jornadaSemanalLectivaMin)` semanas, pasándolo al distribuidor. **Pero**: la extensión añadía días BRUTOS al calendario virtual. Si caían en zona no lectiva del calendario CCAA del centro (típico: julio en FP — vacaciones de verano), el `CalendarioLectivoService` los descontaba y la extensión sumaba 0 semanas lectivas reales. Resultado en EAG 2025-26: el solver internamente declaraba 100% (semanas brutas 44.3) pero el banner del editor (que descuenta festivos/vacaciones) seguía mostrando −12h faltantes. **"Cobertura aparente" engañosa**.
+- **Fix #2 (vigente)**: eliminada la auto-extensión. El distribuidor reparte heterogéneamente lo posible con el calendario actual del centro; si queda déficit residual, el banner anual del editor lo reporta y el admin recurre a las palancas reales (subir jornada en `/admin/jornadas`, marcar AUTÓNOMA/FCT en `/admin/imparticiones`, extender `Centro.fechaFinCurso` a mano si el calendario CCAA lo permite, o aceptar el déficit con anexo PDF). Volver a auto-extender de forma transparente requiere consultar el calendario CCAA desde el frontend (saber qué fechas son lectivas reales) — out of scope Fase B; anotable como deuda Fase D vistas dependientes / enriquecer `PlantillaCabidaValidator` con `extensionRealmenteUtil` calculado vía `CalendarioLectivoService::semanasLectivas(Centro, etapa, override...)`.
+
+**Deuda mayor identificada en sesión 3 (NO arreglada, anotada para roadmap dedicado)** — `materia.horas_totales` se infla sistemáticamente al materializar grupos:
+- `CatalogoMaterializationController.php:138-141` y `GrupoResyncCcaaController.php:128-130` aplican fallback `horas_totales = round(min/sem × 36 / 60)` cuando el catálogo no trae horas legales explícitas. Esto **inflate** las horas anuales cuando AN (u otra CCAA) define `min/sem` generosos asumiendo X semanas reales del centro, pero el sistema convierte a horas asumiendo 36 sem LOMLOE puras.
+- Casos donde el fallback dispara hoy:
+  - **Módulos sólo CCAA** (IPE I, DIG, Sostenibilidad, IP, IPE II en AN): `catalogo_materia` no los tiene; `catalogo_materia_ccaa` **NO tiene columna `horas_totales`** (sólo `minutos_semanales`). El RD/Resolución autonómica SÍ define horas legales (ej. IPE I = 96h en LOMLOE FP) pero no se ingestan.
+  - **Módulos nacionales no enriquecidos por `BoeRdEnricher`**: si el RD aún no se procesó, `catalogo_materia.horas_totales` es NULL.
+- Resultado real para 1º DAW EAG (sesión 3): currículo "calculado" 1044h vs RD legal 996h → tramo 4 hasta julio innecesario. Manualmente corregido en BD vía UPDATE para esta sesión, pero la deuda estructural sigue.
+- **Fix limpio en 3 capas**:
+  1. Eliminar el fallback `min × 36 / 60` en ambos controllers. Si no hay `horas_totales` en el catálogo → dejar NULL en `materia` (downstream gestiona NULL gracefully).
+  2. Añadir columna `horas_totales` a `catalogo_materia_ccaa` + ingestar el dato desde las Resoluciones autonómicas (BOJA, BOPA, BOPV, etc.) en los providers CCAA.
+  3. Crear comando `app:grupo:resync-curriculum` que recalcule materias del grupo desde el catálogo actualizado, respetando `horas_totales` legales del catálogo y derivando `min/sem` del calendario real del centro (`horas_totales × 60 / semanasLectivasRealesCentro`).
+- Roadmap candidato: nuevo doc `hoja-de-ruta-horas-legales-vs-calendario.md` o ampliación de `catalogo-oficial.md` (deuda ya parcialmente anotada en `hoja-de-ruta-periodos-lectivos.md` Fase 5 sub-E 2026-04-28 + Opción A 2026-04-29).
+
+**Deuda visual identificada en sesión 3 (NO del refactor, pre-existente)** — `TimeTable.jsx` chafa filas:
+- Vista profe (`/horarios`) y vista alumno mismo bug. Filas de la jornada que no tienen evento del usuario muestran "barras rojas con guion" delgadas (probablemente `eventCard` con `colorForModule(undefined)` y campos `materia/grupo` null que se renderizan como "-"). Las filas con eventos crecen por contenido del card; las filas vacías quedan en `min-height: 22px`. Resultado: la rejilla tiene filas de altura desproporcionada a la duración del slot.
+- **Fix candidato**: 1) hacer altura proporcional a la duración del slot (`grid-template-rows: repeat(N, 1fr)` o calcular altura por `slot.duracion / Σ duracion`); 2) skip `eventCard` cuando `cellData.event.materia` o `imparticionId` es falsy en lugar de pintarlo rojo con guion.
+- Out of scope Fase B (refactor modelo semanal). Anotar en doc dedicado si se aborda más adelante: `hoja-de-ruta-timetable-vista-publica.md` o equivalente.
+
+**Bug fix #1 (sesión 3, mismo turno)**:
+- **Síntoma**: tras "Configurar curso óptimo" + Guardar, las 4 SEMANAs aparecen en BD pero **sin PLIs** propios. El render hereda cuotas de la PLANTILLA → todas las SEMANAs muestran el mismo horario, sin la distribución heterogénea. Usuario reporta "no viable".
+- **Causa raíz**: `PeriodoLectivoCreateProcessor.php:54-59` solo auto-crea PLIs en PLANTILLAs (modelo lazy on-demand del refactor). Las SEMANAs nacen sin PLIs por contrato — los PLIs en SEMANAs son **overrides explícitos** que el caller debe POSTear. Pero `applyPendingTxForGrupo` (líneas 1893-1916 antes del fix) saltaba `pliPatches` con `if (!pliId) continue;` cuando no encontraba PLI, asumiendo "imp desactivada por toggle previo" — caso que NO aplica a una SEMANA recién creada con cuota override.
+- **Fix `applyPendingTxForGrupo`**: ante un `pliPatch` cuyo `plKey` corresponde a un PL recién creado y sin PLI cargado en el cache, hace **POST PLI** con la cuota directamente (no PATCH). Mantiene el contrato lazy: solo se crean PLIs cuando hay override explícito. El PLI hereda como antes cuando NO se patchea. Líneas 1907-1942 del archivo tras el fix.
+- **Fix `handleConfigureOptimalCourse`**: `pendingTx.plsToDelete` ahora incluye las SEMANAs vivas del grupo (filtradas con `isSemana()`). La PLANTILLA NO se borra. Esto permite rehacer el flujo limpiamente — el admin pulsa otra vez el botón y las 4 SEMANAs viejas se sustituyen por las nuevas (con sus PLIs override correctos). Limpieza automática de las 4 SEMANAs basura que quedaron en BD del primer intento.
+
+### 2026-05-06 (noche, sesión 2) — Fase B avanza: `handleConfigureOptimalCourse` reescrita + endpoint `plantilla-cabida`
+
+**Decisión arquitectónica**: para producción comercial se opta por **C + b** (vs A + a más rápido). Razones: contrato de API documentable, evita arrastrar deuda ("`solver-iterativo-multi` mintiéndose con `rangoOverride` ficticio sobre PLANTILLA"), y deja al `CurriculumDistributor` vivo para SEMANAs excepcionales con cuotas heterogéneas (caso real del modelo semanal cuando un centro reciba un cambio puntual de horario).
+
+**Hallazgo positivo**: la rama **b** (solver acepta `periodoLectivoId` además de `rangoOverride`) **ya estaba implementada** en `HorarioSolverController:368-441`. Cero cambios backend en el solver — solo hay que consumirla desde el frontend.
+
+**Backend**:
+- Nuevo servicio `PlantillaCabidaValidator` (`backend/src/Service/PlantillaCabidaValidator.php`). Para un grupo: lee la PLANTILLA vía `PeriodoLectivoResolver::getPlantilla()`, resuelve la jornada efectiva (con cascada PL→Grupo→Itinerario), calcula `jornadaSemanalLectivaMin` con la misma fórmula que `CapacityPlanner::slotsFromJornada()` (Σ duración tramos SLOT × días lectivos), resuelve `semanasRefCentro` vía `CalendarioLectivoService::semanasLectivas(Centro, EtapaEducativa::FP)` (con fallback 36 LOMLOE), itera los PLI vivos de la PLANTILLA (filtra `pli.deleted` y `imp.deleted`), y devuelve `{feasible, plantilla, jornada, semanasRefCentro, semanasOrigen, cuotas[], totalCuotaPresencialMin, totalCuotaCurricularMin, excedenteJornadaMin, shortfalls[]}`.
+- **Cuota sugerida ESCALADA al calendario real** (post-fix smoke test): `cuotaSugeridaMin = ceil(materia.objetivoAnualMinutos / semanasRefCentro)`. Sin esto, calendarios <36 sem (típico tras festivos) producían `crossRangoShortfalls` del solver iterativo porque `min/sem × semanasReales < horasTotales × 60`. Cada cuota lleva también `cuotaCatalogoMin` (`materia.minutosSemanales`) y `objetivoAnualMin` para transparencia. Solo cuentan a la jornada las imparticiones cuya `Modalidad::consumeAula()` es true (PRESENCIAL); FCT/NO_REGULAR/AUTONOMA cuentan al currículo (informativo en `totalCuotaCurricularMin`) pero NO a la jornada presencial. NO modifica BD. NO depende del distribuidor.
+- **Sugerencia de extensión de calendario** (post-pregunta usuario "se está marcando como límite inamovible el final del curso?"): cuando `!feasible`, el validator devuelve `semanasMinimasParaFeasible` (Σ objetivoAnualPresencial / jornadaSemanalLectivaMin) y `semanasExtensionRecomendada` (`ceil(semanasMinimas - semanasRefCentro)`). El frontend lo enseña en el cuerpo del confirm: "Alternativa limpia: extender el calendario lectivo del centro ~N semana(s) más en /admin/centros (si el calendario CCAA lo permite) cubriría el currículo al 100% sin reducir cuotas." En modelo semanal puro la duración del curso vive en `Centro.fechaInicio/FinCurso` (Fase 7), editable por el admin — la auto-extensión del flujo viejo (`Grupo.fechaFin += extendBy`) era cuestionable porque chocaba con el calendario legal CCAA; ahora el sistema sugiere y el admin decide. También se devuelven `objetivoAnualPresencialMin` y `capacidadAnualSlotsMin` para que el frontend pueda razonar sobre déficit estructural (`objetivoAnual > capacidadAnual` ⇒ ningún reparto semanal lo arregla).
+- Nuevo endpoint `GET /api/v1/grupos/{grupoId}/plantilla-cabida` en `HorarioSolverController.php` (idempotente, `ROLE_ADMIN|SUPERADMIN`).
+
+**Frontend**:
+- `handleConfigureOptimalCourse` reescrita (`HorariosEditor.jsx:3648-...`). Pipeline:
+  - (1) `findPlantilla(plByGrupo[gid])`.
+  - (2) GET `plantilla-cabida` → cuotas escaladas + `feasible`.
+  - (3) **Calcular cuotas para el solver**: si `feasible`, usar `cuotaSugeridaMin` directamente; si `!feasible`, **reducir proporcionalmente** las presenciales por factor `f = jornada / Σ presenciales` (las no-presenciales no se tocan). Sin reducción, una jornada apretada haría que el solver no colocase nada (regresión grave del flujo viejo). Los shortfalls quedan visibles en el informe del solver. Avisamos en el confirm con un mensaje específico cuando hay reducción.
+  - (4) Confirm con cuerpo distinto según huboReducción.
+  - (5) `pendingTx.pliPatches` con `plKey: plantillaId` (id real, no tempId — `applyPendingTxForGrupo` ya lo soporta en líneas 1894-1916) y `minutosSemanales: c.cuotaSolverMin`.
+  - (6) **POST `solver-iterativo-multi` en modo `rangoOverride`** con UN solo rango ficticio que representa la PLANTILLA + cuotas computadas in-memory. NO se usa la rama `periodoLectivoId` porque el solver interno calcula `semanasPlPre = (fechaFin - fechaInicio) / 7` (`HorarioSolverIterativo:311`), y la PLANTILLA no tiene fechas → `semanasPlPre = 0` → cap anual roto → solver no coloca nada. Pasamos fechas derivadas de `grupo.fechaInicio/fin` (o fallback a `semanasRefCentro` desde hoy) para que `semanasPlPre ≈ semanasRefCentro`. Esto es contrato existente del endpoint (igual que el viejo flujo de N rangos), no se inventa nada nuevo.
+  - (7) Mapear placements desde `temp:<tempId>` al `state[gid_plantillaId]` REAL (id positivo). El solver respondió sobre el rangoOverride ficticio pero los placements son del horario de la PLANTILLA real — al guardar, `performBatchSaveAllDirty` POSTea horarios apuntando a `Horario.periodoLectivo = plantilla` real.
+  - (8) Modal `SolverReport` si bottleneck o crossRangoShortfalls.
+- **Deuda Fase C (solvers)** anotada: extender `HorarioSolverIterativo` para operar nativamente sobre PLANTILLA (sin fechas) usando `semanasReferenciaCentro` como referencia, eliminando el rangoOverride ficticio.
+- Eliminada del handler toda la lógica de `plan-rangos`, `distribute-curriculum-dry-run`, extensión de `Grupo.fechaFin`, creación/borrado de PLs virtuales, loop de extendBy, y `distribuidorIssue`.
+- Las claves i18n nuevas (`scheduleEditor.optimalNoPlantilla`, `optimalCabidaError`, `optimalCabidaNetwork`, `optimalCabidaInfeasible`, `optimalConfirmBodyPlantilla`, `solverNoMatch`) llevan `defaultValue` español, así que la UI funciona aunque no estén en los JSON × 5 idiomas todavía. Anotable: traducir cuando se cierre Fase B.
+
+**Tests**: el proyecto no tiene infra PHPUnit (solo `bootstrap.php`). Se anotó como deuda — la validación se hará via smoke test desde la UI tras cache:clear.
+
+**Pendientes Fase B**:
+- ~~Reescribir `handleConfigureOptimalCourse`~~ ✅
+- Eliminar `handleCreateRecommendedRangos` del menú (ya no tiene sentido en modelo semanal).
+- Adaptar header del modal "Materias del rango" para mostrar "Materias del curso" cuando es PLANTILLA.
+- UI dedicada para SEMANAs (botón "Crear semana excepcional" + flujo guiado).
+- Revisar `runSolver` single-rango para garantizar compatibilidad PLANTILLA.
+- i18n × 5 idiomas para las claves nuevas del flujo.
+
 ### 2026-05-06 (noche) — Fase A2+A3 ✅ + Fase B parcial
 
 **Fase A2 (commit `a28d812`)**: migration `Version20260506180000` aplicada en BD dev. 8 SQL queries (3 DELETE + ALTER columns + 2 MODIFY fechas + 2 CREATE INDEX). Bug colateral: la migration `Version20260430120000` (calendario_escolar_ccaa, ajena al refactor) estaba como New porque la tabla la había creado otra sesión sin marcarla como ejecutada — se solucionó marcándola con `doctrine:migrations:version --add` y dejando que la mía corriese sola.
@@ -472,13 +556,15 @@ Archivo nuevo: `frontend/src/utils/pl-utils.js`. Funciones puras reusables:
 
 ### Próximos pasos al retomar Fase B
 
-1. **Validación visual** en `https://localhost:8443/admin/horarios` con cada grupo del centro EAG.
-2. **Resolver cualquier rotura residual** (errores en consola browser) que aparezca tras navegación profunda.
-3. **Reescribir `handleConfigureOptimalCourse`**: en lugar de crear N rangos equiespaciados, debe distribuir la cuota anual sobre la PLANTILLA y dejar el módulo de SEMANAs vacío.
-4. **Reescribir `handleCreateRecommendedRangos`**: ya no tiene sentido en modelo semanal — eliminar del menú.
-5. **Adaptar header del modal "Materias del rango"** para mostrar "Materias del curso" cuando se abre sobre PLANTILLA.
-6. **Añadir UI dedicada para SEMANAs**: botón contextual "Crear semana excepcional" con flujo guiado (selección de fecha de semana + heredar plantilla + permitir overrides).
-7. **Revisar `runSolver` single-rango** para asegurar compatibilidad PLANTILLA.
+1. ~~**Validación visual** en `/admin/horarios`~~ ✅ (2026-05-06 sesión 2 — usuario reportó OK).
+2. ~~**Reescribir `handleConfigureOptimalCourse`**~~ ✅ (2026-05-06 sesión 2 — modelo semanal puro: cabida + solver sobre PLANTILLA real, sin distribuidor cross-rango ni creación de PLs).
+3. **Eliminar `handleCreateRecommendedRangos`** del menú: ya no tiene sentido en modelo semanal.
+4. **Adaptar header del modal "Materias del rango"** para mostrar "Materias del curso" cuando se abre sobre PLANTILLA.
+5. **Añadir UI dedicada para SEMANAs**: botón contextual "Crear semana excepcional" con flujo guiado (selección de fecha de semana + heredar plantilla + permitir overrides).
+6. **Revisar `runSolver` single-rango** para asegurar compatibilidad PLANTILLA.
+7. **i18n × 5 idiomas** para las claves nuevas del flujo "Configurar curso óptimo" modelo semanal (`scheduleEditor.optimalNoPlantilla`, `optimalCabidaError`, `optimalCabidaNetwork`, `optimalCabidaInfeasible`, `optimalConfirmBodyPlantilla`, `solverNoMatch`). Hoy funcionan vía `defaultValue` ES.
+8. **UI dedicada para "excedente de jornada"** cuando la cuota escalada del currículo legal supera la jornada lectiva semanal del grupo. Hoy se reporta vía toast accionable. Reusar `SolverReport` para este caso produce textos confusos del viejo flujo distribuidor cross-rango ("el distribuidor ha repartido", "calendario propuesto") que ya no aplican. Una UI propia mostraría: tabla de cuotas (catálogo vs sugerida vs jornada disponible), resumen en horas/sem y horas/año, y CTAs claros (subir jornada en `/admin/jornadas`, marcar materias como AUTÓNOMA/FCT).
+9. **Smoke test integración** del endpoint `GET /api/v1/grupos/{id}/plantilla-cabida` con los 4 grupos del centro EAG (cache:clear backend + recarga frontend + clic "Configurar curso óptimo"). Validado 2026-05-06 sesión 2 con 1 grupo (cabida no feasible: cuota escalada 1726 min/sem vs jornada 1650 min/sem). Falta validar el camino feasible con grupo de jornada amplia.
 
 ### Cómo retomar desde otra máquina
 

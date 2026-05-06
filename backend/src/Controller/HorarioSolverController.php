@@ -13,6 +13,7 @@ use App\Service\HorarioSolver;
 use App\Service\HorarioSolverBinPacking;
 use App\Service\HorarioSolverIterativo;
 use App\Service\PeriodoLectivoPlanner;
+use App\Service\PlantillaCabidaValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -251,6 +252,39 @@ class HorarioSolverController extends AbstractController
         $result = $distributor->distribute($grupo, $pls);
         $result['dryRun'] = true;
         return $this->json($result);
+    }
+
+    /**
+     * Cabida del currículo en la PLANTILLA del grupo (modelo semanal puro,
+     * Fase B 2026-05-06).
+     *
+     * Devuelve si la suma de `materia.minutosSemanales` de las imparticiones
+     * presenciales (Modalidad::consumeAula) cabe en la jornada lectiva
+     * semanal de la PLANTILLA (Σ tramos SLOT × días lectivos), junto con el
+     * detalle por imparticion (cuota natural, cuota actual, modalidad) para
+     * que el frontend prepare los PLI patches y dispare el solver sobre la
+     * PLANTILLA real.
+     *
+     * Idempotente, no toca BD. Sustituye en el frontend la cadena
+     * `plan-rangos` + `distribute-curriculum-dry-run` cuando el flujo es
+     * "configurar curso óptimo" (ya no se crean rangos: la PLANTILLA es el
+     * único objetivo).
+     *
+     * Doc: docs/hoja-de-ruta-modelo-semanal.md §12.
+     */
+    #[Route('/api/v1/grupos/{grupoId}/plantilla-cabida', name: 'api_grupo_plantilla_cabida', methods: ['GET'], requirements: ['grupoId' => '\d+'])]
+    public function plantillaCabida(int $grupoId, EntityManagerInterface $em, PlantillaCabidaValidator $validator): JsonResponse
+    {
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['message' => 'Acceso denegado'], 403);
+        }
+
+        $grupo = $em->getRepository(Grupo::class)->find($grupoId);
+        if (!$grupo) {
+            return $this->json(['message' => 'Grupo no encontrado'], 404);
+        }
+
+        return $this->json($validator->validate($grupo));
     }
 
     /**
