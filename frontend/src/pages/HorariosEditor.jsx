@@ -474,6 +474,29 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // trabajo en progreso del PL anterior.
   const stateKey = (selectedGrupo && selectedPlId) ? `${selectedGrupo}_${selectedPlId}` : '';
 
+  // 1.4) Refetch del grupo individual cuando cambia `selectedGrupo`. El GET
+  //      colectivo /api/grupos del effect 1 puede traer state stale tras
+  //      cambios externos (otra pestaña, /admin/grupos editado en paralelo)
+  //      o no incluir todos los campos anidados refrescados (p.ej.
+  //      `jornadaTipoOverride` cuando se cambió desde otra ventana). Sin esto,
+  //      la rejilla puede mostrar la jornada del itinerario en lugar del
+  //      override del grupo. Este fetch fuerza la verdad fresca de BD.
+  useEffect(() => {
+    if (!selectedGrupo) return;
+    fetch(getApiUrl(`/api/grupos/${selectedGrupo}`),
+      { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(g => {
+        if (!g) return;
+        setGrupos(prev => {
+          const exists = prev.some(x => String(x.id) === String(selectedGrupo));
+          if (!exists) return [...prev, g];
+          return prev.map(x => String(x.id) === String(selectedGrupo) ? { ...x, ...g } : x);
+        });
+      })
+      .catch(err => console.warn('Error refetch grupo individual:', err));
+  }, [selectedGrupo]);
+
   // 1.5) Cargar la jornada efectiva del (grupo, PL) seleccionado.
   // El GET /api/grupos no anida los tramos de la jornada (los serializer groups
   // no encadenan tan profundo), así que hacemos un fetch dedicado a /api/jornada_tipos/{id}.
