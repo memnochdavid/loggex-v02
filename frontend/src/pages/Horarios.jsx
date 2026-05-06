@@ -160,8 +160,16 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     setExporting(true);
     try {
       const lang = (i18n.language || 'es').substring(0, 2);
-      const url = getApiUrl(`/api/v1/informes/horario/me?lang=${lang}`);
-      await downloadFileFromApi(url, 'horario.pdf');
+      // Pasar la fecha seleccionada en el calendario para que el backend
+      // resuelva el PeriodoLectivo aplicable (cascada SEMANA→PLANTILLA) y
+      // genere el PDF de la SEMANA visible en el editor (no mezcla todas
+      // las SEMANAs del año, que era el comportamiento legacy).
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const d = String(selectedDate.getDate()).padStart(2, '0');
+      const fechaISO = `${y}-${m}-${d}`;
+      const url = getApiUrl(`/api/v1/informes/horario/me?lang=${lang}&fecha=${fechaISO}`);
+      await downloadFileFromApi(url, `horario_${fechaISO}.pdf`);
     } catch (err) {
       toast.error(err.message, {
         description: t('schedules.exportErrorCtx', { defaultValue: 'No se ha podido exportar el horario' })

@@ -11,6 +11,7 @@ use App\Entity\TipoTramo;
 use App\Entity\User;
 use App\Service\PdfBranding;
 use App\Service\PdfGenerator;
+use App\Service\PeriodoLectivoResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,7 +25,8 @@ class HorarioPdfController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly PdfGenerator $pdfGenerator,
         private readonly TranslatorInterface $translator,
-        private readonly PdfBranding $branding
+        private readonly PdfBranding $branding,
+        private readonly PeriodoLectivoResolver $plResolver
     ) {
     }
 
@@ -41,7 +43,20 @@ class HorarioPdfController extends AbstractController
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
-        $horarios = $this->loadHorariosForUser($user);
+        // Refactor modelo semanal (Fase D 2026-05-06): aceptamos `?fecha`
+        // para que el PDF refleje la SEMANA aplicable a esa fecha (cascada
+        // SEMANA-cubre-fecha → PLANTILLA via PeriodoLectivoResolver). Default
+        // = hoy. Sin esto el PDF mezclaba placements de PLANTILLA + todas
+        // las SEMANAs del año.
+        $fechaParam = $request->query->get('fecha');
+        $fecha = null;
+        if ($fechaParam) {
+            try { $fecha = new \DateTimeImmutable($fechaParam); }
+            catch (\Exception) { $fecha = null; }
+        }
+        $fecha = $fecha ?? new \DateTimeImmutable();
+
+        $horarios = $this->loadHorariosForUser($user, $fecha);
         if (empty($horarios)) {
             return $this->json(['message' => 'No tienes horarios asignados'], 404);
         }
@@ -179,7 +194,7 @@ class HorarioPdfController extends AbstractController
     // ─── Helpers ──────────────────────────────────────────────────────────
 
     /** @return Horario[] */
-    private function loadHorariosForUser(User $user): array
+    private function loadHorariosForUser(User $user, ?\DateTimeInterface $fecha = null): array
     {
         $roles = $user->getRoles();
         $userId = $user->getId();
@@ -219,6 +234,36 @@ class HorarioPdfController extends AbstractController
                     $horarios[] = $rp;
                 }
             }
+        }
+
+        // Filtro modelo semanal: por cada grupo distinto, resolver el PL
+        // aplicable a la fecha (cascada SEMANA-cubre-fecha → PLANTILLA via
+        // PeriodoLectivoResolver) y conservar SOLO los horarios de ese PL.
+        // Sin esto, un grupo con PLANTILLA + N SEMANAs metería todos los
+        // placements en el PDF y aparecerían duplicados en cada slot.
+        if ($fecha !== null) {
+            $plAplicablePorGrupo = [];  // grupoId → plId (o null si no hay PL aplicable)
+            $horariosFiltrados = [];
+            foreach ($horarios as $h) {
+                $grupo = $h->getImparticion()?->getGrupo();
+                if (!$grupo) { $horariosFiltrados[] = $h; continue; }
+                $gId = $grupo->getId();
+                if (!array_key_exists($gId, $plAplicablePorGrupo)) {
+                    $plAplicable = $this->plResolver->resolveActive($grupo, $fecha);
+                    $plAplicablePorGrupo[$gId] = $plAplicable?->getId();
+                }
+                $plIdAplicable = $plAplicablePorGrupo[$gId];
+                $plH = $h->getPeriodoLectivo()?->getId();
+                // Si no hay PL aplicable, mostramos los horarios sin filtrar
+                // (mejor mostrar de más que vacío). Si sí hay, filtramos.
+                if ($plIdAplicable === null) {
+                    $horariosFiltrados[] = $h;
+                } elseif ($plH === $plIdAplicable) {
+                    $horariosFiltrados[] = $h;
+                }
+                // else: descartado (placement de otro PL del grupo).
+            }
+            $horarios = $horariosFiltrados;
         }
 
         return $horarios;
