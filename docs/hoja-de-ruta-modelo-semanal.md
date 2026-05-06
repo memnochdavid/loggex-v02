@@ -247,7 +247,9 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
-### 2026-05-06 (noche, sesión 6) — Fase C solvers nativos sobre PLANTILLA ✅ Done
+### 2026-05-06 (noche, sesión 6) — Fase C ✅ + UX PLANTILLA oculta + descubrimiento de deudas adicionales
+
+**Fase C solvers nativos sobre PLANTILLA ✅ Done** (commit `4a0d716`).
 
 Cierre de la última fase pendiente del refactor.
 
@@ -267,6 +269,39 @@ Cierre de la última fase pendiente del refactor.
 **Deuda residual anotada** (no urgente): el frontend del flow "Configurar curso óptimo" sigue generando SEMANAs siempre (rama `rangoOverride`). Con el fix de Fase C, casos simples (cuotas naturales que caben en jornada sin necesidad de distribución temporal cross-trimestre) podrían usar `{periodoLectivoId: plantilla.id}` directo y NO crear SEMANAs en BD. Reduciría ruido en grupos "fáciles" y dejaría la PLANTILLA protagonista en su rol original. Mejora opcional para próxima sesión si hace falta.
 
 **Refactor modelo-semanal CERRADO**. Próximo objetivo: roadmap dedicado `hoja-de-ruta-intercambio-imparticiones.md` (por crear) sobre la base estable.
+
+**Mejora UX adicional sesión 6 (commit `c3bf9bb`)**: ocultar PLANTILLA del strip de pills en `/admin/horarios` cuando hay SEMANAs vivas. Cambios:
+- `HorariosEditor.jsx`: filtro en el render del strip (`plsVisibles = haySemanas ? filter(no PLANTILLA) : todos`). Banner anual (`plCount`) cuenta solo SEMANAs cuando las hay.
+- La PLANTILLA sigue VIVA en BD: ancla FK de SEMANAs (plantillaBase), almacén de cuotas naturales, fallback del `PeriodoLectivoResolver`. Solo invisible en el editor admin cuando ya está tapada operativamente por las SEMANAs.
+
+**Descubrimientos a depurar próxima sesión**:
+
+1. **Materias DAM (1º DAM iti 5) no estaban alineadas con DAW** (1º DAW iti 3) tras el fix `25df9b6` del `MaterializationController`. El fix solo afecta a grupos NUEVOS — los existentes mantienen sus horas viejas infladas. Aplicado UPDATE manual en sesión 6 a las 7 imparticiones presenciales del grupo 3 (id 45-49 + 61) para alinearlas con DAW. Pendiente: regenerar "Configurar curso óptimo" en DAM con las horas legales y validar visualmente.
+
+2. **Bug en `GrupoResyncCcaaController` líneas 71-97**: cuando una materia existe (match por `codigoOficial+curso`), actualiza `minutosSemanales`, `nombre` y `modalidad` pero **NO actualiza `horasTotales`**. Si se enriquece el catálogo BOE con horas legales nuevas, un resync no las propagará a las materias del grupo. Trivial de añadir: comparar `$m->getHorasTotales() !== $r->catalogoMateria?->getHorasTotales()` y `setHorasTotales` si difiere.
+
+3. **Verificación pendiente — duplicados intra-itinerario**: SQL diagnóstico pendiente para detectar si hay materias activas con mismo `codigoOficial+curso` dentro del mismo itinerario (glitch histórico). Si los hay, soft-deletear los obsoletos. Query:
+   ```sql
+   SELECT itinerario_id, codigo_oficial, COUNT(*) AS n
+   FROM materia WHERE itinerario_id IN (3,5) AND curso=1 AND deleted=0
+   GROUP BY itinerario_id, codigo_oficial HAVING n > 1;
+   ```
+
+4. **Última fecha del tramo "Tras última evaluación" en DAM**: 06/07/2026 (debe ser 22/06 como en DAW). Causa: el "Configurar curso óptimo" para DAM se ejecutó ANTES del UPDATE `Centro.fechaFinCurso = 22/06`. Solución: regenerar el flow en DAM ahora que las fechas son correctas.
+
+5. **Comando `app:grupo:resync-curriculum`** anotado anteriormente: cobra más sentido tras estos descubrimientos. Recalcularía horas desde el catálogo + alinearía duplicados. Próximo objetivo natural si hace falta limpiar BD existente al pasar a producción.
+
+## Pendientes próxima sesión
+
+Por orden de impacto (los 4 primeros bloquean la coherencia entre 1º DAW y 1º DAM, los demás son deuda residual):
+
+1. **Verificar duplicados intra-itinerario** (SQL pendiente arriba). Si hay → soft-delete de obsoletos.
+2. **Regenerar "Configurar curso óptimo" en 1º DAM** ahora que las horas legales están corregidas y el centro tiene fechaFinCurso correcta. Validar visualmente que ambos grupos cuadran al mismo currículo (modulo geometría de slots por jornada distinta).
+3. **Fix `GrupoResyncCcaaController`**: añadir `horasTotales` a los campos que actualiza en match. Trivial.
+4. **Mejora opcional `handleConfigureOptimalCourse`**: usar `{periodoLectivoId: plantilla.id}` directo en casos simples (cuotas naturales que caben en jornada sin distribución temporal). Reduciría ruido en BD para grupos "fáciles" y dejaría la PLANTILLA protagonista en su rol original.
+5. **Crear `hoja-de-ruta-intercambio-imparticiones.md`** y arrancar feature objetivo (sustituciones, intercambios de turno, semanas atípicas) sobre PLANTILLA estable.
+6. **Comando `app:grupo:resync-curriculum`** para recalcular materias de grupos existentes desde el catálogo enriquecido.
+7. **Roadmap `hoja-de-ruta-clases-compartidas.md`** ya creado en sesión 4 — esperando bloque dedicado.
 
 ### 2026-05-06 (noche, sesión 5) — Fase D vistas dependientes ✅ Done
 
