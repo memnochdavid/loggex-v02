@@ -16,8 +16,20 @@ import { toast } from '../utils/toast';
 // Misma paleta determinista que el editor (HorariosEditor): hue derivado del id
 const colorForModule = (mid) => {
     const id = Number(mid) || 0;
+    if (!id) return 'var(--bg-card)';  // sin id válido: neutro, NO rojo (hue=0).
     const hue = (id * 47) % 360;
     return `hsl(${hue}, 55%, 48%)`;
+};
+
+// Duración del slot en minutos (start/end formato 'HH:MM'). Usada para
+// dar altura proporcional a la celda — sin esto, slots de 30 vs 90 min
+// rendereaban con la misma altura mínima de 22px y la rejilla quedaba
+// con filas chafadas/desproporcionadas.
+const slotDurationMin = (slot) => {
+    if (!slot?.start || !slot?.end) return 30;
+    const [h1, m1] = slot.start.split(':').map(Number);
+    const [h2, m2] = slot.end.split(':').map(Number);
+    return Math.max(15, (h2 * 60 + m2) - (h1 * 60 + m1));
 };
 
 const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = [], tareas = [] }) => {
@@ -201,6 +213,13 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                         e.horaInicio === slot.start
                     );
                     if (!event) return;
+                    // Skip eventos rotos (sin materia ni imparticionId / moduloId):
+                    // antes se pintaban como caja roja con guion porque
+                    // colorForModule(undefined) → hsl(0,...) y MateriaLabel
+                    // con nombre null renderiza vacío. Ahora no se renderizan.
+                    const hasMateria = event.materia || event.moduloAbreviatura;
+                    const hasImpId = event.imparticionId || event.moduloId;
+                    if (!hasMateria && !hasImpId) return;
 
                     // Calcular cuántos slots cubre el evento (event.horaFin > slot.start de cada uno).
                     let span = 1;
@@ -374,10 +393,16 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             // saltando días con festivo (cuya celda ya está
                             // cubierta por rowSpan del festivo desde fila 0).
                             // Sin saltarlos, CSS Grid se desordena visualmente.
+                            // Altura proporcional a la duración del slot
+                            // (28px por cada 30 min). Sin esto, recreo de 20min
+                            // y slot de 90min rendereaban con misma altura
+                            // visual al no tener evento.
+                            const slotMinH = `${Math.max(22, Math.round(slotDurationMin(slot) * 28 / 30))}px`;
+
                             if (tInfo.isRecreo) {
                                 return (
                                     <React.Fragment key={hIndex}>
-                                        <div className={styles.timeCell}>
+                                        <div className={styles.timeCell} style={{ minHeight: slotMinH }}>
                                             {tInfo.tramoStart} - {tInfo.tramoEnd}
                                         </div>
                                         {days.map((_, dIndex) => {
@@ -387,6 +412,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                 <div
                                                     key={`recreo-${dIndex}`}
                                                     className={styles.recreoStrip}
+                                                    style={{ minHeight: slotMinH }}
                                                 >
                                                     {dIndex === 0 && (slot.etiqueta || t('timetable.recreo', { defaultValue: 'Recreo' }))}
                                                 </div>
@@ -400,7 +426,10 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             {tInfo.isStart && (
                                 <div
                                     className={styles.timeCell}
-                                    style={tInfo.span > 1 ? { gridRow: `span ${tInfo.span}` } : undefined}
+                                    style={{
+                                        ...(tInfo.span > 1 ? { gridRow: `span ${tInfo.span}` } : {}),
+                                        minHeight: slotMinH,
+                                    }}
                                 >
                                     {tInfo.tramoStart} - {tInfo.tramoEnd}
                                 </div>
@@ -418,7 +447,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                         <div
                                             key={`${day}-${hIndex}`}
                                             className={`${styles.cell} ${styles.festivoCell}`}
-                                            style={{ gridRow: `span ${cellData.rowSpan}` }}
+                                            style={{ gridRow: `span ${cellData.rowSpan}`, minHeight: slotMinH }}
                                         >
                                             <div className={styles.festivoContent}>
                                                 <CalendarOff size={24} />
@@ -432,7 +461,10 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                     <div
                                         key={`${day}-${hIndex}`}
                                         className={`${styles.cell} ${isHighlighted ? styles.highlightCell : ''}`}
-                                        style={{ gridRow: cellData && cellData.rowSpan > 1 ? `span ${cellData.rowSpan}` : 'auto' }}
+                                        style={{
+                                            ...(cellData && cellData.rowSpan > 1 ? { gridRow: `span ${cellData.rowSpan}` } : {}),
+                                            minHeight: slotMinH,
+                                        }}
                                     >
                                         {cellData && (
                                             <div
