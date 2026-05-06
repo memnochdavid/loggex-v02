@@ -48,6 +48,18 @@ class PeriodoLectivoCreateProcessor implements ProcessorInterface
             );
         }
 
+        // Higiene jornadaTipo: la PLANTILLA NO debe tener jornadaTipo propia.
+        // El default del grupo es `Grupo.jornadaTipoOverride`; la PLANTILLA
+        // hereda esa cadena (PL.jornadaTipo > Grupo.override > Itinerario).
+        // Si el cliente la asigna explícitamente, el dropdown del editor
+        // muestra la jornada del grupo (override) pero la rejilla la del PL,
+        // produciendo inconsistencia visible (bug detectado 2026-05-06 sesión
+        // 4 con grupo 3 1º DAM EAG: dropdown FP Tardes / rejilla 8:30-14:30).
+        // Forzamos NULL para que el override del grupo sea siempre la fuente.
+        if ($isNew && $data instanceof PeriodoLectivo && $data->isPlantilla()) {
+            $data->setJornadaTipo(null);
+        }
+
         // Persistir primero (decora el persistProcessor por defecto).
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
