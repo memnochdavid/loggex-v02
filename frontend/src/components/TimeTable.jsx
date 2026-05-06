@@ -395,15 +395,16 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             // Sin saltarlos, CSS Grid se desordena visualmente.
                             // Altura proporcional a la duración del slot.
                             // Diferenciamos recreo (compacto, ~24px) de slot
-                            // lectivo (≥40px para que el eventCard pueda
-                            // mostrar materia + grupo en sus 2 líneas sin
-                            // cortarse). Para slots largos (60/90/120 min)
-                            // multiplicamos por 1.2 px/min para que la fila
-                            // crezca con la duración real del placement.
+                            // lectivo (≥48px para que el eventCard tenga
+                            // holgura real para mostrar materia + grupo sin
+                            // cortarse, incluso cuando el cell se subdivide
+                            // verticalmente por placements contiguos en el
+                            // mismo tramo). Factor 1.5 px/min asegura que
+                            // slots de 1h tienen 90px, 90min → 135px.
                             const dMin = slotDurationMin(slot);
                             const slotMinH = slot.tipo === 'recreo'
                                 ? `${Math.max(20, Math.round(dMin * 1.2))}px`
-                                : `${Math.max(40, Math.round(dMin * 1.2))}px`;
+                                : `${Math.max(48, Math.round(dMin * 1.5))}px`;
 
                             if (tInfo.isRecreo) {
                                 return (
