@@ -393,11 +393,17 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             // saltando días con festivo (cuya celda ya está
                             // cubierta por rowSpan del festivo desde fila 0).
                             // Sin saltarlos, CSS Grid se desordena visualmente.
-                            // Altura proporcional a la duración del slot
-                            // (28px por cada 30 min). Sin esto, recreo de 20min
-                            // y slot de 90min rendereaban con misma altura
-                            // visual al no tener evento.
-                            const slotMinH = `${Math.max(22, Math.round(slotDurationMin(slot) * 28 / 30))}px`;
+                            // Altura proporcional a la duración del slot.
+                            // Diferenciamos recreo (compacto, ~24px) de slot
+                            // lectivo (≥40px para que el eventCard pueda
+                            // mostrar materia + grupo en sus 2 líneas sin
+                            // cortarse). Para slots largos (60/90/120 min)
+                            // multiplicamos por 1.2 px/min para que la fila
+                            // crezca con la duración real del placement.
+                            const dMin = slotDurationMin(slot);
+                            const slotMinH = slot.tipo === 'recreo'
+                                ? `${Math.max(20, Math.round(dMin * 1.2))}px`
+                                : `${Math.max(40, Math.round(dMin * 1.2))}px`;
 
                             if (tInfo.isRecreo) {
                                 return (
