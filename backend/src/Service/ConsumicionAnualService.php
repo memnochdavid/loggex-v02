@@ -71,10 +71,22 @@ class ConsumicionAnualService
         $fechaRef = $fechaReferencia ?? new \DateTime('today');
         $centro = $grupo->getItinerario()?->getCentro();
 
+        // Refactor modelo semanal (Fase D 2026-05-06): el tab Consumición
+        // opera sobre SEMANAs (PLs `tipo=SEMANA`) — son los rangos con
+        // fechas reales que el admin asigna vía "Configurar curso óptimo".
+        // La PLANTILLA (tipo PLANTILLA, fechas NULL) se EXCLUYE: representa
+        // la "semana tipo" sin contribución a días lectivos transcurridos.
+        // Si solo hay PLANTILLA (caso edge: grupo recién creado sin haber
+        // ejecutado "Configurar curso óptimo"), el resultado queda vacío
+        // — el frontend muestra estado "sin datos, configura primero el
+        // curso óptimo" que es coherente con la realidad. Sin este filtro,
+        // `$pl->getFechaInicio()->format()` crasheaba con NULL.
         $pls = $this->em->getRepository(PeriodoLectivo::class)->createQueryBuilder('pl')
             ->andWhere('pl.grupo = :g')
             ->andWhere('pl.deleted = false')
+            ->andWhere('pl.tipo = :tipoSemana')
             ->setParameter('g', $grupo)
+            ->setParameter('tipoSemana', \App\Entity\TipoPeriodoLectivo::SEMANA->value)
             ->orderBy('pl.fechaInicio', 'ASC')
             ->addOrderBy('pl.id', 'ASC')
             ->getQuery()->getResult();
