@@ -247,6 +247,27 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-06 (noche, sesión 6) — Fase C solvers nativos sobre PLANTILLA ✅ Done
+
+Cierre de la última fase pendiente del refactor.
+
+**Bug interno**: `HorarioSolverIterativo::solveMultiRango` (líneas 285-313) y `CapacityPlanner::calcularSemanasPL` (línea 576-583) calculaban `semanas = (fechaFin - fechaInicio + 1) / 7` directamente. Para una PLANTILLA (`tipo=PLANTILLA`, fechas NULL) → 0 semanas → cap anual roto → solver no colocaba placements coherentes. Por eso el frontend simulaba `rangoOverride` con fechas ficticias del grupo (deuda anotada en bitácora sesión 3).
+
+**Fix**: nuevo método `PeriodoLectivoResolver::calcularSemanas($pl)` como punto único de consulta:
+- SEMANA con fechas → `(fechaFin - fechaInicio + 1) / 7`.
+- PLANTILLA o PL sin fechas → `semanasReferenciaCentro` via `CalendarioLectivoService::semanasLectivas($centro, EtapaEducativa::FP)` (descontando festivos del calendario CCAA). Fallback 36 LOMLOE.
+
+**Sustituciones**:
+- `CapacityPlanner::calcularSemanasPL` delega en el resolver.
+- `HorarioSolverIterativo::solveMultiRango` cálculo de `totalSemanasGrupoOverride` y `semanasByPlKey` vía resolver (eliminados los dos `->diff()`).
+- `HorarioSolverBinPacking` ya era seguro con PLANTILLA (solo usa `getEffectiveJornadaTipo` y PLIs).
+
+**Resultado**: el endpoint `solver-iterativo-multi` con `{rangos: [{periodoLectivoId: plantilla.id}]}` computa correctamente sin que el caller invente fechas. La rama `rangoOverride` con tempId sigue funcionando para preview con PLs virtuales (caso "Configurar curso óptimo" generando SEMANAs).
+
+**Deuda residual anotada** (no urgente): el frontend del flow "Configurar curso óptimo" sigue generando SEMANAs siempre (rama `rangoOverride`). Con el fix de Fase C, casos simples (cuotas naturales que caben en jornada sin necesidad de distribución temporal cross-trimestre) podrían usar `{periodoLectivoId: plantilla.id}` directo y NO crear SEMANAs en BD. Reduciría ruido en grupos "fáciles" y dejaría la PLANTILLA protagonista en su rol original. Mejora opcional para próxima sesión si hace falta.
+
+**Refactor modelo-semanal CERRADO**. Próximo objetivo: roadmap dedicado `hoja-de-ruta-intercambio-imparticiones.md` (por crear) sobre la base estable.
+
 ### 2026-05-06 (noche, sesión 5) — Fase D vistas dependientes ✅ Done
 
 Tras cerrar Fase B, la sesión 5 cierra las 4 piezas de Fase D que faltaban para que las vistas que consumen el modelo de PLs reflejen correctamente PLANTILLA + SEMANAs.
