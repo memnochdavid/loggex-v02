@@ -247,6 +247,30 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-06 (noche, sesión 5) — Fase D vistas dependientes ✅ Done
+
+Tras cerrar Fase B, la sesión 5 cierra las 4 piezas de Fase D que faltaban para que las vistas que consumen el modelo de PLs reflejen correctamente PLANTILLA + SEMANAs.
+
+**#2 `/horario/me` (vista profe/alumno) — commit `ede5361`**
+- Bug: `PLANTILLA` tiene fechas NULL → el filtro de fecha del frontend siempre la incluía y aparecía duplicada con la SEMANA correspondiente.
+- Backend `GetMyScheduleController`: añadidos `periodoLectivoTipo` y `grupoId` al payload de cada event.
+- Frontend `Horarios.jsx::visibleSchedule`: implementada la cascada SEMANA-cubre-fecha → PLANTILLA por grupo. Para cada grupo, si hay una SEMANA cuyo rango contiene `selectedDate`, oculta la PLANTILLA del mismo grupo. Eventos sin `tipo` (legacy) se incluyen tal cual.
+
+**#1 PDF horario personal — commit `2597a0a`**
+- Bug: `/api/v1/informes/horario/me` devolvía TODOS los placements del usuario sin filtrar por fecha. El PDF mezclaba PLANTILLA + N SEMANAs.
+- Backend `HorarioPdfController`: inyecta `PeriodoLectivoResolver`. El endpoint acepta `?fecha=YYYY-MM-DD` (default = hoy) y `loadHorariosForUser` filtra: por cada grupo distinto, resuelve el PL aplicable via `resolveActive($grupo, $fecha)` y conserva solo los horarios de ese PL. Si no hay PL aplicable (caso edge), pasa sin filtrar.
+- Frontend `Horarios.jsx::handleExportPdf`: pasa la `selectedDate` del CalendarView de la página al endpoint como `?fecha=YYYY-MM-DD`. El filename del PDF incluye la fecha (`horario_2025-12-15.pdf`) para diferenciar descargas.
+
+**#3 Tab Consumición — commit `c4b1297`**
+- Bug: `ConsumicionAnualService::compute*` iteraba TODOS los PLs del grupo y crasheaba al hacer `$pl->getFechaInicio()->format('Y-m-d')` con NULL en la PLANTILLA.
+- Fix: query Doctrine filtra `pl.tipo = 'semana'`. La PLANTILLA queda fuera del cómputo (no aporta días lectivos transcurridos). Si solo hay PLANTILLA, resultado vacío y el frontend muestra estado coherente.
+- Pendiente menor anotable: si solo hay PLANTILLA, tratarla como rango virtual cubriendo el calendario lectivo del centro (caso edge no urgente).
+
+**#4 Banner anual cobertura — sin cambios**
+- Validado en sesión 4 (captura "Currículo 996h | Planificado 997h | +1h margen"). El banner ya filtra correctamente con `if (!pl.fechaInicio || !pl.fechaFin) return;` (HorariosEditor.jsx:1172) → salta PLANTILLAs y solo cuenta SEMANAs. Por construcción respeta el modelo semanal.
+
+**Pendiente capa adicional** (no urgente, anotada): el endpoint `horarioGrupo` para PDF multi-página del grupo entero podría aceptar `?fecha` para limitar a la SEMANA aplicable. Hoy genera multi-página por PL — el admin que descarga el PDF del grupo recibe TODAS las SEMANAs+PLANTILLA como páginas separadas. Adecuado si quiere "el horario completo del año"; cuando se pida limitar a una semana concreta, replicar el patrón de `horarioPersonal`.
+
 ### 2026-05-06 (noche, sesión 3) — `handleConfigureOptimalCourse` v3: distribución temporal por SEMANAs
 
 **Causa del giro**: la versión v2 (sesión 2) aplicaba una **cuota uniforme** sobre la PLANTILLA y reducía proporcionalmente cuando no cabía. Resultado: cualquier déficit estructural se concentraba en la materia menos elástica → "Sistemas Informáticos al 85%" para grupos con jornada apretada. El usuario señaló que el modelo semanal puro debía resolverlo redistribuyendo cuotas semana a semana ("hasta sem X se cursan todas; cuando una se acaba, las grandes absorben sus slots"). Mi v2 ignoraba esa promesa central del refactor.
