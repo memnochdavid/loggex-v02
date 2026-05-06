@@ -133,12 +133,18 @@ final class CatalogoMaterializationController extends AbstractController
         $minutosFinal = $minutosSemanales ?? ($isFp ? 0 : null);
 
         // Horas totales anuales (Opción A 2026-04-29): es el dato LEGAL LOMLOE.
-        // Si el catálogo lo trae (BOE), copiarlo. Si no, fallback al cálculo
-        // implícito (min/sem × 36 con calendario estándar).
+        // Política (post-fix 2026-05-06 sesión 4):
+        //  1. Si el catálogo lo trae (BOE enriquecido por BoeRdEnricher),
+        //     copiarlo tal cual — son las horas RD del título.
+        //  2. Si no lo trae, dejar NULL en lugar de inflar con `min × 36 / 60`.
+        //     El downstream (`Materia::getObjetivoAnualMinutos()`) gestiona
+        //     NULL devolviendo el fallback histórico solo cuando no hay
+        //     mejor dato. Esto evita el bug "horas infladas vs RD legal" que
+        //     se producía cuando AN (u otra CCAA) define minutos semanales
+        //     generosos (asumiendo ≥36 sem reales) y el sistema los convertía
+        //     a horas asumiendo 36 sem LOMLOE puras → inflado sistemático.
+        //  Doc: hoja-de-ruta-modelo-semanal.md §9 sesión 3 deuda mayor.
         $horasTotales = $materia->getHorasTotales();
-        if ($horasTotales === null && $minutosFinal !== null) {
-            $horasTotales = (int) round($minutosFinal * 36 / 60);
-        }
 
         return (new Materia())
             ->setNombre($materia->getNombre())

@@ -123,12 +123,12 @@ class GrupoResyncCcaaController extends AbstractController
         // Crear materias resolved que no tenían par existente
         foreach ($resolvedByKey as $key => $r) {
             if (isset($procesadas[$key])) continue;
-            // Horas totales anuales (Opción A 2026-04-29). Si el catálogo lo
-            // trae, usar el suyo. Si no, fallback a min/sem × 36.
+            // Horas totales anuales (Opción A 2026-04-29 + fix sesión 4 2026-05-06).
+            // Si el catálogo nacional lo trae (BOE), copiarlo tal cual. Si no,
+            // dejar NULL para evitar el inflado sistemático `min × 36 / 60`
+            // que producía horas mayores que el RD legal cuando AN amplía
+            // minutos semanales asumiendo ≥36 sem reales.
             $horasTotales = $r->catalogoMateria?->getHorasTotales();
-            if ($horasTotales === null && $r->minutosSemanales !== null) {
-                $horasTotales = (int) round($r->minutosSemanales * 36 / 60);
-            }
             $m = (new Materia())
                 ->setNombre($r->nombre)
                 ->setCodigoOficial($r->codigoOficial)

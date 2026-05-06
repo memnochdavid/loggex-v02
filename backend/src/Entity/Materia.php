@@ -240,13 +240,22 @@ class Materia
     /**
      * Objetivo anual en MINUTOS. Punto único de consulta para el solver,
      * CapacityPlanner y banner anual:
-     *   - Si `horasTotales` está set: horasTotales × 60.
-     *   - Si null (caso edge tras migración): fallback a min/sem × 36.
+     *   1. Si `horasTotales` está set: horasTotales × 60 (las horas RD legales).
+     *   2. Si null y hay `catalogoOrigen` con horasTotales: usar las del
+     *      catálogo nacional (BOE). Esto evita inflado cuando la materia
+     *      se creó antes de que `BoeRdEnricher` enriqueciera el catálogo.
+     *   3. Fallback final: min/sem × 36 (cálculo histórico, infla en
+     *      calendarios <36 sem reales pero es el último recurso).
+     *  Doc: hoja-de-ruta-modelo-semanal.md §9 sesión 3 deuda mayor.
      */
     public function getObjetivoAnualMinutos(): int
     {
         if ($this->horasTotales !== null) {
             return $this->horasTotales * 60;
+        }
+        $catHoras = $this->catalogoOrigen?->getHorasTotales();
+        if ($catHoras !== null) {
+            return $catHoras * 60;
         }
         return ($this->minutosSemanales ?? 0) * 36;
     }
