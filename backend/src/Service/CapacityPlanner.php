@@ -571,15 +571,15 @@ class CapacityPlanner
     }
 
     /**
-     * Semanas de un PeriodoLectivo (decimal). Calcula como (fechaFin - fechaInicio + 1) / 7.
+     * Semanas de un PeriodoLectivo (decimal). Delega en
+     * `PeriodoLectivoResolver::calcularSemanas` (Fase C 2026-05-06 modelo
+     * semanal puro): SEMANA con fechas → `(fechaFin - fechaInicio + 1) / 7`,
+     * PLANTILLA sin fechas → `semanasLectivas` del centro vía
+     * `CalendarioLectivoService`. Antes devolvía 0.0 si fechas NULL.
      */
     private function calcularSemanasPL(PeriodoLectivo $pl): float
     {
-        $i = $pl->getFechaInicio();
-        $f = $pl->getFechaFin();
-        if ($i === null || $f === null) return 0.0;
-        $diff = $i->diff($f);
-        return (((int) $diff->days) + 1) / 7.0;
+        return $this->resolver->calcularSemanas($pl);
     }
 
     /**

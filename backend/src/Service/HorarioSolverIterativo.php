@@ -282,15 +282,16 @@ class HorarioSolverIterativo
             return strcmp($fA, $fB);
         });
 
+        // Fase C 2026-05-06 (modelo semanal puro): cálculos de semanas
+        // delegados a `PeriodoLectivoResolver::calcularSemanas` que respeta
+        // PLANTILLA (sin fechas → calendario lectivo del centro) y SEMANA
+        // (fechas reales → `(fin-ini+1)/7`). Antes los PLs sin fechas daban
+        // 0 semanas y rompían el cap anual; el frontend tenía que simular
+        // fechas ficticias para que esto no ocurriera.
         if ($totalSemanasGrupoOverride === null) {
             $total = 0.0;
             foreach ($rangos as $r) {
-                $pl = $r['periodoLectivo'];
-                $ini = $pl->getFechaInicio();
-                $fin = $pl->getFechaFin();
-                if (!$ini || !$fin) continue;
-                $diffDays = (int) $ini->diff($fin)->format('%a') + 1;
-                if ($diffDays > 0) $total += $diffDays / 7.0;
+                $total += $this->resolver->calcularSemanas($r['periodoLectivo']);
             }
             $totalSemanasGrupoOverride = $total > 0 ? $total : null;
         }
@@ -305,11 +306,7 @@ class HorarioSolverIterativo
         foreach ($rangos as $r) {
             $pl = $r['periodoLectivo'];
             $pliOverride = $r['pliOverride'] ?? null;
-            $iniPre = $pl->getFechaInicio();
-            $finPre = $pl->getFechaFin();
-            $semanasPlPre = ($iniPre && $finPre)
-                ? ((int) $iniPre->diff($finPre)->format('%a') + 1) / 7.0
-                : 0.0;
+            $semanasPlPre = $this->resolver->calcularSemanas($pl);
             $semanasByPlKey[$r['plKey']] = $semanasPlPre;
             $basePlis = $pliOverride ?? $this->em->getRepository(PeriodoLectivoImparticion::class)
                 ->createQueryBuilder('pli')
