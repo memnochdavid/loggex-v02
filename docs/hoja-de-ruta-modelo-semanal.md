@@ -284,10 +284,11 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
   3. Crear comando `app:grupo:resync-curriculum` que recalcule materias del grupo desde el catálogo actualizado, respetando `horas_totales` legales del catálogo y derivando `min/sem` del calendario real del centro (`horas_totales × 60 / semanasLectivasRealesCentro`).
 - Roadmap candidato: nuevo doc `hoja-de-ruta-horas-legales-vs-calendario.md` o ampliación de `catalogo-oficial.md` (deuda ya parcialmente anotada en `hoja-de-ruta-periodos-lectivos.md` Fase 5 sub-E 2026-04-28 + Opción A 2026-04-29).
 
-**Deuda visual identificada en sesión 3 (NO del refactor, pre-existente)** — `TimeTable.jsx` chafa filas:
-- Vista profe (`/horarios`) y vista alumno mismo bug. Filas de la jornada que no tienen evento del usuario muestran "barras rojas con guion" delgadas (probablemente `eventCard` con `colorForModule(undefined)` y campos `materia/grupo` null que se renderizan como "-"). Las filas con eventos crecen por contenido del card; las filas vacías quedan en `min-height: 22px`. Resultado: la rejilla tiene filas de altura desproporcionada a la duración del slot.
-- **Fix candidato**: 1) hacer altura proporcional a la duración del slot (`grid-template-rows: repeat(N, 1fr)` o calcular altura por `slot.duracion / Σ duracion`); 2) skip `eventCard` cuando `cellData.event.materia` o `imparticionId` es falsy en lugar de pintarlo rojo con guion.
-- Out of scope Fase B (refactor modelo semanal). Anotar en doc dedicado si se aborda más adelante: `hoja-de-ruta-timetable-vista-publica.md` o equivalente.
+**Deuda visual identificada y CERRADA en sesión 3** — `TimeTable.jsx` chafa filas (commit `b2785c6`):
+- Vista profe (`/horarios`) y vista alumno mismas patologías visuales. Filas de la jornada sin evento del usuario mostraban "barras rojas con guion" delgadas. Causas:
+  1. `colorForModule(undefined)` → `hsl(0°,55%,48%)` (rojo) por `Number(undefined)=NaN→0`. Fix: si no hay id válido devuelve `var(--bg-card)` (neutro temático).
+  2. Eventos rotos del backend (sin materia ni imparticionId/moduloId) se renderizaban como caja vacía. Fix: filtrados en `processEvents` antes de colocarlos en grid.
+  3. `.cell { min-height: 22px }` igual para slots de 30, 60 y 90 min. Filas vacías de slots largos quedaban a 22px mientras las contiguas con evento crecían por contenido. Fix: `minHeight` inline calculado por slot (`28px × duracionMin / 30`), aplicado a `.cell`, `.timeCell`, `.festivoCell` y `.recreoStrip`.
 
 **Bug fix #1 (sesión 3, mismo turno)**:
 - **Síntoma**: tras "Configurar curso óptimo" + Guardar, las 4 SEMANAs aparecen en BD pero **sin PLIs** propios. El render hereda cuotas de la PLANTILLA → todas las SEMANAs muestran el mismo horario, sin la distribución heterogénea. Usuario reporta "no viable".
