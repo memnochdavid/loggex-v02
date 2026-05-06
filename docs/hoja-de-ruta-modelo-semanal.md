@@ -162,13 +162,7 @@ Coste de implementación: índice `(fechaConcreta, horarioBase)` + 1 query extra
 
 ### Abiertas
 
-| ID | Decisión | Recomendación |
-|---|---|---|
-| D-A | ¿Cómo se materializa la "plantilla base" del grupo? | Opción 1 (preferida): `PeriodoLectivo.tipo` enum con valores `PLANTILLA \| SEMANA`. Cada grupo tiene 1 PL `PLANTILLA` (sin fechas) que contiene los Horarios por defecto + N PLs `SEMANA` (con fechas concretas). Render de una semana: si la semana tiene Horarios propios, se usan; si no, se usa la plantilla. |
-| D-B | ¿Las semanas se materializan al crear el grupo, o lazy on-demand? | Lazy on-demand: solo se crean PLs `SEMANA` cuando hay overrides explícitos para esa semana. Las semanas "limpias" delegan en la plantilla. Storage óptimo. Rendering compone. |
-| D-C | ¿Qué hacemos con `PeriodoLectivoImparticion` (PLI) en este modelo? | La plantilla tiene sus PLIs (cuota minutos/sem por imparticion). Las semanas heredan PLIs de la plantilla salvo override. Migración: PLIs existentes pasan a la plantilla. |
-| D-D | ¿`Grupo.fechaInicio/FinCurso` siguen siendo source-of-truth para "duración del curso"? | Sí. Las semanas (PL `SEMANA`) se enumeran entre `Grupo.fechaInicioCurso` y `Grupo.fechaFinCurso` descontando festivos vía `CalendarioLectivoService` (Fase 7 PL). |
-| D-E | ¿Qué pasa con `Horario.periodoLectivo` NOT NULL? | Sigue NOT NULL. Apunta a la plantilla (caso normal) o a un PL semana (caso override puntual). |
+(ninguna; D-A a D-E cerradas tras analizar el codebase real, ver §11)
 
 ### Cerradas
 
@@ -242,6 +236,10 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-06 (tarde) — Cierre D-A a D-E con análisis del codebase
+
+Tras leer `PeriodoLectivo.php`, `PeriodoLectivoImparticion.php`, `Horario.php`, `Grupo.php`, `PeriodoLectivoResolver.php`, `CalendarioLectivoService.php`. Resumen de decisiones cerradas en §11.
+
 ### 2026-05-06 — Doc creado, decisión cerrada, branch arrancado
 
 Doc levantado tras discusión sobre alcance del intercambio puntual de imparticiones (mensaje del usuario "facilitaría todo este sistema, si el horario de un curso se tratase por semanas individuales en lugar de por rangos lectivos, verdad?"). Recomendación inicial era `HorarioOverride` por coste de refactor.
@@ -251,3 +249,128 @@ Counterfactual del usuario: "si hubiéramos arrancado así, ¿sería más sencil
 Decisión D-PRINCIPAL invertida: **modelo semanal puro**. El refactor desbloquea toda la familia de excepciones puntuales con primitivas naturales del modelo, sin acumular capas. Coste aceptado: ~5-6 sesiones.
 
 Branch creado: `develop-semanas-lectivas` desde `develop@a4aef62`. Tareas A1-D listadas. Próximo paso: cerrar D-A a D-E con análisis del codebase real y arrancar migration.
+
+---
+
+## 11. Schema final — Fase A1 cerrada (2026-05-06 tarde)
+
+### Cierres D-A a D-E con datos del codebase
+
+#### D-A — Materialización de la "plantilla base"
+
+**Decisión: discriminator dentro de `PeriodoLectivo` con enum `tipo`.**
+
+```
+PeriodoLectivo:
+  tipo: TipoPeriodoLectivo enum (PLANTILLA | SEMANA)        NOT NULL
+  fechaInicio: DATE                                          NULLABLE (NOT NULL solo si tipo=SEMANA)
+  fechaFin:    DATE                                          NULLABLE (NOT NULL solo si tipo=SEMANA)
+  semanaNumero: int                                          NULLABLE (NOT NULL solo si tipo=SEMANA, 1..N)
+  plantillaBase: ManyToOne<PeriodoLectivo>                   NULLABLE (NOT NULL solo si tipo=SEMANA, FK self-ref)
+  + campos existentes (grupo, jornadaTipo, nombre, orden, imparticiones[], traits)
+```
+
+Constraint a nivel de service/Assert (no DB check porque MariaDB 10.11 los ignora):
+- `tipo=PLANTILLA` ⟹ `fechaInicio=NULL`, `fechaFin=NULL`, `semanaNumero=NULL`, `plantillaBase=NULL`.
+- `tipo=SEMANA` ⟹ todos NOT NULL; `plantillaBase.grupo === this.grupo`; `plantillaBase.tipo=PLANTILLA`.
+- Cada grupo tiene **exactamente una** PLANTILLA viva (deleted=false). Unique parcial.
+
+Ventaja: una sola tabla, un solo entity. El render filtra por `tipo`. Migración no rompe FKs existentes (Horario.periodoLectivo sigue apuntando a PL, solo cambia su `tipo`).
+
+#### D-B — Lazy on-demand vs eager
+
+**Decisión: lazy on-demand.**
+
+Solo se crean PLs `SEMANA` cuando hay override explícito (jornada distinta, PLI distinto, Horario distinto). Las semanas "limpias" delegan en la plantilla mediante el `HorarioRenderService`.
+
+Volumen esperado: 1 PLANTILLA por grupo + 0..N SEMANA solo si hay overrides. En estado limpio (centro nuevo sin excepciones), volumen idéntico al actual con 1 PL "Curso completo".
+
+#### D-C — `PeriodoLectivoImparticion` (PLI)
+
+**Decisión: PLIs cuelgan tanto de PLANTILLA como de SEMANA. Las de SEMANA overridean.**
+
+```
+PLI sin cambios estructurales:
+  - PLI(periodoLectivo=PLANTILLA, imparticion=X, minutosSemanales=Y)
+    → cuota por defecto.
+  - PLI(periodoLectivo=SEMANA_N, imparticion=X, minutosSemanales=Z)
+    → override puntual para esa semana.
+```
+
+`HorarioRenderService::resolvePliFor(grupo, semana, imparticion)`:
+1. Busca PLI(SEMANA, imparticion). Si existe → usar.
+2. Si no, busca PLI(PLANTILLA, imparticion). Usar.
+3. Si no, default `Materia.minutosSemanales` (mismo fallback que hoy en `getEffectiveMinutosSemanales`).
+
+Unique constraint actual `(periodo_lectivo_id, imparticion_id)` se mantiene.
+
+#### D-D — Source-of-truth duración del curso
+
+**Decisión: `Centro.fechaInicioCurso` + `Centro.fechaFinCurso`** (campos existentes), enumerados vía `CalendarioLectivoService::semanasLectivas()` que ya descuenta festivos aplicables (NACIONAL/AUTONOMICO/PROVINCIAL/LOCAL).
+
+Implicación: todos los grupos de un centro comparten ventana lectiva. Las SEMANA PLs se enumeran sobre los lunes del rango lectivo del centro.
+
+`Grupo` NO gana campos nuevos para esto. El servicio `CalendarioLectivoService` queda como punto único de cálculo.
+
+#### D-E — `Horario.periodoLectivo` NOT NULL
+
+**Decisión: NOT NULL se mantiene.**
+
+Cada Horario apunta a su PL "dueño":
+- Caso normal (default del grupo): apunta a la PLANTILLA.
+- Caso override puntual (intercambio, semana atípica): apunta a una SEMANA específica.
+
+El `prePersist` que auto-rellena `Horario.periodoLectivo` (existente per Fase 2 PL) sigue funcionando: por defecto rellena con la PLANTILLA del grupo via `PeriodoLectivoResolver::getPlantilla(grupo)`.
+
+### Migración (Fase A2) — wipe & rebuild (estamos en desarrollo)
+
+**Decisión 2026-05-06 (tarde-2)**: la BD actual solo contiene fixtures y datos derivados de pruebas manuales, sin centros reales en producción. El usuario autoriza borrar Horarios/PLIs/PLs existentes y rearrancar limpio. Esto elimina la complejidad del backfill (preservar "mega-rangos SEMANA" temporales) y los riesgos de backward compatibility con NULLs en código viejo.
+
+```sql
+-- 1. Wipe del subgrafo PL (solo dev — sin centros reales en producción a 2026-05-06).
+DELETE FROM horario;
+DELETE FROM periodo_lectivo_imparticion;
+DELETE FROM periodo_lectivo;
+
+-- 2. Schema cambios.
+ALTER TABLE periodo_lectivo
+  ADD COLUMN tipo VARCHAR(16) NOT NULL AFTER orden,
+  ADD COLUMN semana_numero INT NULL AFTER tipo,
+  ADD COLUMN plantilla_base_id INT NULL AFTER semana_numero,
+  ADD CONSTRAINT fk_pl_plantilla FOREIGN KEY (plantilla_base_id)
+    REFERENCES periodo_lectivo(id) ON DELETE SET NULL;
+
+ALTER TABLE periodo_lectivo MODIFY fecha_inicio DATE NULL;
+ALTER TABLE periodo_lectivo MODIFY fecha_fin    DATE NULL;
+
+-- 3. Índices nuevos.
+CREATE INDEX idx_pl_grupo_tipo      ON periodo_lectivo(grupo_id, tipo);
+CREATE INDEX idx_pl_plantilla_base  ON periodo_lectivo(plantilla_base_id);
+```
+
+`down()`: revertir es destructivo (perderíamos los nuevos PLANTILLA + sus PLIs/Horarios). Aceptable en dev — `down()` reescrito como un truncate completo + drop de columnas/índices.
+
+### Tras la migration — re-seed manual
+
+El estado limpio post-migration deja la BD sin PLs ni horarios. Para recuperar un grupo operativo:
+1. Admin entra en `/admin/grupos` y crea grupo (o reusa existente).
+2. El `PeriodoLectivoCreateProcessor` (existente) se modifica en Fase A3 para auto-crear una **PLANTILLA** en lugar del "Curso completo" actual.
+3. Admin va a `/admin/horarios` y configura plantilla (Fase B reescrita) o usa "Configurar curso óptimo" (Fase C adaptada).
+
+Para no quedarse sin datos durante el desarrollo del refactor: se puede crear un comando `app:semanas:seed-plantillas` que genere PLANTILLAs vacías para todos los grupos existentes con `jornadaTipo` heredado del itinerario, sin Horarios. Útil para que `/admin/horarios` no muestre "no hay PL" durante Fase B antes de tocar el solver.
+
+### Migración futura para producción
+
+Cuando el producto se acerque a producción real (centros reales con datos en BD), habrá que escribir una migration distinta que **preserve los datos**: 1 PLANTILLA por grupo (heredando del PL más antiguo) + materialización de los demás como SEMANA con sus fechas. Ese plan queda anotado aquí para cuando llegue, **no se implementa ahora**.
+
+### Riesgos restantes post-wipe
+
+Los riesgos #1, #2 y #4 del análisis previo (puntos del código que asumen "PL tiene fechas", mega-SEMANAs visuales, seeds que asumen 1 PL por grupo) **desaparecen o se reducen drásticamente** porque:
+- Empezamos limpios → no hay PLs viejos sin tipo.
+- No hay mega-SEMANAs porque no hay PLs heredados.
+- Seeds se reescriben para crear PLANTILLA en vez de "Curso completo".
+
+**Riesgo único restante**: ~30-40 puntos del código que leen `PL.fechaInicio` directamente. Tras la migration esos puntos recibirán NULL al consultar una PLANTILLA. Lista exhaustiva la cierra Fase A3 con grep dirigido sobre `fechaInicio`/`fechaFin` y los reemplaza por:
+- `CalendarioLectivoService` cuando piden la ventana del curso del centro.
+- `PeriodoLectivoResolver::resolvePara(grupo, fecha)` cuando piden el PL aplicable a una fecha (semana o plantilla).
+- Filtro explícito `WHERE pl.tipo = 'SEMANA'` cuando piden eventos en rangos concretos.

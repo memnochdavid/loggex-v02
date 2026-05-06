@@ -8,6 +8,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Horario;
 use App\Entity\PeriodoLectivo;
 use App\Entity\PeriodoLectivoImparticion;
+use App\Entity\TipoPeriodoLectivo;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -39,31 +40,48 @@ class PeriodoLectivoSoftDeleteProcessor implements ProcessorInterface
             return $data;
         }
 
-        // Cascade soft-delete a Horarios del PL.
-        $this->em->getRepository(Horario::class)->createQueryBuilder('h')
-            ->update()
-            ->set('h.deleted', ':del')
-            ->where('h.periodoLectivo = :pl')
-            ->andWhere('h.deleted = false')
-            ->setParameter('del', true)
-            ->setParameter('pl', $data)
-            ->getQuery()
-            ->execute();
+        // Lista de PLs a procesar: el propio + (si es PLANTILLA) sus SEMANAs.
+        // Si se borra una PLANTILLA hay que arrastrar las SEMANAs que dependen
+        // de ella, sus Horarios y PLIs. Si se borra una SEMANA suelta, solo
+        // sus propios Horarios y PLIs.
+        $plsACascadear = [$data];
+        if ($data->getTipo() === TipoPeriodoLectivo::PLANTILLA) {
+            $semanas = $this->em->getRepository(PeriodoLectivo::class)->createQueryBuilder('pl')
+                ->andWhere('pl.plantillaBase = :plantilla')
+                ->andWhere('pl.deleted = false')
+                ->setParameter('plantilla', $data)
+                ->getQuery()
+                ->getResult();
+            $plsACascadear = array_merge($plsACascadear, $semanas);
+        }
 
-        // Cascade soft-delete a PeriodoLectivoImparticion del PL.
-        $this->em->getRepository(PeriodoLectivoImparticion::class)->createQueryBuilder('pli')
-            ->update()
-            ->set('pli.deleted', ':del')
-            ->where('pli.periodoLectivo = :pl')
-            ->andWhere('pli.deleted = false')
-            ->setParameter('del', true)
-            ->setParameter('pl', $data)
-            ->getQuery()
-            ->execute();
+        foreach ($plsACascadear as $pl) {
+            // Cascade soft-delete a Horarios del PL.
+            $this->em->getRepository(Horario::class)->createQueryBuilder('h')
+                ->update()
+                ->set('h.deleted', ':del')
+                ->where('h.periodoLectivo = :pl')
+                ->andWhere('h.deleted = false')
+                ->setParameter('del', true)
+                ->setParameter('pl', $pl)
+                ->getQuery()
+                ->execute();
 
-        // Por último, soft-delete del PL en sí.
-        $data->setDeleted(true);
-        $this->em->persist($data);
+            // Cascade soft-delete a PLI del PL.
+            $this->em->getRepository(PeriodoLectivoImparticion::class)->createQueryBuilder('pli')
+                ->update()
+                ->set('pli.deleted', ':del')
+                ->where('pli.periodoLectivo = :pl')
+                ->andWhere('pli.deleted = false')
+                ->setParameter('del', true)
+                ->setParameter('pl', $pl)
+                ->getQuery()
+                ->execute();
+
+            $pl->setDeleted(true);
+            $this->em->persist($pl);
+        }
+
         $this->em->flush();
 
         return $data;

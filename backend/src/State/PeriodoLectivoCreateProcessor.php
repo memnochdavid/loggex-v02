@@ -7,6 +7,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Imparticion;
 use App\Entity\PeriodoLectivo;
 use App\Entity\PeriodoLectivoImparticion;
+use App\Entity\TipoPeriodoLectivo;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -33,10 +34,33 @@ class PeriodoLectivoCreateProcessor implements ProcessorInterface
     {
         $isNew = !($data instanceof PeriodoLectivo) || $data->getId() === null;
 
+        // Heurística post-refactor semanal (2026-05-06): si el cliente no
+        // especifica `tipo`, inferimos desde los campos del payload.
+        //   - sin fechaInicio → PLANTILLA (caso default).
+        //   - con fechaInicio → SEMANA (caso override puntual).
+        // El resto de coherencia (plantillaBase, semanaNumero) la valida
+        // `PeriodoLectivo::validarCoherenciaTipo` antes del persist.
+        if ($isNew && $data instanceof PeriodoLectivo && $data->getTipo() === null) {
+            $data->setTipo(
+                $data->getFechaInicio() === null
+                    ? TipoPeriodoLectivo::PLANTILLA
+                    : TipoPeriodoLectivo::SEMANA
+            );
+        }
+
         // Persistir primero (decora el persistProcessor por defecto).
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        if ($isNew && $result instanceof PeriodoLectivo && $result->getGrupo() !== null) {
+        // Auto-crear PLIs solo para PLANTILLAs (las cuotas default del grupo).
+        // Las SEMANAs lazy on-demand: el admin solo crea PLIs en una SEMANA
+        // cuando quiere overridear la cuota de una imparticion para esa
+        // semana concreta. Si una SEMANA no tiene PLI(imparticion), el
+        // `HorarioRenderService` cae a la PLI de la PLANTILLA.
+        if ($isNew
+            && $result instanceof PeriodoLectivo
+            && $result->getGrupo() !== null
+            && $result->isPlantilla()
+        ) {
             $grupoId = $result->getGrupo()->getId();
             $imps = $this->em->getRepository(Imparticion::class)
                 ->createQueryBuilder('i')
