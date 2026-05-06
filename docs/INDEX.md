@@ -8,13 +8,20 @@
 
 **🏗️ Modelo semanal puro (PL = semana lectiva)** — Doc: **`hoja-de-ruta-modelo-semanal.md`** · Branch: **`develop-semanas-lectivas`**.
 
-D-PRINCIPAL cerrada con resultado **MODELO SEMANAL PURO** tras counterfactual del usuario ("si hubiéramos arrancado así, ¿sería más sencillo?") y análisis de rendimiento (despreciable a la escala del producto, mitigable con lazy load on-demand). Recomendación inicial era `HorarioOverride`; se invirtió porque el modelo semanal expresa naturalmente toda la familia de excepciones puntuales (intercambios, sustituciones, ausencias, eventos especiales, semanas atípicas) sin acumular capas.
+D-PRINCIPAL cerrada con resultado **MODELO SEMANAL PURO** tras counterfactual del usuario y análisis de rendimiento despreciable a escala del producto. El modelo semanal expresa naturalmente toda la familia de excepciones puntuales (intercambios, sustituciones, ausencias, eventos especiales, semanas atípicas) sin acumular capas de override.
 
-**Plan en 4 fases (~5-6 sesiones)**:
-- **Fase A** (~1.5 sesiones): Schema + migration + entities + service de render. `PeriodoLectivo.tipo: PLANTILLA|SEMANA` + lazy materialization de semanas.
-- **Fase B** (~2 sesiones): `HorariosEditor` frontend reescrito (strip de pills → calendario semanal + pill plantilla).
-- **Fase C** (~1.5 sesiones): solvers (iterativo + bottleneck + capacity + bin-packing) operan sobre plantilla, semanas heredan.
-- **Fase D** (~0.5 sesión): vistas dependientes (consumición, banner anual, my-schedule, PDF).
+### Estado de fases (2026-05-06 noche)
+
+| Fase | Estado | Detalle |
+|---|---|---|
+| **A1** Diseño schema | ✅ Done (commit `059890c`) | D-A a D-E cerradas con análisis del codebase. PL.tipo discriminator + plantillaBase FK self-ref + lazy on-demand. |
+| **A2** Migration | ✅ Done (commit `a28d812`) | `Version20260506180000`: wipe Horarios/PLIs/PLs + ALTER columns + 2 índices nuevos. Aplicada en BD dev. |
+| **A3** Entity + service + processors | ✅ Done (commit `a28d812`) | `TipoPeriodoLectivo` enum, `PeriodoLectivo` con asserts, resolver, `HorarioRenderService` (nuevo), `GrupoPlantillaSubscriber` (auto-crea PLANTILLA postPersist), `app:semanas:seed-plantillas`. 4 PLANTILLAs + 33 PLIs sembrados en BD dev. |
+| **B** Frontend HorariosEditor | 🟡 **Parcial** | 12 hot-spots arreglados + helper `frontend/src/utils/pl-utils.js` + bug TDZ resuelto. Editor renderiza grupos con pill PLANTILLA. Pendiente: reescribir "Configurar curso óptimo", "Crear rangos recomendados", UI dedicada gestión SEMANA, header del modal Sliders, revisar `runSolver` single-rango. |
+| **C** Solvers | 🔴 Pendiente | `HorarioSolverIterativo` + `BottleneckClassifier` + `CapacityPlanner` + `HorarioSolverBinPacking` deben operar sobre PLANTILLA con semanas heredando. |
+| **D** Vistas dependientes | 🔴 Pendiente | Tab Consumición, banner anual cobertura, `/horario/me` (my-schedule), `HorarioPdfController`. |
+
+**Cómo retomar desde otra máquina**: ver §12 "Cómo retomar desde otra máquina" en `hoja-de-ruta-modelo-semanal.md`. Resumen: `git checkout develop-semanas-lectivas && git pull && docker compose up -d`. La migration `Version20260506180000` se aplica con `doctrine:migrations:migrate --no-interaction` y luego `app:semanas:seed-plantillas --with-plis` para tener PLANTILLAs por grupo. Detalle de los pendientes de Fase B en §12 del doc.
 
 **Bloquea durante el refactor**: features que toquen `PeriodoLectivo`/`Horario`/`HorariosEditor` en `develop`. Otras features paralelas (notificaciones validación visual, calificaciones B.1, catálogo) pueden seguir en `develop`.
 
@@ -359,7 +366,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Esfuerzo | Impacto comercial |
 |---|---|---|
-| **`hoja-de-ruta-modelo-semanal.md`** 🏗️ | **REFACTOR EN MARCHA** branch `develop-semanas-lectivas` (~5-6 sesiones, Fases A1→D) | D-PRINCIPAL cerrada con resultado MODELO SEMANAL PURO. PL pasa de rango contiguo a semana lectiva + plantilla. Desbloquea naturalmente la familia de excepciones puntuales (intercambios, sustituciones, ausencias, semanas atípicas). |
+| **`hoja-de-ruta-modelo-semanal.md`** 🏗️ | **REFACTOR EN MARCHA** branch `develop-semanas-lectivas`. Fases A1+A2+A3 ✅ commit `a28d812`. Fase B 🟡 parcial sin commitear todavía. Fases C+D 🔴 pendientes. | D-PRINCIPAL cerrada con resultado MODELO SEMANAL PURO. PL pasa de rango contiguo a semana lectiva + plantilla. Detalle del estado en §"Estado de fases" arriba y §12 del doc. |
 | **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
 | `hoja-de-ruta-pulido-ux.md` | 🟢 **Ronda 1 + Ronda 2 ✅ Done (2026-05-05)** — Los 6 ítems R2.1-R2.6 cerrados. R2.1 incluye barrido de 27 vistas + 2 wrappers de tabs + fix DOM nesting de TableSkeleton. | Doc cerrado. |

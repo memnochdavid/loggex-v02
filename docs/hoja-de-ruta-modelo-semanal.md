@@ -21,11 +21,22 @@ Esto desbloquea naturalmente:
 - Semanas atípicas (exámenes, cultural, FCT) → cada semana tiene su propio set de Horarios.
 - Cancelación puntual → idem.
 
-### Estado actual del refactor
+### Estado actual del refactor (2026-05-06 noche)
 
-🟡 Fase A1 (diseño schema) en curso.
+| Fase | Estado | Commit |
+|---|---|---|
+| **A1** Diseño schema | ✅ Done | `059890c` (docs) |
+| **A2** Migration Doctrine | ✅ Done | `a28d812` |
+| **A3** Entity + processors + resolver + service + subscriber + seed cmd | ✅ Done | `a28d812` |
+| **B** Frontend HorariosEditor | 🟡 **Parcial — 12 hot-spots arreglados, queda reescritura del flujo "Configurar curso óptimo" + UI dedicada de SEMANA management** | sin commitear todavía |
+| **C** Solvers (iterativo + bottleneck + capacity + bin-packing) | 🔴 Pendiente | — |
+| **D** Vistas dependientes (consumición, banner, my-schedule, PDF) | 🔴 Pendiente | — |
 
-Plan de fases en §10. Bitácora de progreso en §9.
+**Estado BD dev**: migration aplicada · 4 grupos con su PLANTILLA viva creada vía `app:semanas:seed-plantillas --with-plis` · 33 PLIs sembrados · `schema:validate` solo se queja de drift cosmético en `notificacion` (defaults) que no es de este refactor.
+
+**Próxima acción al retomar**: leer §11 (schema final) + §12 (estado Fase B) + abrir `https://localhost:8443/admin/horarios` y validar visualmente que el editor renderiza un grupo con su PLANTILLA + completar los pendientes listados en §12.
+
+Plan de fases en §7. Bitácora cronológica en §9.
 
 ---
 
@@ -236,6 +247,31 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-06 (noche) — Fase A2+A3 ✅ + Fase B parcial
+
+**Fase A2 (commit `a28d812`)**: migration `Version20260506180000` aplicada en BD dev. 8 SQL queries (3 DELETE + ALTER columns + 2 MODIFY fechas + 2 CREATE INDEX). Bug colateral: la migration `Version20260430120000` (calendario_escolar_ccaa, ajena al refactor) estaba como New porque la tabla la había creado otra sesión sin marcarla como ejecutada — se solucionó marcándola con `doctrine:migrations:version --add` y dejando que la mía corriese sola.
+
+**Fase A3 (commit `a28d812`)**:
+- `TipoPeriodoLectivo` enum (PLANTILLA | SEMANA).
+- `PeriodoLectivo` entity con campos nuevos + `Assert\Callback` de coherencia + helpers `isPlantilla`/`isSemana`.
+- `PeriodoLectivoCreateProcessor`: defaultea tipo + auto-PLIs solo en PLANTILLA.
+- `PeriodoLectivoSoftDeleteProcessor`: cascade plantilla → semanas.
+- `PeriodoLectivoResolver`: cascada SEMANA → PLANTILLA + `getPlantilla` + `getSemanas`.
+- `HorarioRenderService` (nuevo): composición PLANTILLA + SEMANA al renderizar.
+- `GrupoPlantillaSubscriber` (nuevo): postPersist auto-crea PLANTILLA del grupo.
+- `SeedPlantillasCommand` (nuevo): `app:semanas:seed-plantillas [--with-plis]`.
+
+Aplicado en BD: 4 PLANTILLAs + 33 PLIs sembrados. `schema:validate` solo señala drift cosmético en `notificacion` (defaults), ajeno al refactor.
+
+**Fase B parcial (sin commitear todavía)**:
+- Nuevo helper `frontend/src/utils/pl-utils.js` con 7 funciones puras.
+- 12 cambios quirúrgicos en `HorariosEditor.jsx` (5 692 líneas — 90% sobrevive sin tocar).
+- Bug fix TDZ: `semanasReferenciaCentro` movido arriba del archivo.
+- Detalle por hot-spot en §12.
+- Pendiente: reescribir "Configurar curso óptimo" + "Crear rangos recomendados" + UI dedicada SEMANA management. No bloqueante.
+
+Próximo arranque (otra máquina o nueva sesión): leer §12 §"Cómo retomar desde otra máquina" + validar visualmente `/admin/horarios`.
+
 ### 2026-05-06 (tarde) — Cierre D-A a D-E con análisis del codebase
 
 Tras leer `PeriodoLectivo.php`, `PeriodoLectivoImparticion.php`, `Horario.php`, `Grupo.php`, `PeriodoLectivoResolver.php`, `CalendarioLectivoService.php`. Resumen de decisiones cerradas en §11.
@@ -374,3 +410,88 @@ Los riesgos #1, #2 y #4 del análisis previo (puntos del código que asumen "PL 
 - `CalendarioLectivoService` cuando piden la ventana del curso del centro.
 - `PeriodoLectivoResolver::resolvePara(grupo, fecha)` cuando piden el PL aplicable a una fecha (semana o plantilla).
 - Filtro explícito `WHERE pl.tipo = 'SEMANA'` cuando piden eventos en rangos concretos.
+
+---
+
+## 12. Estado Fase B — HorariosEditor frontend (parcial 2026-05-06 noche)
+
+### Helpers compartidos
+
+Archivo nuevo: `frontend/src/utils/pl-utils.js`. Funciones puras reusables:
+
+| Helper | Propósito |
+|---|---|
+| `isPlantilla(pl)` | true si `pl.tipo === 'plantilla'` o (legacy) sin tipo y sin fechas. |
+| `isSemana(pl)` | true si `pl.tipo === 'semana'` o (legacy) tiene fechas. |
+| `getSemanasOfPl(pl, fallbackSemanas)` | Duración en semanas. PLANTILLA → fallback (típicamente `semanasReferenciaCentro`). SEMANA → `(fechaFin-fechaInicio+1)/7`. |
+| `sortPlsForUi(pls)` | PLANTILLA primero, luego SEMANAs por `fechaInicio` asc. |
+| `selectActivePl(pls, fecha)` | Cascada SEMANA-que-cubre-fecha → PLANTILLA. |
+| `findPlantilla(pls)` | La PLANTILLA del grupo o null. |
+| `labelForPl(pl)` | Etiqueta legible para pills. |
+
+### Hot-spots arreglados en `HorariosEditor.jsx`
+
+12 cambios quirúrgicos sobre el editor de 5 692 líneas. La mayoría del código sobrevive sin tocar; solo se adaptan los puntos que asumían "PL tiene fechas":
+
+| # | Sección | Cambio |
+|---|---|---|
+| 1 | imports | añadido `import { isPlantilla, ..., labelForPl } from '../utils/pl-utils'`. |
+| 2 | `useEffect` carga inicial PLs (~L559) | usa `sortPlsForUi` + `selectActivePl` para selección por defecto. |
+| 3 | `semanasReferenciaCentro` | **Movido arriba** del archivo (antes de `semanasByPlId`) para evitar TDZ. |
+| 4 | `semanasByPlId` | usa `getSemanasOfPl(pl, semanasReferenciaCentro)`. |
+| 5 | `pliModalSemanasRango` | idem. |
+| 6 | `openCreatePlModal` | filtra a `existingSemanas` antes de buscar "el último rango". |
+| 7 | `openEditPlModal` | bloquea PLANTILLA con toast informativo (la PLANTILLA se edita desde el modal Materias del rango / Sliders). |
+| 8 | `handleDeletePl` | bloquea PLANTILLA con toast error + reemplaza fallback de re-selección por `selectActivePl`. |
+| 9 | `handleSubmitPlForm` draft create | añade `tipo: 'semana'` + `plantillaBase: /api/periodo_lectivos/{plantillaId}` al draft. Sorts con `sortPlsForUi`. |
+| 10 | `applyPendingTxForGrupo` POST | omite fechas para PLANTILLA, añade `tipo`/`plantillaBase`/`semanaNumero` al body. |
+| 11 | `runSolverAllRangos` `totalSemanasGrupo` | cascada con `getSemanasOfPl`. |
+| 12 | `handleConfigureOptimalCourse` `totalSemanasGrupo` | idem. |
+| 13 | Render de pill (~L4329) | PLANTILLA muestra "Por defecto" en vez de fechas, oculta botón Borrar. |
+
+**Bug fix relacionado**: TDZ en `semanasReferenciaCentro` (definida en L968 pero usada en L906 nuevo `semanasByPlId`). Se mueve la definición arriba.
+
+### Lo que queda degradado en Fase B
+
+| Pendiente | Severidad | Comentario |
+|---|---|---|
+| **"Configurar curso óptimo"** del menú "Acciones del curso" | Alto | Sigue creando SEMANAs equiespaciadas como antes creaba rangos. Funcionalmente válido (genera SEMANAs reales con fechas), pero la semántica conceptual no es la final del modelo semanal. Reescritura completa diferida. |
+| **"Crear rangos recomendados"** del menú | Alto | Idem: genera SEMANAs como si fueran rangos. |
+| **"Extender curso N días"** CTA | Medio | Degrada gracefully (no aparece porque PLANTILLA no tiene `fechaFin`, y `extendCourseSuggestion` retorna null). En el modelo final, la duración del curso vive en `Centro.fechaInicioCurso/FinCurso`, no en PLs. |
+| **Modal "Materias del rango"** header | Bajo (cosmético) | Cuando se abre sobre PLANTILLA, sigue diciendo "Materias del rango" en lugar de "Materias del curso". |
+| **`runSolver` single-rango** | Medio | No revisado; puede asumir que el PL tiene fechas. Probable no rompa con PLANTILLA pero sin garantía. |
+| **UI dedicada de SEMANA management** | Alto (feature) | Hoy no hay UI clara para "crear una excepción para esta semana específica" — solo el modal genérico de crear PL. Habrá que añadir flujo: "Excepciones de la semana N" con botones contextuales. |
+
+### Lo que SÍ funciona ya
+
+- Carga de un grupo en `/admin/horarios` muestra la PLANTILLA como pill especial ("Por defecto").
+- Banner anual de cobertura calcula correctamente con PLANTILLA (cuota × `semanasReferenciaCentro`).
+- Modal "Materias del rango" abre sobre PLANTILLA y permite editar PLIs (cuota minutos/sem por imparticion).
+- Solver iterativo multi-rango envía `totalSemanasGrupo` correcto.
+- Drag-and-drop de placements sigue funcionando sobre la PLANTILLA.
+
+### Próximos pasos al retomar Fase B
+
+1. **Validación visual** en `https://localhost:8443/admin/horarios` con cada grupo del centro EAG.
+2. **Resolver cualquier rotura residual** (errores en consola browser) que aparezca tras navegación profunda.
+3. **Reescribir `handleConfigureOptimalCourse`**: en lugar de crear N rangos equiespaciados, debe distribuir la cuota anual sobre la PLANTILLA y dejar el módulo de SEMANAs vacío.
+4. **Reescribir `handleCreateRecommendedRangos`**: ya no tiene sentido en modelo semanal — eliminar del menú.
+5. **Adaptar header del modal "Materias del rango"** para mostrar "Materias del curso" cuando se abre sobre PLANTILLA.
+6. **Añadir UI dedicada para SEMANAs**: botón contextual "Crear semana excepcional" con flujo guiado (selección de fecha de semana + heredar plantilla + permitir overrides).
+7. **Revisar `runSolver` single-rango** para asegurar compatibilidad PLANTILLA.
+
+### Cómo retomar desde otra máquina
+
+```bash
+git fetch origin
+git checkout develop-semanas-lectivas
+git pull
+docker compose up -d
+docker compose exec backend php bin/console doctrine:migrations:status
+# Si la migration Version20260506180000 aparece como New, aplicarla:
+docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+docker compose exec backend php bin/console app:semanas:seed-plantillas --with-plis
+docker compose exec backend php bin/console cache:clear
+```
+
+Después abrir `https://localhost:8443/admin/horarios` y validar visualmente. El editor debe mostrar 1 pill "Plantilla del curso · Por defecto" por grupo.

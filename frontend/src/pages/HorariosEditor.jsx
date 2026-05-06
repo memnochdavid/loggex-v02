@@ -25,6 +25,7 @@ import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
 import { formatGrupoNombre } from '../utils/grupo';
+import { isPlantilla, isSemana, getSemanasOfPl, sortPlsForUi, selectActivePl, findPlantilla, labelForPl } from '../utils/pl-utils';
 import { useConfirm } from '../context/ConfirmContext';
 import Lottie from 'lottie-react';
 import timeAnim from '../../public/time.json';
@@ -561,13 +562,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return;
-        const items = d['hydra:member'] || d.member || [];
+        const items = sortPlsForUi(d['hydra:member'] || d.member || []);
         setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: items }));
-        // Fijar selección por defecto si aún no hay
+        // Selección por defecto: SEMANA que cubre hoy si la hay,
+        // sino la PLANTILLA del grupo (modelo semanal post-2026-05-06).
         if (!selectedPlByGrupo[selectedGrupo] && items.length > 0) {
-          const today = new Date().toISOString().slice(0, 10);
-          const active = items.find(pl => pl.fechaInicio <= today && pl.fechaFin >= today)
-            || items[0];
+          const active = selectActivePl(items) || items[0];
           setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: active.id }));
         }
       })
@@ -898,19 +898,30 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placements, slotMinutosByHi]);
 
+  // Semanas lectivas de referencia del centro (calendario real con festivos
+  // descontados, fallback 36 LOMLOE). Se usa como duración default de
+  // PeriodoLectivo tipo PLANTILLA en el modelo semanal — definida arriba para
+  // que `semanasByPlId` y otros memos puedan consumirla sin TDZ.
+  const semanasReferenciaCentro = useMemo(() => {
+    if (!selectedGrupo) return 36;
+    const grupo = grupos.find(g => String(g.id) === String(selectedGrupo));
+    const centroId = grupo ? extractFkId(grupo.centro) : null;
+    const r = centroId ? semanasLectivasByCentro[centroId] : null;
+    return (r && r.semanas != null && r.semanas > 0) ? r.semanas : 36;
+  }, [selectedGrupo, grupos, semanasLectivasByCentro]);
+
   // Semanas por PL del grupo (lookup table) — usado por los memos anuales.
-  // Calcula `(fechaFin - fechaInicio + 1) / 7` igual que el resto del código.
+  // Modelo semanal (post-2026-05-06):
+  //   - PLANTILLA → semanas lectivas del centro (CalendarioLectivoService).
+  //   - SEMANA → `(fechaFin - fechaInicio + 1) / 7` (~1.0 en la mayoría).
+  // El `semanasReferenciaCentro` ya cae a 36 LOMLOE si no hay calendario real.
   const semanasByPlId = useMemo(() => {
     const m = {};
     (plByGrupo[selectedGrupo] || []).forEach(pl => {
-      if (!pl.fechaInicio || !pl.fechaFin) return;
-      const ini = new Date(pl.fechaInicio.slice(0, 10));
-      const fin = new Date(pl.fechaFin.slice(0, 10));
-      const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
-      m[pl.id] = days / 7;
+      m[pl.id] = getSemanasOfPl(pl, semanasReferenciaCentro);
     });
     return m;
-  }, [plByGrupo, selectedGrupo]);
+  }, [plByGrupo, selectedGrupo, semanasReferenciaCentro]);
 
   // Minutos ANUALES colocados por imparticion (Fase 5 sub-A): suma a través
   // de TODOS los rangos del grupo. Por cada PL del grupo:
@@ -964,14 +975,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // está set (caso edge). Antes el sistema asumía calendario rígido de 36
   // sem; ahora (Fase 7) lo lee del calendario real del centro descontando
   // festivos. Si el centro no tiene ni overrides ni CalendarioEscolarCcaa
-  // disponible, cae a 36 LOMLOE.
-  const semanasReferenciaCentro = useMemo(() => {
-    if (!selectedGrupo) return 36;
-    const grupo = grupos.find(g => String(g.id) === String(selectedGrupo));
-    const centroId = grupo ? extractFkId(grupo.centro) : null;
-    const r = centroId ? semanasLectivasByCentro[centroId] : null;
-    return (r && r.semanas != null && r.semanas > 0) ? r.semanas : 36;
-  }, [selectedGrupo, grupos, semanasLectivasByCentro]);
+  // disponible, cae a 36 LOMLOE. (Definición de `semanasReferenciaCentro`
+  // movida arriba para evitar TDZ con `semanasByPlId` post-refactor semanal.)
   const minutosAnualesObjetivoByImp = useMemo(() => {
     const m = {};
     imps.forEach(imp => {
@@ -1328,19 +1333,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     };
   }, [selectedGrupo, imps, jornadaSemanalLectivaMin, semanasByPlId, minutosAnualesObjetivoByImp]);
 
-  // Semanas del rango activo en el modal (Fase 5 sub-A): se usa para convertir
-  // entre min/sem ↔ horas anuales. Cálculo: ceil((fechaFin - fechaInicio) / 7).
-  // Si el PL no tiene fechas válidas, fallback a 1 (evita división por cero;
-  // muestra valores inflados pero al menos no crashea).
+  // Semanas del PL activo en el modal (Fase 5 sub-A): se usa para convertir
+  // entre min/sem ↔ horas anuales. Modelo semanal:
+  //   - PLANTILLA → semanas lectivas del centro (D-default del curso).
+  //   - SEMANA → ~1.0 (la duración del rango de la semana específica).
   const pliModalSemanasRango = useMemo(() => {
     if (!pliModalPlId) return 0;
     const pl = (plByGrupo[selectedGrupo] || []).find(p => String(p.id) === String(pliModalPlId));
-    if (!pl?.fechaInicio || !pl?.fechaFin) return 0;
-    const ini = new Date(pl.fechaInicio.slice(0, 10));
-    const fin = new Date(pl.fechaFin.slice(0, 10));
-    const days = Math.max(0, Math.round((fin - ini) / 86400000) + 1);
-    return days / 7;
-  }, [pliModalPlId, plByGrupo, selectedGrupo]);
+    return getSemanasOfPl(pl, semanasReferenciaCentro);
+  }, [pliModalPlId, plByGrupo, selectedGrupo, semanasReferenciaCentro]);
 
   // Filas del modal "Materias del rango" (Fase 4): join de imparticiones del
   // grupo con los PLIs del PL seleccionado en el modal. Cada fila incluye:
@@ -1795,13 +1796,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     //    el patcheo de PLIs y para reescribir state[gid_tempId].
     const tempIdToRealId = {};
     for (const draft of (tx.plsToCreate || [])) {
+      // Modelo semanal: el draft trae `tipo` ('plantilla' | 'semana') desde
+      // handleSubmitPlForm. PLANTILLA omite fechas; SEMANA las envía y enlaza
+      // su plantillaBase. El backend processor también defaultea por presencia
+      // de fecha si tipo viniera ausente.
       const body = {
         grupo: `/api/grupos/${gid}`,
         nombre: draft.nombre,
-        fechaInicio: draft.fechaInicio,
-        fechaFin: draft.fechaFin,
         orden: draft.orden ?? 0,
       };
+      if (draft.tipo) body.tipo = draft.tipo;
+      if (draft.tipo !== 'plantilla' && draft.fechaInicio) body.fechaInicio = draft.fechaInicio;
+      if (draft.tipo !== 'plantilla' && draft.fechaFin) body.fechaFin = draft.fechaFin;
+      if (draft.plantillaBase) body.plantillaBase = draft.plantillaBase;
+      if (draft.semanaNumero != null) body.semanaNumero = draft.semanaNumero;
       if (draft.jornadaTipoId) body.jornadaTipo = `/api/jornada_tipos/${draft.jornadaTipoId}`;
       const r = await fetch(getApiUrl('/api/periodo_lectivos'), {
         method: 'POST',
@@ -2272,9 +2280,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const grupoIni = grupo?.fechaInicio ? grupo.fechaInicio.slice(0, 10) : '';
     let inicio = '';
     let fin = grupoFin;
-    if (existing.length > 0) {
+    // Modelo semanal: solo SEMANAs cuentan para "el último rango con fechaFin".
+    // PLANTILLA no tiene fechas → la ignoramos en este sort.
+    const existingSemanas = existing.filter(isSemana);
+    if (existingSemanas.length > 0) {
       // Fecha inicio del nuevo rango = día siguiente al fechaFin del último.
-      const last = [...existing].sort((a, b) => a.fechaFin.localeCompare(b.fechaFin)).at(-1);
+      const last = [...existingSemanas].sort((a, b) => String(a.fechaFin).localeCompare(String(b.fechaFin))).at(-1);
       const lastFin = new Date(last.fechaFin);
       const dayAfter = new Date(lastFin); dayAfter.setDate(dayAfter.getDate() + 1);
       inicio = dayAfter.toISOString().slice(0, 10);
@@ -2308,6 +2319,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Abrir modal en modo edición: pre-rellena con el PL pasado.
   const openEditPlModal = (pl) => {
     if (!pl) return;
+    // Modelo semanal: la PLANTILLA no se edita desde este modal (no tiene
+    // fechas; el formulario las exige). Los PLIs de la plantilla se editan
+    // desde el modal "Materias del rango" / "Materias del curso".
+    if (isPlantilla(pl)) {
+      toast.info(t('scheduleEditor.editPlantillaUseSliders', {
+        defaultValue: 'La plantilla del curso se edita desde el modal Materias del rango (icono Sliders).',
+      }));
+      return;
+    }
     setPlForm({
       nombre: pl.nombre || '',
       fechaInicio: pl.fechaInicio?.slice(0, 10) || '',
@@ -2402,7 +2422,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             : pl));
           return {
             ...prev,
-            [selectedGrupo]: next.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
+            [selectedGrupo]: sortPlsForUi(next),
           };
         });
       }
@@ -2423,10 +2443,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     tempIdSeqRef.current -= 1;
     const explicitJid = plForm.jornadaTipoId ? Number(plForm.jornadaTipoId) : null;
     const inheritedJid = explicitJid ?? (Number(resolveEffectiveJornadaId(grupo)) || null);
+    // Modelo semanal: cualquier PL creado desde el modal "Crear/editar rango"
+    // es tipo SEMANA (override puntual). La PLANTILLA del grupo ya existe
+    // (creada por GrupoPlantillaSubscriber al persistir el grupo).
+    const plantillaDelGrupo = findPlantilla(plByGrupo[selectedGrupo] || []);
     const draft = {
       tempId,
       id: tempId,
       _pending: 'create',
+      tipo: 'semana',
+      plantillaBase: plantillaDelGrupo ? `/api/periodo_lectivos/${plantillaDelGrupo.id}` : null,
+      plantillaBaseId: plantillaDelGrupo?.id ?? null,
       nombre: plForm.nombre,
       fechaInicio: plForm.fechaInicio,
       fechaFin: plForm.fechaFin,
@@ -2450,8 +2477,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const cur = prev[selectedGrupo] || [];
       return {
         ...prev,
-        [selectedGrupo]: [...cur, draft].sort((a, b) =>
-          (a.orden ?? 0) - (b.orden ?? 0) || a.fechaInicio.localeCompare(b.fechaInicio)),
+        [selectedGrupo]: sortPlsForUi([...cur, draft]),
       };
     });
     // Inicializar state[gid_tempId] vacío para que grupoState sea truthy y
@@ -2478,6 +2504,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // borrará junto con el PL.
   const handleDeletePl = async (pl) => {
     if (!pl || !selectedGrupo) return;
+    // Modelo semanal: la PLANTILLA es el horario por defecto del grupo y no
+    // se borra (el grupo no podría operar sin ella). Solo SEMANAs son borrables.
+    if (isPlantilla(pl)) {
+      toast.error(t('scheduleEditor.deletePlantillaDenied', {
+        defaultValue: 'No puedes borrar la plantilla del curso. Borra solo semanas excepcionales.',
+      }));
+      return;
+    }
     const list = plByGrupo[selectedGrupo] || [];
     if (list.length <= 1) {
       toast.error(t('scheduleEditor.deleteRangoOnlyOne', { defaultValue: 'No puedes borrar el único rango del grupo. Crea otro antes.' }));
@@ -2550,8 +2584,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     });
     if (String(selectedPlId) === String(pl.id)) {
       const remaining = (plByGrupo[selectedGrupo] || []).filter(p => String(p.id) !== String(pl.id));
-      const today = new Date().toISOString().slice(0, 10);
-      const next = remaining.find(p => p.fechaInicio <= today && p.fechaFin >= today) || remaining[0];
+      const next = selectActivePl(remaining) || remaining[0];
       setSelectedPlByGrupo(prev => ({
         ...prev,
         [selectedGrupo]: next ? String(next.id) : undefined,
@@ -2944,11 +2977,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const realesVivos = (plByGrupo[selectedGrupo] || [])
           .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
         const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
-        const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) => {
-          if (!pl.fechaInicio || !pl.fechaFin) return acc;
-          const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
-          return acc + Math.max(0, dias) / 7;
-        }, 0);
+        // Modelo semanal: PLANTILLA → semanasReferenciaCentro; SEMANAs → ~1.
+        const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) =>
+          acc + getSemanasOfPl(pl, semanasReferenciaCentro), 0);
         return {
           rango: {
             tempId: Number(targetPlId),
@@ -3157,10 +3188,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const realesVivos = (plByGrupo[selectedGrupo] || [])
         .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
       const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
+      // Modelo semanal: PLANTILLA aporta `semanasReferenciaCentro` (calendario
+      // real del centro o 36 LOMLOE de fallback). SEMANAs aportan ~1 cada una.
       const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) => {
-        if (!pl.fechaInicio || !pl.fechaFin) return acc;
-        const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
-        return acc + Math.max(0, dias) / 7;
+        return acc + getSemanasOfPl(pl, semanasReferenciaCentro);
       }, 0);
 
       const buildRangoItem = (pl) => {
@@ -3995,10 +4026,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const optimalPerPlReports = [];
     let optimalMultiJson = null;  // disponible fuera del bloque para crossRangoShortfalls
     {
-      const totalSemanasGrupo = pendingTx.plsToCreate.reduce((acc, pl) => {
-        const dias = (new Date(pl.fechaFin) - new Date(pl.fechaInicio)) / 86400000 + 1;
-        return acc + dias / 7;
-      }, 0);
+      const totalSemanasGrupo = pendingTx.plsToCreate.reduce((acc, pl) =>
+        acc + getSemanasOfPl(pl, semanasReferenciaCentro), 0);
       const rangosBody = pendingTx.plsToCreate.map(pl => {
         const distForPl = distribution[pl.tempId] || {};
         const plisBody = Object.entries(distForPl).map(([impIdStr, minutos]) => ({
@@ -4299,11 +4328,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: pl.id }));
                       }
                     }}
-                    title={`${fmtDateEs(pl.fechaInicio)} → ${fmtDateEs(pl.fechaFin)}`}
+                    title={isPlantilla(pl)
+                      ? t('scheduleEditor.plantillaTooltip', { defaultValue: 'Plantilla del curso (horario por defecto)' })
+                      : `${fmtDateEs(pl.fechaInicio)} → ${fmtDateEs(pl.fechaFin)}`}
                   >
                     <div className={styles.plPillBody}>
                       <span className={styles.plPillName}>{pl.nombre}</span>
-                      <span className={styles.plPillDates}>{fmt(pl.fechaInicio)} – {fmt(pl.fechaFin)}</span>
+                      <span className={styles.plPillDates}>
+                        {isPlantilla(pl)
+                          ? t('scheduleEditor.plantillaSubtitle', { defaultValue: 'Por defecto' })
+                          : `${fmt(pl.fechaInicio)} – ${fmt(pl.fechaFin)}`}
+                      </span>
                     </div>
                     {isActive && (
                       <div className={styles.plPillActions}>
@@ -4327,16 +4362,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         >
                           <Pencil size={13} />
                         </button>
-                        <button
-                          type="button"
-                          className={`${styles.plPillActionBtn} ${styles.plPillActionDanger}`}
-                          onClick={(e) => { e.stopPropagation(); handleDeletePl(pl); }}
-                          aria-label={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
-                          title={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
-                          disabled={isDeleting || (plByGrupo[selectedGrupo] || []).length <= 1}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {!isPlantilla(pl) && (
+                          <button
+                            type="button"
+                            className={`${styles.plPillActionBtn} ${styles.plPillActionDanger}`}
+                            onClick={(e) => { e.stopPropagation(); handleDeletePl(pl); }}
+                            aria-label={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
+                            title={t('scheduleEditor.deleteRango', { defaultValue: 'Borrar rango' })}
+                            disabled={isDeleting}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
