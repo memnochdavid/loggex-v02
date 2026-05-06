@@ -1227,13 +1227,20 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     else if (-diff <= TOL_WARN) tone = 'warn';         // faltan entre 5 y 15h
     else tone = 'error';                                // faltan más de 15h
     const diffSigned = diff > 0 ? `+${diff}` : `${diff}`;
+    // plCount: si hay SEMANAs vivas, contar solo SEMANAs (la PLANTILLA queda
+    // oculta del strip y no debería contarse aquí — coherencia con la UI).
+    // Si solo hay PLANTILLA, plCount = 1.
+    const haySemanas = pls.some(p => isSemana(p));
+    const plCountVisible = haySemanas
+      ? pls.filter(p => isSemana(p)).length
+      : pls.length;
     return {
       curriculumHoras,
       plannedHoras,
       diff,
       diffSigned,
       tone,
-      plCount: pls.length,
+      plCount: plCountVisible,
       semanasTotal: Math.round(semanasTotal * 10) / 10,
     };
   }, [selectedGrupo, plByGrupo, imps, impById, jornadaSemanalLectivaMin, pendingTxByGrupo]);
@@ -4359,7 +4366,24 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
               </span>
             )}
             <div className={styles.plPills}>
-              {plByGrupo[selectedGrupo].map(pl => {
+              {(() => {
+                // Modelo semanal puro (Fase D mejora 2026-05-06): ocultamos
+                // la PLANTILLA del strip cuando hay SEMANAs vivas que cubren
+                // el calendario. La PLANTILLA sigue existiendo en BD como
+                // singleton + ancla FK + fallback del resolver, pero la UI
+                // del editor solo la enseña como pill si NO hay SEMANAs
+                // (caso edge: grupo recién creado sin haber ejecutado
+                // "Configurar curso óptimo"). Esto mantiene "5 rangos · ..."
+                // limpio (= solo las SEMANAs reales del año) y evita
+                // confundir al admin con un pill que en la práctica está
+                // tapado por las SEMANAs.
+                const todosLosPls = plByGrupo[selectedGrupo] || [];
+                const haySemanas = todosLosPls.some(p => isSemana(p));
+                const plsVisibles = haySemanas
+                  ? todosLosPls.filter(p => !isPlantilla(p) || p._pending)
+                  : todosLosPls;
+                return plsVisibles;
+              })().map(pl => {
                 const isActive = String(pl.id) === String(selectedPlId);
                 const fmt = (s) => s ? s.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
                 const isDeleting = String(deletingPlId) === String(pl.id);
