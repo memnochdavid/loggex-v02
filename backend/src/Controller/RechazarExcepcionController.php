@@ -65,22 +65,33 @@ class RechazarExcepcionController extends AbstractController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Detectar destinatario semántico según tipo.
+        // Detectar quién está autorizado a rechazar según el tipo.
         $tipo = $eh->getTipo();
-        $destinatarioId = null;
+        $callerId = $user->getId();
+        $autorizadosIds = [];
         if ($tipo === TipoExcepcion::SUSTITUCION || $tipo === TipoExcepcion::EVENTO_ESPECIAL) {
-            $destinatarioId = $eh->getProfeOverride()?->getId();
+            // Solo el sustituto/facilitador (destinatario semántico) puede rechazar.
+            // El titular no decide aquí (él es quien solicitó o aceptó cubrir).
+            $override = $eh->getProfeOverride()?->getId();
+            if ($override !== null) $autorizadosIds[] = $override;
         } elseif ($tipo === TipoExcepcion::INTERCAMBIO) {
-            $destinatarioId = $eh->getImparticionEfectiva()?->getProfesor()?->getId();
+            // Plan B: ambos profes envueltos en CUALQUIERA de las dos
+            // posiciones (titular del horarioBase O imparticionEfectiva.profesor)
+            // pueden rechazar. Es un acuerdo bilateral; cualquiera de las
+            // partes puede romperlo y la cascade propaga al grupo.
+            $titularId = $eh->getHorarioBase()?->getImparticion()?->getProfesor()?->getId();
+            $efectivoId = $eh->getImparticionEfectiva()?->getProfesor()?->getId();
+            if ($titularId !== null) $autorizadosIds[] = $titularId;
+            if ($efectivoId !== null) $autorizadosIds[] = $efectivoId;
         } elseif ($tipo === TipoExcepcion::CANCELADO) {
             return $this->json([
                 'message' => 'Las cancelaciones no tienen destinatario que pueda rechazar.',
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if ($destinatarioId === null || $destinatarioId !== $user->getId()) {
+        if (!in_array($callerId, $autorizadosIds, true)) {
             return $this->json([
-                'message' => 'Solo el destinatario de la incidencia puede rechazarla.',
+                'message' => 'No estás autorizado a rechazar esta incidencia.',
             ], Response::HTTP_FORBIDDEN);
         }
 

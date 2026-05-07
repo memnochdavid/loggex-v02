@@ -89,14 +89,14 @@ const Excepciones = () => {
     const [formData, setFormData] = useState({
         tipo: 'sustitucion',
         horarioBase: '',
+        horarioBaseObj: null,  // se rellena al seleccionar para conocer la duración
         fechaConcreta: '',
         profeOverride: '',
-        imparticionEfectiva: '',  // legado; intercambio ya no lo usa (derivado de horarioBaseB)
+        imparticionEfectiva: '',  // legado
         motivo: '',
         observaciones: '',
-        // Intercambio bilateral (Fase E):
-        horarioBaseB: '',
-        fechaConcretaB: '',
+        // Intercambio multi-bloque (Plan B 2026-05-08): array de bloques B.
+        parejasB: [],
     });
 
     const fetchData = useCallback(async (params) => {
@@ -190,13 +190,13 @@ const Excepciones = () => {
         setFormData({
             tipo: 'sustitucion',
             horarioBase: '',
+            horarioBaseObj: null,
             fechaConcreta: '',
             profeOverride: '',
             imparticionEfectiva: '',
             motivo: '',
             observaciones: '',
-            horarioBaseB: '',
-            fechaConcretaB: '',
+            parejasB: [],
         });
         setIsModalOpen(true);
     };
@@ -216,8 +216,8 @@ const Excepciones = () => {
             toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan campos obligatorios' }));
             return;
         }
-        if (formData.tipo === 'intercambio' && (!formData.horarioBaseB || !formData.fechaConcretaB)) {
-            toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan datos de la otra cara del intercambio' }));
+        if (formData.tipo === 'intercambio' && (!Array.isArray(formData.parejasB) || formData.parejasB.length === 0)) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Selecciona los bloques que cubren al otro profesor' }));
             return;
         }
         setSaving(true);
@@ -225,16 +225,18 @@ const Excepciones = () => {
         try {
             let response;
             if (formData.tipo === 'intercambio') {
-                // Endpoint dedicado: crea las dos caras linked atómicamente
-                // (Fase E). El admin crea APROBADA directa por defecto.
+                // Endpoint dedicado (Plan B): N+1 caras linked por
+                // intercambio_grupo_id. Σ minutos B == minutos A.
                 response = await fetch(getApiUrl('/api/v1/excepciones/intercambio'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                     body: JSON.stringify({
                         horarioBaseA:   `/api/horarios/${String(formData.horarioBase).split('/').pop()}`,
                         fechaConcretaA: formData.fechaConcreta,
-                        horarioBaseB:   `/api/horarios/${String(formData.horarioBaseB).split('/').pop()}`,
-                        fechaConcretaB: formData.fechaConcretaB,
+                        parejasB: formData.parejasB.map(s => ({
+                            horarioBaseB:   `/api/horarios/${String(s.horarioId).split('/').pop()}`,
+                            fechaConcretaB: s.fechaConcreta,
+                        })),
                         motivo:         formData.motivo || null,
                         observaciones:  formData.observaciones || null,
                     }),
@@ -596,7 +598,7 @@ const Excepciones = () => {
                         <AsyncSearchSelect
                             name="horarioBase"
                             value={formData.horarioBase}
-                            onChange={(v) => setFormData(p => ({ ...p, horarioBase: v }))}
+                            onChange={(v, item) => setFormData(p => ({ ...p, horarioBase: v, horarioBaseObj: item || null }))}
                             endpoint="/api/horarios"
                             itemsPerPage={100}
                             extraParams={{
@@ -659,21 +661,30 @@ const Excepciones = () => {
                         </div>
                     )}
 
-                    {showIntercambioPair && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>{t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}</label>
-                            <HorarioGridPicker
-                                value={formData.horarioBaseB}
-                                selectedFecha={formData.fechaConcretaB}
-                                weekAnchor={formData.fechaConcreta ? new Date(formData.fechaConcreta) : new Date()}
-                                onChange={({ horarioId, fechaConcreta }) => setFormData(p => ({
-                                    ...p,
-                                    horarioBaseB: horarioId,
-                                    fechaConcretaB: fechaConcreta,
-                                }))}
-                            />
-                        </div>
-                    )}
+                    {showIntercambioPair && (() => {
+                        // Duración del bloque A (segundos) → minutos. La obtenemos
+                        // de horarioBaseObj capturado al seleccionar en el AsyncSearchSelect.
+                        const h = formData.horarioBaseObj;
+                        const hi = (h?.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                        const hf = (h?.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                        let durA = 0;
+                        if (hi && hf) {
+                            const [hH, hM] = hi.split(':').map(Number);
+                            const [fH, fM] = hf.split(':').map(Number);
+                            durA = (fH * 60 + fM) - (hH * 60 + hM);
+                        }
+                        return (
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('exceptions.horarioBaseB', { defaultValue: 'Bloque(s) del otro profe que cubrirás' })}</label>
+                                <HorarioGridPicker
+                                    selections={formData.parejasB}
+                                    onChange={(newSelections) => setFormData(p => ({ ...p, parejasB: newSelections }))}
+                                    weekAnchor={formData.fechaConcreta ? new Date(formData.fechaConcreta + 'T00:00:00') : new Date()}
+                                    targetMinutes={durA}
+                                />
+                            </div>
+                        );
+                    })()}
 
                     <div className={styles.formGroup}>
                         <label className={styles.label}>{t('exceptions.motivo', { defaultValue: 'Motivo' })}</label>

@@ -191,3 +191,89 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Carrito multi-selección + total acumulado vs target (Plan B 2026-05-08).
+   Pegado debajo del grid para que el usuario vea sin scroll cuántos
+   bloques lleva y cuánto tiempo cubren. */
+.cart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.cartList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cartItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: 0.8rem;
+    color: var(--text-main);
+    padding: 2px 6px;
+    background: var(--bg-card);
+    border-radius: var(--radius-xs, 2px);
+}
+
+.cartItemLabel {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cartRemove {
+    background: transparent;
+    border: none;
+    color: var(--color-error);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: var(--radius-xs, 2px);
+    transition: background var(--dur-fast) var(--ease-standard);
+}
+
+.cartRemove:hover {
+    background: color-mix(in srgb, var(--color-error), transparent 85%);
+}
+
+.cartTotal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.cartTotalLabel {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.cartTotalOk {
+    color: var(--color-success);
+    font-weight: 700;
+}
+
+.cartTotalUnder {
+    color: var(--color-warning);
+    font-weight: 600;
+}
+
+.cartTotalOver {
+    color: var(--color-error);
+    font-weight: 700;
+}

@@ -17,31 +17,47 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Endpoint dedicado a crear un INTERCAMBIO bilateral atómico.
+ * Endpoint para crear un INTERCAMBIO atómico — Plan B (multi-bloque).
  *
  * Body esperado:
  *   {
  *     "horarioBaseA":   "/api/horarios/123",   // bloque mío que cedo
  *     "fechaConcretaA": "2026-05-15",          // día en que NO voy
- *     "horarioBaseB":   "/api/horarios/456",   // bloque del otro profe que cubriré
- *     "fechaConcretaB": "2026-05-22",          // día en que cubro al otro
+ *     "parejasB": [                            // lado B: 1+ bloques del otro profe
+ *       { "horarioBaseB": "/api/horarios/456", "fechaConcretaB": "2026-05-22" },
+ *       { "horarioBaseB": "/api/horarios/789", "fechaConcretaB": "2026-05-29" }
+ *     ],
  *     "motivo":         "Cambio acordado",
  *     "observaciones":  "Texto libre opcional"
  *   }
  *
- * Crea dos `ExcepcionHorario` linked vía `intercambioPareja` (self-FK
- * bidireccional). Cada cara tiene `imparticionEfectiva` apuntando a la
- * imparticion del otro profe (la que de facto se imparte ese día).
+ * Backward-compat: si el body llega con `horarioBaseB`/`fechaConcretaB`
+ * (formato Plan A pre-2026-05-08), se convierte en `parejasB: [{...}]` de un
+ * elemento. El cliente legado sigue funcionando.
+ *
+ * Crea 1 cara A + N caras B, todas con el mismo `intercambioGrupoId` UUID
+ * (Plan B refactor pareja → grupo). Para 1↔1 también se setea
+ * `intercambioPareja` legacy en ambas caras (compatibilidad con render
+ * existente). Para 1↔N el campo legacy queda NULL.
+ *
+ * Reglas:
+ *  - Mismo centro entre A y todas las B.
+ *  - Profe de A distinto del profe de las B (todas las B del MISMO profe;
+ *    multi-profe queda diferido — Plan B2 si surge).
+ *  - Cada fecha coincide con el diaSemana de su horario base.
+ *  - **Σ duración B == duración A** (swap equilibrado en minutos totales,
+ *    aunque distinto número de bloques).
  *
  * Estado:
- *  - Si solicitante es profe puro → ambas caras PENDIENTE_APROBACION.
- *  - Si solicitante es admin/superadmin → ambas APROBADA + aprobadaPor + fechaResolucion.
+ *  - Solicitante profe puro → todas las caras PENDIENTE_APROBACION.
+ *  - Solicitante admin/superadmin → todas APROBADA + aprobadaPor + fechaResolucion.
  *
- * El subscriber `NotificationDispatchSubscriber` se activa en postPersist
- * y emite las notificaciones correspondientes (al admin si pendiente, a
- * los afectados si aprobada).
+ * El cascade subscriber (IntercambioGrupoCascadeSubscriber) propaga
+ * cambios de estado a todas las caras del grupo en el mismo flush. El
+ * NotificationDispatchSubscriber emite las notificaciones a los
+ * afectados de cada cara independientemente.
  *
- * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Fase E.
+ * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Fase E + Plan B.
  */
 class IntercambioController extends AbstractController
 {
@@ -74,75 +90,137 @@ class IntercambioController extends AbstractController
             return $this->json(['message' => 'JSON inválido'], Response::HTTP_BAD_REQUEST);
         }
 
-        $idA = $this->extractIdFromIri($payload['horarioBaseA'] ?? null);
-        $idB = $this->extractIdFromIri($payload['horarioBaseB'] ?? null);
-        $fechaA = $payload['fechaConcretaA'] ?? null;
-        $fechaB = $payload['fechaConcretaB'] ?? null;
-        if (!$idA || !$idB || !$fechaA || !$fechaB) {
-            return $this->json([
-                'message' => 'Faltan campos obligatorios (horarioBaseA, horarioBaseB, fechaConcretaA, fechaConcretaB).',
-            ], Response::HTTP_BAD_REQUEST);
+        // Backward-compat con clientes Plan A: si llega `horarioBaseB` y
+        // `fechaConcretaB` singulares, los convertimos a `parejasB: [{...}]`.
+        if (!isset($payload['parejasB']) && isset($payload['horarioBaseB'])) {
+            $payload['parejasB'] = [[
+                'horarioBaseB'   => $payload['horarioBaseB'],
+                'fechaConcretaB' => $payload['fechaConcretaB'] ?? null,
+            ]];
         }
-        if ($idA === $idB) {
-            return $this->json(['message' => 'Los dos bloques deben ser distintos.'], Response::HTTP_BAD_REQUEST);
+
+        $idA = $this->extractIdFromIri($payload['horarioBaseA'] ?? null);
+        $fechaAStr = $payload['fechaConcretaA'] ?? null;
+        $parejasB = $payload['parejasB'] ?? null;
+
+        if (!$idA || !$fechaAStr || !is_array($parejasB) || $parejasB === []) {
+            return $this->json([
+                'message' => 'Faltan campos obligatorios (horarioBaseA, fechaConcretaA, parejasB).',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $horarioA = $this->em->find(Horario::class, $idA);
-        $horarioB = $this->em->find(Horario::class, $idB);
-        if (!$horarioA || !$horarioB) {
-            return $this->json(['message' => 'Bloque no encontrado.'], Response::HTTP_NOT_FOUND);
+        if (!$horarioA) {
+            return $this->json(['message' => 'Bloque A no encontrado.'], Response::HTTP_NOT_FOUND);
         }
-
         $impA = $horarioA->getImparticion();
-        $impB = $horarioB->getImparticion();
-        if (!$impA || !$impB) {
-            return $this->json(['message' => 'Bloques sin imparticion asociada.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        // Misma centro requerido para que el filtro CurrentUserExtension siga
-        // siendo coherente. Sin esta restricción un profe podría intentar
-        // intercambiar con un grupo de otro centro.
-        $centroA = $impA->getGrupo()?->getCentro();
-        $centroB = $impB->getGrupo()?->getCentro();
-        if ($centroA === null || $centroB === null || $centroA->getId() !== $centroB->getId()) {
-            return $this->json(['message' => 'Los dos bloques deben ser del mismo centro.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        // Profes distintos (intercambio entre dos personas).
-        $profA = $impA->getProfesor();
-        $profB = $impB->getProfesor();
-        if ($profA === null || $profB === null || $profA->getId() === $profB->getId()) {
-            return $this->json(['message' => 'Los dos bloques deben pertenecer a profesores distintos.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        $profA = $impA?->getProfesor();
+        $centroA = $impA?->getGrupo()?->getCentro();
+        if ($impA === null || $profA === null || $centroA === null) {
+            return $this->json(['message' => 'Bloque A sin imparticion / profesor / centro.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            $fA = new \DateTimeImmutable($fechaA);
-            $fB = new \DateTimeImmutable($fechaB);
+            $fA = new \DateTimeImmutable($fechaAStr);
         } catch (\Exception) {
-            return $this->json(['message' => 'Formato de fecha inválido.'], Response::HTTP_BAD_REQUEST);
+            return $this->json(['message' => 'Formato de fechaConcretaA inválido.'], Response::HTTP_BAD_REQUEST);
         }
-
-        // Día de semana de cada fecha debe coincidir con su horario base.
         if ((int) $fA->format('N') !== $horarioA->getDiaSemana()) {
             return $this->json(['message' => 'fechaConcretaA no coincide con el día de semana del bloque A.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        if ((int) $fB->format('N') !== $horarioB->getDiaSemana()) {
-            return $this->json(['message' => 'fechaConcretaB no coincide con el día de semana del bloque B.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+
+        $durA = $this->durationMinutes($horarioA);
+        if ($durA === null) {
+            return $this->json(['message' => 'No se pudo calcular la duración del bloque A.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Duración equivalente: un intercambio asimétrico (p.ej. ceder 2h y
-        // recibir 1h) deja a uno de los profes con horas pedagógicas
-        // perdidas o sobrecargadas. La regla de negocio es swap simétrico.
-        $durA = $this->durationMinutes($horarioA);
-        $durB = $this->durationMinutes($horarioB);
-        if ($durA === null || $durB === null) {
-            return $this->json(['message' => 'No se pudo calcular la duración de uno de los bloques.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        // Procesa cada parejaB: validación individual + recopilación.
+        $horariosB = [];
+        $fechasB   = [];
+        $durTotalB = 0;
+        $profBId   = null;
+        $idsVistos = [$idA => true];
+        foreach ($parejasB as $i => $par) {
+            if (!is_array($par)) {
+                return $this->json(['message' => "parejasB[$i] debe ser un objeto."], Response::HTTP_BAD_REQUEST);
+            }
+            $idB       = $this->extractIdFromIri($par['horarioBaseB'] ?? null);
+            $fechaBStr = $par['fechaConcretaB'] ?? null;
+            if (!$idB || !$fechaBStr) {
+                return $this->json([
+                    'message' => "parejasB[$i] sin horarioBaseB o fechaConcretaB.",
+                ], Response::HTTP_BAD_REQUEST);
+            }
+            if (isset($idsVistos[$idB])) {
+                return $this->json([
+                    'message' => "parejasB[$i] referencia un bloque ya usado en el intercambio.",
+                ], Response::HTTP_BAD_REQUEST);
+            }
+            $idsVistos[$idB] = true;
+
+            $hB = $this->em->find(Horario::class, $idB);
+            if (!$hB) {
+                return $this->json(['message' => "parejasB[$i] bloque no encontrado."], Response::HTTP_NOT_FOUND);
+            }
+            $impB    = $hB->getImparticion();
+            $profB   = $impB?->getProfesor();
+            $centroB = $impB?->getGrupo()?->getCentro();
+            if ($impB === null || $profB === null || $centroB === null) {
+                return $this->json([
+                    'message' => "parejasB[$i] sin imparticion / profesor / centro.",
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            if ($centroB->getId() !== $centroA->getId()) {
+                return $this->json([
+                    'message' => "parejasB[$i] es de otro centro distinto al bloque A.",
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            if ($profB->getId() === $profA->getId()) {
+                return $this->json([
+                    'message' => "parejasB[$i] pertenece al mismo profesor que A — no es un intercambio.",
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            // Plan B: todas las parejasB deben pertenecer al MISMO profesor B.
+            // Multi-profe queda diferido (Plan B2).
+            if ($profBId === null) {
+                $profBId = $profB->getId();
+            } elseif ($profBId !== $profB->getId()) {
+                return $this->json([
+                    'message' => 'Plan B solo permite intercambio con UN profesor B (todas las parejasB deben ser de la misma persona).',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            try {
+                $fB = new \DateTimeImmutable($fechaBStr);
+            } catch (\Exception) {
+                return $this->json([
+                    'message' => "parejasB[$i] fechaConcretaB con formato inválido.",
+                ], Response::HTTP_BAD_REQUEST);
+            }
+            if ((int) $fB->format('N') !== $hB->getDiaSemana()) {
+                return $this->json([
+                    'message' => "parejasB[$i] fechaConcretaB no coincide con el día de semana del bloque.",
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $durB = $this->durationMinutes($hB);
+            if ($durB === null) {
+                return $this->json([
+                    'message' => "parejasB[$i] no se pudo calcular la duración.",
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $horariosB[] = $hB;
+            $fechasB[]   = $fB;
+            $durTotalB  += $durB;
         }
-        if ($durA !== $durB) {
+
+        // Validación clave del Plan B: Σ minutos B == minutos A.
+        if ($durTotalB !== $durA) {
             return $this->json([
                 'message' => sprintf(
-                    'Intercambio asimétrico: el bloque A dura %d min y el B dura %d min. Las dos caras del intercambio deben tener la misma duración para ser un swap equilibrado.',
-                    $durA, $durB
+                    'Intercambio desequilibrado: el bloque A dura %d min y la suma de las %d parejas B es %d min. Total debe coincidir.',
+                    $durA, count($horariosB), $durTotalB
                 ),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -150,39 +228,52 @@ class IntercambioController extends AbstractController
         $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
         $estado  = $isAdmin ? EstadoExcepcion::APROBADA : EstadoExcepcion::PENDIENTE_APROBACION;
         $now     = new \DateTimeImmutable();
+        $grupoId = $this->generateUuidV4();
+
+        // Cara A: imparticionEfectiva apunta a la imp del único profe B.
+        // Para 1↔1 esto reproduce el comportamiento clásico (titular ve
+        // "↔ Joaquín" en su clase). Para 1↔N el render del frontend
+        // también puede usarlo como "uno de los que cubrirán" — la lista
+        // completa la enumera buscando por intercambioGrupoId.
+        $impBPrimera = $horariosB[0]->getImparticion();
 
         $excA = (new ExcepcionHorario())
             ->setHorarioBase($horarioA)
             ->setFechaConcreta($fA)
             ->setTipo(TipoExcepcion::INTERCAMBIO)
-            ->setImparticionEfectiva($impB)  // El día A se imparte LA otra clase.
+            ->setImparticionEfectiva($impBPrimera)
             ->setMotivo($payload['motivo'] ?? null)
             ->setObservaciones($payload['observaciones'] ?? null)
             ->setEstado($estado)
             ->setSolicitadaPor($user)
-            ->setFechaSolicitud($now);
-
-        $excB = (new ExcepcionHorario())
-            ->setHorarioBase($horarioB)
-            ->setFechaConcreta($fB)
-            ->setTipo(TipoExcepcion::INTERCAMBIO)
-            ->setImparticionEfectiva($impA)
-            ->setMotivo($payload['motivo'] ?? null)
-            ->setObservaciones($payload['observaciones'] ?? null)
-            ->setEstado($estado)
-            ->setSolicitadaPor($user)
-            ->setFechaSolicitud($now);
+            ->setFechaSolicitud($now)
+            ->setIntercambioGrupoId($grupoId);
 
         if ($isAdmin) {
             $excA->setAprobadaPor($user)->setFechaResolucion($now);
-            $excB->setAprobadaPor($user)->setFechaResolucion($now);
         }
 
-        // Validators de la entidad (Assert\Callback validateCoherencia, etc.)
-        // Ojo: el callback comprueba CANCELADO + EVENTO_ESPECIAL; INTERCAMBIO
-        // no tiene reglas estrictas en Fase A, solo coherencia día-semana
-        // que ya hemos comprobado arriba a mano.
-        foreach ([$excA, $excB] as $exc) {
+        $excsB = [];
+        foreach ($horariosB as $i => $hB) {
+            $excB = (new ExcepcionHorario())
+                ->setHorarioBase($hB)
+                ->setFechaConcreta($fechasB[$i])
+                ->setTipo(TipoExcepcion::INTERCAMBIO)
+                ->setImparticionEfectiva($impA)  // todas las B apuntan a la única imp A
+                ->setMotivo($payload['motivo'] ?? null)
+                ->setObservaciones($payload['observaciones'] ?? null)
+                ->setEstado($estado)
+                ->setSolicitadaPor($user)
+                ->setFechaSolicitud($now)
+                ->setIntercambioGrupoId($grupoId);
+            if ($isAdmin) {
+                $excB->setAprobadaPor($user)->setFechaResolucion($now);
+            }
+            $excsB[] = $excB;
+        }
+
+        // Validación de entidad (Assert\Callback, etc.).
+        foreach (array_merge([$excA], $excsB) as $exc) {
             $errors = $this->validator->validate($exc);
             if (count($errors) > 0) {
                 return $this->json([
@@ -192,18 +283,28 @@ class IntercambioController extends AbstractController
             }
         }
 
-        // Persistencia atómica con vinculación bidireccional.
+        // Persistencia atómica.
         $this->em->persist($excA);
-        $this->em->persist($excB);
-        // Necesitamos el ID de cada uno antes de cruzar referencias.
+        foreach ($excsB as $excB) {
+            $this->em->persist($excB);
+        }
         $this->em->flush();
-        $excA->setIntercambioPareja($excB);
-        $excB->setIntercambioPareja($excA);
-        $this->em->flush();
+
+        // Backward-compat: para el caso 1↔1 también vinculamos via el
+        // legacy `intercambioPareja` self-FK (lo usan algunos lugares
+        // del frontend que aún no leen `intercambioGrupoId`). Para 1↔N
+        // queda NULL — el frontend que sea grupo-aware enumera por
+        // grupoId; el legacy puede ignorar la cara A si no ve pareja.
+        if (count($excsB) === 1) {
+            $excA->setIntercambioPareja($excsB[0]);
+            $excsB[0]->setIntercambioPareja($excA);
+            $this->em->flush();
+        }
 
         return $this->json([
             'a' => ['id' => $excA->getId(), 'estado' => $excA->getEstado()->value],
-            'b' => ['id' => $excB->getId(), 'estado' => $excB->getEstado()->value],
+            'b' => array_map(fn ($e) => ['id' => $e->getId(), 'estado' => $e->getEstado()->value], $excsB),
+            'grupoId' => $grupoId,
             'aprobada' => $isAdmin,
         ], Response::HTTP_CREATED);
     }
@@ -226,5 +327,17 @@ class IntercambioController extends AbstractController
         $hf = $h->getHoraFin();
         if ($hi === null || $hf === null) return null;
         return (int) (($hf->getTimestamp() - $hi->getTimestamp()) / 60);
+    }
+
+    /**
+     * UUID v4 RFC 4122 con PHP nativo (sin depender de symfony/uid).
+     * 16 bytes random + bits de versión (4) y variante (RFC 4122).
+     */
+    private function generateUuidV4(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);  // version 4
+        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);  // variant RFC 4122
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 }

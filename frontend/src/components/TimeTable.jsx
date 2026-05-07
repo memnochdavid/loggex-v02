@@ -65,9 +65,9 @@ const TimeTable = ({
         profeOverride: '',
         motivo: '',
         observaciones: '',
-        // Intercambio bilateral (Fase E):
-        horarioBaseB: '',     // bloque del otro profe que cubriré
-        fechaConcretaB: '',   // fecha en la que cubro al otro
+        // Intercambio (Plan B 2026-05-08): array de bloques B que cubren
+        // colectivamente al bloque A. Σ duración B == duración A.
+        parejasB: [],
     });
     
     // Referencia para acceder a los datos del AsistenciaModal desde fuera
@@ -322,7 +322,7 @@ const TimeTable = ({
         setSelectedEvent(null);
         setIsTakingAttendance(false);
         setIsRequestingException(false);
-        setExcForm({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '', horarioBaseB: '', fechaConcretaB: '' });
+        setExcForm({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '', parejasB: [] });
         setAsistenciaData(null); // Limpiar datos al cerrar
     };
 
@@ -377,8 +377,8 @@ const TimeTable = ({
             toast.error(t('exceptions.errorRequired', { defaultValue: 'Falta el profesor sustituto' }));
             return;
         }
-        if (excForm.tipo === 'intercambio' && (!excForm.horarioBaseB || !excForm.fechaConcretaB)) {
-            toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan los datos de la otra cara del intercambio' }));
+        if (excForm.tipo === 'intercambio' && (!Array.isArray(excForm.parejasB) || excForm.parejasB.length === 0)) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Selecciona los bloques que cubres del otro profesor' }));
             return;
         }
 
@@ -387,15 +387,18 @@ const TimeTable = ({
         try {
             let response;
             if (excForm.tipo === 'intercambio') {
-                // Endpoint dedicado: crea las dos caras linked atómicamente.
+                // Endpoint dedicado: crea las N+1 caras linked atómicamente
+                // por intercambio_grupo_id (Plan B 2026-05-08).
                 response = await fetch(getApiUrl('/api/v1/excepciones/intercambio'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                     body: JSON.stringify({
                         horarioBaseA:   `/api/horarios/${selectedEvent.id}`,
                         fechaConcretaA: fecha,
-                        horarioBaseB:   `/api/horarios/${String(excForm.horarioBaseB).split('/').pop()}`,
-                        fechaConcretaB: excForm.fechaConcretaB,
+                        parejasB: excForm.parejasB.map(s => ({
+                            horarioBaseB:   `/api/horarios/${String(s.horarioId).split('/').pop()}`,
+                            fechaConcretaB: s.fechaConcreta,
+                        })),
                         motivo:         excForm.motivo || null,
                         observaciones:  excForm.observaciones || null,
                     }),
@@ -960,24 +963,30 @@ const TimeTable = ({
                                     />
                                 </div>
                             )}
-                            {excForm.tipo === 'intercambio' && (
-                                <div className={crudStyles.formGroup}>
-                                    <label className={crudStyles.label}>
-                                        {t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}
-                                    </label>
-                                    <HorarioGridPicker
-                                        value={excForm.horarioBaseB}
-                                        selectedFecha={excForm.fechaConcretaB}
-                                        weekAnchor={selectedDate}
-                                        excludeProfesorId={user?.id}
-                                        onChange={({ horarioId, fechaConcreta }) => setExcForm(p => ({
-                                            ...p,
-                                            horarioBaseB: horarioId,
-                                            fechaConcretaB: fechaConcreta,
-                                        }))}
-                                    />
-                                </div>
-                            )}
+                            {excForm.tipo === 'intercambio' && (() => {
+                                // Duración del bloque A (clase del placement clicado)
+                                // que tienen que cubrir las parejasB sumando minutos.
+                                const [hH, hM] = (selectedEvent.horaInicio || '').split(':').map(Number);
+                                const [fH, fM] = (selectedEvent.horaFin || '').split(':').map(Number);
+                                const durA = (fH * 60 + fM) - (hH * 60 + hM);
+                                return (
+                                    <div className={crudStyles.formGroup}>
+                                        <label className={crudStyles.label}>
+                                            {t('exceptions.horarioBaseB', { defaultValue: 'Bloque(s) del otro profe que cubrirás' })}
+                                        </label>
+                                        <HorarioGridPicker
+                                            selections={excForm.parejasB}
+                                            onChange={(newSelections) => setExcForm(p => ({
+                                                ...p,
+                                                parejasB: newSelections,
+                                            }))}
+                                            weekAnchor={selectedDate}
+                                            targetMinutes={durA}
+                                            excludeProfesorId={user?.id}
+                                        />
+                                    </div>
+                                );
+                            })()}
                             <div className={crudStyles.formGroup}>
                                 <label className={crudStyles.label}>{t('exceptions.motivo', { defaultValue: 'Motivo' })}</label>
                                 <input

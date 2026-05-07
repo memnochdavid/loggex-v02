@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche, 8ª iter.)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 + Topic 1 ✅ Done.** El destinatario semántico (sustituto, contraparte de intercambio) ve la incidencia pendiente en SU `/horarios` con outline pulsante color-warning, recibe campanita `incidencia_propuesta` con enlace a `/horarios?fecha=...&excepcion=...` que auto-navega y auto-abre el modal con botón "Rechazar este cambio" en rojo. Si rechaza → cascade a la pareja del intercambio + notificación `excepcion_rechazada` al solicitante. Si no hace nada → la incidencia sigue pendiente del admin como antes.
+> **Status (2026-05-08)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 + Topic 1 + Plan B ✅ Done.** Intercambio multi-bloque mismo profe operativo: 1 bloque A (p.ej. 120min) cubierto por N bloques B (p.ej. 2 de 60min) con validación Σ minutos. Modelo refactorizado de `intercambio_pareja_id` (1↔1 deprecated) a `intercambio_grupo_id` UUID compartido (N caras). Cascade subscriber actualizado. Picker con multi-selección + carrito + footer de total acumulado.
 >
-> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o el rediseño "intercambio = 1 fila en /admin/excepciones" que aparcamos.
+> **Próxima acción**: validación end-to-end del Plan B en navegador (crear intercambio 1↔N, verificar cascade, render de los N sintéticos en el destinatario). Después: Fase B.3 (banner anual + Consumición), enumerar grupo en detail modal, o el rediseño "intercambio = 1 fila en /admin/excepciones".
 
 ---
 
@@ -407,6 +407,41 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-08 — Plan B ✅ Done — refactor pareja → grupo + multi-bloque mismo profe
+
+Tras pregunta del usuario sobre intercambio asimétrico (1 bloque de 120min por 2 de 60min), refactor del modelo bilateral 1↔1 (`intercambio_pareja_id` self-FK) a un grupo identificado por UUID compartido (`intercambio_grupo_id`). El nuevo modelo permite N caras por intercambio manteniendo la regla simétrica en MINUTOS TOTALES (no en cantidad de bloques): Σ duración B == duración A.
+
+Decisión cerrada (multi-profe diferido a Plan B2): todas las parejas B deben pertenecer al MISMO profesor B. Multi-profe queda anotado pero no implementado — la complejidad semántica de N profes cubriendo en distintas franjas la misma clase de A no merece el esfuerzo hasta que aparezca una demanda real.
+
+**Backend**:
+- Migración `Version20260508120000` añade columna nullable `intercambio_grupo_id VARCHAR(36)` + índice `idx_eh_grupo`. Backfill: a las parejas existentes (filas con `intercambio_pareja_id`) les asigna un UUID v4 compartido. El campo legacy `intercambio_pareja_id` se mantiene como deprecated para que código que lo lea siga funcionando; nuevas filas 1↔N tienen `intercambio_pareja_id` NULL pero `intercambio_grupo_id` set.
+- `ExcepcionHorario` entity: nuevo campo `intercambioGrupoId` con getters/setters. Doc en el comentario de la propiedad.
+- `IntercambioController` reescrito para aceptar `parejasB: [{horarioBaseB, fechaConcretaB}, ...]`. Compat retroactiva: si el body llega con `horarioBaseB`/`fechaConcretaB` singulares se convierten a un array de un elemento. Validaciones:
+  - Σ duración B == duración A (en minutos).
+  - Todas las B son del MISMO profesor B (distinto del de A).
+  - Mismo centro entre A y todas las B.
+  - Cada fecha coincide con el diaSemana de su horario base.
+  - Bloques distintos (no se permite usar el mismo `horarioBaseB` dos veces).
+- Genera UUID v4 al crear el grupo. Persiste 1+N caras con mismo `intercambio_grupo_id`. Para 1↔1 también setea `intercambioPareja` legacy (compat con código frontend que aún lo lea); para 1↔N el legacy queda NULL.
+- Nuevo `IntercambioGrupoCascadeSubscriber` reemplaza `IntercambioParejaCascadeSubscriber` (archivo borrado). Misma lógica de cascade en `preUpdate` pero busca miembros via `intercambio_grupo_id` en lugar de `intercambio_pareja_id`. Re-entrancy guard + `recomputeSingleEntityChangeSet` para que Doctrine schedule los UPDATEs en el mismo flush.
+
+**Frontend**:
+- `HorarioGridPicker`: cambia de selección singular a array `selections`. Click en bloque toggle (añade si no está, quita si está). `targetMinutes` prop nueva — el caller pasa la duración del bloque A. Footer del picker muestra: lista de bloques seleccionados con ✗ remove + total acumulado vs target con badge color-success/warning/error según cuadre. CSS `.cart`, `.cartList`, `.cartItem`, `.cartRemove`, `.cartTotal*` themed sin literales.
+- `TimeTable.jsx` modal "Solicitar cambio": estado `excForm.parejasB` array (sustituye `horarioBaseB`/`fechaConcretaB`). El render del picker calcula `durA` desde `selectedEvent.horaInicio/Fin` y se lo pasa como `targetMinutes`. Submit envía array.
+- `Excepciones.jsx` modal admin: ídem. Captura el horario base seleccionado en `formData.horarioBaseObj` (vía segundo argumento de `AsyncSearchSelect.onChange`) para conocer su duración y pasarla al picker.
+
+**Validación end-to-end (pendiente del usuario)**:
+1. Aplicar migración: `./scripts/migrate.sh`.
+2. Ctrl+Shift+R en navegador.
+3. Crear intercambio multi-bloque: Alberto cede su bloque de 120min, Joaquín cubre con 2 de 60min seleccionados en el picker. Footer muestra "120min / 120min ✓". Submit aprueba.
+4. Verificar BD: `SELECT id, horario_base_id, fecha_concreta, intercambio_grupo_id FROM excepcion_horario;` — 3 filas con mismo `intercambio_grupo_id` (1 cara A + 2 caras B).
+5. Sara aprueba 1 cara desde `/admin/excepciones` → cascade subscriber propaga a las 3.
+6. Joaquín ve 2 placements sintéticos "✦ Cubres" en sus fechas correspondientes; Alberto ve "↔ Joaquín" en la suya.
+
+**Limitación / siguiente paso**:
+- Detail modal de `/admin/excepciones` aún muestra `intercambioParejaId` (legacy). Para 1↔N quedará NULL. Próxima iteración: enumerar miembros del grupo via `intercambio_grupo_id` y mostrarlos como lista expandible en el modal.
+- Listado `/admin/excepciones` muestra N filas por intercambio (1 cara A + N caras B). Densidad aumenta. El rediseño "1 fila por intercambio" que aparcamos ahora cobra más relevancia — anotable como tarea futura.
 
 ### 2026-05-07 (noche, 8ª iteración + retoques) — Topic 1 ✅ Done + outline visible + notif destinatario + auto-open
 

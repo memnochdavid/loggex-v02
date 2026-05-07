@@ -155,14 +155,32 @@ class ExcepcionHorario
     private ?User $profeOverride = null;
 
     /**
-     * Pareja del intercambio bilateral. Self-FK opcional. Cuando se aprueba
-     * un INTERCAMBIO se aprueba el par completo. Validación rica del par se
-     * cierra en Fase E.
+     * Pareja del intercambio bilateral (legacy, Fase E). Self-FK opcional.
+     * Mantenido como deprecated tras el refactor a `intercambioGrupoId`
+     * (Plan B). El código nuevo usa `intercambioGrupoId` para identificar
+     * los miembros del intercambio (puede haber 2+ caras, no solo 1↔1).
      */
     #[ORM\ManyToOne(targetEntity: self::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['excepcion:read', 'excepcion:write'])]
     private ?ExcepcionHorario $intercambioPareja = null;
+
+    /**
+     * UUID compartido por todas las caras de un intercambio (Plan B 2026-05-08).
+     * Generaliza el modelo bilateral 1↔1 a "grupo de N caras" donde
+     * Σ duración minutos cara A = Σ duración minutos cara B (ambos lados
+     * de la permuta tienen el mismo total de tiempo, aunque distinta
+     * cantidad de bloques).
+     *
+     * Para un intercambio 1↔1 hay 2 filas con el mismo grupoId.
+     * Para 1↔(60+60) hay 3 filas con el mismo grupoId.
+     *
+     * Cascade subscriber busca miembros via `intercambio_grupo_id` en lugar
+     * del antiguo `intercambio_pareja_id`.
+     */
+    #[ORM\Column(type: Types::STRING, length: 36, nullable: true)]
+    #[Groups(['excepcion:read', 'excepcion:write'])]
+    private ?string $intercambioGrupoId = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Assert\Length(max: 2000)]
@@ -294,6 +312,17 @@ class ExcepcionHorario
     public function setIntercambioPareja(?ExcepcionHorario $intercambioPareja): static
     {
         $this->intercambioPareja = $intercambioPareja;
+        return $this;
+    }
+
+    public function getIntercambioGrupoId(): ?string
+    {
+        return $this->intercambioGrupoId;
+    }
+
+    public function setIntercambioGrupoId(?string $intercambioGrupoId): static
+    {
+        $this->intercambioGrupoId = $intercambioGrupoId;
         return $this;
     }
 

@@ -195,18 +195,28 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
       // Si la excepción está pendiente, marcamos el event regular del
       // titular con tipo `titular_pendiente` para que TimeTable lo pinte
-      // con cinta de advertencia + tag "PENDIENTE · pulsa". No alteramos
+      // con cinta de advertencia + tag "Cambio solicitado". No alteramos
       // materia ni profesor — sigue siendo la clase normal del titular,
       // solo con un overlay visual de "hay una solicitud sobre esto".
+      //
+      // Caso especial INTERCAMBIO bilateral: cualquier profe del grupo
+      // puede rechazar (Plan B 2026-05-08). Exponemos los flags que el
+      // modal del TimeTable usa para mostrar el botón "Rechazar".
       if (overlay.estado === 'pendiente') {
-        return {
+        const out = {
           ...ev,
           _excepcion: {
             ...overlay,
             tipo: 'titular_pendiente',
+            excepcionId: overlay.id,
           },
           _excepcionTipo: 'titular_pendiente',
         };
+        if (overlay.tipo === 'intercambio') {
+          out._overrideExcepcionId = overlay.id;
+          out._overrideCanReject = true;
+        }
+        return out;
       }
 
       // Aplica overlay copiando el event y mutando los campos según tipo.

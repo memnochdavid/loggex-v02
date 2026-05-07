@@ -6,22 +6,22 @@ import { useTranslation } from 'react-i18next';
 import styles from './HorarioGridPicker.module.css';
 
 /**
- * Mini-timetable picker. El usuario elige primero un profesor, navega por
- * semanas, y hace click en uno de sus bloques. El componente devuelve
- * `(horarioId, fechaConcretaISO)` al onChange.
+ * Mini-timetable picker con multi-selección (Plan B 2026-05-08).
  *
- * Reemplaza al AsyncSearchSelect de listado largo cuando el dominio es
- * "elige una clase concreta" — gráficamente es más rápido y evita el
- * problema de paginación (no hay lista que pueda cortarse).
+ * El usuario elige un profesor, navega por semanas, y hace click en uno
+ * o más de sus bloques. Cada bloque seleccionado se acumula en
+ * `selections` (array). Footer del picker muestra Σ duración acumulada
+ * vs `targetMinutes` (la duración del bloque A en el caller). Cuando
+ * coinciden, el caller habilita el botón de submit.
  *
  * Props:
- *   value:              id del horario seleccionado (string|number) o ''
- *   selectedFecha:      fecha concreta ISO 'YYYY-MM-DD' o ''
- *   weekAnchor:         Date inicial para localizar la semana visible
- *   excludeProfesorId:  user id a excluir del select de profe (típicamente self)
- *   onChange:           ({ horarioId, fechaConcreta, horario }) => void
+ *   selections:    array [{horarioId, fechaConcreta, horario}] — bloques B elegidos.
+ *   onChange:      (newSelections) => void cuando el usuario añade/quita.
+ *   weekAnchor:    Date inicial para localizar la semana visible.
+ *   targetMinutes: duración del bloque A (la suma de selections debe igualar esto).
+ *   excludeProfesorId: user id a excluir del select de profe (típicamente self).
  *
- * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Fase E (mejora UX).
+ * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Plan B.
  */
 const dayLabels = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -54,11 +54,11 @@ function durMinutes(hi, hf) {
 }
 
 const HorarioGridPicker = ({
-    value,
-    selectedFecha,
-    weekAnchor,
-    excludeProfesorId,
+    selections = [],
     onChange,
+    weekAnchor,
+    targetMinutes = 0,
+    excludeProfesorId,
 }) => {
     const { t } = useTranslation();
     const [pickedProfe, setPickedProfe] = useState('');
@@ -197,14 +197,43 @@ const HorarioGridPicker = ({
         return `hsl(${hue}, 55%, 48%)`;
     };
 
+    // Toggle selección de un bloque: si ya está, lo quita; si no, lo añade.
+    // Una clave (horarioId, fechaConcreta) define unicidad — se permite
+    // seleccionar el mismo horario en distintas fechas (caso edge: el mismo
+    // bloque recurrente cubierto en 2 semanas distintas).
     const handleClickCell = (h, fechaISO) => {
         if (!h) return;
-        onChange?.({
-            horarioId: String(h.id || (h['@id'] || '').split('/').pop() || ''),
-            fechaConcreta: fechaISO,
-            horario: h,
-        });
+        const horarioId = String(h.id || (h['@id'] || '').split('/').pop() || '');
+        const key = `${horarioId}|${fechaISO}`;
+        const idx = selections.findIndex(s =>
+            `${s.horarioId}|${s.fechaConcreta}` === key
+        );
+        if (idx >= 0) {
+            // Deseleccionar.
+            const next = [...selections];
+            next.splice(idx, 1);
+            onChange?.(next);
+        } else {
+            // Añadir al final.
+            onChange?.([...selections, { horarioId, fechaConcreta: fechaISO, horario: h }]);
+        }
     };
+
+    const removeSelection = (idx) => {
+        const next = [...selections];
+        next.splice(idx, 1);
+        onChange?.(next);
+    };
+
+    const totalSelectedMinutes = useMemo(() => {
+        let sum = 0;
+        for (const s of selections) {
+            const hi = parseHora(s.horario?.horaInicio);
+            const hf = parseHora(s.horario?.horaFin);
+            sum += durMinutes(hi, hf);
+        }
+        return sum;
+    }, [selections]);
 
     const fmtDateShort = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 
@@ -301,8 +330,10 @@ const HorarioGridPicker = ({
                                 if (!h) {
                                     return <div key={`${s.key}-${dia}`} className={`${styles.cell} ${styles.cellEmpty}`} />;
                                 }
-                                const isSelected = String(h.id) === String(value)
-                                    && fechaISO === selectedFecha;
+                                const horarioIdStr = String(h.id);
+                                const isSelected = selections.some(s =>
+                                    String(s.horarioId) === horarioIdStr && s.fechaConcreta === fechaISO
+                                );
                                 const mat = h.imparticion?.materia;
                                 const moduloId = mat?.id || 0;
                                 // Abreviatura primero (cabe en 145px), nombre completo
@@ -329,6 +360,67 @@ const HorarioGridPicker = ({
                             })}
                         </React.Fragment>
                     ))}
+                </div>
+            )}
+
+            {/* Footer con carrito de selecciones + total acumulado vs target.
+                Visible solo si hay al menos una selección o un targetMinutes
+                explícito (intercambio multi-bloque). */}
+            {(selections.length > 0 || targetMinutes > 0) && (
+                <div className={styles.cart}>
+                    {selections.length > 0 && (
+                        <ul className={styles.cartList}>
+                            {selections.map((s, idx) => {
+                                const h = s.horario;
+                                const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h?.diaSemana] || '';
+                                const hi = parseHora(h?.horaInicio);
+                                const hf = parseHora(h?.horaFin);
+                                const dur = durMinutes(hi, hf);
+                                const mat = h?.imparticion?.materia;
+                                const matLabel = mat?.abreviatura || mat?.nombre || '?';
+                                const fdate = (() => {
+                                    const d = new Date(s.fechaConcreta + 'T00:00:00');
+                                    if (Number.isNaN(d.getTime())) return s.fechaConcreta;
+                                    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                                })();
+                                return (
+                                    <li key={`${s.horarioId}-${s.fechaConcreta}`} className={styles.cartItem}>
+                                        <span className={styles.cartItemLabel}>
+                                            {dia} {fdate} · {hi}-{hf} · {matLabel} ({dur}min)
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className={styles.cartRemove}
+                                            onClick={() => removeSelection(idx)}
+                                            aria-label={t('common.delete', { defaultValue: 'Eliminar' })}
+                                            title={t('common.delete', { defaultValue: 'Eliminar' })}
+                                        >
+                                            ✗
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                    {targetMinutes > 0 && (
+                        <div className={styles.cartTotal}>
+                            <span className={styles.cartTotalLabel}>
+                                {t('exceptions.pickerTotal', { defaultValue: 'Total cubierto' })}:
+                            </span>
+                            <span className={
+                                totalSelectedMinutes === targetMinutes
+                                    ? styles.cartTotalOk
+                                    : (totalSelectedMinutes > targetMinutes
+                                        ? styles.cartTotalOver
+                                        : styles.cartTotalUnder)
+                            }>
+                                {totalSelectedMinutes}min / {targetMinutes}min
+                                {totalSelectedMinutes === targetMinutes && ' ✓'}
+                                {totalSelectedMinutes > targetMinutes && ' (te has pasado)'}
+                                {totalSelectedMinutes < targetMinutes && ` · faltan ${targetMinutes - totalSelectedMinutes}min`}
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
