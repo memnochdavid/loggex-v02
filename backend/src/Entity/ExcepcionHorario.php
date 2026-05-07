@@ -73,7 +73,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
             security: "is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPERADMIN')"
         ),
     ],
-    normalizationContext: ['groups' => ['excepcion:read', 'timestamp:read', 'softdelete:read']],
+    normalizationContext: ['groups' => ['excepcion:read', 'horario:read', 'imparticion:read', 'grupo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['excepcion:write']],
     order: ['fechaConcreta' => 'DESC', 'id' => 'DESC'],
 )]
@@ -84,7 +84,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
         '/users/{horarioBase.imparticion.profesor.id}/excepciones',
         '/users/{profeOverride.id}/excepciones',
     ],
-    payloadGroups: ['excepcion:read', 'timestamp:read', 'softdelete:read'],
+    payloadGroups: ['excepcion:read', 'horario:read', 'imparticion:read', 'grupo:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'horarioBase' => 'exact',

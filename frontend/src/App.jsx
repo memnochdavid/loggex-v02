@@ -30,6 +30,7 @@ import Horarios from './pages/Horarios';
 import HorariosEditor from './pages/HorariosEditor';
 import HorariosAdmin from './pages/HorariosAdmin';
 import JornadasAdmin from './pages/JornadasAdmin';
+import Excepciones from './pages/Excepciones';
 import Fechas from './pages/Fechas';
 import Entregas from './pages/Entregas';
 import MisFaltas from './pages/MisFaltas';
@@ -181,6 +182,12 @@ const router = createBrowserRouter(
                 <Route path="/admin/jornadas" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <JornadasAdmin />
+                  </PrivateRoute>
+                } />
+
+                <Route path="/admin/excepciones" element={
+                  <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
+                    <Excepciones />
                   </PrivateRoute>
                 } />
 

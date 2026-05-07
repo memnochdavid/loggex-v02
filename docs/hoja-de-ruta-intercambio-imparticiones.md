@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ Done + Fase B parcial (3/5 puntos) ✅ Done.** Backend + frontend `/horarios` ya consumen excepciones APROBADAS para overlay per-fecha. Diferidos a Fase B.2: banner anual + tab Consumición + badge rejilla `/admin/horarios` (requieren cambios en `ConsumicionAnualService` y frontend `HorariosEditor.jsx`).
+> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ + Fase B 3/5 ✅ + Fase C parcial (C.1+C.2+C.5) ✅ Done.** Bucle profe→admin operativo end-to-end vía UI: profe pulsa placement en su `TimeTable` → modal "Solicitar cambio" → POST estado=PENDIENTE; admin entra en `/admin/excepciones` → DataTable filtrable → Aprobar/Rechazar inline → render se actualiza en navegadores conectados.
 >
-> **Próxima acción**: smoke test end-to-end en navegador (crear excepción APROBADA via API/Postman, verificar que aparece en `/horarios` del afectado tras refresh Mercure). Si OK → Fase C UI ligera de creación, o Fase B.2 polish del banner/badge según prioridad del usuario.
+> **Próxima acción**: validación visual end-to-end del bucle profe→admin (Alberto solicita una sustitución desde su /horarios, Sara la aprueba desde /admin/excepciones, Alberto ve el badge naranja con override). Tras eso → Fase D notificaciones (6 tipos nuevos en catálogo + dispatcher), o Fase B.2/C.3-C.4 polish según prioridad.
 
 ---
 
@@ -407,6 +407,48 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 3ª iteración) — Fase C parcial ✅ Done (C.1 + C.2 + C.5): bucle profe→admin operativo
+
+Tras validar Fase B end-to-end (smoke test backend OK, marker visual funcionando en navegador con Alberto), implementadas las piezas mínimas de Fase C que cierran el bucle de creación profe→admin sin Postman.
+
+**C.1 — Página `/admin/excepciones`** (`frontend/src/pages/Excepciones.jsx`, ~440 líneas):
+- DataTable themed reusando `Crud.module.css` + `CrudHeader` + `Breadcrumbs`. Patrón idéntico a `Festivos.jsx`.
+- Columnas: Fecha · Tramo · Materia · Grupo · Titular · Tipo (badge) · Sustituto/Cambio · Estado (badge tonalizado) · Solicita · Acciones.
+- Filtros backend: `?estado=` y `?tipo=` vía `ThemedSelect`. Sort por fechaConcreta DESC default.
+- Acciones inline:
+  - PENDIENTE → Aprobar (Check) / Rechazar (X)
+  - APROBADA → Revertir (Undo2) — pasa a CANCELADA con `revertida=true` (D-F).
+  - Cualquier estado → Borrar (Trash, soft).
+- Modal de creación con campos condicionados por tipo: tipo (4 opciones), horarioBase (`AsyncSearchSelect` `/api/horarios`), fechaConcreta (date), profeOverride / imparticionEfectiva según tipo, motivo, observaciones. POST estado=APROBADA por defecto (admin atajo).
+- Live refetch via `useLiveRefetch(['/admin/centros/{cid}/excepciones'])`.
+- Bug ENCONTRADO durante implementación: la respuesta de `/api/excepcion_horarios` solo traía IRIs sin nombres de profe/materia/grupo. Causa: las entidades anidadas no tenían `excepcion:read` en sus Groups. Fix: extender el `normalizationContext` de `ExcepcionHorario` para incluir los grupos existentes `horario:read`, `imparticion:read`, `grupo:read` además de `excepcion:read`. Igual para `payloadGroups` del `LivePublish` (consistencia entre GET y eventos Mercure).
+
+**C.2 — Modal "Solicitar cambio" en `TimeTable`** (~110 líneas añadidas a `TimeTable.jsx`):
+- Botón "Solicitar cambio" / "Crear excepción" debajo del existente "Pasar lista" en el modal de detalle del placement. Visible para `isProfesor` o `isAdmin`. El admin ve la etiqueta "Crear excepción" (más imperativa).
+- Activa `isRequestingException` que swappea el body del mismo `ModalView` por un form (mismo patrón que `isTakingAttendance`). Title del modal cambia a "Nueva excepción". Footer cambia a "Cancelar" + "Solicitar/Crear".
+- Form usa `Crud.module.css` (`crudStyles.formGroup`, `crudStyles.label`, `crudStyles.input`, `crudStyles.select`, `crudStyles.textarea`) — todas las clases ya temáticas, sin estilos inline hardcodeados.
+- `fechaConcreta` se calcula automáticamente desde `weekDates[event.diaSemana - 1]` (la fecha real del placement clicado en la semana visible). El profe nunca tiene que elegir fecha — viene del contexto.
+- Submit POST a `/api/excepcion_horarios` SIN `estado` en el payload. El processor backend pondrá `pendiente` para profe puro y `pendiente` (default) para admin. Si el admin quiere aprobar directa, lo hace después desde `/admin/excepciones`.
+
+**C.5 — i18n × 5 idiomas + sidebar + routing**:
+- 5 locales (`es`, `en`, `ca`, `gl`, `eu`) reciben:
+  - `sidebar.exceptions`
+  - bloque `exceptions.*` con 25+ claves: title, subtitle, columnas (date/slot/subjectGroup/titular/tipo/override/estado/requestedBy), modal (newTitle/horarioBase/fechaConcreta/profeOverride/profeFacilitador/imparticionEfectiva/motivo/observaciones/searchHorario/searchUser/searchImparticion), acciones (approve/reject/revert/confirmApprove/confirmReject/confirmCancel/confirmDelete), filtros (filterEstado/filterTipo/allEstados/allTipos), feedback (errorRequired/createdSuccess/updated/deleted/requested/requestedDesc/requestChange/create/request/modalHint), `types.{tipo}` (4 valores), `estados.{estado}` (4 valores).
+  - JSON validados (`python -m json.tool`) — sin syntax errors.
+- `App.jsx`: import `Excepciones` + `<Route path="/admin/excepciones" element={<PrivateRoute allowedRoles={['ROLE_ADMIN']}><Excepciones/></PrivateRoute>}/>` justo después de `/admin/jornadas`.
+- `Sidebar.jsx`: import del icono `Shuffle`, `NavLink` `/admin/excepciones` en la sección "Administración" entre Jornadas y la rama Fechas/Calificaciones, y entrada en `routeToAccordionMap` para que abra el acordeón correcto.
+
+**Reusabilidad / regla de oro**:
+- 0 colores literales nuevos en JSX/CSS. Todo el form usa `crudStyles.input/select/textarea` y los badges Crud. El form del TimeTable reusa `crudStyles` mediante import desde `pages/Crud.module.css` (mismo patrón que ya hacía `calStyles` desde `pages/Calificaciones.module.css`).
+- `ModalView`, `DataTable`, `CrudHeader`, `Breadcrumbs`, `AsyncSearchSelect`, `ThemedSelect`, `Button`, `useConfirm`, `useLiveRefetch`, `toast` — todos componentes/hooks existentes reusados.
+
+**Diferidos a Fase C.2 (polish)**:
+- C.3 modal de creación desde click en rejilla `/admin/horarios` — atajo desde el editor sin pasar por `/admin/excepciones`.
+- C.4 vista `/mis-excepciones` para que el profe vea su histórico (creadas + asignadas como sustituto).
+- Filtro fecha desde/hasta en `/admin/excepciones`.
+
+**Fase D pendiente** (notificaciones a afectados): hooks `postPersist`/`postUpdate` en `ExcepcionHorario` que disparen `NotificationDispatcher` con 6 tipos nuevos (EXCEPCION_PENDIENTE, APROBADA, RECHAZADA, CLASE_CANCELADA, CLASE_TRASLADADA, SUSTITUCION_ASIGNADA). i18n × 5 para los tipos.
 
 ### 2026-05-07 (noche, sigue) — Fase B parcial ✅ Done (3/5 puntos): /horario/me + PDF + cache invalidation + frontend overlay
 

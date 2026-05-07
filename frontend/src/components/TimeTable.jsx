@@ -1,17 +1,19 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './TimeTable.module.css';
 import calStyles from '../pages/Calificaciones.module.css';
-import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save } from 'lucide-react';
+import crudStyles from '../pages/Crud.module.css';
+import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save, Shuffle } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
+import AsyncSearchSelect from './AsyncSearchSelect';
 import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
 import MateriaLabel from './MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api'; // Importar getApiUrl
 import { useTranslation } from 'react-i18next';
-import { toast } from '../utils/toast';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 // Misma paleta determinista que el editor (HorariosEditor): hue derivado del id
 const colorForModule = (mid) => {
@@ -43,6 +45,11 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isTakingAttendance, setIsTakingAttendance] = useState(false);
     const [savingAttendance, setSavingAttendance] = useState(false);
+    // Solicitar excepción puntual sobre la fecha del placement clicado.
+    // Profe ⇒ POST estado=pendiente (cola del admin). Admin ⇒ aprobada directa.
+    const [isRequestingException, setIsRequestingException] = useState(false);
+    const [savingExcepcion, setSavingExcepcion] = useState(false);
+    const [excForm, setExcForm] = useState({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '' });
     
     // Referencia para acceder a los datos del AsistenciaModal desde fuera
     const [asistenciaData, setAsistenciaData] = useState(null);
@@ -279,7 +286,72 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
     const handleCloseModal = () => {
         setSelectedEvent(null);
         setIsTakingAttendance(false);
+        setIsRequestingException(false);
+        setExcForm({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '' });
         setAsistenciaData(null); // Limpiar datos al cerrar
+    };
+
+    // Fecha ISO del día del placement seleccionado dentro de la semana visible.
+    // Devuelve null si no se puede calcular.
+    const fechaConcretaDelEvento = (event) => {
+        if (!event || !weekDates) return null;
+        const d = weekDates[event.diaSemana - 1];
+        if (!d) return null;
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yy}-${mm}-${dd}`;
+    };
+
+    const handleSubmitExcepcion = async () => {
+        if (!selectedEvent) return;
+        const fecha = fechaConcretaDelEvento(selectedEvent);
+        if (!fecha) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan datos del bloque' }));
+            return;
+        }
+        if (excForm.tipo === 'sustitucion' && !excForm.profeOverride) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Falta el profesor sustituto' }));
+            return;
+        }
+
+        setSavingExcepcion(true);
+        const payload = {
+            horarioBase: `/api/horarios/${selectedEvent.id}`,
+            fechaConcreta: fecha,
+            tipo: excForm.tipo,
+            motivo: excForm.motivo || null,
+            observaciones: excForm.observaciones || null,
+        };
+        // Estado lo gestiona el processor: profe ⇒ pendiente, admin ⇒ respeta payload.
+        // Como aquí el tipo se envía sin estado, el processor pondrá pendiente para
+        // profe puro y mantendrá el default (pendiente) para admin si no lo cambia.
+        // Si admin quiere aprobar directa, lo hará desde /admin/excepciones.
+        if ((excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && excForm.profeOverride) {
+            payload.profeOverride = `/api/users/${String(excForm.profeOverride).split('/').pop()}`;
+        }
+
+        try {
+            const response = await fetch(getApiUrl('/api/excepcion_horarios'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/ld+json', Accept: 'application/ld+json' },
+                body: JSON.stringify(payload),
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                const message = await parseErrorResponse(response);
+                throw new Error(message);
+            }
+            toast.success(t('exceptions.requested', { defaultValue: 'Solicitud enviada' }), {
+                description: t('exceptions.requestedDesc', { defaultValue: 'El admin del centro la verá como pendiente.' }),
+            });
+            handleCloseModal();
+        } catch (err) {
+            console.error('Error solicitando excepción:', err);
+            toast.error(err.message);
+        } finally {
+            setSavingExcepcion(false);
+        }
     };
 
     const canPassAttendance = (event) => {
@@ -713,16 +785,38 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
             <ModalView
                 isOpen={!!selectedEvent}
                 onClose={handleCloseModal}
-                title={selectedEvent ? (isTakingAttendance ? t('home.rollCallTitle', { module: selectedEvent.materia }) : selectedEvent.materia) : ''}
+                title={
+                    selectedEvent
+                        ? (isTakingAttendance
+                            ? t('home.rollCallTitle', { module: selectedEvent.materia })
+                            : isRequestingException
+                                ? t('exceptions.newTitle', { defaultValue: 'Nueva excepción' })
+                                : selectedEvent.materia)
+                        : ''
+                }
                 size={isTakingAttendance ? "large" : "small"}
-                cancelText={isTakingAttendance ? t('common.cancel') : t('common.close')}
-                // Footer personalizado para el modo de asistencia
+                cancelText={(isTakingAttendance || isRequestingException) ? t('common.cancel') : t('common.close')}
+                // Footer personalizado para el modo de asistencia y solicitud de excepción
                 footer={isTakingAttendance ? (
                     <>
                         <Button variant="secondary" onClick={handleCloseModal}>{t('common.cancel')}</Button>
                         <Button onClick={handleSaveAttendance} disabled={savingAttendance}>
                             <Save size={18} style={{ marginRight: '8px' }} />
                             {savingAttendance ? t('common.saving') : t('common.save')}
+                        </Button>
+                    </>
+                ) : isRequestingException ? (
+                    <>
+                        <Button variant="secondary" onClick={() => setIsRequestingException(false)} disabled={savingExcepcion}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button onClick={handleSubmitExcepcion} disabled={savingExcepcion}>
+                            <Shuffle size={18} style={{ marginRight: '8px' }} />
+                            {savingExcepcion
+                                ? t('common.saving')
+                                : (isAdmin
+                                    ? t('exceptions.create', { defaultValue: 'Crear' })
+                                    : t('exceptions.request', { defaultValue: 'Solicitar' }))}
                         </Button>
                     </>
                 ) : undefined}
@@ -736,6 +830,67 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             onClose={handleCloseModal}
                             onDataChange={handleAsistenciaDataChange} // Pasar callback para recibir datos
                         />
+                    ) : isRequestingException ? (
+                        <div className={styles.modalBody}>
+                            <p className={styles.subValue} style={{ marginBottom: 'var(--space-3)' }}>
+                                {t('exceptions.modalHint', {
+                                    defaultValue: 'Solicitas un cambio para {{fecha}} en el bloque {{hora}}.',
+                                    fecha: fechaConcretaDelEvento(selectedEvent) || '',
+                                    hora: `${selectedEvent.horaInicio}–${selectedEvent.horaFin}`,
+                                })}
+                            </p>
+                            <div className={crudStyles.formGroup}>
+                                <label className={crudStyles.label}>{t('exceptions.tipo', { defaultValue: 'Tipo' })}</label>
+                                <select
+                                    className={crudStyles.select}
+                                    value={excForm.tipo}
+                                    onChange={(e) => setExcForm(p => ({ ...p, tipo: e.target.value }))}
+                                >
+                                    <option value="sustitucion">{t('exceptions.types.sustitucion', { defaultValue: 'Sustitución' })}</option>
+                                    <option value="cancelado">{t('exceptions.types.cancelado', { defaultValue: 'Cancelado' })}</option>
+                                    <option value="evento_especial">{t('exceptions.types.evento_especial', { defaultValue: 'Evento especial' })}</option>
+                                    <option value="intercambio">{t('exceptions.types.intercambio', { defaultValue: 'Intercambio' })}</option>
+                                </select>
+                            </div>
+                            {(excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && (
+                                <div className={crudStyles.formGroup}>
+                                    <label className={crudStyles.label}>
+                                        {excForm.tipo === 'sustitucion'
+                                            ? t('exceptions.profeOverride', { defaultValue: 'Profesor sustituto' })
+                                            : t('exceptions.profeFacilitador', { defaultValue: 'Facilitador (opcional)' })}
+                                    </label>
+                                    <AsyncSearchSelect
+                                        value={excForm.profeOverride}
+                                        onChange={(v) => setExcForm(p => ({ ...p, profeOverride: v }))}
+                                        endpoint="/api/users"
+                                        extraParams={{ 'roles[]': 'ROLE_PROFESOR' }}
+                                        getOptionLabel={(u) => [u.nombre, u.apellidos].filter(Boolean).join(' ').trim() || u.email || '—'}
+                                        getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
+                                        placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}
+                                        required={excForm.tipo === 'sustitucion'}
+                                    />
+                                </div>
+                            )}
+                            <div className={crudStyles.formGroup}>
+                                <label className={crudStyles.label}>{t('exceptions.motivo', { defaultValue: 'Motivo' })}</label>
+                                <input
+                                    type="text"
+                                    className={crudStyles.input}
+                                    value={excForm.motivo}
+                                    onChange={(e) => setExcForm(p => ({ ...p, motivo: e.target.value }))}
+                                    placeholder={t('exceptions.motivoPlaceholder', { defaultValue: 'Ej. ausencia justificada, charla externa…' })}
+                                />
+                            </div>
+                            <div className={crudStyles.formGroup}>
+                                <label className={crudStyles.label}>{t('exceptions.observaciones', { defaultValue: 'Observaciones (opcional)' })}</label>
+                                <textarea
+                                    className={crudStyles.textarea}
+                                    value={excForm.observaciones}
+                                    onChange={(e) => setExcForm(p => ({ ...p, observaciones: e.target.value }))}
+                                    rows={2}
+                                />
+                            </div>
+                        </div>
                     ) : (
                         <div className={styles.modalBody}>
                             <div className={styles.detailRow}>
@@ -793,10 +948,25 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                             )}
 
                             {canPassAttendance(selectedEvent) && (
-                                <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                                <div style={{ marginTop: 'var(--space-4)', display: 'flex', justifyContent: 'center' }}>
                                     <Button onClick={() => setIsTakingAttendance(true)} style={{ width: '100%' }}>
                                         <CheckSquare size={18} style={{ marginRight: '8px' }} />
                                         {t('timetable.rollCall')}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {(isProfesor || isAdmin) && (
+                                <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setIsRequestingException(true)}
+                                        style={{ width: '100%' }}
+                                    >
+                                        <Shuffle size={18} style={{ marginRight: '8px' }} />
+                                        {isAdmin
+                                            ? t('exceptions.create', { defaultValue: 'Crear excepción' })
+                                            : t('exceptions.requestChange', { defaultValue: 'Solicitar cambio' })}
                                     </Button>
                                 </div>
                             )}
