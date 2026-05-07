@@ -212,6 +212,11 @@ class GetMyScheduleController extends AbstractController
     private function loadOverrideAssignedEvents(User $user, EntityManagerInterface $em): array
     {
         $hoy = (new \DateTimeImmutable())->format('Y-m-d');
+        // Topic 1 (2026-05-07): incluir también las PENDIENTES_APROBACION
+        // donde el user es destinatario, para que pueda rechazarlas desde
+        // el modal del placement en /horarios. El frontend distingue por
+        // `_overrideEstado` (pendiente vs aprobada): pinta estilo tenue
+        // + tag "⏳ Pendiente" en pendientes; estilo normal en aprobadas.
         $dql = "SELECT eh
                 FROM App\\Entity\\ExcepcionHorario eh
                 JOIN eh.horarioBase hb
@@ -222,12 +227,15 @@ class GetMyScheduleController extends AbstractController
                 LEFT JOIN ie.materia iem
                 LEFT JOIN ie.grupo ieg
                 WHERE eh.deleted = false
-                  AND eh.estado = :estado
+                  AND eh.estado IN (:estados)
                   AND eh.fechaConcreta >= :hoy
                   AND (eh.profeOverride = :user OR ie.profesor = :user)";
 
         $rows = $em->createQuery($dql)
-            ->setParameter('estado', \App\Entity\EstadoExcepcion::APROBADA)
+            ->setParameter('estados', [
+                \App\Entity\EstadoExcepcion::APROBADA,
+                \App\Entity\EstadoExcepcion::PENDIENTE_APROBACION,
+            ])
             ->setParameter('hoy', $hoy)
             ->setParameter('user', $user)
             ->getResult();
@@ -279,12 +287,18 @@ class GetMyScheduleController extends AbstractController
                 'periodoLectivoTipo' => null,
                 'periodoLectivoFechaInicio' => null,
                 'periodoLectivoFechaFin' => null,
-                // Marcadores específicos para el frontend (Fase B.2).
+                // Marcadores específicos para el frontend (Fase B.2 + Topic 1).
                 '_overrideDate' => $fechaConcretaIso,
                 '_overrideAssigned' => true,
                 '_overrideTipo' => $eh->getTipo()?->value,
                 '_overrideMotivo' => $eh->getMotivo(),
                 '_overrideExcepcionId' => $eh->getId(),
+                '_overrideEstado' => $eh->getEstado()?->value,  // 'aprobada' | 'pendiente'
+                // El frontend usa este flag para mostrar el botón "Rechazar"
+                // en el modal del placement. true cuando user es el
+                // destinatario semántico (profeOverride o imparticionEfectiva.profesor)
+                // y la incidencia sigue pendiente.
+                '_overrideCanReject' => $eh->getEstado() === \App\Entity\EstadoExcepcion::PENDIENTE_APROBACION,
             ];
         }
         return $out;
@@ -309,6 +323,11 @@ class GetMyScheduleController extends AbstractController
             return [];
         }
 
+        // Topic 1 (2026-05-07): incluir también las PENDIENTES_APROBACION
+        // sobre los horarios del titular. El frontend pinta la casilla
+        // regular del titular con marker "pendiente" (cinta de advertencia)
+        // para que vea visualmente que tiene una solicitud sobre su clase
+        // — independientemente de quién la haya solicitado.
         $dql = "SELECT eh, ie, iem, iep, po, ip
                 FROM App\\Entity\\ExcepcionHorario eh
                 LEFT JOIN eh.imparticionEfectiva ie
@@ -317,12 +336,15 @@ class GetMyScheduleController extends AbstractController
                 LEFT JOIN eh.profeOverride po
                 LEFT JOIN eh.intercambioPareja ip
                 WHERE eh.horarioBase IN (:ids)
-                  AND eh.estado = :estado
+                  AND eh.estado IN (:estados)
                   AND eh.deleted = false";
 
         $rows = $em->createQuery($dql)
             ->setParameter('ids', $horarioIds)
-            ->setParameter('estado', EstadoExcepcion::APROBADA)
+            ->setParameter('estados', [
+                EstadoExcepcion::APROBADA,
+                EstadoExcepcion::PENDIENTE_APROBACION,
+            ])
             ->getResult();
 
         $out = [];
@@ -360,6 +382,7 @@ class GetMyScheduleController extends AbstractController
                 'horarioBaseId'       => $eh->getHorarioBase()?->getId(),
                 'fechaConcreta'       => $eh->getFechaConcreta()?->format('Y-m-d'),
                 'tipo'                => $eh->getTipo()?->value,
+                'estado'              => $eh->getEstado()?->value,  // 'aprobada' | 'pendiente'
                 'motivo'              => $eh->getMotivo(),
                 'observaciones'       => $eh->getObservaciones(),
                 'imparticionEfectiva' => $imparticionEfectivaDto,

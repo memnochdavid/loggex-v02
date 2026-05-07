@@ -171,6 +171,10 @@
       "clase_trasladada": {
         "title": "Unha clase cambiou",
         "body": "A clase de {{materia}} do {{fecha}} ás {{hora}} terá un cambio puntual"
+      },
+      "incidencia_propuesta": {
+        "title": "Propuxéronche un cambio de horario",
+        "body": "{{solicitanteNombre}} propónche unha {{tipo}} para o {{fecha}} ({{materia}} · {{grupo}})"
       }
     },
     "noNewMessages": "Non tes mensaxes novas",
@@ -559,6 +563,9 @@
     "create": "Crear incidencia",
     "request": "Solicitar",
     "modalHint": "Solicitas un cambio para o {{fecha}} no bloque {{hora}}.",
+    "rejectChange": "Rexeitar este cambio",
+    "rejectedByDestinatario": "Rexeitaches a incidencia",
+    "rejectedByDestinatarioDesc": "O solicitante recibirá a notificación.",
     "event": "Evento",
     "types": {
       "intercambio": "Intercambio",

@@ -16,7 +16,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import useLiveRefetch from '../hooks/useLiveRefetch';
 import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose, Download } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import useMediaQuery from '../hooks/useMediaQuery';
@@ -40,7 +40,23 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const isMobile = useMediaQuery('(max-width: 900px)');
 
   const [viewMode, setViewMode] = useState(embedded ? 'list' : 'calendar');
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Lee ?fecha=YYYY-MM-DD una sola vez al montar — usado para arrancar
+  // el calendar en la fecha de una notificación de incidencia propuesta.
+  const initialDate = useMemo(() => {
+      const f = searchParams.get('fecha');
+      if (!f) return new Date();
+      const d = new Date(f + 'T00:00:00');
+      return Number.isNaN(d.getTime()) ? new Date() : d;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  // ?excepcion=ID auto-abre el modal del placement sintético correspondiente.
+  // Estado interno para que tras consumirlo limpie el query y no re-dispare.
+  const [autoOpenExcepcionId, setAutoOpenExcepcionId] = useState(() => {
+      const v = searchParams.get('excepcion');
+      return v ? parseInt(v, 10) : null;
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [horarios, setHorarios] = useState([]);
@@ -154,23 +170,44 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     };
 
     return filtered.map((ev) => {
-      // Eventos sintéticos asignados (Fase B.2): añadir marcador propio
-      // para que TimeTable los pinte con border + tag "Cubres".
+      // Eventos sintéticos asignados (Fase B.2 + Topic 1): añadir marcador
+      // propio para que TimeTable los pinte con border + tag.
+      // Si está PENDIENTE_APROBACION, usar tipo 'asignada_pendiente' para
+      // estilo distinto (color tenue, dashed border) y exponer
+      // _overrideExcepcionId/_overrideCanReject al modal para el botón Rechazar.
       if (ev._overrideAssigned) {
+        const pendiente = ev._overrideEstado === 'pendiente';
         return {
           ...ev,
           _excepcion: {
-            tipo: 'asignada',
+            tipo: pendiente ? 'asignada_pendiente' : 'asignada',
             motivo: ev._overrideMotivo,
             profeOverride: null,
+            excepcionId: ev._overrideExcepcionId,
           },
-          _excepcionTipo: 'asignada',
+          _excepcionTipo: pendiente ? 'asignada_pendiente' : 'asignada',
         };
       }
 
       const evDateISO = dateOfIsoDay(ev.diaSemana);
       const overlay = excIndex.get(`${ev.id}|${evDateISO}`);
       if (!overlay) return ev;
+
+      // Si la excepción está pendiente, marcamos el event regular del
+      // titular con tipo `titular_pendiente` para que TimeTable lo pinte
+      // con cinta de advertencia + tag "PENDIENTE · pulsa". No alteramos
+      // materia ni profesor — sigue siendo la clase normal del titular,
+      // solo con un overlay visual de "hay una solicitud sobre esto".
+      if (overlay.estado === 'pendiente') {
+        return {
+          ...ev,
+          _excepcion: {
+            ...overlay,
+            tipo: 'titular_pendiente',
+          },
+          _excepcionTipo: 'titular_pendiente',
+        };
+      }
 
       // Aplica overlay copiando el event y mutando los campos según tipo.
       const out = { ...ev, _excepcion: overlay, _excepcionTipo: overlay.tipo };
@@ -852,6 +889,18 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                             tareas={tareas}
                             title="Mi Horario"
                             selectedDate={selectedDate}
+                            autoOpenExcepcionId={autoOpenExcepcionId}
+                            onAutoOpenConsumed={() => {
+                                // Tras abrir el modal, limpia el query param para que
+                                // un F5 no vuelva a abrirlo.
+                                setAutoOpenExcepcionId(null);
+                                setSearchParams((prev) => {
+                                    const next = new URLSearchParams(prev);
+                                    next.delete('excepcion');
+                                    next.delete('fecha');
+                                    return next;
+                                }, { replace: true });
+                            }}
                         />
                     </div>
 

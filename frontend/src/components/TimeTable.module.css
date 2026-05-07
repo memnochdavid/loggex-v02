@@ -214,6 +214,60 @@
     box-shadow: inset 0 0 0 2px var(--color-error);
 }
 
+/* Pendiente: estilo "cinta de advertencia" — franjas diagonales sobre el
+   color del módulo + halo pulsante warning + sombra interna gruesa. Más
+   evidente que un dashed sutil. Se aplica EN LUGAR de eventCardException. */
+.eventCardPending {
+    /* Franjas diagonales semitransparentes tipo construcción/advertencia.
+       El color de fondo del módulo (style inline) sigue siendo visible
+       por debajo: las franjas son ~30% opacidad para no taparlo. */
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0,
+        transparent 10px,
+        color-mix(in srgb, var(--color-warning), transparent 60%) 10px,
+        color-mix(in srgb, var(--color-warning), transparent 60%) 20px
+    );
+    /* Override del inset shadow de eventCardException + halo exterior
+       grueso warning. La animación lo hace pulsar. */
+    box-shadow:
+        inset 0 0 0 3px var(--color-warning),
+        0 0 0 2px var(--color-warning),
+        var(--shadow-md);
+    animation: pendingBlink 1.6s ease-in-out infinite;
+}
+
+@keyframes pendingBlink {
+    0%, 100% {
+        filter: brightness(1.0) saturate(1.0);
+        box-shadow:
+            inset 0 0 0 3px var(--color-warning),
+            0 0 0 2px var(--color-warning),
+            var(--shadow-md);
+    }
+    50% {
+        filter: brightness(1.15) saturate(1.25);
+        box-shadow:
+            inset 0 0 0 3px var(--color-warning),
+            0 0 0 4px var(--color-warning),
+            0 0 12px color-mix(in srgb, var(--color-warning), transparent 40%),
+            var(--shadow-md);
+    }
+}
+
+/* Tag inferior reforzado para el caso pendiente: fondo warning sólido
+   con texto en negrita en lugar del bg gris translúcido genérico, para
+   que sea inmediatamente reconocible como acción requerida. */
+.eventCardPending .eventExceptionTag {
+    background-color: var(--color-warning);
+    color: var(--text-main);
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.68rem;
+}
+
 .eventExceptionTag {
     margin-top: auto;
     font-size: 0.65rem;

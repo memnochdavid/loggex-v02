@@ -167,6 +167,10 @@ class NotificationDispatchSubscriber
         $estado = $eh->getEstado();
         if ($estado === EstadoExcepcion::PENDIENTE_APROBACION) {
             $this->dispatcher->notifyExcepcionPendiente($eh);
+            // Topic 1 (2026-05-07): el destinatario semántico (profeOverride
+            // o imparticionEfectiva.profesor) recibe aviso para poder
+            // aceptar implícitamente o rechazar desde su /horarios.
+            $this->dispatcher->notifyIncidenciaPropuesta($eh);
             return;
         }
         if ($estado === EstadoExcepcion::APROBADA) {

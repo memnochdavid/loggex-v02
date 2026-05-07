@@ -171,6 +171,10 @@
       "clase_trasladada": {
         "title": "Una classe ha canviat",
         "body": "La classe de {{materia}} del {{fecha}} a les {{hora}} tindrà un canvi puntual"
+      },
+      "incidencia_propuesta": {
+        "title": "T'han proposat un canvi d'horari",
+        "body": "{{solicitanteNombre}} et proposa una {{tipo}} per al {{fecha}} ({{materia}} · {{grupo}})"
       }
     },
     "noNewMessages": "No tens missatges nous",
@@ -559,6 +563,9 @@
     "create": "Crear incidència",
     "request": "Sol·licitar",
     "modalHint": "Sol·licites un canvi per al {{fecha}} en el bloc {{hora}}.",
+    "rejectChange": "Rebutjar aquest canvi",
+    "rejectedByDestinatario": "Has rebutjat la incidència",
+    "rejectedByDestinatarioDesc": "El sol·licitant rebrà la notificació.",
     "event": "Esdeveniment",
     "types": {
       "intercambio": "Intercanvi",

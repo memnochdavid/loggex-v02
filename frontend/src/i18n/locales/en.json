@@ -171,6 +171,10 @@
       "clase_trasladada": {
         "title": "A class has changed",
         "body": "The {{materia}} class on {{fecha}} at {{hora}} has a one-off change"
+      },
+      "incidencia_propuesta": {
+        "title": "A schedule change has been proposed to you",
+        "body": "{{solicitanteNombre}} proposes a {{tipo}} on {{fecha}} ({{materia}} · {{grupo}})"
       }
     },
     "noNewMessages": "No new messages",
@@ -559,6 +563,9 @@
     "create": "Create incident",
     "request": "Request",
     "modalHint": "You are requesting a change for {{fecha}} in block {{hora}}.",
+    "rejectChange": "Reject this change",
+    "rejectedByDestinatario": "You rejected the incident",
+    "rejectedByDestinatarioDesc": "The requester will be notified.",
     "event": "Event",
     "types": {
       "intercambio": "Swap",

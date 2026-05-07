@@ -363,6 +363,76 @@ class NotificationDispatcher
     }
 
     /**
+     * Notifica al destinatario semántico cuando se crea una incidencia
+     * pendiente que le involucra (Topic 1 2026-05-07). El destinatario
+     * puede aceptar implícitamente (no hacer nada) o rechazar desde el
+     * placement de su /horarios. El enlace lleva directamente a la fecha
+     * concreta + el id de la excepción para auto-abrir el modal.
+     *
+     * Quién recibe:
+     *   - SUSTITUCION / EVENTO_ESPECIAL → profeOverride.
+     *   - INTERCAMBIO → imparticionEfectiva.profesor.
+     *   - CANCELADO → nadie (no hay destinatario semántico).
+     */
+    public function notifyIncidenciaPropuesta(ExcepcionHorario $eh): void
+    {
+        $tipo = $eh->getTipo();
+        $destinatario = match (true) {
+            $tipo === TipoExcepcion::SUSTITUCION,
+            $tipo === TipoExcepcion::EVENTO_ESPECIAL => $eh->getProfeOverride(),
+            $tipo === TipoExcepcion::INTERCAMBIO     => $eh->getImparticionEfectiva()?->getProfesor(),
+            default => null,
+        };
+        if ($destinatario === null) {
+            return;
+        }
+        // Evita notificar al solicitante si por alguna razón coincide
+        // (caso edge, p.ej. admin se asigna a sí mismo como sustituto).
+        $solicitanteId = $eh->getSolicitadaPor()?->getId();
+        if ($solicitanteId !== null && $solicitanteId === $destinatario->getId()) {
+            return;
+        }
+
+        $solicitante = $eh->getSolicitadaPor();
+        $solicitanteNombre = $solicitante
+            ? trim(($solicitante->getNombre() ?? '') . ' ' . ($solicitante->getApellidos() ?? ''))
+            : 'Un profesor';
+
+        $hb = $eh->getHorarioBase();
+        $imp = $eh->getImparticionEfectiva() ?? $hb?->getImparticion();
+        $materia = $imp?->getMateria()?->getNombre() ?? '?';
+        $grupo = $imp?->getGrupo();
+        $grupoLabel = $grupo
+            ? trim(($grupo->getCurso() ? $grupo->getCurso() . 'º ' : '') . ($grupo->getAbreviatura() ?? $grupo->getNombre() ?? ''))
+            : '?';
+        $fechaIso = $eh->getFechaConcreta()?->format('Y-m-d');
+        $fechaEs  = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $hora = $hb
+            ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
+            : '';
+
+        $this->createPersist($destinatario, [
+            'tipo'    => 'incidencia_propuesta',
+            'titulo'  => 'Te han propuesto un cambio de horario',
+            'mensaje' => sprintf(
+                '%s te propone una %s para el %s (%s · %s, %s).',
+                $solicitanteNombre, $this->labelTipoExcepcion($tipo?->value ?? '?'), $fechaEs, $materia, $grupoLabel, $hora
+            ),
+            'enlace'  => sprintf('/horarios?fecha=%s&excepcion=%d', $fechaIso ?? '', $eh->getId() ?? 0),
+            'payload' => [
+                'excepcionId'        => $eh->getId(),
+                'tipo'               => $tipo?->value,
+                'fecha'              => $fechaIso,
+                'hora'               => $hora,
+                'materia'            => $materia,
+                'grupo'              => $grupoLabel,
+                'solicitanteId'      => $solicitanteId,
+                'solicitanteNombre'  => $solicitanteNombre,
+            ],
+        ]);
+    }
+
+    /**
      * Notifica al profe sustituto que tiene una clase asignada por una
      * incidencia aprobada. Solo aplica si `profeOverride` está definido.
      */

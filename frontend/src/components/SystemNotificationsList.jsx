@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Award, Edit3, BookOpen, Inbox, Megaphone, AlertTriangle, Bell as BellIcon,
-    Shuffle, Check, X as XIcon, UserCheck, CalendarOff, ArrowLeftRight,
+    Shuffle, Check, X as XIcon, UserCheck, CalendarOff, ArrowLeftRight, HelpCircle,
 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -227,6 +227,7 @@ const TYPE_ICONS = {
     sustitucion_asignada: UserCheck,
     clase_cancelada: CalendarOff,
     clase_trasladada: ArrowLeftRight,
+    incidencia_propuesta: HelpCircle,
 };
 
 const NotifItem = ({ notif, onClick, sharedStyles, styles, t }) => {

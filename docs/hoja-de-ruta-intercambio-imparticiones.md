@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche, 7ª iter.)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 ✅ Done.** Los 4 tipos operativos + intercambio bilateral con cascade automático: aprobar/rechazar/revertir UNA cara propaga el cambio a la pareja en el mismo flush via `IntercambioParejaCascadeSubscriber`. Picker visual con grid temático (abreviatura primero, modal ancho dinámico) reemplaza el listado de texto. Selectores de profe incluyen admins-que-imparten.
+> **Status (2026-05-07 noche, 8ª iter.)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 + Topic 1 ✅ Done.** El destinatario semántico (sustituto, contraparte de intercambio) ve la incidencia pendiente en SU `/horarios` con outline pulsante color-warning, recibe campanita `incidencia_propuesta` con enlace a `/horarios?fecha=...&excepcion=...` que auto-navega y auto-abre el modal con botón "Rechazar este cambio" en rojo. Si rechaza → cascade a la pareja del intercambio + notificación `excepcion_rechazada` al solicitante. Si no hace nada → la incidencia sigue pendiente del admin como antes.
 >
-> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`).
+> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o el rediseño "intercambio = 1 fila en /admin/excepciones" que aparcamos.
 
 ---
 
@@ -407,6 +407,41 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 8ª iteración + retoques) — Topic 1 ✅ Done + outline visible + notif destinatario + auto-open
+
+Tras feedback del usuario sobre Topic 1: el outline dashed era poco visible y faltaba notificación al destinatario que enlace a la fecha + abra el modal.
+
+**Outline visible**: `.eventCardPending` actualizada — `outline: 3px dashed var(--color-warning)` (en lugar del antiguo info al 70%) + sobrescribe el inset shadow de eventCardException con uno suave + animación `pendingPulse` 2.4s opacity 0.65↔0.95 que llama la atención sin ser ruidoso. Variables temáticas, 0 hex.
+
+**Notificación al destinatario**:
+- Nuevo tipo `incidencia_propuesta` en el catálogo. Icono `HelpCircle` en TYPE_ICONS de `SystemNotificationsList`.
+- `NotificationDispatcher::notifyIncidenciaPropuesta(eh)` detecta destinatario semántico por tipo (profeOverride para sustitución/evento; imparticionEfectiva.profesor para intercambio; CANCELADO sin destinatario). Guard anti-spam si solicitante == destinatario.
+- Se dispara desde `dispatchExcepcionPersist` cuando estado=PENDIENTE_APROBACION. Se añade junto a la notificación al admin (excepcion_pendiente).
+- Enlace: `/horarios?fecha=YYYY-MM-DD&excepcion=ID`. El fecha lleva al calendario al día concreto; el excepcion id auto-abre el modal del placement sintético.
+- i18n × 5 con interpolación `{{solicitanteNombre}} te propone una {{tipo}} para el {{fecha}} ({{materia}} · {{grupo}})`.
+
+**Auto-navegar + auto-open**:
+- `Horarios.jsx`: parsea `?fecha=` (lazy useMemo, una vez al montar) e inicializa selectedDate. Parsea `?excepcion=` y guarda en estado `autoOpenExcepcionId`.
+- TimeTable acepta props nuevas `autoOpenExcepcionId` + `onAutoOpenConsumed`.
+- `useEffect` en TimeTable: cuando autoOpenExcepcionId está presente y events incluye uno con `_overrideExcepcionId === autoOpenExcepcionId`, llama `setSelectedEvent(target)` → modal abre. Tras consumir, dispara `onAutoOpenConsumed()` que borra los query params (`replace: true`) para que un F5 no repita la apertura.
+- Resultado: Joaquín pulsa la campanita → llega a `/horarios?fecha=2026-05-15&excepcion=42` → calendario en mayo 15 + modal abierto sobre la clase con botón "Rechazar este cambio" en rojo. Sin búsquedas.
+
+**Topic 1 — destinatario rechaza desde /horarios** (resumen del bloque original):
+
+Backend `RechazarExcepcionController`:
+- `POST /api/v1/excepciones/{id}/rechazar` con body `{respuesta?: string}`.
+- Detecta destinatario por tipo. Valida caller == destinatario semántico, estado=PENDIENTE.
+- Setea estado=RECHAZADA, aprobadaPor=destinatario, fechaResolucion=now, respuestaAdmin opcional.
+- Cascade subscriber + notification subscriber + cache invalidation hacen el resto via Doctrine events.
+
+Backend `GetMyScheduleController`:
+- `loadOverrideAssignedEvents` ahora incluye PENDIENTES además de APROBADAS. Cada synthetic event expone `_overrideEstado` y `_overrideCanReject`.
+
+Frontend:
+- `Horarios.jsx visibleSchedule` emite `_excepcionTipo: 'asignada_pendiente'` cuando el evento sintético está pendiente.
+- `TimeTable.jsx`: clase CSS `eventCardPending` (dashed pulse), tag `⏳ Pendiente`, handler `handleRejectExcepcion`, botón "Rechazar este cambio" (color-error) cuando `_overrideCanReject`. El botón "Solicitar cambio" se oculta sobre placements sintéticos.
+- i18n × 5 con `rejectChange`, `rejectedByDestinatario`, `rejectedByDestinatarioDesc`.
 
 ### 2026-05-07 (noche, 7ª iteración) — Fase E.2 ✅ Done — cascade pareja intercambio + pulido picker
 

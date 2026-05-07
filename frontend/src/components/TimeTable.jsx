@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './TimeTable.module.css';
 import calStyles from '../pages/Calificaciones.module.css';
 import crudStyles from '../pages/Crud.module.css';
-import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save, Shuffle } from 'lucide-react';
+import { Clock, MapPin, Users, User, CalendarOff, CheckSquare, Save, Shuffle, X } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
@@ -35,7 +35,16 @@ const slotDurationMin = (slot) => {
     return Math.max(15, (h2 * 60 + m2) - (h1 * 60 + m1));
 };
 
-const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = [], tareas = [] }) => {
+const TimeTable = ({
+    events = [],
+    slots = null,
+    title,
+    selectedDate,
+    festivos = [],
+    tareas = [],
+    autoOpenExcepcionId = null,
+    onAutoOpenConsumed,
+}) => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const isProfesor = user?.roles?.includes('ROLE_PROFESOR');
@@ -50,6 +59,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
     // Profe ⇒ POST estado=pendiente (cola del admin). Admin ⇒ aprobada directa.
     const [isRequestingException, setIsRequestingException] = useState(false);
     const [savingExcepcion, setSavingExcepcion] = useState(false);
+    const [rejectingExcepcion, setRejectingExcepcion] = useState(false);
     const [excForm, setExcForm] = useState({
         tipo: 'sustitucion',
         profeOverride: '',
@@ -292,6 +302,22 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
         setIsTakingAttendance(false);
     };
 
+    // Auto-open del modal de un placement sintético cuando llegamos vía
+    // notificación con `?excepcion=ID` en la URL. Topic 1 (2026-05-07):
+    // permite que el destinatario llegue del aviso y vea inmediatamente
+    // el botón "Rechazar este cambio" sin tener que buscar el bloque.
+    useEffect(() => {
+        if (!autoOpenExcepcionId) return;
+        if (!Array.isArray(events) || events.length === 0) return;
+        const target = events.find((e) =>
+            String(e?._overrideExcepcionId) === String(autoOpenExcepcionId)
+        );
+        if (!target) return;
+        setSelectedEvent(target);
+        setIsTakingAttendance(false);
+        if (onAutoOpenConsumed) onAutoOpenConsumed();
+    }, [autoOpenExcepcionId, events, onAutoOpenConsumed]);
+
     const handleCloseModal = () => {
         setSelectedEvent(null);
         setIsTakingAttendance(false);
@@ -310,6 +336,34 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         return `${yy}-${mm}-${dd}`;
+    };
+
+    const handleRejectExcepcion = async () => {
+        if (!selectedEvent) return;
+        const excId = selectedEvent._overrideExcepcionId || selectedEvent._excepcion?.excepcionId;
+        if (!excId) return;
+        setRejectingExcepcion(true);
+        try {
+            const response = await fetch(getApiUrl(`/api/v1/excepciones/${excId}/rechazar`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({}),
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                const message = await parseErrorResponse(response);
+                throw new Error(message);
+            }
+            toast.success(t('exceptions.rejectedByDestinatario', { defaultValue: 'Has rechazado la incidencia' }), {
+                description: t('exceptions.rejectedByDestinatarioDesc', { defaultValue: 'El solicitante recibirá la notificación.' }),
+            });
+            handleCloseModal();
+        } catch (err) {
+            console.error('Error rechazando incidencia:', err);
+            toast.error(err.message);
+        } finally {
+            setRejectingExcepcion(false);
+        }
     };
 
     const handleSubmitExcepcion = async () => {
@@ -582,6 +636,8 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                     cancelado: 'Cancelada',
                                                     evento_especial: 'Evento especial',
                                                     asignada: 'Cubres esta clase',
+                                                    asignada_pendiente: 'Cambio solicitado · pulsa para rechazarlo (si no haces nada queda pendiente del admin)',
+                                                    titular_pendiente: 'Cambio solicitado sobre tu clase · esperando aprobación del admin',
                                                   }[exc.tipo] || 'Excepción'}${exc.motivo ? ` — ${exc.motivo}` : ''}`
                                                 : t('timetable.viewDetails');
                                             const overrideName = exc?.profeOverride?.nombre
@@ -589,7 +645,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                 || null;
                                             return (
                                                 <div
-                                                    className={`${styles.eventCard}${exc ? ' ' + (styles.eventCardException || '') : ''}${cancelado ? ' ' + (styles.eventCardCancelled || '') : ''}`}
+                                                    className={`${styles.eventCard}${exc ? ' ' + (styles.eventCardException || '') : ''}${cancelado ? ' ' + (styles.eventCardCancelled || '') : ''}${(exc?.tipo === 'asignada_pendiente' || exc?.tipo === 'titular_pendiente') ? ' ' + (styles.eventCardPending || '') : ''}`}
                                                     onClick={() => handleEventClick(cellData.event)}
                                                     title={excTitle}
                                                     style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
@@ -614,13 +670,15 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                                 ? '✕ Cancelada'
                                                                 : exc.tipo === 'asignada'
                                                                     ? '✦ Cubres'
-                                                                    : exc.tipo === 'sustitucion' && overrideName
-                                                                        ? `↔ ${overrideName}`
-                                                                        : exc.tipo === 'intercambio' && overrideName
-                                                                            ? `⇄ ${overrideName}`
-                                                                            : exc.tipo === 'evento_especial'
-                                                                                ? '★ Evento'
-                                                                                : '● Excepción'}
+                                                                    : (exc.tipo === 'asignada_pendiente' || exc.tipo === 'titular_pendiente')
+                                                                        ? '⏳ Cambio solicitado'
+                                                                        : exc.tipo === 'sustitucion' && overrideName
+                                                                            ? `↔ ${overrideName}`
+                                                                            : exc.tipo === 'intercambio' && overrideName
+                                                                                ? `⇄ ${overrideName}`
+                                                                                : exc.tipo === 'evento_especial'
+                                                                                    ? '★ Evento'
+                                                                                    : '● Excepción'}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1005,7 +1063,27 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                 </div>
                             )}
 
-                            {(isProfesor || isAdmin) && (
+                            {selectedEvent._overrideCanReject && (
+                                <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={handleRejectExcepcion}
+                                        disabled={rejectingExcepcion}
+                                        style={{
+                                            width: '100%',
+                                            color: 'var(--color-error)',
+                                            borderColor: 'var(--color-error)',
+                                        }}
+                                    >
+                                        <X size={18} style={{ marginRight: '8px' }} />
+                                        {rejectingExcepcion
+                                            ? t('common.saving', { defaultValue: 'Guardando…' })
+                                            : t('exceptions.rejectChange', { defaultValue: 'Rechazar este cambio' })}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {(isProfesor || isAdmin) && !selectedEvent._overrideAssigned && (
                                 <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
                                     <Button
                                         variant="secondary"

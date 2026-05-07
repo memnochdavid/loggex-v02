@@ -141,7 +141,7 @@ class PeriodoLectivo
      * NOT NULL en lógica de aplicación para SEMANA.
      */
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write'])]
+    #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write', 'horario:read'])]
     private ?\DateTimeInterface $fechaInicio = null;
 
     /**
@@ -153,7 +153,7 @@ class PeriodoLectivo
         'this.getFechaInicio() === null or this.getFechaFin() === null or this.getFechaFin() > this.getFechaInicio()',
         message: 'fechaFin debe ser posterior a fechaInicio.'
     )]
-    #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write'])]
+    #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write', 'horario:read'])]
     private ?\DateTimeInterface $fechaFin = null;
 
     /**

@@ -100,11 +100,71 @@ const HorarioGridPicker = ({
         return arr;
     }, [weekStart]);
 
+    // Cascada SEMANA→PLANTILLA por semana visible: para cada (grupoId,
+    // imparticionId), si hay un horario de SEMANA cuyo PL cubre la fecha
+    // del lunes visible, se queda; si no, fallback a horarios de PLANTILLA
+    // del mismo (grupoId, imparticionId). Sin esto el grid muestra
+    // PLANTILLA + SEMANAs apilados (3 bloques en la misma celda).
+    // Misma lógica que Horarios.jsx::visibleSchedule pero adaptada a la
+    // estructura raw de /api/horarios.
+    const horariosFiltrados = useMemo(() => {
+        if (!Array.isArray(horarios) || horarios.length === 0) return [];
+        const isoOfDate = (d) => {
+            const yy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yy}-${mm}-${dd}`;
+        };
+        // Conjunto de (grupoId+impId) que tienen una SEMANA cubriendo la
+        // semana visible — para esos pares, ocultamos PLANTILLA.
+        const semanaActiva = new Set();
+        for (const h of horarios) {
+            const pl = h.periodoLectivo;
+            if (!pl || pl.tipo !== 'semana') continue;
+            const fi = pl.fechaInicio ? String(pl.fechaInicio).slice(0, 10) : null;
+            const ff = pl.fechaFin ? String(pl.fechaFin).slice(0, 10) : null;
+            if (!fi || !ff) continue;
+            // SEMANA cubre la semana visible si solapa con cualquier día Lun-Vie.
+            const overlaps = weekDates.some(d => {
+                const iso = isoOfDate(d);
+                return iso >= fi && iso <= ff;
+            });
+            if (!overlaps) continue;
+            const grupoId = h.imparticion?.grupo?.id ?? h.imparticion?.grupo?.['@id'];
+            const impId = h.imparticion?.id ?? h.imparticion?.['@id'];
+            if (grupoId != null && impId != null) {
+                semanaActiva.add(`${grupoId}|${impId}`);
+            }
+        }
+        return horarios.filter(h => {
+            const pl = h.periodoLectivo;
+            if (!pl) return true;  // legacy sin PL → mostrar.
+            const grupoId = h.imparticion?.grupo?.id ?? h.imparticion?.grupo?.['@id'];
+            const impId = h.imparticion?.id ?? h.imparticion?.['@id'];
+            const key = `${grupoId}|${impId}`;
+            if (pl.tipo === 'plantilla') {
+                // Solo si NO hay SEMANA activa para este (grupo, imparticion).
+                return !semanaActiva.has(key);
+            }
+            if (pl.tipo === 'semana') {
+                // Solo si su rango cubre la semana visible.
+                const fi = pl.fechaInicio ? String(pl.fechaInicio).slice(0, 10) : null;
+                const ff = pl.fechaFin ? String(pl.fechaFin).slice(0, 10) : null;
+                if (!fi || !ff) return false;
+                return weekDates.some(d => {
+                    const iso = isoOfDate(d);
+                    return iso >= fi && iso <= ff;
+                });
+            }
+            return true;
+        });
+    }, [horarios, weekDates]);
+
     // Slots únicos = (horaInicio, horaFin) ordenados por horaInicio.
     const slots = useMemo(() => {
         const seen = new Set();
         const out = [];
-        for (const h of horarios) {
+        for (const h of horariosFiltrados) {
             const hi = parseHora(h.horaInicio);
             const hf = parseHora(h.horaFin);
             if (!hi || !hf) continue;
@@ -115,12 +175,12 @@ const HorarioGridPicker = ({
         }
         out.sort((a, b) => a.hi.localeCompare(b.hi));
         return out;
-    }, [horarios]);
+    }, [horariosFiltrados]);
 
     // Mapa (diaSemana, slotKey) → horario.
     const matrix = useMemo(() => {
         const m = new Map();
-        for (const h of horarios) {
+        for (const h of horariosFiltrados) {
             const hi = parseHora(h.horaInicio);
             const hf = parseHora(h.horaFin);
             const dia = h.diaSemana;
@@ -128,7 +188,7 @@ const HorarioGridPicker = ({
             m.set(`${dia}|${hi}-${hf}`, h);
         }
         return m;
-    }, [horarios]);
+    }, [horariosFiltrados]);
 
     const colorForModule = (mid) => {
         const id = Number(mid) || 0;

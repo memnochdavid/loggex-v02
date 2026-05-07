@@ -171,6 +171,10 @@
       "clase_trasladada": {
         "title": "Klase batek aldaketa du",
         "body": "{{fecha}} egunean {{hora}}-(e)tako {{materia}} klaseak aldaketa puntuala izango du"
+      },
+      "incidencia_propuesta": {
+        "title": "Ordutegi-aldaketa bat proposatu dizute",
+        "body": "{{solicitanteNombre}}-(e)k {{fecha}} egunerako {{tipo}} bat proposatzen dizu ({{materia}} · {{grupo}})"
       }
     },
     "noNewMessages": "Ez duzu mezu berririk",
@@ -559,6 +563,9 @@
     "create": "Intzidentzia sortu",
     "request": "Eskatu",
     "modalHint": "{{fecha}} egunerako aldaketa bat eskatzen ari zara {{hora}} blokean.",
+    "rejectChange": "Aldaketa hau ezetsi",
+    "rejectedByDestinatario": "Intzidentzia ezetsi duzu",
+    "rejectedByDestinatarioDesc": "Eskatzaileak jakinarazpena jasoko du.",
     "event": "Gertakaria",
     "types": {
       "intercambio": "Trukaketa",
