@@ -408,6 +408,39 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 
 ## 8. Bitácora de implementación
 
+### 2026-05-08 (continuación) — Fase B.3 ✅ Done — Consumición resta CANCELADO/EVENTO_ESPECIAL + opción A desambiguación visual sintético
+
+Dos piezas diferentes que se validaron juntas en la misma sesión.
+
+**Fase B.3 — Consumición awareness** (cierra task #16 "Fase B — banner anual + Consumición"):
+
+`ConsumicionAnualService::computeForGrupo` ahora descuenta los minutos de incidencias APROBADAS de tipo CANCELADO o EVENTO_ESPECIAL (no INTERCAMBIO ni SUSTITUCION — esas reasignan, no eliminan minutos curriculares). Implementación:
+
+- Nuevo método privado `loadIncidenciasRestadoras(Grupo $grupo)`: DQL que carga las incidencias con join a horario→imparticion donde `imparticion.grupo = $grupo`, filtradas por `estado=APROBADA` y `tipo IN (CANCELADO, EVENTO_ESPECIAL)`. Devuelve array indexado por `imparticionId` con `[fecha, minutos, tipo]` por incidencia. Los minutos se calculan a partir de `horarioBase.horaInicio/Fin`.
+- En el bucle por materia se aplica la resta en cuatro puntos:
+  1. `planTotal -= minutosPerdidos` (toda la incidencia, cuente o no).
+  2. `impartidoTotal -= minutosPerdidosHasta(fechaRef)` (solo las ya pasadas).
+  3. `porRango[i].minutosPlanificados/Impartidos`: cada incidencia se ubica en el rango cuyo `[fechaInicio, fechaFin]` contiene su `fecha`. Sin esto la UI mostraba los rangos sin descontar (bug detectado al validar — el banner por evaluación lee `porRango`, no `porEvaluacion`).
+  4. `porEvaluacion[].minutosPlanificados/Impartidos`: mismo principio que los rangos.
+- DTO de salida: dos nuevos campos por materia, `minutosPerdidosIncidencias` y `minutosPerdidosIncidenciasHoy`. Los consumidores actuales del banner no los usan; quedan disponibles para futuras visualizaciones tipo "X horas perdidas por incidencias".
+
+**Validación end-to-end**:
+1. CLI `app:fase8:consumicion 1` con grupo 1º DAW antes/después de aprobar una incidencia tipo CANCELADO de 120min sobre Sistemas informáticos (lunes 4/5 10:50-12:50): `minutosPerdidosIncidencias=120`, rango 323 baja de 2112→1992 plan y 1344→1224 impartido.
+2. Banner UI `/admin/horarios` tab Consumición tras `docker compose restart backend` (OPcache PHP-FPM no recoge cambios del Service hasta reiniciar — el CLI sí porque arranca un proceso fresh): Plan 33.2h / Impartido 20.4h en "Hasta 3ª Evaluación".
+
+**Opción A — desambiguación visual sintético** (refinement post-Plan B):
+
+El sintético de un intercambio (cara que cubres) muestra el bloque del horario base de la otra persona pero con TU materia/profesor. Cuando el usuario tiene además su propia clase regular en la misma jornada (caso real: Alberto cubre Sara Vie 8:30-9:30 + tiene su clase regular Vie 9:30-10:30), los dos bloques se renderizan consecutivos con el mismo nombre de materia y se hace difícil distinguir cuál es el sintético marcado y cuál la clase normal.
+
+- Backend `GetMyScheduleController::loadOverrideAssignedEvents` expone tres campos extra en cada evento sintético: `_overrideTitularNombre` (nombre + apellidos del titular del horario base cedido), `_overrideMateriaBase` (nombre completo) y `_overrideMateriaBaseAbrev` (abrev). Se obtienen del `horarioBase.imparticion.profesor` y `horarioBase.imparticion.materia`. Se devuelven incluso si el sintético no cambia de materia — el frontend decide si mostrarlos comparando con la efectiva.
+- Frontend `TimeTable.jsx`:
+  - Placement card: nueva línea entre el grupo y el tag, "Cubres a {Titular}" + (si la materia base difiere de la efectiva) "· {baseAbrev}→{efAbrev}". Solo aparece para sintéticos `_overrideAssigned` con titular conocido.
+  - Modal de detalle: nuevo `detailRow` con icono Shuffle: "Cubres a Sara López (en lugar de IPE)". Solo cuando la materia base difiere para no introducir ruido cuando es la misma.
+- `TimeTable.module.css`: clases nuevas `.eventOverrideMeta` (fontsize 0.65rem, opacity 0.85, ellipsis) y `.eventOverrideSwap` (font-weight 600). Sin colores hardcodeados — todo themed.
+- `i18n` × 5 (es/en/ca/gl/eu): nuevas claves `exceptions.coveringFor` y `exceptions.insteadOf`.
+
+Validación visual: en el caso de Alberto cubriendo a Sara, el bloque sintético del Vie 8:30 ahora muestra "Cubres a Sara López · IPE→SIS" y queda visualmente distinguible del regular del 9:30. El user confirmó "ok, ya se muestra bien".
+
 ### 2026-05-08 — Plan B ✅ Done — refactor pareja → grupo + multi-bloque mismo profe
 
 Tras pregunta del usuario sobre intercambio asimétrico (1 bloque de 120min por 2 de 60min), refactor del modelo bilateral 1↔1 (`intercambio_pareja_id` self-FK) a un grupo identificado por UUID compartido (`intercambio_grupo_id`). El nuevo modelo permite N caras por intercambio manteniendo la regla simétrica en MINUTOS TOTALES (no en cantidad de bloques): Σ duración B == duración A.

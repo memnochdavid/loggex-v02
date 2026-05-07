@@ -567,6 +567,8 @@
     "request": "Eskatu",
     "modalHint": "{{fecha}} egunerako aldaketa bat eskatzen ari zara {{hora}} blokean.",
     "rejectChange": "Aldaketa hau ezetsi",
+    "coveringFor": "Honen ordez:",
+    "insteadOf": "honen ordez",
     "rejectedByDestinatario": "Intzidentzia ezetsi duzu",
     "rejectedByDestinatarioDesc": "Eskatzaileak jakinarazpena jasoko du.",
     "event": "Gertakaria",

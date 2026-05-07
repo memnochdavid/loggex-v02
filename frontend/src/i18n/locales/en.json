@@ -567,6 +567,8 @@
     "request": "Request",
     "modalHint": "You are requesting a change for {{fecha}} in block {{hora}}.",
     "rejectChange": "Reject this change",
+    "coveringFor": "Covering for",
+    "insteadOf": "instead of",
     "rejectedByDestinatario": "You rejected the incident",
     "rejectedByDestinatarioDesc": "The requester will be notified.",
     "event": "Event",

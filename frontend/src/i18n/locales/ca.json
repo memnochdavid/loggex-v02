@@ -567,6 +567,8 @@
     "request": "Sol·licitar",
     "modalHint": "Sol·licites un canvi per al {{fecha}} en el bloc {{hora}}.",
     "rejectChange": "Rebutjar aquest canvi",
+    "coveringFor": "Cobreixes a",
+    "insteadOf": "en lloc de",
     "rejectedByDestinatario": "Has rebutjat la incidència",
     "rejectedByDestinatarioDesc": "El sol·licitant rebrà la notificació.",
     "event": "Esdeveniment",

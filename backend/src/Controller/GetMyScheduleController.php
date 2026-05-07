@@ -263,6 +263,17 @@ class GetMyScheduleController extends AbstractController
                 $profeNombre = trim(($profeFinal->getNombre() ?? '') . ' ' . ($profeFinal->getApellidos() ?? ''));
             }
 
+            // Datos del titular del horario base (profe y materia originales),
+            // para que el frontend pueda renderizar "Cubres a X · MAT→COBERT"
+            // y desambiguar visualmente el sintético frente a la clase regular.
+            $impBase = $hb->getImparticion();
+            $titularBase = $impBase?->getProfesor();
+            $materiaBase = $impBase?->getMateria();
+            $titularBaseNombre = null;
+            if ($titularBase) {
+                $titularBaseNombre = trim(($titularBase->getNombre() ?? '') . ' ' . ($titularBase->getApellidos() ?? ''));
+            }
+
             $fechaConcretaIso = $eh->getFechaConcreta()?->format('Y-m-d');
 
             $out[] = [
@@ -299,6 +310,12 @@ class GetMyScheduleController extends AbstractController
                 // destinatario semántico (profeOverride o imparticionEfectiva.profesor)
                 // y la incidencia sigue pendiente.
                 '_overrideCanReject' => $eh->getEstado() === \App\Entity\EstadoExcepcion::PENDIENTE_APROBACION,
+                // Datos del titular del bloque base (intercambio/sustitución):
+                // permiten al frontend mostrar "Cubres a {titular} · {matBase}→{matEfectiva}"
+                // cuando la materia/profe efectiva difieren del base.
+                '_overrideTitularNombre' => $titularBaseNombre,
+                '_overrideMateriaBase' => $materiaBase?->getNombre(),
+                '_overrideMateriaBaseAbrev' => $materiaBase?->getAbreviatura(),
             ];
         }
         return $out;

@@ -567,6 +567,8 @@
     "request": "Solicitar",
     "modalHint": "Solicitas un cambio para o {{fecha}} no bloque {{hora}}.",
     "rejectChange": "Rexeitar este cambio",
+    "coveringFor": "Cubres a",
+    "insteadOf": "en lugar de",
     "rejectedByDestinatario": "Rexeitaches a incidencia",
     "rejectedByDestinatarioDesc": "O solicitante recibirá a notificación.",
     "event": "Evento",

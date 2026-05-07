@@ -684,6 +684,19 @@ const TimeTable = ({
                                                                                     : '● Excepción'}
                                                         </div>
                                                     )}
+                                                    {cellData.event._overrideAssigned && cellData.event._overrideTitularNombre && (() => {
+                                                        const baseAbrev = cellData.event._overrideMateriaBaseAbrev || cellData.event._overrideMateriaBase;
+                                                        const myAbrev = cellData.event.moduloAbreviatura || cellData.event.materia;
+                                                        const cambioMateria = baseAbrev && myAbrev && baseAbrev !== myAbrev;
+                                                        return (
+                                                            <div className={styles.eventOverrideMeta}>
+                                                                Cubres a {cellData.event._overrideTitularNombre}
+                                                                {cambioMateria && (
+                                                                    <span className={styles.eventOverrideSwap}> · {baseAbrev}→{myAbrev}</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             );
                                         })()}
@@ -1044,6 +1057,24 @@ const TimeTable = ({
                                     <span className={styles.value}>{selectedEvent.profesor}</span>
                                 </div>
                             </div>
+
+                            {selectedEvent._overrideAssigned && selectedEvent._overrideTitularNombre && (
+                                <div className={styles.detailRow}>
+                                    <Shuffle size={18} className={styles.icon} />
+                                    <div>
+                                        <span className={styles.label}>
+                                            {t('exceptions.coveringFor', { defaultValue: 'Cubres a' })}
+                                        </span>
+                                        <span className={styles.value}>{selectedEvent._overrideTitularNombre}</span>
+                                        {selectedEvent._overrideMateriaBase
+                                            && selectedEvent._overrideMateriaBase !== selectedEvent.materia && (
+                                            <span className={styles.subValue}>
+                                                {' '}({t('exceptions.insteadOf', { defaultValue: 'en lugar de' })} {selectedEvent._overrideMateriaBase})
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Mostrar Tareas/Eventos del día */}
                             {tasksForSelectedEvent.length > 0 && (

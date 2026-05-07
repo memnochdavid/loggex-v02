@@ -169,6 +169,13 @@ class ConsumicionAnualService
             ->setParameter('g', $grupo)
             ->getQuery()->getResult();
 
+        // Fase B.3 (2026-05-08): incidencias APROBADAS de tipo CANCELADO o
+        // EVENTO_ESPECIAL restan minutos del cómputo curricular. Las de
+        // SUSTITUCION e INTERCAMBIO NO afectan (la clase se imparte igual,
+        // solo cambia el profe). Indexadas por imparticionId del horarioBase
+        // para resta rápida en el loop de materias.
+        $incidenciasByImpId = $this->loadIncidenciasRestadoras($grupo);
+
         $pliIndex = [];
         foreach ($pls as $pl) {
             foreach ($pl->getImparticiones() as $pli) {
@@ -215,11 +222,68 @@ class ConsumicionAnualService
                 ];
             }
 
+            // Resta incidencias CANCELADO/EVENTO_ESPECIAL aprobadas de la imp.
+            // Cada incidencia "elimina" un bloque concreto del cómputo:
+            //   - planTotal: siempre se descuenta (la clase no se imparte
+            //     en el plan ajustado del curso).
+            //   - impartidoTotal: se descuenta si la fecha ya pasó (ese
+            //     bloque no se ha impartido y nunca se impartirá).
+            $impIncidencias = $incidenciasByImpId[$imp->getId()] ?? [];
+            $minutosPerdidosImp = 0;
+            $minutosPerdidosImpHoy = 0;
+            foreach ($impIncidencias as $inc) {
+                $minutosPerdidosImp += $inc['minutos'];
+                if ($inc['fecha'] <= $fechaRef) {
+                    $minutosPerdidosImpHoy += $inc['minutos'];
+                }
+            }
+            $planTotal       = max(0, $planTotal - $minutosPerdidosImp);
+            $impartidoTotal  = max(0, $impartidoTotal - $minutosPerdidosImpHoy);
+
+            // Resta incidencias también al porRango correspondiente (el rango
+            // cuyo intervalo de fechas contiene la fechaConcreta de la
+            // incidencia). Sin esto, el banner por evaluación que lee
+            // porRango[].minutosPlanificados/Impartidos mostraría los
+            // valores brutos sin descontar.
+            if (!empty($impIncidencias)) {
+                $rangoBoundsById = [];
+                foreach ($pls as $pl) {
+                    $rangoBoundsById[$pl->getId()] = [
+                        $pl->getFechaInicio(),
+                        $pl->getFechaFin(),
+                    ];
+                }
+                foreach ($impIncidencias as $inc) {
+                    foreach ($porRango as $idx => $pr) {
+                        [$rIni, $rFin] = $rangoBoundsById[$pr['rangoId']] ?? [null, null];
+                        if ($rIni && $rFin && $inc['fecha'] >= $rIni && $inc['fecha'] <= $rFin) {
+                            $porRango[$idx]['minutosPlanificados'] = max(0, $pr['minutosPlanificados'] - $inc['minutos']);
+                            if ($inc['fecha'] <= $fechaRef) {
+                                $porRango[$idx]['minutosImpartidos'] = max(0, $porRango[$idx]['minutosImpartidos'] - $inc['minutos']);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
             $porEvaluacion = [];
             foreach ($evals as $pe) {
                 [$planE, $impE] = $this->calcularMinutosEnEvaluacion(
                     $centro, $pe, $pls, $pliIndex, $imp, $fechaRef
                 );
+                // Resta incidencias cuya fecha cae dentro del rango de la
+                // evaluación.
+                $peIni = $pe->getFechaInicio();
+                $peFin = $pe->getFechaFin();
+                foreach ($impIncidencias as $inc) {
+                    if ($peIni && $peFin && $inc['fecha'] >= $peIni && $inc['fecha'] <= $peFin) {
+                        $planE = max(0, $planE - $inc['minutos']);
+                        if ($inc['fecha'] <= $fechaRef) {
+                            $impE = max(0, $impE - $inc['minutos']);
+                        }
+                    }
+                }
                 $porEvaluacion[] = [
                     'evaluacionId' => $pe->getId(),
                     'minutosPlanificados' => $planE,
@@ -236,6 +300,11 @@ class ConsumicionAnualService
                 'minutosPlanificadoTotal' => $planTotal,
                 'minutosImpartidosHoy' => $impartidoTotal,
                 'minutosProyectadoTotal' => $planTotal,
+                // Fase B.3: total de minutos descontados por incidencias
+                // CANCELADO/EVENTO_ESPECIAL aprobadas. El frontend puede
+                // mostrarlo como aclaración ("3h perdidas por incidencias").
+                'minutosPerdidosIncidencias' => $minutosPerdidosImp,
+                'minutosPerdidosIncidenciasHoy' => $minutosPerdidosImpHoy,
                 'porRango' => $porRango,
                 'porEvaluacion' => $porEvaluacion,
             ];
@@ -347,5 +416,59 @@ class ConsumicionAnualService
             }
         }
         return $minPorDia * count($diasLectivos);
+    }
+
+    /**
+     * Carga las incidencias APROBADAS de tipo CANCELADO o EVENTO_ESPECIAL
+     * cuyo `horarioBase.imparticion.grupo == $grupo`. Indexa por
+     * imparticionId para resta rápida en el loop principal.
+     *
+     * Las incidencias INTERCAMBIO/SUSTITUCION NO entran porque la clase
+     * SE imparte (solo cambia el profe titular), no afecta cobertura
+     * curricular.
+     *
+     * Cada entrada del array devuelto:
+     *   ['fecha' => DateTimeInterface, 'minutos' => int, 'tipo' => string]
+     *
+     * @return array<int, list<array{fecha: \DateTimeInterface, minutos: int, tipo: string}>>
+     */
+    private function loadIncidenciasRestadoras(Grupo $grupo): array
+    {
+        $rows = $this->em->createQuery(
+            "SELECT eh.id AS eh_id, eh.fechaConcreta AS fecha, eh.tipo AS tipo,
+                    h.horaInicio AS hi, h.horaFin AS hf, i.id AS imp_id
+             FROM App\\Entity\\ExcepcionHorario eh
+             JOIN eh.horarioBase h
+             JOIN h.imparticion i
+             WHERE i.grupo = :grupo
+               AND i.deleted = false
+               AND eh.deleted = false
+               AND eh.estado = :aprobada
+               AND eh.tipo IN (:tiposRestadores)"
+        )
+            ->setParameter('grupo', $grupo)
+            ->setParameter('aprobada', \App\Entity\EstadoExcepcion::APROBADA)
+            ->setParameter('tiposRestadores', [
+                \App\Entity\TipoExcepcion::CANCELADO,
+                \App\Entity\TipoExcepcion::EVENTO_ESPECIAL,
+            ])
+            ->getResult();
+
+        $byImp = [];
+        foreach ($rows as $r) {
+            $hi = $r['hi'];
+            $hf = $r['hf'];
+            if (!$hi instanceof \DateTimeInterface || !$hf instanceof \DateTimeInterface) {
+                continue;
+            }
+            $minutos = (int) (($hf->getTimestamp() - $hi->getTimestamp()) / 60);
+            if ($minutos <= 0) continue;
+            $byImp[(int) $r['imp_id']][] = [
+                'fecha'   => $r['fecha'],
+                'minutos' => $minutos,
+                'tipo'    => $r['tipo'] instanceof \BackedEnum ? $r['tipo']->value : (string) $r['tipo'],
+            ];
+        }
+        return $byImp;
     }
 }

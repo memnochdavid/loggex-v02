@@ -283,6 +283,25 @@
     max-width: 100%;
 }
 
+/* Línea informativa para eventos sintéticos (Cubres a X · MAT→COBERT).
+   Se inserta entre eventGroupSmall y eventExceptionTag para desambiguar
+   visualmente el sintético frente a la clase regular del usuario:
+   deja claro que ese bloque proviene de cubrir a otro profesor.
+   2026-05-07 — Fase Plan B opción A. */
+.eventOverrideMeta {
+    font-size: 0.65rem;
+    line-height: 1.25;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.eventOverrideSwap {
+    font-weight: 600;
+}
+
 /* Festivos */
 .festivoCell {
     background-color: var(--bg-input); /* Usar variable maestra */
