@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche, 6ª iter.)**: 🟢 **Fase A ✅ + Fase B 5/5 ✅ + Fase C parcial ✅ + Rename + Fase D ✅ + Fase E ✅ Done — los 4 tipos plenamente operativos.** El admin/profe puede crear desde la UI: sustitución (cubre profe), cancelación (clase no se imparte), evento especial (charla/taller), e intercambio bilateral (dos clases linked atómicamente). Cada acción dispara las notificaciones correspondientes a los afectados (admin del centro, solicitante, sustituto, alumnos).
+> **Status (2026-05-07 noche, 7ª iter.)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 ✅ Done.** Los 4 tipos operativos + intercambio bilateral con cascade automático: aprobar/rechazar/revertir UNA cara propaga el cambio a la pareja en el mismo flush via `IntercambioParejaCascadeSubscriber`. Picker visual con grid temático (abreviatura primero, modal ancho dinámico) reemplaza el listado de texto. Selectores de profe incluyen admins-que-imparten.
 >
-> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o validación visual end-to-end.
+> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`).
 
 ---
 
@@ -407,6 +407,31 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 7ª iteración) — Fase E.2 ✅ Done — cascade pareja intercambio + pulido picker
+
+**Pulido del HorarioGridPicker (continuación de la 6ª iter.)**:
+- ModalView pasa a `size="large"` (900px) cuando `tipo=intercambio`. Para los demás tipos sigue `small/medium` como antes. El cambio del tipo en el select dispara re-render → la ventana crece/encoge dinámicamente.
+- Bloques del picker renderizan `materia.abreviatura || materia.nombre` (p.ej. "SI" en vez de "Sistemas informáticos"). El `title` (tooltip al hover) mantiene el nombre completo + grupo + duración. Cabe holgadamente en los ~145px por columna.
+- Selector de profe del picker pasa de `rol_app=profesor` (valor único) a `rol_app=[profesor, admin]` (multi-valor → SQL `IN`). Sara y otros admins-que-imparten aparecen ahora junto a los profes puros. Edge: un admin que NO imparte aparece en la lista pero al elegirlo el grid se renderiza vacío con placeholder claro. Aplicado al mismo filtro en el selector de "Profesor sustituto" de TimeTable y Excepciones admin.
+
+**Fase E.2 — cascade aprobar/cancelar pareja intercambio ✅ Done**:
+
+Limitación documentada en la 6ª iter.: aprobar/rechazar/cancelar UNA cara de un intercambio bilateral dejaba la otra colgada. Sara podía aprobar la cara A y olvidar la B → solo se aplicaba media permuta. Solución: nuevo subscriber `IntercambioParejaCascadeSubscriber`:
+
+- `#[AsDoctrineListener(event: Events::preUpdate)]` — detecta cambios en `estado` de cualquier `ExcepcionHorario`.
+- Si la entidad tiene `intercambioPareja` y la pareja no está ya en el estado nuevo, replica `setEstado` en la pareja + replica `aprobadaPor` + `fechaResolucion` + `respuestaAdmin` (si la cara original los lleva) + `revertida` (si reversión).
+- `recomputeSingleEntityChangeSet` para que Doctrine schedule el UPDATE de la pareja en el MISMO flush.
+- Re-entrancy guard estático `private bool $processing`: la cascada modifica B durante el preUpdate de A; cuando B se procese (preUpdate B), el guard devuelve early evitando volver a tocar A. Sin el guard sería loop infinito.
+
+**Compatibilidad con NotificationDispatchSubscriber**: ambos suscriben a `preUpdate` de `ExcepcionHorario`, son listeners independientes. Cuando A cambia → cascade toca B → preUpdate de B fire → NotificationDispatchSubscriber registra B en su cola → en postFlush A y B emiten sus respectivas notificaciones. Resultado deseado: aprobar un intercambio bilateral dispara las notificaciones a las dos partes (titular A, sustituto en cara A, alumnos cara A; titular B, sustituto en cara B, alumnos cara B).
+
+**Validación**:
+1. Sara en `/admin/excepciones` ve dos pendientes (las dos caras del intercambio creado por Alberto).
+2. Aprueba SOLO la cara A → BD: ambas caras quedan APROBADA con el mismo `aprobada_por_id` y `fecha_resolucion`.
+3. Notificaciones llegan a las dos partes.
+4. Sara revierte la aprobación de A (Undo2) → ambas caras pasan a CANCELADA con `revertida=true`. Alumnos de ambos grupos reciben aviso.
+5. Si Sara borra (soft-delete) UNA cara, la otra NO se borra automáticamente — `delete` no es un cambio de `estado`, es un soft-delete distinto. Podríamos cascadar también el delete pero es caso extremo (admin borrando manualmente fila individual). Anotable como E.3 si surge.
 
 ### 2026-05-07 (noche, 6ª iteración) — Fase E ✅ Done — UI atómica intercambio bilateral
 

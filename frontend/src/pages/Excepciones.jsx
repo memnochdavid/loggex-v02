@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from './Crud.module.css';
+import localStyles from './Excepciones.module.css';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import ThemedSelect from '../components/ThemedSelect';
@@ -11,7 +12,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
-import { Plus, Check, X as XIcon, Trash2, Undo2 } from 'lucide-react';
+import { Plus, Check, X as XIcon, Trash2, Undo2, Eye } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -84,6 +85,7 @@ const Excepciones = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [detailRow, setDetailRow] = useState(null);
     const [formData, setFormData] = useState({
         tipo: 'sustitucion',
         horarioBase: '',
@@ -410,6 +412,21 @@ const Excepciones = () => {
             },
         },
         {
+            header: t('exceptions.motivo', { defaultValue: 'Motivo' }),
+            accessor: (row) => {
+                const motivo = row.motivo;
+                if (!motivo) {
+                    return <span className={`${localStyles.motivoCell} ${localStyles.motivoEmpty}`}>—</span>;
+                }
+                return (
+                    <span className={localStyles.motivoCell} title={motivo}>
+                        {motivo}
+                    </span>
+                );
+            },
+            sortable: false,
+        },
+        {
             header: t('exceptions.estado', { defaultValue: 'Estado' }),
             accessor: (row) => <span className={badgeClassFor(row.estado)}>{estadoLabel(row.estado)}</span>,
             sortable: true,
@@ -423,6 +440,13 @@ const Excepciones = () => {
             header: t('common.actions'),
             accessor: (row) => (
                 <div className={styles.actions}>
+                    <button
+                        className={styles.iconButton}
+                        onClick={() => setDetailRow(row)}
+                        title={t('exceptions.viewDetail', { defaultValue: 'Ver detalle' })}
+                    >
+                        <Eye size={18} />
+                    </button>
                     {row.estado === 'pendiente' && (
                         <>
                             <button
@@ -673,6 +697,141 @@ const Excepciones = () => {
                             rows={3}
                         />
                     </div>
+                </ModalView>
+
+                <ModalView
+                    isOpen={!!detailRow}
+                    onClose={() => setDetailRow(null)}
+                    title={t('exceptions.detailTitle', { defaultValue: 'Detalle de la incidencia' })}
+                    size="medium"
+                    cancelText={t('common.close')}
+                >
+                    {detailRow && (() => {
+                        const row = detailRow;
+                        const h = row.horarioBase;
+                        const imp = h?.imparticion;
+                        const tramo = h ? `${formatHora(h.horaInicio)}–${formatHora(h.horaFin)}` : '—';
+                        const dia = h?.diaSemana;
+                        const diaLabel = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][dia] || '';
+                        const materia = imp?.materia?.nombre || '—';
+                        const grupo = imp?.grupo;
+                        const grupoLabel = grupo
+                            ? `${grupo.curso ? `${grupo.curso}º ` : ''}${grupo.abreviatura || grupo.nombre || ''}`.trim()
+                            : '—';
+                        const titular = userName(imp?.profesor) || '—';
+                        const sustituto = (() => {
+                            if (row.tipo === 'cancelado') return null;
+                            const ie = row.imparticionEfectiva;
+                            if (ie) {
+                                const ieProf = userName(ie.profesor);
+                                const ieMat = ie.materia?.nombre;
+                                const ieGr = ie.grupo;
+                                const ieGrLabel = ieGr ? `${ieGr.curso ? `${ieGr.curso}º ` : ''}${ieGr.abreviatura || ieGr.nombre || ''}`.trim() : '';
+                                return [ieProf, ieMat, ieGrLabel].filter(Boolean).join(' · ');
+                            }
+                            return userName(row.profeOverride);
+                        })();
+                        const fmtDateTime = (iso) => {
+                            if (!iso) return '—';
+                            const d = new Date(iso);
+                            if (Number.isNaN(d.getTime())) return '—';
+                            return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        };
+                        const Field = ({ label, value, muted = false }) => (
+                            <div>
+                                <dt className={localStyles.detailLabel}>{label}</dt>
+                                <dd className={`${localStyles.detailValue}${muted ? ' ' + localStyles.detailValueMuted : ''}`}>
+                                    {value ?? '—'}
+                                </dd>
+                            </div>
+                        );
+
+                        return (
+                            <dl className={localStyles.detailList}>
+                                <Field
+                                    label={t('exceptions.tipo', { defaultValue: 'Tipo' })}
+                                    value={<span className={`${styles.badge} ${styles.badgeNeutral}`}>{tipoLabel(row.tipo)}</span>}
+                                />
+                                <Field
+                                    label={t('exceptions.estado', { defaultValue: 'Estado' })}
+                                    value={
+                                        <span className={localStyles.detailBadgeRow}>
+                                            <span className={badgeClassFor(row.estado)}>{estadoLabel(row.estado)}</span>
+                                            {row.revertida && (
+                                                <span className={`${styles.badge} ${styles.badgeInactive}`}>
+                                                    {t('exceptions.revertedBadge', { defaultValue: 'Revertida' })}
+                                                </span>
+                                            )}
+                                        </span>
+                                    }
+                                />
+                                <Field
+                                    label={t('exceptions.date', { defaultValue: 'Fecha' })}
+                                    value={`${diaLabel} · ${formatFechaEs(row.fechaConcreta)}`}
+                                />
+                                <Field
+                                    label={t('exceptions.slot', { defaultValue: 'Tramo' })}
+                                    value={tramo}
+                                />
+                                <Field
+                                    label={t('exceptions.subjectGroup', { defaultValue: 'Materia · Grupo' })}
+                                    value={`${materia} · ${grupoLabel}`}
+                                />
+                                <Field
+                                    label={t('exceptions.titular', { defaultValue: 'Titular' })}
+                                    value={titular}
+                                />
+                                {sustituto !== null && (
+                                    <Field
+                                        label={t('exceptions.override', { defaultValue: 'Sustituto / Cambio' })}
+                                        value={sustituto || '—'}
+                                    />
+                                )}
+                                <Field
+                                    label={t('exceptions.requestedBy', { defaultValue: 'Solicita' })}
+                                    value={userName(row.solicitadaPor) || '—'}
+                                />
+                                <Field
+                                    label={t('exceptions.fechaSolicitud', { defaultValue: 'Fecha solicitud' })}
+                                    value={fmtDateTime(row.fechaSolicitud)}
+                                />
+                                <Field
+                                    label={t('exceptions.aprobadaPor', { defaultValue: 'Resuelta por' })}
+                                    value={userName(row.aprobadaPor) || (row.estado === 'pendiente' ? t('exceptions.pendingResolution', { defaultValue: 'Sin resolver' }) : '—')}
+                                    muted={!row.aprobadaPor}
+                                />
+                                {row.fechaResolucion && (
+                                    <Field
+                                        label={t('exceptions.fechaResolucion', { defaultValue: 'Fecha resolución' })}
+                                        value={fmtDateTime(row.fechaResolucion)}
+                                    />
+                                )}
+                                <div className={localStyles.detailSection} aria-hidden="true" />
+                                <Field
+                                    label={t('exceptions.motivo', { defaultValue: 'Motivo' })}
+                                    value={row.motivo || '—'}
+                                    muted={!row.motivo}
+                                />
+                                <Field
+                                    label={t('exceptions.observaciones', { defaultValue: 'Observaciones' })}
+                                    value={row.observaciones || '—'}
+                                    muted={!row.observaciones}
+                                />
+                                {row.respuestaAdmin && (
+                                    <Field
+                                        label={t('exceptions.respuestaAdmin', { defaultValue: 'Respuesta del admin' })}
+                                        value={row.respuestaAdmin}
+                                    />
+                                )}
+                                {row.intercambioPareja && (
+                                    <Field
+                                        label={t('exceptions.intercambioParejaLabel', { defaultValue: 'Pareja del intercambio' })}
+                                        value={`#${row.intercambioPareja.id ?? row.intercambioPareja['@id']?.split('/').pop() ?? '?'}`}
+                                    />
+                                )}
+                            </dl>
+                        );
+                    })()}
                 </ModalView>
             </div>
         </Layout>
