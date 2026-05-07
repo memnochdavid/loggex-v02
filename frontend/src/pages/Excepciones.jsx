@@ -31,7 +31,13 @@ import { useConfirm } from '../context/ConfirmContext';
  *
  * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Fase C.
  */
+// TIPOS para filtros y display: incluyen los 4 valores. La opción `intercambio`
+// se mantiene en el filtro para poder ver futuros registros bilaterales.
 const TIPOS = ['intercambio', 'sustitucion', 'cancelado', 'evento_especial'];
+// TIPOS_CREATE: los que el modal de creación expone. `intercambio` se gatea
+// hasta Fase E (UI atómica de pareja); sin la pareja, una fila intercambio
+// queda huérfana y no aporta.
+const TIPOS_CREATE = ['sustitucion', 'cancelado', 'evento_especial'];
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada', 'cancelada'];
 
 const formatHora = (iso) => {
@@ -526,7 +532,7 @@ const Excepciones = () => {
                             onChange={handleInputChange}
                             required
                         >
-                            {TIPOS.map(tp => (
+                            {TIPOS_CREATE.map(tp => (
                                 <option key={tp} value={tp}>{tipoLabel(tp)}</option>
                             ))}
                         </select>

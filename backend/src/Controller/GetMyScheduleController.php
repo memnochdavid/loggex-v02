@@ -179,11 +179,115 @@ class GetMyScheduleController extends AbstractController
         // imparticion, EVENTO_ESPECIAL marca la franja como no curricular).
         $excepciones = $this->loadExcepcionesAplicables($events, $entityManager);
 
+        // Fase B.2 (2026-05-07): eventos sintéticos donde el user es el
+        // profe asignado por una excepción aprobada (sustituto, override).
+        // Sin esto, Joaquín cubriendo a Alberto no veía nada en SU /horarios.
+        // Cada synthetic event lleva `_overrideDate` para que el frontend lo
+        // muestre solo en esa fecha exacta, no como recurrente.
+        $overrideAssignedEvents = $this->loadOverrideAssignedEvents($user, $entityManager);
+        if (!empty($overrideAssignedEvents)) {
+            $events = array_merge($events, $overrideAssignedEvents);
+        }
+
         return [
             'events' => $events,
             'slots' => $slots,
             'excepciones' => $excepciones,
         ];
+    }
+
+    /**
+     * Para el user actual, devuelve eventos sintéticos correspondientes a
+     * excepciones APROBADAS donde le toca cubrir/sustituir a otro profe en
+     * una fecha concreta (futura o de hoy en adelante). El evento usa los
+     * datos del horarioBase (día, hora, materia, grupo, aula) y marca
+     * `_overrideDate` para que el frontend solo lo pinte en esa fecha.
+     *
+     * Cubre dos vías:
+     *   - profeOverride = user (típico SUSTITUCION).
+     *   - imparticionEfectiva.profesor = user (típico INTERCAMBIO).
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function loadOverrideAssignedEvents(User $user, EntityManagerInterface $em): array
+    {
+        $hoy = (new \DateTimeImmutable())->format('Y-m-d');
+        $dql = "SELECT eh
+                FROM App\\Entity\\ExcepcionHorario eh
+                JOIN eh.horarioBase hb
+                JOIN hb.imparticion bi
+                JOIN bi.materia bm
+                JOIN bi.grupo bg
+                LEFT JOIN eh.imparticionEfectiva ie
+                LEFT JOIN ie.materia iem
+                LEFT JOIN ie.grupo ieg
+                WHERE eh.deleted = false
+                  AND eh.estado = :estado
+                  AND eh.fechaConcreta >= :hoy
+                  AND (eh.profeOverride = :user OR ie.profesor = :user)";
+
+        $rows = $em->createQuery($dql)
+            ->setParameter('estado', \App\Entity\EstadoExcepcion::APROBADA)
+            ->setParameter('hoy', $hoy)
+            ->setParameter('user', $user)
+            ->getResult();
+
+        $out = [];
+        foreach ($rows as $eh) {
+            /** @var \App\Entity\ExcepcionHorario $eh */
+            $hb = $eh->getHorarioBase();
+            if (!$hb) continue;
+
+            // Si la excepción tiene imparticionEfectiva (intercambio), el evento
+            // sintético usa la materia/grupo/profe de esa imp; si no, los del base.
+            $impEf = $eh->getImparticionEfectiva();
+            $imp = $impEf ?? $hb->getImparticion();
+            if (!$imp) continue;
+            $materia = $imp->getMateria();
+            $grupo = $imp->getGrupo();
+            // Profe del evento sintético: profeOverride si lo hay; si no, el de
+            // imparticionEfectiva. Si ninguno, el del base como último recurso
+            // (caso edge — no debería ocurrir si la query lo filtra).
+            $profeFinal = $eh->getProfeOverride() ?? $imp->getProfesor();
+
+            $profeNombre = 'Sin asignar';
+            if ($profeFinal) {
+                $profeNombre = trim(($profeFinal->getNombre() ?? '') . ' ' . ($profeFinal->getApellidos() ?? ''));
+            }
+
+            $fechaConcretaIso = $eh->getFechaConcreta()?->format('Y-m-d');
+
+            $out[] = [
+                // Prefijo `eh-` en el id para distinguir eventos sintéticos del
+                // schedule normal y evitar colisiones si por casualidad un
+                // horario tiene el mismo id numérico.
+                'id' => 'eh-' . $eh->getId(),
+                'diaSemana' => $hb->getDiaSemana(),
+                'horaInicio' => $hb->getHoraInicio()->format('H:i'),
+                'horaFin' => $hb->getHoraFin()->format('H:i'),
+                'aula' => $hb->getAula(),
+                'materia' => $materia?->getNombre() ?? '—',
+                'moduloAbreviatura' => $materia?->getAbreviatura(),
+                'moduloId' => $materia?->getId(),
+                'grupo' => $grupo?->getNombre(),
+                'grupoAbreviatura' => $grupo?->getAbreviatura(),
+                'grupoCurso' => $grupo?->getCurso(),
+                'grupoId' => $grupo?->getId(),
+                'profesor' => $profeNombre,
+                'imparticionId' => $imp->getId(),
+                'periodoLectivoId' => null,
+                'periodoLectivoTipo' => null,
+                'periodoLectivoFechaInicio' => null,
+                'periodoLectivoFechaFin' => null,
+                // Marcadores específicos para el frontend (Fase B.2).
+                '_overrideDate' => $fechaConcretaIso,
+                '_overrideAssigned' => true,
+                '_overrideTipo' => $eh->getTipo()?->value,
+                '_overrideMotivo' => $eh->getMotivo(),
+                '_overrideExcepcionId' => $eh->getId(),
+            ];
+        }
+        return $out;
     }
 
     /**

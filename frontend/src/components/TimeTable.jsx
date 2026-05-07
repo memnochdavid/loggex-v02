@@ -554,6 +554,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                     sustitucion: 'Sustitución',
                                                     cancelado: 'Cancelada',
                                                     evento_especial: 'Evento especial',
+                                                    asignada: 'Cubres esta clase',
                                                   }[exc.tipo] || 'Excepción'}${exc.motivo ? ` — ${exc.motivo}` : ''}`
                                                 : t('timetable.viewDetails');
                                             const overrideName = exc?.profeOverride?.nombre
@@ -584,13 +585,15 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                                         <div className={styles.eventExceptionTag}>
                                                             {cancelado
                                                                 ? '✕ Cancelada'
-                                                                : exc.tipo === 'sustitucion' && overrideName
-                                                                    ? `↔ ${overrideName}`
-                                                                    : exc.tipo === 'intercambio' && overrideName
-                                                                        ? `⇄ ${overrideName}`
-                                                                        : exc.tipo === 'evento_especial'
-                                                                            ? '★ Evento'
-                                                                            : '● Excepción'}
+                                                                : exc.tipo === 'asignada'
+                                                                    ? '✦ Cubres'
+                                                                    : exc.tipo === 'sustitucion' && overrideName
+                                                                        ? `↔ ${overrideName}`
+                                                                        : exc.tipo === 'intercambio' && overrideName
+                                                                            ? `⇄ ${overrideName}`
+                                                                            : exc.tipo === 'evento_especial'
+                                                                                ? '★ Evento'
+                                                                                : '● Excepción'}
                                                         </div>
                                                     )}
                                                 </div>
@@ -849,7 +852,8 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                     <option value="sustitucion">{t('exceptions.types.sustitucion', { defaultValue: 'Sustitución' })}</option>
                                     <option value="cancelado">{t('exceptions.types.cancelado', { defaultValue: 'Cancelado' })}</option>
                                     <option value="evento_especial">{t('exceptions.types.evento_especial', { defaultValue: 'Evento especial' })}</option>
-                                    <option value="intercambio">{t('exceptions.types.intercambio', { defaultValue: 'Intercambio' })}</option>
+                                    {/* INTERCAMBIO se oculta del create hasta Fase E (UI atómica de pareja).
+                                        Sin la pareja, una excepción intercambio queda huérfana y no aporta. */}
                                 </select>
                             </div>
                             {(excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && (

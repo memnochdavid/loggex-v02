@@ -86,6 +86,26 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     }
 
     const filtered = mySchedule.filter(e => {
+      // Eventos sintéticos por excepción asignada (Fase B.2): el user es
+      // sustituto/override en una excepción aprobada para fecha concreta.
+      // Se muestran SOLO en la semana que contiene esa fecha exacta.
+      if (e._overrideDate) {
+        if (!e._overrideDate) return false;
+        // Calcular el rango de la semana visible (lunes-domingo) y comprobar.
+        const a = new Date(selectedDate);
+        const curIso = a.getDay() === 0 ? 7 : a.getDay();
+        const monday = new Date(a);
+        monday.setDate(a.getDate() - (curIso - 1));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const isoOf = (d) => {
+          const yy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yy}-${mm}-${dd}`;
+        };
+        return e._overrideDate >= isoOf(monday) && e._overrideDate <= isoOf(sunday);
+      }
       // Eventos sin tipo: legacy/compat — incluir.
       if (!e.periodoLectivoTipo) {
         if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return true;
@@ -134,6 +154,20 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     };
 
     return filtered.map((ev) => {
+      // Eventos sintéticos asignados (Fase B.2): añadir marcador propio
+      // para que TimeTable los pinte con border + tag "Cubres".
+      if (ev._overrideAssigned) {
+        return {
+          ...ev,
+          _excepcion: {
+            tipo: 'asignada',
+            motivo: ev._overrideMotivo,
+            profeOverride: null,
+          },
+          _excepcionTipo: 'asignada',
+        };
+      }
+
       const evDateISO = dateOfIsoDay(ev.diaSemana);
       const overlay = excIndex.get(`${ev.id}|${evDateISO}`);
       if (!overlay) return ev;

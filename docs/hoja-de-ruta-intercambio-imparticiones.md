@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ + Fase B 3/5 ✅ + Fase C parcial (C.1+C.2+C.5) ✅ Done.** Bucle profe→admin operativo end-to-end vía UI: profe pulsa placement en su `TimeTable` → modal "Solicitar cambio" → POST estado=PENDIENTE; admin entra en `/admin/excepciones` → DataTable filtrable → Aprobar/Rechazar inline → render se actualiza en navegadores conectados.
+> **Status (2026-05-07 noche, 4ª iter.)**: 🟡 **Fase A ✅ + Fase B (5/5 incluyendo B.2) ✅ + Fase C parcial (C.1+C.2+C.5) ✅ + Rename "Excepciones"→"Incidencias" + gate INTERCAMBIO Done.** Bucle bilateral operativo: profe solicita → admin aprueba → ambas partes ven el cambio en `/horarios` (titular: badge "↔ sustituto" sobre su clase; sustituto: clase sintética nueva con badge "✦ Cubres"). UI muestra solo los 3 tipos donde la pareja no es necesaria (sustitución, cancelación, evento) hasta que Fase E implemente la UI atómica de intercambio bilateral.
 >
-> **Próxima acción**: validación visual end-to-end del bucle profe→admin (Alberto solicita una sustitución desde su /horarios, Sara la aprueba desde /admin/excepciones, Alberto ve el badge naranja con override). Tras eso → Fase D notificaciones (6 tipos nuevos en catálogo + dispatcher), o Fase B.2/C.3-C.4 polish según prioridad.
+> **Próxima acción**: Fase D (notificaciones — 6 tipos nuevos en catálogo + dispatcher), o Fase E (UI atómica intercambio bilateral), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`).
 
 ---
 
@@ -407,6 +407,29 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 4ª iteración) — Rename "Excepciones" → "Incidencias" + gate intercambio + Fase B.2 ✅ Done
+
+Tras smoke test del bucle profe→admin con Alberto y Sara, tres ajustes derivados de feedback en sesión:
+
+**Rename** "Excepciones" → "Incidencias" (es) / "Incidents" (en) / "Incidències" (ca) / "Incidencias" (gl) / "Intzidentziak" (eu):
+- El admin/profe escolar usa "incidencia" para esta familia (sustitución, cancelación, evento, intercambio). "Excepciones" sonaba técnico.
+- 5 locales actualizados en sidebar.exceptions + exceptions.title + subtitle + newTitle + confirmApprove/Reject/Cancel/Delete + createdSuccess/updated/deleted + create.
+- URL `/admin/excepciones` y entidad/clase backend `ExcepcionHorario` SIN tocar para no invalidar bookmarks ni requerir migración. La consistencia interna prefiere "excepción" como término técnico; el copy externo usa "incidencia".
+- JSON validado en los 5 locales tras edición.
+
+**Gate INTERCAMBIO en select de creación**:
+- Bug observado: el modal "Solicitar cambio" del TimeTable (profe) y el de Excepciones.jsx (admin) listaban "Intercambio" en el select de tipo, pero al elegirlo NO mostraban campos para la pareja → se POSTeaba una excepción huérfana sin imparticionEfectiva ni intercambioPareja. Sara podía aprobarla pero no aportaba nada (clase sin sustituto, sin pareja, sin recuperación).
+- Causa: la UI atómica de pareja de intercambio bilateral está prevista en Fase E. El select estaba abierto antes de tiempo.
+- Fix: array `TIPOS_CREATE` (Excepciones.jsx) excluye `intercambio`. El option en TimeTable.jsx también eliminado. Comentarios explican el motivo. La opción `intercambio` se mantiene en el filtro de la tabla y en el render porque pueden existir filas con ese tipo si se crean por API o cuando llegue Fase E.
+- Cleanup: borrado fila huérfana id=4 que el usuario creó durante el smoke.
+
+**Fase B.2 ✅ Done — backend my-schedule devuelve eventos sintéticos para el sustituto/override**:
+- Gap detectado: cuando Sara aprueba una sustitución donde Joaquín cubre a Alberto, Joaquín NO veía nada en su `/horarios` porque `GetMyScheduleController::computeSchedule` cargaba solo los horarios donde `i.profesor = user`. Joaquín no es titular de ese placement → su schedule queda igual.
+- Fix backend: nuevo método `loadOverrideAssignedEvents($user, $em)` que consulta excepciones APROBADAS futuras (`fechaConcreta >= today`) donde `profeOverride = user OR imparticionEfectiva.profesor = user`. Por cada una, construye un evento sintético con los datos del horarioBase (día, hora, materia/grupo del imp efectivo o del base, profe = override) y lo merge con `events`. Marcadores: `_overrideDate`, `_overrideAssigned`, `_overrideTipo`, `_overrideMotivo`, `_overrideExcepcionId`. ID prefijado `eh-{id}` para distinguirlo de horarios reales y evitar colisiones.
+- Fix frontend `Horarios.jsx`: la memo `visibleSchedule` detecta eventos con `_overrideDate` y los filtra por la semana visible (lunes-domingo de selectedDate). Si caen dentro, los incluye con `_excepcionTipo='asignada'` para que TimeTable los pinte con border + tag visual.
+- Fix frontend `TimeTable.jsx`: nuevo case `tipo='asignada'` en el switch del eventExceptionTag → muestra "✦ Cubres". Tooltip ("Cubres esta clase — motivo X") al hover.
+- Cache invalidation existente ya cubre profeOverride (`CacheInvalidationSubscriber` añadido en Fase B), por lo que Joaquín ve el cambio sin esperar TTL al aprobar Sara.
 
 ### 2026-05-07 (noche, 3ª iteración) — Fase C parcial ✅ Done (C.1 + C.2 + C.5): bucle profe→admin operativo
 
