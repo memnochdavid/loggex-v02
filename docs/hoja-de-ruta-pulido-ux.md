@@ -1,7 +1,8 @@
 # Pulido UX — ajustes y bugs detectados
 
-> **Status (2026-05-05)**: 🟡 **Ronda 1 ✅ Done (2026-04-28, 8 ítems)** — bitácora abajo.
-> **Ronda 2 ✅ cerrada (2026-05-05 noche)**. Los 6 ítems R2.1-R2.6 cerrados: R2.1 con barrido completo de breadcrumbs en TODAS las vistas con `CrudHeader` (incluyendo wrappers `/fechas` y `/admin/horarios`), R2.2-R2.6 cerrados de mañana + residuales de tarde. Ver §"Bitácora Ronda 2".
+> **Status (2026-05-08)**: 🟡 **Ronda 1 ✅ Done (2026-04-28, 8 ítems)** — bitácora abajo.
+> **Ronda 2 ✅ cerrada (2026-05-05 noche)**. Los 6 ítems R2.1-R2.6 cerrados.
+> **Ronda 3 ✅ cerrada (2026-05-08, commit `29ce569`)**: R3.1 selector de columnas DataTable (popover con checkboxes persistido en `localStorage` por `tableId`, aplicado a 16 páginas), R3.2 dropdowns header inmunes a transparencia (técnica de doble capa `--bg-body` + `--bg-card-solid|--bg-card`), R3.3 botón "Rechazar este cambio" pasa a `variant="danger"`.
 
 ---
 
@@ -20,7 +21,15 @@
 | 7 | `admin/horarios` panel Materias: badge "Completo · 25/27.5h" inconsistente al pasar entre rangos | **Bug funcional** | ✅ 2026-04-28 |
 | 8 | Verificar que los profes pueden pedir cambio de turno | Feature/verificación | ✅ 2026-04-28 (no existía → promovido a `hoja-de-ruta-cambio-turno.md`) |
 
-### Ronda 2 — abierta 2026-05-05
+### Ronda 3 — cerrada 2026-05-08
+
+| # | Ítem | Tipo | Estado |
+|---|---|---|---|
+| R3.1 | DataTable: selector de columnas persistido por tabla (popover con checkboxes) | UX | ✅ 2026-05-08 |
+| R3.2 | Header dropdowns (mensajes + notificaciones): inmunizar de transparencia del tema | UX / Bug visual | ✅ 2026-05-08 |
+| R3.3 | TimeTable modal placement: botón "Rechazar este cambio" pasa a `variant="danger"` | UX | ✅ 2026-05-08 |
+
+### Ronda 2 — cerrada 2026-05-05
 
 | # | Ítem | Tipo | Estado |
 |---|---|---|---|
@@ -477,3 +486,63 @@ Reusamos las labels existentes del bloque `sidebar` y los blocks de cada vista (
 **Excluido por diseño**: `HorariosConsumicion.jsx` siempre va embedded (es un tab del wrapper `/admin/horarios`); recibe el mismo breadcrumb que sus vistas hermanas (`Inicio › Horarios (administración)`).
 
 **Bug fix colateral**: en `CatalogoItinerarioDetail.jsx` el placeholder de carga usaba `<TableSkeleton>` (que produce `<tr>`) dentro de un `<div>`, generando warning DOM nesting (`<tr> cannot be a child of <div>`). Sustituido por `<Skeleton>` simples (líneas en `<div>`s). El componente `TableSkeleton` sigue válido para uso dentro de DataTable que sí provee la jerarquía `<table><tbody>` envolvente.
+
+---
+
+# Ronda 3 — abierta 2026-05-08
+
+| # | Ítem | Tipo | Estado |
+|---|---|---|---|
+| R3.1 | DataTable: selector de columnas persistido por tabla (popover con checkboxes) | UX | ✅ 2026-05-08 (commit `29ce569`) |
+| R3.2 | Header dropdowns (mensajes + notificaciones): inmunizar de transparencia del tema | UX / Bug visual | ✅ 2026-05-08 (commit `29ce569`) |
+| R3.3 | TimeTable modal placement: botón "Rechazar este cambio" pasa a `variant="danger"` | UX | ✅ 2026-05-08 (commit `29ce569`) |
+
+## Bitácora Ronda 3
+
+### R3.1 — Selector de columnas en DataTable ✅ 2026-05-08 (`29ce569`)
+
+Cada tabla CRUD permite ocultar columnas con un menú desplegable y la elección persiste por tabla en `localStorage`.
+
+**Hook nuevo** `frontend/src/hooks/useColumnVisibility.js`:
+- `useColumnVisibility(tableId, allColumnIds)` → `[hiddenIds, toggle, reset]`.
+- Persiste en `localStorage` bajo `dataTableHiddenCols_{tableId}`. Sin `tableId` no persiste (la feature no aplica).
+- Sanitiza al cambiar la lista de columnas: si un id persistido ya no existe en `allColumnIds`, lo elimina del set.
+
+**`DataTable.jsx`**:
+- Nueva prop `tableId` (opcional). Sin ella, el botón no aparece.
+- Por columna se reconoce `id` (preferente), `accessor` cuando es string, o `header` como fallback de identidad.
+- `hideable: false` por columna → no aparece en el menú. La columna "Acciones" siempre se queda fija.
+- Botón con icono `Columns3` (lucide) **centrado** en la fila del paginador superior.
+- Popover renderizado vía `createPortal(menu, document.body)` con `position: fixed`. Coords calculadas con `getBoundingClientRect` del botón + clamp horizontal contra viewport. Se reposiciona al scroll/resize. Sin esto el popover se cortaba por el `overflow: hidden` del `.container` (recorte vertical) y no llegaba a quedar visible si la tabla terminaba antes.
+- Estilo del dropdown copia el LanguageSelector del header: `border-radius: var(--radius-lg)`, `box-shadow: var(--shadow-lg)`, animación `slideDown`, items con `padding: 0.6rem 1rem` y hover via `--datatable-header-hover-bg`/`text`. Sin header "Mostrar columnas" — se quitó para máxima similitud con el dropdown de idiomas.
+
+**Layout del paginador** (regresión cuidada): `.pagination` cambió de `flex space-between` a `display: grid; grid-template-columns: 1fr auto 1fr`. Hijos con `grid-column` explícito (`paginationControls: 1`, `columnsCenter: 2`, `pageButtons: 3`). Sin el `grid-column: 3` explícito el paginador inferior centraba `pageButtons` (porque sin tercer hijo el segundo cae en la columna `auto`).
+
+**i18n** × 5: `dataTable.columns` y `dataTable.showColumns` (la segunda no se usa actualmente porque el popover no muestra header — queda reservada por si se reactiva).
+
+**Cobertura**: `tableId` aplicado a las 16 páginas con `<DataTable>`:
+
+| Página | tableId |
+|---|---|
+| Usuarios, Itinerarios, Jornadas, Centros, Imparticiones, Grupos, Materias, Evaluaciones, Matriculas, Festivos, Entregas, Excepciones | minúsculas (`usuarios`, …) |
+| Catálogo Materias, Catálogo Itinerarios, Catálogo Itinerario Detail | `catalogo-…` |
+| Horarios (modo lista) | `horarios` |
+
+Excluido a propósito: `Configuracion.jsx` muestra un preview con `MOCK_DT_COLUMNS` (no tiene sentido persistir nada para una previsualización).
+
+### R3.2 — Dropdowns header inmunes a transparencia ✅ 2026-05-08 (`29ce569`)
+
+Los popovers de mensajes y notificaciones del header (`layout/Header.module.css .dropdown`) se veían translúcidos cuando el tema activo daba alpha a `--bg-card` (glassmorphism). Misma técnica de doble capa que el dropdown del DataTable:
+
+```css
+.dropdown {
+    background-color: var(--bg-body);
+    background-image: linear-gradient(var(--bg-card-solid, var(--bg-card)), var(--bg-card-solid, var(--bg-card)));
+}
+```
+
+`--bg-body` actúa como base sólida. Encima se pinta `--bg-card-solid` (si el tema lo define para ese caso) con fallback a `--bg-card` normal. Si el tema da alpha a `--bg-card`, el `--bg-body` opaco queda por debajo y rellena. Funciona también en el popover de DataTable (`.columnsMenu` lo usa con la misma fórmula).
+
+### R3.3 — Botón "Rechazar este cambio" con variant=danger ✅ 2026-05-08 (`29ce569`)
+
+El botón del modal placement de `TimeTable` para que un destinatario rechace una incidencia INTERCAMBIO pendiente usaba `variant="secondary"` con estilos inline `color: var(--color-error)` y `borderColor: var(--color-error)`. Cambiado a `variant="danger"` para coincidir visualmente con el botón "Cerrar sesión" del `ConfirmLogoutModal` (mismo patrón). Estilos inline eliminados.
