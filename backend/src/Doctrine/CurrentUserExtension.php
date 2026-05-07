@@ -7,6 +7,7 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\Calificacion;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Itinerario;
 use App\Entity\Comunicado;
 use App\Entity\Entrega;
@@ -50,7 +51,8 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             Entrega::class,
             Calificacion::class,
             Comunicado::class,
-            Notificacion::class
+            Notificacion::class,
+            ExcepcionHorario::class,
         ];
 
         if (!in_array($resourceClass, $supportedClasses)) {
@@ -95,6 +97,14 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         // Lógica específica para Calificaciones
         if ($resourceClass === Calificacion::class) {
             $this->addWhereCalificacion($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Excepciones de horario.
+        // Admin del centro: cascada vía horarioBase.imparticion.grupo.centro.
+        // Profe puro: las que le tocan (solicitante / sustituto / titular del placement).
+        if ($resourceClass === ExcepcionHorario::class) {
+            $this->addWhereExcepcionHorario($queryBuilder, $user, $rootAlias);
             return;
         }
 
@@ -224,6 +234,40 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         if (in_array('ROLE_ALUMNO', $user->getRoles())) {
             $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
                ->andWhere('ce.alumno = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
+    }
+
+    /**
+     * Filtro Excepciones de horario por rol (D-C 2026-05-07):
+     *   - Admin de centro: todas las del centro vía cadena
+     *     horarioBase.imparticion.grupo.centro = miCentro.
+     *   - Profe puro: solo las que le tocan: solicitadaPor=self OR
+     *     profeOverride=self OR horarioBase.imparticion.profesor=self.
+     *   - Alumno: ninguna por API directa (Fase A); las verá vía notificaciones
+     *     y composición de su propio horario.
+     */
+    private function addWhereExcepcionHorario(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.horarioBase', $rootAlias), 'eh_h')
+               ->join('eh_h.imparticion', 'eh_i')
+               ->join('eh_i.grupo', 'eh_g')
+               ->andWhere('eh_g.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.horarioBase', $rootAlias), 'eh_h')
+               ->join('eh_h.imparticion', 'eh_i')
+               ->andWhere(sprintf(
+                   '%s.solicitadaPor = :user OR %s.profeOverride = :user OR eh_i.profesor = :user',
+                   $rootAlias, $rootAlias
+               ))
                ->setParameter('user', $user);
             return;
         }

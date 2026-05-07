@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07)**: 🔴 sin empezar. Doc creado tras cerrar el refactor modelo-semanal (Fases A+B+C+D ✅, branch `develop-semanas-lectivas`, commit `4a0d716`). Es la **feature objetivo natural del refactor**: la familia de excepciones puntuales que justificó el cambio de modelo y a la que el doc modelo-semanal apunta como "próximo objetivo".
+> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ Done — en marcha.** Doc creado y D-A a D-G cerradas el mismo día. Fase A entera (modelo + enums + migration + endpoints + processor + filter centro + topic Mercure) implementada. Pendiente de aplicar la migración (`scripts/migrate.sh`) y smoke test del CRUD desde un cliente HTTP.
 >
-> **Bloqueante de arranque**: cerrar **D-A** (granularidad temporal de la excepción). El resto del modelo encaja después; D-A condiciona la entidad y el render.
+> **Próxima acción**: aplicar migración → smoke test creación excepción tipo SUSTITUCION via curl o Postman → si funciona, arrancar Fase B (composición en render).
 
 ---
 
@@ -97,9 +97,27 @@ Ese es el agujero que cierra esta hoja de ruta.
 
 ---
 
-## 3. Decisiones abiertas
+## 3. Decisiones
 
-### D-A — Granularidad de la excepción (BLOQUEANTE)
+### Cerradas (2026-05-07)
+
+| ID | Resolución | Razón |
+|---|---|---|
+| **D-A** | **Opción B** — capa `ExcepcionHorario` aditiva | Las SEMANAs actuales son multi-week; (A)/(C) implican refactor adicional fuerte sin valor pedagógico distinto. (B) es 1 entidad + composición en 4-5 puntos de render. |
+| **D-B** | Enum 4 valores: `INTERCAMBIO`, `SUSTITUCION`, `CANCELADO`, `EVENTO_ESPECIAL` | Cubre 95% de casos sin sobreingeniería. `SEMANA_ATIPICA` diferida a Fase F. |
+| **D-C** | Admin aprueba excepciones que afecten a otros profes/alumnos. Profe crea directamente sus auto-cancelaciones puntuales sin cola. Admin+Profe (sara) salta cola. | Trazabilidad real exige firma del centro; auto-cancelaciones no piden veto. |
+| **D-D** | Reusar `Notificacion` existente. 6 tipos nuevos + i18n × 5. | El sistema ya está operativo desde 2026-05-05. |
+| **D-E** | 5 puntos de composición: `/horario/me`, PDF horario personal, banner anual, tab Consumición, rejilla `/admin/horarios` con badge. | Mínimo para que las excepciones se reflejen donde el usuario las espera. |
+| **D-F** | Soft-delete con flag `revertida` | Coherente con patrón general + auditoría inspectores educativos. |
+| **D-G** | Profe: botón en placement de `TimeTable` `/horarios`. Admin: click en placement de rejilla `/admin/horarios` + vista `/admin/excepciones`. Histórico profe en `/mis-excepciones`. | Ataja al sitio donde el usuario está mirando. |
+
+### Abiertas
+
+(ninguna; D-A a D-G cerradas en sesión 7)
+
+---
+
+### D-A — Granularidad de la excepción (CERRADA — Opción B)
 
 ¿Cómo introducimos la granularidad por fecha?
 
@@ -389,6 +407,49 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche) — Fase A ✅ Done — modelo + endpoints + filtros + LivePublish
+
+Tras cerrar D-A a D-G (todas con la recomendación inicial sin modulación: D-A=B capa aditiva, D-B enum 4 valores, D-C admin aprueba todas las que afecten a otros, D-D reusar `Notificacion`, D-E 5 puntos de composición, D-F soft-delete con `revertida`, D-G UI en placement directo del usuario), implementación completa de Fase A en una sola sesión:
+
+**Entidades nuevas**:
+- `App\Entity\TipoExcepcion` (enum, 4 valores). Helper `afectaCobertura()` distingue CANCELADO/EVENTO_ESPECIAL (sí restan) de INTERCAMBIO/SUSTITUCION (no afectan curricular).
+- `App\Entity\EstadoExcepcion` (enum, 4 valores). Helper `aplicaAlRender()` solo true para APROBADA.
+- `App\Entity\ExcepcionHorario` con `TimestampableTrait`+`SoftDeletableTrait`, validador `Assert\Callback validateCoherencia` (CANCELADO ⇒ imparticionEfectiva/profeOverride NULL; fechaConcreta.diaSemana coincide con horarioBase.diaSemana). Validador estricto del rango SEMANA padre diferido a service (Fase B).
+- `App\Repository\ExcepcionHorarioRepository`.
+
+**Migration** `Version20260507180000`:
+- Tabla `excepcion_horario` con 6 FKs: horario_base (CASCADE on delete), imparticion_efectiva (SET NULL), profe_override (SET NULL), intercambio_pareja self (SET NULL), solicitada_por (CASCADE), aprobada_por (SET NULL).
+- 3 índices funcionales: `idx_eh_fecha (fecha, deleted)`, `idx_eh_horario_fecha (horario, fecha)`, `idx_eh_estado (estado, deleted)` + 6 índices automáticos por FK.
+
+**API Platform** sobre la entidad:
+- Operations: `Get`/`GetCollection` (ROLE_USER), `Post` (PROFESOR/ADMIN/SUPERADMIN, processor `ExcepcionHorarioProcessor`), `Patch` (ADMIN/SUPERADMIN, mismo processor), `Delete` (PROFESOR/ADMIN/SUPERADMIN, processor `SoftDeleteProcessor`).
+- Filtros: SearchFilter sobre 8 propiedades (incluido `horarioBase.periodoLectivo.grupo` + `horarioBase.imparticion.profesor`); DateFilter sobre 3 fechas; OrderFilter sobre 4 campos.
+- Order default: `fechaConcreta DESC, id DESC`.
+
+**Processor** `App\State\ExcepcionHorarioProcessor`:
+- POST: setea `solicitadaPor` desde JWT (no del payload). Si solicitante NO es admin/superadmin, fuerza `estado=PENDIENTE_APROBACION` + nullifica `aprobadaPor`/`fechaResolucion`. Si es admin y crea APROBADA directa, autofirma con su propio user.
+- PATCH: si `estado` pasa a APROBADA/RECHAZADA/CANCELADA y `aprobadaPor` está vacío, lo rellena con el user actual + `fechaResolucion=now`. Reversión APROBADA → CANCELADA marca `revertida=true` (D-F).
+
+**Filtro de visibilidad** `CurrentUserExtension`:
+- Añadido `ExcepcionHorario` a `supportedClasses` + nuevo `addWhereExcepcionHorario` con cascada por rol:
+  - Admin/SuperAdmin: cadena `horarioBase.imparticion.grupo.centro = miCentro` (vía 3 joins). SuperAdmin queda exento por el early-return de la clase.
+  - Profe puro: `solicitadaPor=self OR profeOverride=self OR horarioBase.imparticion.profesor=self`.
+  - Otros roles (ALUMNO): `1=0` por API directa. Verán las que les afecten vía notificaciones (Fase D) y composición de su propio horario (Fase B).
+
+**Live updates**:
+- `#[LivePublish]` con 4 topics declarados: admin del centro + solicitante + profe titular del horario + profeOverride. Topics que no resuelvan placeholders (p.ej. profeOverride NULL) se descartan silenciosamente.
+- `MercureAuthController`: añadido `/users/{userId}/excepciones` al JWT firmado para cada user autenticado. Admin/SuperAdmin ya cubren `/admin/centros/{cid}/excepciones` por wildcard `/admin/centros/{cid}/{rec}` y `/admin/{rec}` existentes.
+- ⚠️ Editar `MercureAuthController` exige logout/login en cada navegador (memoria del proyecto).
+
+**Sin afectar todavía**: todo el render. Las excepciones APROBADAS persisten en BD pero ningún render las consume aún — esto es Fase B. Por tanto la BD puede tener excepciones aprobadas sin que la UI las muestre, lo cual es consistente con un MVP iterativo.
+
+**Pendientes inmediatos para validar Fase A**:
+1. Aplicar migración: `./scripts/migrate.sh` (lo ejecuta el usuario; el script ya hace status + migrate + cache:clear + restart backend).
+2. Smoke test: con curl/Postman, POST `/api/excepcion_horarios` con un horario base existente y profile JWT de un profe → debería devolver 201 con estado=PENDIENTE_APROBACION. PATCH con admin token cambiando estado → debería rellenar aprobadaPor + fechaResolucion automáticamente.
+3. Verificar Mercure: tras logout/login en cliente conectado, abrir DevTools y comprobar que el JWT incluye el topic `/users/{userId}/excepciones`.
+
+**Próximo paso (Fase B)**: composición en render. 5 puntos: `/horario/me`, PDF horario personal, banner anual `/admin/horarios`, tab Consumición, rejilla `/admin/horarios` con badge.
 
 ### 2026-05-07 — Doc creado
 

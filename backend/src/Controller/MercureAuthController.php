@@ -63,6 +63,10 @@ class MercureAuthController extends AbstractController
             "/users/{$userId}/asistencias",
             // Calificaciones propias: vista MisCalificaciones refresca cuando el profe pone/edita la nota.
             "/users/{$userId}/calificaciones",
+            // Excepciones puntuales que afectan al usuario (solicitante, sustituto,
+            // titular del placement). Backend publica a este topic vía LivePublish
+            // cuando se crea/edita/borra una ExcepcionHorario que toca al usuario.
+            "/users/{$userId}/excepciones",
             // Comunicados globales: cualquier usuario autenticado los recibe.
             '/global/comunicados',
         ];
