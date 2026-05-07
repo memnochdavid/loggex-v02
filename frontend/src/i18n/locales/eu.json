@@ -242,7 +242,9 @@
     "rows": "Lerroak:",
     "page": "Orria",
     "loading": "Datuak kargatzen...",
-    "noData": "Ez dago daturik eskuragarri."
+    "noData": "Ez dago daturik eskuragarri.",
+    "columns": "Zutabeak",
+    "showColumns": "Erakutsi zutabeak"
   },
   "searchBar": {
     "placeholder": "Bilatu...",

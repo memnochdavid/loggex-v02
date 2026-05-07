@@ -1106,14 +1106,10 @@ const TimeTable = ({
                             {selectedEvent._overrideCanReject && (
                                 <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
                                     <Button
-                                        variant="secondary"
+                                        variant="danger"
                                         onClick={handleRejectExcepcion}
                                         disabled={rejectingExcepcion}
-                                        style={{
-                                            width: '100%',
-                                            color: 'var(--color-error)',
-                                            borderColor: 'var(--color-error)',
-                                        }}
+                                        style={{ width: '100%' }}
                                     >
                                         <X size={18} style={{ marginRight: '8px' }} />
                                         {rejectingExcepcion

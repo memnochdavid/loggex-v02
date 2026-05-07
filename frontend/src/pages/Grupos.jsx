@@ -546,6 +546,7 @@ const Grupos = () => {
         )}
 
         <DataTable
+            tableId="grupos"
             columns={columns}
             data={grupos}
             totalItems={totalItems}

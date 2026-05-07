@@ -495,7 +495,9 @@
     "rows": "Filas:",
     "page": "Página",
     "loading": "Cargando datos...",
-    "noData": "No hay datos disponibles."
+    "noData": "No hay datos disponibles.",
+    "columns": "Columnas",
+    "showColumns": "Mostrar columnas"
   },
   "searchBar": {
     "placeholder": "Buscar...",

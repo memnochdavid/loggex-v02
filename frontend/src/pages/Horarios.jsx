@@ -875,6 +875,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
         {viewMode === 'list' ? (
             <DataTable
+                tableId="horarios"
                 columns={columns}
                 data={horarios}
                 totalItems={totalItems}

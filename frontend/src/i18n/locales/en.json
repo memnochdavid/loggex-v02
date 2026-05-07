@@ -242,7 +242,9 @@
     "rows": "Rows:",
     "page": "Page",
     "loading": "Loading data...",
-    "noData": "No data available."
+    "noData": "No data available.",
+    "columns": "Columns",
+    "showColumns": "Show columns"
   },
   "searchBar": {
     "placeholder": "Search...",

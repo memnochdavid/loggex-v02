@@ -502,6 +502,7 @@ const Matriculas = () => {
         )}
 
         <DataTable
+            tableId="matriculas"
             columns={columns}
             data={matriculas}
             totalItems={totalItems}

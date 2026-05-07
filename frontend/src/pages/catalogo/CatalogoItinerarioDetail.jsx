@@ -241,6 +241,7 @@ const CatalogoItinerarioDetail = () => {
                     </div>
                 ) : (
                     <DataTable
+                        tableId="catalogo-itinerario-detail"
                         columns={moduleColumns}
                         data={materias}
                         totalItems={materias.length}

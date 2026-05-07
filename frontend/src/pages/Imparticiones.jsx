@@ -617,6 +617,7 @@ const Imparticiones = () => {
         )}
 
         <DataTable
+            tableId="imparticiones"
             columns={columns}
             data={imparticiones}
             totalItems={totalItems}

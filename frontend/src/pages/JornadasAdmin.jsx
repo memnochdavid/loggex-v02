@@ -486,6 +486,7 @@ const JornadasAdmin = () => {
         {error && <div className={styles.error}>{error}</div>}
 
         <DataTable
+          tableId="jornadas"
           columns={columns}
           data={jornadas}
           totalItems={totalItems}

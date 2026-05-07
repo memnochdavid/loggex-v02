@@ -302,7 +302,12 @@
     width: 320px;
     max-width: calc(100vw - var(--space-4));
     color: var(--text-main);
-    background-color: var(--bg-card);
+    /* Doble capa para inmunizar el dropdown del alpha que algunos temas dan a
+       --bg-card (glassmorphism). --bg-body actúa como base sólida; encima se
+       pinta --bg-card (con su variante solid si el tema la define). Misma
+       técnica que el dropdown de columnas del DataTable. */
+    background-color: var(--bg-body);
+    background-image: linear-gradient(var(--bg-card-solid, var(--bg-card)), var(--bg-card-solid, var(--bg-card)));
     border: 1px solid color-mix(in srgb, var(--border-color, currentColor) 35%, transparent);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);

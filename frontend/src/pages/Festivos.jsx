@@ -621,6 +621,7 @@ const Festivos = ({ embedded = false, tabs = null }) => {
         )}
 
         <DataTable
+            tableId="festivos"
             columns={columns}
             data={festivos}
             totalItems={totalItems}

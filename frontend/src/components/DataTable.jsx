@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { TableSkeleton, MobileListSkeleton } from './Skeleton';
 import ThemedSelect from './ThemedSelect';
 import useMediaQuery from '../hooks/useMediaQuery';
+import { useColumnVisibility } from '../hooks/useColumnVisibility';
 import { useTranslation } from 'react-i18next';
 
 /**
- * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string }
+ * @param {Array} columns - Array de objetos { header: string, accessor: string | function, className?: string, sortable?: boolean, sortKey?: string, id?: string, hideable?: boolean }
  * @param {Array} data - Array de datos a mostrar
  * @param {number} totalItems - Total de elementos en el servidor
  * @param {number} itemsPerPage - Elementos por página
@@ -22,13 +24,14 @@ import { useTranslation } from 'react-i18next';
  * @param {Array} pageSizeOptions - Opciones para el selector de tamaño de página
  * @param {string} mobileBreakpoint - Breakpoint para cambiar a vista móvil (ej: '768px', '1024px')
  * @param {number} mobileHeaderColumns - Número de columnas a mostrar en la cabecera del acordeón móvil (default: 1)
+ * @param {string} [tableId] - ID estable de la tabla. Si se define, se activa el control de visibilidad de columnas con persistencia en localStorage (clave `dataTableHiddenCols_{tableId}`).
  */
-const DataTable = ({ 
-    columns, 
-    data, 
-    totalItems, 
-    itemsPerPage, 
-    currentPage, 
+const DataTable = ({
+    columns,
+    data,
+    totalItems,
+    itemsPerPage,
+    currentPage,
     onPageChange,
     onItemsPerPageChange,
     loading, // Único estado de carga
@@ -37,7 +40,8 @@ const DataTable = ({
     onSort,
     pageSizeOptions = [5, 10, 20, 30, 50, 100],
     mobileBreakpoint = '768px',
-    mobileHeaderColumns = 1
+    mobileHeaderColumns = 1,
+    tableId = null
 }) => {
     const { t } = useTranslation();
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
@@ -48,6 +52,17 @@ const DataTable = ({
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
     const options = [...new Set([...pageSizeOptions, itemsPerPage])].sort((a, b) => a - b);
+
+    // Identidad estable por columna: prioriza `id` explícito; si no, usa el
+    // accessor cuando es string; si tampoco, cae al header. Esa cadena entra
+    // como clave del set persistido en localStorage.
+    const columnId = (col) => col.id
+        || (typeof col.accessor === 'string' ? col.accessor : null)
+        || (typeof col.header === 'string' ? col.header : '');
+
+    const allColumnIds = columns.map(columnId);
+    const [hiddenIds, toggleHidden] = useColumnVisibility(tableId, allColumnIds);
+    const visibleColumns = columns.filter(c => !hiddenIds.includes(columnId(c)));
 
     const handleSort = (column) => {
         if (!column.sortable || !onSort) return;
@@ -65,6 +80,10 @@ const DataTable = ({
         || col.header === 'Acciones'
         || col.header === t('common.actions');
 
+    // Columnas ofrecidas en el menú de visibilidad: cualquiera no marcada
+    // hideable:false y que no sea la de "Acciones" (esa siempre se queda).
+    const hideableColumns = columns.filter(c => c.hideable !== false && !isActionsCol(c));
+
     const getCellValue = (col, row) => {
         if (typeof col.accessor === 'function') {
             return col.accessor(row);
@@ -77,6 +96,95 @@ const DataTable = ({
 
     const handleToggle = (id) => {
         setExpandedId(prevId => (prevId === id ? null : id));
+    };
+
+    // Popover de selección de columnas. Se renderiza vía portal a document.body
+    // con position: fixed para escapar del overflow:hidden del .container y
+    // quedar siempre visible aunque la tabla termine antes verticalmente.
+    // Reposiciona al scroll/resize y se cierra al click fuera o Escape.
+    const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+    const columnsMenuRef = useRef(null);
+    const columnsBtnRef = useRef(null);
+
+    const updateMenuPosition = () => {
+        if (!columnsBtnRef.current) return;
+        const rect = columnsBtnRef.current.getBoundingClientRect();
+        const menuW = columnsMenuRef.current?.offsetWidth ?? 240;
+        const margin = 8;
+        let left = rect.left + rect.width / 2 - menuW / 2;
+        left = Math.max(margin, Math.min(left, window.innerWidth - menuW - margin));
+        setMenuPos({ top: rect.bottom + 8, left });
+    };
+
+    useEffect(() => {
+        if (!columnsMenuOpen) return;
+        updateMenuPosition();
+        const handleClickOutside = (e) => {
+            if (
+                columnsMenuRef.current && !columnsMenuRef.current.contains(e.target)
+                && columnsBtnRef.current && !columnsBtnRef.current.contains(e.target)
+            ) {
+                setColumnsMenuOpen(false);
+            }
+        };
+        const handleEscape = (e) => { if (e.key === 'Escape') setColumnsMenuOpen(false); };
+        const handleReposition = () => updateMenuPosition();
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        window.addEventListener('scroll', handleReposition, true);
+        window.addEventListener('resize', handleReposition);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+            window.removeEventListener('scroll', handleReposition, true);
+            window.removeEventListener('resize', handleReposition);
+        };
+    }, [columnsMenuOpen]);
+
+    const renderColumnsControl = () => {
+        if (!tableId || hideableColumns.length === 0) return null;
+        return (
+            <div className={styles.columnsControl}>
+                <button
+                    ref={columnsBtnRef}
+                    type="button"
+                    className={styles.columnsButton}
+                    onClick={() => setColumnsMenuOpen(o => !o)}
+                    aria-label={t('dataTable.columns', { defaultValue: 'Columnas' })}
+                    aria-expanded={columnsMenuOpen}
+                    title={t('dataTable.columns', { defaultValue: 'Columnas' })}
+                    disabled={loading}
+                >
+                    <Columns3 size={16} />
+                </button>
+                {columnsMenuOpen && createPortal(
+                    <div
+                        ref={columnsMenuRef}
+                        className={styles.columnsMenu}
+                        role="menu"
+                        style={{ top: menuPos.top, left: menuPos.left }}
+                    >
+                        {hideableColumns.map((col) => {
+                            const id = columnId(col);
+                            const isVisible = !hiddenIds.includes(id);
+                            return (
+                                <label key={id} className={styles.columnsMenuItem}>
+                                    <input
+                                        type="checkbox"
+                                        className={styles.columnsCheckbox}
+                                        checked={isVisible}
+                                        onChange={() => toggleHidden(id)}
+                                    />
+                                    <span className={styles.columnsMenuLabel}>{col.header}</span>
+                                </label>
+                            );
+                        })}
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
     };
 
     const renderPagination = (position) => {
@@ -102,6 +210,12 @@ const DataTable = ({
                         {totalItems > 0 ? `${startItem}-${endItem} ${t('common.of')} ${totalItems}` : '0 de 0'}
                     </div>
                 </div>
+
+                {position === 'top' && (
+                    <div className={styles.columnsCenter}>
+                        {renderColumnsControl()}
+                    </div>
+                )}
                 
                 <div className={styles.pageButtons}>
                     <button 
@@ -156,7 +270,7 @@ const DataTable = ({
                         <table className={styles.table}>
                             <thead className={styles.thead}>
                                 <tr>
-                                    {columns.map((col, index) => {
+                                    {visibleColumns.map((col, index) => {
                                         const isSorted = sortColumn === (col.sortKey || col.accessor);
                                         const actionsClass = isActionsCol(col) ? styles.actionsCol : '';
 
@@ -183,14 +297,14 @@ const DataTable = ({
                                 {/* Caso 1: Cargando — skeleton siempre que loading (también al paginar/filtrar) */}
                                 {loading ? (
                                     <TableSkeleton
-                                        columns={columns.length}
+                                        columns={visibleColumns.length}
                                         rows={Math.min(itemsPerPage || 5, 8)}
                                         tdClassName={styles.td}
                                     />
                                 ) : noDataAvailable ? (
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
-                                        <td colSpan={columns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
+                                        <td colSpan={visibleColumns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
                                             {t('dataTable.noData')}
                                         </td>
                                     </tr>
@@ -198,7 +312,7 @@ const DataTable = ({
                                     /* Caso 3: Datos disponibles */
                                     data.map((row, rowIndex) => (
                                         <tr key={row.id || row['@id'] || rowIndex} className={styles.dataRow}>
-                                            {columns.map((col, colIndex) => {
+                                            {visibleColumns.map((col, colIndex) => {
                                                 const actionsClass = isActionsCol(col) ? styles.actionsCell : '';
                                                 return (
                                                     <td key={colIndex} className={`${styles.td} ${col.className || ''} ${actionsClass}`}>
@@ -235,7 +349,7 @@ const DataTable = ({
                                 expandedId={expandedId}
                                 onToggle={handleToggle}
                                 renderHeader={(row) => {
-                                    const headerCols = columns.slice(0, mobileHeaderColumns);
+                                    const headerCols = visibleColumns.slice(0, mobileHeaderColumns);
                                     const actionsCol = columns.find(isActionsCol);
                                     
                                     return (
@@ -257,7 +371,7 @@ const DataTable = ({
                                 }}
                                 renderItem={(row) => (
                                     <div className={styles.mobileCardContent}>
-                                        {columns.slice(mobileHeaderColumns).filter(col => !isActionsCol(col)).map((col, index) => (
+                                        {visibleColumns.slice(mobileHeaderColumns).filter(col => !isActionsCol(col)).map((col, index) => (
                                             <div key={index} className={styles.mobileRow}>
                                                 <span className={styles.mobileLabel}>{col.header}</span>
                                                 <span className={styles.mobileValue}>

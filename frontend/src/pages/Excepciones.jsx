@@ -635,6 +635,7 @@ const Excepciones = () => {
                 )}
 
                 <DataTable
+                    tableId="excepciones"
                     columns={columns}
                     data={excepciones}
                     totalItems={totalItems}

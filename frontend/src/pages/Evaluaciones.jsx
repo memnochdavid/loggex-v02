@@ -300,6 +300,7 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
       {error && <div className={styles.errorContainer}><p>{error}</p></div>}
 
       <DataTable
+        tableId="evaluaciones"
         columns={columns}
         data={periodos}
         totalItems={totalItems}

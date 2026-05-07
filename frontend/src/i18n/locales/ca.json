@@ -242,7 +242,9 @@
     "rows": "Files:",
     "page": "Pàgina",
     "loading": "Carregant dades...",
-    "noData": "No hi ha dades disponibles."
+    "noData": "No hi ha dades disponibles.",
+    "columns": "Columnes",
+    "showColumns": "Mostrar columnes"
   },
   "searchBar": {
     "placeholder": "Cercar...",

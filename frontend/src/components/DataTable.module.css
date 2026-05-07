@@ -134,14 +134,22 @@
 }
 
 .pagination {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     padding: var(--space-3) var(--space-4);
     background-color: var(--datatable-pagination-bg, var(--color-gray-50));
     color: var(--datatable-pagination-text, var(--color-gray-600));
-    flex-wrap: wrap;
     gap: var(--space-4);
+}
+
+.columnsCenter {
+    grid-column: 2;
+    justify-self: center;
+}
+
+.paginationControls {
+    grid-column: 1;
 }
 
 .paginationControls {
@@ -190,6 +198,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    grid-column: 3;
+    justify-self: end;
 }
 
 .pageButton {
@@ -242,6 +252,118 @@
     margin: 0 var(--space-2);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+}
+
+/* Control de visibilidad de columnas — popover anclado al botón con icono
+   Columns. Themed via variables: comparte tokens con .pageButton. */
+.columnsControl {
+    position: relative;
+    display: inline-flex;
+}
+
+.columnsButton {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-color);
+    background-color: var(--datatable-pagination-btn-bg, var(--bg-input));
+    color: var(--datatable-pagination-btn-text, var(--text-main));
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard),
+        border-color var(--dur-base) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.columnsButton:hover:not(:disabled) {
+    background-color: var(--datatable-pagination-btn-hover-bg, var(--bg-hover));
+    color: var(--datatable-pagination-btn-hover-text, var(--text-main));
+    border-color: var(--color-primary-300);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.columnsButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+}
+
+.columnsButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Dropdown imitando al del LanguageSelector del header: bg-card-solid con
+   fallback a doble capa que fuerza opacidad si el tema da alpha a --bg-card,
+   border-radius lg, shadow lg, animación slideDown y items con hover suave. */
+.columnsMenu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 220px;
+    max-height: 320px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: var(--bg-body);
+    background-image: linear-gradient(var(--bg-card-solid, var(--bg-card)), var(--bg-card-solid, var(--bg-card)));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    animation: columnsMenuSlideDown var(--dur-base) var(--ease-out-quart);
+}
+
+@keyframes columnsMenuSlideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.columnsMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-radius: calc(var(--radius-md) - 2px);
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.columnsMenuItem:hover {
+    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+    color: var(--datatable-header-hover-text, var(--color-gray-900));
+}
+
+.columnsMenuItem:active {
+    transform: scale(0.97);
+}
+
+.columnsCheckbox {
+    flex: 0 0 auto;
+    accent-color: var(--color-primary-500);
+    cursor: pointer;
+}
+
+.columnsMenuLabel {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .columnsMenu { animation: none; }
+    .columnsMenuItem { transition: none; }
 }
 
 .emptyState {

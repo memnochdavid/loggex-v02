@@ -822,6 +822,7 @@ const Entregas = () => {
           footer={<Button type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>{t('common.close')}</Button>}
         >
           <DataTable
+            tableId="entregas"
             columns={entregasColumns}
             data={entregasTarea}
             loading={loadingEntregas}

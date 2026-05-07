@@ -535,6 +535,7 @@ const Centros = () => {
                 )}
 
                 <DataTable
+                    tableId="centros"
                     columns={columns}
                     data={centros}
                     totalItems={totalItems}

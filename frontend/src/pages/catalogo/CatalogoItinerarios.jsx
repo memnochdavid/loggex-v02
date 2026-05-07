@@ -360,6 +360,7 @@ const CatalogoItinerarios = () => {
                 {error && <div className={crudStyles.errorContainer}>{error}</div>}
 
                 <DataTable
+                    tableId="catalogo-itinerarios"
                     columns={columns}
                     data={(() => {
                         // Filtro derivado por CCAA en cliente (sobre la página visible).
