@@ -156,7 +156,10 @@ const HorarioGridPicker = ({
                         value={pickedProfe}
                         onChange={setPickedProfe}
                         endpoint="/api/users"
-                        extraParams={{ rol_app: 'profesor' }}
+                        // Incluye admins que también imparten (Sara). Pure admins
+                        // sin imparticiones aparecen pero el grid se renderiza
+                        // vacío con el placeholder "este profesor no tiene horario".
+                        extraParams={{ rol_app: ['profesor', 'admin'] }}
                         getOptionLabel={(u) => [u.nombre, u.apellidos].filter(Boolean).join(' ').trim() || u.email || '—'}
                         getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
                         placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}
@@ -240,8 +243,12 @@ const HorarioGridPicker = ({
                                 }
                                 const isSelected = String(h.id) === String(value)
                                     && fechaISO === selectedFecha;
-                                const moduloId = h.imparticion?.materia?.id || 0;
-                                const materia = h.imparticion?.materia?.nombre || '?';
+                                const mat = h.imparticion?.materia;
+                                const moduloId = mat?.id || 0;
+                                // Abreviatura primero (cabe en 145px), nombre completo
+                                // como fallback si no hay abreviatura definida en el catálogo.
+                                const materiaShort = mat?.abreviatura || mat?.nombre || '?';
+                                const materiaLong = mat?.nombre || materiaShort;
                                 const grupo = h.imparticion?.grupo;
                                 const grupoLabel = grupo
                                     ? `${grupo.curso ? `${grupo.curso}º` : ''} ${grupo.abreviatura || grupo.nombre || ''}`.trim()
@@ -253,9 +260,9 @@ const HorarioGridPicker = ({
                                         className={`${styles.cell} ${styles.block}${isSelected ? ' ' + styles.blockSelected : ''}`}
                                         style={{ backgroundColor: colorForModule(moduloId) }}
                                         onClick={() => handleClickCell(h, fechaISO)}
-                                        title={`${materia} · ${grupoLabel} · ${s.hi}-${s.hf} (${durMinutes(s.hi, s.hf)}min)`}
+                                        title={`${materiaLong} · ${grupoLabel} · ${s.hi}-${s.hf} (${durMinutes(s.hi, s.hf)}min)`}
                                     >
-                                        <div className={styles.blockMateria}>{materia}</div>
+                                        <div className={styles.blockMateria}>{materiaShort}</div>
                                         <div className={styles.blockMeta}>{grupoLabel}</div>
                                     </button>
                                 );

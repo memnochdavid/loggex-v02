@@ -547,9 +547,10 @@ const Excepciones = () => {
                 <ModalView
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
-                    title={t('exceptions.newTitle', { defaultValue: 'Nueva excepción' })}
+                    title={t('exceptions.newTitle', { defaultValue: 'Nueva incidencia' })}
                     onSubmit={handleSubmit}
                     isSubmitting={saving}
+                    size={formData.tipo === 'intercambio' ? 'large' : 'medium'}
                 >
                     <div className={styles.formGroup}>
                         <label className={styles.label}>{t('exceptions.tipo', { defaultValue: 'Tipo' })}</label>
@@ -624,7 +625,8 @@ const Excepciones = () => {
                                 value={formData.profeOverride}
                                 onChange={(v) => setFormData(p => ({ ...p, profeOverride: v }))}
                                 endpoint="/api/users"
-                                extraParams={{ rol_app: 'profesor' }}
+                                // Incluye admins que también imparten (Sara, etc.).
+                                extraParams={{ rol_app: ['profesor', 'admin'] }}
                                 getOptionLabel={(u) => userName(u)}
                                 getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
                                 placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}

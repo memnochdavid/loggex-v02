@@ -824,7 +824,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                 : selectedEvent.materia)
                         : ''
                 }
-                size={isTakingAttendance ? "large" : "small"}
+                size={(isTakingAttendance || (isRequestingException && excForm.tipo === 'intercambio')) ? "large" : "small"}
                 cancelText={(isTakingAttendance || isRequestingException) ? t('common.cancel') : t('common.close')}
                 // Footer personalizado para el modo de asistencia y solicitud de excepción
                 footer={isTakingAttendance ? (
@@ -893,7 +893,8 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                         value={excForm.profeOverride}
                                         onChange={(v) => setExcForm(p => ({ ...p, profeOverride: v }))}
                                         endpoint="/api/users"
-                                        extraParams={{ rol_app: 'profesor' }}
+                                        // Incluye admins que también imparten (p.ej. sara@eag).
+                                        extraParams={{ rol_app: ['profesor', 'admin'] }}
                                         getOptionLabel={(u) => [u.nombre, u.apellidos].filter(Boolean).join(' ').trim() || u.email || '—'}
                                         getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
                                         placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}
