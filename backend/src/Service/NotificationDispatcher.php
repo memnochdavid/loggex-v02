@@ -5,9 +5,11 @@ namespace App\Service;
 use App\Entity\Calificacion;
 use App\Entity\Comunicado;
 use App\Entity\Entrega;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Matricula;
 use App\Entity\Notificacion;
 use App\Entity\Tarea;
+use App\Entity\TipoExcepcion;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -249,6 +251,222 @@ class NotificationDispatcher
                 'tareaTitulo'  => $tareaTitulo,
             ],
         ]);
+    }
+
+    // ─── ExcepcionHorario / Incidencias (Fase D 2026-05-07) ──────────────────
+    //
+    // Catálogo de tipos cubierto:
+    //   excepcion_pendiente   → admin(s) del centro al crear PENDIENTE
+    //   excepcion_aprobada    → solicitante al pasar a APROBADA
+    //   excepcion_rechazada   → solicitante al pasar a RECHAZADA
+    //   sustitucion_asignada  → profeOverride al pasar a APROBADA (si lo hay)
+    //   clase_cancelada       → alumnos del grupo (tipo=CANCELADO al APROBAR)
+    //   clase_trasladada      → alumnos del grupo (resto de tipos al APROBAR)
+
+    /**
+     * Notifica a los admin del centro cuando un profe crea una incidencia
+     * en estado PENDIENTE_APROBACION. La cola la verán al abrir
+     * `/admin/excepciones`.
+     */
+    public function notifyExcepcionPendiente(ExcepcionHorario $eh): void
+    {
+        $centro = $eh->getHorarioBase()?->getImparticion()?->getGrupo()?->getCentro();
+        if ($centro === null) return;
+
+        $solicitante = $eh->getSolicitadaPor();
+        $solicitanteId = $solicitante?->getId();
+        $solicitanteNombre = $solicitante
+            ? trim(($solicitante->getNombre() ?? '') . ' ' . ($solicitante->getApellidos() ?? ''))
+            : 'Un profesor';
+
+        $tipo = $eh->getTipo()?->value ?? '?';
+        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+
+        // Admins/SuperAdmins del centro. SuperAdmin global (sin centro) recibe
+        // también para todos los centros.
+        $admins = $this->em->getRepository(User::class)->createQueryBuilder('u')
+            ->where('u.deleted = :false')
+            ->andWhere("(u.roles LIKE :ra OR u.roles LIKE :rsa)")
+            ->andWhere('u.centro = :centro OR u.centro IS NULL')
+            ->setParameter('false', false)
+            ->setParameter('ra', '%ROLE_ADMIN%')
+            ->setParameter('rsa', '%ROLE_SUPERADMIN%')
+            ->setParameter('centro', $centro)
+            ->getQuery()->getResult();
+
+        foreach ($admins as $admin) {
+            // Evita auto-notificación si el solicitante también es admin
+            // (caso sara, admin+profe). Si el admin solicita, ya sabe.
+            if ($solicitanteId !== null && $admin->getId() === $solicitanteId) continue;
+            $this->createPersist($admin, [
+                'tipo'    => 'excepcion_pendiente',
+                'titulo'  => 'Nueva incidencia pendiente',
+                'mensaje' => sprintf(
+                    '%s ha solicitado una %s para el %s.',
+                    $solicitanteNombre, $this->labelTipoExcepcion($tipo), $fecha
+                ),
+                'enlace'  => '/admin/excepciones',
+                'payload' => [
+                    'excepcionId'        => $eh->getId(),
+                    'tipo'               => $tipo,
+                    'fecha'              => $eh->getFechaConcreta()?->format('Y-m-d'),
+                    'solicitanteId'      => $solicitanteId,
+                    'solicitanteNombre'  => $solicitanteNombre,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Notifica al solicitante el resultado de su petición (APROBADA o
+     * RECHAZADA). Se llama desde el subscriber al detectar transición de
+     * estado en preUpdate.
+     */
+    public function notifyExcepcionResuelta(ExcepcionHorario $eh, bool $aprobada): void
+    {
+        $solicitante = $eh->getSolicitadaPor();
+        if ($solicitante === null) return;
+
+        $tipo = $eh->getTipo()?->value ?? '?';
+        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $aprobador = $eh->getAprobadaPor();
+        // Admin atajo: si solicitante = aprobador (admin creó aprobada directa
+        // o admin aprobó su propia solicitud), no auto-notificar. Sería spam.
+        if ($aprobador !== null && $solicitante->getId() === $aprobador->getId()) {
+            return;
+        }
+        $aprobadorNombre = $aprobador
+            ? trim(($aprobador->getNombre() ?? '') . ' ' . ($aprobador->getApellidos() ?? ''))
+            : 'Administración';
+
+        $tipoNoti = $aprobada ? 'excepcion_aprobada' : 'excepcion_rechazada';
+        $titulo   = $aprobada ? 'Tu incidencia ha sido aprobada' : 'Tu incidencia ha sido rechazada';
+        $verbo    = $aprobada ? 'aprobado' : 'rechazado';
+
+        $this->createPersist($solicitante, [
+            'tipo'    => $tipoNoti,
+            'titulo'  => $titulo,
+            'mensaje' => sprintf(
+                '%s ha %s tu solicitud de %s para el %s.',
+                $aprobadorNombre, $verbo, $this->labelTipoExcepcion($tipo), $fecha
+            ),
+            'enlace'  => '/horarios',
+            'payload' => [
+                'excepcionId' => $eh->getId(),
+                'tipo'        => $tipo,
+                'fecha'       => $eh->getFechaConcreta()?->format('Y-m-d'),
+                'aprobadorId' => $aprobador?->getId(),
+                'aprobadorNombre' => $aprobadorNombre,
+                'respuestaAdmin'  => $eh->getRespuestaAdmin(),
+            ],
+        ]);
+    }
+
+    /**
+     * Notifica al profe sustituto que tiene una clase asignada por una
+     * incidencia aprobada. Solo aplica si `profeOverride` está definido.
+     */
+    public function notifySustitucionAsignada(ExcepcionHorario $eh): void
+    {
+        $sustituto = $eh->getProfeOverride();
+        if ($sustituto === null) return;
+
+        $hb = $eh->getHorarioBase();
+        $imp = $hb?->getImparticion();
+        $materia = $imp?->getMateria()?->getNombre() ?? '?';
+        $grupo = $imp?->getGrupo();
+        $grupoLabel = $grupo
+            ? trim(($grupo->getCurso() ? $grupo->getCurso() . 'º ' : '') . ($grupo->getAbreviatura() ?? $grupo->getNombre() ?? ''))
+            : '?';
+        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $hora = $hb
+            ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
+            : '';
+
+        $this->createPersist($sustituto, [
+            'tipo'    => 'sustitucion_asignada',
+            'titulo'  => 'Te han asignado una sustitución',
+            'mensaje' => sprintf(
+                'El %s a las %s tienes que cubrir %s en %s.',
+                $fecha, $hora, $materia, $grupoLabel
+            ),
+            'enlace'  => '/horarios',
+            'payload' => [
+                'excepcionId' => $eh->getId(),
+                'fecha'       => $eh->getFechaConcreta()?->format('Y-m-d'),
+                'hora'        => $hora,
+                'materia'     => $materia,
+                'grupo'       => $grupoLabel,
+                'motivo'      => $eh->getMotivo(),
+            ],
+        ]);
+    }
+
+    /**
+     * Notifica a los alumnos del grupo afectado por una incidencia aprobada.
+     * Tipo `clase_cancelada` si CANCELADO; `clase_trasladada` para el resto.
+     */
+    public function notifyAlumnosCambioClase(ExcepcionHorario $eh): void
+    {
+        $hb = $eh->getHorarioBase();
+        $imp = $hb?->getImparticion();
+        $grupo = $imp?->getGrupo();
+        if ($grupo === null) return;
+
+        $tipoEh = $eh->getTipo();
+        $isCancel = $tipoEh === TipoExcepcion::CANCELADO;
+        $tipoNoti = $isCancel ? 'clase_cancelada' : 'clase_trasladada';
+        $titulo   = $isCancel ? 'Una clase ha sido cancelada' : 'Una clase ha cambiado';
+
+        $materia = $imp?->getMateria()?->getNombre() ?? '?';
+        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $hora = $hb
+            ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
+            : '';
+
+        $detalle = $isCancel
+            ? sprintf('La clase de %s del %s a las %s no se impartirá.', $materia, $fecha, $hora)
+            : ($tipoEh === TipoExcepcion::EVENTO_ESPECIAL
+                ? sprintf('La clase de %s del %s a las %s se sustituye por: %s.', $materia, $fecha, $hora, $eh->getMotivo() ?: 'evento especial')
+                : sprintf('La clase de %s del %s a las %s tendrá un cambio puntual.', $materia, $fecha, $hora)
+            );
+
+        $matriculas = $this->em->getRepository(Matricula::class)->createQueryBuilder('m')
+            ->andWhere('m.grupo = :grupo')
+            ->andWhere('m.deleted = :false')
+            ->setParameter('grupo', $grupo)
+            ->setParameter('false', false)
+            ->getQuery()->getResult();
+
+        foreach ($matriculas as $matricula) {
+            $alumno = $matricula->getAlumno();
+            if ($alumno === null) continue;
+            $this->createPersist($alumno, [
+                'tipo'    => $tipoNoti,
+                'titulo'  => $titulo,
+                'mensaje' => $detalle,
+                'enlace'  => '/horarios',
+                'payload' => [
+                    'excepcionId' => $eh->getId(),
+                    'tipo'        => $tipoEh?->value,
+                    'fecha'       => $eh->getFechaConcreta()?->format('Y-m-d'),
+                    'hora'        => $hora,
+                    'materia'     => $materia,
+                    'motivo'      => $eh->getMotivo(),
+                ],
+            ]);
+        }
+    }
+
+    private function labelTipoExcepcion(string $tipo): string
+    {
+        return match ($tipo) {
+            'sustitucion'     => 'sustitución',
+            'cancelado'       => 'cancelación',
+            'evento_especial' => 'evento especial',
+            'intercambio'     => 'intercambio',
+            default           => 'incidencia',
+        };
     }
 
     /**

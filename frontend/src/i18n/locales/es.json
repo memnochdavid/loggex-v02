@@ -147,6 +147,30 @@
       "tarea_vencida_sin_entrega": {
         "title": "Tarea vencida sin entrega",
         "body": "La tarea \"{{titulo}}\" ha vencido sin que la entregaras"
+      },
+      "excepcion_pendiente": {
+        "title": "Nueva incidencia pendiente",
+        "body": "{{solicitanteNombre}} ha solicitado una {{tipo}} para el {{fecha}}"
+      },
+      "excepcion_aprobada": {
+        "title": "Tu incidencia ha sido aprobada",
+        "body": "{{aprobadorNombre}} ha aprobado tu solicitud para el {{fecha}}"
+      },
+      "excepcion_rechazada": {
+        "title": "Tu incidencia ha sido rechazada",
+        "body": "{{aprobadorNombre}} ha rechazado tu solicitud para el {{fecha}}"
+      },
+      "sustitucion_asignada": {
+        "title": "Te han asignado una sustitución",
+        "body": "El {{fecha}} a las {{hora}} cubres {{materia}} en {{grupo}}"
+      },
+      "clase_cancelada": {
+        "title": "Una clase ha sido cancelada",
+        "body": "La clase de {{materia}} del {{fecha}} a las {{hora}} no se impartirá"
+      },
+      "clase_trasladada": {
+        "title": "Una clase ha cambiado",
+        "body": "La clase de {{materia}} del {{fecha}} a las {{hora}} tendrá un cambio puntual"
       }
     },
     "noNewMessages": "No tienes mensajes nuevos",

@@ -147,6 +147,30 @@
       "tarea_vencida_sin_entrega": {
         "title": "Tarefa vencida sen entrega",
         "body": "A tarefa \"{{titulo}}\" venceu sen que a entregases"
+      },
+      "excepcion_pendiente": {
+        "title": "Nova incidencia pendente",
+        "body": "{{solicitanteNombre}} solicitou unha {{tipo}} para o {{fecha}}"
+      },
+      "excepcion_aprobada": {
+        "title": "A túa incidencia foi aprobada",
+        "body": "{{aprobadorNombre}} aprobou a túa solicitude para o {{fecha}}"
+      },
+      "excepcion_rechazada": {
+        "title": "A túa incidencia foi rexeitada",
+        "body": "{{aprobadorNombre}} rexeitou a túa solicitude para o {{fecha}}"
+      },
+      "sustitucion_asignada": {
+        "title": "Asignouseche unha substitución",
+        "body": "O {{fecha}} ás {{hora}} cobres {{materia}} en {{grupo}}"
+      },
+      "clase_cancelada": {
+        "title": "Unha clase foi cancelada",
+        "body": "A clase de {{materia}} do {{fecha}} ás {{hora}} non se impartirá"
+      },
+      "clase_trasladada": {
+        "title": "Unha clase cambiou",
+        "body": "A clase de {{materia}} do {{fecha}} ás {{hora}} terá un cambio puntual"
       }
     },
     "noNewMessages": "Non tes mensaxes novas",

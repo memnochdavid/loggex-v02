@@ -147,6 +147,30 @@
       "tarea_vencida_sin_entrega": {
         "title": "Tasca caducada sense lliurament",
         "body": "La tasca \"{{titulo}}\" ha caducat sense que l'hagis lliurat"
+      },
+      "excepcion_pendiente": {
+        "title": "Nova incidència pendent",
+        "body": "{{solicitanteNombre}} ha sol·licitat una {{tipo}} per al {{fecha}}"
+      },
+      "excepcion_aprobada": {
+        "title": "La teva incidència ha estat aprovada",
+        "body": "{{aprobadorNombre}} ha aprovat la teva sol·licitud per al {{fecha}}"
+      },
+      "excepcion_rechazada": {
+        "title": "La teva incidència ha estat rebutjada",
+        "body": "{{aprobadorNombre}} ha rebutjat la teva sol·licitud per al {{fecha}}"
+      },
+      "sustitucion_asignada": {
+        "title": "T'han assignat una substitució",
+        "body": "El {{fecha}} a les {{hora}} cobreixes {{materia}} a {{grupo}}"
+      },
+      "clase_cancelada": {
+        "title": "Una classe ha estat cancel·lada",
+        "body": "La classe de {{materia}} del {{fecha}} a les {{hora}} no s'impartirà"
+      },
+      "clase_trasladada": {
+        "title": "Una classe ha canviat",
+        "body": "La classe de {{materia}} del {{fecha}} a les {{hora}} tindrà un canvi puntual"
       }
     },
     "noNewMessages": "No tens missatges nous",

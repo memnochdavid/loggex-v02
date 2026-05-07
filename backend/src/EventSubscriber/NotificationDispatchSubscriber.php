@@ -5,6 +5,8 @@ namespace App\EventSubscriber;
 use App\Entity\Calificacion;
 use App\Entity\Comunicado;
 use App\Entity\Entrega;
+use App\Entity\EstadoExcepcion;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Tarea;
 use App\Service\NotificationDispatcher;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
@@ -43,11 +45,17 @@ use Doctrine\ORM\Events;
 #[AsDoctrineListener(event: Events::postFlush)]
 class NotificationDispatchSubscriber
 {
-    /** @var list<Calificacion|Tarea|Comunicado|Entrega> Entidades creadas (postPersist) */
+    /** @var list<Calificacion|Tarea|Comunicado|Entrega|ExcepcionHorario> Entidades creadas (postPersist) */
     private array $pendingPersist = [];
 
     /** @var list<Calificacion> Calificaciones cuyo `nota` ha cambiado (preUpdate) */
     private array $pendingCalUpdate = [];
+
+    /**
+     * @var list<array{eh: ExcepcionHorario, oldEstado: ?string, newEstado: ?string}>
+     * Excepciones cuyo `estado` ha cambiado, con sus valores antes/después.
+     */
+    private array $pendingExcepcionUpdate = [];
 
     /** Re-entrancy guard: evita procesar la cola dos veces si el flush
      *  interno dispara más postFlush. */
@@ -66,6 +74,7 @@ class NotificationDispatchSubscriber
             || $entity instanceof Tarea
             || $entity instanceof Comunicado
             || $entity instanceof Entrega
+            || $entity instanceof ExcepcionHorario
         ) {
             $this->pendingPersist[] = $entity;
         }
@@ -74,14 +83,28 @@ class NotificationDispatchSubscriber
     public function preUpdate(PreUpdateEventArgs $args): void
     {
         $entity = $args->getObject();
-        if (!$entity instanceof Calificacion) {
+        if ($entity instanceof Calificacion) {
+            // Solo notificar si la NOTA ha cambiado. Ediciones de feedbackProfesor
+            // u otros campos no merecen una notificación al alumno (decisión §3
+            // del doc — no spam por correcciones internas).
+            if ($args->hasChangedField('nota')) {
+                $this->pendingCalUpdate[] = $entity;
+            }
             return;
         }
-        // Solo notificar si la NOTA ha cambiado. Ediciones de feedbackProfesor
-        // u otros campos no merecen una notificación al alumno (decisión §3
-        // del doc — no spam por correcciones internas).
-        if ($args->hasChangedField('nota')) {
-            $this->pendingCalUpdate[] = $entity;
+        if ($entity instanceof ExcepcionHorario) {
+            // Cambio de estado dispara notificaciones según destino. Capturamos
+            // old/new para poder detectar transiciones concretas (PENDIENTE→APROBADA,
+            // APROBADA→CANCELADA con revertida=true, etc.) en postFlush.
+            if ($args->hasChangedField('estado')) {
+                $oldRaw = $args->getOldValue('estado');
+                $newRaw = $args->getNewValue('estado');
+                $this->pendingExcepcionUpdate[] = [
+                    'eh' => $entity,
+                    'oldEstado' => $oldRaw instanceof EstadoExcepcion ? $oldRaw->value : (is_string($oldRaw) ? $oldRaw : null),
+                    'newEstado' => $newRaw instanceof EstadoExcepcion ? $newRaw->value : (is_string($newRaw) ? $newRaw : null),
+                ];
+            }
         }
     }
 
@@ -90,7 +113,7 @@ class NotificationDispatchSubscriber
         if ($this->processing) {
             return;
         }
-        if ($this->pendingPersist === [] && $this->pendingCalUpdate === []) {
+        if ($this->pendingPersist === [] && $this->pendingCalUpdate === [] && $this->pendingExcepcionUpdate === []) {
             return;
         }
         $this->processing = true;
@@ -98,8 +121,10 @@ class NotificationDispatchSubscriber
         try {
             $persistBatch = $this->pendingPersist;
             $updateBatch = $this->pendingCalUpdate;
+            $excepcionUpdateBatch = $this->pendingExcepcionUpdate;
             $this->pendingPersist = [];
             $this->pendingCalUpdate = [];
+            $this->pendingExcepcionUpdate = [];
 
             foreach ($persistBatch as $entity) {
                 if ($entity instanceof Calificacion) {
@@ -110,11 +135,17 @@ class NotificationDispatchSubscriber
                     $this->dispatcher->notifyComunicadoNuevo($entity);
                 } elseif ($entity instanceof Entrega) {
                     $this->dispatcher->notifyEntregaRecibida($entity);
+                } elseif ($entity instanceof ExcepcionHorario) {
+                    $this->dispatchExcepcionPersist($entity);
                 }
             }
 
             foreach ($updateBatch as $cal) {
                 $this->dispatcher->notifyCalificacionActualizada($cal);
+            }
+
+            foreach ($excepcionUpdateBatch as $row) {
+                $this->dispatchExcepcionUpdate($row['eh'], $row['oldEstado'], $row['newEstado']);
             }
 
             // Flush final para escribir las Notificaciones persistidas por
@@ -123,6 +154,58 @@ class NotificationDispatchSubscriber
             $args->getObjectManager()->flush();
         } finally {
             $this->processing = false;
+        }
+    }
+
+    /**
+     * Notificaciones al crearse una excepción nueva. Profe puro la crea
+     * PENDIENTE → admin del centro recibe aviso. Admin la crea APROBADA
+     * directa → solicitante (él mismo, no se notifica) + override + alumnos.
+     */
+    private function dispatchExcepcionPersist(ExcepcionHorario $eh): void
+    {
+        $estado = $eh->getEstado();
+        if ($estado === EstadoExcepcion::PENDIENTE_APROBACION) {
+            $this->dispatcher->notifyExcepcionPendiente($eh);
+            return;
+        }
+        if ($estado === EstadoExcepcion::APROBADA) {
+            // Admin atajo (creó aprobada directa). El solicitante = aprobador
+            // habitualmente (no auto-notificar) — `notifyExcepcionResuelta` lo
+            // crea igual y deja el frontend decidir si lo agrupa. Por
+            // simplicidad y consistencia: lo emitimos.
+            $this->dispatcher->notifyExcepcionResuelta($eh, true);
+            $this->dispatcher->notifySustitucionAsignada($eh);
+            $this->dispatcher->notifyAlumnosCambioClase($eh);
+        }
+    }
+
+    /**
+     * Notificaciones al cambiar de estado una excepción existente.
+     */
+    private function dispatchExcepcionUpdate(ExcepcionHorario $eh, ?string $oldEstado, ?string $newEstado): void
+    {
+        if ($newEstado === EstadoExcepcion::APROBADA->value) {
+            $this->dispatcher->notifyExcepcionResuelta($eh, true);
+            $this->dispatcher->notifySustitucionAsignada($eh);
+            $this->dispatcher->notifyAlumnosCambioClase($eh);
+            return;
+        }
+        if ($newEstado === EstadoExcepcion::RECHAZADA->value) {
+            $this->dispatcher->notifyExcepcionResuelta($eh, false);
+            return;
+        }
+        // Reversión APROBADA → CANCELADA: avisar a alumnos de que la clase
+        // vuelve al horario base. notifyAlumnosCambioClase con motivo de
+        // reversión sería ideal; por ahora reusamos el dispatcher con tipo
+        // según el original (los alumnos saben que algo cambió, pueden
+        // volver a consultar).
+        if ($oldEstado === EstadoExcepcion::APROBADA->value && $newEstado === EstadoExcepcion::CANCELADA->value) {
+            // No hay tipo dedicado para "reversión"; se podría añadir más
+            // tarde. Por ahora notificamos al solicitante de la cancelación
+            // y a los alumnos como "trasladada" para que recarguen.
+            $this->dispatcher->notifyExcepcionResuelta($eh, false);
+            $this->dispatcher->notifyAlumnosCambioClase($eh);
         }
     }
 }

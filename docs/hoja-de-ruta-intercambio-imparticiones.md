@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche, 4ª iter.)**: 🟡 **Fase A ✅ + Fase B (5/5 incluyendo B.2) ✅ + Fase C parcial (C.1+C.2+C.5) ✅ + Rename "Excepciones"→"Incidencias" + gate INTERCAMBIO Done.** Bucle bilateral operativo: profe solicita → admin aprueba → ambas partes ven el cambio en `/horarios` (titular: badge "↔ sustituto" sobre su clase; sustituto: clase sintética nueva con badge "✦ Cubres"). UI muestra solo los 3 tipos donde la pareja no es necesaria (sustitución, cancelación, evento) hasta que Fase E implemente la UI atómica de intercambio bilateral.
+> **Status (2026-05-07 noche, 5ª iter.)**: 🟡 **Fase A ✅ + Fase B 5/5 ✅ + Fase C parcial ✅ + Rename + gate INTERCAMBIO + Fase D ✅ Done.** El sistema avisa automáticamente a todos los afectados: admin del centro recibe pendientes, solicitante recibe aprobación/rechazo, sustituto recibe asignación, alumnos del grupo reciben aviso de clase cancelada/trasladada. 6 tipos nuevos en el catálogo de notificaciones + dispatcher + iconos Lucide + i18n × 5.
 >
-> **Próxima acción**: Fase D (notificaciones — 6 tipos nuevos en catálogo + dispatcher), o Fase E (UI atómica intercambio bilateral), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`).
+> **Próxima acción**: Fase E (UI atómica intercambio bilateral), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o Fase B.3 (banner anual + Consumición awareness).
 
 ---
 
@@ -407,6 +407,54 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 5ª iteración) — Fase D ✅ Done — notificaciones a afectados
+
+Sistema de notificaciones automatic ya operativo desde 2026-05-05 (entidad `Notificacion` + `NotificationDispatcher` + `NotificationDispatchSubscriber` + topic Mercure `/users/{id}/notifications` + campanita en header). Fase D extiende esos cuatro puntos para cubrir las transiciones de `ExcepcionHorario` con 6 tipos nuevos en el catálogo.
+
+**Catálogo de tipos nuevos**:
+
+| Tipo | Cuándo se dispara | Destinatario(s) | Enlace |
+|---|---|---|---|
+| `excepcion_pendiente` | postPersist con estado=PENDIENTE | Admin/SuperAdmin del centro (excepto si solicitante también es admin) | `/admin/excepciones` |
+| `excepcion_aprobada` | postUpdate con estado→APROBADA | Solicitante (excepto si solicitante=aprobador, evita auto-notificación admin atajo) | `/horarios` |
+| `excepcion_rechazada` | postUpdate con estado→RECHAZADA | Solicitante (mismo guard) | `/horarios` |
+| `sustitucion_asignada` | postPersist+APROBADA o postUpdate→APROBADA y profeOverride no nulo | profeOverride | `/horarios` |
+| `clase_cancelada` | tipo=CANCELADO al pasar a APROBADA | Alumnos matriculados del grupo del horarioBase | `/horarios` |
+| `clase_trasladada` | resto de tipos al pasar a APROBADA | Alumnos del grupo | `/horarios` |
+
+**Dispatcher** `App\Service\NotificationDispatcher`:
+- 4 métodos públicos nuevos: `notifyExcepcionPendiente`, `notifyExcepcionResuelta($eh, bool $aprobada)`, `notifySustitucionAsignada`, `notifyAlumnosCambioClase`. El último decide entre `clase_cancelada` y `clase_trasladada` por el `tipo` de la excepción.
+- Todos persisten sin flush (patrón existente — el flush lo hace el subscriber en postFlush para no encadenar flushes durante un postPersist en cadena).
+- Helper `labelTipoExcepcion($tipo)` para copys ES en mensajes (los strings duros del español son fallback; el frontend traduce vía clave i18n + payload).
+- Guard anti-spam: `notifyExcepcionResuelta` no auto-notifica si solicitante.id === aprobador.id (caso admin atajo Sara crea aprobada directa o admin aprueba su propia solicitud).
+
+**Subscriber** `App\EventSubscriber\NotificationDispatchSubscriber`:
+- `pendingPersist` extendido para aceptar `ExcepcionHorario`.
+- `pendingExcepcionUpdate` (nueva cola) registra pares (entidad, oldEstado, newEstado) cuando `preUpdate` detecta cambio en el campo `estado`.
+- `dispatchExcepcionPersist($eh)`: si PENDIENTE → `notifyExcepcionPendiente`; si APROBADA (admin atajo) → `resuelta(true)` + `sustitucionAsignada` + `alumnosCambioClase`.
+- `dispatchExcepcionUpdate($eh, $old, $new)`: ramifica según `newEstado` (APROBADA/RECHAZADA/CANCELADA con revertida).
+- Procesa en `postFlush` igual que el resto. Re-entrancy guard heredado.
+
+**Frontend**:
+- `SystemNotificationsList.jsx`: 6 entradas nuevas en `TYPE_ICONS` (Shuffle/Check/X/UserCheck/CalendarOff/ArrowLeftRight). Sin más cambios — la campanita ya consume cualquier `Notificacion` con su `tipo` traducido vía i18n.
+- i18n × 5 idiomas: 6 bloques nuevos en `notifications.types.{tipo}.{title|body}` con interpolación de payload (`solicitanteNombre`, `aprobadorNombre`, `tipo`, `fecha`, `hora`, `materia`, `grupo`).
+
+**Reusabilidad / regla de oro**:
+- 0 colores hardcodeados nuevos (la campanita ya está temática, los iconos heredan estilo).
+- Reuso completo del sistema existente: `Notificacion` entity, `NotificationDispatcher`, `NotificationDispatchSubscriber`, `LivePublishSubscriber` (publica al topic personal), `SystemNotificationsList`, `useMercure`, claves i18n.
+- Sin migration nueva (tabla `notificacion` existe; nuevos tipos son strings en columna `tipo VARCHAR(64)`).
+
+**Cómo validar end-to-end**:
+1. Aplicar runtime: `./scripts/clear_cache_hard.sh` (entity-attribute cache + opcache).
+2. Logout/login en navegadores afectados (los topics no han cambiado — pero si JWT está stale, hacer F5).
+3. **Profe (Alberto)** solicita una sustitución → toast "Solicitud enviada".
+4. **Admin (Sara)** ve **campanita** (icono Shuffle) con título "Nueva incidencia pendiente" → click → navega a `/admin/excepciones` → aprueba.
+5. Tras aprobar:
+   - **Solicitante (Alberto)**: campanita con "Tu incidencia ha sido aprobada".
+   - **Sustituto (Joaquín)**: campanita con "Te han asignado una sustitución" (icono UserCheck).
+   - **Alumnos del grupo**: campanita con "Una clase ha cambiado" (icono ArrowLeftRight) o "Una clase ha sido cancelada" según tipo.
+6. Sara revierte la aprobación → alumnos reciben otra notificación (la clase vuelve al horario base).
 
 ### 2026-05-07 (noche, 4ª iteración) — Rename "Excepciones" → "Incidencias" + gate intercambio + Fase B.2 ✅ Done
 

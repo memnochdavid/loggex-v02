@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Award, Edit3, BookOpen, Inbox, Megaphone, AlertTriangle, Bell as BellIcon,
+    Shuffle, Check, X as XIcon, UserCheck, CalendarOff, ArrowLeftRight,
 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -220,6 +221,12 @@ const TYPE_ICONS = {
     comunicado_nuevo: Megaphone,
     entrega_recibida: Inbox,
     tarea_vencida_sin_entrega: AlertTriangle,
+    excepcion_pendiente: Shuffle,
+    excepcion_aprobada: Check,
+    excepcion_rechazada: XIcon,
+    sustitucion_asignada: UserCheck,
+    clase_cancelada: CalendarOff,
+    clase_trasladada: ArrowLeftRight,
 };
 
 const NotifItem = ({ notif, onClick, sharedStyles, styles, t }) => {

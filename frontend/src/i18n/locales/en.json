@@ -147,6 +147,30 @@
       "tarea_vencida_sin_entrega": {
         "title": "Task overdue without submission",
         "body": "The task \"{{titulo}}\" expired without your submission"
+      },
+      "excepcion_pendiente": {
+        "title": "New incident pending",
+        "body": "{{solicitanteNombre}} requested a {{tipo}} for {{fecha}}"
+      },
+      "excepcion_aprobada": {
+        "title": "Your incident was approved",
+        "body": "{{aprobadorNombre}} approved your request for {{fecha}}"
+      },
+      "excepcion_rechazada": {
+        "title": "Your incident was rejected",
+        "body": "{{aprobadorNombre}} rejected your request for {{fecha}}"
+      },
+      "sustitucion_asignada": {
+        "title": "You have been assigned a substitution",
+        "body": "On {{fecha}} at {{hora}} you cover {{materia}} for {{grupo}}"
+      },
+      "clase_cancelada": {
+        "title": "A class has been cancelled",
+        "body": "The {{materia}} class on {{fecha}} at {{hora}} will not take place"
+      },
+      "clase_trasladada": {
+        "title": "A class has changed",
+        "body": "The {{materia}} class on {{fecha}} at {{hora}} has a one-off change"
       }
     },
     "noNewMessages": "No new messages",

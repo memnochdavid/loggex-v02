@@ -147,6 +147,30 @@
       "tarea_vencida_sin_entrega": {
         "title": "Lana iraungia bidali gabe",
         "body": "\"{{titulo}}\" lana iraungi da bidali gabe"
+      },
+      "excepcion_pendiente": {
+        "title": "Intzidentzia berria zain",
+        "body": "{{solicitanteNombre}}-(e)k {{tipo}} bat eskatu du {{fecha}} egunerako"
+      },
+      "excepcion_aprobada": {
+        "title": "Zure intzidentzia onartu da",
+        "body": "{{aprobadorNombre}}-(e)k zure {{fecha}} egunerako eskaera onartu du"
+      },
+      "excepcion_rechazada": {
+        "title": "Zure intzidentzia ezetsi da",
+        "body": "{{aprobadorNombre}}-(e)k zure {{fecha}} egunerako eskaera ezetsi du"
+      },
+      "sustitucion_asignada": {
+        "title": "Ordezkapen bat esleitu zaizu",
+        "body": "{{fecha}} egunean {{hora}}-(e)tan {{materia}} estaltzen duzu {{grupo}}-(e)n"
+      },
+      "clase_cancelada": {
+        "title": "Klase bat bertan behera utzi da",
+        "body": "{{fecha}} egunean {{hora}}-(e)tako {{materia}} klasea ez da emango"
+      },
+      "clase_trasladada": {
+        "title": "Klase batek aldaketa du",
+        "body": "{{fecha}} egunean {{hora}}-(e)tako {{materia}} klaseak aldaketa puntuala izango du"
       }
     },
     "noNewMessages": "Ez duzu mezu berririk",
