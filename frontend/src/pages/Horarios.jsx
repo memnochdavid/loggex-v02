@@ -46,6 +46,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
   const [myScheduleSlots, setMyScheduleSlots] = useState(null);  // null = no hay jornada conocida → fallback hardcoded en TimeTable
+  // Excepciones APROBADAS aplicables a los horarios del usuario.
+  // Cargadas desde /api/my-schedule (Fase B intercambio-imparticiones, 2026-05-07).
+  // El overlay se aplica en visibleSchedule cruzando (horarioBaseId, fechaConcreta) con la semana visible.
+  const [excepciones, setExcepciones] = useState([]);
   // Alineación del calendar con el grid del TimeTable: si hay mañana+tarde,
   // el TimeTable muestra tabs encima del grid → offset al calendar para que
   // sus días queden a la altura del grid, no de los tabs.
@@ -81,7 +85,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       if (e.grupoId != null) semanaActivaPorGrupo.add(String(e.grupoId));
     }
 
-    return mySchedule.filter(e => {
+    const filtered = mySchedule.filter(e => {
       // Eventos sin tipo: legacy/compat — incluir.
       if (!e.periodoLectivoTipo) {
         if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return true;
@@ -95,7 +99,65 @@ const Horarios = ({ embedded = false, tabs = null }) => {
       if (!e.periodoLectivoFechaInicio || !e.periodoLectivoFechaFin) return false;
       return dateISO >= e.periodoLectivoFechaInicio && dateISO <= e.periodoLectivoFechaFin;
     });
-  }, [mySchedule, selectedDate]);
+
+    // Overlay de excepciones APROBADAS para la semana visible (Fase B
+    // intercambio-imparticiones 2026-05-07). Cada event lleva diaSemana
+    // ISO 1-7; calculamos la fecha real de ese día dentro de la semana
+    // que contiene `selectedDate` y cruzamos con `excepciones[]` por
+    // (horarioBaseId, fechaConcreta).
+    if (!Array.isArray(excepciones) || excepciones.length === 0) {
+      return filtered;
+    }
+
+    // Mapa rápido (eventId|fechaISO) → excepción.
+    const excIndex = new Map();
+    for (const ex of excepciones) {
+      if (ex?.horarioBaseId != null && ex?.fechaConcreta) {
+        excIndex.set(`${ex.horarioBaseId}|${ex.fechaConcreta}`, ex);
+      }
+    }
+    if (excIndex.size === 0) return filtered;
+
+    // Lunes ISO de la semana de selectedDate.
+    const anchor = new Date(selectedDate);
+    const curIso = anchor.getDay() === 0 ? 7 : anchor.getDay();
+    const monday = new Date(anchor);
+    monday.setDate(anchor.getDate() - (curIso - 1));
+
+    const dateOfIsoDay = (isoDay) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + (isoDay - 1));
+      const yy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    };
+
+    return filtered.map((ev) => {
+      const evDateISO = dateOfIsoDay(ev.diaSemana);
+      const overlay = excIndex.get(`${ev.id}|${evDateISO}`);
+      if (!overlay) return ev;
+
+      // Aplica overlay copiando el event y mutando los campos según tipo.
+      const out = { ...ev, _excepcion: overlay, _excepcionTipo: overlay.tipo };
+      if (overlay.tipo === 'cancelado') {
+        out._cancelado = true;
+      } else if (overlay.tipo === 'sustitucion' && overlay.profeOverride) {
+        out.profesor = overlay.profeOverride.nombre;
+      } else if (overlay.tipo === 'intercambio' && overlay.imparticionEfectiva) {
+        const ie = overlay.imparticionEfectiva;
+        if (ie.materia) out.materia = ie.materia;
+        if (ie.moduloAbrv) out.moduloAbreviatura = ie.moduloAbrv;
+        if (ie.moduloId != null) out.moduloId = ie.moduloId;
+        if (ie.profesor) out.profesor = ie.profesor;
+      } else if (overlay.tipo === 'evento_especial') {
+        out.materia = overlay.motivo || 'Evento especial';
+        out.moduloAbreviatura = '';
+        if (overlay.profeOverride) out.profesor = overlay.profeOverride.nombre;
+      }
+      return out;
+    });
+  }, [mySchedule, selectedDate, excepciones]);
 
   const hasBothShifts = useMemo(() => {
     if (!Array.isArray(visibleSchedule) || visibleSchedule.length === 0) return false;
@@ -251,9 +313,11 @@ const Horarios = ({ embedded = false, tabs = null }) => {
           if (Array.isArray(scheduleData)) {
               setMySchedule(scheduleData);
               setMyScheduleSlots(null);
+              setExcepciones([]);
           } else {
               setMySchedule(scheduleData?.events || []);
               setMyScheduleSlots(scheduleData?.slots?.length ? scheduleData.slots : null);
+              setExcepciones(scheduleData?.excepciones || []);
           }
 
           let allFestivos = festivosData['hydra:member'] || festivosData.member || [];
@@ -283,9 +347,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   }, [viewMode, fetchCalendarData]);
 
   // Mercure live para vista calendario: suscribe a los grupos del user
-  // (firmados en JWT como /grupos/{gid}/schedule). Los grupos se extraen
-  // del propio mySchedule tras la carga inicial → en el primer render no
-  // hay topics, en renders subsiguientes sí.
+  // (firmados en JWT como /grupos/{gid}/schedule) y al topic personal de
+  // excepciones (Fase B intercambio-imparticiones, 2026-05-07). Los grupos
+  // se extraen del propio mySchedule tras la carga inicial → en el primer
+  // render no hay topics, en renders subsiguientes sí.
   const personalScheduleTopics = useMemo(() => {
       if (viewMode !== 'calendar' || !Array.isArray(mySchedule)) return [];
       const grupoIds = new Set();
@@ -294,8 +359,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
           const gid = typeof g === 'object' ? g?.id : (typeof g === 'string' ? g.split('/').pop() : null);
           if (gid) grupoIds.add(gid);
       }
-      return Array.from(grupoIds).map(gid => `/grupos/${gid}/schedule`);
-  }, [viewMode, mySchedule]);
+      const topics = Array.from(grupoIds).map(gid => `/grupos/${gid}/schedule`);
+      if (user?.id) topics.push(`/users/${user.id}/excepciones`);
+      return topics;
+  }, [viewMode, mySchedule, user?.id]);
 
   useLiveRefetch(personalScheduleTopics, fetchCalendarData);
 

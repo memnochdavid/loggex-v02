@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\EstadoExcepcion;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Horario;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -170,10 +172,98 @@ class GetMyScheduleController extends AbstractController
         $slots = array_values($slotsByKey);
         usort($slots, fn ($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
 
+        // Excepciones APROBADAS aplicables a los horarios del user (Fase B
+        // del refactor intercambio-imparticiones, 2026-05-07). El frontend
+        // las cruza con la fecha visible para overlay (CANCELADO oculta el
+        // placement, SUSTITUCION cambia profe, INTERCAMBIO cambia profe +
+        // imparticion, EVENTO_ESPECIAL marca la franja como no curricular).
+        $excepciones = $this->loadExcepcionesAplicables($events, $entityManager);
+
         return [
             'events' => $events,
             'slots' => $slots,
+            'excepciones' => $excepciones,
         ];
+    }
+
+    /**
+     * Devuelve las excepciones APROBADAS cuyas `horarioBase` están en el
+     * conjunto `events` del usuario. Forma DTO minimalista para que el
+     * frontend pueda aplicar overlay sin más queries.
+     *
+     * @param array<int, array<string,mixed>> $events
+     * @return list<array<string,mixed>>
+     */
+    private function loadExcepcionesAplicables(array $events, EntityManagerInterface $em): array
+    {
+        $horarioIds = array_values(array_unique(array_filter(array_map(
+            fn (array $ev) => $ev['id'] ?? null,
+            $events
+        ))));
+
+        if (empty($horarioIds)) {
+            return [];
+        }
+
+        $dql = "SELECT eh, ie, iem, iep, po, ip
+                FROM App\\Entity\\ExcepcionHorario eh
+                LEFT JOIN eh.imparticionEfectiva ie
+                LEFT JOIN ie.materia iem
+                LEFT JOIN ie.profesor iep
+                LEFT JOIN eh.profeOverride po
+                LEFT JOIN eh.intercambioPareja ip
+                WHERE eh.horarioBase IN (:ids)
+                  AND eh.estado = :estado
+                  AND eh.deleted = false";
+
+        $rows = $em->createQuery($dql)
+            ->setParameter('ids', $horarioIds)
+            ->setParameter('estado', EstadoExcepcion::APROBADA)
+            ->getResult();
+
+        $out = [];
+        foreach ($rows as $eh) {
+            /** @var ExcepcionHorario $eh */
+            $impEf = $eh->getImparticionEfectiva();
+            $profeOv = $eh->getProfeOverride();
+
+            $imparticionEfectivaDto = null;
+            if ($impEf !== null) {
+                $matEf = $impEf->getMateria();
+                $proEf = $impEf->getProfesor();
+                $imparticionEfectivaDto = [
+                    'id'         => $impEf->getId(),
+                    'materia'    => $matEf?->getNombre(),
+                    'moduloId'   => $matEf?->getId(),
+                    'moduloAbrv' => $matEf?->getAbreviatura(),
+                    'profesor'   => $proEf
+                        ? trim(($proEf->getNombre() ?? '') . ' ' . ($proEf->getApellidos() ?? ''))
+                        : null,
+                    'profesorId' => $proEf?->getId(),
+                ];
+            }
+
+            $profeOverrideDto = null;
+            if ($profeOv !== null) {
+                $profeOverrideDto = [
+                    'id'     => $profeOv->getId(),
+                    'nombre' => trim(($profeOv->getNombre() ?? '') . ' ' . ($profeOv->getApellidos() ?? '')),
+                ];
+            }
+
+            $out[] = [
+                'id'                  => $eh->getId(),
+                'horarioBaseId'       => $eh->getHorarioBase()?->getId(),
+                'fechaConcreta'       => $eh->getFechaConcreta()?->format('Y-m-d'),
+                'tipo'                => $eh->getTipo()?->value,
+                'motivo'              => $eh->getMotivo(),
+                'observaciones'       => $eh->getObservaciones(),
+                'imparticionEfectiva' => $imparticionEfectivaDto,
+                'profeOverride'       => $profeOverrideDto,
+                'intercambioParejaId' => $eh->getIntercambioPareja()?->getId(),
+            ];
+        }
+        return $out;
     }
 
     /**

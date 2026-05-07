@@ -2,11 +2,14 @@
 
 namespace App\Controller;
 
+use App\Entity\EstadoExcepcion;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Grupo;
 use App\Entity\Horario;
 use App\Entity\JornadaTipo;
 use App\Entity\Matricula;
 use App\Entity\PeriodoLectivo;
+use App\Entity\TipoExcepcion;
 use App\Entity\TipoTramo;
 use App\Entity\User;
 use App\Service\PdfBranding;
@@ -72,7 +75,8 @@ class HorarioPdfController extends AbstractController
             grupo: null,
             usuarioPersonal: $user,
             horarios: $horarios,
-            lang: $lang
+            lang: $lang,
+            fecha: $fecha,
         );
 
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/horario.html.twig', $context, 'A4', 'landscape');
@@ -331,8 +335,41 @@ class HorarioPdfController extends AbstractController
         ?User $usuarioPersonal,
         array $horarios,
         string $lang,
-        ?JornadaTipo $jornada = null
+        ?JornadaTipo $jornada = null,
+        ?\DateTimeInterface $fecha = null
     ): array {
+        // Overlay de excepciones APROBADAS para la fecha concreta del PDF
+        // (Fase B intercambio-imparticiones, 2026-05-07). Solo aplica al PDF
+        // personal — el PDF de grupo multi-página no tiene fecha específica.
+        $excepcionesByHorarioId = [];
+        if ($fecha !== null && !empty($horarios)) {
+            $horarioIds = array_filter(array_map(fn(Horario $h) => $h->getId(), $horarios));
+            if (!empty($horarioIds)) {
+                $dql = "SELECT eh, ie, iem, iep, po
+                        FROM App\\Entity\\ExcepcionHorario eh
+                        LEFT JOIN eh.imparticionEfectiva ie
+                        LEFT JOIN ie.materia iem
+                        LEFT JOIN ie.profesor iep
+                        LEFT JOIN eh.profeOverride po
+                        WHERE eh.horarioBase IN (:ids)
+                          AND eh.fechaConcreta = :fecha
+                          AND eh.estado = :estado
+                          AND eh.deleted = false";
+                $rows = $this->em->createQuery($dql)
+                    ->setParameter('ids', $horarioIds)
+                    ->setParameter('fecha', $fecha->format('Y-m-d'))
+                    ->setParameter('estado', EstadoExcepcion::APROBADA)
+                    ->getResult();
+                foreach ($rows as $eh) {
+                    /** @var ExcepcionHorario $eh */
+                    $hbId = $eh->getHorarioBase()?->getId();
+                    if ($hbId !== null) {
+                        $excepcionesByHorarioId[$hbId] = $eh;
+                    }
+                }
+            }
+        }
+
         // Slots base: si tenemos jornada explícita (caso PL), usar sus tramos
         // SLOT (sin recreos). Si no, derivar del propio set de horarios reales
         // (modo legacy). La jornada da granularidad fija (30min) y permite
@@ -392,6 +429,34 @@ class HorarioPdfController extends AbstractController
             $profesor = $imp?->getProfesor();
             $grupoEv = $imp?->getGrupo();
 
+            // Overlay excepción aprobada para la fecha del PDF.
+            $excepcion = $excepcionesByHorarioId[$h->getId()] ?? null;
+            $excepcionTipo = null;
+            $excepcionMotivo = null;
+            if ($excepcion !== null) {
+                $excepcionTipo = $excepcion->getTipo()?->value;
+                $excepcionMotivo = $excepcion->getMotivo();
+                if ($excepcion->getTipo() === TipoExcepcion::CANCELADO) {
+                    // No incluir en la matriz: la franja queda en blanco ese día.
+                    continue;
+                }
+                if ($excepcion->getTipo() === TipoExcepcion::INTERCAMBIO && $excepcion->getImparticionEfectiva() !== null) {
+                    $imp = $excepcion->getImparticionEfectiva();
+                    $materia = $imp->getMateria();
+                    $profesor = $imp->getProfesor();
+                    $grupoEv = $imp->getGrupo();
+                } elseif ($excepcion->getTipo() === TipoExcepcion::SUSTITUCION && $excepcion->getProfeOverride() !== null) {
+                    $profesor = $excepcion->getProfeOverride();
+                } elseif ($excepcion->getTipo() === TipoExcepcion::EVENTO_ESPECIAL) {
+                    // Sustituye la materia por el motivo del evento. Profe queda
+                    // si lo había (facilitador) o NULL.
+                    $materia = null;
+                    if ($excepcion->getProfeOverride() !== null) {
+                        $profesor = $excepcion->getProfeOverride();
+                    }
+                }
+            }
+
             $profNombre = $profesor
                 ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
                 : null;
@@ -420,8 +485,15 @@ class HorarioPdfController extends AbstractController
             }
             $cellKey = $startSlotKey ?? $key;
 
+            // Para EVENTO_ESPECIAL la materia se sustituye por el motivo
+            // (charla, simulacro, taller — texto libre del admin/profe).
+            $materiaLabel = $materia?->getNombre() ?? '—';
+            if ($excepcionTipo === 'evento_especial') {
+                $materiaLabel = $excepcionMotivo ?: 'Evento especial';
+            }
+
             $matriz[$cellKey][$dia] = [
-                'materia' => $materia?->getNombre() ?? '—',
+                'materia' => $materiaLabel,
                 'moduloId' => $materia?->getId() ?? 0,
                 'profesor' => $profNombre,
                 'aula' => $h->getAula(),
@@ -431,6 +503,8 @@ class HorarioPdfController extends AbstractController
                 'color' => $this->colorForModule($materia?->getId() ?? 0),
                 'rowSpan' => $rowSpan,
                 'skip' => false,
+                'excepcionTipo' => $excepcionTipo,  // null|intercambio|sustitucion|evento_especial
+                'excepcionMotivo' => $excepcionMotivo,
             ];
             // Marcar slots cubiertos como skip (no renderizar celda).
             foreach ($slotsCubiertos as $skKey) {

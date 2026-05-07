@@ -3,6 +3,7 @@
 namespace App\EventSubscriber;
 
 use App\Controller\GetMyScheduleController;
+use App\Entity\ExcepcionHorario;
 use App\Entity\Horario;
 use App\Entity\Imparticion;
 use App\Entity\Matricula;
@@ -67,6 +68,26 @@ class CacheInvalidationSubscriber
             // Al mover un alumno de grupo también cambia el schedule del profesor
             // de cada imparticion del grupo, pero eso ya lo recalcula su propio TTL (5min).
             return array_filter($ids);
+        }
+
+        if ($entity instanceof ExcepcionHorario) {
+            // Fase B intercambio-imparticiones (2026-05-07): un cambio en una
+            // excepción debe invalidar el schedule cacheado de todos los
+            // afectados (titular del horario, alumnos del grupo, solicitante,
+            // profe override). Sin esto, una excepción aprobada no se ve en
+            // /horario/me hasta que expira el TTL de 5min.
+            $ids = [];
+            if ($solic = $entity->getSolicitadaPor()) {
+                $ids[] = $solic->getId();
+            }
+            if ($override = $entity->getProfeOverride()) {
+                $ids[] = $override->getId();
+            }
+            $hb = $entity->getHorarioBase();
+            if ($hb) {
+                $ids = array_merge($ids, $this->userIdsForImparticion($hb->getImparticion(), $em));
+            }
+            return array_values(array_unique(array_filter($ids)));
         }
 
         return [];

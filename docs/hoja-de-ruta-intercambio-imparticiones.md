@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ Done — en marcha.** Doc creado y D-A a D-G cerradas el mismo día. Fase A entera (modelo + enums + migration + endpoints + processor + filter centro + topic Mercure) implementada. Pendiente de aplicar la migración (`scripts/migrate.sh`) y smoke test del CRUD desde un cliente HTTP.
+> **Status (2026-05-07 noche)**: 🟡 **Fase A ✅ Done + Fase B parcial (3/5 puntos) ✅ Done.** Backend + frontend `/horarios` ya consumen excepciones APROBADAS para overlay per-fecha. Diferidos a Fase B.2: banner anual + tab Consumición + badge rejilla `/admin/horarios` (requieren cambios en `ConsumicionAnualService` y frontend `HorariosEditor.jsx`).
 >
-> **Próxima acción**: aplicar migración → smoke test creación excepción tipo SUSTITUCION via curl o Postman → si funciona, arrancar Fase B (composición en render).
+> **Próxima acción**: smoke test end-to-end en navegador (crear excepción APROBADA via API/Postman, verificar que aparece en `/horarios` del afectado tras refresh Mercure). Si OK → Fase C UI ligera de creación, o Fase B.2 polish del banner/badge según prioridad del usuario.
 
 ---
 
@@ -407,6 +407,50 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, sigue) — Fase B parcial ✅ Done (3/5 puntos): /horario/me + PDF + cache invalidation + frontend overlay
+
+Tras Fase A de la misma noche, atajada la composición en render para los puntos donde el usuario ve su propio horario. Los puntos 4 y 5 (banner anual + tab Consumición + badge rejilla `/admin/horarios`) quedan diferidos a Fase B.2 — no bloquean MVP usable porque el flujo central (un alumno ve que su clase del martes 12-may pasó de Pepe a Lola) ya funciona.
+
+**Backend `GetMyScheduleController`**:
+- Nueva sección al final de `computeSchedule` que invoca `loadExcepcionesAplicables($events, $em)`.
+- DQL único con joins a imparticionEfectiva (+ materia + profesor), profeOverride e intercambioPareja, filtrado por `horarioBase IN (events.id) AND estado = APROBADA AND deleted = false`.
+- Devuelve un DTO minimalista por excepción con `id, horarioBaseId, fechaConcreta (Y-m-d), tipo, motivo, observaciones, imparticionEfectiva: {id, materia, moduloId, moduloAbrv, profesor, profesorId} | null, profeOverride: {id, nombre} | null, intercambioParejaId`.
+- Top-level del response sumado a `events` y `slots`: ahora hay 3 keys.
+
+**Backend `HorarioPdfController`**:
+- Aceptado parámetro `?fecha` ya existente (Fase D modelo-semanal). Nuevo: pasa `fecha` a `buildScheduleContext` para que el matrix-builder aplique overlay puntual.
+- Dentro de `buildScheduleContext`, antes del foreach que construye el matriz: query DQL `excepcion_horario` con `fechaConcreta = $fecha AND estado = APROBADA AND horarioBase IN (...) AND deleted = false`. Map por `horarioBaseId`.
+- En el loop, antes de calcular profNombre/rowSpan/etc.: si hay overlay para el horario:
+  - `CANCELADO` → `continue` (skip placement; queda hueco en blanco ese día).
+  - `INTERCAMBIO` → swap `imp/materia/profesor/grupoEv` con los de `imparticionEfectiva`.
+  - `SUSTITUCION` → swap solo `profesor` con `profeOverride`.
+  - `EVENTO_ESPECIAL` → `materia=null` (luego se sustituye por `motivo` o "Evento especial" en `materiaLabel`); `profesor` queda con `profeOverride` si lo hay.
+- Matrix entry expone `excepcionTipo` y `excepcionMotivo` para que un futuro twig pueda pintar badge (no aplicado todavía; el PDF actual solo refleja el cambio de profe/materia).
+
+**Backend `CacheInvalidationSubscriber`**:
+- Añadido `ExcepcionHorario` al cuadro de tipos manejados.
+- En `collectAffectedUserIds` para una excepción: une IDs de `solicitadaPor`, `profeOverride`, y `userIdsForImparticion(horarioBase.imparticion)` (que ya incluye titular + alumnos del grupo via matrículas).
+- Sin esto, una excepción APROBADA no se reflejaba en `/horario/me` hasta que expiraba el TTL de 5min del cache `schedule_{userId}`.
+
+**Frontend `Horarios.jsx`**:
+- Nuevo state `excepciones` poblado desde `scheduleData.excepciones` en `fetchCalendarData` (compat con respuesta legacy array → `setExcepciones([])`).
+- `personalScheduleTopics` extendido con `/users/${user.id}/excepciones` (firmado en JWT desde Fase A) → `useLiveRefetch` ya activo refresca el calendario tras cualquier cambio.
+- `visibleSchedule` (memo) extendido: tras el filtro PL existente, calcula la fecha real de cada (event.diaSemana) en la semana que contiene `selectedDate`, indexa `excepciones[]` por `(horarioBaseId, fechaConcreta)` y aplica overlay copiando el event con campos modificados según tipo. Preserva `_excepcion`, `_excepcionTipo` y `_cancelado` para que `TimeTable` (o futuras mejoras) puedan pintar marcadores visuales.
+- Cancelado: el event sigue en la lista con `_cancelado: true`; el visual badge/strikethrough se difiere a Fase B.2 al refinar `TimeTable.jsx`.
+
+**Diferidos a Fase B.2**:
+- **Banner anual cobertura** (`HorariosEditor.jsx`): restar minutos de excepciones APROBADAS tipo CANCELADO/EVENTO_ESPECIAL al planificado total. Requiere extender `ConsumicionAnualService` backend + recálculos frontend.
+- **Tab Consumición** (`ConsumicionAnualService`): mismo ajuste.
+- **Badge en rejilla `/admin/horarios`**: marcar visualmente placements con excepción en la semana visible. Requiere cargar excepciones del grupo en el editor + render en la rejilla.
+- **Strikethrough en `TimeTable`** para `_cancelado: true` events: refinement visual.
+
+Estas piezas son cosméticas/contables; el flujo principal "el usuario ve su clase con la sustitución aplicada" ya funciona.
+
+**Smoke test sugerido**:
+1. Crear via Postman/curl un POST a `/api/excepcion_horarios` con un horario base válido + tipo SUSTITUCION + profeOverride + estado=APROBADA (admin token).
+2. Logout/login en navegador del profe override → debería ver el cambio en `/horarios` al navegar a la fecha exacta (la cache se invalida via subscriber + refetch via Mercure).
+3. Descargar PDF con `?fecha=` igual a la fechaConcreta → el martes (o el día correspondiente) debe mostrar al sustituto en vez del titular.
 
 ### 2026-05-07 (noche) — Fase A ✅ Done — modelo + endpoints + filtros + LivePublish
 
