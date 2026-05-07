@@ -139,7 +139,14 @@ class IntercambioController extends AbstractController
         $fechasB   = [];
         $durTotalB = 0;
         $profBId   = null;
-        $idsVistos = [$idA => true];
+        // Unicidad por (horario_id, fecha_concreta): el mismo bloque
+        // recurrente puede usarse en fechas distintas (p.ej. Sara cede
+        // el mismo Mar 8:30-9:30 dos semanas seguidas para cubrir 2h).
+        // No rechazamos `idB` repetido si la fecha cambia.
+        $tuplasVistas = [];
+        // Y también prohibimos que B coincida con A — un profe no puede
+        // intercambiarse consigo mismo en su propio bloque.
+        $idANoEsB = $idA;
         foreach ($parejasB as $i => $par) {
             if (!is_array($par)) {
                 return $this->json(['message' => "parejasB[$i] debe ser un objeto."], Response::HTTP_BAD_REQUEST);
@@ -151,12 +158,18 @@ class IntercambioController extends AbstractController
                     'message' => "parejasB[$i] sin horarioBaseB o fechaConcretaB.",
                 ], Response::HTTP_BAD_REQUEST);
             }
-            if (isset($idsVistos[$idB])) {
+            $tupla = "$idB|$fechaBStr";
+            if (isset($tuplasVistas[$tupla])) {
                 return $this->json([
-                    'message' => "parejasB[$i] referencia un bloque ya usado en el intercambio.",
+                    'message' => "parejasB[$i] duplicada (mismo bloque y fecha que otra pareja).",
                 ], Response::HTTP_BAD_REQUEST);
             }
-            $idsVistos[$idB] = true;
+            $tuplasVistas[$tupla] = true;
+            if ($idB === $idANoEsB && $fechaBStr === $fechaAStr) {
+                return $this->json([
+                    'message' => "parejasB[$i] coincide exactamente con el bloque A.",
+                ], Response::HTTP_BAD_REQUEST);
+            }
 
             $hB = $this->em->find(Horario::class, $idB);
             if (!$hB) {

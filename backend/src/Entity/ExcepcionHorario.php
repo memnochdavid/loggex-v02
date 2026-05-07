@@ -95,6 +95,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
     'solicitadaPor' => 'exact',
     'aprobadaPor' => 'exact',
     'profeOverride' => 'exact',
+    'intercambioGrupoId' => 'exact',
 ])]
 #[ApiFilter(DateFilter::class, properties: ['fechaConcreta', 'fechaSolicitud', 'fechaResolucion'])]
 #[ApiFilter(OrderFilter::class, properties: ['fechaConcreta', 'fechaSolicitud', 'estado', 'id'], arguments: ['orderParameterName' => 'order'])]

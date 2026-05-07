@@ -118,8 +118,51 @@ const Excepciones = () => {
             if (!response.ok) throw new Error(`Error ${response.status}`);
             const data = await response.json();
             const items = data['hydra:member'] || data.member || [];
-            const total = data['hydra:totalItems'] || data.totalItems || items.length;
-            setExcepciones(items);
+
+            // Plan B: dedup por intercambioGrupoId. Cada grupo se muestra
+            // como UNA sola fila representativa (cara A — la que cede)
+            // con `_grupoMembers` adjunto para que el detail modal pueda
+            // renderizar todos los miembros sin segundo fetch.
+            // Identificación de cara A: solicitadaPor === titular del horarioBase.
+            // Si por alguna razón no encontramos cara A clara, usamos el primer
+            // miembro (id menor) como representante.
+            const groupMap = new Map();
+            const deduped = [];
+            for (const item of items) {
+                const gid = item.intercambioGrupoId;
+                if (!gid) {
+                    deduped.push(item);
+                    continue;
+                }
+                if (!groupMap.has(gid)) groupMap.set(gid, []);
+                groupMap.get(gid).push(item);
+            }
+            for (const members of groupMap.values()) {
+                members.sort((a, b) => (a.id || 0) - (b.id || 0));
+                const caraA = members.find(m => {
+                    const solicId = m.solicitadaPor?.id;
+                    const titularId = m.horarioBase?.imparticion?.profesor?.id;
+                    return solicId && titularId && solicId === titularId;
+                }) || members[0];
+                const carasB = members.filter(m => m.id !== caraA.id);
+                deduped.push({
+                    ...caraA,
+                    _grupoMembers: members,
+                    _caraA: caraA,
+                    _carasB: carasB,
+                    _esGrupo: true,
+                });
+            }
+            // Re-ordenar por fechaConcreta DESC para mantener el sort visible.
+            deduped.sort((a, b) => (b.fechaConcreta || '').localeCompare(a.fechaConcreta || ''));
+
+            // El total reportado por la API cuenta filas crudas, pero la vista
+            // muestra grupos. Ajustamos para que la paginación refleje filas
+            // visibles (aproximación, pierde precisión cross-página pero es
+            // mejor que mostrar "30 / 50" cuando solo hay 23 rows visibles).
+            const total = (data['hydra:totalItems'] || data.totalItems || items.length)
+                - (items.length - deduped.length);
+            setExcepciones(deduped);
             setTotalItems(total);
             setError(null);
         } catch (err) {
@@ -368,25 +411,45 @@ const Excepciones = () => {
         return `${styles.badge} ${styles.badgeNeutral}`;
     };
 
+    // Helpers para columnas que adaptan la representación cuando la fila
+    // es un grupo de intercambio (Plan B 2026-05-08): muestran A's data
+    // con un sufijo " ↔ B" o resumen agregado.
+    const grupoFechasResumen = (row) => {
+        if (!row?._esGrupo) return formatFechaEs(row.fechaConcreta);
+        const a = row._caraA?.fechaConcreta;
+        const bs = (row._carasB || []).map(c => c.fechaConcreta).filter(Boolean);
+        return `${formatFechaEs(a)} ↔ ${bs.map(formatFechaEs).join(', ')}`;
+    };
+    const grupoTramoA = (row) => {
+        const h = (row?._esGrupo ? row._caraA : row)?.horarioBase;
+        if (!h) return '—';
+        return `${formatHora(h.horaInicio)}–${formatHora(h.horaFin)}`;
+    };
+    const fmtImpLabel = (item) => {
+        const h = item?.horarioBase;
+        const imp = h?.imparticion;
+        const m = imp?.materia?.abreviatura || imp?.materia?.nombre || '?';
+        const g = imp?.grupo;
+        const grupo = g ? `${g.curso ? `${g.curso}º` : ''}${g.abreviatura || g.nombre || ''}`.trim() : '';
+        return grupo ? `${m} · ${grupo}` : m;
+    };
+
     const columns = useMemo(() => [
         {
             header: t('exceptions.date', { defaultValue: 'Fecha' }),
-            accessor: (row) => formatFechaEs(row.fechaConcreta),
+            accessor: (row) => grupoFechasResumen(row),
             sortable: true,
             sortKey: 'fechaConcreta',
         },
         {
             header: t('exceptions.slot', { defaultValue: 'Tramo' }),
-            accessor: (row) => {
-                const h = row.horarioBase;
-                if (!h) return '—';
-                return `${formatHora(h.horaInicio)}–${formatHora(h.horaFin)}`;
-            },
+            accessor: (row) => grupoTramoA(row),
         },
         {
             header: t('exceptions.subjectGroup', { defaultValue: 'Materia · Grupo' }),
             accessor: (row) => {
-                const h = row.horarioBase;
+                const target = row?._esGrupo ? row._caraA : row;
+                const h = target?.horarioBase;
                 const imp = h?.imparticion;
                 const materia = imp?.materia?.nombre || '—';
                 const g = imp?.grupo;
@@ -396,16 +459,32 @@ const Excepciones = () => {
         },
         {
             header: t('exceptions.titular', { defaultValue: 'Titular' }),
-            accessor: (row) => userName(row.horarioBase?.imparticion?.profesor) || '—',
+            accessor: (row) => {
+                const target = row?._esGrupo ? row._caraA : row;
+                return userName(target?.horarioBase?.imparticion?.profesor) || '—';
+            },
         },
         {
             header: t('exceptions.tipo', { defaultValue: 'Tipo' }),
-            accessor: (row) => <span className={`${styles.badge} ${styles.badgeNeutral}`}>{tipoLabel(row.tipo)}</span>,
+            accessor: (row) => {
+                const label = row?._esGrupo
+                    ? `${tipoLabel(row.tipo)} (1↔${row._carasB?.length || 1})`
+                    : tipoLabel(row.tipo);
+                return <span className={`${styles.badge} ${styles.badgeNeutral}`}>{label}</span>;
+            },
             sortable: false,
         },
         {
             header: t('exceptions.override', { defaultValue: 'Sustituto / Cambio' }),
             accessor: (row) => {
+                if (row?._esGrupo) {
+                    // Resumen lado B: profe + bloques.
+                    const carasB = row._carasB || [];
+                    if (carasB.length === 0) return '—';
+                    const profeB = userName(carasB[0]?.horarioBase?.imparticion?.profesor) || '?';
+                    const bloques = carasB.map(c => fmtImpLabel(c)).join(' + ');
+                    return `↔ ${profeB} (${bloques})`;
+                }
                 if (row.tipo === 'cancelado') return '—';
                 if (row.tipo === 'evento_especial') return row.motivo || t('exceptions.event', { defaultValue: 'Evento' });
                 const ie = row.imparticionEfectiva;
@@ -834,7 +913,48 @@ const Excepciones = () => {
                                         value={row.respuestaAdmin}
                                     />
                                 )}
-                                {row.intercambioPareja && (
+                                {row._esGrupo && Array.isArray(row._grupoMembers) && row._grupoMembers.length > 1 && (
+                                    <div className={localStyles.detailSection} aria-hidden="true" />
+                                )}
+                                {row._esGrupo && Array.isArray(row._grupoMembers) && row._grupoMembers.length > 1 && (
+                                    <div>
+                                        <dt className={localStyles.detailLabel}>
+                                            {t('exceptions.grupoMiembros', { defaultValue: 'Caras del intercambio' })}
+                                        </dt>
+                                        <dd className={localStyles.detailValue}>
+                                            <ul className={localStyles.grupoList}>
+                                                {row._grupoMembers.map((m) => {
+                                                    const isCaraA = m.id === row._caraA?.id;
+                                                    const mh = m.horarioBase;
+                                                    const mImp = mh?.imparticion;
+                                                    const mDia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][mh?.diaSemana] || '';
+                                                    const mTramo = mh ? `${formatHora(mh.horaInicio)}–${formatHora(mh.horaFin)}` : '?';
+                                                    const mMat = mImp?.materia?.nombre || '?';
+                                                    const mGr = mImp?.grupo;
+                                                    const mGrupo = mGr ? `${mGr.curso ? `${mGr.curso}º ` : ''}${mGr.abreviatura || mGr.nombre || ''}`.trim() : '';
+                                                    const mProfe = userName(mImp?.profesor);
+                                                    return (
+                                                        <li key={m.id} className={isCaraA ? localStyles.grupoMemberA : localStyles.grupoMemberB}>
+                                                            <strong>#{m.id}</strong>
+                                                            {' · '}
+                                                            <span>{isCaraA
+                                                                ? t('exceptions.grupoCaraA', { defaultValue: 'Cede' })
+                                                                : t('exceptions.grupoCaraB', { defaultValue: 'Cubre' })}</span>
+                                                            {' · '}
+                                                            <span>{mDia} {formatFechaEs(m.fechaConcreta)}</span>
+                                                            {' · '}
+                                                            <span>{mTramo}</span>
+                                                            {' · '}
+                                                            <span>{mMat}{mGrupo ? ' · ' + mGrupo : ''}</span>
+                                                            {mProfe && <> {' · '} <span>{mProfe}</span> </>}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </dd>
+                                    </div>
+                                )}
+                                {!row._esGrupo && row.intercambioPareja && (
                                     <Field
                                         label={t('exceptions.intercambioParejaLabel', { defaultValue: 'Pareja del intercambio' })}
                                         value={`#${row.intercambioPareja.id ?? row.intercambioPareja['@id']?.split('/').pop() ?? '?'}`}
