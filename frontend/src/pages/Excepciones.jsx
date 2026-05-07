@@ -572,6 +572,11 @@ const Excepciones = () => {
                             value={formData.horarioBase}
                             onChange={(v) => setFormData(p => ({ ...p, horarioBase: v }))}
                             endpoint="/api/horarios"
+                            itemsPerPage={100}
+                            extraParams={{
+                                'order[diaSemana]': 'asc',
+                                'order[horaInicio]': 'asc',
+                            }}
                             getOptionLabel={(h) => {
                                 const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
                                 const hi = formatHora(h.horaInicio);
@@ -579,7 +584,14 @@ const Excepciones = () => {
                                 const m = h.imparticion?.materia?.nombre || '?';
                                 const g = h.imparticion?.grupo;
                                 const grupo = g ? `${g.curso ? `${g.curso}º ` : ''}${g.abreviatura || g.nombre || ''}` : '';
-                                return `${dia} ${hi}-${hf} · ${m}${grupo ? ' · ' + grupo : ''}`;
+                                const dur = (() => {
+                                    if (!hi || !hf) return '';
+                                    const [hH, hM] = hi.split(':').map(Number);
+                                    const [fH, fM] = hf.split(':').map(Number);
+                                    const min = (fH * 60 + fM) - (hH * 60 + hM);
+                                    return ` (${min}min)`;
+                                })();
+                                return `${dia} ${hi}-${hf}${dur} · ${m}${grupo ? ' · ' + grupo : ''}`;
                             }}
                             getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
                             placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}
@@ -629,6 +641,11 @@ const Excepciones = () => {
                                     value={formData.horarioBaseB}
                                     onChange={(v) => setFormData(p => ({ ...p, horarioBaseB: v }))}
                                     endpoint="/api/horarios"
+                                    itemsPerPage={100}
+                                    extraParams={{
+                                        'order[diaSemana]': 'asc',
+                                        'order[horaInicio]': 'asc',
+                                    }}
                                     getOptionLabel={(h) => {
                                         const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
                                         const m = h.imparticion?.materia?.nombre || '?';
@@ -636,7 +653,14 @@ const Excepciones = () => {
                                         const profe = p ? [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() : '?';
                                         const hi = (h.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
                                         const hf = (h.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
-                                        return `${dia} ${hi}-${hf} · ${m} · ${profe}`;
+                                        const dur = (() => {
+                                            if (!hi || !hf) return '';
+                                            const [hH, hM] = hi.split(':').map(Number);
+                                            const [fH, fM] = hf.split(':').map(Number);
+                                            const min = (fH * 60 + fM) - (hH * 60 + hM);
+                                            return ` (${min}min)`;
+                                        })();
+                                        return `${dia} ${hi}-${hf}${dur} · ${m} · ${profe}`;
                                     }}
                                     getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
                                     placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}

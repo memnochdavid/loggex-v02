@@ -130,6 +130,23 @@ class IntercambioController extends AbstractController
             return $this->json(['message' => 'fechaConcretaB no coincide con el día de semana del bloque B.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        // Duración equivalente: un intercambio asimétrico (p.ej. ceder 2h y
+        // recibir 1h) deja a uno de los profes con horas pedagógicas
+        // perdidas o sobrecargadas. La regla de negocio es swap simétrico.
+        $durA = $this->durationMinutes($horarioA);
+        $durB = $this->durationMinutes($horarioB);
+        if ($durA === null || $durB === null) {
+            return $this->json(['message' => 'No se pudo calcular la duración de uno de los bloques.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if ($durA !== $durB) {
+            return $this->json([
+                'message' => sprintf(
+                    'Intercambio asimétrico: el bloque A dura %d min y el B dura %d min. Las dos caras del intercambio deben tener la misma duración para ser un swap equilibrado.',
+                    $durA, $durB
+                ),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
         $estado  = $isAdmin ? EstadoExcepcion::APROBADA : EstadoExcepcion::PENDIENTE_APROBACION;
         $now     = new \DateTimeImmutable();
@@ -197,5 +214,17 @@ class IntercambioController extends AbstractController
         $parts = explode('/', trim($iri, '/'));
         $last = end($parts);
         return is_numeric($last) ? (int) $last : null;
+    }
+
+    /**
+     * Duración en minutos de un Horario. Usa horaInicio/horaFin (TIME_MUTABLE)
+     * sin TZ — son horas reloj, no datetimes.
+     */
+    private function durationMinutes(Horario $h): ?int
+    {
+        $hi = $h->getHoraInicio();
+        $hf = $h->getHoraFin();
+        if ($hi === null || $hf === null) return null;
+        return (int) (($hf->getTimestamp() - $hi->getTimestamp()) / 60);
     }
 }
