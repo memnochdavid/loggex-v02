@@ -181,11 +181,12 @@ class ExcepcionHorario
 
     /**
      * Quién creó la excepción. Se rellena desde el JWT en el processor de
-     * Post; no se acepta del payload para evitar suplantación.
+     * Post; no se acepta del payload para evitar suplantación. NO lleva
+     * Assert\NotNull porque la validación corre ANTES del processor en el
+     * ciclo API Platform; la columna BD NOT NULL hace de red de seguridad.
      */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Assert\NotNull]
     #[Groups(['excepcion:read'])]
     private ?User $solicitadaPor = null;
 

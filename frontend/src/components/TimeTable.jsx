@@ -473,29 +473,57 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                             minHeight: slotMinH,
                                         }}
                                     >
-                                        {cellData && (
-                                            <div
-                                                className={styles.eventCard}
-                                                onClick={() => handleEventClick(cellData.event)}
-                                                title={t('timetable.viewDetails')}
-                                                style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
-                                            >
-                                                <div className={styles.eventModulo}>
-                                                    <MateriaLabel materia={{
-                                                        nombre: cellData.event.materia,
-                                                        abreviatura: cellData.event.moduloAbreviatura,
-                                                    }} />
+                                        {cellData && (() => {
+                                            const exc = cellData.event._excepcion;
+                                            const cancelado = cellData.event._cancelado;
+                                            const excTitle = exc
+                                                ? `${{
+                                                    intercambio: 'Intercambio',
+                                                    sustitucion: 'Sustitución',
+                                                    cancelado: 'Cancelada',
+                                                    evento_especial: 'Evento especial',
+                                                  }[exc.tipo] || 'Excepción'}${exc.motivo ? ` — ${exc.motivo}` : ''}`
+                                                : t('timetable.viewDetails');
+                                            const overrideName = exc?.profeOverride?.nombre
+                                                || exc?.imparticionEfectiva?.profesor
+                                                || null;
+                                            return (
+                                                <div
+                                                    className={`${styles.eventCard}${exc ? ' ' + (styles.eventCardException || '') : ''}${cancelado ? ' ' + (styles.eventCardCancelled || '') : ''}`}
+                                                    onClick={() => handleEventClick(cellData.event)}
+                                                    title={excTitle}
+                                                    style={{ backgroundColor: colorForModule(cellData.event.moduloId || cellData.event.imparticionId) }}
+                                                >
+                                                    <div className={styles.eventModulo}>
+                                                        <MateriaLabel materia={{
+                                                            nombre: cellData.event.materia,
+                                                            abreviatura: cellData.event.moduloAbreviatura,
+                                                        }} />
+                                                    </div>
+                                                    <div className={styles.eventGroupSmall}>
+                                                        {[
+                                                            cellData.event.grupoCurso ? `${cellData.event.grupoCurso}º` : null,
+                                                            (cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== '')
+                                                                ? cellData.event.grupoAbreviatura
+                                                                : cellData.event.grupo,
+                                                        ].filter(Boolean).join(' ')}
+                                                    </div>
+                                                    {exc && (
+                                                        <div className={styles.eventExceptionTag}>
+                                                            {cancelado
+                                                                ? '✕ Cancelada'
+                                                                : exc.tipo === 'sustitucion' && overrideName
+                                                                    ? `↔ ${overrideName}`
+                                                                    : exc.tipo === 'intercambio' && overrideName
+                                                                        ? `⇄ ${overrideName}`
+                                                                        : exc.tipo === 'evento_especial'
+                                                                            ? '★ Evento'
+                                                                            : '● Excepción'}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className={styles.eventGroupSmall}>
-                                                    {[
-                                                        cellData.event.grupoCurso ? `${cellData.event.grupoCurso}º` : null,
-                                                        (cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== '')
-                                                            ? cellData.event.grupoAbreviatura
-                                                            : cellData.event.grupo,
-                                                    ].filter(Boolean).join(' ')}
-                                                </div>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 );
                             })}
