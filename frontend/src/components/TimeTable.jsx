@@ -7,6 +7,7 @@ import AccordionView from './AccordionView';
 import ModalView from './ModalView';
 import AsistenciaModal from './AsistenciaModal';
 import AsyncSearchSelect from './AsyncSearchSelect';
+import HorarioGridPicker from './HorarioGridPicker';
 import Button from './Button';
 import EventCard from './EventCard'; // Importar EventCard
 import MateriaLabel from './MateriaLabel';
@@ -901,54 +902,22 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                 </div>
                             )}
                             {excForm.tipo === 'intercambio' && (
-                                <>
-                                    <div className={crudStyles.formGroup}>
-                                        <label className={crudStyles.label}>
-                                            {t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}
-                                        </label>
-                                        <AsyncSearchSelect
-                                            value={excForm.horarioBaseB}
-                                            onChange={(v) => setExcForm(p => ({ ...p, horarioBaseB: v }))}
-                                            endpoint="/api/horarios"
-                                            itemsPerPage={100}
-                                            extraParams={{
-                                                'order[diaSemana]': 'asc',
-                                                'order[horaInicio]': 'asc',
-                                            }}
-                                            getOptionLabel={(h) => {
-                                                const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
-                                                const m = h.imparticion?.materia?.nombre || '?';
-                                                const p = h.imparticion?.profesor;
-                                                const profe = p ? [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() : '?';
-                                                const hi = (h.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
-                                                const hf = (h.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
-                                                const dur = (() => {
-                                                    if (!hi || !hf) return '';
-                                                    const [hH, hM] = hi.split(':').map(Number);
-                                                    const [fH, fM] = hf.split(':').map(Number);
-                                                    const min = (fH * 60 + fM) - (hH * 60 + hM);
-                                                    return ` (${min}min)`;
-                                                })();
-                                                return `${dia} ${hi}-${hf}${dur} · ${m} · ${profe}`;
-                                            }}
-                                            getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
-                                            placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className={crudStyles.formGroup}>
-                                        <label className={crudStyles.label}>
-                                            {t('exceptions.fechaConcretaB', { defaultValue: 'Fecha en la que cubrirás al otro' })}
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className={crudStyles.input}
-                                            value={excForm.fechaConcretaB}
-                                            onChange={(e) => setExcForm(p => ({ ...p, fechaConcretaB: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                </>
+                                <div className={crudStyles.formGroup}>
+                                    <label className={crudStyles.label}>
+                                        {t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}
+                                    </label>
+                                    <HorarioGridPicker
+                                        value={excForm.horarioBaseB}
+                                        selectedFecha={excForm.fechaConcretaB}
+                                        weekAnchor={selectedDate}
+                                        excludeProfesorId={user?.id}
+                                        onChange={({ horarioId, fechaConcreta }) => setExcForm(p => ({
+                                            ...p,
+                                            horarioBaseB: horarioId,
+                                            fechaConcretaB: fechaConcreta,
+                                        }))}
+                                    />
+                                </div>
                             )}
                             <div className={crudStyles.formGroup}>
                                 <label className={crudStyles.label}>{t('exceptions.motivo', { defaultValue: 'Motivo' })}</label>

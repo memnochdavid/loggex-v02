@@ -6,6 +6,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
 import AsyncSearchSelect from '../components/AsyncSearchSelect';
+import HorarioGridPicker from '../components/HorarioGridPicker';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
@@ -633,52 +634,19 @@ const Excepciones = () => {
                     )}
 
                     {showIntercambioPair && (
-                        <>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>{t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}</label>
-                                <AsyncSearchSelect
-                                    name="horarioBaseB"
-                                    value={formData.horarioBaseB}
-                                    onChange={(v) => setFormData(p => ({ ...p, horarioBaseB: v }))}
-                                    endpoint="/api/horarios"
-                                    itemsPerPage={100}
-                                    extraParams={{
-                                        'order[diaSemana]': 'asc',
-                                        'order[horaInicio]': 'asc',
-                                    }}
-                                    getOptionLabel={(h) => {
-                                        const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
-                                        const m = h.imparticion?.materia?.nombre || '?';
-                                        const p = h.imparticion?.profesor;
-                                        const profe = p ? [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() : '?';
-                                        const hi = (h.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
-                                        const hf = (h.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
-                                        const dur = (() => {
-                                            if (!hi || !hf) return '';
-                                            const [hH, hM] = hi.split(':').map(Number);
-                                            const [fH, fM] = hf.split(':').map(Number);
-                                            const min = (fH * 60 + fM) - (hH * 60 + hM);
-                                            return ` (${min}min)`;
-                                        })();
-                                        return `${dia} ${hi}-${hf}${dur} · ${m} · ${profe}`;
-                                    }}
-                                    getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
-                                    placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>{t('exceptions.fechaConcretaB', { defaultValue: 'Fecha en la que cubrirás al otro' })}</label>
-                                <input
-                                    type="date"
-                                    name="fechaConcretaB"
-                                    className={styles.input}
-                                    value={formData.fechaConcretaB}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-                        </>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>{t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}</label>
+                            <HorarioGridPicker
+                                value={formData.horarioBaseB}
+                                selectedFecha={formData.fechaConcretaB}
+                                weekAnchor={formData.fechaConcreta ? new Date(formData.fechaConcreta) : new Date()}
+                                onChange={({ horarioId, fechaConcreta }) => setFormData(p => ({
+                                    ...p,
+                                    horarioBaseB: horarioId,
+                                    fechaConcretaB: fechaConcreta,
+                                }))}
+                            />
+                        </div>
                     )}
 
                     <div className={styles.formGroup}>
