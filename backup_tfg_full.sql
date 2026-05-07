@@ -5413,7 +5413,7 @@ CREATE TABLE `excepcion_horario` (
   CONSTRAINT `FK_eh_intercambio_pareja` FOREIGN KEY (`intercambio_pareja_id`) REFERENCES `excepcion_horario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_eh_profe_override` FOREIGN KEY (`profe_override_id`) REFERENCES `usuario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_eh_solicitada_por` FOREIGN KEY (`solicitada_por_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5422,8 +5422,6 @@ CREATE TABLE `excepcion_horario` (
 
 LOCK TABLES `excepcion_horario` WRITE;
 /*!40000 ALTER TABLE `excepcion_horario` DISABLE KEYS */;
-INSERT INTO `excepcion_horario` VALUES
-(7,5001,'2026-05-08','sustitucion',NULL,51,NULL,'médico',NULL,'aprobada',50,'2026-05-07 15:46:55',55,'2026-05-07 15:47:29',NULL,0,'2026-05-07 15:46:55','2026-05-07 15:47:29',0,NULL);
 /*!40000 ALTER TABLE `excepcion_horario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -6248,7 +6246,7 @@ CREATE TABLE `notificacion` (
   KEY `IDX_notif_usuario` (`usuario_id`),
   KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
   CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6257,23 +6255,6 @@ CREATE TABLE `notificacion` (
 
 LOCK TABLES `notificacion` WRITE;
 /*!40000 ALTER TABLE `notificacion` DISABLE KEYS */;
-INSERT INTO `notificacion` VALUES
-(1,57,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/entregas?tarea=177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',1,'2026-05-05 10:34:49','2026-05-05 10:39:48','2026-05-05 10:34:49','2026-05-05 10:34:49'),
-(2,58,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/entregas?tarea=177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
-(3,59,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/entregas?tarea=177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
-(4,60,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/entregas?tarea=177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
-(5,61,'tarea_nueva','Nueva tarea disponible','Tienes una nueva tarea: \"tarea de prueba\" (entrega hasta el 06/05/2026).','/entregas?tarea=177','{\"tareaId\":177,\"titulo\":\"tarea de prueba\",\"fechaLimite\":\"2026-05-06T23:59:00+00:00\"}',0,'2026-05-05 10:34:49',NULL,'2026-05-05 10:34:49','2026-05-05 10:34:49'),
-(6,57,'calificacion_actualizada','Tu calificación se ha actualizado','Tu nota de \"Sistemas informáticos - Trabajo Tema 3\" se ha actualizado a 9.','/mis-calificaciones?tarea=3','{\"entregaId\":11,\"tareaId\":3,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Trabajo Tema 3\",\"nota\":9.0}',1,'2026-05-05 10:35:40','2026-05-05 10:39:48','2026-05-05 10:35:40','2026-05-05 10:35:40'),
-(7,57,'calificacion_actualizada','Tu calificación se ha actualizado','Tu nota de \"Sistemas informáticos - Práctica integradora\" se ha actualizado a 7.','/mis-calificaciones?tarea=5','{\"entregaId\":20,\"tareaId\":5,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Pr\\u00e1ctica integradora\",\"nota\":7.0}',1,'2026-05-05 10:35:59','2026-05-05 10:36:08','2026-05-05 10:35:59','2026-05-05 10:36:08'),
-(8,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una sustitución para el 08/05/2026.','/admin/excepciones','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',0,'2026-05-07 15:46:55',NULL,'2026-05-07 15:46:55','2026-05-07 15:46:55'),
-(9,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una sustitución para el 08/05/2026.','/admin/excepciones','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-07 15:46:55','2026-05-07 15:47:12','2026-05-07 15:46:55','2026-05-07 15:47:12'),
-(10,50,'excepcion_aprobada','Tu incidencia ha sido aprobada','Sara Alberti Marizza ha aprobado tu solicitud de sustitución para el 08/05/2026.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"aprobadorId\":55,\"aprobadorNombre\":\"Sara Alberti Marizza\",\"respuestaAdmin\":null}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29'),
-(11,51,'sustitucion_asignada','Te han asignado una sustitución','El 08/05/2026 a las 09:30-10:30 tienes que cubrir Sistemas informáticos en 1º DAW.','/horarios','{\"excepcionId\":7,\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"grupo\":\"1\\u00ba DAW\",\"motivo\":\"m\\u00e9dico\"}',1,'2026-05-07 15:47:29','2026-05-07 15:47:56','2026-05-07 15:47:29','2026-05-07 15:47:56'),
-(12,57,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del 08/05/2026 a las 09:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":\"m\\u00e9dico\"}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29'),
-(13,58,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del 08/05/2026 a las 09:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":\"m\\u00e9dico\"}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29'),
-(14,59,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del 08/05/2026 a las 09:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":\"m\\u00e9dico\"}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29'),
-(15,60,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del 08/05/2026 a las 09:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":\"m\\u00e9dico\"}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29'),
-(16,61,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del 08/05/2026 a las 09:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":7,\"tipo\":\"sustitucion\",\"fecha\":\"2026-05-08\",\"hora\":\"09:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":\"m\\u00e9dico\"}',0,'2026-05-07 15:47:29',NULL,'2026-05-07 15:47:29','2026-05-07 15:47:29');
 /*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -7661,4 +7642,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-07 15:52:46
+-- Dump completed on 2026-05-07 16:34:34
