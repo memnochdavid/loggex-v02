@@ -247,6 +247,40 @@ Branch: `develop-semanas-lectivas`. Bitácora de la sesión que cierra la decisi
 
 ## 9. Bitácora de implementación
 
+### 2026-05-07 (sesión 7) — Cierre de pendientes 1, 2 y 3 de sesión 6
+
+Sesión corta para liquidar los 3 ítems "que bloquean coherencia entre 1º DAW y 1º DAM" anotados al final de la bitácora sesión 6.
+
+**Ítem 1 — Verificación de duplicados intra-itinerario ✅ Sin duplicados.**
+Query del bitácora ejecutada sobre `materia` con `itinerario_id IN (3,5) AND curso=1 AND deleted=0`: **0 filas** devueltas. Listado completo confirma 9 materias en cada itinerario con `codigo_oficial` distintos (FOL es 0617 en DAW y 0493 en DAM por convención BOJA, no es duplicado). Ampliado a curso=2: tampoco hay duplicados. No hay nada que soft-deletear.
+
+**Ítem 2 — Regenerar "Configurar curso óptimo" en 1º DAM ✅ Ya regenerado en sesión 6.**
+Inspección de timestamps: las SEMANAs del grupo 3 (DAM) tienen `created_at = 2026-05-06 17:42:26` — fueron creadas en la propia sesión 6 después de los UPDATE manuales a las imparticiones. Estado actual:
+
+| Tramo | DAW (min/sem) | DAM (min/sem) | sem | Notas |
+|---|---|---|---|---|
+| Hasta 1ª Eval | 1530 | 1530 | 13.71 | igual |
+| Hasta 2ª Eval | 1530 | 1530 | 13.00 | igual |
+| Hasta 3ª Eval | 1560 | 1500 | 10.00 | DAM 60min menos (geometría jornada tarde) |
+| Tras última | 1650 | 1650 | 3.43 | igual |
+
+Cobertura anual aproximada: DAW ≈ 1035h, DAM ≈ 1025h vs currículo legal 996h. **Ambos grupos sobrecubren con margen** (~3-4%). Último tramo termina 22/06/2026 en ambos (la fecha 06/07 que aparecía antes del UPDATE de `Centro.fechaFinCurso` ya no existe). El item solo necesita validación visual del banner anual en `/admin/horarios` por parte del usuario; los datos cuadran.
+
+**Ítem 3 — Fix `GrupoResyncCcaaController` con `horasTotales` ✅ Done.**
+Añadido bloque en la rama de match (líneas ~83-91) que compara `$r->catalogoMateria?->getHorasTotales()` con `$m->getHorasTotales()` y actualiza si difiere, siguiendo la misma filosofía conservadora que `minutosSemanales` (solo se actualiza si el catálogo trae valor concreto; NULL = "el catálogo no especifica" → preserva lo que hay). Sin esto, un resync tras enriquecer `catalogo_materia.horasTotales` vía `BoeRdEnricher` no propagaba las horas legales a las materias del grupo. Cambio mínimo (8 líneas), no requiere migración.
+
+**Doc nuevo creado** (`hoja-de-ruta-intercambio-imparticiones.md`): roadmap dedicado para la feature objetivo del refactor. 7 secciones + 7 fases (A modelo + CRUD, B render, C UI creación, D notificaciones, E intercambios bilaterales, F semana atípica, G histórico). MVP estimado A-E en 4-5 sesiones. Decisión bloqueante de arranque: D-A (granularidad temporal) — recomendación argumentada Opción B (capa `ExcepcionHorario` aditiva) por encima de (A) lazy split y (C) atomización completa, dado que la implementación actual del modelo-semanal dejó SEMANAs multi-week (no atómicas como §2 sugería). Arrancar Fase A requiere cerrar D-A a D-G con el usuario en próxima sesión.
+
+**Pendientes vivos tras esta sesión** (orden respeta lo que quedó en sesión 6):
+
+1. ~~Verificar duplicados intra-itinerario~~ ✅ Sin duplicados.
+2. ~~Regenerar "Configurar curso óptimo" en 1º DAM~~ ✅ Ya regenerado; falta validación visual del banner anual.
+3. ~~Fix `GrupoResyncCcaaController.horasTotales`~~ ✅ Done.
+4. **Mejora opcional `handleConfigureOptimalCourse`** — usar `{periodoLectivoId: plantilla.id}` directo en casos simples (cuotas naturales que caben en jornada sin distribución temporal). Reduciría ruido en BD para grupos "fáciles" y dejaría la PLANTILLA protagonista en su rol original.
+5. ~~Crear `hoja-de-ruta-intercambio-imparticiones.md`~~ ✅ Doc creado. Próximo paso: cerrar decisiones D-A a D-G con usuario y arrancar Fase A.
+6. **Comando `app:grupo:resync-curriculum`** para recalcular materias de grupos existentes desde el catálogo enriquecido.
+7. **Roadmap `hoja-de-ruta-clases-compartidas.md`** ya creado en sesión 4 — esperando bloque dedicado.
+
 ### 2026-05-06 (noche, sesión 6) — Fase C ✅ + UX PLANTILLA oculta + descubrimiento de deudas adicionales
 
 **Fase C solvers nativos sobre PLANTILLA ✅ Done** (commit `4a0d716`).

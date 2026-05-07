@@ -81,6 +81,15 @@ class GrupoResyncCcaaController extends AbstractController
                     $m->setMinutosSemanales($r->minutosSemanales);
                     $changed = true;
                 }
+                // Horas totales anuales: igual que minutos, sólo si el catálogo
+                // nacional trae un valor concreto. Sin esto, un resync tras
+                // enriquecer BOE con horas legales no las propagaba a materias
+                // ya creadas (deuda anotada en modelo-semanal sesión 6).
+                $horasTotalesCatalogo = $r->catalogoMateria?->getHorasTotales();
+                if ($horasTotalesCatalogo !== null && $m->getHorasTotales() !== $horasTotalesCatalogo) {
+                    $m->setHorasTotales($horasTotalesCatalogo);
+                    $changed = true;
+                }
                 if ($m->getNombre() !== $r->nombre) {
                     $m->setNombre($r->nombre);
                     $changed = true;

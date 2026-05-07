@@ -1,6 +1,8 @@
 # Solicitud de cambio de turno (profesor → admin)
 
 > **Status (2026-04-28)**: 🔴 sin empezar. Promovido desde `hoja-de-ruta-pulido-ux.md` #8 tras verificar que la feature **no existe** en código (sin entidad `Solicitud*`/`CambioTurno*` en backend ni endpoints/views relacionados en frontend). Se levanta como roadmap propio porque toca modelo + API + UI ambos roles + notificación.
+>
+> **Cross-ref con `hoja-de-ruta-intercambio-imparticiones.md` (2026-05-07)**: este doc cubre el cambio de **turno permanente** del profe (mañana ↔ tarde para el resto del curso) con cola formal admin. Las **excepciones puntuales** (intercambio de 1 clase, sustitución por ausencia, semana atípica) viven en el doc nuevo. Los dos no se solapan: aquí gestionamos reasignación de imparticiones; allí gestionamos overrides per-fecha de horario base. Mantener ambos vivos.
 
 ---
 
