@@ -867,7 +867,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                         value={excForm.profeOverride}
                                         onChange={(v) => setExcForm(p => ({ ...p, profeOverride: v }))}
                                         endpoint="/api/users"
-                                        extraParams={{ 'roles[]': 'ROLE_PROFESOR' }}
+                                        extraParams={{ rol_app: 'profesor' }}
                                         getOptionLabel={(u) => [u.nombre, u.apellidos].filter(Boolean).join(' ').trim() || u.email || '—'}
                                         getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
                                         placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}

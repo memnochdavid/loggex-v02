@@ -584,7 +584,7 @@ const Excepciones = () => {
                                 value={formData.profeOverride}
                                 onChange={(v) => setFormData(p => ({ ...p, profeOverride: v }))}
                                 endpoint="/api/users"
-                                extraParams={{ 'roles[]': 'ROLE_PROFESOR' }}
+                                extraParams={{ rol_app: 'profesor' }}
                                 getOptionLabel={(u) => userName(u)}
                                 getOptionValue={(u) => u.id || u['@id']?.split('/').pop()}
                                 placeholder={t('exceptions.searchUser', { defaultValue: 'Buscar profesor…' })}
