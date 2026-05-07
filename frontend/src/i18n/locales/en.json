@@ -518,6 +518,8 @@
     "newTitle": "New incident",
     "horarioBase": "Base schedule block",
     "fechaConcreta": "Specific date",
+    "horarioBaseB": "Other teacher's block you will cover",
+    "fechaConcretaB": "Date when you cover the other",
     "profeOverride": "Substitute teacher",
     "profeFacilitador": "Facilitator (optional)",
     "imparticionEfectiva": "Effective teaching slot (the other teacher's)",

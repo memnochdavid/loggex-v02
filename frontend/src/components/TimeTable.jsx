@@ -49,7 +49,15 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
     // Profe ⇒ POST estado=pendiente (cola del admin). Admin ⇒ aprobada directa.
     const [isRequestingException, setIsRequestingException] = useState(false);
     const [savingExcepcion, setSavingExcepcion] = useState(false);
-    const [excForm, setExcForm] = useState({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '' });
+    const [excForm, setExcForm] = useState({
+        tipo: 'sustitucion',
+        profeOverride: '',
+        motivo: '',
+        observaciones: '',
+        // Intercambio bilateral (Fase E):
+        horarioBaseB: '',     // bloque del otro profe que cubriré
+        fechaConcretaB: '',   // fecha en la que cubro al otro
+    });
     
     // Referencia para acceder a los datos del AsistenciaModal desde fuera
     const [asistenciaData, setAsistenciaData] = useState(null);
@@ -287,7 +295,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
         setSelectedEvent(null);
         setIsTakingAttendance(false);
         setIsRequestingException(false);
-        setExcForm({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '' });
+        setExcForm({ tipo: 'sustitucion', profeOverride: '', motivo: '', observaciones: '', horarioBaseB: '', fechaConcretaB: '' });
         setAsistenciaData(null); // Limpiar datos al cerrar
     };
 
@@ -314,30 +322,48 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
             toast.error(t('exceptions.errorRequired', { defaultValue: 'Falta el profesor sustituto' }));
             return;
         }
-
-        setSavingExcepcion(true);
-        const payload = {
-            horarioBase: `/api/horarios/${selectedEvent.id}`,
-            fechaConcreta: fecha,
-            tipo: excForm.tipo,
-            motivo: excForm.motivo || null,
-            observaciones: excForm.observaciones || null,
-        };
-        // Estado lo gestiona el processor: profe ⇒ pendiente, admin ⇒ respeta payload.
-        // Como aquí el tipo se envía sin estado, el processor pondrá pendiente para
-        // profe puro y mantendrá el default (pendiente) para admin si no lo cambia.
-        // Si admin quiere aprobar directa, lo hará desde /admin/excepciones.
-        if ((excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && excForm.profeOverride) {
-            payload.profeOverride = `/api/users/${String(excForm.profeOverride).split('/').pop()}`;
+        if (excForm.tipo === 'intercambio' && (!excForm.horarioBaseB || !excForm.fechaConcretaB)) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan los datos de la otra cara del intercambio' }));
+            return;
         }
 
+        setSavingExcepcion(true);
+
         try {
-            const response = await fetch(getApiUrl('/api/excepcion_horarios'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/ld+json', Accept: 'application/ld+json' },
-                body: JSON.stringify(payload),
-                credentials: 'include',
-            });
+            let response;
+            if (excForm.tipo === 'intercambio') {
+                // Endpoint dedicado: crea las dos caras linked atómicamente.
+                response = await fetch(getApiUrl('/api/v1/excepciones/intercambio'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({
+                        horarioBaseA:   `/api/horarios/${selectedEvent.id}`,
+                        fechaConcretaA: fecha,
+                        horarioBaseB:   `/api/horarios/${String(excForm.horarioBaseB).split('/').pop()}`,
+                        fechaConcretaB: excForm.fechaConcretaB,
+                        motivo:         excForm.motivo || null,
+                        observaciones:  excForm.observaciones || null,
+                    }),
+                    credentials: 'include',
+                });
+            } else {
+                const payload = {
+                    horarioBase: `/api/horarios/${selectedEvent.id}`,
+                    fechaConcreta: fecha,
+                    tipo: excForm.tipo,
+                    motivo: excForm.motivo || null,
+                    observaciones: excForm.observaciones || null,
+                };
+                if ((excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && excForm.profeOverride) {
+                    payload.profeOverride = `/api/users/${String(excForm.profeOverride).split('/').pop()}`;
+                }
+                response = await fetch(getApiUrl('/api/excepcion_horarios'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/ld+json', Accept: 'application/ld+json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'include',
+                });
+            }
             if (!response.ok) {
                 const message = await parseErrorResponse(response);
                 throw new Error(message);
@@ -852,8 +878,7 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                     <option value="sustitucion">{t('exceptions.types.sustitucion', { defaultValue: 'Sustitución' })}</option>
                                     <option value="cancelado">{t('exceptions.types.cancelado', { defaultValue: 'Cancelado' })}</option>
                                     <option value="evento_especial">{t('exceptions.types.evento_especial', { defaultValue: 'Evento especial' })}</option>
-                                    {/* INTERCAMBIO se oculta del create hasta Fase E (UI atómica de pareja).
-                                        Sin la pareja, una excepción intercambio queda huérfana y no aporta. */}
+                                    <option value="intercambio">{t('exceptions.types.intercambio', { defaultValue: 'Intercambio' })}</option>
                                 </select>
                             </div>
                             {(excForm.tipo === 'sustitucion' || excForm.tipo === 'evento_especial') && (
@@ -874,6 +899,44 @@ const TimeTable = ({ events = [], slots = null, title, selectedDate, festivos = 
                                         required={excForm.tipo === 'sustitucion'}
                                     />
                                 </div>
+                            )}
+                            {excForm.tipo === 'intercambio' && (
+                                <>
+                                    <div className={crudStyles.formGroup}>
+                                        <label className={crudStyles.label}>
+                                            {t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}
+                                        </label>
+                                        <AsyncSearchSelect
+                                            value={excForm.horarioBaseB}
+                                            onChange={(v) => setExcForm(p => ({ ...p, horarioBaseB: v }))}
+                                            endpoint="/api/horarios"
+                                            getOptionLabel={(h) => {
+                                                const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
+                                                const m = h.imparticion?.materia?.nombre || '?';
+                                                const p = h.imparticion?.profesor;
+                                                const profe = p ? [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() : '?';
+                                                const hi = (h.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                                                const hf = (h.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                                                return `${dia} ${hi}-${hf} · ${m} · ${profe}`;
+                                            }}
+                                            getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
+                                            placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={crudStyles.formGroup}>
+                                        <label className={crudStyles.label}>
+                                            {t('exceptions.fechaConcretaB', { defaultValue: 'Fecha en la que cubrirás al otro' })}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className={crudStyles.input}
+                                            value={excForm.fechaConcretaB}
+                                            onChange={(e) => setExcForm(p => ({ ...p, fechaConcretaB: e.target.value }))}
+                                            required
+                                        />
+                                    </div>
+                                </>
                             )}
                             <div className={crudStyles.formGroup}>
                                 <label className={crudStyles.label}>{t('exceptions.motivo', { defaultValue: 'Motivo' })}</label>

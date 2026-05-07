@@ -31,13 +31,12 @@ import { useConfirm } from '../context/ConfirmContext';
  *
  * Doc: docs/hoja-de-ruta-intercambio-imparticiones.md Fase C.
  */
-// TIPOS para filtros y display: incluyen los 4 valores. La opción `intercambio`
-// se mantiene en el filtro para poder ver futuros registros bilaterales.
+// TIPOS para filtros y display.
 const TIPOS = ['intercambio', 'sustitucion', 'cancelado', 'evento_especial'];
-// TIPOS_CREATE: los que el modal de creación expone. `intercambio` se gatea
-// hasta Fase E (UI atómica de pareja); sin la pareja, una fila intercambio
-// queda huérfana y no aporta.
-const TIPOS_CREATE = ['sustitucion', 'cancelado', 'evento_especial'];
+// TIPOS_CREATE: el modal expone los 4. Para `intercambio` el submit usa
+// el endpoint dedicado /api/v1/excepciones/intercambio que crea pareja
+// atómica (Fase E).
+const TIPOS_CREATE = ['sustitucion', 'cancelado', 'evento_especial', 'intercambio'];
 const ESTADOS = ['pendiente', 'aprobada', 'rechazada', 'cancelada'];
 
 const formatHora = (iso) => {
@@ -89,9 +88,12 @@ const Excepciones = () => {
         horarioBase: '',
         fechaConcreta: '',
         profeOverride: '',
-        imparticionEfectiva: '',
+        imparticionEfectiva: '',  // legado; intercambio ya no lo usa (derivado de horarioBaseB)
         motivo: '',
         observaciones: '',
+        // Intercambio bilateral (Fase E):
+        horarioBaseB: '',
+        fechaConcretaB: '',
     });
 
     const fetchData = useCallback(async (params) => {
@@ -190,6 +192,8 @@ const Excepciones = () => {
             imparticionEfectiva: '',
             motivo: '',
             observaciones: '',
+            horarioBaseB: '',
+            fechaConcretaB: '',
         });
         setIsModalOpen(true);
     };
@@ -209,39 +213,57 @@ const Excepciones = () => {
             toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan campos obligatorios' }));
             return;
         }
+        if (formData.tipo === 'intercambio' && (!formData.horarioBaseB || !formData.fechaConcretaB)) {
+            toast.error(t('exceptions.errorRequired', { defaultValue: 'Faltan datos de la otra cara del intercambio' }));
+            return;
+        }
         setSaving(true);
 
-        const payload = {
-            horarioBase: `/api/horarios/${String(formData.horarioBase).split('/').pop()}`,
-            fechaConcreta: formData.fechaConcreta,
-            tipo: formData.tipo,
-            estado: 'aprobada',
-            motivo: formData.motivo || null,
-            observaciones: formData.observaciones || null,
-        };
-
-        if (formData.tipo === 'sustitucion' && formData.profeOverride) {
-            payload.profeOverride = `/api/users/${String(formData.profeOverride).split('/').pop()}`;
-        }
-        if (formData.tipo === 'intercambio' && formData.imparticionEfectiva) {
-            payload.imparticionEfectiva = `/api/imparticions/${String(formData.imparticionEfectiva).split('/').pop()}`;
-        }
-        if (formData.tipo === 'evento_especial' && formData.profeOverride) {
-            payload.profeOverride = `/api/users/${String(formData.profeOverride).split('/').pop()}`;
-        }
-
         try {
-            const response = await fetch(getApiUrl('/api/excepcion_horarios'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/ld+json', Accept: 'application/ld+json' },
-                body: JSON.stringify(payload),
-                credentials: 'include',
-            });
+            let response;
+            if (formData.tipo === 'intercambio') {
+                // Endpoint dedicado: crea las dos caras linked atómicamente
+                // (Fase E). El admin crea APROBADA directa por defecto.
+                response = await fetch(getApiUrl('/api/v1/excepciones/intercambio'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({
+                        horarioBaseA:   `/api/horarios/${String(formData.horarioBase).split('/').pop()}`,
+                        fechaConcretaA: formData.fechaConcreta,
+                        horarioBaseB:   `/api/horarios/${String(formData.horarioBaseB).split('/').pop()}`,
+                        fechaConcretaB: formData.fechaConcretaB,
+                        motivo:         formData.motivo || null,
+                        observaciones:  formData.observaciones || null,
+                    }),
+                    credentials: 'include',
+                });
+            } else {
+                const payload = {
+                    horarioBase: `/api/horarios/${String(formData.horarioBase).split('/').pop()}`,
+                    fechaConcreta: formData.fechaConcreta,
+                    tipo: formData.tipo,
+                    estado: 'aprobada',
+                    motivo: formData.motivo || null,
+                    observaciones: formData.observaciones || null,
+                };
+                if (formData.tipo === 'sustitucion' && formData.profeOverride) {
+                    payload.profeOverride = `/api/users/${String(formData.profeOverride).split('/').pop()}`;
+                }
+                if (formData.tipo === 'evento_especial' && formData.profeOverride) {
+                    payload.profeOverride = `/api/users/${String(formData.profeOverride).split('/').pop()}`;
+                }
+                response = await fetch(getApiUrl('/api/excepcion_horarios'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/ld+json', Accept: 'application/ld+json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'include',
+                });
+            }
             if (!response.ok) {
                 const message = await parseErrorResponse(response);
                 throw new Error(message);
             }
-            toast.success(t('exceptions.createdSuccess', { defaultValue: 'Excepción creada' }));
+            toast.success(t('exceptions.createdSuccess', { defaultValue: 'Incidencia creada' }));
             setIsModalOpen(false);
             fetchData({
                 page: currentPage,
@@ -473,8 +495,13 @@ const Excepciones = () => {
         </>
     );
 
-    const showImparticionEfectiva = formData.tipo === 'intercambio';
+    // Antes de Fase E el modal mostraba un select de imparticionEfectiva para
+    // intercambio. Ahora el endpoint dedicado `/intercambio` deriva la
+    // imparticion del horarioBaseB elegido, por lo que el campo ya no se
+    // expone y la variable queda en false (legacy guard por si alguien
+    // cambia el tipo programáticamente).
     const showProfeOverride = formData.tipo === 'sustitucion' || formData.tipo === 'evento_especial';
+    const showIntercambioPair = formData.tipo === 'intercambio';
 
     return (
         <Layout>
@@ -593,26 +620,41 @@ const Excepciones = () => {
                         </div>
                     )}
 
-                    {showImparticionEfectiva && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>{t('exceptions.imparticionEfectiva', { defaultValue: 'Imparticion que sustituye (la del otro profe)' })}</label>
-                            <AsyncSearchSelect
-                                name="imparticionEfectiva"
-                                value={formData.imparticionEfectiva}
-                                onChange={(v) => setFormData(p => ({ ...p, imparticionEfectiva: v }))}
-                                endpoint="/api/imparticions"
-                                getOptionLabel={(i) => {
-                                    const m = i.materia?.nombre || '?';
-                                    const p = userName(i.profesor) || '?';
-                                    const g = i.grupo;
-                                    const grupo = g ? `${g.curso ? `${g.curso}º ` : ''}${g.abreviatura || g.nombre || ''}` : '';
-                                    return `${m} · ${p}${grupo ? ' · ' + grupo : ''}`;
-                                }}
-                                getOptionValue={(i) => i.id || i['@id']?.split('/').pop()}
-                                placeholder={t('exceptions.searchImparticion', { defaultValue: 'Buscar imparticion…' })}
-                                required
-                            />
-                        </div>
+                    {showIntercambioPair && (
+                        <>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('exceptions.horarioBaseB', { defaultValue: 'Bloque del otro profe que cubrirás' })}</label>
+                                <AsyncSearchSelect
+                                    name="horarioBaseB"
+                                    value={formData.horarioBaseB}
+                                    onChange={(v) => setFormData(p => ({ ...p, horarioBaseB: v }))}
+                                    endpoint="/api/horarios"
+                                    getOptionLabel={(h) => {
+                                        const dia = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][h.diaSemana] || '';
+                                        const m = h.imparticion?.materia?.nombre || '?';
+                                        const p = h.imparticion?.profesor;
+                                        const profe = p ? [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() : '?';
+                                        const hi = (h.horaInicio || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                                        const hf = (h.horaFin || '').match(/T(\d{2}:\d{2})/)?.[1] || '';
+                                        return `${dia} ${hi}-${hf} · ${m} · ${profe}`;
+                                    }}
+                                    getOptionValue={(h) => h.id || h['@id']?.split('/').pop()}
+                                    placeholder={t('exceptions.searchHorario', { defaultValue: 'Buscar bloque…' })}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('exceptions.fechaConcretaB', { defaultValue: 'Fecha en la que cubrirás al otro' })}</label>
+                                <input
+                                    type="date"
+                                    name="fechaConcretaB"
+                                    className={styles.input}
+                                    value={formData.fechaConcretaB}
+                                    onChange={handleInputChange}
+                                    required
+                                />
+                            </div>
+                        </>
                     )}
 
                     <div className={styles.formGroup}>

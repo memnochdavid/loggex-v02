@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-07 noche, 5ª iter.)**: 🟡 **Fase A ✅ + Fase B 5/5 ✅ + Fase C parcial ✅ + Rename + gate INTERCAMBIO + Fase D ✅ Done.** El sistema avisa automáticamente a todos los afectados: admin del centro recibe pendientes, solicitante recibe aprobación/rechazo, sustituto recibe asignación, alumnos del grupo reciben aviso de clase cancelada/trasladada. 6 tipos nuevos en el catálogo de notificaciones + dispatcher + iconos Lucide + i18n × 5.
+> **Status (2026-05-07 noche, 6ª iter.)**: 🟢 **Fase A ✅ + Fase B 5/5 ✅ + Fase C parcial ✅ + Rename + Fase D ✅ + Fase E ✅ Done — los 4 tipos plenamente operativos.** El admin/profe puede crear desde la UI: sustitución (cubre profe), cancelación (clase no se imparte), evento especial (charla/taller), e intercambio bilateral (dos clases linked atómicamente). Cada acción dispara las notificaciones correspondientes a los afectados (admin del centro, solicitante, sustituto, alumnos).
 >
-> **Próxima acción**: Fase E (UI atómica intercambio bilateral), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o Fase B.3 (banner anual + Consumición awareness).
+> **Próxima acción**: Fase B.3 (banner anual + Consumición awareness restando CANCELADO/EVENTO al planificado), o Fase C.2 polish (C.3 modal desde rejilla `/admin/horarios` + C.4 vista `/mis-incidencias`), o validación visual end-to-end.
 
 ---
 
@@ -407,6 +407,43 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 ---
 
 ## 8. Bitácora de implementación
+
+### 2026-05-07 (noche, 6ª iteración) — Fase E ✅ Done — UI atómica intercambio bilateral
+
+**Backend** — controller dedicado `App\Controller\IntercambioController`:
+
+- `POST /api/v1/excepciones/intercambio` con body `{ horarioBaseA, fechaConcretaA, horarioBaseB, fechaConcretaB, motivo, observaciones }`.
+- Crea **dos** `ExcepcionHorario` linked vía `intercambioPareja` (self-FK bidireccional). Cada cara lleva `imparticionEfectiva` apuntando a la imparticion del otro profe (la que de facto se imparte en esa fecha).
+- Validaciones:
+  - Bloques distintos (`horarioBaseA != horarioBaseB`).
+  - Bloques del mismo centro (un profe no puede intercambiar con otro centro).
+  - Profes distintos (no auto-intercambio).
+  - `fechaConcretaA.diaSemana == horarioA.diaSemana` y mismo para B.
+  - Validators de la entidad ejecutados antes de persistir.
+- Estado se decide por rol del solicitante: profe puro → ambas caras `PENDIENTE_APROBACION`; admin/superadmin → ambas `APROBADA` con `aprobadaPor`+`fechaResolucion`.
+- Persistencia atómica con dos flushes: el primero asigna IDs; el segundo aplica las referencias mutuas `intercambioPareja`. Si el segundo flush falla, las caras quedan sin link (caso edge a manejar en Fase E.2 con transacción explícita; para MVP está OK porque ambos flushes son contra la misma DB connection).
+- El subscriber `NotificationDispatchSubscriber` se activa en postPersist para cada cara, disparando notificaciones (admin si pendientes, solicitante+sustituto+alumnos si aprobadas).
+
+**Frontend** — UI en los dos puntos de creación:
+
+- `TimeTable.jsx` (modal "Solicitar cambio" del profe):
+  - Reabierta opción `intercambio` en el select de tipo.
+  - Cuando `intercambio` está seleccionado, muestra dos campos extra: `horarioBaseB` (AsyncSearchSelect `/api/horarios` con un getOptionLabel rico que incluye día, hora, materia y profe) y `fechaConcretaB` (date picker).
+  - `handleSubmitExcepcion` ramifica: si tipo=intercambio, POST al endpoint dedicado con los 4 campos; si no, POST a `/api/excepcion_horarios` como antes.
+- `Excepciones.jsx` (modal admin "Nueva incidencia"):
+  - `TIPOS_CREATE` ahora incluye los 4 valores.
+  - Se elimina el viejo campo `imparticionEfectiva` del modal (Fase E lo deriva del `horarioBaseB`).
+  - Cuando `intercambio`, muestra los mismos dos campos extra y el submit usa el endpoint dedicado.
+- 0 estilos nuevos: reuso completo de `Crud.module.css` y `crudStyles` ya importado.
+- i18n × 5 idiomas: claves `exceptions.horarioBaseB` y `exceptions.fechaConcretaB` en es/en/ca/gl/eu. JSONs validados.
+
+**Qué resuelve la fase E**:
+- Antes: el admin/profe podía elegir "Intercambio" del select pero no había campos para la pareja → POST creaba una fila huérfana sin imparticionEfectiva ni intercambioPareja. Sara podía aprobarla pero no aportaba nada (clase sin sustituto, sin pareja). Ese option se ocultó en la 4ª iteración con un comentario "hasta Fase E".
+- Ahora: el flow completo. Profe X reserva su clase del lunes y elige una clase de profe Y para cubrir el viernes. Sara aprueba la pareja entera; X y Y reciben notificaciones cruzadas; ambos ven el cambio en sus respectivos `/horarios` (X: badge "↔ Y" en su lunes; Y: clase sintética nueva con badge "✦ Cubres" en su lunes; X: clase sintética nueva en el viernes; Y: badge "↔ X" en su viernes).
+
+**Limitación conocida (Fase E.2 cuando se necesite)**:
+- Cancelar una cara del intercambio NO cancela automáticamente la pareja. Si Sara revierte la aprobación de la cara A, la cara B sigue aprobada y el sistema queda en estado inconsistente (profe X cubre a Y el viernes pero Y no cubre a X el lunes). Mitigación temporal: el admin debe revertir ambas. Plan para próxima iteración: añadir hook en `preUpdate` o un `IntercambioParejaCascadeSubscriber` que propague cambios de estado a la pareja.
+- La compensación tipo "Alberto da una doble después para recuperar" sigue siendo un caso distinto que requiere `tipo=RECUPERACION` o equivalente — anotado como D-H en la lista de decisiones pendientes pero no implementado.
 
 ### 2026-05-07 (noche, 5ª iteración) — Fase D ✅ Done — notificaciones a afectados
 

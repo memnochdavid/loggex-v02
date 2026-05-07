@@ -518,6 +518,8 @@
     "newTitle": "Nova incidència",
     "horarioBase": "Bloc de l'horari base",
     "fechaConcreta": "Data concreta",
+    "horarioBaseB": "Bloc de l'altre professor que cobriràs",
+    "fechaConcretaB": "Data en què cobreixes a l'altre",
     "profeOverride": "Professor substitut",
     "profeFacilitador": "Facilitador (opcional)",
     "imparticionEfectiva": "Impartició que substitueix (la de l'altre professor)",

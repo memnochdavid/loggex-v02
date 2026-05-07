@@ -518,6 +518,8 @@
     "newTitle": "Intzidentzia berria",
     "horarioBase": "Oinarrizko ordutegiaren blokea",
     "fechaConcreta": "Data zehatza",
+    "horarioBaseB": "Estaliko duzun beste irakaslearen blokea",
+    "fechaConcretaB": "Bestea estaltzen duzun data",
     "profeOverride": "Ordezko irakaslea",
     "profeFacilitador": "Bideratzailea (aukerakoa)",
     "imparticionEfectiva": "Ordezkatzen duen ematea (beste irakaslearena)",

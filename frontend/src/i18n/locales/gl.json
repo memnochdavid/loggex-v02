@@ -518,6 +518,8 @@
     "newTitle": "Nova incidencia",
     "horarioBase": "Bloque do horario base",
     "fechaConcreta": "Data concreta",
+    "horarioBaseB": "Bloque do outro profesor que cobrirás",
+    "fechaConcretaB": "Data na que cobres ao outro",
     "profeOverride": "Profesor substituto",
     "profeFacilitador": "Facilitador (opcional)",
     "imparticionEfectiva": "Imparticion que substitúe (a do outro profesor)",
