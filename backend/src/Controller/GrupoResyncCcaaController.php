@@ -61,11 +61,17 @@ class GrupoResyncCcaaController extends AbstractController
         $now = new \DateTimeImmutable();
 
         // Materias existentes vivas del itinerario, filtradas por el curso del grupo.
-        $existentesCriteria = ['itinerario' => $itinerario, 'deleted' => false];
+        // Tras 2026-05-08 (Materia↔Itinerario M:N) findBy no soporta filtrar por
+        // colección con un valor concreto, así que pasamos a QueryBuilder.
+        $qb = $em->getRepository(Materia::class)->createQueryBuilder('m')
+            ->innerJoin('m.itinerarios', 'i')
+            ->andWhere('i = :it')
+            ->andWhere('m.deleted = false')
+            ->setParameter('it', $itinerario);
         if ($cursoGrupo !== null) {
-            $existentesCriteria['curso'] = $cursoGrupo;
+            $qb->andWhere('m.curso = :curso')->setParameter('curso', $cursoGrupo);
         }
-        $existentes = $em->getRepository(Materia::class)->findBy($existentesCriteria);
+        $existentes = $qb->getQuery()->getResult();
         $procesadas = [];
 
         foreach ($existentes as $m) {
@@ -146,7 +152,7 @@ class GrupoResyncCcaaController extends AbstractController
                 ->setHorasTotales($horasTotales)
                 ->setTipo($r->tipo)
                 ->setModalidad($r->modalidad)
-                ->setItinerario($itinerario)
+                ->addItinerario($itinerario)
                 ->setCatalogoOrigen($r->catalogoMateria);
             $em->persist($m);
 

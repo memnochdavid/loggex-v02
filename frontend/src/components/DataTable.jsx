@@ -60,9 +60,22 @@ const DataTable = ({
         || (typeof col.accessor === 'string' ? col.accessor : null)
         || (typeof col.header === 'string' ? col.header : '');
 
+    // La columna "Acciones" se identifica por header traducido o accessor
+    // === 'actions'. El detector se reutiliza para alinear cabecera+celda al
+    // final (flex-end), para extraer la columna en la vista móvil, y para
+    // forzar su visibilidad incluso si un set persistido en localStorage la
+    // marca como oculta (defensa contra estados stale entre versiones).
+    const isActionsCol = (col) =>
+        col.accessor === 'actions'
+        || col.header === 'Acciones'
+        || col.header === t('common.actions');
+
     const allColumnIds = columns.map(columnId);
     const [hiddenIds, toggleHidden] = useColumnVisibility(tableId, allColumnIds);
-    const visibleColumns = columns.filter(c => !hiddenIds.includes(columnId(c)));
+    // Acciones siempre visibles aunque su id esté en hiddenIds: nunca debería
+    // estar allí (no se ofrece en el menú), pero un set stale del localStorage
+    // de una versión anterior podría tenerla y dejarte sin botones.
+    const visibleColumns = columns.filter(c => isActionsCol(c) || !hiddenIds.includes(columnId(c)));
 
     const handleSort = (column) => {
         if (!column.sortable || !onSort) return;
@@ -71,14 +84,6 @@ const DataTable = ({
             onSort(key);
         }
     };
-
-    // La columna "Acciones" se identifica por header traducido o accessor
-    // === 'actions'. El detector se reutiliza para alinear cabecera+celda al
-    // final (flex-end) y para extraer la columna en la vista móvil.
-    const isActionsCol = (col) =>
-        col.accessor === 'actions'
-        || col.header === 'Acciones'
-        || col.header === t('common.actions');
 
     // Columnas ofrecidas en el menú de visibilidad: cualquiera no marcada
     // hideable:false y que no sea la de "Acciones" (esa siempre se queda).

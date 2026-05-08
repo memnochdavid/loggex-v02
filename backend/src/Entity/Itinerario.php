@@ -109,7 +109,14 @@ class Itinerario
     #[Groups(['itinerario:read', 'itinerario:write', 'grupo:read'])]
     private ?Ccaa $ccaa = null;
 
-    #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Materia::class)]
+    /**
+     * Materias del itinerario (M:N). Inversa de `Materia.itinerarios`.
+     * El owning side vive en Materia; aquí solo se lee. Para asignar/desasignar
+     * materias usar `Materia::addItinerario()` / `Materia::removeItinerario()`
+     * o los helpers `addMateria/removeMateria` de abajo (que delegan en el
+     * owning side).
+     */
+    #[ORM\ManyToMany(targetEntity: Materia::class, mappedBy: 'itinerarios')]
     private Collection $materias;
 
     #[ORM\OneToMany(mappedBy: 'itinerario', targetEntity: Grupo::class)]
@@ -171,7 +178,7 @@ class Itinerario
     {
         if (!$this->materias->contains($materia)) {
             $this->materias->add($materia);
-            $materia->setItinerario($this);
+            $materia->addItinerario($this);
         }
 
         return $this;
@@ -180,9 +187,7 @@ class Itinerario
     public function removeMateria(Materia $materia): static
     {
         if ($this->materias->removeElement($materia)) {
-            if ($materia->getItinerario() === $this) {
-                $materia->setItinerario(null);
-            }
+            $materia->removeItinerario($this);
         }
 
         return $this;

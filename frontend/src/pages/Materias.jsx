@@ -12,7 +12,7 @@ import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -60,7 +60,7 @@ const Materias = () => {
   const searchFields = [
       { value: 'nombre', label: t('materias.name') },
       { value: 'codigoOficial', label: t('materias.code') },
-      { value: 'itinerario.nombre', label: t('materias.cycle') }
+      { value: 'itinerarios.nombre', label: t('materias.cycle') }
   ];
 
   // Estado para el modal
@@ -69,16 +69,33 @@ const Materias = () => {
   // formData.horasSemanales se mantiene en HORAS DECIMALES en la UI (1.5, 3.5)
   // pero la API trabaja en `minutosSemanales` (int). Conversión x60 al enviar y
   // /60 al recibir; ver mapToApi y mapFromApi.
+  // formData.itinerarios: array de IRIs (string[]). Materia ↔ Itinerario es M:N
+  // tras el refactor 2026-05-08. Una materia puede pertenecer a 1+ itinerarios.
+  //
+  // formData.horasTotales: PRESERVAR el campo del backend en cada PUT. Si no
+  // se incluye en el payload, API Platform 3 (full replace en PUT) lo pone a
+  // NULL silenciosamente — bug histórico que reventó las horas legales LOMLOE
+  // (ver fix 2026-05-08). El form NO expone este campo al usuario (lo gestiona
+  // el catálogo); solo lo arrastra round-trip.
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
     codigoOficial: '',
     curso: 1,
     horasSemanales: '',
+    horasTotales: null,
     tipo: '',
     modalidad: 'presencial',
-    itinerario: ''
+    itinerarios: [],
   });
+  // Buffer del AsyncSearchSelect: el control trabaja como single-select. Al
+  // elegir un itinerario, lo movemos a `formData.itinerarios` y reseteamos a
+  // '' para que el siguiente añadido no requiera limpiar manualmente.
+  const [itinerarioBuffer, setItinerarioBuffer] = useState('');
+  // Cache local de detalles de itinerarios añadidos (id, nombre) para pintar
+  // chips sin volver a la API. Se hidrata desde la lista cargada y desde el
+  // propio AsyncSearchSelect cuando se añade uno nuevo.
+  const [itinerarioCache, setItinerarioCache] = useState({});
   const [saving, setSaving] = useState(false);
 
   // Cargar centros (solo SuperAdmin)
@@ -143,10 +160,11 @@ const Materias = () => {
       }
       
       if (params.selectedItinerario) {
-          url += `&itinerario=${params.selectedItinerario}`;
+          url += `&itinerarios=${params.selectedItinerario}`;
       } else if (params.isSuperAdmin && params.selectedCentro) {
-          // Si no hay itinerario seleccionado pero sí centro, filtrar por centro del itinerario
-          url += `&itinerario.centro=${params.selectedCentro}`;
+          // Si no hay itinerario seleccionado pero sí centro, filtrar por centro
+          // de cualquier itinerario asignado.
+          url += `&itinerarios.centro=${params.selectedCentro}`;
       }
       
       if (params.sortColumn) {
@@ -263,18 +281,53 @@ const Materias = () => {
       }
   }, [sortColumn]);
 
+  // Extrae el id (como string) de una entrada que puede ser IRI string,
+  // objeto API Platform ({ '@id', id, … }) o id crudo.
+  const extractId = (entry) => {
+    if (!entry) return null;
+    if (typeof entry === 'object') {
+      if (entry.id != null) return String(entry.id);
+      if (entry['@id']) return entry['@id'].split('/').pop();
+      return null;
+    }
+    if (typeof entry === 'string') {
+      return entry.startsWith('/') ? entry.split('/').pop() : entry;
+    }
+    return String(entry);
+  };
+
+  const idToIri = (id) => (
+    String(id).includes('/api/') ? String(id) : `/api/itinerarios/${id}`
+  );
+
   const handleOpenModal = useCallback((materia = null) => {
     if (materia) {
       setCurrentMateria(materia);
 
-      // Extraer ID del itinerario de forma segura
-      let itinerarioId = '';
-      if (materia.itinerario) {
-          if (typeof materia.itinerario === 'object') {
-              itinerarioId = materia.itinerario.id || (materia.itinerario['@id'] ? materia.itinerario['@id'].split('/').pop() : '');
-          } else if (typeof materia.itinerario === 'string') {
-              itinerarioId = materia.itinerario.split('/').pop();
-          }
+      // Extraer IDs de los itinerarios. La API serializa la colección como
+      // array de IRIs por defecto; si trae objetos completos los hidratamos
+      // también en el cache para pintar el chip sin nuevo fetch.
+      const ids = [];
+      const cacheUpdates = {};
+      const list = Array.isArray(materia.itinerarios) ? materia.itinerarios : [];
+      for (const entry of list) {
+        const id = extractId(entry);
+        if (!id) continue;
+        ids.push(String(id));
+        if (typeof entry === 'object' && entry.nombre) {
+          cacheUpdates[String(id)] = { id: String(id), nombre: entry.nombre };
+        }
+      }
+
+      // Para los IDs sin nombre cacheado, intentamos completar desde la
+      // lista global ya cargada en memoria (`itinerarios`).
+      for (const id of ids) {
+        if (cacheUpdates[id]) continue;
+        const found = itinerarios.find(it => String(it.id ?? extractId(it)) === id);
+        if (found) cacheUpdates[id] = { id, nombre: found.nombre };
+      }
+      if (Object.keys(cacheUpdates).length) {
+        setItinerarioCache(prev => ({ ...prev, ...cacheUpdates }));
       }
 
       setFormData({
@@ -283,9 +336,10 @@ const Materias = () => {
         codigoOficial: materia.codigoOficial || '',
         curso: materia.curso,
         horasSemanales: materia.minutosSemanales != null ? (materia.minutosSemanales / 60) : '',
+        horasTotales: materia.horasTotales ?? null,
         tipo: materia.tipo || '',
         modalidad: materia.modalidad || 'presencial',
-        itinerario: itinerarioId
+        itinerarios: ids,
       });
     } else {
       setCurrentMateria(null);
@@ -295,12 +349,52 @@ const Materias = () => {
         codigoOficial: '',
         curso: 1,
         horasSemanales: '',
+        horasTotales: null,
         tipo: '',
         modalidad: 'presencial',
-        itinerario: ''
+        itinerarios: [],
       });
     }
+    setItinerarioBuffer('');
     setIsModalOpen(true);
+  }, [itinerarios]);
+
+  // Añadir un itinerario al array (no duplica). Se llama desde el AsyncSearchSelect.
+  const handleAddItinerario = useCallback((selectedId) => {
+    if (!selectedId) return;
+    const id = extractId(selectedId);
+    if (!id) return;
+    setFormData(prev => (
+      prev.itinerarios.includes(id) ? prev : { ...prev, itinerarios: [...prev.itinerarios, id] }
+    ));
+    // Hidrata el chip si la lista global tiene el itinerario.
+    const found = itinerarios.find(it => String(it.id ?? extractId(it)) === id);
+    if (found) {
+      setItinerarioCache(prev => ({ ...prev, [id]: { id, nombre: found.nombre } }));
+    } else {
+      // Caso rare: SuperAdmin sin centro filtrado podría tener itinerarios fuera
+      // de la lista global. Hacemos GET puntual para cachear el nombre.
+      fetch(getApiUrl(`/api/itinerarios/${id}`), {
+        headers: { Accept: 'application/ld+json' },
+        credentials: 'include',
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.nombre) {
+            setItinerarioCache(prev => ({ ...prev, [id]: { id, nombre: data.nombre } }));
+          }
+        })
+        .catch(() => { /* silent */ });
+    }
+    // Reset del buffer para permitir añadir el siguiente sin limpiar a mano.
+    setItinerarioBuffer('');
+  }, [itinerarios]);
+
+  const handleRemoveItinerario = useCallback((id) => {
+    setFormData(prev => ({
+      ...prev,
+      itinerarios: prev.itinerarios.filter(x => String(x) !== String(id)),
+    }));
   }, []);
 
   const handleCloseModal = () => {
@@ -328,7 +422,15 @@ const Materias = () => {
       
       const method = currentMateria ? 'PUT' : 'POST';
 
-      const itinerarioValue = String(formData.itinerario ?? '');
+      // Validación: M:N exige al menos 1 itinerario asignado.
+      if (!formData.itinerarios || formData.itinerarios.length === 0) {
+        toast.error(t('materias.errorItinerariosRequired', {
+          defaultValue: 'Debes asignar al menos un itinerario.',
+        }));
+        setSaving(false);
+        return;
+      }
+
       const horasSemRaw = formData.horasSemanales;
       // El formulario captura horas decimales; la API espera minutos enteros.
       // Permitir vacío para itinerarios no-FP (ESO/Bachillerato) donde el reparto
@@ -343,8 +445,8 @@ const Materias = () => {
         minutosSemanales,
         // tipo es enum nullable; '' del select equivale a sin valor.
         tipo: formData.tipo === '' ? null : formData.tipo,
-        // Asegurar formato IRI para la relación al itinerario.
-        itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
+        // M:N: array de IRIs. Acepta IDs crudos vía idToIri.
+        itinerarios: formData.itinerarios.map(idToIri),
       };
 
       const response = await fetch(url, {
@@ -448,9 +550,29 @@ const Materias = () => {
     { header: t('materias.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
     {
         header: t('materias.cycle'),
-        accessor: (row) => row.itinerario ? row.itinerario.nombre : '-',
-        sortable: true,
-        sortKey: 'itinerario.nombre'
+        accessor: (row) => {
+            const list = Array.isArray(row.itinerarios) ? row.itinerarios : [];
+            if (list.length === 0) return <span className={styles.itinerariosEmpty}>{t('materias.itinerariosEmpty', { defaultValue: '— Sin asignar —' })}</span>;
+            // Cada entrada puede ser objeto (con .nombre) o IRI string. En ambos
+            // casos extraemos `id` y resolvemos nombre desde el objeto, la lista
+            // global o el cache local.
+            return (
+                <div className={styles.itinerariosChipList}>
+                    {list.map((entry, idx) => {
+                        const id = extractId(entry);
+                        let nombre = (typeof entry === 'object' && entry?.nombre) ? entry.nombre : null;
+                        if (!nombre && id) {
+                            const found = itinerarios.find(it => String(it.id ?? extractId(it)) === id);
+                            nombre = found?.nombre ?? itinerarioCache[id]?.nombre ?? `#${id}`;
+                        }
+                        return (
+                            <span key={id ?? idx} className={styles.itinerarioChip}>{nombre}</span>
+                        );
+                    })}
+                </div>
+            );
+        },
+        sortable: false,
     },
     {
         // Badge de modalidad. Solo visible cuando NO es presencial (default
@@ -493,7 +615,7 @@ const Materias = () => {
         ),
         sortable: false
     }
-  ], [handleOpenModal, handleDelete]);
+  ], [handleOpenModal, handleDelete, itinerarios, itinerarioCache, t]);
 
   return (
     <Layout>
@@ -618,18 +740,46 @@ const Materias = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>{t('materias.cycleLabel')}</label>
+                <label className={styles.label}>
+                    {t('materias.cyclesLabel', { defaultValue: 'Itinerarios' })}
+                </label>
+                {formData.itinerarios.length > 0 && (
+                    <div className={styles.itinerariosChipList}>
+                        {formData.itinerarios.map(id => {
+                            const found = itinerarios.find(it => String(it.id ?? extractId(it)) === String(id));
+                            const nombre = found?.nombre ?? itinerarioCache[String(id)]?.nombre ?? `#${id}`;
+                            return (
+                                <span key={id} className={styles.itinerarioChip}>
+                                    {nombre}
+                                    <button
+                                        type="button"
+                                        className={styles.itinerarioChipRemove}
+                                        onClick={() => handleRemoveItinerario(id)}
+                                        title={t('common.remove', { defaultValue: 'Quitar' })}
+                                        aria-label={t('common.remove', { defaultValue: 'Quitar' })}
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </span>
+                            );
+                        })}
+                    </div>
+                )}
                 <AsyncSearchSelect
-                    name="itinerario"
-                    value={formData.itinerario}
-                    onChange={(v) => setFormData(p => ({ ...p, itinerario: v }))}
+                    name="itinerarioBuffer"
+                    value={itinerarioBuffer}
+                    onChange={handleAddItinerario}
                     endpoint="/api/itinerarios"
                     extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
                     getOptionLabel={(c) => c.nombre}
                     getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
-                    placeholder={t('common.selectCycle')}
-                    required
+                    placeholder={t('materias.cyclesAddPlaceholder', { defaultValue: 'Añadir itinerario…' })}
                 />
+                <small className={styles.formHint}>
+                    {t('materias.cyclesHint', {
+                        defaultValue: 'Una materia puede pertenecer a varios itinerarios (ej. 1º DAW + 1º DAM comparten currículo LOMLOE).',
+                    })}
+                </small>
             </div>
 
             <div className={styles.formGroup}>

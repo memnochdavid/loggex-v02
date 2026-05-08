@@ -1,8 +1,26 @@
 # Hoja de ruta: clases compartidas entre grupos
 
-> **Estado**: 🔴 ROADMAP — sin código.
+> **Estado**: 🔴 ROADMAP — sin código. **Diferido para producción** (2026-05-08).
 > **Branch sugerida**: `feat/clases-compartidas` cuando se aborde.
 > **Origen**: conversación 2026-05-06 sesión 4 tras cierre Fase B modelo-semanal.
+>
+> ### ⚠️ MVP cubierto por otro doc
+>
+> El **caso operativo mínimo** (1º DAW + 1º DAM compartiendo materias para que el solver no genere falsos conflictos) está cubierto por **`hoja-de-ruta-materias-multi-itinerario.md`** (creado 2026-05-08). Allí se ataca el problema con:
+>
+> - `Materia` ↔ `Itinerario` ManyToMany (tabla puente, drop columna `materia.itinerario_id`).
+> - Solver consciente: misma `materia.id` + misma franja → no conflicto del profesor.
+> - UX manual: el admin borra las materias duplicadas de un itinerario y asigna las del otro.
+>
+> Este doc (`clases-compartidas.md`) queda **pendiente para producción** con todo lo grande:
+>
+> - `Horario.gemeloId` + sincronización persistente de ediciones (mover en DAW mueve en DAM).
+> - Detección automática 🟢/🟡/🔴 con CTA "Replicar horario de Grupo Y".
+> - Solver coordinado entre hermanos (`Configurar curso óptimo` corre una vez para ambos).
+> - PDF combinado "Programación · 1º DAW + 1º DAM" + pase de lista compartido + asistencia agrupada.
+> - Refactor N:M `imparticion_grupo` (opción C, evolución mayor).
+>
+> Cuándo retomar: cuando llegue fricción real con clientes en producción que demuestre que el flujo manual no escala.
 
 ## Problema
 

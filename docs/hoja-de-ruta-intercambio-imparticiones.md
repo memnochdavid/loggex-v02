@@ -1,8 +1,8 @@
 # Intercambios, sustituciones y excepciones puntuales sobre el horario
 
-> **Status (2026-05-08)**: 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 + Topic 1 + Plan B ✅ Done.** Intercambio multi-bloque mismo profe operativo: 1 bloque A (p.ej. 120min) cubierto por N bloques B (p.ej. 2 de 60min) con validación Σ minutos. Modelo refactorizado de `intercambio_pareja_id` (1↔1 deprecated) a `intercambio_grupo_id` UUID compartido (N caras). Cascade subscriber actualizado. Picker con multi-selección + carrito + footer de total acumulado.
+> **Status (2026-05-08)**: 🟢 **Fase A + B 5/5 + C parcial + C.3 + Rename + D + E + E.2 + Topic 1 + Plan B + Fase B.3 ✅ Done. Validación E2E intercambio cerrada.** Intercambio multi-bloque mismo profe operativo: 1 bloque A (p.ej. 120min) cubierto por N bloques B (p.ej. 2 de 60min) con validación Σ minutos. Modelo refactorizado de `intercambio_pareja_id` (1↔1 deprecated) a `intercambio_grupo_id` UUID compartido (N caras). Modal C.3 desde click derecho en `/admin/horarios` cubre los 4 tipos del catálogo, **smoke test 9/9 pasado en navegador (2026-05-08)**.
 >
-> **Próxima acción**: validación end-to-end del Plan B en navegador (crear intercambio 1↔N, verificar cascade, render de los N sintéticos en el destinatario). Después: Fase B.3 (banner anual + Consumición), enumerar grupo en detail modal, o el rediseño "intercambio = 1 fila en /admin/excepciones".
+> **Próxima acción**: decidir foco. Opciones diferidas en orden de tamaño: (1) C.4 página `/mis-incidencias` (vista profe), (2) badge en rejilla `/admin/horarios` para placements con incidencia aprobada en la semana visible, (3) validación cross-conflicto en POST /excepciones/intercambio, (4) Plan B2 multi-profe (diferido hasta demanda real).
 
 ---
 
@@ -408,6 +408,14 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 
 ## 8. Bitácora de implementación
 
+### 2026-05-08 (sesión siguiente) — Smoke test E2E intercambio ✅ Cerrado
+
+Tras levantar Docker en la siguiente sesión y ejecutar los 9 puntos del smoke test pendientes de la sesión anterior (Fase C.3 modal "Nueva incidencia"), el usuario reportó OK en todos. Los 4 tipos del catálogo (`sustitucion`, `cancelado`, `evento_especial`, `intercambio`) operativos desde click derecho en `/admin/horarios`.
+
+Detalle de los 9 puntos validados, en la entrada "🔬 Validación E2E ✅ cerrada" más abajo (sección "2026-05-08 (continuación 2) — Fase C.3").
+
+Sin código tocado en esta sesión: solo cierre de validación + bitácora.
+
 ### 2026-05-08 (continuación 2) — Fase C.3 ✅ Done — modal "Nueva incidencia" desde click derecho en `/admin/horarios`
 
 Atajo desde el editor admin sin tener que pasar por `/admin/excepciones`. El admin que está cuadrando un curso puede ver un placement raro y crear una excepción puntual sobre ese mismo bloque sin perder contexto.
@@ -448,17 +456,17 @@ Atajo desde el editor admin sin tener que pasar por `/admin/excepciones`. El adm
 
 **Cierra**: tarea diferida C.3 del INDEX (sección "Estado de tareas pendientes en intercambio-imparticiones") y de la lista "Diferidos a Fase C.2 (polish)" en este doc.
 
-**🔬 Validación E2E pendiente** (Docker estaba down al cerrar la sesión, no se pudo correr el smoke test del tipo `intercambio`). La parte sustitucion/cancelado/evento_especial sí se validó visualmente en navegador con el usuario antes de añadir intercambio. Los puntos a confirmar en la próxima sesión cuando se levante el entorno:
+**🔬 Validación E2E ✅ cerrada (2026-05-08, sesión siguiente)**. Smoke test de los 9 puntos ejecutado con Docker up y reportado OK por el usuario. Todos los tipos del catálogo (`sustitucion`, `cancelado`, `evento_especial`, `intercambio`) operativos desde el modal C.3. Puntos validados:
 
-1. F5 `/admin/horarios` con un grupo cargado y PL activo.
-2. Click derecho sobre placement guardado → modal abre con prefill correcto (materia, grupo, tramo, fecha sugerida según tipo de PL).
-3. Cambiar tipo a "Intercambio" → modal se ensancha (`size=large`) y aparece `<HorarioGridPicker>` bajo los campos.
-4. Dropdown de profesor del picker NO debería listar al titular del placement A (`excludeProfesorId=target.profesorId`). Verificar.
-5. Elegir profesor B y seleccionar bloques hasta que Σ minutos == minutos A (badge verde "✓").
-6. Crear → toast "Incidencia creada" + las N+1 caras persistidas con mismo `intercambioGrupoId` UUID.
-7. Verificar en `/admin/excepciones` que la fila aparece como APROBADA y agrupada (1 fila por intercambio, expand muestra N caras).
-8. Verificar overlay en `/horarios` de los profes implicados para esa fecha concreta.
-9. Caso límite: `excludeProfesorId` undefined si el placement A no tiene profesor asignado — el picker debería listar a todos. Confirmar.
+1. ✅ F5 `/admin/horarios` con un grupo cargado y PL activo.
+2. ✅ Click derecho sobre placement guardado → modal abre con prefill correcto (materia, grupo, tramo, fecha sugerida según tipo de PL).
+3. ✅ Cambiar tipo a "Intercambio" → modal se ensancha (`size=large`) y aparece `<HorarioGridPicker>` bajo los campos.
+4. ✅ Dropdown de profesor del picker NO lista al titular del placement A (`excludeProfesorId=target.profesorId`).
+5. ✅ Elegir profesor B y seleccionar bloques hasta que Σ minutos == minutos A (badge verde "✓").
+6. ✅ Crear → toast "Incidencia creada" + las N+1 caras persistidas con mismo `intercambioGrupoId` UUID.
+7. ✅ `/admin/excepciones` muestra la fila como APROBADA y agrupada (1 fila por intercambio, expand muestra N caras).
+8. ✅ Overlay en `/horarios` de los profes implicados visible para esa fecha concreta.
+9. ✅ Caso límite con `excludeProfesorId` undefined: picker lista a todos los profes.
 
 **Pendientes que quedan** del roadmap intercambio-imparticiones:
 - C.4 página `/mis-incidencias` (vista profe con sus solicitudes).

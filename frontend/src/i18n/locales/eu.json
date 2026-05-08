@@ -391,7 +391,24 @@
     },
     "jornadaLabel": "Lan-eguna",
     "jornadaPlaceholder": "Aukeratu lan-egun bat (gomendatua)…",
-    "jornadaHint": "Lan-egunik gabe ordutegiaren editoreak lehenetsitako orduak erabiltzen ditu. Sortu bat /admin/jornadas atalean pertsonalizatzeko."
+    "jornadaHint": "Lan-egunik gabe ordutegiaren editoreak lehenetsitako orduak erabiltzen ditu. Sortu bat /admin/jornadas atalean pertsonalizatzeko.",
+    "manageMaterias": "Irakasgaiak kudeatu"
+  },
+  "materiasItinerario": {
+    "title": "{{nombre}}-ren irakasgaiak",
+    "addLabel": "Lehendik dagoen irakasgaia gehitu",
+    "addPlaceholder": "Bilatu zentroaren irakasgaia…",
+    "addHint": "Aukeratu zentroan dagoeneko sortuta dagoen irakasgai bat ibilbide honetan ere esleitzeko. LOMLOE curriculum partekatuetarako erabilgarria (adib. 1. DAW + 1. DAM).",
+    "addSuccess": "Irakasgaia ibilbidean gehitu da.",
+    "addErrorCtx": "Ezin izan da irakasgaia ibilbidean gehitu.",
+    "alreadyAssigned": "Irakasgai hau dagoeneko ibilbide honetan esleituta dago.",
+    "assignedLabel": "Esleitutako irakasgaiak ({{count}})",
+    "empty": "Oraindik ez dago esleitutako irakasgairik.",
+    "loadError": "Ezin izan dira ibilbidearen irakasgaiak kargatu.",
+    "confirmRemove": "\"{{nombre}}\" ibilbide honetatik kendu? Irakasgaiak esleituta dauden gainerako ibilbideetan bizirik jarraituko du.",
+    "confirmLastItinerario": "Hau zen esleipen bakarra. Kentzen baduzu, irakasgaia umezurtz geratuko da (ibilbiderik gabe). Jarraitu nahi duzu?",
+    "removeSuccess": "Irakasgaia ibilbidetik desestekatu da.",
+    "removeErrorCtx": "Ezin izan da irakasgaia desestekatu."
   },
   "groups": {
     "title": "Taldeak",
@@ -439,6 +456,11 @@
     "abbreviationLabel": "Laburdura",
     "abbreviationPlaceholder": "Adib: BD",
     "cycleLabel": "Itinerarioa",
+    "cyclesLabel": "Ibilbideak",
+    "cyclesAddPlaceholder": "Ibilbidea gehitu…",
+    "cyclesHint": "Irakasgai bat ibilbide bati baino gehiagori dagokio (adib. 1. DAW + 1. DAM-ek LOMLOE curriculum bera dute).",
+    "itinerariosEmpty": "— Esleitu gabe —",
+    "errorItinerariosRequired": "Gutxienez ibilbide bat esleitu behar duzu.",
     "course1": "1.",
     "course2": "2.",
     "weeklyHours": "Asteko Orduak",

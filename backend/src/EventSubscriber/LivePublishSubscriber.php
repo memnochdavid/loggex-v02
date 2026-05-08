@@ -82,8 +82,7 @@ class LivePublishSubscriber
 
         $expanded = [];
         foreach ($topicTemplates as $tpl) {
-            $t = $this->expand($tpl, $entity);
-            if ($t !== null) {
+            foreach ($this->expand($tpl, $entity) as $t) {
                 $expanded[] = $t;
             }
         }
@@ -95,8 +94,7 @@ class LivePublishSubscriber
                 continue;
             }
             foreach ($conditionalTopics as $tpl) {
-                $t = $this->expand($tpl, $entity);
-                if ($t !== null) {
+                foreach ($this->expand($tpl, $entity) as $t) {
                     $expanded[] = $t;
                 }
             }
@@ -159,16 +157,89 @@ class LivePublishSubscriber
     }
 
     /**
-     * Expande placeholders `{prop}` y `{prop.sub.subsub}` con valores de la entidad
-     * vía PropertyAccess. Si algún placeholder no resuelve (excepción o null),
-     * devuelve null y el topic se descarta.
+     * Expande placeholders y devuelve la lista de topics concretos.
+     *
+     * Sintaxis soportada:
+     *   - `{prop}` o `{prop.sub.subsub}` — escalar vía PropertyAccess. 1 topic.
+     *   - `{prop[].sub.subsub}` — colección: itera la propiedad (debe ser
+     *     iterable: ArrayCollection, array, etc.) y emite N topics, uno por
+     *     cada elemento, resolviendo `sub.subsub` sobre cada uno.
+     *
+     * Limitación: como mucho UN placeholder de colección por template (el
+     * caso real son topics tipo `/admin/centros/{itinerarios[].centro.id}/X`).
+     * Si hay más, se devuelve [] (descarte). Cualquier resolución fallida
+     * (null, excepción) descarta el topic concreto.
+     *
+     * @return list<string>
      */
-    private function expand(string $template, object $entity): ?string
+    private function expand(string $template, object $entity): array
+    {
+        if (!str_contains($template, '{')) {
+            return [$template];
+        }
+
+        // 1) ¿Hay placeholder de colección `{X[].Y}`?
+        //    Solo soportamos uno; si hay >=2, descartar.
+        $colMatches = [];
+        preg_match_all('/\{([a-zA-Z0-9_.]+)\[\]\.([a-zA-Z0-9_.]+)\}/', $template, $colMatches, PREG_SET_ORDER);
+        if (count($colMatches) > 1) {
+            return [];
+        }
+
+        // 2) Caso escalar puro (sin colección): comportamiento clásico.
+        if (count($colMatches) === 0) {
+            $resolved = $this->expandScalar($template, $entity);
+            return $resolved === null ? [] : [$resolved];
+        }
+
+        // 3) Caso colección: expandir N topics, uno por cada elemento.
+        $full = $colMatches[0][0];        // ej. "{itinerarios[].centro.id}"
+        $collectionPath = $colMatches[0][1]; // ej. "itinerarios"
+        $itemPath = $colMatches[0][2];     // ej. "centro.id"
+
+        try {
+            $items = $this->accessor->getValue($entity, $collectionPath);
+        } catch (\Throwable) {
+            return [];
+        }
+        if (!is_iterable($items)) {
+            return [];
+        }
+
+        $topics = [];
+        $seen = [];
+        foreach ($items as $item) {
+            if ($item === null) {
+                continue;
+            }
+            try {
+                $value = $this->accessor->getValue($item, $itemPath);
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($value === null) {
+                continue;
+            }
+            $partial = str_replace($full, (string) $value, $template);
+            $resolved = $this->expandScalar($partial, $entity);
+            if ($resolved === null || isset($seen[$resolved])) {
+                continue;
+            }
+            $seen[$resolved] = true;
+            $topics[] = $resolved;
+        }
+        return $topics;
+    }
+
+    /**
+     * Expande sólo placeholders escalares `{prop.sub}` sobre $entity.
+     * Devuelve null si alguno falla (mantiene la semántica fail-safe original).
+     */
+    private function expandScalar(string $template, object $entity): ?string
     {
         if (!str_contains($template, '{')) {
             return $template;
         }
-
         $failed = false;
         $result = preg_replace_callback(
             '/\{([a-zA-Z0-9_.]+)\}/',
@@ -187,7 +258,6 @@ class LivePublishSubscriber
             },
             $template,
         );
-
         return $failed ? null : $result;
     }
 }

@@ -642,9 +642,26 @@
     "jornadaLabel": "Jornada",
     "jornadaPlaceholder": "Selecciona una jornada (recomendado)…",
     "jornadaHint": "Sin jornada el editor de horarios usa slots por defecto. Crea una en /admin/jornadas para personalizarla.",
+    "manageMaterias": "Gestionar materias",
     "catalogo": {
       "createdSuccess": "Itinerario creado desde el catálogo con {{count}} materias"
     }
+  },
+  "materiasItinerario": {
+    "title": "Materias de {{nombre}}",
+    "addLabel": "Añadir materia existente",
+    "addPlaceholder": "Buscar materia del centro…",
+    "addHint": "Selecciona una materia ya creada en el centro para asignarla también a este itinerario. Útil para currículos compartidos LOMLOE (ej. 1º DAW + 1º DAM).",
+    "addSuccess": "Materia añadida al itinerario.",
+    "addErrorCtx": "No se ha podido añadir la materia al itinerario.",
+    "alreadyAssigned": "Esta materia ya está asignada al itinerario.",
+    "assignedLabel": "Materias asignadas ({{count}})",
+    "empty": "Aún no hay materias asignadas.",
+    "loadError": "No se pudieron cargar las materias del itinerario.",
+    "confirmRemove": "¿Quitar \"{{nombre}}\" de este itinerario? La materia seguirá viva en el resto de itinerarios donde esté asignada.",
+    "confirmLastItinerario": "Esta era la única asignación. Si la quitas, la materia quedará huérfana (sin itinerario). ¿Quieres continuar?",
+    "removeSuccess": "Materia desvinculada del itinerario.",
+    "removeErrorCtx": "No se ha podido desvincular la materia."
   },
   "jornadas": {
     "title": "Jornadas",
@@ -728,6 +745,11 @@
     "abbreviationLabel": "Abreviatura",
     "abbreviationPlaceholder": "Ej: BD",
     "cycleLabel": "Itinerario",
+    "cyclesLabel": "Itinerarios",
+    "cyclesAddPlaceholder": "Añadir itinerario…",
+    "cyclesHint": "Una materia puede pertenecer a varios itinerarios (ej. 1º DAW + 1º DAM comparten currículo LOMLOE).",
+    "itinerariosEmpty": "— Sin asignar —",
+    "errorItinerariosRequired": "Debes asignar al menos un itinerario.",
     "course1": "1º",
     "course2": "2º",
     "course3": "3º",

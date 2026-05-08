@@ -11,7 +11,8 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
+import MateriasItinerarioModal from '../components/MateriasItinerarioModal';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -97,6 +98,9 @@ const Itinerarios = () => {
   });
   const [saving, setSaving] = useState(false);
   const [applyingOverlay, setApplyingOverlay] = useState(false);
+
+  // Modal "Materias del itinerario" — gestión M:N entre Materia e Itinerario.
+  const [materiasItinerario, setMateriasItinerario] = useState(null);
 
   // Modo de creación: 'catalogo' usa AsyncSearchSelect contra el catálogo oficial
   // y materializa el itinerario + sus materias en backend. 'manual' es el formulario
@@ -554,19 +558,26 @@ const Itinerarios = () => {
   const columns = useMemo(() => [
     { header: t('itinerarios.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: t('itinerarios.level'), accessor: 'nivel', sortable: true, sortKey: 'nivel' },
-    { 
+    {
         header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
-                <button 
-                    className={styles.iconButton} 
+                <button
+                    className={styles.iconButton}
+                    onClick={() => setMateriasItinerario(row)}
+                    title={t('itinerarios.manageMaterias', { defaultValue: 'Gestionar materias' })}
+                >
+                    <BookOpen size={18} />
+                </button>
+                <button
+                    className={styles.iconButton}
                     onClick={() => handleOpenModal(row)}
                     title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
-                <button 
-                    className={`${styles.iconButton} ${styles.danger}`} 
+                <button
+                    className={`${styles.iconButton} ${styles.danger}`}
                     onClick={() => handleDelete(row)}
                     title={t('common.delete')}
                 >
@@ -576,7 +587,7 @@ const Itinerarios = () => {
         ),
         sortable: false
     }
-  ], [handleOpenModal, handleDelete]);
+  ], [handleOpenModal, handleDelete, t]);
 
   return (
     <Layout>
@@ -853,6 +864,20 @@ const Itinerarios = () => {
                 </>
             )}
         </ModalView>
+
+        <MateriasItinerarioModal
+            isOpen={!!materiasItinerario}
+            onClose={() => setMateriasItinerario(null)}
+            itinerario={materiasItinerario}
+            centroId={(() => {
+                if (!materiasItinerario) return null;
+                const c = materiasItinerario.centro;
+                if (!c) return user?.centro?.id ?? null;
+                if (typeof c === 'object') return c.id ?? c['@id']?.split('/').pop();
+                if (typeof c === 'string') return c.split('/').pop();
+                return c;
+            })()}
+        />
         </div>
     </Layout>
   );

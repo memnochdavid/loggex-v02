@@ -544,13 +544,14 @@ class HorarioSolverBinPacking
             // 60min pero materia querría bloque de 90".
             $nSlotsFinal = null;
             $pid = $imp->getProfesor()?->getId();
+            $candidateMid = $imp->getMateria()?->getId();
             for ($n = $nSlotsDeseado; $n * $slotDur >= $bloqueMinAceptable; $n--) {
                 $libreEnTodos = true;
                 for ($i = 0; $i < $n; $i++) {
                     $key = $dia . '_' . $slotsLibres[$i][0];
                     if ($pid !== null && (
                         (isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) ||
-                        (isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true))
+                        $this->isProfBusyOther($parallelBusy, $key, $pid, $candidateMid)
                     )) {
                         $libreEnTodos = false;
                         break;
@@ -670,6 +671,7 @@ class HorarioSolverBinPacking
 
             // Verificar profe libre en TODOS los slots del bloque.
             $pid = $imp->getProfesor()?->getId();
+            $candidateMid = $imp->getMateria()?->getId();
             $nSlots = (int) ($durSat / max(1, $slotsLibres[0][2]));
             if ($nSlots * $slotsLibres[0][2] < $bloqueMinAceptable) continue;
             if ($nSlots > count($slotsLibres)) continue;
@@ -678,7 +680,7 @@ class HorarioSolverBinPacking
                 $key = $dia . '_' . $slotsLibres[$i][0];
                 if ($pid !== null && (
                     (isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) ||
-                    (isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true))
+                    $this->isProfBusyOther($parallelBusy, $key, $pid, $candidateMid)
                 )) {
                     $libre = false;
                     break;
@@ -770,6 +772,14 @@ class HorarioSolverBinPacking
      * Calcula la ocupación de profesores en grupos paralelos del mismo centro
      * cuya jornada comparte el mismo `turno`. Espejo de
      * `HorarioSolver::buildParallelBusy()`.
+     *
+     * Shape (post 2026-05-08, materia compartida): `[$key][$pid] = [mid1, mid2, ...]`
+     * — para cada (día, hora) y cada profesor allí ocupado, lista de materia.id
+     * que está dando en ese slot en grupos paralelos. Permite a los chequeos
+     * de conflicto distinguir "profe ocupado con OTRA materia" (conflicto
+     * real) de "profe ocupado con la MISMA materia que la candidata" (clase
+     * compartida — el placement es el mismo físicamente, no genera conflicto).
+     * Doc: docs/hoja-de-ruta-materias-multi-itinerario.md.
      */
     private function buildParallelBusy(Grupo $grupo, ?TurnoJornada $turno): array
     {
@@ -797,15 +807,35 @@ class HorarioSolverBinPacking
                 ->getResult();
 
             foreach ($horarios as $h) {
-                $pid = $h->getImparticion()?->getProfesor()?->getId();
+                $imp = $h->getImparticion();
+                $pid = $imp?->getProfesor()?->getId();
                 if (!$pid) continue;
+                $mid = $imp?->getMateria()?->getId();
                 $dia = $h->getDiaSemana();
                 $hi = $h->getHoraInicio()?->format('H:i');
                 if ($hi === null) continue;
-                $busy[$dia . '_' . $hi][] = $pid;
+                $key = $dia . '_' . $hi;
+                $busy[$key][$pid][] = $mid;
             }
         }
         return $busy;
+    }
+
+    /**
+     * ¿El profesor `$pid` está ocupado en `$key` con OTRA materia distinta a
+     * `$candidateMid`? Si lo está dando con la misma `materia.id`, se trata
+     * como clase compartida (no conflicto). Doc: D-2 en hoja-de-ruta-materias-multi-itinerario.md.
+     */
+    private function isProfBusyOther(array $parallelBusy, string $key, ?int $pid, ?int $candidateMid): bool
+    {
+        if ($pid === null) return false;
+        $mids = $parallelBusy[$key][$pid] ?? null;
+        if ($mids === null) return false;
+        if ($candidateMid === null) return true;  // sin materia candidata, conservador.
+        foreach ($mids as $mid) {
+            if ($mid !== $candidateMid) return true;  // hay al menos una distinta → conflicto real.
+        }
+        return false;
     }
 
     private function errorResult(string $msg): array

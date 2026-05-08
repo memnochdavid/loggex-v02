@@ -391,7 +391,24 @@
     },
     "jornadaLabel": "Jornada",
     "jornadaPlaceholder": "Selecciona una jornada (recomanat)…",
-    "jornadaHint": "Sense jornada l'editor d'horaris usa franges per defecte. Crea'n una a /admin/jornadas per personalitzar-la."
+    "jornadaHint": "Sense jornada l'editor d'horaris usa franges per defecte. Crea'n una a /admin/jornadas per personalitzar-la.",
+    "manageMaterias": "Gestionar matèries"
+  },
+  "materiasItinerario": {
+    "title": "Matèries de {{nombre}}",
+    "addLabel": "Afegir matèria existent",
+    "addPlaceholder": "Cercar matèria del centre…",
+    "addHint": "Selecciona una matèria ja creada al centre per assignar-la també a aquest itinerari. Útil per a currículums compartits LOMLOE (p. ex. 1r DAW + 1r DAM).",
+    "addSuccess": "Matèria afegida a l'itinerari.",
+    "addErrorCtx": "No s'ha pogut afegir la matèria a l'itinerari.",
+    "alreadyAssigned": "Aquesta matèria ja està assignada a l'itinerari.",
+    "assignedLabel": "Matèries assignades ({{count}})",
+    "empty": "Encara no hi ha matèries assignades.",
+    "loadError": "No s'han pogut carregar les matèries de l'itinerari.",
+    "confirmRemove": "Voleu treure \"{{nombre}}\" d'aquest itinerari? La matèria continuarà viva als altres itineraris on estigui assignada.",
+    "confirmLastItinerario": "Aquesta era l'única assignació. Si la traieu, la matèria quedarà òrfena (sense itinerari). Voleu continuar?",
+    "removeSuccess": "Matèria desvinculada de l'itinerari.",
+    "removeErrorCtx": "No s'ha pogut desvincular la matèria."
   },
   "groups": {
     "title": "Grups",
@@ -439,6 +456,11 @@
     "abbreviationLabel": "Abreviatura",
     "abbreviationPlaceholder": "Ex: BD",
     "cycleLabel": "Itinerari",
+    "cyclesLabel": "Itineraris",
+    "cyclesAddPlaceholder": "Afegir itinerari…",
+    "cyclesHint": "Una matèria pot pertànyer a diversos itineraris (p. ex. 1r DAW + 1r DAM comparteixen currículum LOMLOE).",
+    "itinerariosEmpty": "— Sense assignar —",
+    "errorItinerariosRequired": "Has d'assignar com a mínim un itinerari.",
     "course1": "1r",
     "course2": "2n",
     "weeklyHours": "Hores setmanals",

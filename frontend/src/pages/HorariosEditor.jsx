@@ -516,8 +516,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
 
     if (!jornadaId) {
       // Sin jornada efectiva: marcamos para que el banner aparezca.
+      // Guard `key in jornadasPorId`: si ya marcamos esta itinerario.id con
+      // null en una pasada anterior, NO reset — un nuevo objeto causaría que
+      // jornadasPorId cambie por referencia y este mismo effect (que la lleva
+      // en deps) se re-disparase indefinidamente. Maximum update depth.
       const itinId = extractFkId(grupoActual.itinerario);
-      if (itinId) setJornadasPorId(prev => ({ ...prev, [`itin:${itinId}`]: null }));
+      const itinKey = itinId ? `itin:${itinId}` : null;
+      if (itinKey && !(itinKey in jornadasPorId)) {
+        setJornadasPorId(prev => ({ ...prev, [itinKey]: null }));
+      }
       return;
     }
 

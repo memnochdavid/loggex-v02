@@ -124,9 +124,18 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if (method_exists($user, 'getCentro') && $user->getCentro()) {
             if ($resourceClass === Materia::class) {
-                $queryBuilder->join(sprintf('%s.itinerario', $rootAlias), 'c')
-                             ->andWhere('c.centro = :current_centro')
-                             ->setParameter('current_centro', $user->getCentro());
+                // Materia ↔ Itinerario es M:N tras 2026-05-08. Una materia visible
+                // si AL MENOS UNO de sus itinerarios pertenece al centro del user.
+                // Subquery EXISTS para evitar duplicar filas (un join + groupBy
+                // también valdría pero rompería paginación de API Platform).
+                $queryBuilder->andWhere(sprintf(
+                    'EXISTS (SELECT 1 FROM %s _mi'
+                        . ' JOIN _mi.itinerarios _i'
+                        . ' WHERE _mi = %s AND _i.centro = :current_centro)',
+                    Materia::class,
+                    $rootAlias,
+                ))
+                    ->setParameter('current_centro', $user->getCentro());
             } else {
                 if ($resourceClass === Festivo::class) {
                     // Cascada de aplicabilidad por configuración del centro:

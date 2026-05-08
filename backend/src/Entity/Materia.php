@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use App\Attribute\LivePublish;
@@ -33,26 +34,30 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Put(),
+        // Patch (merge-patch+json) para mutaciones parciales — usado por
+        // `MateriasItinerarioModal` para añadir/quitar itinerarios sin tener
+        // que reenviar el resto de campos de la materia.
+        new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['materia:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['materia:write']]
 )]
 #[LivePublish(
-    topics: ['/admin/centros/{itinerario.centro.id}/materias'],
+    topics: ['/admin/centros/{itinerarios[].centro.id}/materias'],
     payloadGroups: ['materia:read', 'timestamp:read', 'softdelete:read'],
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
     'abreviatura' => 'partial',
     'codigoOficial' => 'partial',
-    'itinerario' => 'exact',
-    'itinerario.nombre' => 'partial',
-    'itinerario.centro' => 'exact',
+    'itinerarios' => 'exact',
+    'itinerarios.nombre' => 'partial',
+    'itinerarios.centro' => 'exact',
     'curso' => 'exact'
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
-#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id', 'itinerario.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Materia
 {
     use TimestampableTrait;
@@ -147,10 +152,20 @@ class Materia
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private Modalidad $modalidad = Modalidad::PRESENCIAL;
 
-    #[ORM\ManyToOne(inversedBy: 'materias')]
-    #[ORM\JoinColumn(nullable: false)]
+    /**
+     * Itinerarios a los que pertenece la materia (M:N). Antes 2026-05-08 era
+     * ManyToOne con FK `materia.itinerario_id` NOT NULL; el refactor permite
+     * que una misma fila Materia (ej. 0485 PR) sea compartida entre 1º DAW y
+     * 1º DAM cuando comparten currículo LOMLOE. Doc: docs/hoja-de-ruta-materias-multi-itinerario.md.
+     *
+     * Owning side: Materia. La tabla puente `materia_itinerario` se gestiona
+     * desde aquí (los formularios de Materia y los CTAs "Añadir materia
+     * existente" en la vista de Itinerario operan vía PATCH a este array).
+     */
+    #[ORM\ManyToMany(targetEntity: Itinerario::class, inversedBy: 'materias')]
+    #[ORM\JoinTable(name: 'materia_itinerario')]
     #[Groups(['materia:read', 'materia:write'])]
-    private ?Itinerario $itinerario = null;
+    private Collection $itinerarios;
 
     #[ORM\OneToMany(mappedBy: 'materia', targetEntity: Imparticion::class)]
     private Collection $imparticiones;
@@ -163,6 +178,7 @@ class Materia
 
     public function __construct()
     {
+        $this->itinerarios = new ArrayCollection();
         $this->imparticiones = new ArrayCollection();
     }
 
@@ -282,14 +298,25 @@ class Materia
         return $this;
     }
 
-    public function getItinerario(): ?Itinerario
+    /**
+     * @return Collection<int, Itinerario>
+     */
+    public function getItinerarios(): Collection
     {
-        return $this->itinerario;
+        return $this->itinerarios;
     }
 
-    public function setItinerario(?Itinerario $itinerario): static
+    public function addItinerario(Itinerario $itinerario): static
     {
-        $this->itinerario = $itinerario;
+        if (!$this->itinerarios->contains($itinerario)) {
+            $this->itinerarios->add($itinerario);
+        }
+        return $this;
+    }
+
+    public function removeItinerario(Itinerario $itinerario): static
+    {
+        $this->itinerarios->removeElement($itinerario);
         return $this;
     }
 

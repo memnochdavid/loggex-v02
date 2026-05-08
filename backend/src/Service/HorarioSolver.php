@@ -368,7 +368,9 @@ class HorarioSolver
             $key = $c['dia'] . '_' . $c['hi'];
             if (isset($placements[$key])) continue;
             if ($pid && isset($profBusyLocal[$key]) && in_array($pid, $profBusyLocal[$key], true)) continue;
-            if ($pid && isset($parallelBusy[$key]) && in_array($pid, $parallelBusy[$key], true)) continue;
+            // parallelBusy ahora indexa por [$key][$pid] = [mid1, mid2, ...] —
+            // si ya está dando la MISMA materia, es clase compartida (no conflicto).
+            if ($this->isProfBusyOther($parallelBusy, $key, $pid, $moduloId)) continue;
 
             $placements[$key] = ['imp' => $imp, 'hi' => $c['hi'], 'hf' => $c['hf'], 'dia' => $c['dia'], 'min' => $c['min']];
             if ($pid) $profBusyLocal[$key][] = $pid;
@@ -435,15 +437,35 @@ class HorarioSolver
                 ->getResult();
 
             foreach ($horarios as $h) {
-                $pid = $h->getImparticion()?->getProfesor()?->getId();
+                $imp = $h->getImparticion();
+                $pid = $imp?->getProfesor()?->getId();
                 if (!$pid) continue;
+                $mid = $imp?->getMateria()?->getId();
                 $dia = $h->getDiaSemana();
                 $hi = $h->getHoraInicio()?->format('H:i');
                 if ($hi === null) continue;
-                $busy[$dia . '_' . $hi][] = $pid;
+                $busy[$dia . '_' . $hi][$pid][] = $mid;
             }
         }
         return $busy;
+    }
+
+    /**
+     * Espejo de `HorarioSolverBinPacking::isProfBusyOther()`. Doc: D-2 en
+     * docs/hoja-de-ruta-materias-multi-itinerario.md. El profe está realmente
+     * ocupado si en el slot ya da OTRA materia distinta a la candidata; si la
+     * materia coincide, es la misma clase física compartida (no conflicto).
+     */
+    private function isProfBusyOther(array $parallelBusy, string $key, ?int $pid, ?int $candidateMid): bool
+    {
+        if ($pid === null) return false;
+        $mids = $parallelBusy[$key][$pid] ?? null;
+        if ($mids === null) return false;
+        if ($candidateMid === null) return true;
+        foreach ($mids as $mid) {
+            if ($mid !== $candidateMid) return true;
+        }
+        return false;
     }
 
     private function shuffleCopy(array $arr): array

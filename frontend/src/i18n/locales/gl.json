@@ -391,7 +391,24 @@
     },
     "jornadaLabel": "Xornada",
     "jornadaPlaceholder": "Selecciona unha xornada (recomendado)…",
-    "jornadaHint": "Sen xornada o editor de horarios usa franxas por defecto. Crea unha en /admin/jornadas para personalizala."
+    "jornadaHint": "Sen xornada o editor de horarios usa franxas por defecto. Crea unha en /admin/jornadas para personalizala.",
+    "manageMaterias": "Xestionar materias"
+  },
+  "materiasItinerario": {
+    "title": "Materias de {{nombre}}",
+    "addLabel": "Engadir materia existente",
+    "addPlaceholder": "Buscar materia do centro…",
+    "addHint": "Selecciona unha materia xa creada no centro para asignala tamén a este itinerario. Útil para currículos compartidos LOMLOE (p. ex. 1º DAW + 1º DAM).",
+    "addSuccess": "Materia engadida ao itinerario.",
+    "addErrorCtx": "Non se puido engadir a materia ao itinerario.",
+    "alreadyAssigned": "Esta materia xa está asignada ao itinerario.",
+    "assignedLabel": "Materias asignadas ({{count}})",
+    "empty": "Aínda non hai materias asignadas.",
+    "loadError": "Non se puideron cargar as materias do itinerario.",
+    "confirmRemove": "Quitar \"{{nombre}}\" deste itinerario? A materia seguirá viva nos demais itinerarios onde estea asignada.",
+    "confirmLastItinerario": "Esta era a única asignación. Se a quitas, a materia quedará orfa (sen itinerario). Queres continuar?",
+    "removeSuccess": "Materia desvinculada do itinerario.",
+    "removeErrorCtx": "Non se puido desvincular a materia."
   },
   "groups": {
     "title": "Grupos",
@@ -439,6 +456,11 @@
     "abbreviationLabel": "Abreviatura",
     "abbreviationPlaceholder": "Ex: BD",
     "cycleLabel": "Itinerario",
+    "cyclesLabel": "Itinerarios",
+    "cyclesAddPlaceholder": "Engadir itinerario…",
+    "cyclesHint": "Unha materia pode pertencer a varios itinerarios (p. ex. 1º DAW + 1º DAM comparten currículo LOMLOE).",
+    "itinerariosEmpty": "— Sen asignar —",
+    "errorItinerariosRequired": "Debes asignar polo menos un itinerario.",
     "course1": "1º",
     "course2": "2º",
     "weeklyHours": "Horas Semanais",

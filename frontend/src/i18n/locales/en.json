@@ -391,7 +391,24 @@
     },
     "jornadaLabel": "Schedule template",
     "jornadaPlaceholder": "Pick a schedule template (recommended)…",
-    "jornadaHint": "Without one, the timetable editor uses default slots. Create one in /admin/jornadas to customize."
+    "jornadaHint": "Without one, the timetable editor uses default slots. Create one in /admin/jornadas to customize.",
+    "manageMaterias": "Manage subjects"
+  },
+  "materiasItinerario": {
+    "title": "Subjects of {{nombre}}",
+    "addLabel": "Add existing subject",
+    "addPlaceholder": "Search subject in this centre…",
+    "addHint": "Select a subject already created in the centre to assign it to this itinerary too. Useful for shared LOMLOE curricula (e.g. 1st DAW + 1st DAM).",
+    "addSuccess": "Subject added to itinerary.",
+    "addErrorCtx": "Could not add the subject to the itinerary.",
+    "alreadyAssigned": "This subject is already assigned to the itinerary.",
+    "assignedLabel": "Assigned subjects ({{count}})",
+    "empty": "No subjects assigned yet.",
+    "loadError": "Could not load the itinerary's subjects.",
+    "confirmRemove": "Remove \"{{nombre}}\" from this itinerary? The subject will remain in any other itineraries it is assigned to.",
+    "confirmLastItinerario": "This was the only assignment. If you remove it, the subject will be orphaned (no itinerary). Continue?",
+    "removeSuccess": "Subject unlinked from the itinerary.",
+    "removeErrorCtx": "Could not unlink the subject."
   },
   "groups": {
     "title": "Groups",
@@ -439,6 +456,11 @@
     "abbreviationLabel": "Abbreviation",
     "abbreviationPlaceholder": "E.g.: DB",
     "cycleLabel": "Itinerary",
+    "cyclesLabel": "Itineraries",
+    "cyclesAddPlaceholder": "Add itinerary…",
+    "cyclesHint": "A subject can belong to multiple itineraries (e.g. 1st DAW + 1st DAM share the same LOMLOE curriculum).",
+    "itinerariosEmpty": "— Not assigned —",
+    "errorItinerariosRequired": "You must assign at least one itinerary.",
     "course1": "1st",
     "course2": "2nd",
     "weeklyHours": "Weekly Hours",
