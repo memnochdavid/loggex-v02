@@ -408,6 +408,65 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 
 ## 8. Bitácora de implementación
 
+### 2026-05-08 (continuación 2) — Fase C.3 ✅ Done — modal "Nueva incidencia" desde click derecho en `/admin/horarios`
+
+Atajo desde el editor admin sin tener que pasar por `/admin/excepciones`. El admin que está cuadrando un curso puede ver un placement raro y crear una excepción puntual sobre ese mismo bloque sin perder contexto.
+
+**Decisión clave de UX**: el gesto es **click derecho** sobre el placement (preventDefault del menú nativo del navegador). Razón: el click izquierdo ya está cogido por `handleTapCell` (coloca la imparticion seleccionada o vacía la celda) y no podemos sobrecargarlo. Click derecho es el patrón estándar para "acciones secundarias contextuales", lo que aquí encaja: la creación de excepciones es la acción rara, no la principal.
+
+**Comportamiento**:
+- Click derecho sobre placement con `hid` (Horario persistido en BD) → abre `<NuevaExcepcionModal>` con prefill (`horarioBase`, fecha sugerida según tipo de PL, hint con materia/grupo/tramo).
+- Click derecho sin `hid` (placement local del draft `pendingTx`) → toast `exceptions.savePlacementFirst` ("Guarda primero los cambios para crear una incidencia sobre este bloque").
+- Tap-mode activo (`selectedImpId !== null`) → no se intercepta el click derecho (dejamos el menú nativo del navegador para no robarle "inspeccionar elemento" mientras coloca).
+- Click derecho en celda vacía → no hace nada (deja el menú nativo).
+
+**Fecha sugerida** (helper `computeFechaSugerida`):
+- PL tipo SEMANA con `fechaInicio` → `fechaInicio + (diaIdx - 1)` días.
+- PL tipo PLANTILLA o sin fechas → próximo `diaIdx` desde hoy hacia adelante (incluye hoy si coincide). El admin puede cambiar la fecha en el modal antes de submit.
+
+**Tipos disponibles en el modal**: los **4** del catálogo — `sustitucion`, `cancelado`, `evento_especial` e `intercambio`. La primera versión del componente (esta misma sesión) excluía intercambio para acotar; tras pregunta del usuario se añadió porque dejarlo fuera obligaba a saltar a `/admin/excepciones` solo para ese tipo, rompiendo la promesa "atajo desde el editor". Implementación: cuando `tipo === 'intercambio'` se renderiza el `<HorarioGridPicker>` con `selections={form.parejasB}`, `targetMinutes={durA}` (calculado desde `target.horaInicio/horaFin`), `excludeProfesorId={target.profesorId}` (titular base) y `weekAnchor` derivado de `fechaSugerida`. Submit branchea: intercambio → `POST /api/v1/excepciones/intercambio` con `{horarioBaseA, fechaConcretaA, parejasB[]}`; resto → `POST /api/excepcion_horarios` genérico. Modal pasa a `size="large"` cuando hay picker (~6 días × 12 slots) para que la rejilla quepa cómoda.
+
+**Estado de la excepción al crear**: el backend (`ExcepcionHorarioProcessor`) detecta `ROLE_ADMIN`/`ROLE_SUPERADMIN` y marca `APROBADA` automáticamente con `aprobadaPor=usuarioActual` + `fechaResolucion=now`. Frontend POSTea con el shape genérico, sin pasar `estado` — el processor decide. Mismo patrón que el modal del TimeTable (que crea PENDIENTE para profe y APROBADA para admin sobre el mismo endpoint).
+
+**Ficheros tocados**:
+
+- `frontend/src/components/NuevaExcepcionModal.jsx` (NUEVO, ~210 líneas) — componente reusable con `<ModalView>` + form (tipo, fecha, profeOverride si aplica, motivo, observaciones). Submit POST `/api/excepcion_horarios`. Toast de éxito y `onSuccess(created)` callback. Reusa `crudStyles` (`Crud.module.css`) para los inputs y `TimeTable.module.css` para `modalBody`/`subValue`. 100% temático: variables `--space-*`, `--text-*`, `--bg-*`, motion tokens. Sin literales.
+- `frontend/src/pages/HorariosEditor.jsx`:
+  - Import `NuevaExcepcionModal`.
+  - Estado nuevo `[exceptionTarget, setExceptionTarget] = useState(null)`.
+  - Helper `computeFechaSugerida(diaIdx)` (memo `useCallback` sobre `selectedPl`).
+  - Handler `handleContextMenuPlacement(e, diaIdx, slotIdx)` — preventDefault + valida placement con hid + setea exceptionTarget con shape requerido por el modal.
+  - `SlotCell` acepta nueva prop `onContextMenu` y la propaga al `<div>` raíz.
+  - El render del SlotCell pasa `onContextMenu={(e) => handleContextMenuPlacement(e, d.idx, slotIdx)}`.
+  - `<NuevaExcepcionModal>` montado al final del JSX (antes del cierre de `Container`).
+- `frontend/src/i18n/locales/{es,en,ca,gl,eu}.json` — 3 claves nuevas en `exceptions.*`:
+  - `errorFechaRequired` (validación submit).
+  - `createdDesc` (descripción del toast de éxito: "Aplicada al horario y notificada a los afectados").
+  - `savePlacementFirst` (warning cuando placement no tiene hid).
+
+**Live updates**: el modal POSTea contra `/api/excepcion_horarios` y el `LivePublishSubscriber` genérico publica al hub. El editor `/admin/horarios` no está en la lista de vistas live (excluido por colisión con `pendingTx`), así que tras crear la excepción **el cambio NO se refleja inmediatamente** en la rejilla del editor — se vería al recargar o al cambiar de PL/grupo. Mitigaciones posibles si surge fricción: refetch manual del listado de horarios tras `onSuccess` (sin tocar `pendingTx`), o invalidar la cache del PL activo. **No implementado en C.3** porque la rejilla del editor no muestra excepciones (es la rejilla del horario base) — la excepción aparecería en `/horarios` profe / TimeTable ese día concreto, no en la rejilla maestra.
+
+**Cierra**: tarea diferida C.3 del INDEX (sección "Estado de tareas pendientes en intercambio-imparticiones") y de la lista "Diferidos a Fase C.2 (polish)" en este doc.
+
+**🔬 Validación E2E pendiente** (Docker estaba down al cerrar la sesión, no se pudo correr el smoke test del tipo `intercambio`). La parte sustitucion/cancelado/evento_especial sí se validó visualmente en navegador con el usuario antes de añadir intercambio. Los puntos a confirmar en la próxima sesión cuando se levante el entorno:
+
+1. F5 `/admin/horarios` con un grupo cargado y PL activo.
+2. Click derecho sobre placement guardado → modal abre con prefill correcto (materia, grupo, tramo, fecha sugerida según tipo de PL).
+3. Cambiar tipo a "Intercambio" → modal se ensancha (`size=large`) y aparece `<HorarioGridPicker>` bajo los campos.
+4. Dropdown de profesor del picker NO debería listar al titular del placement A (`excludeProfesorId=target.profesorId`). Verificar.
+5. Elegir profesor B y seleccionar bloques hasta que Σ minutos == minutos A (badge verde "✓").
+6. Crear → toast "Incidencia creada" + las N+1 caras persistidas con mismo `intercambioGrupoId` UUID.
+7. Verificar en `/admin/excepciones` que la fila aparece como APROBADA y agrupada (1 fila por intercambio, expand muestra N caras).
+8. Verificar overlay en `/horarios` de los profes implicados para esa fecha concreta.
+9. Caso límite: `excludeProfesorId` undefined si el placement A no tiene profesor asignado — el picker debería listar a todos. Confirmar.
+
+**Pendientes que quedan** del roadmap intercambio-imparticiones:
+- C.4 página `/mis-incidencias` (vista profe con sus solicitudes).
+- Badge en rejilla `/admin/horarios` (task #17) — marcar visualmente placements con incidencia aprobada en la semana visible.
+- Plan B2 multi-profe (intercambio 1↔N caras de varios profes).
+- Validación cross-conflicto en POST /excepciones/intercambio.
+- Filtro fecha desde/hasta en `/admin/excepciones`.
+
 ### 2026-05-08 (continuación) — Fase B.3 ✅ Done — Consumición resta CANCELADO/EVENTO_ESPECIAL + opción A desambiguación visual sintético
 
 Dos piezas diferentes que se validaron juntas en la misma sesión.
@@ -680,7 +739,7 @@ Tras validar Fase B end-to-end (smoke test backend OK, marker visual funcionando
 - `ModalView`, `DataTable`, `CrudHeader`, `Breadcrumbs`, `AsyncSearchSelect`, `ThemedSelect`, `Button`, `useConfirm`, `useLiveRefetch`, `toast` — todos componentes/hooks existentes reusados.
 
 **Diferidos a Fase C.2 (polish)**:
-- C.3 modal de creación desde click en rejilla `/admin/horarios` — atajo desde el editor sin pasar por `/admin/excepciones`.
+- ~~C.3 modal de creación desde click en rejilla `/admin/horarios`~~ ✅ **Done 2026-05-08** (entrada de bitácora dedicada más abajo).
 - C.4 vista `/mis-excepciones` para que el profe vea su histórico (creadas + asignadas como sustituto).
 - Filtro fecha desde/hasta en `/admin/excepciones`.
 

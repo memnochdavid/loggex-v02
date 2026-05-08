@@ -18,6 +18,7 @@ import ThemedSelect from '../components/ThemedSelect';
 import ProfLoadPanel from '../components/ProfLoadPanel';
 import ModalView from '../components/ModalView';
 import MateriaLabel from '../components/MateriaLabel';
+import NuevaExcepcionModal from '../components/NuevaExcepcionModal';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Download, Plus, Pencil, Trash2, Sliders, RotateCcw, Layers, Settings2, Eraser, CalendarDays } from 'lucide-react';
@@ -217,7 +218,7 @@ const SlotBlock = ({ slotId, imparticion, color, aula, isContinuation = false })
 };
 
 // ─── Celda droppable ───────────────────────────────────────────────────
-const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, onTap, gridRowSpan = 1 }) => {
+const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, onTap, onContextMenu, gridRowSpan = 1 }) => {
   const id = `cell:${dia}:${slot}`;
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -235,7 +236,7 @@ const SlotCell = ({ dia, slot, content, dragActive, valid, tapMode, tapValid, on
   if (isOver) cls += ` ${styles.slotDropActive}`;
   const style = gridRowSpan > 1 ? { gridRow: `span ${gridRowSpan}` } : undefined;
   return (
-    <div ref={setNodeRef} className={cls} style={style} onClick={onTap}>
+    <div ref={setNodeRef} className={cls} style={style} onClick={onTap} onContextMenu={onContextMenu}>
       {content}
     </div>
   );
@@ -265,6 +266,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const [activeDrag, setActiveDrag] = useState(null);
   // Tap-to-place: id de imparticion seleccionada (o null)
   const [selectedImpId, setSelectedImpId] = useState(null);
+  // Click derecho sobre placement persistido abre modal "Nueva excepción"
+  // (Fase C.3 intercambio-imparticiones). Sólo se activa con placements que
+  // tengan `hid` (Horario persistido en BD) — el modal POSTea contra él.
+  const [exceptionTarget, setExceptionTarget] = useState(null);
   // Cache de jornadas por id: { [jornadaId]: JornadaTipoConTramos | null (no asignada) }
   const [jornadasPorId, setJornadasPorId] = useState({});
   // Lista de jornadas disponibles por centro: { [centroId]: [{id, nombre, turno}, ...] }.
@@ -2327,6 +2332,66 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (profId && parallelBusy[key]?.has(Number(profId))) return false;
     return true;
   }, [selectedImpId, slotsDia, placements, impById, parallelBusy]);
+
+  // Calcula la fecha ISO sugerida para un día de semana (1-5) considerando
+  // el PL activo: SEMANA → lunes del PL + (diaIdx-1); PLANTILLA o sin fechas
+  // → primer día de semana coincidente desde hoy hacia adelante.
+  const computeFechaSugerida = useCallback((diaIdx) => {
+    const addDays = (date, n) => {
+      const d = new Date(date);
+      d.setDate(d.getDate() + n);
+      return d;
+    };
+    const toIso = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    if (selectedPl?.fechaInicio && isSemana(selectedPl)) {
+      const inicio = new Date(`${selectedPl.fechaInicio}T00:00:00`);
+      return toIso(addDays(inicio, diaIdx - 1));
+    }
+    // Fallback: próximo diaIdx desde hoy (o hoy si coincide).
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDow = today.getDay() === 0 ? 7 : today.getDay(); // 1=Lun..7=Dom
+    let delta = diaIdx - todayDow;
+    if (delta < 0) delta += 7;
+    return toIso(addDays(today, delta));
+  }, [selectedPl]);
+
+  // Click derecho sobre celda con placement persistido → abre modal de excepción.
+  // Si hay tap-mode activo (selectedImpId) cedemos al menú nativo del navegador
+  // para no robarle la opción "inspeccionar elemento" mientras coloca.
+  const handleContextMenuPlacement = useCallback((e, diaIdx, slotIdx) => {
+    if (selectedImpId) return; // tap-mode activo: no interceptar
+    const key = `${diaIdx}_${slotsDia[slotIdx][0]}`;
+    const placement = placements[key];
+    if (!placement) return; // celda vacía: no menú
+    e.preventDefault();
+    if (!placement.hid) {
+      toast.warning(t('exceptions.savePlacementFirst', {
+        defaultValue: 'Guarda primero los cambios para crear una excepción sobre este bloque.',
+      }));
+      return;
+    }
+    const imp = impById[placement.imparticionId];
+    const profe = imp?.profesor;
+    const profeNombre = profe ? [profe.nombre, profe.apellidos].filter(Boolean).join(' ').trim() : '';
+    const grupoNombre = grupo ? formatGrupoNombre(grupo) : '';
+    setExceptionTarget({
+      horarioId: placement.hid,
+      fechaSugerida: computeFechaSugerida(diaIdx),
+      diaSemana: diaIdx,
+      horaInicio: fmtHora(placement.horaInicio || ''),
+      horaFin: fmtHora(placement.horaFin || ''),
+      materia: imp?.materia?.nombre || imp?.materia?.abreviatura || '',
+      profesorId: profe?.id ? Number(profe.id) : undefined,
+      profesorNombre: profeNombre,
+      grupoNombre,
+    });
+  }, [selectedImpId, slotsDia, placements, impById, grupo, computeFechaSugerida, t]);
 
   // ESC deselecciona
   useEffect(() => {
@@ -4906,6 +4971,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                               tapMode={!!selectedImpId}
                               tapValid={tapValid}
                               onTap={() => handleTapCell(d.idx, slotIdx)}
+                              onContextMenu={(e) => handleContextMenuPlacement(e, d.idx, slotIdx)}
                               gridRowSpan={span}
                             />
                           );
@@ -5797,6 +5863,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             </div>
           )}
         </ModalView>
+
+        <NuevaExcepcionModal
+          isOpen={!!exceptionTarget}
+          target={exceptionTarget}
+          onClose={() => setExceptionTarget(null)}
+          onSuccess={() => {
+            // Refetch horarios del PL activo para que la rejilla refleje el
+            // override sin pasar por el ciclo de Mercure (que aquí está mute
+            // por el draft pendingTx). El refetch usa el efecto enlazado
+            // a `state` + `selectedPlId`.
+            setExceptionTarget(null);
+          }}
+        />
       </Container>
     </Wrapper>
   );
