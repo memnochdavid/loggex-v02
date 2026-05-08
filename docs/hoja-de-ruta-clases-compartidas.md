@@ -232,6 +232,41 @@ que rotan entre grupos sin un patrón de "compartido fijo").
 - Fase E: 1.5 sesiones (afecta PDF + asistencia).
 - **Total: 4-4.5 sesiones**.
 
+## Modelo de hermandad — conjuntos independientes
+
+Cada placement con `gemelo_id != NULL` pertenece a UN conjunto de
+hermandad cuyo raíz es siempre un placement con `gemelo = NULL`. Los
+distintos conjuntos son **disjuntos**: las mutaciones que Fase D
+propagará afectan solo al conjunto del placement tocado, nunca cruzan
+fronteras.
+
+Casos canónicos:
+
+- **Pareja**: `A (raíz) ← B`. Hermandad `{A, B}`.
+- **Trío**: `A ← B, A ← C`. Hermandad `{A, B, C}`.
+- **Independencia**: `A ← B` y `E ← F`. Conjuntos `{A, B}` y `{E, F}`
+  no se hablan.
+- **Ampliación post-hoc**: si tienes `{A, B}` y haces `Adjuntar B → C`,
+  la canonicalización (`getGemeloRoot()`) hace `C.gemelo = A` directo
+  (NO encadena por B). Resultado: `{A, B, C}` con A como único raíz.
+- **Cadenas inexistentes**: por construcción del controller, NO existen
+  `A ← B ← C` (tres niveles). Siempre planos: raíz + N hojas.
+
+**Caso edge — soft-delete del raíz**:
+
+Si se soft-deleta un raíz que tenía copias vivas, las copias quedan
+con `gemelo_id` apuntando a un placement con `deleted=1`. La FK
+`ON DELETE SET NULL` solo dispara en hard-delete; el patrón soft-delete
+del proyecto NO. Funcionalmente las copias quedan huérfanas: cualquier
+query que filtre `gemelo.deleted=0` no las traerá como hermanas.
+
+**Mitigación (Fase D)**: por D-1 cerrada ("se tratan como mismo grupo
+en todos los aspectos"), el listener Doctrine debe propagar el
+soft-delete del raíz a las copias automáticamente. Sin esto, escenarios
+como "Adjuntar C → A cuando A ya era raíz de `{A, B}` con cleanFirst"
+dejan B huérfano. Fase D lo cubrirá; hasta entonces se trata de un
+caso operativo poco frecuente (re-adjuntar un raíz ya unificado).
+
 ## Casos límite a tener en cuenta
 
 1. **Aula `NULL` en imparticion**. Hoy `Imparticion.aula` es nullable y se
