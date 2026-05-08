@@ -83,7 +83,26 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**🟢 CERRADA 2026-05-08 — Fase B.3 Consumición awareness + opción A desambiguación sintético + pulido UX Ronda 3 (DataTable selector de columnas).** Dos commits hoy: `9e032ce` (intercambio-imparticiones) y `29ce569` (DataTable + header dropdowns + botón rechazar danger).
+**🔬 Validar E2E el tipo `intercambio` del modal C.3 en `/admin/horarios`** (commit `53367b8` 2026-05-08 tarde, branch `develop-semanas-lectivas` ya pushed). La sesión cerró con Docker down intencionalmente y sólo se validaron los tipos `sustitucion/cancelado/evento_especial` antes de añadir intercambio. Cuando se levante el entorno, los **9 puntos de smoke test** están listados en `hoja-de-ruta-intercambio-imparticiones.md` §8 → "🔬 Validación E2E pendiente". Resumen: click derecho en `/admin/horarios` sobre un placement guardado → modal con tipo "Intercambio" → picker se ensancha (size `large`), excluye al titular del placement, valida Σ minutos B == minutos A → POST a `/api/v1/excepciones/intercambio` crea las N+1 caras con UUID compartido y APROBADA directa. Si algo falla, los puntos #1-#9 del doc dicen exactamente qué inspeccionar.
+
+**Después de validar, decidir siguiente foco** (todas son ítems abiertos en intercambio-imparticiones):
+
+- **C.4 página `/mis-incidencias`** — vista profe con sus solicitudes (estado, motivo, otra cara). ~0.5-1 sesión.
+- **Badge en rejilla `/admin/horarios`** (task #17) — marcar visualmente placements con incidencia aprobada en la semana visible. ~0.5 sesión.
+- **Validación cross-conflicto en POST /excepciones/intercambio** — avisar si el solicitante o el otro profe tienen otra clase suya en franja contigua/solapada al slot a cubrir. ~0.5 sesión.
+- **Plan B2 multi-profe** — diferido hasta demanda real.
+
+Otras opciones fuera de intercambio: Modalidad Fase 6 (PDF, ~0.5 sesión, cierra ese roadmap), `hoja-de-ruta-clases-compartidas.md` (caso real EAG bloqueante, ~4-4.5 sesiones), `hoja-de-ruta-curriculum-ccaa.md` Fase 3 BOJA Andalucía (~2 sesiones, crítico para centros reales).
+
+---
+
+## 📋 Sesión 2026-05-08 (cierre completo)
+
+Tres commits cerrados hoy en orden cronológico: `9e032ce` (B.3 + opción A) → `29ce569` (DataTable selector columnas + dropdowns inmunes + botón danger) → `f67eaf9` (docs cierre) → `6fd8a41` (cierre roadmap notificaciones tras validación E2E) → `53367b8` (Fase C.3 modal Nueva incidencia desde click derecho en /admin/horarios, 4 tipos).
+
+**Notificaciones del sistema → 🟢 cerrada definitivamente** tras 3 días de uso real (validación E2E confirmada por el usuario). Los 5 tipos del catálogo (`calificacion_publicada`, `calificacion_actualizada`, `tarea_nueva`, `comunicado_nuevo`, `entrega_recibida`) operativos. Detalle en sección "🟢 CERRADA 2026-05-08 — Sistema de notificaciones del sistema" más arriba.
+
+**Fase B.3 Consumición awareness + opción A desambiguación sintético + pulido UX Ronda 3.** Dos commits: `9e032ce` (intercambio-imparticiones) y `29ce569` (DataTable + header dropdowns + botón rechazar danger).
 
 1. **Fase B.3 Consumición awareness** (`9e032ce`) — `ConsumicionAnualService` resta minutos de incidencias APROBADAS tipo CANCELADO/EVENTO_ESPECIAL en `planTotal`/`impartidoTotal`/`porRango[]`/`porEvaluacion[]` (las INTERCAMBIO/SUSTITUCION no afectan: la clase se imparte igual, sólo cambia el profe). Nuevo método privado `loadIncidenciasRestadoras(grupo)` con DQL indexada por `imparticionId`. DTO añade `minutosPerdidosIncidencias`/`minutosPerdidosIncidenciasHoy` por materia. Bug detectado al validar: la primera versión sólo restaba al total y a `porEvaluacion`; el banner UI lee `porRango[].minutosPlanificados` y mostraba los rangos sin descontar. Fix añadiendo segundo bucle que ubica la incidencia en el rango cuyo `[fechaInicio,fechaFin]` contiene su `fechaConcreta`. Validado E2E en `/admin/horarios` tab Consumición tras `docker compose restart backend` (OPcache PHP-FPM no recoge cambios del Service hasta reiniciar; el CLI `app:fase8:consumicion 1` sí porque arranca proceso fresh). Cierra task #16 ("Fase B — banner anual + Consumición") del roadmap intercambio-imparticiones.
 
@@ -95,7 +114,7 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
     - **R3.3 — Botón "Rechazar este cambio" pasa a `variant="danger"`**. En `TimeTable.jsx` modal de placement, el botón usaba `variant="secondary"` con estilos inline `color/borderColor: var(--color-error)`. Cambiado a `variant="danger"` (igual que el "Cerrar sesión" del `ConfirmLogoutModal`); estilos inline eliminados.
 
 **Estado de tareas pendientes en intercambio-imparticiones** (lo que queda por hacer cuando se retome esa feature):
-- ~~**C.3 modal "Solicitar cambio" desde rejilla `/admin/horarios`**~~ ✅ **Done 2026-05-08** — click derecho sobre placement con `hid` abre `<NuevaExcepcionModal>` (componente reusable nuevo) con prefill de horarioBase, materia, grupo, tramo y fecha sugerida (SEMANA → fechaInicio + diaIdx; PLANTILLA → próximo diaIdx desde hoy). Cubre los **4 tipos** del catálogo: sustitucion / cancelado / evento_especial / intercambio (este último con `<HorarioGridPicker>` integrado, `targetMinutes=durA`, `excludeProfesorId=titularBase`; modal pasa a size `large`). Submit branchea entre `/api/excepcion_horarios` (3 tipos directos) y `/api/v1/excepciones/intercambio` (Plan B). Backend marca APROBADA automáticamente para admin vía `ExcepcionHorarioProcessor`/`IntercambioController`. i18n × 5 (3 claves nuevas: `errorFechaRequired`, `createdDesc`, `savePlacementFirst`).
+- ~~**C.3 modal "Solicitar cambio" desde rejilla `/admin/horarios`**~~ ✅ **Done 2026-05-08** (commit `53367b8`) — click derecho sobre placement con `hid` abre `<NuevaExcepcionModal>` (componente reusable nuevo) con prefill de horarioBase, materia, grupo, tramo y fecha sugerida (SEMANA → fechaInicio + diaIdx; PLANTILLA → próximo diaIdx desde hoy). Cubre los **4 tipos** del catálogo: sustitucion / cancelado / evento_especial / intercambio (este último con `<HorarioGridPicker>` integrado, `targetMinutes=durA`, `excludeProfesorId=titularBase`; modal pasa a size `large`). Submit branchea entre `/api/excepcion_horarios` (3 tipos directos) y `/api/v1/excepciones/intercambio` (Plan B). Backend marca APROBADA automáticamente para admin vía `ExcepcionHorarioProcessor`/`IntercambioController`. i18n × 5 (3 claves nuevas: `errorFechaRequired`, `createdDesc`, `savePlacementFirst`). **🔬 Validado los tipos sustitucion/cancelado/evento_especial; intercambio pendiente de smoke test E2E** (Docker down al cerrar — checklist de 9 puntos en bitácora del doc).
 - **C.4 página `/mis-incidencias`** — vista profe con sus solicitudes (estado, motivo, otra cara…). Diferida.
 - **Badge en rejilla `/admin/horarios`** (task #17) — marcar visualmente placements con incidencia aprobada en la semana visible. Diferido.
 - **Plan B2 multi-profe** — en intercambio 1↔N permitir que las caras B sean de varios profes. Diferido hasta que aparezca demanda real.
