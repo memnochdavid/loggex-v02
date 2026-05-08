@@ -133,10 +133,18 @@ que rotan entre grupos sin un patrón de "compartido fijo").
 
 ## Decisiones abiertas
 
-- **D-1**: al borrar un `Horario` con gemelo, ¿se borra también el gemelo?
-  Sugerencia: SÍ — si se decidió compartir clase, borrar uno debería borrar
-  ambos para mantener consistencia. Excepción: si el admin desliga
-  explícitamente vía un botón "desvincular gemelos".
+- ~~**D-1**: al borrar un `Horario` con gemelo, ¿se borra también el gemelo?~~
+  **Cerrada 2026-05-08 — propagación SIEMPRE, sin opt-out**. Las clases
+  gemelas se tratan como el mismo grupo en todos los aspectos
+  operativos: cualquier mutación de una se aplica a la otra
+  automáticamente (mover, borrar, crear placement, crear incidencia
+  ExcepcionHorario, cambio de profesor en imparticion vía sincronización
+  de profes compartidos…). No existe "desvincular gemelos" ni "borrar
+  solo uno". Razón: una clase física no se puede cancelar para un grupo
+  y mantener para el otro — son la misma. Si el admin necesita
+  divergencia genuina, primero rompe la hermandad cambiando la
+  materia/imparticion subyacente. Esto simplifica Fase D significativamente
+  (sin diálogos por mutación, comportamiento uniforme).
 
 - **D-2**: ¿qué pasa si el admin edita la imparticion subyacente (cambia
   profesor, materia, aula) y la nueva configuración rompe el "100% idéntico"?
@@ -374,3 +382,69 @@ dependía del solver).
 - Fase E: vistas combinadas (PDF, asistencia, pase de lista).
 - Detección automática 🟢/🟡/🔴 + banner contextual + modal "Asignar
   profesor compartido". UX-only, no estructural.
+
+### 2026-05-08 (continuación 2) — Fase B + C ✅ Done
+
+Tras cerrar Fase A y validar E2E, en la misma sesión se aborda Fase B
+(infraestructura para Fase D) y Fase C (refinamiento del solver). D-1
+cerrada justo antes (propagación SIEMPRE, sin opt-out) simplifica el
+enfoque.
+
+**Fase B — `Horario.gemeloId`**:
+
+- Migración `Version20260508220000`: `ALTER TABLE horario ADD gemelo_id INT NULL`
+  + índice `IDX_HORARIO_GEMELO` + FK self-ref `FK_HORARIO_GEMELO`
+  con `ON DELETE SET NULL`. Si se borra el horario raíz, las copias
+  dejan de ser gemelas pero sobreviven (decisión defensiva: la lógica
+  de "borrar uno borra todos" la gestiona la Fase D a nivel aplicación,
+  no FK).
+- Entidad `Horario`: nueva propiedad `?Horario $gemelo` ManyToOne self-ref,
+  helpers `getGemelo` / `setGemelo` + helper de conveniencia
+  `getGemeloRoot()` que devuelve el raíz canónico (gemelo o $this si es
+  el original). Serializado solo en `horario:read` (no `horario:write`):
+  el cliente NO debería poder reescribir gemelos manualmente — la
+  hermandad la gestiona el servidor desde Adjuntar y la sincronización.
+- `AdjuntarGrupoController`: en el bucle de clonado de horarios, set
+  `gemelo = origen.getGemeloRoot()`. **Canonicalización (D-3 cerrada)**:
+  el gemelo apunta SIEMPRE al raíz, nunca a otra copia. Si el origen ya
+  era una copia previa, el clon nuevo apunta al raíz directamente — sin
+  cadenas. Esto mantiene `WHERE id = X OR gemelo_id = X` como query
+  barata para "todos los hermanos de X" sin recursión.
+
+**Fase C — solver consciente de gemeloId**:
+
+Análisis: el solver actual (commit `6dd6e7c`) ya gestiona "clase
+compartida" en `buildParallelBusy` + `isProfBusyOther` vía coincidencia
+de `materia.id`. Como todo placement clonado por Fase A tiene la misma
+materia que su gemelo (por construcción del clonado, `impMapDest`
+mapea por `materia.id`), añadir `gemeloId` al shape de `parallelBusy`
+sería estrictamente redundante hoy. La función real de `gemeloId` es
+soportar la **propagación de mutaciones** en Fase D (mover/borrar/
+cancelar uno aplica al gemelo), no la decisión del solver al colocar.
+
+**Decisión**: Fase C cerrada sin código adicional. El comportamiento
+del solver ya cumple el plan original ("no contar al profe como busy
+si el slot tiene un horario gemelo del candidato") por la ruta
+`materia.id`. Si en el futuro aparece un caso edge donde dos
+placements gemelos tengan materias distintas (no posible vía Adjuntar
+por construcción; podría pasar con manipulación manual), se añadiría
+una rama secundaria al helper `isProfBusyOther` que aceptara también
+match por `gemeloId`.
+
+**Validación E2E pendiente**: pulsar "Adjuntar a grupo existente" tras
+aplicar la migración debería marcar `gemelo_id` en cada placement
+clonado del destino. Verificable con SQL:
+```sql
+SELECT id, gemelo_id FROM horario
+WHERE imparticion_id IN (SELECT id FROM imparticion WHERE grupo_id = 3)
+  AND deleted = 0;
+```
+Esperado: 61 filas, todas con `gemelo_id NOT NULL` apuntando a las
+filas correspondientes del grupo 1.
+
+**Próxima ruta natural**: Fase D — service `HorarioGemeloSync` que
+escuche eventos Doctrine de `Horario` (postPersist/postUpdate/preRemove)
+y propague al gemelo. También `ExcepcionHorario`: cuando se crea una
+incidencia sobre un horario con gemelo, duplicarla al gemelo (decisión
+2026-05-08 al cerrar D-1: "se tratan como mismo grupo en todos los
+aspectos"). Una sesión completa.

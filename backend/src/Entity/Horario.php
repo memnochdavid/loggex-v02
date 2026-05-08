@@ -108,9 +108,48 @@ class Horario
     #[Groups(['horario:read', 'horario:write'])]
     private ?PeriodoLectivo $periodoLectivo = null;
 
+    /**
+     * Gemelo en otro grupo hermano. Marca permanente "este placement es la
+     * misma clase física que otro" — usado por la sincronización de Fase D y
+     * el solver de Fase C. Canonicalización (D-3 + decisión 2026-05-08): el
+     * `gemelo` apunta SIEMPRE al horario raíz (el ORIGINAL, el más antiguo),
+     * nunca a otra copia. Las copias clonadas desde otra copia se reasignan
+     * al raíz directamente, evitando cadenas y simplificando la query
+     * "todos los hermanos de X" a `WHERE id = X OR gemelo_id = X`.
+     *
+     * `ON DELETE SET NULL`: si se borra el raíz, las copias dejan de ser
+     * gemelas pero sobreviven como placements independientes. Doc:
+     * docs/hoja-de-ruta-clases-compartidas.md (Fase B).
+     */
+    #[ORM\ManyToOne(targetEntity: Horario::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['horario:read'])]
+    private ?Horario $gemelo = null;
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getGemelo(): ?Horario
+    {
+        return $this->gemelo;
+    }
+
+    public function setGemelo(?Horario $gemelo): static
+    {
+        $this->gemelo = $gemelo;
+        return $this;
+    }
+
+    /**
+     * Devuelve la "raíz de hermandad": si este horario tiene gemelo, ese
+     * gemelo (que por convención es siempre el raíz). Si no, este mismo.
+     * Usado por servicios que necesitan canonicalizar antes de propagar.
+     */
+    public function getGemeloRoot(): self
+    {
+        return $this->gemelo ?? $this;
     }
 
     public function getDiaSemana(): ?int

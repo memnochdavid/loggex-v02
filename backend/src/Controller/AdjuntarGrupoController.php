@@ -206,7 +206,15 @@ class AdjuntarGrupoController extends AbstractController
                         ->setHoraInicio($hOrig->getHoraInicio())
                         ->setHoraFin($hOrig->getHoraFin())
                         ->setImparticion($impDest)
-                        ->setPeriodoLectivo($plDest);
+                        ->setPeriodoLectivo($plDest)
+                        // Canonicalización: el gemelo apunta SIEMPRE al
+                        // horario raíz. Si el origen ya era una copia
+                        // (gemelo != null), su raíz es el padre canonicalizado;
+                        // por convención `getGemeloRoot()` devuelve el raíz o
+                        // a sí mismo si es el original. Así evitamos cadenas
+                        // y mantenemos la query "hermanos de X" como
+                        // `WHERE id = X OR gemelo_id = X`.
+                        ->setGemelo($hOrig->getGemeloRoot());
                     if ($hOrig->getAula()) {
                         $hDest->setAula($hOrig->getAula());
                     }
