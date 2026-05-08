@@ -276,3 +276,101 @@ que rotan entre grupos sin un patrón de "compartido fijo").
   descartadas).
 - Bitácora de implementación al final, con entradas por sesión.
 - Estados: 🟢 Done | 🟡 Parcial | 🔴 Pendiente | 🪦 Superseded.
+
+## Bitácora de implementación
+
+### 2026-05-08 — Fase A MVP simplificado: "Adjuntar a grupo existente"
+
+Tras cerrar el MVP M:N + solver consciente (commit `6dd6e7c`), el usuario
+propone implementar el botón explícito que clona placements en lugar de
+depender del solver. La sesión adopta una versión **MVP simplificada** de
+Fase A: sin detección automática 🟢/🟡/🔴 ni banner, sólo el flujo
+manual con preview + clonado. Las funcionalidades grandes restantes
+(Fases B/C/D/E del plan canon) siguen diferidas.
+
+**Decisiones de la sesión** (alcance + UX):
+
+| Pregunta | Resolución | Razón |
+|---|---|---|
+| Alcance Fase A | MVP simplificado (sin detección automática) | Mantener foco; la detección 🟢/🟡/🔴 es UX, no estructural. |
+| Destino con PLs vivos | Auto-limpiar destino con doble confirm | Evita fricción de "ve a Limpiar antes". El warning rojo del modal lo deja explícito. |
+| Materia origen sin par en destino | Skip silencioso + reportar en stats finales | El admin asigna esas materias al itinerario destino y vuelve a adjuntar si quiere unificar. Bloqueo total daría demasiada fricción. |
+
+**Backend**:
+- `AdjuntarGrupoController.php` (nuevo, ~310 líneas) con dos endpoints:
+  - `GET /api/v1/grupos/{destinoId}/adjuntar-preview/{origenId}`: stats sin
+    tocar BD (PLs/PLIs/horarios a clonar, materias compartidas vs
+    omitidas, profe mismatch, si destino tiene PLs vivos).
+  - `POST /api/v1/grupos/{destinoId}/adjuntar-a/{origenId}` con body
+    `{cleanFirst: bool}`: clona PLs+PLIs+horarios. Si cleanFirst=true,
+    soft-delete previo del destino dentro de la misma transacción. Si
+    false y destino tiene PLs vivos → 409 Conflict.
+  - Lógica del clonado en dos pasadas: PLANTILLAs primero (para que
+    SEMANAs puedan apuntar a `plantillaBase` ya persistida), luego
+    SEMANAs. Mapeo `materia.id → imparticion(destino)` en `buildImpMap`.
+  - Stats devueltos: `plsCreados`, `plisCreados`, `horariosCreados`,
+    `materiasOmitidas[]`, `profeMismatch[]`, `destinoLimpiado`.
+  - Validaciones: ROLE_ADMIN+, mismo centro, no auto-adjuntar, destino
+    debe tener imparticiones.
+
+**Frontend**:
+- `AdjuntarGrupoModal.jsx` (nuevo, ~250 líneas):
+  - AsyncSearchSelect del grupo origen filtrado al centro del destino.
+  - Preview automático tras elegir origen (debounce vía useEffect con
+    cancelación de fetches obsoletos).
+  - 4 banners temáticos por tono: ok (verde resumen), info (omitidas),
+    warn (profe mismatch), error (destino con PLs).
+  - Submit pasa `cleanFirst` derivado del preview.
+  - Tras éxito: 3 toasts (success + omitidas + profeMismatch) y callback
+    `onSuccess` para que el caller refresque su estado.
+- `HorariosEditor.jsx`:
+  - Import `AdjuntarGrupoModal` + icono `Copy`.
+  - Estado `adjuntarModalOpen`.
+  - Item nuevo en menú "Acciones del curso" entre "Curso óptimo" y
+    "Crear Rangos Recomendados".
+  - Render del modal al final con `onSuccess` que llama a
+    `refetchPlsForGroup` y limpia caches `state` + `capacityByGrupo` del
+    grupo activo.
+- `Crud.module.css`: 5 clases nuevas para banners (`adjuntarPreview`,
+  `adjuntarBanner` + 4 tonos vía `data-tone`). 100% temáticas.
+- i18n × 5: 2 claves nuevas en `scheduleEditor` (`attachToGroupAction`,
+  `attachToGroupTitle`) + bloque nuevo `adjuntarGrupo` con 17 claves
+  (es, en, ca, gl, eu).
+
+**Validación E2E**: ✅ **Pasada** (2026-05-08). Adjuntado 1º DAW → 1º DAM:
+toast verde "Horario adjuntado: 61 placements, 35 PLIs en 5 rangos",
+rejilla DAM pinta inmediatamente con franjas coincidentes con DAW
+(coincidencia 100% **garantizada** — a diferencia del MVP M:N donde
+dependía del solver).
+
+**Bugs detectados durante el smoke test y corregidos en línea**:
+1. **Soft-delete con `\DateTimeImmutable` rompía Doctrine**: el código
+   inicial pasaba `setDeletedAt(new \DateTimeImmutable())`. La columna
+   `deletedAt` está mapeada como `type: 'datetime'` (mutable), no
+   `datetime_immutable` → Doctrine rechaza el cast con
+   "Could not convert PHP value of type DateTimeImmutable to type
+   DateTimeType". Fix: el `setDeleted(true)` del `SoftDeletableTrait` ya
+   pone `\DateTime()` mutable automáticamente. Eliminadas las llamadas
+   redundantes a `setDeletedAt`.
+2. **Rejilla queda vacía tras adjuntar pese a clonado OK**: el flujo
+   `onSuccess` llamaba a `refetchPlsForGroup` pero el effect ~595 que
+   re-elige PL activo tiene guard `if (plByGrupo[gid] !== undefined)
+   return`. Al refetchear, el guard pasa y el branch de selección por
+   defecto NO entra → selectedPlId queda apuntando al PL viejo
+   soft-deleted → el effect ~679 que carga horarios del PL activo no
+   los encuentra → rejilla vacía. Fix: `onSuccess` reescrito para hacer
+   todo el flujo explícito en vez de delegar en effects: refetch directo
+   de PLs, `selectActivePl()` manual, `setSelectedPlByGrupo` al activo,
+   limpiar `state[gid_*]`, `capacityByGrupo[gid_*]`, borrar entrada de
+   `allHorariosByGroup[gid]` para forzar el effect ~619 a re-fetch.
+   Resultado: la rejilla pinta inmediatamente sin F5 manual.
+
+**Diferido para sesiones futuras** (queda en este doc Fases B-E):
+- Fase B: `Horario.gemeloId` + sincronización persistente entre
+  hermanos.
+- Fase C: solver consciente de `gemeloId` (refinamiento del MVP M:N
+  actual).
+- Fase D: sincronización de ediciones (mover en DAW mueve en DAM).
+- Fase E: vistas combinadas (PDF, asistencia, pase de lista).
+- Detección automática 🟢/🟡/🔴 + banner contextual + modal "Asignar
+  profesor compartido". UX-only, no estructural.

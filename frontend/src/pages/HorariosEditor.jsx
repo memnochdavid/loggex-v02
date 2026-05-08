@@ -19,9 +19,10 @@ import ProfLoadPanel from '../components/ProfLoadPanel';
 import ModalView from '../components/ModalView';
 import MateriaLabel from '../components/MateriaLabel';
 import NuevaExcepcionModal from '../components/NuevaExcepcionModal';
+import AdjuntarGrupoModal from '../components/AdjuntarGrupoModal';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Download, Plus, Pencil, Trash2, Sliders, RotateCcw, Layers, Settings2, Eraser, CalendarDays } from 'lucide-react';
+import { CalendarClock, Save, CheckCircle2, AlertTriangle, XCircle, Ban, Sparkles, Download, Plus, Pencil, Trash2, Sliders, RotateCcw, Layers, Settings2, Eraser, CalendarDays, Copy } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { downloadFileFromApi } from '../utils/downloadFile';
 import { toast } from '../utils/toast';
@@ -331,6 +332,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // empujaba el body y aparecía un scroll vertical no deseado).
   const cursoActionsBtnRef = useRef(null);
   const [cursoActionsMenuStyle, setCursoActionsMenuStyle] = useState(null);
+  // Modal "Adjuntar a grupo existente" (Fase A clases-compartidas).
+  const [adjuntarModalOpen, setAdjuntarModalOpen] = useState(false);
   useLayoutEffect(() => {
     if (!cursoActionsOpen) {
       setCursoActionsMenuStyle(null);
@@ -4569,6 +4572,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     <button
                       type="button"
                       className={styles.cursoActionsItem}
+                      onClick={() => { setCursoActionsOpen(false); setAdjuntarModalOpen(true); }}
+                      title={t('scheduleEditor.attachToGroupTitle', {
+                        defaultValue: 'Replica el horario completo de otro grupo del centro mapeando materias por código LOMLOE — útil para grupos hermanos (1º DAW + 1º DAM, etc.)',
+                      })}
+                    >
+                      <Copy size={14} />
+                      <span>{t('scheduleEditor.attachToGroupAction', {
+                        defaultValue: 'Adjuntar a grupo existente',
+                      })}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cursoActionsItem}
                       onClick={() => { setCursoActionsOpen(false); setCreateRangosCount(3); setCreateRangosModalOpen(true); }}
                     >
                       <CalendarDays size={14} />
@@ -5881,6 +5897,72 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
             // por el draft pendingTx). El refetch usa el efecto enlazado
             // a `state` + `selectedPlId`.
             setExceptionTarget(null);
+          }}
+        />
+
+        <AdjuntarGrupoModal
+          isOpen={adjuntarModalOpen}
+          grupoDestino={grupo}
+          centroId={(() => {
+            if (!grupo) return null;
+            const c = grupo.centro;
+            if (!c) return user?.centro?.id ?? null;
+            if (typeof c === 'object') return c.id ?? c['@id']?.split('/').pop();
+            if (typeof c === 'string') return c.split('/').pop();
+            return c;
+          })()}
+          onClose={() => setAdjuntarModalOpen(false)}
+          onSuccess={async () => {
+            setAdjuntarModalOpen(false);
+            if (!selectedGrupo) return;
+            // Tras adjuntar:
+            //  1. Refetch directo de PLs nuevos (los viejos quedan soft-deleted).
+            //  2. Selección manual del PL activo entre los recién clonados (el
+            //     effect que normalmente re-elige PL tiene guard
+            //     `plByGrupo[gid] !== undefined`, así que con setPlByGrupo el
+            //     guard pasa y NO entra en el branch de selección por defecto).
+            //  3. Limpiar caches state[gid_*] y capacityByGrupo[gid_*] para que
+            //     el effect que carga horarios del PL activo (~línea 679) los
+            //     vuelva a pedir y poble la rejilla.
+            //  4. Refetch de horarios globales del grupo (chip de horas anuales).
+            try {
+              const r = await fetch(
+                getApiUrl(`/api/periodo_lectivos?grupo=${selectedGrupo}&pagination=false&order[orden]=asc&order[fechaInicio]=asc`),
+                { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' },
+              );
+              if (r.ok) {
+                const d = await r.json();
+                const items = sortPlsForUi(d['hydra:member'] || d.member || []);
+                setPlByGrupo(prev => ({ ...prev, [selectedGrupo]: items }));
+                if (items.length > 0) {
+                  const active = selectActivePl(items) || items[0];
+                  setSelectedPlByGrupo(prev => ({ ...prev, [selectedGrupo]: active.id }));
+                }
+              }
+            } catch (err) {
+              console.error('Error refrescando PLs tras adjuntar:', err);
+            }
+            setState(prev => {
+              const next = { ...prev };
+              Object.keys(next).forEach(k => {
+                if (k.startsWith(`${selectedGrupo}_`)) delete next[k];
+              });
+              return next;
+            });
+            setCapacityByGrupo(prev => {
+              const next = { ...prev };
+              Object.keys(next).forEach(k => {
+                if (k.startsWith(`${selectedGrupo}_`)) delete next[k];
+              });
+              return next;
+            });
+            // Forzar refetch de allHorariosByGroup borrando la entrada (el
+            // effect ~619 tiene guard `!== undefined`).
+            setAllHorariosByGroup(prev => {
+              const next = { ...prev };
+              delete next[selectedGrupo];
+              return next;
+            });
           }}
         />
       </Container>
