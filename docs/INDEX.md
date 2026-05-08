@@ -23,26 +23,26 @@ D-PRINCIPAL cerrada con resultado **MODELO SEMANAL PURO** tras counterfactual de
 
 **Cómo retomar desde otra máquina**: ver §12 "Cómo retomar desde otra máquina" en `hoja-de-ruta-modelo-semanal.md`. Resumen: `git checkout develop-semanas-lectivas && git pull && docker compose up -d`. La migration `Version20260506180000` se aplica con `doctrine:migrations:migrate --no-interaction` y luego `app:semanas:seed-plantillas --with-plis` para tener PLANTILLAs por grupo. Bitácora completa de Fase B en §9 sesiones 2-4 del doc.
 
-**Bloquea durante el refactor**: features que toquen `PeriodoLectivo`/`Horario`/`HorariosEditor` en `develop`. Otras features paralelas (notificaciones validación visual, calificaciones B.1, catálogo) pueden seguir en `develop`.
+**Bloquea durante el refactor**: features que toquen `PeriodoLectivo`/`Horario`/`HorariosEditor` en `develop`. Otras features paralelas (calificaciones B.1, catálogo) pueden seguir en `develop`.
 
 **Desbloquea al terminar**: `hoja-de-ruta-intercambio-imparticiones.md` ✅ creado 2026-05-07 — listo para arrancar Fase A tras cerrar D-A (granularidad temporal de la excepción). El viejo `hoja-de-ruta-cambio-turno.md` se mantiene vivo como **complementario** (cambio permanente de turno del profe), no superseded.
 
 ---
 
-## 🚨 PRÓXIMA SESIÓN — MÁXIMA PRIORIDAD (2026-05-05)
+## 🟢 CERRADA 2026-05-08 — Sistema de notificaciones del sistema (validación E2E)
 
-**🔥 Sistema de notificaciones del sistema (campanita + propagación a afectados)** — Doc: **`hoja-de-ruta-notificaciones.md`**.
+**🔔 Notificaciones del sistema (campanita + propagación a afectados)** — Doc: **`hoja-de-ruta-notificaciones.md`** (cerrado).
 
-**Estado actualizado 2026-05-05**:
+Tras 3 días de uso real con la BD del centro EAG (commits del 2026-05-05 al 2026-05-08), las 3 fases están operativas y validadas en navegador:
 
-1. ✅ **Fase 1 backend implementada** (commit pendiente): entidad `Notificacion` + repo + migración `Version20260505120000` + `NotificationDispatcher` con 4 métodos `notify*()` + `NotificationDispatchSubscriber` (postPersist + postFlush con guard de re-entrancy) + endpoint custom `POST /api/notificaciones/marcar-todas-leidas` + filtro en `CurrentUserExtension` + topic Mercure `/users/{id}/notifications` (ya en el JWT).
-   - **Pendiente para activar end-to-end**: correr migración + cache:clear + smoke tests (detalle en §Bitácora 2026-05-05 del doc).
-2. ✅ **Fase 2 frontend** (2026-05-05): refactor del header con DOS botones (Mensajes con icono `Mail`, Notificaciones con icono `Bell`), nuevo `<SystemNotificationsList>` que reusa el CSS module de mensajes para densidad/hover/foco idénticos pero pinta notificaciones del sistema (icono por tipo Lucide, dot de no-leída, footer "Marcar todas como leídas"). Filtra eventos Mercure por `entity === 'Notificacion'` para coexistir con mensajes en el mismo topic. Optimistic update al marcar leída + refetch via Mercure. HMR sin errores. **Pendiente solo validación visual con datos reales en navegador**.
-3. ✅ **Fase 3 catálogo + i18n** (2026-05-05): catálogo cerrado + dispatcher + i18n × 5 idiomas (`notifications.types.{tipo}.{title|body}` + UI strings: empty/markAllRead/viewAll/relative time). `header.messages` añadido para el botón renombrado en Fase 2. Iconos por tipo se cablean al crear `<NotificationsList>` (Fase 2).
+1. ✅ **Fase 1 backend** — entidad `Notificacion` + repo + migración `Version20260505120000` + `NotificationDispatcher` con 4 métodos `notify*()` + `NotificationDispatchSubscriber` (postPersist + postFlush con guard de re-entrancy) + endpoint custom `POST /api/notificaciones/marcar-todas-leidas` + filtro en `CurrentUserExtension` + topic Mercure `/users/{id}/notifications` (firmado en el JWT).
+2. ✅ **Fase 2 frontend** — header con DOS botones (Mensajes con icono `Mail`, Notificaciones con icono `Bell`); `<SystemNotificationsList>` reusa el CSS module de mensajes para densidad/hover/foco idénticos pero pinta notificaciones del sistema (icono por tipo Lucide, dot de no-leída, footer "Marcar todas como leídas"). Filtra eventos Mercure por `entity === 'Notificacion'` para coexistir con mensajes en el mismo topic. Optimistic update al marcar leída + refetch via Mercure.
+3. ✅ **Fase 3 catálogo + i18n × 5** — catálogo cerrado + dispatcher + claves `notifications.types.{tipo}.{title|body}` + UI strings (empty/markAllRead/viewAll/relative time).
+4. ✅ **Hotfixes 2026-05-05** — bug 500 al crear `Tarea` (`Grupo::getMatriculas` inexistente; reemplazado por query directa al `MatriculaRepository`) + nuevo tipo `calificacion_actualizada` que avisa cuando el profe rectifica la nota (filtro `preUpdate` con `hasChangedField('nota')` para no spamear con cambios de feedback — D12).
 
-**Regla de oro**: un mensaje NO genera notificación adicional (evita contadores duplicados).
+**Regla de oro confirmada en producción**: un mensaje NO genera notificación adicional. Los dos botones del header son mutuamente excluyentes (D8: abrir uno cierra el otro).
 
-**Por qué primera**: el bucle de feedback hoy está roto — el alumno no se entera de que su examen ha sido corregido salvo que entre activamente; el profe no ve si llega una entrega nueva. Es bloqueante para "Loggex se vende a un centro real sin que los usuarios se sientan ciegos".
+**Resultado**: el bucle de feedback queda cerrado — alumno se entera al instante de correcciones, tareas nuevas y comunicados; profe ve cada entrega recibida; admin ve los eventos relevantes. Roadmap promovido a 🟢 cerradas. Cualquier ampliación futura (mensaje_urgente, vista dedicada `/notificaciones`, backfill SQL, poda mensual) está anotada como mejora opcional sin urgencia en la bitácora del doc.
 
 **Otros ítems abiertos en paralelo (menor prioridad):**
 
@@ -369,6 +369,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 
 | Doc | Estado | Pendiente residual |
 |---|---|---|
+| `hoja-de-ruta-notificaciones.md` | **Fases 1-3 + hotfixes ✅ Done 2026-05-05; validación E2E 2026-05-08**: campanita `Bell` en header con dropdown de eventos del sistema (`<SystemNotificationsList>`); 5 tipos cableados (`calificacion_publicada`, `calificacion_actualizada`, `tarea_nueva`, `comunicado_nuevo`, `entrega_recibida`); Mercure live; i18n × 5. | Posibles ampliaciones diferidas (no urgentes): `mensaje_urgente`, vista dedicada `/notificaciones`, `app:notificaciones:backfill`, poda mensual de leídas. |
 | `hoja-de-ruta-rename-fp-neutral.md` | rename ejecutado en abril 2026 (commits `f341c32`, `8ff06fc`, `edcf4a0`...) | Cerrar bitácora del doc, marcar como done |
 | `hoja-de-ruta-tutorial.md` | 3 fases implementadas en dev | Validar que el header sigue siendo cierto y archivar |
 | `hoja-de-ruta-eso.md` | catálogo ESO LOMLOE cargado (1 itinerario + 28 materias) | Adaptaciones por CCAA → migradas al doc CCAA nuevo |
@@ -391,7 +392,6 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | **`hoja-de-ruta-modelo-semanal.md`** 🏗️ | **REFACTOR COMPLETO** branch `develop-semanas-lectivas`. Fases A1+A2+A3 ✅ commit `a28d812`. **Fase B ✅ Done (sesiones 2-4)** commits `5624582`/`b2785c6`/`d370257`/`9befa14`/`25df9b6`. **Fase D ✅ Done (sesión 5)** commits `ede5361`/`2597a0a`/`c4b1297`. **Fase C ✅ Done (sesión 6)** commit `4a0d716`. **Refactor cerrado.** Sesión 7 (2026-05-07): cerrados pendientes coherencia DAW/DAM (sin duplicados intra-itinerario · DAM ya regenerado · `GrupoResyncCcaaController.horasTotales` añadido). Próxima feature objetivo: **`hoja-de-ruta-intercambio-imparticiones.md`** ✅ creado 2026-05-07 — listo para arrancar Fase A. | D-PRINCIPAL cerrada con resultado MODELO SEMANAL PURO. PL pasa de rango contiguo a semana lectiva + plantilla. Detalle del estado en §"Estado de fases" arriba y §9 del doc. |
 | **`hoja-de-ruta-intercambio-imparticiones.md`** 🆕 (2026-05-07) | 🟢 **Fase A + B 5/5 + C parcial + Rename + D + E + E.2 + Plan B + Fase B.3 ✅ Done (2026-05-08)** — Los 4 tipos operativos + intercambio bilateral con cascade automático (`IntercambioGrupoCascadeSubscriber`, UUID compartido `intercambio_grupo_id` permite 1↔N caras). Picker visual con grid temático (multi-selección, abreviatura primero, modal ancho dinámico, admins-que-imparten incluidos). Sintético muestra titular base + materia base ("Cubres a Sara · IPE→SIS") para desambiguar visualmente cuando el user tiene su propia clase contigua. **B.3 ✅** — `ConsumicionAnualService` resta minutos de incidencias APROBADAS tipo CANCELADO/EVENTO_ESPECIAL a planTotal/impartidoTotal/porRango/porEvaluacion. Diferido a Fase C.2: C.3 (modal desde rejilla `/admin/horarios`), C.4 (`/mis-incidencias`). | Feature objetivo del refactor modelo-semanal. Cubre intercambios entre profes, sustituciones por ausencia, cancelaciones puntuales, eventos especiales. La capa `ExcepcionHorario` es aditiva: el modelo PL+Horario sigue intacto y el render compone "base + override aplicable a fecha visible". Reusa entidad `Notificacion` ya operativa para avisar afectados. |
 | **`hoja-de-ruta-clases-compartidas.md`** 🆕 (2026-05-06 noche) | **Roadmap dedicado, sin código.** ~4-4.5 sesiones cuando se aborde. Plan A→E. | Caso real EAG: 1º DAW + 1º DAM LOMLOE comparten currículo entero por RD 405/2023 → físicamente la misma clase con mismo profe en misma aula. Hoy el solver bloquea con falsos conflictos de profesor. Feature desbloquea pase de lista combinado, PDF correcto, y solver coordinado entre grupos hermanos. Recomendado: opción B (heurística + 1 columna `Horario.gemeloId` self-FK). Detección por niveles 🟢/🟡/🔴 con sugerencias de unificación cuando los profes no coinciden 100%. |
-| **`hoja-de-ruta-notificaciones.md`** 🔥 | **MÁXIMA PRIORIDAD** (~2 sesiones) — entidad + dispatcher + dos botones en header (mensajes con icono `Mail`, notificaciones con icono `Bell`) | **CRÍTICO**: cierra el bucle de feedback. Sin esto los usuarios no se enteran de eventos del sistema (corrección de examen, tarea nueva, comunicado, entrega recibida). Bloqueante para demo real. |
 | `hoja-de-ruta-modalidad-imparticion.md` | **Fases 1-5 ✅ Done (2026-04-29 noche)**, queda Fase 6 (~0.5 sesión, solo PDF) | UI completa: el admin etiqueta modalidad de materias e imparticiones desde `/admin/materias` y `/admin/imparticiones`. Backend + editor + admin alineados. Solo falta sección "Otras horas curriculares" en PDF. |
 | `hoja-de-ruta-pulido-ux.md` | 🟢 **Ronda 1 + Ronda 2 + Ronda 3 ✅ Done (2026-05-08)** — Ronda 3: R3.1 selector de columnas DataTable persistido en localStorage (16 páginas con `tableId`), R3.2 dropdowns header inmunes a transparencia (doble capa `--bg-body` + `--bg-card-solid|--bg-card`), R3.3 botón "Rechazar este cambio" `variant="danger"`. Commit `29ce569`. | Doc cerrado tras Ronda 3. |
 | `hoja-de-ruta-cambio-turno.md` | ~1 sesión (Fase 1) | Bajo-medio: cola de solicitudes profe→admin para cambio **permanente** mañana↔tarde con respuesta y notificación. Promovido desde `pulido-ux.md` #8 tras detectar que no existía la feature. Fase 2 (reasignación automática) diferida. **Nota 2026-05-07**: complementario a `intercambio-imparticiones.md` (no superseded) — éste cubre cambio permanente, aquél cubre excepciones puntuales (1 clase / 1 día). |
@@ -516,8 +516,8 @@ Doc: `hoja-de-ruta-calificaciones.md`.
                   │ Calificacion::postPersist → notif al alumno
                   ▼
    ┌─────────────────────────────────────┐
-   │ hoja-de-ruta-notificaciones.md 🔥   │  bucle de feedback del sistema
-   │  (🔴 MÁXIMA PRIORIDAD, ~2 sesiones) │  campanita + propagación a afectados
+   │ hoja-de-ruta-notificaciones.md 🟢   │  bucle de feedback del sistema
+   │  (cerrada 2026-05-08, validada E2E) │  campanita + propagación a afectados
    └─────────────────────────────────────┘
 ```
 

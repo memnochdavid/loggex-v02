@@ -1,8 +1,8 @@
 # Notificaciones del sistema — Hoja de ruta
 
-> **Status (2026-05-05)**: 🔴 **Sin empezar**. Máxima prioridad. Sustituye al ítem 3.13 "Actividad reciente" de `home-widgets-roadmap.md` ampliándolo a feature transversal (no solo widget de home).
+> **Status (2026-05-08)**: 🟢 **Cerrada — validada E2E en navegador**. Las 3 fases (backend + i18n + frontend) están operativas en `master` desde el 2026-05-05. Hotfixes y nuevo tipo `calificacion_actualizada` aplicados en la misma jornada. La validación visual con datos reales confirmada por el usuario el 2026-05-08 cierra el roadmap.
 >
-> **Razón de la prioridad**: hoy un alumno no se entera de que su examen ha sido corregido a no ser que entre activamente a `MisCalificaciones`; un profe no ve si llega una entrega nueva a una de sus tareas; un admin no se entera de errores de integridad. La campanita actual del header solo lista mensajes inter-personales. Esta feature cierra el bucle de feedback del sistema.
+> **Lo que logró**: ahora el alumno se entera al instante (badge en `Bell` + dropdown) de que su examen ha sido corregido / actualizado, de cada tarea nueva publicada y de cada comunicado; el profe ve cada entrega recibida; el bucle de feedback del sistema queda cerrado. Mercure entrega los eventos en vivo a las pestañas abiertas (D8: abrir uno cierra el otro; D9: contador exacto vía `hydra:totalItems`).
 
 ---
 
@@ -12,11 +12,11 @@
 
 | Fase | Alcance | Esfuerzo | Estado |
 |---|---|---|---|
-| 1 | Backend: entidad `Notificacion` + propagación por evento Doctrine + endpoint REST + Mercure live (reusar framework `#[LivePublish]`) | ~1 sesión | 🟢 **Done 2026-05-05** (pendiente correr migración + smoke test) |
-| 2 | Frontend: nuevo botón **campanita** en header con dropdown de notificaciones del sistema; el actual de mensajes intercambia su icono `Bell` por uno de mensaje (`Mail` / `MessageCircle`) y conserva su lista | ~0.5 sesión | 🟢 **Done 2026-05-05** (HMR OK; pendiente smoke test visual con datos reales) |
-| 3 | Reglas de propagación por tipo de evento (cataloga qué eventos generan notificación y a quién) + tipos iconados + i18n × 5 | ~0.5 sesión | 🟢 **Done 2026-05-05** (catálogo cerrado + dispatcher + i18n × 5; iconos por tipo se asignarán en Fase 2 al crear el dropdown) |
+| 1 | Backend: entidad `Notificacion` + propagación por evento Doctrine + endpoint REST + Mercure live (reusar framework `#[LivePublish]`) | ~1 sesión | 🟢 **Done 2026-05-05** · validada E2E 2026-05-08 |
+| 2 | Frontend: nuevo botón **campanita** en header con dropdown de notificaciones del sistema; el actual de mensajes intercambia su icono `Bell` por uno de mensaje (`Mail` / `MessageCircle`) y conserva su lista | ~0.5 sesión | 🟢 **Done 2026-05-05** · validada E2E 2026-05-08 |
+| 3 | Reglas de propagación por tipo de evento (cataloga qué eventos generan notificación y a quién) + tipos iconados + i18n × 5 | ~0.5 sesión | 🟢 **Done 2026-05-05** · validada E2E 2026-05-08 |
 
-**Total**: ~2 sesiones bien planificadas.
+**Total**: ~2 sesiones efectivas. **Roadmap cerrado**.
 
 ### Decisión clave de UX (D1) — cerrada 2026-05-05
 
@@ -277,6 +277,27 @@ Antes de Fase 2, fijar la lista cerrada de tipos. **No añadir tipos en código 
 - Catálogo § 3 ampliado: `calificacion_actualizada` con icono `Edit3` (Lucide). Cuerpo i18n: "Tu nota de \"X\" se ha actualizado a Y" (interpolación de payload). Aplicado a los 5 idiomas.
 
 **D12 cerrada** — `preUpdate` filtra por campo cambiado (`hasChangedField`). Razón: una rectificación de feedback sin cambio de nota no merece notificación al alumno; solo el cambio del valor numérico tiene impacto pedagógico real.
+
+### 2026-05-08 — Validación E2E ✅ Roadmap cerrado
+
+Tras 3 días de uso real con la BD del centro EAG, las notificaciones funcionan end-to-end:
+
+- Crear tarea visible → cada alumno matriculado recibe badge + entrada en el dropdown con icono `BookOpen`, título traducido y cuerpo interpolado del payload.
+- Click en notificación → navega a `notif.enlace` y la marca leída con optimistic update; el badge baja al instante.
+- "Marcar todas como leídas" en el footer vacía el badge y atenúa los items.
+- Mercure entrega los eventos a otras pestañas/usuarios sin recargar (filtro `event.entity === 'Notificacion'` evita ruido cuando hay actividad de mensajes en el mismo topic).
+- Los dos botones del header son mutuamente excluyentes (D8): abrir uno cierra el otro.
+- El nuevo tipo `calificacion_actualizada` (hotfix 2026-05-05) avisa al alumno cuando el profe rectifica la nota; los cambios solo de feedback siguen silentes (D12).
+
+**No se detectaron bugs** durante la validación. Las 4 acciones pendientes documentadas en la bitácora del 2026-05-05 (migración, cache:clear, smoke tests backend, smoke tests visuales) quedan completadas.
+
+**Cierre de roadmap**: la entrada en `docs/INDEX.md` se promueve de 🔴 (sin código) a la sección de cerradas. La feature pasa al manual vivo del proyecto vía `CLAUDE.md` ya en su parte de patrones (Mercure + `useLiveCollection`).
+
+**Posibles ampliaciones futuras** (no roadmap, solo si surge demanda):
+- Tipo `mensaje_urgente` (diferido en el catálogo §3): flag opcional en `Mensaje` que sí genera notificación adicional. La regla anti-duplicación actual mantiene mensaje y notificación separados, pero la puerta queda abierta.
+- Vista dedicada `/notificaciones` con histórico paginado: hoy la campanita es la única vista (D11). Si los usuarios piden ver más allá de las N últimas, se añade entonces.
+- Backfill de notificaciones tras un import vía SQL crudo: comando `app:notificaciones:backfill` mencionado como limitación en la bitácora del 2026-05-05.
+- Poda mensual de leídas con > 90 días: la D2 (per-destinatario, no broadcast) implica volumen; no es bloqueante hoy pero conviene tener un cron preparado antes de que la tabla pase de 1M filas.
 
 ---
 
