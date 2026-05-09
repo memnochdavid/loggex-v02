@@ -200,7 +200,12 @@
 }
 
 .inputGroup.focused .label,
-.inputGroup.filled .label {
+.inputGroup.filled .label,
+/* `:has()` detecta autofill del navegador aunque React no haya recibido
+   el `onChange` (Chromium silencia el evento en algunas versiones).
+   Sin esto, el label se queda en estado "vacío" pintándose en gris
+   atenuado por encima del input autofilled. */
+.inputGroup:has(.input:-webkit-autofill) .label {
   color: var(--login-accent-bright);
 }
 
@@ -224,7 +229,10 @@
   transform: scale(1.06);
 }
 
-.inputGroup.filled .inputIcon { color: rgba(255, 255, 255, 0.7); }
+.inputGroup.filled .inputIcon,
+/* Espejo del fix `:has()` aplicado al label: cuando el input está
+   autofilled, el icono también se debe ver "lleno" (gris claro). */
+.inputGroup:has(.input:-webkit-autofill) .inputIcon { color: rgba(255, 255, 255, 0.7); }
 
 .input {
   width: 100%;
@@ -265,39 +273,10 @@
 }
 
 /* ---------- Autofill del navegador ----------
-   Chrome/Safari/Edge pintan el fondo y el texto del input cuando
-   autocompletan credenciales, ignorando background/color normales.
-   El truco:
-   - box-shadow inset gigante simula el fondo glass original.
-   - -webkit-text-fill-color fuerza el color del texto (el color normal
-     queda anulado por el UA en estado autofill).
-   - transition prolongadísima evita el "parpadeo" amarillo inicial. */
-.input:-webkit-autofill,
-.input:-webkit-autofill:hover,
-.input:-webkit-autofill:focus,
-.input:-webkit-autofill:active {
-  -webkit-text-fill-color: #ffffff;
-  caret-color: var(--login-accent-bright);
-  transition: background-color 9999s ease-in-out 0s;
-  /* Mantiene el fondo "glass" sutil y el borde del estado base. */
-  -webkit-box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset;
-  box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset;
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-/* Estado focus del autofill: replica el halo índigo del focus normal.
-   Usamos múltiples sombras porque box-shadow sí se puede apilar. */
-.input:-webkit-autofill:focus {
-  -webkit-box-shadow:
-    0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
-    0 0 0 4px rgba(99, 102, 241, 0.2),
-    0 8px 24px -12px rgba(99, 102, 241, 0.55);
-  box-shadow:
-    0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
-    0 0 0 4px rgba(99, 102, 241, 0.2),
-    0 8px 24px -12px rgba(99, 102, 241, 0.55);
-  border-color: rgba(165, 180, 252, 0.55);
-}
+   Reglas movidas a `index.css` global (selector `[data-login-form] input`)
+   porque CSS Modules no garantizaba que las pseudoclases con prefijo
+   webkit-internal se preservaran tal cual; fuera del módulo se aplican
+   con la especificidad y el nombre exactos que Chromium espera. */
 
 /* Firefox usa otra pseudoclase y no pinta un fondo tan agresivo, pero
    por consistencia forzamos también aquí color de texto y caret. */
@@ -546,6 +525,12 @@
 /* =================================================================
    ANIMACIONES
    ================================================================= */
+/* @keyframes onAutoFillStart y `input:-webkit-autofill { animation-name }`
+   movidos a `index.css` global por las mismas razones que las reglas de
+   color del autofill: pseudoclases webkit-internal sobreviven mejor
+   fuera de CSS Modules. La sincronización JS sigue funcionando vía
+   `handleAutoFillSync` en Login.jsx (compara `e.animationName`). */
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

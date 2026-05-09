@@ -361,3 +361,78 @@ body {
     overscroll-behavior: none;
 }
 
+/* ------------------------- */
+/* 🔐 LOGIN AUTOFILL FIX     */
+/* ------------------------- */
+/* Reglas globales (fuera de CSS Modules) que neutralizan el autofill
+   amarillo de Chromium en el formulario de login. CSS Modules
+   transformaba las pseudoclases del módulo de Login sin garantía total
+   de aplicación; fuera del módulo se aplica con la especificidad y el
+   nombre exactos que Chromium espera.
+   El selector `[data-login-form]` acota el efecto al `<form>` del login
+   (declarado en `Login.jsx`) — el resto de inputs de la app (admin,
+   modales) usan tema light y respetan el autofill estándar. */
+
+[data-login-form] input:-webkit-autofill,
+[data-login-form] input:-webkit-autofill:hover,
+[data-login-form] input:-webkit-autofill:focus,
+[data-login-form] input:-webkit-autofill:active,
+[data-login-form] input:autofill,
+/* Brave/Chromium reciente aplica `:-internal-autofill-selected` (NO
+   `:-webkit-autofill`) cuando el usuario elige una credencial del
+   dropdown. El UA stylesheet le pone `color: fieldtext !important` y
+   `background-color: light-dark(rgb(232,240,254), …) !important`. Sin
+   matchear esta pseudoclase nuestras reglas con `:-webkit-autofill`
+   nunca se aplican y el texto sale negro sobre fondo claro. */
+[data-login-form] input:-internal-autofill-selected,
+[data-login-form] input:-internal-autofill-previewed {
+    /* Texto blanco forzado en DOS propiedades: `color` (la que el UA
+       pinta con `!important`) y `-webkit-text-fill-color` (la que
+       realmente decide el color del glifo en inputs). Ambas con
+       `!important` para superar al UA stylesheet. */
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #c7d2fe !important;
+    /* Box-shadow inset enorme tapa el bg amarillo de Chromium con el
+       tono "glass dark" del input original. El navegador NO permite
+       cambiar background-color directamente en estado autofill, pero
+       declaro background-color por si acaso (algunos engines lo
+       respetan en `:-internal-autofill-*`). */
+    background-color: rgba(30, 38, 65, 0.6) !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset !important;
+    box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset !important;
+    /* Transición larguísima evita el "flash" amarillo al cargar la página. */
+    transition: background-color 9999s ease-in-out 0s !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+[data-login-form] input:-webkit-autofill:focus {
+    -webkit-box-shadow:
+        0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
+        0 0 0 4px rgba(99, 102, 241, 0.2),
+        0 8px 24px -12px rgba(99, 102, 241, 0.55) !important;
+    box-shadow:
+        0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
+        0 0 0 4px rgba(99, 102, 241, 0.2),
+        0 8px 24px -12px rgba(99, 102, 241, 0.55) !important;
+    border-color: rgba(165, 180, 252, 0.55) !important;
+}
+
+/* Animación-trampa para detectar el autofill desde JS (Login.jsx
+   `handleAutoFillSync`). Chromium NO dispara `onChange` al rellenar
+   credenciales, pero SÍ aplica esta animation al input autofilled, lo
+   que dispara `animationstart` y permite sincronizar el state React.
+   Definida como global para que el nombre `onAutoFillStart` sobreviva
+   a CSS Modules. */
+@keyframes onAutoFillStart {
+    from { /**/ }
+    to   { /**/ }
+}
+
+[data-login-form] input:-webkit-autofill,
+[data-login-form] input:-internal-autofill-selected,
+[data-login-form] input:-internal-autofill-previewed {
+    animation-name: onAutoFillStart;
+    animation-duration: 1ms;
+}
+

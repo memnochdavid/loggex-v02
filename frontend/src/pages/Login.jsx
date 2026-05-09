@@ -20,6 +20,35 @@ const Login = () => {
   const [capsLock, setCapsLock] = useState(false);
   const cardRef = useRef(null);
 
+  // Sincroniza el state con el value del DOM cuando el navegador autofill
+  // las credenciales — Chromium-based browsers NO disparan `onChange` en
+  // ese caso, así que el state queda vacío y todo lo que depende de él se
+  // rompe (label sin estado "lleno", validaciones, botón submit deshabilitado…).
+  // El truco: declaramos en CSS un `@keyframes onAutoFillStart` global de
+  // 1ms que se aplica al `:-webkit-autofill`; el `animationstart` SÍ
+  // dispara y aquí leemos `e.target.value` para empujarlo al state.
+  const handleAutoFillSync = (setter) => (e) => {
+    if (e.animationName !== 'onAutoFillStart') return;
+    // Brave/Chromium dispara `animationstart` ANTES de actualizar el
+    // `value` del DOM en algunos casos (especialmente al elegir del
+    // dropdown). Diferimos la lectura con varios intentos: rAF + dos
+    // setTimeout escalonados. Tan pronto como el value aparezca, lo
+    // sincronizamos al state y paramos. 250 ms cubre incluso autofill
+    // lento del gestor de contraseñas.
+    const target = e.target;
+    let synced = false;
+    const tryRead = () => {
+      if (synced) return;
+      if (target.value) {
+        synced = true;
+        setter(target.value);
+      }
+    };
+    requestAnimationFrame(tryRead);
+    setTimeout(tryRead, 50);
+    setTimeout(tryRead, 250);
+  };
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,7 +114,7 @@ const Login = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            <form onSubmit={handleSubmit} className={styles.form} noValidate data-login-form>
               {error && (
                 <div className={styles.error} role="alert">
                   <AlertCircle size={16} />
@@ -103,6 +132,7 @@ const Login = () => {
                     className={styles.input}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onAnimationStart={handleAutoFillSync(setEmail)}
                     onFocus={() => setFocusedField('email')}
                     onBlur={() => setFocusedField(null)}
                     required
@@ -123,6 +153,7 @@ const Login = () => {
                     className={styles.input}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onAnimationStart={handleAutoFillSync(setPassword)}
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
                     onKeyUp={handleKeyUp}
