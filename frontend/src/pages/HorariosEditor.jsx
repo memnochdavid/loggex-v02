@@ -1768,6 +1768,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         },
       }));
       refetchAllHorariosForGroup(selectedGrupo);
+      // Fase D: el subscriber del backend propagó los cambios a los gemelos
+      // de otros grupos. El editor está excluido del sistema live updates,
+      // así que invalidamos las caches de esos grupos para que al cambiar
+      // a uno hermano en el strip se refetche desde BD en lugar de servir
+      // cache local. Doc: hoja-de-ruta-clases-compartidas.md Fase D.
+      invalidateCachesForGroups(data.affectedGroups || []);
       return true;
     } catch (err) {
       toast.error(err.message, {
@@ -2008,6 +2014,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     //    locales tras el Guardar y al refrescar la página los horarios
     //    aparecían vacíos en BD.
     let totalPlacementsPosted = 0;
+    const affectedGroupsSet = new Set();
     for (const draft of (tx.plsToCreate || [])) {
       const realId = tempIdToRealId[draft.tempId];
       if (!realId) continue;
@@ -2046,10 +2053,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const txt = await r.text().catch(() => '');
         return { ok: false, error: `POST horarios PL ${realId}: ${r.status}: ${txt.slice(0, 200)}` };
       }
+      try {
+        const respData = await r.json();
+        (respData.affectedGroups || []).forEach(g => affectedGroupsSet.add(g));
+      } catch (_) { /* respuesta sin body legible — ignorar */ }
       totalPlacementsPosted += operations.length;
     }
 
-    return { ok: true, tempIdToRealId, placementsPosted: totalPlacementsPosted };
+    return {
+      ok: true,
+      tempIdToRealId,
+      placementsPosted: totalPlacementsPosted,
+      affectedGroups: Array.from(affectedGroupsSet),
+    };
   };
 
   // Tras aplicar la tx, los virtuales pasan a ser reales y los placements
@@ -2168,6 +2184,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         if (typeof refetchAllHorariosForGroup === 'function') {
           refetchAllHorariosForGroup(selectedGrupo);
         }
+        // Fase D — invalidar caches de grupos hermanos cuyos placements
+        // gemelos mutaron por el subscriber del backend (ver
+        // `invalidateCachesForGroups`).
+        invalidateCachesForGroups(res.affectedGroups || []);
         // Limpia la cola.
         setPendingTxByGrupo(prev => {
           const next = { ...prev };
@@ -2782,6 +2802,39 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     setCapacityByGrupo(prev => {
       const next = { ...prev };
       delete next[`${gid}_${plId}`];
+      return next;
+    });
+  };
+
+  // Fase D — invalida caches del editor para los grupos hermanos cuyos
+  // placements gemelos acaban de mutarse en backend. El backend devuelve los
+  // IDs de grupos afectados en la respuesta del batch (ver
+  // `HorarioBatchController::resolveAffectedGemeloGroups`). Tras invalidar,
+  // al seleccionar uno de esos grupos en el strip el effect ~619 detecta
+  // `allHorariosByGroup[gid] === undefined` y refetchea automáticamente.
+  // Doc: docs/hoja-de-ruta-clases-compartidas.md Fase D.
+  const invalidateCachesForGroups = (groupIds) => {
+    if (!Array.isArray(groupIds) || groupIds.length === 0) return;
+    const idsStr = groupIds.map(String);
+    setAllHorariosByGroup(prev => {
+      const next = { ...prev };
+      idsStr.forEach(gid => { delete next[gid]; });
+      return next;
+    });
+    setState(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(key => {
+        const [gidPart] = key.split('_');
+        if (idsStr.includes(gidPart)) delete next[key];
+      });
+      return next;
+    });
+    setCapacityByGrupo(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(key => {
+        const [gidPart] = key.split('_');
+        if (idsStr.includes(gidPart)) delete next[key];
+      });
       return next;
     });
   };

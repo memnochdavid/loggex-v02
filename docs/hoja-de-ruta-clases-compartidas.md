@@ -1,7 +1,9 @@
 # Hoja de ruta: clases compartidas entre grupos
 
-> **Estado**: 🔴 ROADMAP — sin código. **Diferido para producción** (2026-05-08).
-> **Branch sugerida**: `feat/clases-compartidas` cuando se aborde.
+> **Estado**: 🟡 PARCIAL — Fases A + B + C + D ✅ Done (2026-05-08 / 2026-05-09).
+> Quedan diferidas Fase E (vistas combinadas PDF/asistencia) y la detección
+> automática 🟢/🟡/🔴 con CTAs.
+> **Branch sugerida**: `feat/clases-compartidas` cuando se aborde Fase E.
 > **Origen**: conversación 2026-05-06 sesión 4 tras cierre Fase B modelo-semanal.
 >
 > ### ⚠️ MVP cubierto por otro doc
@@ -483,3 +485,274 @@ y propague al gemelo. También `ExcepcionHorario`: cuando se crea una
 incidencia sobre un horario con gemelo, duplicarla al gemelo (decisión
 2026-05-08 al cerrar D-1: "se tratan como mismo grupo en todos los
 aspectos"). Una sesión completa.
+
+### 2026-05-09 — Fase D ✅ Done
+
+Implementado `HorarioGemeloSyncSubscriber` (un único listener Doctrine
+con tres eventos: `preUpdate`, `postPersist`, `postFlush`) que cierra el
+contrato de D-1 ("clases gemelas se tratan como el mismo grupo en todos
+los aspectos operativos"). Sin migración nueva — Fase B ya añadió
+`Horario.gemelo_id` y la canonicalización al raíz.
+
+**Archivo nuevo**: `backend/src/EventSubscriber/HorarioGemeloSyncSubscriber.php`
+(~225 líneas).
+
+**Qué propaga**:
+
+| Evento | Trigger | Acción |
+|---|---|---|
+| `preUpdate(Horario)` | Cambio en `diaSemana`, `horaInicio`, `horaFin`, `aula` | Copia el cambio a TODOS los hermanos del conjunto en el mismo flush vía `recomputeSingleEntityChangeSet`. |
+| `preUpdate(Horario)` | Soft-delete (`deleted: false → true`) | `setDeleted(true)` en cada hermano. Necesario porque `ON DELETE SET NULL` solo dispara en hard-delete; el patrón soft-delete del proyecto exige propagación a nivel aplicación (mitigación documentada en §"Modelo de hermandad" del doc). |
+| `postPersist(ExcepcionHorario)` + `postFlush` | Crear excepción sobre Horario con gemelos | Encolar en postPersist + procesar batch en postFlush. Para cada hermano, crear copia de la excepción (mismo tipo, fecha, motivo, observaciones, estado, solicitante, aprobador, fecha resolución) apuntando al Horario hermano correspondiente. Comparten `intercambioGrupoId` UUID para que `IntercambioGrupoCascadeSubscriber` cascadee aprobaciones/rechazos atómicamente. |
+
+**Qué NO propaga** (deliberado):
+
+- `imparticion` y `periodoLectivo` del Horario: cada gemelo apunta a su
+  propia imparticion del grupo correspondiente (mapeo establecido en
+  `AdjuntarGrupoController`). Cambiar la imparticion de un placement
+  rompe efectivamente la hermandad y debe hacerse por par.
+- POST de Horario nuevo (placement nuevo en grupo con hermano): no
+  existe modelo de "grupos hermanos", solo de "placements hermanos".
+  La replicación inicial la hace `AdjuntarGrupoController`. Si admin
+  añade un placement suelto, debe re-Adjuntar para extender la
+  hermandad.
+- DELETE (hard) y reactivación (`deleted: true → false`) de
+  `ExcepcionHorario`: casos operativos infrecuentes; no implementado.
+
+**Decisiones tomadas en la sesión**:
+
+| Pregunta | Resolución | Razón |
+|---|---|---|
+| ¿Generar UUID grupoId también para CANCELADO/SUSTITUCION/EVENTO_ESPECIAL gemelados? | Sí, se reusa `intercambioGrupoId` aunque conceptualmente no sea "intercambio" | Evita modificar `IntercambioGrupoCascadeSubscriber`; el campo funciona genéricamente como "grupo de excepciones que cambian de estado juntas". Coste cero, máximo reuso. |
+| ¿postPersist directo vs cola en postFlush? | Cola | Persistir nuevas entidades en postPersist es válido pero requiere otro flush; la cola simplifica deduplicación cuando hay varias caras del mismo intercambio en el mismo batch (caso real `IntercambioController` que persiste cara A + N caras B en una sola operación). |
+| ¿Cómo evitar duplicar copias en re-flushes? | `findOneBy(horarioBase, fechaConcreta, intercambioGrupoId, deleted=false)` antes de cada `persist` | Idempotente. El flush interno del propio subscriber dispara más postPersist + postFlush; el guard `$processing` cierra la cascada, pero la idempotencia es cinturón de seguridad para casos edge. |
+| ¿Propagar también cambios de `imparticion` o `periodoLectivo`? | NO | Cada gemelo apunta a su imparticion del grupo destino (mapeo del Adjuntar). Propagar rompería la coherencia. |
+
+**Patrón anti-loop**: variable `$processing` estática, idéntica al patrón
+de `IntercambioGrupoCascadeSubscriber` y `NotificationDispatchSubscriber`.
+El `flush()` interno del postFlush dispara nuevos postPersist (de las
+copias) y un postFlush adicional, pero el guard cierra la cascada.
+
+**Interacción con otros subscribers** (verificada en diseño):
+
+- `IntercambioGrupoCascadeSubscriber`: complementario. HorarioGemeloSync
+  crea las N caras gemeladas con mismo `intercambioGrupoId`;
+  IntercambioGrupoCascade cascadea estados entre ellas. Sin loop entre
+  ambos: HorarioGemeloSync solo persiste copias en postFlush;
+  IntercambioGrupoCascade solo escucha preUpdate en cambios de `estado`.
+- `NotificationDispatchSubscriber`: cada copia gemela disparará su
+  propia notificación (notify a profe titular + alumnos del grupo
+  hermano). Para clases físicamente compartidas, el profe titular
+  suele ser el MISMO en ambos grupos (por construcción del Adjuntar) →
+  recibirá 2 notificaciones idénticas. Aceptable como trade-off de
+  Fase D inicial; la deduplicación de notificaciones es UX no
+  estructural y se puede atacar en una ronda de pulido si molesta.
+- `LivePublishSubscriber`: cada Horario y cada ExcepcionHorario
+  modificada/creada publican en sus topics Mercure automáticamente
+  (sin config extra; los atributos `#[LivePublish]` ya existen). La
+  rejilla de ambos grupos refrescará en tiempo real.
+- `HorarioPeriodoLectivoSubscriber`: solo prePersist. No interfiere con
+  los hermanos sincronizados (que ya tienen `periodoLectivo` desde su
+  creación inicial vía Adjuntar).
+- `CacheInvalidationSubscriber`: invalida cache de schedule personal
+  para profe + alumnos del grupo. Las copias gemelas tienen su propio
+  grupo → invalidan también para los alumnos del grupo hermano.
+  Funciona correctamente sin cambios.
+
+**Acción manual del usuario para activar**:
+
+```bash
+docker compose exec backend php bin/console cache:clear
+```
+
+Sin migración (FK + columna ya existían desde Fase B).
+
+**Validación E2E pendiente** (siguiente sesión):
+
+1. Adjuntar 1º DAW → 1º DAM (Acciones del curso → Adjuntar a grupo
+   existente). Confirmar que la rejilla de DAM pinta los placements
+   espejo y que en BD aparecen los `gemelo_id` apuntando al raíz DAW.
+2. **Mover un placement en DAW**: drag & drop a otro slot. Tras
+   Guardar, comprobar que el placement gemelo en DAM se ha movido al
+   mismo slot automáticamente. Mismo test invertido (mover en DAM,
+   ver replicación en DAW).
+3. **Cambiar aula**: editar `aula` en un placement DAW desde el
+   modal. Confirmar que el gemelo DAM toma la nueva aula.
+4. **Borrar un placement** (icono papelera): el gemelo desaparece
+   también de la rejilla del otro grupo.
+5. **Crear excepción CANCELADO** sobre un placement DAW (click derecho
+   → Solicitar cambio → cancelado): verificar en BD que aparecen 2
+   filas en `excepcion_horario`, una con `horario_base_id` del DAW y
+   otra con el del DAM, mismo `intercambio_grupo_id`. Aprobar la del
+   DAW; comprobar que la del DAM pasa a APROBADA automáticamente
+   (cascade del IntercambioGrupoCascadeSubscriber).
+6. **Crear excepción INTERCAMBIO** sobre un placement DAW: además de
+   las caras A + B normales, deben aparecer A' (gemela de A en DAM) y
+   posiblemente B' si el horario B también tiene gemelos. Todas con
+   mismo `intercambio_grupo_id`.
+
+Si cualquier paso falla, el primer sospechoso es el guard `$processing`
+o la idempotencia (mirar logs `var/log/dev.log` por excepciones de
+Doctrine en postFlush).
+
+**Diferido a Fase E** (sesiones futuras):
+- PDF combinado "Programación · 1º DAW + 1º DAM" cuando hay gemelos.
+- Pase de lista (`AsistenciaModal`) detecta gemelos y muestra alumnos
+  agrupados por grupo en columnas.
+- Vista profesor `/horarios` muestra UNA lección con etiqueta
+  combinada en lugar de dos placements en el mismo slot.
+- Detección automática 🟢/🟡/🔴 + banner contextual + modal "Asignar
+  profesor compartido". UX-only sobre infraestructura ya presente.
+
+### 2026-05-09 (continuación) — Fix Fase D: `preUpdate` → `onFlush`
+
+Validación E2E inicial reveló bug silencioso en el listener: aunque el
+subscriber estaba registrado (`debug:container` lo confirmó) y la query
+`loadSiblings` devolvía los hermanos correctamente, el UPDATE del gemelo
+nunca se ejecutaba. Reproducción mínima: usuario hace "curso óptimo" en
+DAW → guarda → adjunta DAM ← DAW (61 placements clonados con
+`gemelo_id` correcto) → vacía viernes en DAW → guarda. En BD: los DAW
+del viernes pasan a `deleted=1` pero los DAM gemelos siguen `deleted=0`.
+
+**Causa raíz**: orden de los hooks de Doctrine en `flush()`:
+
+1. `computeChangeSets()` — calcula qué entidades insertar/actualizar/borrar.
+2. Para cada entidad scheduled: dispatch `preUpdate`.
+3. Ejecuta INSERT/UPDATE/DELETE.
+
+`recomputeSingleEntityChangeSet()` SOLO afecta a entidades que ya
+estaban scheduled en el paso 1. Mi listener cargaba los siblings con
+un `createQueryBuilder` nuevo (no estaban scheduled) → el recompute se
+silenciaba completamente y los UPDATEs nunca se generaban.
+
+`IntercambioGrupoCascadeSubscriber` usa el mismo patrón `preUpdate +
+recompute` y SÍ funciona porque cuando admin aprueba un grupo entero,
+TODAS las caras del intercambio están scheduled desde el paso 1
+(Doctrine las ve cambiar `estado` en el changeset original).
+
+**Fix aplicado**: cambiar listener de `preUpdate(Horario)` a `onFlush`.
+`onFlush` es el evento canónico de Doctrine para cascade modifications:
+itera `getScheduledEntityUpdates()`, y `computeChangeSet()` (no
+`recompute`) sí registra entidades nuevas en el UoW para esta misma
+transacción.
+
+Cambios concretos en `HorarioGemeloSyncSubscriber.php`:
+
+- `#[AsDoctrineListener(event: Events::preUpdate)]` →
+  `#[AsDoctrineListener(event: Events::onFlush)]`.
+- Método `preUpdate(PreUpdateEventArgs)` → `onFlush(OnFlushEventArgs)`.
+- Recolección en dos pasos: primero iterar
+  `$uow->getScheduledEntityUpdates()` y guardar tuplas
+  `[entity, physical_changes, isSoftDelete]`; luego procesar siblings.
+  Evita modificar el UoW mientras iteramos su lista de scheduled.
+- Detección de cambios via `$uow->getEntityChangeSet($entity)` (devuelve
+  `[oldValue, newValue]` por campo) en lugar de
+  `$args->hasChangedField()` / `$args->getNewValue()`.
+- Skip de siblings que ya están scheduled (`isScheduledForUpdate` o
+  `isScheduledForDelete`): caso "vaciar conjunto entero" donde A y B
+  vienen ambos en el batch — al procesar A no debemos pisar el cambio
+  pendiente de B.
+- `computeChangeSet()` en lugar de `recomputeSingleEntityChangeSet()`:
+  los siblings no estaban en el changeset, hay que añadirlos.
+
+**Lección para el futuro**: si necesitas modificar entidades adicionales
+durante un flush, usa **`onFlush`**, no `preUpdate`. `preUpdate` solo
+sirve para mutar el campo de la entidad cuyo evento dispara (raro), no
+para cascadear a entidades hermanas. La regla mnemotécnica:
+
+| Necesitas… | Evento |
+|---|---|
+| Reaccionar al UPDATE de UNA entidad | `preUpdate` / `postUpdate` |
+| Cascadear cambios a OTRAS entidades en el mismo flush | `onFlush` |
+| Persistir entidades NUEVAS tras un flush | `postFlush` con cola |
+
+`IntercambioGrupoCascadeSubscriber` "funciona" en `preUpdate` porque
+los miembros del grupo de intercambio normalmente cambian de estado
+juntos en la misma operación de admin (todos scheduled desde el
+principio). Cuando esa premisa no se cumple — escenario edge —
+también fallaría silenciosamente. **Anotado como deuda técnica
+opcional**: migrar `IntercambioGrupoCascadeSubscriber` a `onFlush`
+para evitar el caso edge si aparece.
+
+**Validación E2E ✅ Pasada (2026-05-09 06:35 UTC)**. Tras
+`cache:clear`, escenario limpio: curso óptimo en 1º DAW → Adjuntar
+1º DAM ← 1º DAW (61 placements gemelados, query confirmó "DAM vivos
+con gemelo a DAW vivo = 61, sin gemelo = 0") → vaciar viernes en DAW
+→ Guardar. Log de Doctrine:
+
+```
+UPDATE horario SET deleted=1 WHERE id=6256  ← DAW ED 08:30
+UPDATE horario SET deleted=1 WHERE id=6257  ← DAW SI 09:30
+UPDATE horario SET deleted=1 WHERE id=6317  ← DAM ED 08:30 (propagado)
+UPDATE horario SET deleted=1 WHERE id=6318  ← DAM SI 09:30 (propagado)
+```
+
+Los 4 con `deleted_at = 2026-05-09 06:35:18` exacto (mismo flush).
+
+**Anécdota del diagnóstico** (para evitar perder tiempo en futuras
+sesiones): durante la validación inicial salieron varios falsos
+positivos confusos:
+- En el primer intento los placements borrados eran nuevos creados
+  tras un Adjuntar previo y NO tenían `gemelo_id`. Comportamiento
+  correcto del listener (no hay hermano que propagar) pero parecía
+  bug.
+- En el segundo intento el modal `AdjuntarGrupoModal` se abrió
+  estando 1º DAW activo; al elegir DAW como origen dio 422 silencioso
+  (`destinoId == origenId`) y el Adjuntar nunca llegó a clonar nada.
+  La rejilla DAM seguía vacía (sin gemelos) pero parecía que el bug
+  era de propagación.
+- El bug REAL solo se descubrió tras un escenario completamente
+  limpio que SÍ generó gemelos vivos: era el `preUpdate` vs `onFlush`
+  descrito arriba.
+
+**Mejora de UX recomendada (no bloqueante)**: el modal Adjuntar
+debería filtrar el grupo de destino del selector de origen y/o mostrar
+un toast de error cuando el preview devuelve 422 (ahora se silencia).
+Anotado en `docs/INDEX.md` como ítem opcional para Fase E.
+
+**Mejora de UX detectada en la validación**: tras Guardar en un grupo
+con placements gemelados, el `HorariosEditor` refrescaba solo el grupo
+activo. Al navegar al gemelo en el strip se veía el estado viejo y
+hacía falta F5. Razón: el editor está excluido del sistema live
+updates por diseño (el `pendingTx` local colisionaría con refetch
+externo, ver `docs/hoja-de-ruta-redis-workers.md` §"Excluido por
+diseño"). Mi listener sí persiste correctamente en la misma
+transacción (validado E2E) y `LivePublishSubscriber` sí emite el
+evento Mercure para el gemelo, pero el editor ignora ese topic.
+
+**✅ Fix aplicado 2026-05-09**:
+
+- **Backend** (`HorarioBatchController::batch`): tras el commit, una
+  query SQL única resuelve los grupos hermanos vivos de los Horarios
+  tocados y devuelve `affectedGroups: [int, int, ...]` en la
+  respuesta JSON. Excluye el grupo del propio batch. Método nuevo
+  `resolveAffectedGemeloGroups()` con SQL plano sobre `horario` +
+  `imparticion` que cubre raíz↔hojas (`gemelo_id = root` OR
+  `id = root`).
+- **Frontend** (`HorariosEditor.jsx`):
+  - Helper nuevo `invalidateCachesForGroups(groupIds)` que limpia
+    `allHorariosByGroup[gid]`, `state[gid_*]` y
+    `capacityByGrupo[gid_*]` para los IDs pasados.
+  - `performBatchSave`: llama al helper con `data.affectedGroups`
+    tras éxito.
+  - `applyPendingTxForGrupo`: acumula `affectedGroups` de cada batch
+    interno en un Set y los devuelve en la response;
+    `performBatchSaveAllDirty` invalida sus caches tras el éxito de
+    la tx.
+  - El tercer call site del batch (autoSave del solver "Curso
+    óptimo") no necesita el fix: solo emite CREATEs sobre placements
+    nuevos sin gemelo (la replicación inicial la hace
+    `AdjuntarGrupoController`); el listener de Fase D no propaga
+    creates por construcción.
+
+Resultado esperado: tras vaciar/mover placements gemelados en DAW y
+guardar, al cambiar a DAM en el strip de grupos el editor fetchea
+desde BD automáticamente (sus caches están invalidadas) y ve los
+cambios propagados sin necesidad de F5.
+
+Sin riesgo de colisión con `pendingTx`: las invalidaciones aplican a
+los grupos hermanos NO activos. Si el usuario tenía un draft sin
+guardar en uno de esos grupos, su `state[gid_plId]` se borra — pero
+ese caso es raro (el editor mantiene `pendingTx` por grupo y solo es
+relevante para el grupo activo durante la edición). Anotado como
+edge case poco frecuente.
