@@ -20,3 +20,19 @@ export const getAssetUrl = (path) => {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${API_BASE_URL}${cleanPath}`;
 };
+
+/**
+ * URL de la documentación API Platform (Swagger/Redoc UI).
+ *
+ * No usa la `API_BASE_URL` relativa porque la página de docs sirve sus
+ * propios assets (CSS, JS de Swagger UI) desde el backend; Caddy no la
+ * proxy-ea como las rutas REST. Por eso apunta directamente al puerto
+ * del backend (9443 en docker-compose dev por defecto).
+ *
+ * Para entornos donde el backend esté en otro host/puerto, exponer
+ * `VITE_BACKEND_URL` (p.ej. `https://api.tu-dominio.com`) en el `.env`
+ * del frontend antes del build.
+ */
+export const API_DOCS_URL = import.meta.env.VITE_BACKEND_URL
+    ? `${import.meta.env.VITE_BACKEND_URL}/api/docs`
+    : 'https://localhost:9443/api/docs';

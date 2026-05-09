@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { API_DOCS_URL } from '../config/api';
 import {
   Sparkles, Database, FileText, ArrowUpRight,
   Heart, Package, Code2, Layers, BookOpen, Zap,
@@ -70,7 +71,7 @@ const Footer = () => {
             </li>
             <li>
               <a
-                href="/api/docs"
+                href={API_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.link}

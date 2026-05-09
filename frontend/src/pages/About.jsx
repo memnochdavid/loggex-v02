@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useInView from '../hooks/useInView';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { API_DOCS_URL } from '../config/api';
 
 /* ========== TILT 3D SUTIL ========== */
 const TiltCard = ({ children, className = '', intensity = 6 }) => {
@@ -231,7 +232,7 @@ const About = () => {
                             <span className={styles.heroChip}><Package size={14} /> v0.5</span>
                             <span className={styles.heroChip}><Zap size={14} /> React 19 · Symfony 8</span>
                             <a
-                                href="/api/docs"
+                                href={API_DOCS_URL}
                                 className={styles.heroLink}
                                 target="_blank"
                                 rel="noopener noreferrer"

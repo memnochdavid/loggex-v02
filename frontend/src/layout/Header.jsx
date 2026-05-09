@@ -10,7 +10,7 @@ import NameTitle from '../components/NameTitle';
 import NotificationList from '../components/NotificationList';
 import SystemNotificationsList from '../components/SystemNotificationsList';
 import { Bell, Mail, MessageCircleQuestion } from 'lucide-react';
-import { getApiUrl, getAssetUrl } from '../config/api';
+import { getApiUrl, getAssetUrl, API_DOCS_URL } from '../config/api';
 import LanguageSelector from '../components/LanguageSelector';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../utils/toast';
@@ -251,7 +251,7 @@ const Header = () => {
 
                 {user && isSuperAdmin && (
                     <a
-                        href="/api"
+                        href={API_DOCS_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}
