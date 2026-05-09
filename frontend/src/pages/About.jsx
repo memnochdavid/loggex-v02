@@ -7,6 +7,7 @@ import {
     GitBranch, Package, ExternalLink, ArrowRight,
     CalendarClock, FileText, PenLine, Radio,
     BookOpenCheck, MapPin,
+    Copy, ArrowLeftRight, Clock, IdCard, ListChecks, BellRing,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -98,13 +99,14 @@ const About = () => {
                 { label: t('about.navigation'), value: 'React Router 7' },
                 { label: t('about.styles'), value: 'CSS Modules' },
                 { label: t('about.icons'), value: 'Lucide React' },
-                { label: t('about.i18n'), value: 'i18next' },
+                { label: t('about.i18n'), value: 'i18next · 5 ' + t('about.languagesShort') },
                 { label: t('about.animations'), value: 'Lottie React' },
                 { label: t('about.dragDrop'), value: '@dnd-kit · react-draggable' },
                 { label: t('about.signature'), value: 'perfect-freehand' },
                 { label: t('about.charts'), value: 'Recharts' },
                 { label: t('about.toasts'), value: 'Sonner' },
                 { label: t('about.tutorials'), value: 'React Joyride' },
+                { label: t('about.customHooks'), value: t('about.customHooksValue') },
             ],
         },
         {
@@ -118,6 +120,7 @@ const About = () => {
                 { label: t('about.api'), value: 'REST (JSON-LD, Hydra)' },
                 { label: t('about.security'), value: 'JWT (LexikJWT)' },
                 { label: t('about.orm'), value: 'Doctrine ORM 3' },
+                { label: t('about.validators'), value: t('about.validatorsValue') },
                 { label: t('about.pdf'), value: 'dompdf 3' },
                 { label: t('about.email'), value: 'Symfony Mailer' },
                 { label: t('about.logging'), value: 'Monolog' },
@@ -191,11 +194,18 @@ const About = () => {
         { icon: <Radio />, key: 'RealTime' },
         { icon: <BookOpenCheck />, key: 'OfficialCatalog' },
         { icon: <MapPin />, key: 'TerritorialCalendar' },
+        // Features incorporadas en sesiones recientes (2026-04 → 2026-05).
+        { icon: <Copy />, key: 'SharedClasses' },
+        { icon: <ArrowLeftRight />, key: 'ScheduleExceptions' },
+        { icon: <Clock />, key: 'InactivityLogout' },
+        { icon: <IdCard />, key: 'DniValidation' },
+        { icon: <ListChecks />, key: 'BulkOperations' },
+        { icon: <BellRing />, key: 'RichNotifications' },
     ];
 
     const stats = [
         { value: 5, label: t('about.statLanguages'), icon: <Globe /> },
-        { value: 31, label: t('about.statEntities'), icon: <Layers /> },
+        { value: 33, label: t('about.statEntities'), icon: <Layers /> },
         { value: 4, label: t('about.statRoles'), icon: <Users /> },
         { value: 80, label: t('about.statThemeVars'), suffix: '+', icon: <Palette /> },
     ];
@@ -218,7 +228,7 @@ const About = () => {
                         <p className={styles.tagline}>{t('about.tagline')}</p>
                         <p className={styles.subtitle}>{t('about.subtitle')}</p>
                         <div className={styles.heroMeta}>
-                            <span className={styles.heroChip}><Package size={14} /> v0.2</span>
+                            <span className={styles.heroChip}><Package size={14} /> v0.5</span>
                             <span className={styles.heroChip}><Zap size={14} /> React 19 · Symfony 8</span>
                             <a
                                 href="/api/docs"

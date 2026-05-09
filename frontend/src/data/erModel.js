@@ -1,7 +1,7 @@
 /**
  * Modelo Entidad-Relación de Loggex.
  *
- * Datos de las 31 entidades Doctrine del backend, con sus campos, tipos,
+ * Datos de las 33 entidades Doctrine del backend, con sus campos, tipos,
  * traits compartidos (timestamps + soft delete) y relaciones. Se usa para
  * pintar el diagrama ER interactivo en /about/er.
  *
@@ -173,9 +173,11 @@ export const ER_ENTITIES = [
         position: { x: 540, y: 480 },
         timestamps: true,
         softDelete: true,
+        // Materia ↔ Itinerario es M:N desde 2026-05-08 (refactor "materias-multi-itinerario").
+        // La FK directa `itinerario_id` se eliminó; la asociación vive en
+        // tabla puente `materia_itinerario`. La relación se declara en ER_RELATIONS.
         fields: composeFields([
             { name: 'id',                type: 'int',              pk: true },
-            { name: 'itinerario_id',     type: 'int',              fk: 'Itinerario' },
             { name: 'nombre',            type: 'string(255)' },
             { name: 'codigoOficial',     type: 'string(50)',       nullable: true },
             { name: 'abreviatura',       type: 'string(16)',       nullable: true },
@@ -261,7 +263,7 @@ export const ER_ENTITIES = [
             { name: 'nombre',     type: 'string(255)' },
             { name: 'apellidos',  type: 'string(255)' },
             { name: 'telefono',   type: 'string(20)',  nullable: true },
-            { name: 'nif',        type: 'string(20)',  nullable: true },
+            { name: 'nif',        type: 'string(20)',  nullable: true, unique: true },
             { name: 'foto',       type: 'string(255)', nullable: true },
             { name: 'firma',      type: 'string(255)', nullable: true },
         ], { timestamps: true, softDelete: true }),
@@ -365,12 +367,14 @@ export const ER_ENTITIES = [
         timestamps: true,
         softDelete: true,
         fields: composeFields([
-            { name: 'id',             type: 'int',         pk: true },
-            { name: 'imparticion_id', type: 'int',         fk: 'Imparticion' },
-            { name: 'diaSemana',      type: 'int' },
-            { name: 'horaInicio',     type: 'time' },
-            { name: 'horaFin',        type: 'time' },
-            { name: 'aula',           type: 'string(255)' },
+            { name: 'id',                 type: 'int',         pk: true },
+            { name: 'imparticion_id',     type: 'int',         fk: 'Imparticion' },
+            { name: 'periodo_lectivo_id', type: 'int',         fk: 'PeriodoLectivo' },
+            { name: 'gemelo_id',          type: 'int?',        fk: 'Horario' },  // Fase B clases-compartidas: self-FK al raíz de la hermandad
+            { name: 'diaSemana',          type: 'int' },
+            { name: 'horaInicio',         type: 'time' },
+            { name: 'horaFin',            type: 'time' },
+            { name: 'aula',               type: 'string(255)' },
         ], { timestamps: true, softDelete: true }),
     },
     {
@@ -633,6 +637,58 @@ export const ER_ENTITIES = [
             { name: 'vigenteHasta',           type: 'date',                 nullable: true },
         ]),
     },
+
+    /* ============ ENTIDADES NUEVAS (sesiones 2026-05) ============ */
+    /* ExcepcionHorario: capa aditiva sobre PL+Horario para incidencias
+       puntuales (cancelaciones, sustituciones, intercambios bilaterales,
+       eventos especiales). Doc: hoja-de-ruta-intercambio-imparticiones.md */
+    {
+        id: 'ExcepcionHorario',
+        table: 'excepcion_horario',
+        domain: 'teaching',
+        position: { x: 2040, y: 1980 },
+        timestamps: true,
+        softDelete: true,
+        fields: composeFields([
+            { name: 'id',                    type: 'int',                       pk: true },
+            { name: 'horarioBase_id',        type: 'int',                       fk: 'Horario' },
+            { name: 'fechaConcreta',         type: 'date' },
+            { name: 'tipo',                  type: 'enum(TipoExcepcion)' },
+            { name: 'imparticionEfectiva_id', type: 'int',                      fk: 'Imparticion', nullable: true },
+            { name: 'profeOverride_id',      type: 'int',                       fk: 'User', nullable: true },
+            { name: 'intercambioGrupoId',    type: 'string(36)',                nullable: true },
+            { name: 'estado',                type: 'enum(EstadoExcepcion)' },
+            { name: 'solicitadaPor_id',      type: 'int',                       fk: 'User' },
+            { name: 'aprobadaPor_id',        type: 'int',                       fk: 'User', nullable: true },
+            { name: 'motivo',                type: 'text',                      nullable: true },
+            { name: 'fechaSolicitud',        type: 'datetime' },
+            { name: 'fechaResolucion',       type: 'datetime',                  nullable: true },
+            { name: 'revertida',             type: 'boolean' },
+        ], { timestamps: true, softDelete: true }),
+    },
+    /* Notificacion: bandeja por usuario para eventos del sistema (calificación,
+       tarea, comunicado, entrega, cambio de horario). Hard-delete (la bandeja
+       se limpia explícitamente). Doc: hoja-de-ruta-notificaciones.md */
+    {
+        id: 'Notificacion',
+        table: 'notificacion',
+        domain: 'communication',
+        position: { x: 40, y: 1960 },
+        timestamps: true,
+        softDelete: false,
+        fields: composeFields([
+            { name: 'id',             type: 'int',          pk: true },
+            { name: 'usuario_id',     type: 'int',          fk: 'User' },
+            { name: 'tipo',           type: 'string(64)' },
+            { name: 'titulo',         type: 'string(255)' },
+            { name: 'mensaje',        type: 'text',         nullable: true },
+            { name: 'enlace',         type: 'string(500)',  nullable: true },
+            { name: 'payload',        type: 'json',         nullable: true },
+            { name: 'leida',          type: 'boolean' },
+            { name: 'fechaCreacion',  type: 'datetime' },
+            { name: 'leidaAt',        type: 'datetime',     nullable: true },
+        ], { timestamps: true, softDelete: false }),
+    },
 ];
 
 /**
@@ -656,7 +712,11 @@ export const ER_RELATIONS = [
     { from: 'Centro',                    to: 'CatalogoCentro',     cardinality: 'N:1', label: 'catalogoOrigen', nullable: true },
 
     // Itinerario ←
-    { from: 'Materia',                   to: 'Itinerario',         cardinality: 'N:1', label: 'itinerario' },
+    // Materia ↔ Itinerario es M:N desde 2026-05-08 (tabla puente
+    // `materia_itinerario`). El refactor "materias-multi-itinerario"
+    // permite que una misma Materia pertenezca a varios itinerarios
+    // hermanos (ej. PR de DAW también está en DAM en EAG).
+    { from: 'Materia',                   to: 'Itinerario',         cardinality: 'N:M', label: 'itinerarios' },
     { from: 'Grupo',                     to: 'Itinerario',         cardinality: 'N:1', label: 'itinerario' },
     { from: 'Itinerario',                to: 'JornadaTipo',        cardinality: 'N:1', label: 'jornadaTipo', nullable: true },
     { from: 'Itinerario',                to: 'CatalogoItinerario', cardinality: 'N:1', label: 'catalogoOrigen', nullable: true },
@@ -710,6 +770,22 @@ export const ER_RELATIONS = [
     { from: 'CatalogoItinerarioCcaa',    to: 'CatalogoItinerario', cardinality: 'N:1', label: 'catalogoItinerario' },
     { from: 'CatalogoMateriaCcaa',       to: 'CatalogoItinerario', cardinality: 'N:1', label: 'catalogoItinerario' },
     { from: 'CatalogoMateriaCcaa',       to: 'CatalogoMateria',    cardinality: 'N:1', label: 'catalogoMateria', nullable: true },
+
+    // ============ ENTIDADES NUEVAS (sesiones 2026-05) ============
+    // Horario.gemelo: self-FK al raíz de la hermandad (Fase B clases-compartidas).
+    // Los placements gemelos se mantienen sincronizados por
+    // `HorarioGemeloSyncSubscriber` (Fase D).
+    { from: 'Horario',                   to: 'Horario',            cardinality: 'N:1', label: 'gemelo', nullable: true },
+
+    // ExcepcionHorario ← (incidencias puntuales sobre placements del horario base).
+    { from: 'ExcepcionHorario',          to: 'Horario',            cardinality: 'N:1', label: 'horarioBase' },
+    { from: 'ExcepcionHorario',          to: 'Imparticion',        cardinality: 'N:1', label: 'imparticionEfectiva', nullable: true },
+    { from: 'ExcepcionHorario',          to: 'User',               cardinality: 'N:1', label: 'profeOverride', nullable: true },
+    { from: 'ExcepcionHorario',          to: 'User',               cardinality: 'N:1', label: 'solicitadaPor' },
+    { from: 'ExcepcionHorario',          to: 'User',               cardinality: 'N:1', label: 'aprobadaPor', nullable: true },
+
+    // Notificacion ← (bandeja por usuario para eventos del sistema).
+    { from: 'Notificacion',              to: 'User',               cardinality: 'N:1', label: 'usuario' },
 ];
 
 /**
@@ -731,7 +807,7 @@ export const ER_LAYOUT = {
     fieldHeight: 22,
     footerHeight: 14,
     worldWidth: 2920,
-    worldHeight: 2200,
+    worldHeight: 2300,
 
     /* X de la esquina izquierda de cada columna. Debe coincidir con
        las posiciones x de las entidades. */
