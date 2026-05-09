@@ -401,8 +401,12 @@ export const applyTheme = (colors) => {
     if (theme.widgetItemHoverBgColor) root.style.setProperty('--widget-item-hover-bg', theme.widgetItemHoverBgColor);
     if (theme.widgetIconColor) root.style.setProperty('--widget-icon-color', theme.widgetIconColor);
 
-    // 11. Scrollbar — siempre flotante (track transparente, thumb fino con pill y pad).
-    //     El ancho y los colores son tematizables; la "forma" flotante es invariante.
+    // 11. Scrollbar — siempre flotante + AUTO-HIDE: thumb invisible por defecto,
+    //     fade-in cuando el cursor entra en algún ancestor del contenedor
+    //     scrollable (estilo macOS). El ancho y los colores son tematizables; la
+    //     "forma" flotante y el comportamiento auto-hide son invariantes (UX
+    //     consistente entre temas). Sin layout shift entre estados (el track
+    //     reserva el ancho aunque el thumb sea transparente).
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');
@@ -415,13 +419,18 @@ export const applyTheme = (colors) => {
     const hover = theme.scrollbarHoverColor || 'color-mix(in srgb, currentColor 42%, transparent)';
 
     styleTag.innerHTML = `
-        /* Firefox */
+        /* Firefox: ambos transparentes por defecto, thumb tematizado al hover. */
         * {
             scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+            transition: scrollbar-color var(--dur-base) var(--ease-standard);
+        }
+
+        *:hover {
             scrollbar-color: ${thumb} transparent;
         }
 
-        /* Webkit */
+        /* Webkit: track presente (sin layout shift), thumb invisible hasta hover. */
         *::-webkit-scrollbar {
             width: ${width};
             height: ${width};
@@ -434,14 +443,20 @@ export const applyTheme = (colors) => {
         }
 
         *::-webkit-scrollbar-thumb {
-            background-color: ${thumb} !important;
+            background-color: transparent !important;
             border-radius: 999px;
             border: 2px solid transparent;
             background-clip: padding-box;
-            transition: background-color 0.2s;
+            transition: background-color var(--dur-base) var(--ease-standard);
         }
 
-        *::-webkit-scrollbar-thumb:hover {
+        /* Cursor entra en algún ancestor del contenedor scrollable → fade-in
+           con el color tematizado del centro. */
+        *:hover::-webkit-scrollbar-thumb {
+            background-color: ${thumb} !important;
+        }
+
+        *:hover::-webkit-scrollbar-thumb:hover {
             background-color: ${hover} !important;
         }
     `;
