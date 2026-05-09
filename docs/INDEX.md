@@ -432,6 +432,7 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 | `hoja-de-ruta-mejoras-tecnicas.md` | Plan extenso (CI, tests, A11y) | Deuda técnica; no producto, pero importante para mantenibilidad |
 | `hoja-de-ruta-solver-bin-packing.md` | **Fases 1+2+3 ✅ Done (commit `6ef7be1`)**. Bin-packing reescrito a BLOQUES CONTIGUOS 2026-05-01 (cierra deuda residual del slot 90 asimétrico) | Bin-packing first-fit es default. Reescrito a bloques contiguos 60-120min (máx 120/día/materia) sobre granularidad 30min en `hoja-de-ruta-solver-iterativo.md` 2026-05-01. Las 4 ideas A-D del §7 se materializan en las acciones correctivas + el cambio de granularidad de la jornada. |
 | `hoja-de-ruta-solver-iterativo.md` | **🆕 Fases 1-5 + REDISTRIBUIR_CROSS_RANGO + bloques + jornadas 30min + cascade soft-delete + rejillas reescritas ✅ Done (2026-05-01)** | Doc completo. `HorarioSolverIterativo` con bucle outer + `BottleneckClassifier` + `CorrectiveActionExecutor` (3 acciones) + endpoint multi-rango. Modal "Informe del solver" con bottleneck/sugerencias/log. Bin-packing reescrito a BLOQUES CONTIGUOS sobre slots 30min. `PeriodoLectivoSoftDeleteProcessor` cascadea a Horario+PLI. Rejillas (`/admin/horarios`, `/horarios`, PDFs) renderizan bloques 60-120min con rowspan. Validado E2E con 1º DAW EAG. Pendiente futuro no bloqueante: anti-loop refinado en redistribuirCrossRango. |
+| **`hoja-de-ruta-comercializacion.md`** 🆕 (2026-05-09) | 🔴 **8–12 semanas full-time a primer cliente piloto pagando.** F1 (3-4 sem, 7 ítems rojos), F2 (2-3 sem, 4 naranjas), F3 (3-4 sem, 5 amarillos), F4 (open-ended, 10 verdes diferibles). Próxima acción: F1.1 backups automatizados a remoto + rotación (1-2 sesiones, único ítem que si falla puede provocar litigio inmediato). | **Producto vs prototipo.** El núcleo de dominio (modelo semanal, solver, catálogo CCAA, clases compartidas, intercambios, notificaciones, modalidad LOMLOE, tematización, i18n × 5, DNI/NIE/CIF, sesión inactividad, bulk delete) está sobresaliente; lo que falta es la capa de producto: tests/CI, deploy real, RGPD hard-delete, headers de seguridad, audit log, WCAG AA, política privacidad, multi-tenancy hardening, SMTP, SSO, onboarding, mobile horarios, manuales. Tres caminos a mercado documentados (SaaS centralizado / Self-hosted / Consultora educativa). Recomendado camino C (2-3 pilotos a precio amigo) → migración a SaaS en mes 12. |
 
 ### 📋 Referencia / manuales
 
@@ -453,6 +454,8 @@ Convención: 🟢 cerrado · 🟡 parcial · 🔴 sin empezar · 📋 ref/manual
 ## 🎯 Caminos críticos para producto comercial
 
 > Orden recomendado para llegar a "Loggex se vende a un centro real sin parches manuales".
+>
+> **🆕 2026-05-09**: la pieza que falta (no es feature de dominio, es capa de producto: tests, CI, deploy, RGPD, accesibilidad, manuales, integraciones operativas) está documentada como roadmap propio en **`hoja-de-ruta-comercializacion.md`** (F1 bloqueantes absolutos · F2 legales · F3 operativos · F4 diferibles + 3 caminos a mercado + métricas de Done). Los bloques 1-6 de abajo cubren cobertura **funcional**; comercialización cubre la cobertura **operativa** que el cliente exige aunque no la vea.
 
 ### Bloque 1 — Solver predecible para cualquier jornada *(✅ cerrado 2026-04-27)*
 
