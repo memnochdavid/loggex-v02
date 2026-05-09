@@ -12,6 +12,7 @@ import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -533,6 +534,21 @@ const Materias = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchMateriasData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/materias',
+    onSuccess: () => fetchMateriasData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedItinerario,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+      isSuperAdmin,
+    }),
+  });
+
   const columns = useMemo(() => [
     {
       header: t('materias.name'),
@@ -687,6 +703,8 @@ const Materias = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}

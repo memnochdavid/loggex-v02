@@ -244,7 +244,20 @@
     "loading": "Datuak kargatzen...",
     "noData": "Ez dago daturik eskuragarri.",
     "columns": "Zutabeak",
-    "showColumns": "Erakutsi zutabeak"
+    "showColumns": "Erakutsi zutabeak",
+    "selectAll": "Hautatu guztiak",
+    "selectRow": "Hautatu lerroa",
+    "selectedCount_one": "{{count}} hautatuta",
+    "selectedCount_other": "{{count}} hautatuta",
+    "clearSelection": "Kendu hautaketa",
+    "deleteSelected": "Ezabatu hautatutakoak",
+    "selectionToolbar": "Hautaketa ekintzak",
+    "bulkDeleteConfirmTitle": "Ezabatu {{count}} elementu",
+    "bulkDeleteConfirmBody_one": "Ziur al zaude {{count}} elementu ezabatu nahi duzula? Ekintza hau ezin da desegin.",
+    "bulkDeleteConfirmBody_other": "Ziur al zaude {{count}} elementu ezabatu nahi dituzula? Ekintza hau ezin da desegin.",
+    "bulkDeleteSuccess_one": "{{count}} elementu ezabatuta",
+    "bulkDeleteSuccess_other": "{{count}} elementu ezabatuta",
+    "bulkDeleteError": "Errorea {{count}} elementu ezabatzen: {{err}}"
   },
   "searchBar": {
     "placeholder": "Bilatu...",
@@ -496,7 +509,8 @@
     "errorDelete": "Ezin izan da matrikula ezabatu",
     "editTitle": "Matrikula Editatu",
     "newTitle": "Matrikula Berria",
-    "schoolYear": "Ikasturtea"
+    "schoolYear": "Ikasturtea",
+    "onlyUnenrolled": "Soilik zentro honetan matrikula aktiborik gabeko ikasleak"
   },
   "teaching": {
     "title": "Irakaskuntza Esleipena",

@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, Lock, DownloadCloud } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -402,6 +403,19 @@ const Festivos = ({ embedded = false, tabs = null }) => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/festivos',
+    onSuccess: () => fetchFestivosData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
   // Sincronizar festivos del centro desde los JSONs curados en MinIO (BOE
   // laboral + Resolución BOJA escolar autonómica). Idempotente: si ya están,
   // no duplica. La cascada que persiste se calcula desde la CCAA y provincia
@@ -628,6 +642,8 @@ const Festivos = ({ embedded = false, tabs = null }) => {
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
+            selectable
+            onBulkDelete={handleBulkDelete}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
             sortColumn={sortColumn}

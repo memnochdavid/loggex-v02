@@ -15,6 +15,7 @@ import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, PanelRightOpen, PanelRightClose, Download } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
@@ -751,9 +752,21 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchHorariosData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/horarios',
+    onSuccess: () => fetchHorariosData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
   const columns = useMemo(() => [
-    { 
-        header: t('schedules.day'), 
+    {
+        header: t('schedules.day'),
         accessor: (row) => diasSemana[row.diaSemana] || row.diaSemana, 
         sortable: true, sortKey: 'diaSemana' 
     },
@@ -883,6 +896,8 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 onItemsPerPageChange={handleItemsPerPageChange}
+                selectable
+                onBulkDelete={handleBulkDelete}
                 loading={loading}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}

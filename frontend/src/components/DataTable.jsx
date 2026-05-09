@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './DataTable.module.css';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Columns3, Trash2 } from 'lucide-react';
 import AccordionView from './AccordionView';
 import { TableSkeleton, MobileListSkeleton } from './Skeleton';
 import ThemedSelect from './ThemedSelect';
@@ -25,6 +25,9 @@ import { useTranslation } from 'react-i18next';
  * @param {string} mobileBreakpoint - Breakpoint para cambiar a vista móvil (ej: '768px', '1024px')
  * @param {number} mobileHeaderColumns - Número de columnas a mostrar en la cabecera del acordeón móvil (default: 1)
  * @param {string} [tableId] - ID estable de la tabla. Si se define, se activa el control de visibilidad de columnas con persistencia en localStorage (clave `dataTableHiddenCols_{tableId}`).
+ * @param {boolean} [selectable=false] - Si true, añade columna inicial con checkbox por fila + toolbar de borrado masivo cuando hay selección. Requiere `onBulkDelete` para que aparezca el botón danger.
+ * @param {function} [onBulkDelete] - Callback que recibe `(selectedIds: Array)` cuando el usuario confirma el borrado masivo. La página decide cómo borrar (Promise.all de DELETEs individuales, endpoint bulk, etc.). Tras éxito, debe refrescar la lista; el componente limpia la selección automáticamente.
+ * @param {function} [getRowId] - Cómo extraer el id estable de una fila para la selección. Default: `row.id ?? row['@id']?.split('/').pop()`.
  */
 const DataTable = ({
     columns,
@@ -41,11 +44,80 @@ const DataTable = ({
     pageSizeOptions = [5, 10, 20, 30, 50, 100],
     mobileBreakpoint = '768px',
     mobileHeaderColumns = 1,
-    tableId = null
+    tableId = null,
+    selectable = false,
+    onBulkDelete = null,
+    getRowId = null,
 }) => {
     const { t } = useTranslation();
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
     const [expandedId, setExpandedId] = useState(null);
+
+    // Selección múltiple — solo activa cuando `selectable=true`. El Set vive
+    // en el componente; la página solo recibe el array final en el callback.
+    // Se vacía automáticamente al cambiar de página u ordenar (la fila puede
+    // desaparecer del viewport y mantener la selección genera UX confusa).
+    const [selectedIds, setSelectedIds] = useState(() => new Set());
+    // Cache del último count > 0 para que durante la animación de cierre
+    // de la toolbar siga mostrando el número correcto (no "0 seleccionados").
+    const [lastSelCount, setLastSelCount] = useState(0);
+    useEffect(() => {
+        if (selectedIds.size > 0) setLastSelCount(selectedIds.size);
+    }, [selectedIds]);
+    const resolveRowId = (row) => {
+        if (typeof getRowId === 'function') return getRowId(row);
+        if (row?.id !== undefined) return row.id;
+        const iri = row?.['@id'];
+        return iri ? iri.split('/').pop() : null;
+    };
+    const visibleRowIds = useMemo(
+        () => (data || []).map(resolveRowId).filter(id => id !== null && id !== undefined),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [data]
+    );
+    const allVisibleSelected = visibleRowIds.length > 0
+        && visibleRowIds.every(id => selectedIds.has(id));
+    const someVisibleSelected = !allVisibleSelected
+        && visibleRowIds.some(id => selectedIds.has(id));
+    const headerCheckboxRef = useRef(null);
+    useEffect(() => {
+        if (headerCheckboxRef.current) {
+            headerCheckboxRef.current.indeterminate = someVisibleSelected;
+        }
+    }, [someVisibleSelected]);
+    // Limpiar selección al cambiar página/orden — evita "fantasmas" del set
+    // que ya no están en pantalla.
+    useEffect(() => {
+        if (selectable) setSelectedIds(new Set());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, sortColumn, sortDirection, itemsPerPage]);
+    const toggleRow = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+    const toggleAllVisible = () => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (allVisibleSelected) {
+                visibleRowIds.forEach(id => next.delete(id));
+            } else {
+                visibleRowIds.forEach(id => next.add(id));
+            }
+            return next;
+        });
+    };
+    const clearSelection = () => setSelectedIds(new Set());
+    const handleBulkDeleteClick = async () => {
+        if (!onBulkDelete || selectedIds.size === 0) return;
+        const ids = Array.from(selectedIds);
+        await onBulkDelete(ids);
+        // La página decide refrescar; vaciamos selección por consistencia
+        // (los ids borrados ya no son seleccionables).
+        clearSelection();
+    };
 
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -270,11 +342,57 @@ const DataTable = ({
                 /* Vista Escritorio */
                 <div className={styles.desktopView}>
                     {renderPagination('top')}
-                    
+                    {selectable && (
+                        <div
+                            className={`${styles.bulkToolbarWrapper} ${selectedIds.size > 0 ? styles.bulkToolbarOpen : ''}`}
+                            aria-hidden={selectedIds.size === 0}
+                        >
+                            <div className={styles.bulkToolbarInner}>
+                                <div className={styles.bulkToolbar} role="toolbar" aria-label={t('dataTable.selectionToolbar', { defaultValue: 'Acciones de selección' })}>
+                                    <span className={styles.bulkCount}>
+                                        {t('dataTable.selectedCount', { count: lastSelCount, defaultValue: '{{count}} seleccionado(s)' })}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className={styles.bulkClearButton}
+                                        onClick={clearSelection}
+                                        disabled={loading || selectedIds.size === 0}
+                                    >
+                                        {t('dataTable.clearSelection', { defaultValue: 'Quitar selección' })}
+                                    </button>
+                                    {onBulkDelete && (
+                                        <button
+                                            type="button"
+                                            className={styles.bulkDeleteButton}
+                                            onClick={handleBulkDeleteClick}
+                                            disabled={loading || selectedIds.size === 0}
+                                        >
+                                            <Trash2 size={14} />
+                                            {t('dataTable.deleteSelected', { defaultValue: 'Eliminar seleccionados' })}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className={styles.tableWrapper}>
                         <table className={styles.table}>
                             <thead className={styles.thead}>
                                 <tr>
+                                    {selectable && (
+                                        <th className={`${styles.th} ${styles.selectCol}`}>
+                                            <input
+                                                ref={headerCheckboxRef}
+                                                type="checkbox"
+                                                className={styles.selectCheckbox}
+                                                checked={allVisibleSelected}
+                                                onChange={toggleAllVisible}
+                                                disabled={loading || visibleRowIds.length === 0}
+                                                aria-label={t('dataTable.selectAll', { defaultValue: 'Seleccionar todos' })}
+                                            />
+                                        </th>
+                                    )}
                                     {visibleColumns.map((col, index) => {
                                         const isSorted = sortColumn === (col.sortKey || col.accessor);
                                         const actionsClass = isActionsCol(col) ? styles.actionsCol : '';
@@ -302,31 +420,50 @@ const DataTable = ({
                                 {/* Caso 1: Cargando — skeleton siempre que loading (también al paginar/filtrar) */}
                                 {loading ? (
                                     <TableSkeleton
-                                        columns={visibleColumns.length}
+                                        columns={visibleColumns.length + (selectable ? 1 : 0)}
                                         rows={Math.min(itemsPerPage || 5, 8)}
                                         tdClassName={styles.td}
                                     />
                                 ) : noDataAvailable ? (
                                     /* Caso 2: Sin datos y sin cargar */
                                     <tr>
-                                        <td colSpan={visibleColumns.length} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
+                                        <td colSpan={visibleColumns.length + (selectable ? 1 : 0)} className={styles.emptyState} style={{ textAlign: 'center', padding: '3rem' }}>
                                             {t('dataTable.noData')}
                                         </td>
                                     </tr>
                                 ) : (
                                     /* Caso 3: Datos disponibles */
-                                    data.map((row, rowIndex) => (
-                                        <tr key={row.id || row['@id'] || rowIndex} className={styles.dataRow}>
-                                            {visibleColumns.map((col, colIndex) => {
-                                                const actionsClass = isActionsCol(col) ? styles.actionsCell : '';
-                                                return (
-                                                    <td key={colIndex} className={`${styles.td} ${col.className || ''} ${actionsClass}`}>
-                                                        {getCellValue(col, row)}
+                                    data.map((row, rowIndex) => {
+                                        const rowId = resolveRowId(row);
+                                        const isSelected = selectable && rowId !== null && selectedIds.has(rowId);
+                                        return (
+                                            <tr
+                                                key={row.id || row['@id'] || rowIndex}
+                                                className={`${styles.dataRow} ${isSelected ? styles.selectedRow : ''}`}
+                                            >
+                                                {selectable && (
+                                                    <td className={`${styles.td} ${styles.selectCell}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className={styles.selectCheckbox}
+                                                            checked={isSelected}
+                                                            onChange={() => rowId !== null && toggleRow(rowId)}
+                                                            disabled={rowId === null}
+                                                            aria-label={t('dataTable.selectRow', { defaultValue: 'Seleccionar fila' })}
+                                                        />
                                                     </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ))
+                                                )}
+                                                {visibleColumns.map((col, colIndex) => {
+                                                    const actionsClass = isActionsCol(col) ? styles.actionsCell : '';
+                                                    return (
+                                                        <td key={colIndex} className={`${styles.td} ${col.className || ''} ${actionsClass}`}>
+                                                            {getCellValue(col, row)}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -341,6 +478,29 @@ const DataTable = ({
                         <div className={styles.mobilePaginationContainer}>
                             {renderPagination('top')}
                         </div>
+                        {selectable && (
+                            <div
+                                className={`${styles.bulkToolbarWrapper} ${selectedIds.size > 0 ? styles.bulkToolbarOpen : ''}`}
+                                aria-hidden={selectedIds.size === 0}
+                            >
+                                <div className={styles.bulkToolbarInner}>
+                                    <div className={styles.bulkToolbar} role="toolbar" aria-label={t('dataTable.selectionToolbar', { defaultValue: 'Acciones de selección' })}>
+                                        <span className={styles.bulkCount}>
+                                            {t('dataTable.selectedCount', { count: lastSelCount, defaultValue: '{{count}} seleccionado(s)' })}
+                                        </span>
+                                        <button type="button" className={styles.bulkClearButton} onClick={clearSelection} disabled={loading || selectedIds.size === 0}>
+                                            {t('dataTable.clearSelection', { defaultValue: 'Quitar selección' })}
+                                        </button>
+                                        {onBulkDelete && (
+                                            <button type="button" className={styles.bulkDeleteButton} onClick={handleBulkDeleteClick} disabled={loading || selectedIds.size === 0}>
+                                                <Trash2 size={14} />
+                                                {t('dataTable.deleteSelected', { defaultValue: 'Eliminar seleccionados' })}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {loading ? (
                             <MobileListSkeleton rows={4} />
@@ -356,9 +516,22 @@ const DataTable = ({
                                 renderHeader={(row) => {
                                     const headerCols = visibleColumns.slice(0, mobileHeaderColumns);
                                     const actionsCol = columns.find(isActionsCol);
-                                    
+                                    const rowId = resolveRowId(row);
+                                    const isSelected = selectable && rowId !== null && selectedIds.has(rowId);
+
                                     return (
                                         <div className={styles.mobileHeaderContent}>
+                                            {selectable && (
+                                                <input
+                                                    type="checkbox"
+                                                    className={styles.selectCheckbox}
+                                                    checked={isSelected}
+                                                    onChange={() => rowId !== null && toggleRow(rowId)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    disabled={rowId === null}
+                                                    aria-label={t('dataTable.selectRow', { defaultValue: 'Seleccionar fila' })}
+                                                />
+                                            )}
                                             <div className={styles.mobileHeaderInfo}>
                                                 {headerCols.map((col, idx) => (
                                                     <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>

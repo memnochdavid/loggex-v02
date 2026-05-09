@@ -244,7 +244,20 @@
     "loading": "Cargando datos...",
     "noData": "Non hai datos dispoñibles.",
     "columns": "Columnas",
-    "showColumns": "Mostrar columnas"
+    "showColumns": "Mostrar columnas",
+    "selectAll": "Seleccionar todos",
+    "selectRow": "Seleccionar fila",
+    "selectedCount_one": "{{count}} seleccionado",
+    "selectedCount_other": "{{count}} seleccionados",
+    "clearSelection": "Quitar selección",
+    "deleteSelected": "Eliminar seleccionados",
+    "selectionToolbar": "Accións de selección",
+    "bulkDeleteConfirmTitle": "Eliminar {{count}} elementos",
+    "bulkDeleteConfirmBody_one": "Seguro que queres eliminar {{count}} elemento? Esta acción non se pode desfacer.",
+    "bulkDeleteConfirmBody_other": "Seguro que queres eliminar {{count}} elementos? Esta acción non se pode desfacer.",
+    "bulkDeleteSuccess_one": "{{count}} elemento eliminado",
+    "bulkDeleteSuccess_other": "{{count}} elementos eliminados",
+    "bulkDeleteError": "Erro eliminando {{count}} elementos: {{err}}"
   },
   "searchBar": {
     "placeholder": "Buscar...",
@@ -496,7 +509,8 @@
     "errorDelete": "Non se puido eliminar a matrícula",
     "editTitle": "Editar Matrícula",
     "newTitle": "Nova Matrícula",
-    "schoolYear": "Ano Escolar"
+    "schoolYear": "Ano Escolar",
+    "onlyUnenrolled": "Só alumnos sen matrícula activa neste centro"
   },
   "teaching": {
     "title": "Asignación de Docencia",

@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
@@ -466,9 +467,22 @@ const Imparticiones = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/imparticions',
+    onSuccess: () => fetchImparticionesData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
   const columns = useMemo(() => [
-    { 
-        header: t('teaching.teacher'), 
+    {
+        header: t('teaching.teacher'),
         accessor: (row) => row.profesor ? `${row.profesor.nombre} ${row.profesor.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'profesor.nombre' 
@@ -626,6 +640,8 @@ const Imparticiones = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}

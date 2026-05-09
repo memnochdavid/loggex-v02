@@ -244,7 +244,20 @@
     "loading": "Loading data...",
     "noData": "No data available.",
     "columns": "Columns",
-    "showColumns": "Show columns"
+    "showColumns": "Show columns",
+    "selectAll": "Select all",
+    "selectRow": "Select row",
+    "selectedCount_one": "{{count}} selected",
+    "selectedCount_other": "{{count}} selected",
+    "clearSelection": "Clear selection",
+    "deleteSelected": "Delete selected",
+    "selectionToolbar": "Selection actions",
+    "bulkDeleteConfirmTitle": "Delete {{count}} items",
+    "bulkDeleteConfirmBody_one": "Delete {{count}} item? This action cannot be undone.",
+    "bulkDeleteConfirmBody_other": "Delete {{count}} items? This action cannot be undone.",
+    "bulkDeleteSuccess_one": "{{count}} item deleted",
+    "bulkDeleteSuccess_other": "{{count}} items deleted",
+    "bulkDeleteError": "Error deleting {{count}} items: {{err}}"
   },
   "searchBar": {
     "placeholder": "Search...",
@@ -496,7 +509,8 @@
     "errorDelete": "Could not delete enrollment",
     "editTitle": "Edit Enrollment",
     "newTitle": "New Enrollment",
-    "schoolYear": "School Year"
+    "schoolYear": "School Year",
+    "onlyUnenrolled": "Only students without active enrollment in this centre"
   },
   "teaching": {
     "title": "Teaching Assignment",

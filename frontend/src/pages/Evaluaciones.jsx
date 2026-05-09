@@ -9,6 +9,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -216,6 +217,11 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
     }
   };
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/periodo_evaluativos',
+    onSuccess: fetchPeriodos,
+  });
+
   const columns = useMemo(() => [
     { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: 'Tipo', accessor: (r) => r.tipo, sortable: false },
@@ -306,6 +312,8 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
         totalItems={totalItems}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
+        selectable
+        onBulkDelete={handleBulkDelete}
         onPageChange={setCurrentPage}
         onItemsPerPageChange={(n) => { setItemsPerPage(n); setCurrentPage(1); }}
         loading={loading}

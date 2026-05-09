@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -440,6 +441,21 @@ const Grupos = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/grupos',
+    onSuccess: () => fetchGruposData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedItinerario,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+      isSuperAdmin,
+    }),
+  });
+
   const columns = useMemo(() => [
     { header: t('groups.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: t('groups.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
@@ -554,6 +570,8 @@ const Grupos = () => {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
+            selectable
+            onBulkDelete={handleBulkDelete}
             loading={loading}
             sortColumn={sortColumn}
             sortDirection={sortDirection}

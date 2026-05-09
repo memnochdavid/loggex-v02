@@ -244,7 +244,20 @@
     "loading": "Carregant dades...",
     "noData": "No hi ha dades disponibles.",
     "columns": "Columnes",
-    "showColumns": "Mostrar columnes"
+    "showColumns": "Mostrar columnes",
+    "selectAll": "Seleccionar tots",
+    "selectRow": "Seleccionar fila",
+    "selectedCount_one": "{{count}} seleccionat",
+    "selectedCount_other": "{{count}} seleccionats",
+    "clearSelection": "Treure selecció",
+    "deleteSelected": "Eliminar seleccionats",
+    "selectionToolbar": "Accions de selecció",
+    "bulkDeleteConfirmTitle": "Eliminar {{count}} elements",
+    "bulkDeleteConfirmBody_one": "Segur que vols eliminar {{count}} element? Aquesta acció no es pot desfer.",
+    "bulkDeleteConfirmBody_other": "Segur que vols eliminar {{count}} elements? Aquesta acció no es pot desfer.",
+    "bulkDeleteSuccess_one": "{{count}} element eliminat",
+    "bulkDeleteSuccess_other": "{{count}} elements eliminats",
+    "bulkDeleteError": "Error eliminant {{count}} elements: {{err}}"
   },
   "searchBar": {
     "placeholder": "Cercar...",
@@ -496,7 +509,8 @@
     "errorDelete": "No s'ha pogut eliminar la matrícula",
     "editTitle": "Editar matrícula",
     "newTitle": "Nova matrícula",
-    "schoolYear": "Any Escolar"
+    "schoolYear": "Any Escolar",
+    "onlyUnenrolled": "Només alumnes sense matrícula activa en aquest centre"
   },
   "teaching": {
     "title": "Assignació de docència",

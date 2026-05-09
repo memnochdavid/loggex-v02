@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -70,6 +71,10 @@ const Matriculas = () => {
     grupo: ''
   });
   const [saving, setSaving] = useState(false);
+  // Filtro del modal: limita el selector de alumnos a los que aún no tienen
+  // matrícula activa en ningún grupo del centro contextual. Backend:
+  // `?sinMatriculaEnCentro=X` (ver `UserSinMatriculaEnCentroExtension`).
+  const [onlyUnenrolled, setOnlyUnenrolled] = useState(true);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -398,6 +403,20 @@ const Matriculas = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/matriculas',
+    onSuccess: () => fetchMatriculasData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedGrupo,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
   const columns = useMemo(() => [
     { 
         header: t('enrollments.student'), 
@@ -511,6 +530,8 @@ const Matriculas = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -526,20 +547,47 @@ const Matriculas = () => {
         >
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('enrollments.student')}</label>
-                <AsyncSearchSelect
-                    name="alumno"
-                    value={formData.alumno}
-                    onChange={(v) => setFormData(p => ({ ...p, alumno: v }))}
-                    endpoint="/api/users"
-                    extraParams={{
-                        rol_app: 'alumno',
-                        ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {})
-                    }}
-                    getOptionLabel={(a) => `${a.nombre} ${a.apellidos} (${a.email})`}
-                    getOptionValue={(a) => a.id || a['@id']?.split('/').pop()}
-                    placeholder={t('common.selectStudent')}
-                    required
-                />
+                {(() => {
+                    // Centro contextual para el filtro: SuperAdmin usa el del
+                    // strip de cabecera; admin de centro usa el suyo (siempre
+                    // presente en el token). Si SuperAdmin no ha elegido
+                    // centro aún, el filtro se desactiva (no hay contexto).
+                    const filterCentroId = isSuperAdmin
+                        ? (selectedCentro || null)
+                        : (user?.centro?.id || null);
+                    const filterActive = onlyUnenrolled && !!filterCentroId;
+                    return (
+                        <>
+                            <label className={styles.checkboxInline} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', cursor: filterCentroId ? 'pointer' : 'not-allowed', color: filterCentroId ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={filterActive}
+                                    disabled={!filterCentroId}
+                                    onChange={(e) => setOnlyUnenrolled(e.target.checked)}
+                                    style={{ accentColor: 'var(--color-primary-500)' }}
+                                />
+                                <span style={{ fontSize: 'var(--text-sm)' }}>
+                                    {t('enrollments.onlyUnenrolled', { defaultValue: 'Solo alumnos sin matrícula activa en este centro' })}
+                                </span>
+                            </label>
+                            <AsyncSearchSelect
+                                name="alumno"
+                                value={formData.alumno}
+                                onChange={(v) => setFormData(p => ({ ...p, alumno: v }))}
+                                endpoint="/api/users"
+                                extraParams={{
+                                    rol_app: 'alumno',
+                                    ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}),
+                                    ...(filterActive ? { sinMatriculaEnCentro: filterCentroId } : {}),
+                                }}
+                                getOptionLabel={(a) => `${a.nombre} ${a.apellidos} (${a.email})`}
+                                getOptionValue={(a) => a.id || a['@id']?.split('/').pop()}
+                                placeholder={t('common.selectStudent')}
+                                required
+                            />
+                        </>
+                    );
+                })()}
             </div>
 
             <div className={styles.formGroup}>

@@ -10,6 +10,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -408,6 +409,20 @@ const Usuarios = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchUsuariosData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/users',
+    onSuccess: () => fetchUsuariosData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+      isSuperAdmin,
+    }),
+  });
+
   const columns = useMemo(() => [
     {
         header: t('users.avatar'),
@@ -493,6 +508,8 @@ const Usuarios = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}

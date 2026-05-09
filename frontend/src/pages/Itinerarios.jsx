@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 import MateriasItinerarioModal from '../components/MateriasItinerarioModal';
 import { getApiUrl } from '../config/api';
@@ -555,6 +556,20 @@ const Itinerarios = () => {
     }
   }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchItinerariosData, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/itinerarios',
+    onSuccess: () => fetchItinerariosData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+      isSuperAdmin,
+    }),
+  });
+
   const columns = useMemo(() => [
     { header: t('itinerarios.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { header: t('itinerarios.level'), accessor: 'nivel', sortable: true, sortKey: 'nivel' },
@@ -644,6 +659,8 @@ const Itinerarios = () => {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
+            selectable
+            onBulkDelete={handleBulkDelete}
             loading={loading}
             sortColumn={sortColumn}
             sortDirection={sortDirection}

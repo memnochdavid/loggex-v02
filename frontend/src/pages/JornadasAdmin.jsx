@@ -11,6 +11,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, X as Cross } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -385,6 +386,20 @@ const JornadasAdmin = () => {
     }
   }, [confirm, fetchJornadas, currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedTurno, sortColumn, sortDirection, t]);
 
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/jornada_tipos',
+    onSuccess: () => fetchJornadas({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedTurno,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
   const columns = useMemo(() => [
     { header: t('jornadas.name', { defaultValue: 'Nombre' }), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     {
@@ -494,6 +509,8 @@ const JornadasAdmin = () => {
           currentPage={currentPage}
           onPageChange={setCurrentPage}
           onItemsPerPageChange={handleItemsPerPageChange}
+          selectable
+          onBulkDelete={handleBulkDelete}
           loading={loading}
           sortColumn={sortColumn}
           sortDirection={sortDirection}

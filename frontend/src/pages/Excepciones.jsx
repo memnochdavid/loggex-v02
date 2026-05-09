@@ -12,6 +12,7 @@ import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Check, X as XIcon, Trash2, Undo2, Eye } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -398,6 +399,18 @@ const Excepciones = () => {
         }
     };
 
+    const handleBulkDelete = useBulkDelete({
+        endpointBase: '/api/excepcion_horarios',
+        onSuccess: () => fetchData({
+            page: currentPage,
+            itemsPerPage,
+            selectedEstado,
+            selectedTipo,
+            sortColumn,
+            sortDirection,
+        }),
+    });
+
     const tipoLabel = (tipo) => t(`exceptions.types.${tipo}`, {
         defaultValue: { intercambio: 'Intercambio', sustitucion: 'Sustitución', cancelado: 'Cancelado', evento_especial: 'Evento especial' }[tipo] || tipo,
     });
@@ -641,6 +654,8 @@ const Excepciones = () => {
                     totalItems={totalItems}
                     itemsPerPage={itemsPerPage}
                     currentPage={currentPage}
+                    selectable
+                    onBulkDelete={handleBulkDelete}
                     onPageChange={setCurrentPage}
                     onItemsPerPageChange={handleItemsPerPageChange}
                     loading={loading}
