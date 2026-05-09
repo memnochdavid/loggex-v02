@@ -315,6 +315,18 @@
     z-index: 1000;
     transform-origin: top right;
     animation: dropdownIn var(--dur-base) var(--ease-out-back);
+    /* Transición fluida del width cuando se alterna .dropdownExpanded.
+       Mismos tokens que la animación de entrada para mantener un único
+       lenguaje de motion. transform-origin: top right hace que el dropdown
+       crezca hacia la izquierda (manteniendo el anchor al icono Bell). */
+    transition: width var(--dur-base) var(--ease-out-back);
+}
+
+/* Estado expandido: el ancho casi se duplica para que las descripciones de
+   las notificaciones quepan en una línea sin truncarse. Cap por max-width
+   garantiza que en viewports estrechos no desborde. */
+.dropdownExpanded {
+    width: 560px;
 }
 
 @keyframes dropdownIn {

@@ -41,3 +41,62 @@
         box-shadow: none;
     }
 }
+
+/* Botón icónico discreto reusable: header (expandir/contraer) y footer
+   (limpiar todas) comparten este estilo. Tematizado: usa variables del
+   widget para heredar el color del icono del centro y mezclarse con su
+   fondo al hover. Transición con los mismos tokens que el resto del
+   header (--dur-base + --ease-standard). */
+.iconButton {
+    background: transparent;
+    border: none;
+    color: var(--widget-icon-color, var(--text-muted));
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-md, var(--border-radius));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard);
+}
+
+.iconButton:hover {
+    background-color: color-mix(in srgb, var(--widget-icon-color, currentColor) 14%, transparent);
+    color: var(--widget-icon-color, var(--text-main));
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid var(--widget-icon-color, var(--color-primary-500));
+    outline-offset: 2px;
+}
+
+/* Posición del botón expandir dentro del header de la lista — empuja
+   el botón al extremo derecho del .widgetHeader heredado. */
+.expandButton {
+    margin-left: auto;
+}
+
+/* Variante destructiva: tono error en hover/focus para reforzar la
+   naturaleza de "Limpiar todas". Por defecto comparte el color muted
+   del .iconButton para no competir visualmente con el botón "Marcar
+   todas como leídas" cuando ambos coexisten. */
+.iconButtonDanger:hover {
+    background-color: color-mix(in srgb, var(--color-error) 14%, transparent);
+    color: var(--color-error);
+}
+
+.iconButtonDanger:focus-visible {
+    outline-color: var(--color-error);
+}
+
+/* Footer del dropdown cuando aloja varios elementos (marcar leídas + icono
+   limpiar): distribuye con espacio entre ellos. El widgetFooter heredado
+   pone el padding base; aquí solo añadimos la composición flex. */
+.footerActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}

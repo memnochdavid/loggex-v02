@@ -41,6 +41,13 @@ const Header = () => {
     const [systemUnreadCount, setSystemUnreadCount] = useState(0); // notificaciones del sistema
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
     const [isSystemNotifsOpen, setIsSystemNotifsOpen] = useState(false);
+    // Expansión horizontal del dropdown de notificaciones — el usuario lo
+    // activa con un botón en la cabecera de la lista cuando los textos no
+    // caben en el ancho por defecto. Se resetea al cerrar el dropdown.
+    const [isSystemNotifsExpanded, setIsSystemNotifsExpanded] = useState(false);
+    useEffect(() => {
+        if (!isSystemNotifsOpen) setIsSystemNotifsExpanded(false);
+    }, [isSystemNotifsOpen]);
     const [supportLoading, setSupportLoading] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const messagesRef = useRef(null);
@@ -355,13 +362,19 @@ const Header = () => {
                             )}
 
                             {isSystemNotifsOpen && (
-                                <div className={styles.dropdown} role="dialog" aria-label={t('header.notifications')}>
+                                <div
+                                    className={`${styles.dropdown} ${isSystemNotifsExpanded ? styles.dropdownExpanded : ''}`}
+                                    role="dialog"
+                                    aria-label={t('header.notifications')}
+                                >
                                     <SystemNotificationsList
                                         title={t('header.notifications')}
                                         showUnreadCountInHeader={true}
                                         onUnreadCountChange={setSystemUnreadCount}
                                         onItemClick={handleSystemNotifClick}
                                         limit={5}
+                                        expanded={isSystemNotifsExpanded}
+                                        onToggleExpand={() => setIsSystemNotifsExpanded(prev => !prev)}
                                     />
                                 </div>
                             )}

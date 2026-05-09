@@ -53,4 +53,21 @@ class NotificacionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Borra (HARD-delete) todas las notificaciones del usuario actual.
+     * Devuelve el número de filas borradas. Las notificaciones no llevan
+     * soft-delete por diseño: el evento original (calificación, tarea,
+     * etc.) sigue persistiendo en su entidad; la notificación es solo el
+     * pulse de aviso, no histórico crítico.
+     */
+    public function deleteAllFor(User $user): int
+    {
+        return $this->createQueryBuilder('n')
+            ->delete()
+            ->where('n.usuario = :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
+    }
 }

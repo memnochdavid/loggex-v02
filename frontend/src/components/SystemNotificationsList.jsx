@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Award, Edit3, BookOpen, Inbox, Megaphone, AlertTriangle, Bell as BellIcon,
     Shuffle, Check, X as XIcon, UserCheck, CalendarOff, ArrowLeftRight, HelpCircle,
+    Maximize2, Minimize2, Trash2,
 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import useMercure from '../hooks/useMercure';
 import sharedStyles from './NotificationList.module.css';
 import styles from './SystemNotificationsList.module.css';
@@ -32,9 +34,12 @@ const SystemNotificationsList = ({
     limit = 5,
     showUnreadCountInHeader = false,
     hideHeader = false,
+    expanded = false,
+    onToggleExpand = null,
 }) => {
     const { t } = useTranslation();
     const { user } = useAuth();
+    const confirm = useConfirm();
     const [notifs, setNotifs] = useState([]);
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -136,6 +141,31 @@ const SystemNotificationsList = ({
         }
     }, [onUnreadCountChange]);
 
+    // Limpia (HARD-delete) todas las notificaciones del usuario. Confirm
+    // explícito: aunque sea hard-delete sobre datos no críticos (el evento
+    // original persiste en su entidad), perder el aviso visualmente puede
+    // confundir si fue accidental.
+    const clearAll = useCallback(async () => {
+        const ok = await confirm({
+            title: t('notifications.clearAllTitle', { defaultValue: 'Limpiar todas las notificaciones' }),
+            body: t('notifications.confirmClearAll', { defaultValue: '¿Eliminar todas las notificaciones de tu bandeja? Esta acción no se puede deshacer.' }),
+        });
+        if (!ok) return;
+        try {
+            await fetch(getApiUrl('/api/notificacions/limpiar-todas'), {
+                method: 'POST',
+                credentials: 'include',
+                headers: { Accept: 'application/json' },
+            });
+            setNotifs([]);
+            setTotalUnreadCount(0);
+            onUnreadCountChange?.(0);
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[SystemNotificationsList] clear-all fallido:', err);
+        }
+    }, [confirm, t, onUnreadCountChange]);
+
     const handleItemClick = (notif) => {
         markAsRead(notif);
         onItemClick?.(notif);
@@ -177,6 +207,21 @@ const SystemNotificationsList = ({
                             {totalUnreadCount} {t('notifications.unread')}
                         </span>
                     )}
+                    {onToggleExpand && (
+                        <button
+                            type="button"
+                            className={`${styles.iconButton} ${styles.expandButton}`}
+                            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+                            aria-label={expanded
+                                ? t('notifications.collapse', { defaultValue: 'Contraer' })
+                                : t('notifications.expand', { defaultValue: 'Expandir' })}
+                            title={expanded
+                                ? t('notifications.collapse', { defaultValue: 'Contraer' })
+                                : t('notifications.expand', { defaultValue: 'Expandir' })}
+                        >
+                            {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -197,14 +242,29 @@ const SystemNotificationsList = ({
                 </ul>
             )}
 
-            {totalUnreadCount > 0 && (
-                <div className={sharedStyles.widgetFooter}>
+            {notifs.length > 0 && (
+                <div className={`${sharedStyles.widgetFooter} ${styles.footerActions}`}>
+                    {totalUnreadCount > 0 ? (
+                        <button
+                            className={sharedStyles.viewAllLink}
+                            onClick={markAllRead}
+                            type="button"
+                        >
+                            {t('notifications.markAllRead')}
+                        </button>
+                    ) : (
+                        /* Spacer para que el icono "Limpiar" se quede a la derecha
+                           (justify-content: space-between) cuando no hay no-leídas. */
+                        <span aria-hidden="true" />
+                    )}
                     <button
-                        className={sharedStyles.viewAllLink}
-                        onClick={markAllRead}
+                        className={`${styles.iconButton} ${styles.iconButtonDanger}`}
+                        onClick={clearAll}
                         type="button"
+                        aria-label={t('notifications.clearAll', { defaultValue: 'Limpiar todas' })}
+                        title={t('notifications.clearAll', { defaultValue: 'Limpiar todas' })}
                     >
-                        {t('notifications.markAllRead')}
+                        <Trash2 size={16} />
                     </button>
                 </div>
             )}
@@ -241,7 +301,7 @@ const NotifItem = ({ notif, onClick, sharedStyles, styles, t }) => {
     const translatedTitle = t(titleKey, { defaultValue: notif.titulo, ...payload });
     const translatedBody = t(bodyKey, { defaultValue: notif.mensaje || '', ...payload });
 
-    const relativeTime = useRelativeTime(notif.fechaCreacion, t);
+    const formattedTime = useFormattedNotifTime(notif.fechaCreacion);
 
     return (
         <li className={`${sharedStyles.listItem} ${notif.leida ? styles.read : styles.unread}`}>
@@ -258,7 +318,7 @@ const NotifItem = ({ notif, onClick, sharedStyles, styles, t }) => {
                         {translatedBody}
                     </span>
                     <div className={sharedStyles.itemMeta}>
-                        <span className={sharedStyles.itemTime}>{relativeTime}</span>
+                        <span className={sharedStyles.itemTime}>{formattedTime}</span>
                     </div>
                 </div>
             </button>
@@ -267,31 +327,38 @@ const NotifItem = ({ notif, onClick, sharedStyles, styles, t }) => {
 };
 
 /**
- * Tiempo relativo abreviado uniforme entre los 5 idiomas (decisión D7 en
- * `docs/hoja-de-ruta-notificaciones.md` — sin pluralización por simplicidad).
+ * Formato absoluto en español: "Vie 09/05/2026 · 14:35".
  *
- * Re-evalúa cada minuto mientras el componente está montado.
+ * El día de la semana abreviado se localiza al idioma activo (con la
+ * primera letra capitalizada y sin punto final, que algunos navegadores
+ * añaden por defecto). La fecha siempre se imprime como dd/mm/yyyy
+ * — regla del proyecto: display al usuario en formato español, ISO
+ * solo para inputs y payloads (ver memoria `feedback_formato_fechas_es`).
+ * Hora en formato 24h.
+ *
+ * Reemplaza al anterior `useRelativeTime` ("Hace X min/h/d"). Decisión
+ * 2026-05-09: el formato relativo perdía contexto cuando había varias
+ * notificaciones del mismo día. La fecha + día de semana cubren los
+ * dos casos a la vez (ubicación temporal + reconocimiento rápido).
+ *
+ * Pure: sin interval (la fecha es absoluta y no cambia con el tiempo).
  */
-function useRelativeTime(isoString, t) {
-    const [, setTick] = useState(0);
-
-    useEffect(() => {
-        const id = setInterval(() => setTick(x => x + 1), 60_000);
-        return () => clearInterval(id);
-    }, []);
+function useFormattedNotifTime(isoString) {
+    const { i18n } = useTranslation();
 
     return useMemo(() => {
         if (!isoString) return '';
-        const then = new Date(isoString).getTime();
-        const now = Date.now();
-        const diffMin = Math.max(0, Math.floor((now - then) / 60_000));
-        if (diffMin < 1) return t('notifications.justNow');
-        if (diffMin < 60) return t('notifications.minutesAgo', { count: diffMin });
-        const diffH = Math.floor(diffMin / 60);
-        if (diffH < 24) return t('notifications.hoursAgo', { count: diffH });
-        const diffD = Math.floor(diffH / 24);
-        return t('notifications.daysAgo', { count: diffD });
-    }, [isoString, t]);
+        const d = new Date(isoString);
+        if (Number.isNaN(d.getTime())) return '';
+        const weekdayRaw = new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }).format(d);
+        const weekday = weekdayRaw.replace(/\.$/, '').replace(/^./, c => c.toUpperCase());
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${weekday} ${dd}/${mm}/${yyyy} · ${hh}:${min}`;
+    }, [isoString, i18n.language]);
 }
 
 export default SystemNotificationsList;

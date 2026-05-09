@@ -112,8 +112,13 @@
     "apiDocsTooltip": "API Platform dokumentazioa"
   },
   "notifications": {
+    "expand": "Zabaldu",
+    "collapse": "Tolestu",
     "empty": "Azken aldiko jakinarazpenik ez",
     "markAllRead": "Markatu denak irakurritako gisa",
+    "clearAll": "Garbitu denak",
+    "clearAllTitle": "Garbitu jakinarazpen guztiak",
+    "confirmClearAll": "Zure ontziko jakinarazpen guztiak ezabatu nahi dituzu? Ekintza hau ezin da desegin.",
     "viewAll": "Ikusi mezu guztiak",
     "loading": "Mezuak kargatzen...",
     "errorLoad": "Ezin izan dira jakinarazpenak kargatu",

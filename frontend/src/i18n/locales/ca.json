@@ -112,8 +112,13 @@
     "apiDocsTooltip": "Documentació API Platform"
   },
   "notifications": {
+    "expand": "Expandir",
+    "collapse": "Contraure",
     "empty": "Sense notificacions recents",
     "markAllRead": "Marca-les totes com a llegides",
+    "clearAll": "Netejar totes",
+    "clearAllTitle": "Netejar totes les notificacions",
+    "confirmClearAll": "Vols eliminar totes les notificacions de la teva safata? Aquesta acció no es pot desfer.",
     "viewAll": "Veure tots els missatges",
     "loading": "Carregant missatges...",
     "errorLoad": "No s'han pogut carregar les notificacions",

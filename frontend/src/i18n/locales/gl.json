@@ -112,8 +112,13 @@
     "apiDocsTooltip": "Documentación API Platform"
   },
   "notifications": {
+    "expand": "Expandir",
+    "collapse": "Contraer",
     "empty": "Sen notificacións recentes",
     "markAllRead": "Marcar todas como lidas",
+    "clearAll": "Limpar todas",
+    "clearAllTitle": "Limpar todas as notificacións",
+    "confirmClearAll": "Queres eliminar todas as notificacións da túa bandexa? Esta acción non se pode desfacer.",
     "viewAll": "Ver todas as mensaxes",
     "loading": "Cargando mensaxes...",
     "errorLoad": "Non se puideron cargar as notificacións",

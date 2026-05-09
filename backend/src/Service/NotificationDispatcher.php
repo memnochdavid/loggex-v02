@@ -147,7 +147,7 @@ class NotificationDispatcher
                 'mensaje' => sprintf(
                     'Tienes una nueva tarea: "%s"%s.',
                     $titulo,
-                    $fechaLim ? ' (entrega hasta el ' . $fechaLim->format('d/m/Y') . ')' : ''
+                    $fechaLim ? ' (entrega hasta el ' . $this->fmtFechaEs($fechaLim) . ')' : ''
                 ),
                 // `/tareas/{id}` no existe como ruta del frontend (404).
                 // El alumno entrega tareas desde `/entregas` con
@@ -280,7 +280,7 @@ class NotificationDispatcher
             : 'Un profesor';
 
         $tipo = $eh->getTipo()?->value ?? '?';
-        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
 
         // Admins/SuperAdmins del centro. SuperAdmin global (sin centro) recibe
         // también para todos los centros.
@@ -328,7 +328,7 @@ class NotificationDispatcher
         if ($solicitante === null) return;
 
         $tipo = $eh->getTipo()?->value ?? '?';
-        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
         $aprobador = $eh->getAprobadaPor();
         // Admin atajo: si solicitante = aprobador (admin creó aprobada directa
         // o admin aprobó su propia solicitud), no auto-notificar. Sería spam.
@@ -406,7 +406,7 @@ class NotificationDispatcher
             ? trim(($grupo->getCurso() ? $grupo->getCurso() . 'º ' : '') . ($grupo->getAbreviatura() ?? $grupo->getNombre() ?? ''))
             : '?';
         $fechaIso = $eh->getFechaConcreta()?->format('Y-m-d');
-        $fechaEs  = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $fechaEs  = $this->fmtFechaEs($eh->getFechaConcreta());
         $hora = $hb
             ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
             : '';
@@ -448,7 +448,7 @@ class NotificationDispatcher
         $grupoLabel = $grupo
             ? trim(($grupo->getCurso() ? $grupo->getCurso() . 'º ' : '') . ($grupo->getAbreviatura() ?? $grupo->getNombre() ?? ''))
             : '?';
-        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
         $hora = $hb
             ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
             : '';
@@ -489,7 +489,7 @@ class NotificationDispatcher
         $titulo   = $isCancel ? 'Una clase ha sido cancelada' : 'Una clase ha cambiado';
 
         $materia = $imp?->getMateria()?->getNombre() ?? '?';
-        $fecha = $eh->getFechaConcreta()?->format('d/m/Y') ?? '?';
+        $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
         $hora = $hb
             ? trim(sprintf('%s-%s', $hb->getHoraInicio()?->format('H:i') ?? '', $hb->getHoraFin()?->format('H:i') ?? ''))
             : '';
@@ -565,5 +565,27 @@ class NotificationDispatcher
         $rounded = round($nota, 2);
         // Sin decimales si es entero, hasta 2 decimales si no.
         return $rounded == (int) $rounded ? (string) (int) $rounded : rtrim(rtrim((string) $rounded, '0'), '.');
+    }
+
+    /**
+     * Formatea una fecha como "Lun 04/05/2026" para textos USER-FACING de
+     * notificaciones (titulo/mensaje). Día de la semana abreviado en
+     * español + dd/mm/yyyy. Espejo del helper frontend
+     * `useFormattedNotifTime` en `SystemNotificationsList.jsx` — alinea el
+     * formato dentro del cuerpo de las notificaciones con el que se
+     * muestra junto a cada item en la lista.
+     *
+     * Para fechas que van al `payload` (claves ISO `Y-m-d` o ATOM) seguir
+     * usando los `format()` directos: el payload es para procesamiento del
+     * cliente, no display. Solo el texto humano debe pasar por aquí.
+     */
+    private const DIAS_ES_ABREV = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    private function fmtFechaEs(?\DateTimeInterface $d): string
+    {
+        if ($d === null) {
+            return '?';
+        }
+        return sprintf('%s %s', self::DIAS_ES_ABREV[(int) $d->format('w')], $d->format('d/m/Y'));
     }
 }

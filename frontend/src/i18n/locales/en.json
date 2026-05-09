@@ -112,8 +112,13 @@
     "apiDocsTooltip": "API Platform Documentation"
   },
   "notifications": {
+    "expand": "Expand",
+    "collapse": "Collapse",
     "empty": "No recent notifications",
     "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "clearAllTitle": "Clear all notifications",
+    "confirmClearAll": "Delete all notifications from your inbox? This action cannot be undone.",
     "viewAll": "View all messages",
     "loading": "Loading messages...",
     "errorLoad": "Could not load notifications",
