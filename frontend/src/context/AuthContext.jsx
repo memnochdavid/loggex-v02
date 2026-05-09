@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { applyTheme } from '../utils/theme';
+import { PUBLIC_THEME } from '../config/publicTheme';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { resetMercureSubscription } from '../hooks/useMercure';
@@ -17,13 +18,23 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // Efecto para aplicar el tema cuando cambia el usuario
+  // Aplica el tema visual cuando cambia el usuario:
+  //   - User con centro y personalización → tema del centro.
+  //   - User sin personalización → defaults internos de applyTheme.
+  //   - Sin user (vistas públicas /login, /about, /about/er) →
+  //     PUBLIC_THEME (snapshot dark indigo, ver `config/publicTheme.js`).
+  //     Coordina el header/footer/body con los hardcodes de Login.module.css
+  //     y About.module.css; sin esto el header quedaba visualmente
+  //     huérfano respecto al cuerpo de la página.
   useEffect(() => {
     if (user && user.centro && user.centro.personalizacion) {
         applyTheme(user.centro.personalizacion);
-    } else {
-        // Resetear tema si no hay usuario o personalización (volver a defaults)
+    } else if (user) {
+        // Usuario logueado sin tema personalizado: defaults light.
         applyTheme({});
+    } else {
+        // Vistas públicas: snapshot dark indigo (ex-tema "guay" del EAG).
+        applyTheme(PUBLIC_THEME);
     }
   }, [user]);
 

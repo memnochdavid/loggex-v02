@@ -27,7 +27,7 @@ const Footer = () => {
               <div className={styles.brandName}>Loggex</div>
               <div className={styles.brandVersion}>
                 <Package size={10} />
-                <span>v0.2</span>
+                <span>v0.5</span>
               </div>
             </div>
           </div>
