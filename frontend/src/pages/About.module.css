@@ -725,10 +725,14 @@
 .list li {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: var(--space-3);
     font-size: 0.875rem;
     padding-bottom: var(--space-1);
     border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+    /* Sin esto, los hijos flex no respetan el ancho del card cuando
+       el value es muy largo (ej. "useFormValidation · useBulkDelete · …"). */
+    min-width: 0;
 }
 
 .list li:last-child {
@@ -745,6 +749,11 @@
     color: white;
     font-weight: 500;
     text-align: right;
+    /* Permite que el texto largo se reduzca y rompa en cualquier punto
+       (incluyendo dentro de palabras técnicas conectadas con `·`) en lugar
+       de desbordar la tarjeta. */
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* =================================================================
