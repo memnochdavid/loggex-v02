@@ -274,6 +274,27 @@
     "cancel": "Cancel·lar",
     "close": "Tancar"
   },
+  "session": {
+    "idleWarningTitle": "Encara hi ets?",
+    "idleWarningBody": "La teva sessió es tancarà per inactivitat en",
+    "idleWarningHint": "Prem \"Seguir connectat\" si vols mantenir la sessió oberta.",
+    "idleContinue": "Seguir connectat",
+    "idleLogoutNow": "Tancar sessió"
+  },
+  "validation": {
+    "required": "Aquest camp és obligatori",
+    "email": "Email no vàlid",
+    "nif": "DNI / NIE / CIF no vàlid",
+    "phoneEs": "Telèfon no vàlid (9 dígits, començant per 6-9)",
+    "minLength": "Mínim {{count}} caràcters",
+    "maxLength": "Màxim {{count}} caràcters",
+    "pattern": "Format no vàlid",
+    "invalid": "Valor no vàlid"
+  },
+  "errors": {
+    "userEmailDuplicate": "Ja existeix un usuari amb l'email \"{{email}}\"",
+    "userNifDuplicate": "Ja existeix un usuari amb el DNI/NIF \"{{nif}}\""
+  },
   "login": {
     "title": "Iniciar sessió",
     "email": "Correu electrònic",

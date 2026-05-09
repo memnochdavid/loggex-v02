@@ -274,6 +274,27 @@
     "cancel": "Cancelar",
     "close": "Pechar"
   },
+  "session": {
+    "idleWarningTitle": "Aínda estás aí?",
+    "idleWarningBody": "A túa sesión pecharase por inactividade en",
+    "idleWarningHint": "Preme \"Seguir conectado\" se queres manter a sesión aberta.",
+    "idleContinue": "Seguir conectado",
+    "idleLogoutNow": "Pechar sesión"
+  },
+  "validation": {
+    "required": "Este campo é obrigatorio",
+    "email": "Email non válido",
+    "nif": "DNI / NIE / CIF non válido",
+    "phoneEs": "Teléfono non válido (9 díxitos, comezando por 6-9)",
+    "minLength": "Mínimo {{count}} caracteres",
+    "maxLength": "Máximo {{count}} caracteres",
+    "pattern": "Formato non válido",
+    "invalid": "Valor non válido"
+  },
+  "errors": {
+    "userEmailDuplicate": "Xa existe un usuario co email \"{{email}}\"",
+    "userNifDuplicate": "Xa existe un usuario co DNI/NIF \"{{nif}}\""
+  },
   "login": {
     "title": "Iniciar Sesión",
     "email": "Correo electrónico",

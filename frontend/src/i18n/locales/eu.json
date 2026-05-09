@@ -274,6 +274,27 @@
     "cancel": "Utzi",
     "close": "Itxi"
   },
+  "session": {
+    "idleWarningTitle": "Hor zaude oraindik?",
+    "idleWarningBody": "Zure saioa jarduerarik gabe itxiko da",
+    "idleWarningHint": "Sakatu \"Konektatuta jarraitu\" saioa irekita mantendu nahi baduzu.",
+    "idleContinue": "Konektatuta jarraitu",
+    "idleLogoutNow": "Saioa itxi"
+  },
+  "validation": {
+    "required": "Eremu hau beharrezkoa da",
+    "email": "Email baliogabea",
+    "nif": "DNI / NIE / CIF baliogabea",
+    "phoneEs": "Telefono baliogabea (9 digitu, 6-9 hasita)",
+    "minLength": "Gutxienez {{count}} karaktere",
+    "maxLength": "Gehienez {{count}} karaktere",
+    "pattern": "Formatu baliogabea",
+    "invalid": "Balio baliogabea"
+  },
+  "errors": {
+    "userEmailDuplicate": "Badago erabiltzaile bat \"{{email}}\" emailarekin",
+    "userNifDuplicate": "Badago erabiltzaile bat \"{{nif}}\" DNI/NIFarekin"
+  },
   "login": {
     "title": "Saioa hasi",
     "email": "Posta elektronikoa",

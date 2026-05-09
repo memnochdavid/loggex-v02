@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
 import { useBulkDelete } from '../hooks/useBulkDelete';
+import { useFormValidation } from '../hooks/useFormValidation';
 import { Plus, Edit2, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -76,6 +77,22 @@ const Usuarios = () => {
     centro: ''
   });
   const [avatarFile, setAvatarFile] = useState(null);
+
+  // Validación FE inline (espejo de los Asserts de la entity User en backend).
+  // Los esquemas son `[reglas]`; ver `useFormValidation` para la lista
+  // completa. Password solo es required al CREAR (currentUser === null);
+  // al editar es opcional (cambiar contraseña).
+  const validationSchema = useMemo(() => ({
+    nombre: ['required', { type: 'maxLength', value: 255 }],
+    apellidos: ['required', { type: 'maxLength', value: 255 }],
+    email: ['required', 'email', { type: 'maxLength', value: 180 }],
+    telefono: ['phoneEs', { type: 'maxLength', value: 20 }],
+    nif: ['nif', { type: 'maxLength', value: 20 }],
+    password: currentUser
+      ? [{ type: 'minLength', value: 8 }]
+      : ['required', { type: 'minLength', value: 8 }],
+  }), [currentUser]);
+  const { errors, validateField, validateAll, clearError, clearAll: clearAllErrors } = useFormValidation(validationSchema);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -284,11 +301,20 @@ const Usuarios = () => {
     setCurrentUser(null);
     setAvatarFile(null);
     setAvatarPreview(null);
+    clearAllErrors();
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Limpia el error del campo en cuanto el usuario empieza a escribir;
+    // se re-evaluará en blur o submit.
+    if (errors[name]) clearError(name);
+  };
+
+  const handleBlurValidate = (e) => {
+    const { name, value } = e.target;
+    validateField(name, value, formData);
   };
 
   const handleRoleChange = (role) => {
@@ -321,6 +347,12 @@ const Usuarios = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validación cliente: si falla, no enviamos. El backend tiene los mismos
+    // Asserts (NotBlank, Email, Length, NifEspanol, Regex telefono) como
+    // red de seguridad si llaman al API directo o el FE se salta algo.
+    if (!validateAll(formData)) {
+      return;
+    }
     setSaving(true);
     try {
       const id = currentUser ? getUserId(currentUser) : null;
@@ -346,7 +378,9 @@ const Usuarios = () => {
       });
 
       if (!response.ok) {
-        const message = await parseErrorResponse(response);
+        // Pasar `t` permite a parseErrorResponse traducir messageKey del
+        // backend (errors.userEmailDuplicate, errors.userNifDuplicate).
+        const message = await parseErrorResponse(response, undefined, t);
         throw new Error(message);
       }
 
@@ -386,7 +420,7 @@ const Usuarios = () => {
         credentials: 'include'
       });
       if (!response.ok) {
-        const message = await parseErrorResponse(response, t('users.errorDelete'));
+        const message = await parseErrorResponse(response, t('users.errorDelete'), t);
         throw new Error(message);
       }
       // Recargar datos actuales
@@ -539,12 +573,42 @@ const Usuarios = () => {
                     <Button type="button" variant="secondary" onClick={() => avatarInputRef.current.click()} style={{ marginLeft: '1rem' }}><Upload size={16} style={{ marginRight: '8px' }} /> {t('users.changeAvatar')}</Button>
                 </div>
             </div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.firstName')}</label><input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.lastName')}</label><input type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.email')}</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} className={styles.input} required /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.phone')}</label><input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} className={styles.input} /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('users.nif')}</label><input type="text" name="nif" value={formData.nif} onChange={handleInputChange} className={styles.input} /></div>
-            <div className={styles.formGroup}><label className={styles.label}>{t('common.password')} {currentUser && t('users.passwordHelper')}</label><input type="password" name="password" value={formData.password} onChange={handleInputChange} className={styles.input} required={!currentUser} /></div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('users.firstName')}</label>
+              <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.nombre} required />
+              {errors.nombre && <span className={styles.errorText}>{errors.nombre}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('users.lastName')}</label>
+              <input type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.apellidos} required />
+              {errors.apellidos && <span className={styles.errorText}>{errors.apellidos}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('users.email')}</label>
+              <input type="email" name="email" value={formData.email} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.email} required />
+              {errors.email && <span className={styles.errorText}>{errors.email}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('users.phone')}</label>
+              <input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.telefono} />
+              {errors.telefono && <span className={styles.errorText}>{errors.telefono}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('users.nif')}</label>
+              <input type="text" name="nif" value={formData.nif} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.nif} />
+              {errors.nif && <span className={styles.errorText}>{errors.nif}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('common.password')} {currentUser && t('users.passwordHelper')}</label>
+              <input type="password" name="password" value={formData.password} onChange={handleInputChange} onBlur={handleBlurValidate}
+                className={styles.input} aria-invalid={!!errors.password} required={!currentUser} />
+              {errors.password && <span className={styles.errorText}>{errors.password}</span>}
+            </div>
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('users.roles')}</label>
                 <div className={styles.rolesContainer}>

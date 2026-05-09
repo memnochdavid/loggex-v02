@@ -17,6 +17,7 @@ use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
 use App\State\SoftDeleteProcessor;
+use App\Validator\Constraint\NifEspanol;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'usuario')]
@@ -68,7 +70,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?int $id = null;
 
+    // Asserts sin `message:` custom — usar defaults de Symfony (que son
+    // traducibles vía el componente Translator si la app está configurada
+    // con locale del request, o quedan en inglés en la respuesta 422). El
+    // frontend valida primero con `useFormValidation` (claves i18n locales),
+    // así el usuario raramente ve estos defaults; la red de seguridad es BE.
     #[ORM\Column(length: 180, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    #[Assert\Length(max: 180)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $email = null;
 
@@ -83,18 +93,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    #[Assert\Regex(pattern: '/^[6-9]\d{8}$/', match: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $telefono = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    #[NifEspanol(allowEmpty: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $nif = null;
 

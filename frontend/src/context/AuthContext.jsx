@@ -1,8 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { applyTheme } from '../utils/theme';
 import { getApiUrl } from '../config/api';
 import { useTranslation } from 'react-i18next';
 import { resetMercureSubscription } from '../hooks/useMercure';
+import { useIdleTimeout } from '../hooks/useIdleTimeout';
+import IdleWarningModal from '../components/IdleWarningModal';
 
 const AuthContext = createContext(null);
 
@@ -79,7 +81,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await fetch(getApiUrl('/api/logout'), {
           method: 'POST',
@@ -90,11 +92,38 @@ export const AuthProvider = ({ children }) => {
     }
     resetMercureSubscription();
     setUser(null);
-  };
+  }, []);
+
+  // Cierre de sesión por inactividad — solo cliente. Activo mientras hay
+  // user; al pasar 30 min sin actividad sale modal de aviso (durante 2 min)
+  // y luego logout automático. El JWT del backend mantiene su TTL nativo
+  // (1h) como red de seguridad.
+  const { warning: idleWarning, secondsLeft, extend: extendIdle } = useIdleTimeout({
+    enabled: !!user,
+    idleMs: 30 * 60 * 1000,
+    warningOffsetMs: 2 * 60 * 1000,
+    onExpire: logout,
+  });
+
+  // "Seguir conectado": además de resetear el timer local, pinga al backend
+  // (`/api/me`) para ejercitar la cookie de sesión. Si el ping falla por 401,
+  // el checkAuth pone user=null y el AuthProvider redirigirá al login.
+  const handleContinueIdle = useCallback(async () => {
+    extendIdle();
+    try { await checkAuth(); } catch (_) { /* checkAuth ya gestiona su propio error */ }
+  }, [extendIdle]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, checkAuth }}>
       {children}
+      {user && (
+        <IdleWarningModal
+          isOpen={idleWarning}
+          secondsLeft={secondsLeft}
+          onContinue={handleContinueIdle}
+          onLogout={logout}
+        />
+      )}
     </AuthContext.Provider>
   );
 };

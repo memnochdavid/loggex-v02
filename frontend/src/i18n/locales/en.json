@@ -274,6 +274,27 @@
     "cancel": "Cancel",
     "close": "Close"
   },
+  "session": {
+    "idleWarningTitle": "Are you still there?",
+    "idleWarningBody": "Your session will close due to inactivity in",
+    "idleWarningHint": "Press \"Stay connected\" to keep the session open.",
+    "idleContinue": "Stay connected",
+    "idleLogoutNow": "Log out"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Invalid email",
+    "nif": "Invalid Spanish ID (DNI / NIE / CIF)",
+    "phoneEs": "Invalid phone (9 digits, starting with 6-9)",
+    "minLength": "Minimum {{count}} characters",
+    "maxLength": "Maximum {{count}} characters",
+    "pattern": "Invalid format",
+    "invalid": "Invalid value"
+  },
+  "errors": {
+    "userEmailDuplicate": "A user with email \"{{email}}\" already exists",
+    "userNifDuplicate": "A user with DNI/NIF \"{{nif}}\" already exists"
+  },
   "login": {
     "title": "Log In",
     "email": "Email",

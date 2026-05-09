@@ -68,13 +68,31 @@ class AdminUserController extends AbstractController
 
         // Comprobar email duplicado antes del flush (evita que MariaDB dispare
         // UniqueConstraintViolationException y Symfony devuelva HTML 500).
+        // Devolvemos `messageKey` + `messageParams`: el frontend traduce con
+        // i18n (patrón canónico, ver `parseErrorResponse` en toast.js). El
+        // `message` en inglés es solo fallback si el cliente no traduce.
         if ($email) {
             $existing = $entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
             if ($existing && $existing->getId() !== $user->getId()) {
-                return $this->json(
-                    ['message' => 'Ya existe un usuario con ese email'],
-                    Response::HTTP_CONFLICT
-                );
+                return $this->json([
+                    'messageKey' => 'errors.userEmailDuplicate',
+                    'messageParams' => ['email' => $email],
+                    'message' => sprintf('A user with email "%s" already exists', $email),
+                ], Response::HTTP_CONFLICT);
+            }
+        }
+
+        // Mismo pre-check para NIF — espejo del UNIQUE constraint añadido en
+        // Version20260509120000. NULL/empty se ignoran (el constraint UNIQUE
+        // de SQL acepta múltiples NULL).
+        if ($nif !== null && $nif !== '') {
+            $existingNif = $entityManager->getRepository(User::class)->findOneBy(['nif' => $nif]);
+            if ($existingNif && $existingNif->getId() !== $user->getId()) {
+                return $this->json([
+                    'messageKey' => 'errors.userNifDuplicate',
+                    'messageParams' => ['nif' => $nif],
+                    'message' => sprintf('A user with DNI/NIF "%s" already exists', $nif),
+                ], Response::HTTP_CONFLICT);
             }
         }
 
@@ -159,10 +177,20 @@ class AdminUserController extends AbstractController
             $entityManager->persist($user);
             $entityManager->flush();
         } catch (UniqueConstraintViolationException $e) {
-            return $this->json(
-                ['message' => 'Ya existe un usuario con ese email'],
-                Response::HTTP_CONFLICT
-            );
+            // Red de seguridad si los pre-checks no atraparon el duplicado
+            // (race condition entre dos requests concurrentes). Inspecciona
+            // el mensaje del driver para decidir qué constraint violó:
+            // - `UNIQ_USUARIO_NIF` para `usuario.nif` (Version20260509120000).
+            // - cualquier otro / mención de `email` → asumimos email.
+            $rawMsg = strtolower($e->getMessage());
+            $isNif = str_contains($rawMsg, 'uniq_usuario_nif') || str_contains($rawMsg, "'nif'");
+            return $this->json([
+                'messageKey' => $isNif ? 'errors.userNifDuplicate' : 'errors.userEmailDuplicate',
+                'messageParams' => $isNif ? ['nif' => $nif ?? ''] : ['email' => $email ?? ''],
+                'message' => $isNif
+                    ? sprintf('A user with DNI/NIF "%s" already exists', $nif ?? '')
+                    : sprintf('A user with email "%s" already exists', $email ?? ''),
+            ], Response::HTTP_CONFLICT);
         } catch (\Throwable $e) {
             return $this->json(
                 ['message' => 'No se ha podido guardar el usuario: ' . $e->getMessage()],
