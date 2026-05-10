@@ -596,3 +596,143 @@
         transform: none;
     }
 }
+
+/* ----------------------------------------------------------------------
+ * Buscador del sidebar — visible solo en modo expandido. Cuando hay
+ * query, .nav cambia de AccordionView a .flatResults: lista plana con
+ * el subtítulo de la sección bajo cada item para no perder contexto.
+ * ---------------------------------------------------------------------- */
+
+.searchWrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 0 var(--space-3) 0;
+    transition:
+        opacity var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard),
+        max-height var(--dur-base) var(--ease-out-quart),
+        margin var(--dur-base) var(--ease-out-quart);
+    max-height: 40px;
+    overflow: hidden;
+}
+
+.searchIcon {
+    position: absolute;
+    left: var(--space-2);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-gray-400);
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    background-color: color-mix(in srgb, black 25%, transparent);
+    color: var(--text-light);
+    border: 1px solid color-mix(in srgb, var(--color-gray-600) 40%, transparent);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-2) var(--space-2) calc(var(--space-2) + 22px);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition:
+        border-color var(--dur-fast) var(--ease-standard),
+        background-color var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
+    box-sizing: border-box;
+}
+
+.searchInput::placeholder {
+    color: var(--color-gray-400);
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-primary-400) 70%, transparent);
+    background-color: color-mix(in srgb, black 35%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-400) 20%, transparent);
+}
+
+/* Quitar la cruz nativa de search en WebKit — usamos nuestro propio botón. */
+.searchInput::-webkit-search-cancel-button,
+.searchInput::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.searchClear {
+    position: absolute;
+    right: var(--space-2);
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--color-gray-300);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.searchClear:hover {
+    background-color: color-mix(in srgb, white 10%, transparent);
+    color: var(--text-light);
+}
+
+.searchClear:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 75%, transparent);
+    outline-offset: 1px;
+}
+
+/* En modo colapsado (icon-only) ocultamos el buscador para no chocar con
+   los iconos de 72px. La query se limpia en el effect que mira isCollapsed,
+   así que al re-expandir el modo flat no aparece con resultados huérfanos. */
+.sidebar.collapsed .searchWrap {
+    opacity: 0;
+    pointer-events: none;
+    max-height: 0;
+    margin: 0;
+    transform: translateY(-4px);
+}
+
+/* Resultados planos del modo búsqueda: misma fila visual que el accordion
+   normal pero sin headers de sección — la sección viaja como subtítulo
+   bajo el label del item. */
+.flatResults {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    overflow-y: auto;
+    padding-right: var(--space-1);
+    /* Igual que .accordionWrapper, scroll auto-hide via tema. */
+    scrollbar-gutter: stable;
+}
+
+.navItemLabel {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.navItemSection {
+    font-size: 0.72rem;
+    color: var(--color-gray-400);
+    margin-top: 2px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.noResults {
+    margin: var(--space-4) var(--space-2);
+    color: var(--color-gray-400);
+    font-size: 0.85rem;
+    text-align: center;
+    font-style: italic;
+}

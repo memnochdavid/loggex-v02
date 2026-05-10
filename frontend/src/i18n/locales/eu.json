@@ -236,7 +236,11 @@
     "pin": "Ainguratu",
     "unpin": "Askatu",
     "jornadas": "Lan-egunak",
-    "exceptions": "Intzidentziak"
+    "exceptions": "Intzidentziak",
+    "dates": "Datak",
+    "searchPlaceholder": "Bilatu sarbideak…",
+    "searchClear": "Garbitu bilaketa",
+    "searchNoResults": "Emaitzarik ez."
   },
   "userAvatar": {
     "menuLabel": "Erabiltzaile menua",

@@ -236,7 +236,11 @@
     "pin": "Ancorar",
     "unpin": "Desancorar",
     "jornadas": "Jornades",
-    "exceptions": "Incidències"
+    "exceptions": "Incidències",
+    "dates": "Dates",
+    "searchPlaceholder": "Cerca dreceres…",
+    "searchClear": "Esborra la cerca",
+    "searchNoResults": "Sense resultats."
   },
   "userAvatar": {
     "menuLabel": "Menú d'usuari",

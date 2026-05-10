@@ -236,7 +236,11 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "jornadas": "Schedules templates",
-    "exceptions": "Incidents"
+    "exceptions": "Incidents",
+    "dates": "Dates",
+    "searchPlaceholder": "Search shortcuts…",
+    "searchClear": "Clear search",
+    "searchNoResults": "No results."
   },
   "userAvatar": {
     "menuLabel": "User menu",

@@ -236,7 +236,11 @@
     "pin": "Ancorar",
     "unpin": "Desancorar",
     "jornadas": "Xornadas",
-    "exceptions": "Incidencias"
+    "exceptions": "Incidencias",
+    "dates": "Datas",
+    "searchPlaceholder": "Buscar atallos…",
+    "searchClear": "Limpar busca",
+    "searchNoResults": "Sen resultados."
   },
   "userAvatar": {
     "menuLabel": "Menú de usuario",

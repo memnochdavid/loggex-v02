@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
-import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info, Clock, Shuffle } from 'lucide-react';
+import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info, Clock, Shuffle, Search, X as XIcon } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ConfirmLogoutModal from './ConfirmLogoutModal';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +34,12 @@ const estimateSidebarHover = () => {
     return x >= 0 && x <= SIDEBAR_EXPANDED_WIDTH && y >= HEADER_HEIGHT_ESTIMATE;
 };
 
+// Normaliza un string para búsqueda case/diacrítico-insensitive.
+const normalizeForSearch = (s) => (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+
 const Sidebar = () => {
     const { t } = useTranslation();
     const { logout, user } = useAuth();
@@ -48,7 +54,9 @@ const Sidebar = () => {
     // el primer paint ya sale expandido (sin bounce).
     const [isHovered, setIsHovered] = useState(estimateSidebarHover);
     const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const asideRef = useRef(null);
+    const searchInputRef = useRef(null);
     /* Si hay un tour activo, forzamos sidebar expandido para que Joyride
        pueda localizar y medir los items diana (que quedarían colapsados
        a 72px con labels ocultos si no). */
@@ -60,6 +68,16 @@ const Sidebar = () => {
     useEffect(() => {
         localStorage.setItem('sidebarPinned', JSON.stringify(isPinned));
     }, [isPinned]);
+
+    /* Al colapsar el sidebar (mouseleave / unpin), el input de búsqueda se
+       oculta visualmente: limpiamos la query también para que al volver a
+       expandir no aparezca el modo plano con resultados de una búsqueda
+       olvidada. Cosmético pero evita "estado fantasma". */
+    useEffect(() => {
+        if (isCollapsed && searchQuery !== '') {
+            setSearchQuery('');
+        }
+    }, [isCollapsed, searchQuery]);
 
     /* En móvil el sidebar está display:none por defecto y solo se ve con la
        clase `.mobileOpen` (isSidebarOpen=true). Para que un tour pueda
@@ -88,32 +106,31 @@ const Sidebar = () => {
         '/admin/excepciones': 'administracion',
         '/mensajes': 'general',
         '/perfil': 'general',
-        
+
         '/entregas': (isAlumno && !isProfesor && !isAdmin && !isSuperAdmin) ? 'alumno' : 'profesor',
         '/calificaciones': 'profesor',
         '/mis-temarios': 'profesor',
         '/claustro': 'profesor',
         '/mis-alumnos': 'profesor',
-        
+
         '/apuntes': 'alumno',
         '/mis-calificaciones': 'alumno',
         '/faltas': 'alumno',
         '/companeros': 'alumno',
         '/mis-profesores': 'alumno',
-        
+
         '/usuarios': 'administracion',
         '/itinerarios': 'administracion',
         '/grupos': 'administracion',
         '/materias': 'administracion',
         '/matriculas': 'administracion',
         '/imparticiones': 'administracion',
-        '/fechas': isSuperAdmin ? 'superadmin' : 'administracion',
+        '/centros': 'administracion',
+        '/fechas': 'administracion',
         '/admin/calificaciones': 'administracion',
         '/configuracion': 'administracion',
 
         '/admin/catalogo': 'catalogo',
-
-        '/centros': 'superadmin',
 
         // Ruta raíz al final
         '/': 'general',
@@ -189,226 +206,155 @@ const Sidebar = () => {
        y si se cierra, Joyride pierde los targets. */
     const handleNavClose = () => {
         if (!currentTour) closeSidebar();
+        // Tras navegar, vaciamos el filtro: el usuario ya encontró lo que buscaba.
+        if (searchQuery) setSearchQuery('');
     };
 
-    // Definición de las secciones del acordeón
-    const accordionData = [];
+    /* Definición de las secciones como datos, no JSX. Esto permite:
+       1) renderizar dentro de un AccordionView en modo normal,
+       2) aplanar y filtrar en modo búsqueda sin duplicar markup. */
+    const accordionData = useMemo(() => {
+        const sections = [];
 
-    // 1. General (Para todos)
-    accordionData.push({
-        id: 'general',
-        title: t('sidebar.general'),
-        content: (
-            <>
-                <NavLink to="/" className={getNavLinkClass} title={t('sidebar.home')} onClick={handleNavClose} data-tour="sidebar-home">
-                    <Home size={20} />
-                    <span>{t('sidebar.home')}</span>
-                </NavLink>
-                <NavLink to="/horarios" className={getNavLinkClass} title={t('sidebar.schedule')} onClick={handleNavClose} data-tour="sidebar-horarios">
-                    <Calendar size={20} />
-                    <span>{t('sidebar.schedule')}</span>
-                </NavLink>
-                <NavLink to="/mensajes" className={getNavLinkClass} title={t('sidebar.messaging')} onClick={handleNavClose} data-tour="sidebar-mensajes">
-                    <MessageSquare size={20} />
-                    <span>{t('sidebar.messaging')}</span>
-                    {unreadMessages > 0 && (
+        // 1. General (Para todos)
+        sections.push({
+            id: 'general',
+            title: t('sidebar.general'),
+            items: [
+                { to: '/', Icon: Home, label: t('sidebar.home'), tour: 'sidebar-home' },
+                { to: '/horarios', Icon: Calendar, label: t('sidebar.schedule'), tour: 'sidebar-horarios' },
+                {
+                    to: '/mensajes',
+                    Icon: MessageSquare,
+                    label: t('sidebar.messaging'),
+                    tour: 'sidebar-mensajes',
+                    badge: unreadMessages > 0 ? (
                         <span className={styles.badge} aria-label={`${unreadMessages} no leídos`}>
                             {unreadMessages > 99 ? '99+' : unreadMessages}
                         </span>
+                    ) : null,
+                },
+                { to: '/perfil', Icon: User, label: t('sidebar.profile'), tour: 'sidebar-perfil' },
+            ],
+        });
+
+        // 2. Profesor
+        if (isProfesor || isSuperAdmin || isAdmin) {
+            sections.push({
+                id: 'profesor',
+                title: t('sidebar.teacher'),
+                items: [
+                    { to: '/entregas', Icon: UploadCloud, label: t('sidebar.deliveries'), tour: 'sidebar-entregas' },
+                    { to: '/calificaciones', Icon: BarChart3, label: t('sidebar.grades'), tour: 'sidebar-calificaciones' },
+                    { to: '/mis-temarios', Icon: Book, label: t('sidebar.myTemarios'), tour: 'sidebar-mis-temarios' },
+                    { to: '/claustro', Icon: UserCheck, label: t('sidebar.faculty'), tour: 'sidebar-claustro' },
+                    { to: '/mis-alumnos', Icon: UsersRound, label: t('sidebar.myStudents'), tour: 'sidebar-mis-alumnos' },
+                ],
+            });
+        }
+
+        // 3. Alumno
+        if (isAlumno || isSuperAdmin) {
+            const items = [
+                { to: '/apuntes', Icon: FileText, label: t('sidebar.myNotes'), tour: 'sidebar-apuntes' },
+                { to: '/faltas', Icon: AlertCircle, label: t('sidebar.myAbsences'), tour: 'sidebar-faltas' },
+                { to: '/mis-calificaciones', Icon: BarChart3, label: t('sidebar.myGrades'), tour: 'sidebar-mis-calificaciones' },
+                { to: '/companeros', Icon: UsersRound, label: t('sidebar.myClassmates') },
+                { to: '/mis-profesores', Icon: UserCheck, label: t('sidebar.myTeachers') },
+            ];
+            // Entregas solo si NO tiene sección Profesor (evitar duplicados).
+            if (!isProfesor && !isAdmin && !isSuperAdmin) {
+                items.push({ to: '/entregas', Icon: UploadCloud, label: t('sidebar.deliveries'), tour: 'sidebar-entregas' });
+            }
+            sections.push({ id: 'alumno', title: t('sidebar.student'), items });
+        }
+
+        // 4. Administración (incluye Centros y Fechas, antes en Superadmin).
+        if (isSuperAdmin || isAdmin) {
+            const items = [
+                { to: '/usuarios', Icon: Users, label: t('sidebar.users'), tour: 'sidebar-usuarios' },
+                { to: '/itinerarios', Icon: Layers, label: t('sidebar.itinerarios'), tour: 'sidebar-itinerarios' },
+                { to: '/grupos', Icon: UsersRound, label: t('sidebar.groups'), tour: 'sidebar-grupos' },
+                { to: '/materias', Icon: BookOpen, label: t('sidebar.materias'), tour: 'sidebar-materias' },
+                { to: '/matriculas', Icon: GraduationCap, label: t('sidebar.enrollments'), tour: 'sidebar-matriculas' },
+                { to: '/imparticiones', Icon: Briefcase, label: t('sidebar.teaching'), tour: 'sidebar-imparticiones' },
+                { to: '/admin/horarios', Icon: Calendar, label: t('sidebar.schedule'), tour: 'sidebar-admin-horarios' },
+                { to: '/admin/jornadas', Icon: Clock, label: t('sidebar.jornadas', { defaultValue: 'Jornadas' }), tour: 'sidebar-admin-jornadas' },
+                { to: '/admin/excepciones', Icon: Shuffle, label: t('sidebar.exceptions', { defaultValue: 'Excepciones' }), tour: 'sidebar-admin-excepciones' },
+                { to: '/fechas', Icon: CalendarDays, label: t('sidebar.dates', { defaultValue: 'Fechas' }) },
+                { to: '/admin/calificaciones', Icon: BarChart3, label: t('sidebar.stats') },
+            ];
+            if (isSuperAdmin) {
+                // Centros solo lo gestiona el SuperAdmin (la ruta tiene guard
+                // ROLE_SUPERADMIN tanto en frontend como en API Platform).
+                items.push({ to: '/centros', Icon: Building, label: t('sidebar.centers'), tour: 'sidebar-centros' });
+            }
+            items.push({ to: '/configuracion', Icon: Settings, label: t('sidebar.settings'), tour: 'sidebar-configuracion' });
+            sections.push({ id: 'administracion', title: t('sidebar.admin'), items });
+        }
+
+        // 5. Catálogo oficial
+        if (isSuperAdmin || isAdmin) {
+            const items = [
+                { to: '/admin/catalogo/itinerarios', Icon: Library, label: t('sidebar.catalogoItinerarios') },
+                { to: '/admin/catalogo/materias', Icon: Database, label: t('sidebar.catalogoMaterias') },
+            ];
+            if (isSuperAdmin) {
+                items.push({ to: '/admin/catalogo/centros', Icon: Building2, label: t('sidebar.catalogoCentros') });
+            }
+            items.push({ to: '/admin/catalogo/acerca', Icon: Info, label: t('sidebar.catalogoAcerca') });
+            sections.push({ id: 'catalogo', title: t('sidebar.catalogo'), items });
+        }
+
+        return sections;
+    }, [t, isProfesor, isAlumno, isAdmin, isSuperAdmin, unreadMessages]);
+
+    /* Lista plana de items con su sección — para el modo búsqueda. */
+    const allItems = useMemo(() => {
+        const flat = [];
+        for (const section of accordionData) {
+            for (const it of section.items) {
+                flat.push({ ...it, sectionId: section.id, sectionTitle: section.title });
+            }
+        }
+        return flat;
+    }, [accordionData]);
+
+    const queryNorm = normalizeForSearch(searchQuery.trim());
+    const filteredItems = useMemo(() => {
+        if (!queryNorm) return null;
+        return allItems.filter(it => {
+            const inLabel = normalizeForSearch(it.label).includes(queryNorm);
+            const inSection = normalizeForSearch(it.sectionTitle).includes(queryNorm);
+            return inLabel || inSection;
+        });
+    }, [allItems, queryNorm]);
+
+    const renderNavItem = (item, opts = {}) => {
+        const { showSection = false } = opts;
+        const tourAttrs = item.tour ? { 'data-tour': item.tour } : {};
+        return (
+            <NavLink
+                key={`${item.sectionId || ''}:${item.to}`}
+                to={item.to}
+                className={getNavLinkClass}
+                title={item.label}
+                onClick={handleNavClose}
+                {...tourAttrs}
+            >
+                <item.Icon size={20} />
+                <span className={styles.navItemLabel}>
+                    {item.label}
+                    {showSection && item.sectionTitle && (
+                        <span className={styles.navItemSection}>{item.sectionTitle}</span>
                     )}
-                </NavLink>
-                <NavLink to="/perfil" className={getNavLinkClass} title={t('sidebar.profile')} onClick={handleNavClose} data-tour="sidebar-perfil">
-                    <User size={20} />
-                    <span>{t('sidebar.profile')}</span>
-                </NavLink>
-            </>
-        )
-    });
+                </span>
+                {item.badge}
+            </NavLink>
+        );
+    };
 
-    // 2. Profesor
-    if (isProfesor || isSuperAdmin || isAdmin) {
-        accordionData.push({
-            id: 'profesor',
-            title: t('sidebar.teacher'),
-            content: (
-                <>
-                    <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={handleNavClose} data-tour="sidebar-entregas">
-                        <UploadCloud size={20} />
-                        <span>{t('sidebar.deliveries')}</span>
-                    </NavLink>
-                    <NavLink to="/calificaciones" className={getNavLinkClass} title={t('sidebar.grades')} onClick={handleNavClose} data-tour="sidebar-calificaciones">
-                        <BarChart3 size={20} />
-                        <span>{t('sidebar.grades')}</span>
-                    </NavLink>
-                    <NavLink to="/mis-temarios" className={getNavLinkClass} title={t('sidebar.myTemarios')} onClick={handleNavClose} data-tour="sidebar-mis-temarios">
-                        <Book size={20} />
-                        <span>{t('sidebar.myTemarios')}</span>
-                    </NavLink>
-                    <NavLink to="/claustro" className={getNavLinkClass} title={t('sidebar.faculty')} onClick={handleNavClose} data-tour="sidebar-claustro">
-                        <UserCheck size={20} />
-                        <span>{t('sidebar.faculty')}</span>
-                    </NavLink>
-                    <NavLink to="/mis-alumnos" className={getNavLinkClass} title={t('sidebar.myStudents')} onClick={handleNavClose} data-tour="sidebar-mis-alumnos">
-                        <UsersRound size={20} />
-                        <span>{t('sidebar.myStudents')}</span>
-                    </NavLink>
-                </>
-            )
-        });
-    }
-
-    // 3. Alumno
-    if (isAlumno || isSuperAdmin) { // AÑADIDO isSuperAdmin
-        accordionData.push({
-            id: 'alumno',
-            title: t('sidebar.student'),
-            content: (
-                <>
-                    <NavLink to="/apuntes" className={getNavLinkClass} title={t('sidebar.myNotes')} onClick={handleNavClose} data-tour="sidebar-apuntes">
-                        <FileText size={20} />
-                        <span>{t('sidebar.myNotes')}</span>
-                    </NavLink>
-                    <NavLink to="/faltas" className={getNavLinkClass} title={t('sidebar.myAbsences')} onClick={handleNavClose} data-tour="sidebar-faltas">
-                        <AlertCircle size={20} />
-                        <span>{t('sidebar.myAbsences')}</span>
-                    </NavLink>
-                    <NavLink to="/mis-calificaciones" className={getNavLinkClass} title={t('sidebar.myGrades')} onClick={handleNavClose} data-tour="sidebar-mis-calificaciones">
-                        <BarChart3 size={20} />
-                        <span>{t('sidebar.myGrades')}</span>
-                    </NavLink>
-                    <NavLink to="/companeros" className={getNavLinkClass} title={t('sidebar.myClassmates')} onClick={handleNavClose}>
-                        <UsersRound size={20} />
-                        <span>{t('sidebar.myClassmates')}</span>
-                    </NavLink>
-                    <NavLink to="/mis-profesores" className={getNavLinkClass} title={t('sidebar.myTeachers')} onClick={handleNavClose}>
-                        <UserCheck size={20} />
-                        <span>{t('sidebar.myTeachers')}</span>
-                    </NavLink>
-                    {/* Entregas solo si NO tiene sección Profesor (evitar duplicados) */}
-                    {!isProfesor && !isAdmin && !isSuperAdmin && (
-                        <NavLink to="/entregas" className={getNavLinkClass} title={t('sidebar.deliveries')} onClick={handleNavClose} data-tour="sidebar-entregas">
-                            <UploadCloud size={20} />
-                            <span>{t('sidebar.deliveries')}</span>
-                        </NavLink>
-                    )}
-                </>
-            )
-        });
-    }
-
-    // 4. Administración
-    if (isSuperAdmin || isAdmin) {
-        accordionData.push({
-            id: 'administracion',
-            title: t('sidebar.admin'),
-            content: (
-                <>
-                    <NavLink to="/usuarios" className={getNavLinkClass} title={t('sidebar.users')} onClick={handleNavClose} data-tour="sidebar-usuarios">
-                        <Users size={20} />
-                        <span>{t('sidebar.users')}</span>
-                    </NavLink>
-                    <NavLink to="/itinerarios" className={getNavLinkClass} title={t('sidebar.itinerarios')} onClick={handleNavClose} data-tour="sidebar-itinerarios">
-                        <Layers size={20} />
-                        <span>{t('sidebar.itinerarios')}</span>
-                    </NavLink>
-                    <NavLink to="/grupos" className={getNavLinkClass} title={t('sidebar.groups')} onClick={handleNavClose} data-tour="sidebar-grupos">
-                        <UsersRound size={20} />
-                        <span>{t('sidebar.groups')}</span>
-                    </NavLink>
-                    <NavLink to="/materias" className={getNavLinkClass} title={t('sidebar.materias')} onClick={handleNavClose} data-tour="sidebar-materias">
-                        <BookOpen size={20} />
-                        <span>{t('sidebar.materias')}</span>
-                    </NavLink>
-                    <NavLink to="/matriculas" className={getNavLinkClass} title={t('sidebar.enrollments')} onClick={handleNavClose} data-tour="sidebar-matriculas">
-                        <GraduationCap size={20} />
-                        <span>{t('sidebar.enrollments')}</span>
-                    </NavLink>
-                    <NavLink to="/imparticiones" className={getNavLinkClass} title={t('sidebar.teachingAssignment')} onClick={handleNavClose} data-tour="sidebar-imparticiones">
-                        <Briefcase size={20} />
-                        <span>{t('sidebar.teaching')}</span>
-                    </NavLink>
-                    <NavLink to="/admin/horarios" className={getNavLinkClass} title={t('sidebar.scheduleAdmin')} onClick={handleNavClose} data-tour="sidebar-admin-horarios">
-                        <Calendar size={20} />
-                        <span>{t('sidebar.schedule')}</span>
-                    </NavLink>
-                    <NavLink to="/admin/jornadas" className={getNavLinkClass} title={t('sidebar.jornadas', { defaultValue: 'Jornadas' })} onClick={handleNavClose} data-tour="sidebar-admin-jornadas">
-                        <Clock size={20} />
-                        <span>{t('sidebar.jornadas', { defaultValue: 'Jornadas' })}</span>
-                    </NavLink>
-                    <NavLink to="/admin/excepciones" className={getNavLinkClass} title={t('sidebar.exceptions', { defaultValue: 'Excepciones' })} onClick={handleNavClose} data-tour="sidebar-admin-excepciones">
-                        <Shuffle size={20} />
-                        <span>{t('sidebar.exceptions', { defaultValue: 'Excepciones' })}</span>
-                    </NavLink>
-                    {!isSuperAdmin && ( // Superadmin ya tiene fechas globales arriba
-                        <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={handleNavClose}>
-                            <CalendarDays size={20} />
-                            <span>Fechas</span>
-                        </NavLink>
-                    )}
-                    <NavLink to="/admin/calificaciones" className={getNavLinkClass} title={t('sidebar.stats')} onClick={handleNavClose}>
-                        <BarChart3 size={20} />
-                        <span>{t('sidebar.stats')}</span>
-                    </NavLink>
-                    <NavLink to="/configuracion" className={getNavLinkClass} title={t('sidebar.settings')} onClick={handleNavClose} data-tour="sidebar-configuracion">
-                        <Settings size={20} />
-                        <span>{t('sidebar.settings')}</span>
-                    </NavLink>
-                </>
-            )
-        });
-    }
-
-    // 5. Catálogo oficial (read-only del catálogo educativo nacional)
-    if (isSuperAdmin || isAdmin) {
-        accordionData.push({
-            id: 'catalogo',
-            title: t('sidebar.catalogo'),
-            content: (
-                <>
-                    <NavLink to="/admin/catalogo/itinerarios" className={getNavLinkClass} title={t('sidebar.catalogoItinerarios')} onClick={handleNavClose}>
-                        <Library size={20} />
-                        <span>{t('sidebar.catalogoItinerarios')}</span>
-                    </NavLink>
-                    <NavLink to="/admin/catalogo/materias" className={getNavLinkClass} title={t('sidebar.catalogoMaterias')} onClick={handleNavClose}>
-                        <Database size={20} />
-                        <span>{t('sidebar.catalogoMaterias')}</span>
-                    </NavLink>
-                    {isSuperAdmin && (
-                        <NavLink to="/admin/catalogo/centros" className={getNavLinkClass} title={t('sidebar.catalogoCentros')} onClick={handleNavClose}>
-                            <Building2 size={20} />
-                            <span>{t('sidebar.catalogoCentros')}</span>
-                        </NavLink>
-                    )}
-                    <NavLink to="/admin/catalogo/acerca" className={getNavLinkClass} title={t('sidebar.catalogoAcerca')} onClick={handleNavClose}>
-                        <Info size={20} />
-                        <span>{t('sidebar.catalogoAcerca')}</span>
-                    </NavLink>
-                </>
-            )
-        });
-    }
-
-    // 6. Superadmin
-    if (isSuperAdmin) {
-        accordionData.push({
-            id: 'superadmin',
-            title: t('sidebar.superadmin'),
-            content: (
-                <>
-                    <NavLink to="/centros" className={getNavLinkClass} title={t('sidebar.centers')} onClick={handleNavClose} data-tour="sidebar-centros">
-                        <Building size={20} />
-                        <span>{t('sidebar.centers')}</span>
-                    </NavLink>
-                    <NavLink to="/fechas" className={getNavLinkClass} title="Fechas" onClick={handleNavClose}>
-                        <CalendarDays size={20} />
-                        <span>Fechas</span>
-                    </NavLink>
-                </>
-            )
-        });
-    }
-
-
+    const renderSectionItems = (section) => section.items.map(it => renderNavItem({ ...it, sectionId: section.id }));
 
     const sidebarContent = (
         <>
@@ -424,17 +370,59 @@ const Sidebar = () => {
                 onMouseLeave={() => setIsHovered(false)}
             >
                 <div className={styles.inner}>
+                    {/* Buscador del sidebar. Aparece solo expandido para no
+                        colisionar con la zona de iconos en modo colapsado. Sin
+                        query, comportamiento normal (acordeones); con query,
+                        modo plano filtrado en toda la nav. */}
+                    <div className={styles.searchWrap}>
+                        <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+                        <input
+                            ref={searchInputRef}
+                            type="search"
+                            className={styles.searchInput}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={t('sidebar.searchPlaceholder', { defaultValue: 'Buscar accesos…' })}
+                            aria-label={t('sidebar.searchPlaceholder', { defaultValue: 'Buscar accesos…' })}
+                            spellCheck={false}
+                            autoComplete="off"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                className={styles.searchClear}
+                                onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                                aria-label={t('sidebar.searchClear', { defaultValue: 'Limpiar búsqueda' })}
+                                title={t('sidebar.searchClear', { defaultValue: 'Limpiar búsqueda' })}
+                            >
+                                <XIcon size={14} />
+                            </button>
+                        )}
+                    </div>
+
                     <nav className={styles.nav}>
-                        <div className={styles.accordionWrapper}>
-                            <AccordionView
-                                data={accordionData}
-                                renderItem={(item) => item.content}
-                                renderHeader={(item) => <span>{item.title}</span>}
-                                expandedId={expandedAccordion}
-                                onToggle={handleAccordionToggle}
-                                persistScrollKey="sidebar"
-                            />
-                        </div>
+                        {filteredItems !== null ? (
+                            <div className={styles.flatResults} role="list">
+                                {filteredItems.length > 0 ? (
+                                    filteredItems.map(it => renderNavItem(it, { showSection: true }))
+                                ) : (
+                                    <p className={styles.noResults}>
+                                        {t('sidebar.searchNoResults', { defaultValue: 'Sin resultados.' })}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className={styles.accordionWrapper}>
+                                <AccordionView
+                                    data={accordionData}
+                                    renderItem={renderSectionItems}
+                                    renderHeader={(item) => <span>{item.title}</span>}
+                                    expandedId={expandedAccordion}
+                                    onToggle={handleAccordionToggle}
+                                    persistScrollKey="sidebar"
+                                />
+                            </div>
+                        )}
                     </nav>
 
                     <div className={styles.footer}>

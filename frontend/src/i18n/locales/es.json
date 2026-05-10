@@ -241,7 +241,11 @@
     "catalogoItinerarios": "Itinerarios",
     "catalogoMaterias": "Materias",
     "catalogoCentros": "Centros oficiales",
-    "catalogoAcerca": "Acerca del catálogo"
+    "catalogoAcerca": "Acerca del catálogo",
+    "dates": "Fechas",
+    "searchPlaceholder": "Buscar accesos…",
+    "searchClear": "Limpiar búsqueda",
+    "searchNoResults": "Sin resultados."
   },
   "catalogo": {
     "banner": {
