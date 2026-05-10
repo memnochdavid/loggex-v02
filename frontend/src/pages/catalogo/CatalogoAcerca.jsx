@@ -42,6 +42,7 @@ const CatalogoAcerca = () => {
                         <li>{t('catalogo.acerca.scopeItem1')}</li>
                         <li>{t('catalogo.acerca.scopeItem2')}</li>
                         <li>{t('catalogo.acerca.scopeItem3')}</li>
+                        <li>{t('catalogo.acerca.scopeItem4')}</li>
                     </ul>
                 </section>
 
@@ -91,6 +92,26 @@ const CatalogoAcerca = () => {
                             {t('catalogo.acerca.source2Description')}
                         </p>
                     </div>
+
+                    <div className={styles.sourceCard}>
+                        <div className={styles.sourceHeader}>
+                            <h3 className={styles.sourceName}>
+                                {t('catalogo.acerca.source3Name')}
+                            </h3>
+                            <a
+                                href="https://www.juntadeandalucia.es/datosabiertos/portal/dataset/directorio-de-centros-docentes-de-andalucia"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.sourceLink}
+                            >
+                                datosabiertos.juntadeandalucia.es
+                                <ExternalLink size={12} aria-hidden="true" />
+                            </a>
+                        </div>
+                        <p className={styles.sourceDescription}>
+                            {t('catalogo.acerca.source3Description')}
+                        </p>
+                    </div>
                 </section>
 
                 <section className={styles.section}>
@@ -132,6 +153,9 @@ const CatalogoAcerca = () => {
                         </Link>
                         <Link to="/admin/catalogo/materias" className={styles.exploreLink}>
                             {t('catalogo.acerca.exploreMaterias')}
+                        </Link>
+                        <Link to="/admin/catalogo/centros" className={styles.exploreLink}>
+                            {t('catalogo.acerca.exploreCentros')}
                         </Link>
                     </div>
                 </section>

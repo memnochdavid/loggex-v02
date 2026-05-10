@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Catalogo\CatalogoCentro;
 use App\Entity\Ccaa;
 use App\Entity\Centro;
 use App\Entity\EtapaEducativa;
@@ -72,6 +73,19 @@ class CentroController extends AbstractController
             $centro->setProvincia($provincia);
         }
 
+        // Trazabilidad al catálogo oficial. Solo en alta (no se permite cambiar
+        // el origen de un centro existente — daría falso positivo de "lo
+        // creé desde catálogo" cuando en realidad fue manual).
+        if (!$centro->getId() && $request->request->has('catalogoOrigenId')) {
+            $catId = $request->request->get('catalogoOrigenId');
+            if ($catId) {
+                $cat = $entityManager->getRepository(CatalogoCentro::class)->find((int) $catId);
+                if ($cat) {
+                    $centro->setCatalogoOrigen($cat);
+                }
+            }
+        }
+
         // Fechas del curso académico (override del calendario CCAA). Vacío → null.
         if ($request->request->has('fechaInicioCurso')) {
             $v = $request->request->get('fechaInicioCurso');
@@ -121,6 +135,7 @@ class CentroController extends AbstractController
                 'provincia' => $centro->getProvincia()?->getCodigo(),
                 'fechaInicioCurso' => $centro->getFechaInicioCurso()?->format('Y-m-d'),
                 'fechaFinCurso' => $centro->getFechaFinCurso()?->format('Y-m-d'),
+                'catalogoOrigen' => $centro->getCatalogoOrigen()?->getId(),
             ]
         ]);
     }

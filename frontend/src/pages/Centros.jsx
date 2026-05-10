@@ -8,8 +8,9 @@ import ModalView from '../components/ModalView';
 import CrudHeader from '../components/CrudHeader';
 import {usePagination} from '../hooks/usePagination';
 import useLiveRefetch from '../hooks/useLiveRefetch';
-import {Plus, Edit2, Trash2, Image as ImageIcon} from 'lucide-react';
+import {Plus, Edit2, Trash2, Image as ImageIcon, BookOpen, X as XIcon} from 'lucide-react';
 import ThemedSelect from '../components/ThemedSelect';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 
 // Códigos ISO 3166-2:ES de las 19 entidades autonómicas. Idéntico a CCAA_OPTIONS
 // de Itinerarios/CatalogoItinerarios — duplicado intencional hasta que se
@@ -82,6 +83,13 @@ const Centros = () => {
         fechaInicioCurso: '',  // ISO YYYY-MM-DD ('' = sin override)
         fechaFinCurso: '',
     });
+    // Trazabilidad al catálogo oficial. Solo se establece al elegir desde el
+    // selector y solo se envía si el centro es nuevo (en edición no se permite
+    // cambiar el origen — sería un falso positivo de "lo creé desde catálogo").
+    const [catalogoOrigenId, setCatalogoOrigenId] = useState(null);
+    // Modal de selección desde catálogo (Junta de Andalucía).
+    const [isCatalogPickerOpen, setIsCatalogPickerOpen] = useState(false);
+    const [pickerSelected, setPickerSelected] = useState(null);  // objeto CatalogoCentro
     // Lista de provincias cargada upfront (52 fijas, no cambia).
     const [provincias, setProvincias] = useState([]);
     // Sugerencia (CalendarioEscolarCcaa) para la CCAA actual del modal.
@@ -268,6 +276,7 @@ const Centros = () => {
 
     const handleOpenModal = useCallback((centro = null) => {
         setLogoFile(null);
+        setCatalogoOrigenId(null);
         if (centro) {
             setCurrentCentro(centro);
             // Provincia puede venir como objeto Provincia (con `codigo`) o IRI string.
@@ -313,7 +322,47 @@ const Centros = () => {
         setCurrentCentro(null);
         setLogoFile(null);
         setLogoPreview(null);
+        setCatalogoOrigenId(null);
     };
+
+    // Prefilla el modal de creación con un centro elegido del catálogo oficial
+    // (CatalogoCentro). Mapea provincia (string) al código INE más cercano
+    // buscando en `provincias`. CIF, teléfono y fechas se dejan al admin: el
+    // catálogo de la Junta no expone CIFs y los contactos cambian.
+    const handlePickFromCatalog = useCallback(() => {
+        if (!pickerSelected) return;
+        const c = pickerSelected;
+        const ccaaCode = c.ccaa === 'AND' ? 'AN' : (c.ccaa || '');
+        let provinciaCodigo = '';
+        if (c.provincia) {
+            const norm = (s) => (s || '').toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const target = norm(c.provincia);
+            const match = provincias.find(p => norm(p.nombre) === target
+                || norm(p.nombre).startsWith(target));
+            if (match) provinciaCodigo = match.codigo;
+        }
+        const direccion = c.direccion || (c.municipio ? c.municipio : '');
+        setLogoFile(null);
+        setLogoPreview(null);
+        setCurrentCentro(null);
+        setCatalogoOrigenId(c.id ?? null);
+        setFormData({
+            nombre: c.nombre || '',
+            cif: '',
+            direccion: direccion,
+            telefono: '',
+            activo: true,
+            ccaa: ccaaCode,
+            provincia: provinciaCodigo,
+            fechaInicioCurso: '',
+            fechaFinCurso: '',
+        });
+        setCalendarioSugerido(null);
+        setIsCatalogPickerOpen(false);
+        setPickerSelected(null);
+        setIsModalOpen(true);
+    }, [pickerSelected, provincias]);
 
     const handleInputChange = (e) => {
         const {name, value, type, checked} = e.target;
@@ -357,6 +406,13 @@ const Centros = () => {
             data.append('provincia', formData.provincia || '');
             data.append('fechaInicioCurso', formData.fechaInicioCurso || '');
             data.append('fechaFinCurso', formData.fechaFinCurso || '');
+
+            // Solo en alta: si el centro vino del selector de catálogo, persistir
+            // la trazabilidad. En edición se ignora — no se permite reescribir
+            // el origen de un centro existente.
+            if (!currentCentro && catalogoOrigenId) {
+                data.append('catalogoOrigenId', String(catalogoOrigenId));
+            }
 
             if (logoFile) {
                 data.append('logo', logoFile);
@@ -463,7 +519,26 @@ const Centros = () => {
             className: styles.colLogo,
             sortable: false
         },
-        {header: t('centers.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre'},
+        {
+            header: t('centers.name'),
+            accessor: (row) => (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>{row.nombre}</span>
+                    {row.catalogoOrigen && (
+                        <span
+                            className={styles.badge}
+                            title={t('centers.catalogoOrigenTooltip', { defaultValue: 'Creado desde el catálogo oficial' })}
+                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                        >
+                            <BookOpen size={12} />
+                            {t('centers.catalogoOrigenBadge', { defaultValue: 'catálogo' })}
+                        </span>
+                    )}
+                </span>
+            ),
+            sortable: true,
+            sortKey: 'nombre',
+        },
         {header: t('centers.cif'), accessor: 'cif', sortable: true, sortKey: 'cif'},
         {header: t('centers.address'), accessor: 'direccion', sortable: true, sortKey: 'direccion'},
         {header: t('centers.phone'), accessor: 'telefono', sortable: false},
@@ -520,6 +595,10 @@ const Centros = () => {
                         selectedField={searchField}
                         onFieldChange={setSearchField}
                     />
+                    <Button variant="secondary" onClick={() => { setPickerSelected(null); setIsCatalogPickerOpen(true); }}>
+                        <BookOpen size={18} style={{marginRight: '8px'}}/>
+                        {t('centers.fromCatalog', { defaultValue: 'Crear desde catálogo' })}
+                    </Button>
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={18} style={{marginRight: '8px'}}/>
                         {t('common.new')}
@@ -725,6 +804,60 @@ const Centros = () => {
                             {t('centers.activeCheckbox')}
                         </label>
                     </div>
+                </ModalView>
+
+                {/* Modal selector de catálogo oficial (Junta de Andalucía).
+                    Lista los ~7100 centros andaluces ingestados y al elegir uno
+                    prefilla el formulario de creación. CIF, contacto y fechas
+                    los completa el admin: el catálogo no expone CIFs y los
+                    contactos cambian. */}
+                <ModalView
+                    isOpen={isCatalogPickerOpen}
+                    onClose={() => { setIsCatalogPickerOpen(false); setPickerSelected(null); }}
+                    title={t('centers.catalogPickerTitle', { defaultValue: 'Crear desde catálogo oficial' })}
+                    onSubmit={(e) => { e.preventDefault(); handlePickFromCatalog(); }}
+                    submitText={t('centers.catalogPickerSubmit', { defaultValue: 'Continuar y completar' })}
+                    isSubmitting={false}
+                >
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.catalogPickerLabel', { defaultValue: 'Centro oficial' })}
+                        </label>
+                        <AsyncSearchSelect
+                            value={pickerSelected?.id ?? ''}
+                            onChange={(_v, item) => setPickerSelected(item || null)}
+                            endpoint="/api/catalogo_centros"
+                            getOptionLabel={(c) => {
+                                const muni = c.municipio ? ` · ${c.municipio}` : '';
+                                const prov = c.provincia && c.provincia !== c.municipio ? ` (${c.provincia})` : '';
+                                const codigo = c.codigoCentro ? `${c.codigoCentro} — ` : '';
+                                return `${codigo}${c.nombre}${muni}${prov}`;
+                            }}
+                            getOptionValue={(c) => c.id}
+                            placeholder={t('centers.catalogPickerPlaceholder', {
+                                defaultValue: 'Busca por nombre, código o municipio…',
+                            })}
+                            minQueryLength={0}
+                            itemsPerPage={20}
+                        />
+                        <small className={styles.helpText}>
+                            {t('centers.catalogPickerHint', {
+                                defaultValue: 'Datos abiertos de la Junta de Andalucía (CC BY 4.0). Tras elegir, podrás completar CIF, contacto y fechas.',
+                            })}
+                        </small>
+                    </div>
+
+                    {pickerSelected && (
+                        <div className={styles.formGroup} style={{ background: 'var(--bg-card)', padding: '0.75rem 1rem', borderRadius: '8px' }}>
+                            <strong style={{ display: 'block', marginBottom: '0.4rem' }}>{pickerSelected.nombre}</strong>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'grid', gap: '0.2rem' }}>
+                                {pickerSelected.codigoCentro && <span>{t('centers.catalogPickerPreviewCode', { defaultValue: 'Código' })}: <strong>{pickerSelected.codigoCentro}</strong></span>}
+                                {pickerSelected.direccion && <span>{pickerSelected.direccion}</span>}
+                                {pickerSelected.municipio && <span>{pickerSelected.municipio}{pickerSelected.provincia ? `, ${pickerSelected.provincia}` : ''}</span>}
+                                {pickerSelected.titularidad && <span>{t(`catalogo.centros.titularidad.${pickerSelected.titularidad}`, pickerSelected.titularidad)}</span>}
+                            </div>
+                        </div>
+                    )}
                 </ModalView>
             </div>
         </Layout>

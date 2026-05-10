@@ -1907,27 +1907,31 @@
       "title": "Katalogo ofizialari buruz",
       "subtitle": "Datuak nondik datozen, nola eguneratzen diren eta zer berme eskaintzen dituzten.",
       "scopeTitle": "Zer sinkronizatzen den",
-      "scopeDescription": "Loggex-ek Lanbide Heziketako estatu mailako eskaintzaren kopia lokal eta kontsultagarria mantentzen du, Estatuko iturri ofizialetatik automatikoki elikatua.",
+      "scopeDescription": "Loggex-ek hezkuntza-eskaintza ofizialaren kopia lokal eta kontsultagarria mantentzen du — Lanbide Heziketako estatu mailako curriculuma eta Andaluziako ikastetxeen direktorioa — Estatuko iturri ofizialetatik eta Andaluziako Juntatik automatikoki elikatua.",
       "scopeItem1": "LH Oinarrizkoa, Erdi Mailakoa, Goi Mailakoa eta Espezializazio Ikastaroen ibilbideak.",
       "scopeItem2": "Ibilbide bakoitzeko gaiak, kodea, ordu osoak, ordu astekoak, ECTS kredituak eta ikasturtea barne (iturriak ematen duenean).",
       "scopeItem3": "Tituluaren identifikazioa: izendapena, lanbide-familia, maila, iraupen osoa eta BOEko araudia.",
+      "scopeItem4": "Andaluziako unibertsitateaz kanpoko ikastetxeen direktorioa: kode ofiziala, izendapena, titulartasuna (publikoa/itundua/pribatua), herria, probintzia eta ikastetxe bakoitzak eskaintzen dituen hezkuntza-etapak.",
       "sourcesTitle": "Datu-iturriak",
-      "sourcesDescription": "Sinkronizazioa bi geruzatan egiten da, hurrenkera honetan:",
+      "sourcesDescription": "Sinkronizazioa hiru geruza independenteetan egiten da, bakoitza iturri ofizial desberdin batek elikatua:",
       "source1Name": "TodoFP — Hezkuntza Ministerioaren ataria",
       "source1Description": "Ibilbideen indize osoa, haien maila/etapa eta BOE-ko Errege Dekretuaren URLa eskaintzen ditu. Ibilbideen katalogoaren iturria.",
       "source2Name": "BOE — Estatuko Aldizkari Ofiziala",
       "source2Description": "Titulu bakoitzaren xehetasun egituratuak eskaintzen ditu (gaiak, orduak, ECTS) Errege Dekretu edo curriculumeko EDU Aginduaren XMLa atereaz.",
+      "source3Name": "Andaluziako Junta — Datu irekiak",
+      "source3Description": "Andaluziako unibertsitateaz kanpoko ikastetxeen direktorio ofiziala eskaintzen du (CSV CC BY 4.0 lizentziarekin). ~7.100 ikastetxe andaluz biltzen ditu ikastetxe-kodearekin, titulartasunarekin, herriarekin, probintziarekin, helbidearekin eta eskainitako etapekin. Urtero eguneratzen da.",
       "refreshTitle": "Nola eguneratzen den",
       "refreshDescription": "Sinkronizazioa eskuzkoa edo programatua da. Sistema idempotentea da: BOEko datuak azken irakurketatik aldatu ez badira, ez da ezer aldatzen datu-basean. Aldeak badaude, erregistroak eguneratzen dira eta arrastoa geratzen da eragiketa-erregistroan. Ibilbide baten identitatea bere BOEko URLak gordetzen du, kode ofiziala eboluzionatzeko aukera emanez historikoa galdu gabe.",
       "limitsTitle": "Mugaketa ezagunak",
-      "limit1": "Estatu mailako katalogoa sinkronizatzen da, baina autonomia-erkidegoen aldaerak (LOE/LOMLOE moldatutako curriculumak) ez dira oraindik sartzen. Geroagoko fase batean aurreikusita dago.",
+      "limit1": "Estatu mailako ibilbideen katalogoa sinkronizatzen da, baina autonomia-erkidegoen aldaerak (LOE/LOMLOE moldatutako curriculumak) ez dira oraindik sartzen. Geroagoko fase batean aurreikusita dago.",
       "limit2": "Lehendik dauden tituluak besterik ez dituzten Errege Dekretuak (definitu beharrean) osatu gabe gera daitezke. Kasu hauek v1.1eko mugaketa gisa dokumentatuta daude.",
-      "limit3": "Ikastetxe ofizialen zerrenda ez da oraindik sinkronizatzen. \"Ikastetxe ofizialak\" atala superadministratzaileek bakarrik ikus dezakete eta inplementazio-egoera erakusten du.",
+      "limit3": "Ikastetxe ofizialen direktorioak Andaluzia bakarrik biltzen du. Ez dago MEFPren Estatuko Erregistroaren API publiko nazionalik — INTEFen Hezkuntza Elkarreragingarritasun Nodoak administrazioen arteko hitzarmen formala eskatzen du. CCAA gehiago gehitzeko, autonomia-dataset bakoitzeko adapter berri bat sortzea aski da (`CatalogoSourceAdapterInterface` interfazea kasu honetarako pentsatuta dago).",
       "legalTitle": "Lege oharra",
-      "legalText": "Loggex ez da erakutsitako informazioaren iturri ofiziala. Estatuko Aldizkari Ofizialarekin edo Hezkuntza Ministerioak argitaratutako informazioarekin desadostasunik egonez gero, jatorrizko iturria nagusitzen da beti. Ikuspegi hau ikastetxeko administratzaileentzako barne kontsulta-tresna gisa soilik existitzen da.",
+      "legalText": "Loggex ez da erakutsitako informazioaren iturri ofiziala. Estatuko Aldizkari Ofizialarekin, Hezkuntza Ministerioak argitaratutako informazioarekin edo Andaluziako Juntaren datu irekiekin desadostasunik egonez gero, jatorrizko iturria nagusitzen da beti. Ikuspegi hau ikastetxeko administratzaileentzako barne kontsulta-tresna gisa soilik existitzen da.",
       "exploreTitle": "Esploratu katalogoa",
       "exploreItinerarios": "Ikusi ibilbideak",
-      "exploreMaterias": "Ikusi gaiak"
+      "exploreMaterias": "Ikusi gaiak",
+      "exploreCentros": "Ikusi ikastetxe ofizialak"
     },
     "itinerarios": {
       "title": "Katalogoaren ibilbideak",
@@ -2007,9 +2011,23 @@
     },
     "centros": {
       "title": "Ikastetxe ofizialak",
-      "subtitle": "Hezkuntza-ikastetxeen estatuko direktorioarekin sinkronizazioa.",
-      "stubTitle": "Oraindik ez inplementatua",
-      "stubText": "Estatuko ikastetxeen direktorioaren (centros.gob.es) sarrera geroagoko fase batean aurreikusita dago. Bitartean, ikastetxeak superadministratzailearen ataletik eskuz kudeatzen dira."
+      "subtitle": "Andaluziako unibertsitateaz kanpoko ikastetxeen direktorio ofiziala (Junta de Andalucía, datu irekiak CC BY 4.0).",
+      "searchPlaceholder": "Bilatu izenez, kodez, herriz edo helbidez…",
+      "filterProvincia": "Probintzia",
+      "filterTitularidad": "Titulartasuna",
+      "filterEtapa": "Eskainitako etapa",
+      "filterAll": "Guztiak",
+      "columnCodigo": "Kodea",
+      "columnNombre": "Ikastetxea",
+      "columnMunicipio": "Herria",
+      "columnProvincia": "Probintzia",
+      "columnTitularidad": "Titulartasuna",
+      "columnEtapas": "Etapak",
+      "titularidad": {
+        "publico": "Publikoa",
+        "concertado": "Itundua",
+        "privado": "Pribatua"
+      }
     },
     "etapaLabel": {
       "fp_basica": "LH Oinarrizkoa",
@@ -2021,6 +2039,17 @@
       "bachillerato": "Batxilergoa",
       "grado_universitario": "Unibertsitate-gradua",
       "master_universitario": "Unibertsitate-masterra"
+    },
+    "etapaShort": {
+      "primaria": "LH",
+      "eso": "DBH",
+      "bachillerato": "BAT",
+      "fp_basica": "LHO",
+      "fp_medio": "LHE",
+      "fp_superior": "LHG",
+      "fp_especializacion": "ESP",
+      "grado_universitario": "GRD",
+      "master_universitario": "MST"
     },
     "tipoLabel": {
       "MODULO": "Modulua",

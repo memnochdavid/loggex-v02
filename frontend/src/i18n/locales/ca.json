@@ -1907,27 +1907,31 @@
       "title": "Sobre el catàleg oficial",
       "subtitle": "D'on provenen les dades, com s'actualitzen i quines garanties ofereixen.",
       "scopeTitle": "Què se sincronitza",
-      "scopeDescription": "Loggex manté una còpia local i consultable de l'oferta educativa nacional de Formació Professional, alimentada automàticament des de fonts oficials de l'Estat.",
+      "scopeDescription": "Loggex manté una còpia local i consultable de l'oferta educativa oficial — currículum nacional de FP i directori de centres andalusos — alimentada automàticament des de fonts oficials de l'Estat i de la Junta d'Andalusia.",
       "scopeItem1": "Itineraris de FP Bàsica, Grau Mitjà, Grau Superior i Cursos d'Especialització.",
       "scopeItem2": "Matèries de cada itinerari, amb codi, hores totals, hores setmanals, crèdits ECTS i curs (quan la font ho proporciona).",
       "scopeItem3": "Identificació del títol: denominació, família professional, nivell, durada total i referència normativa al BOE.",
+      "scopeItem4": "Directori de centres docents no universitaris d'Andalusia: codi oficial, denominació, titularitat (públic/concertat/privat), municipi, província i etapes educatives que ofereix cada centre.",
       "sourcesTitle": "Fonts de dades",
-      "sourcesDescription": "La sincronització es fa en dues capes, en aquest ordre:",
+      "sourcesDescription": "La sincronització es fa en tres capes independents, cadascuna alimentada per una font oficial diferent:",
       "source1Name": "TodoFP — Portal del Ministeri d'Educació",
       "source1Description": "Proporciona l'índex complet d'itineraris, el seu nivell/etapa i la URL al Reial Decret al BOE. És la font del catàleg d'itineraris.",
       "source2Name": "BOE — Butlletí Oficial de l'Estat",
       "source2Description": "Proporciona el detall estructurat de cada títol (matèries, hores, ECTS) extraient el XML del Reial Decret corresponent o de l'Ordre EDU del currículum.",
+      "source3Name": "Junta d'Andalusia — Dades obertes",
+      "source3Description": "Proporciona el directori oficial de centres docents no universitaris d'Andalusia (CSV amb llicència CC BY 4.0). Cobreix els ~7.100 centres andalusos amb codi de centre, titularitat, municipi, província, adreça i etapes ofertes. S'actualitza anualment.",
       "refreshTitle": "Com s'actualitza",
       "refreshDescription": "La sincronització és manual o programada. El sistema és idempotent: si les dades del BOE no han canviat des de l'última lectura, no es modifica res a la base de dades. Si hi ha diferències, s'actualitzen els registres i queda traça al log d'operacions. La identitat d'un itinerari es conserva per la URL del BOE, permetent que el codi oficial evolucioni sense perdre històric.",
       "limitsTitle": "Limitacions conegudes",
-      "limit1": "El catàleg nacional es sincronitza, però les variacions per Comunitat Autònoma (currículums LOE/LOMLOE adaptats) encara no s'ingesten. Està previst per a una fase posterior.",
+      "limit1": "El catàleg nacional d'itineraris se sincronitza, però les variacions per Comunitat Autònoma (currículums LOE/LOMLOE adaptats) encara no s'ingesten. Està previst per a una fase posterior.",
       "limit2": "Els Reials Decrets que únicament modifiquen un títol existent (en lloc de definir-lo) poden quedar incomplets. Aquests casos es documenten com a limitació de v1.1.",
-      "limit3": "La llista oficial de centres docents encara no se sincronitza. La secció \"Centres oficials\" només és accessible per a superadministradors i mostra l'estat d'implementació.",
+      "limit3": "El directori de centres oficials només cobreix Andalusia. No existeix API pública nacional del Registre Estatal del MEFP — el Node d'Interoperabilitat Educativa de l'INTEF requereix conveni formal entre administracions. Per afegir més CCAA n'hi ha prou amb crear un nou adapter per dataset autonòmic (la interfície `CatalogoSourceAdapterInterface` està pensada per a aquest cas).",
       "legalTitle": "Avís legal",
-      "legalText": "Loggex no és la font oficial de la informació mostrada. En cas de discrepància amb el Butlletí Oficial de l'Estat o amb la informació publicada pel Ministeri d'Educació, prevaldrà sempre la font original. Aquesta vista existeix únicament com a eina de consulta interna per a administradors del centre.",
+      "legalText": "Loggex no és la font oficial de la informació mostrada. En cas de discrepància amb el Butlletí Oficial de l'Estat, amb la informació publicada pel Ministeri d'Educació o amb les dades obertes de la Junta d'Andalusia, prevaldrà sempre la font original. Aquesta vista existeix únicament com a eina de consulta interna per a administradors del centre.",
       "exploreTitle": "Explorar el catàleg",
       "exploreItinerarios": "Veure itineraris",
-      "exploreMaterias": "Veure matèries"
+      "exploreMaterias": "Veure matèries",
+      "exploreCentros": "Veure centres oficials"
     },
     "itinerarios": {
       "title": "Itineraris del catàleg",
@@ -2007,9 +2011,23 @@
     },
     "centros": {
       "title": "Centres oficials",
-      "subtitle": "Sincronització amb el directori nacional de centres educatius.",
-      "stubTitle": "Encara no implementat",
-      "stubText": "La ingesta del directori nacional de centres (centros.gob.es) està prevista per a una fase posterior. Fins aleshores, els centres es gestionen manualment des de la secció de superadministrador."
+      "subtitle": "Directori oficial de centres docents no universitaris d'Andalusia (Junta de Andalucía, dades obertes CC BY 4.0).",
+      "searchPlaceholder": "Cerca per nom, codi, municipi o adreça…",
+      "filterProvincia": "Província",
+      "filterTitularidad": "Titularitat",
+      "filterEtapa": "Etapa oferida",
+      "filterAll": "Totes",
+      "columnCodigo": "Codi",
+      "columnNombre": "Centre",
+      "columnMunicipio": "Municipi",
+      "columnProvincia": "Província",
+      "columnTitularidad": "Titularitat",
+      "columnEtapas": "Etapes",
+      "titularidad": {
+        "publico": "Públic",
+        "concertado": "Concertat",
+        "privado": "Privat"
+      }
     },
     "etapaLabel": {
       "fp_basica": "FP Bàsica",
@@ -2021,6 +2039,17 @@
       "bachillerato": "Batxillerat",
       "grado_universitario": "Grau universitari",
       "master_universitario": "Màster universitari"
+    },
+    "etapaShort": {
+      "primaria": "PRI",
+      "eso": "ESO",
+      "bachillerato": "BAT",
+      "fp_basica": "FPB",
+      "fp_medio": "FPM",
+      "fp_superior": "FPS",
+      "fp_especializacion": "ESP",
+      "grado_universitario": "GRD",
+      "master_universitario": "MST"
     },
     "tipoLabel": {
       "MODULO": "Mòdul",

@@ -253,27 +253,31 @@
       "title": "Acerca del catálogo oficial",
       "subtitle": "De dónde provienen los datos, cómo se actualizan y qué garantías ofrecen.",
       "scopeTitle": "Qué se sincroniza",
-      "scopeDescription": "Loggex mantiene una copia local y consultable de la oferta educativa nacional de Formación Profesional, alimentada automáticamente desde fuentes oficiales del Estado.",
+      "scopeDescription": "Loggex mantiene una copia local y consultable de la oferta educativa oficial — currículo nacional de FP y directorio de centros andaluces — alimentada automáticamente desde fuentes oficiales del Estado y de la Junta de Andalucía.",
       "scopeItem1": "Itinerarios de FP Básica, Grado Medio, Grado Superior y Cursos de Especialización.",
       "scopeItem2": "Materias de cada itinerario, con código, horas totales, horas semanales, créditos ECTS y curso (cuando la fuente lo proporciona).",
       "scopeItem3": "Identificación del título: denominación, familia profesional, nivel, duración total y referencia normativa al BOE.",
+      "scopeItem4": "Directorio de centros docentes no universitarios de Andalucía: código oficial, denominación, titularidad (público/concertado/privado), municipio, provincia y etapas educativas que ofrece cada centro.",
       "sourcesTitle": "Fuentes de datos",
-      "sourcesDescription": "La sincronización se realiza en dos capas, en este orden:",
+      "sourcesDescription": "La sincronización se realiza en tres capas independientes, cada una alimentada por una fuente oficial distinta:",
       "source1Name": "TodoFP — Portal del Ministerio de Educación",
       "source1Description": "Proporciona el índice completo de itinerarios, su nivel/etapa y la URL al Real Decreto en el BOE. Es la fuente del catálogo de itinerarios.",
       "source2Name": "BOE — Boletín Oficial del Estado",
       "source2Description": "Proporciona el detalle estructurado de cada título (materias, horas, ECTS) extrayendo el XML del Real Decreto correspondiente o de la Orden EDU del currículo.",
+      "source3Name": "Junta de Andalucía — Datos abiertos",
+      "source3Description": "Proporciona el directorio oficial de centros docentes no universitarios de Andalucía (CSV con licencia CC BY 4.0). Cubre los ~7.100 centros andaluces con código de centro, titularidad, municipio, provincia, dirección y etapas ofrecidas. Se actualiza anualmente.",
       "refreshTitle": "Cómo se actualiza",
       "refreshDescription": "La sincronización es manual o programada. El sistema es idempotente: si los datos del BOE no han cambiado desde la última lectura, no se modifica nada en la base de datos. Si hay diferencias, se actualizan los registros y queda traza en el log de operaciones. La identidad de un itinerario se conserva por la URL del BOE, lo que permite al código oficial evolucionar sin perder histórico.",
       "limitsTitle": "Limitaciones conocidas",
-      "limit1": "El catálogo nacional se sincroniza, pero las variaciones por Comunidad Autónoma (currículos LOE/LOMLOE adaptados) aún no se ingestan. Está planificado para una fase posterior.",
+      "limit1": "El catálogo nacional de itinerarios se sincroniza, pero las variaciones por Comunidad Autónoma (currículos LOE/LOMLOE adaptados) aún no se ingestan. Está planificado para una fase posterior.",
       "limit2": "Los Reales Decretos que únicamente modifican un título existente (en vez de definirlo) pueden quedar incompletos. Estos casos están documentados como limitación de v1.1.",
-      "limit3": "La lista oficial de centros docentes no se sincroniza todavía. La sección \"Centros oficiales\" es solo accesible para superadministradores y muestra el estado de implementación.",
+      "limit3": "El directorio de centros oficiales solo cubre Andalucía. No existe API pública nacional del Registro Estatal del MEFP — el Nodo de Interoperabilidad Educativa de INTEF requiere convenio formal entre administraciones. Para añadir más CCAA basta con crear un nuevo adapter por dataset autonómico (la interfaz `CatalogoSourceAdapterInterface` está pensada para este caso).",
       "legalTitle": "Aviso legal",
-      "legalText": "Loggex no es la fuente oficial de la información mostrada. En caso de discrepancia con el Boletín Oficial del Estado o con la información publicada por el Ministerio de Educación, prevalece siempre la fuente original. Esta vista existe únicamente como herramienta de consulta interna para administradores del centro.",
+      "legalText": "Loggex no es la fuente oficial de la información mostrada. En caso de discrepancia con el Boletín Oficial del Estado, con la información publicada por el Ministerio de Educación o con los datos abiertos de la Junta de Andalucía, prevalece siempre la fuente original. Esta vista existe únicamente como herramienta de consulta interna para administradores del centro.",
       "exploreTitle": "Explorar el catálogo",
       "exploreItinerarios": "Ver itinerarios",
-      "exploreMaterias": "Ver materias"
+      "exploreMaterias": "Ver materias",
+      "exploreCentros": "Ver centros oficiales"
     },
     "itinerarios": {
       "title": "Itinerarios del catálogo",
@@ -353,9 +357,23 @@
     },
     "centros": {
       "title": "Centros oficiales",
-      "subtitle": "Sincronización con el directorio nacional de centros educativos.",
-      "stubTitle": "Aún no implementado",
-      "stubText": "La ingestión del directorio nacional de centros (centros.gob.es) está prevista para una fase posterior. Hasta entonces, los centros se gestionan manualmente desde la sección de superadministrador."
+      "subtitle": "Directorio oficial de centros docentes no universitarios de Andalucía (Junta de Andalucía, datos abiertos CC BY 4.0).",
+      "searchPlaceholder": "Buscar por nombre, código, municipio o dirección…",
+      "filterProvincia": "Provincia",
+      "filterTitularidad": "Titularidad",
+      "filterEtapa": "Etapa ofrecida",
+      "filterAll": "Todas",
+      "columnCodigo": "Código",
+      "columnNombre": "Centro",
+      "columnMunicipio": "Municipio",
+      "columnProvincia": "Provincia",
+      "columnTitularidad": "Titularidad",
+      "columnEtapas": "Etapas",
+      "titularidad": {
+        "publico": "Público",
+        "concertado": "Concertado",
+        "privado": "Privado"
+      }
     },
     "etapaLabel": {
       "fp_basica": "FP Básica",
@@ -367,6 +385,17 @@
       "bachillerato": "Bachillerato",
       "grado_universitario": "Grado universitario",
       "master_universitario": "Máster universitario"
+    },
+    "etapaShort": {
+      "primaria": "PRI",
+      "eso": "ESO",
+      "bachillerato": "BAC",
+      "fp_basica": "FPB",
+      "fp_medio": "FPM",
+      "fp_superior": "FPS",
+      "fp_especializacion": "ESP",
+      "grado_universitario": "GRD",
+      "master_universitario": "MST"
     },
     "tipoLabel": {
       "MODULO": "Materia",

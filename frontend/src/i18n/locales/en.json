@@ -1921,27 +1921,31 @@
       "title": "About the official catalog",
       "subtitle": "Where the data comes from, how it is updated and what guarantees it offers.",
       "scopeTitle": "What is synced",
-      "scopeDescription": "Loggex keeps a local, queryable copy of the national Vocational Training catalog, automatically fed from official State sources.",
+      "scopeDescription": "Loggex keeps a local, queryable copy of the official educational offering — national Vocational Training curriculum and Andalusian center directory — automatically fed from official sources of the Spanish State and the Andalusian regional government.",
       "scopeItem1": "Programs of FP Básica, Grado Medio, Grado Superior and Cursos de Especialización.",
       "scopeItem2": "Subjects of each program, with code, total hours, weekly hours, ECTS credits and year (when the source provides them).",
       "scopeItem3": "Title identification: name, professional family, level, total duration and BOE normative reference.",
+      "scopeItem4": "Directory of non-university teaching centers in Andalusia: official code, name, ownership (public/state-funded/private), town, province and educational stages each center offers.",
       "sourcesTitle": "Data sources",
-      "sourcesDescription": "The sync runs in two layers, in this order:",
+      "sourcesDescription": "The sync runs in three independent layers, each fed by a distinct official source:",
       "source1Name": "TodoFP — Spanish Ministry of Education portal",
       "source1Description": "Provides the full index of programs, their level/stage and the URL to the Royal Decree at the BOE. Source of the program catalog.",
       "source2Name": "BOE — Spanish Official Gazette",
       "source2Description": "Provides the structured detail of each title (subjects, hours, ECTS) by extracting the XML of the corresponding Royal Decree or the EDU Order of the curriculum.",
+      "source3Name": "Junta de Andalucía — Open data",
+      "source3Description": "Provides the official directory of non-university teaching centers in Andalusia (CSV with CC BY 4.0 license). Covers ~7,100 Andalusian centers with center code, ownership, town, province, address and offered stages. Updated annually.",
       "refreshTitle": "How it is updated",
       "refreshDescription": "The sync is manual or scheduled. The system is idempotent: if the BOE data has not changed since the last read, nothing is modified in the database. If there are differences, records are updated and a trace is left in the operations log. A program identity is preserved by its BOE URL, allowing the official code to evolve without losing history.",
       "limitsTitle": "Known limitations",
-      "limit1": "The national catalog is synced, but variations by Autonomous Community (LOE/LOMLOE adapted curricula) are not yet ingested. Planned for a later phase.",
+      "limit1": "The national catalog of programs is synced, but variations by Autonomous Community (LOE/LOMLOE adapted curricula) are not yet ingested. Planned for a later phase.",
       "limit2": "Royal Decrees that only modify an existing title (instead of defining it) may end up incomplete. These cases are documented as a v1.1 limitation.",
-      "limit3": "The official list of educational centers is not yet synced. The \"Official centers\" section is only accessible to super-administrators and shows implementation status.",
+      "limit3": "The directory of official centers covers Andalusia only. There is no public national API for the Spanish State Center Registry (MEFP) — INTEF's Educational Interoperability Node requires a formal agreement between administrations. To add more regions, simply create a new adapter per regional dataset (the `CatalogoSourceAdapterInterface` is designed for this case).",
       "legalTitle": "Legal notice",
-      "legalText": "Loggex is not the official source of the displayed information. In case of discrepancy with the Spanish Official Gazette or with the information published by the Ministry of Education, the original source always prevails. This view exists only as an internal consultation tool for center administrators.",
+      "legalText": "Loggex is not the official source of the displayed information. In case of discrepancy with the Spanish Official Gazette, with the information published by the Ministry of Education or with the open data of the Junta de Andalucía, the original source always prevails. This view exists only as an internal consultation tool for center administrators.",
       "exploreTitle": "Explore the catalog",
       "exploreItinerarios": "View programs",
-      "exploreMaterias": "View subjects"
+      "exploreMaterias": "View subjects",
+      "exploreCentros": "View official centers"
     },
     "itinerarios": {
       "title": "Catalog programs",
@@ -2021,9 +2025,23 @@
     },
     "centros": {
       "title": "Official centers",
-      "subtitle": "Sync with the national directory of educational centers.",
-      "stubTitle": "Not implemented yet",
-      "stubText": "Ingestion of the national directory of centers (centros.gob.es) is planned for a later phase. Until then, centers are managed manually from the super-admin section."
+      "subtitle": "Official directory of non-university teaching centers in Andalusia (Junta de Andalucía open data, CC BY 4.0).",
+      "searchPlaceholder": "Search by name, code, town or address…",
+      "filterProvincia": "Province",
+      "filterTitularidad": "Ownership",
+      "filterEtapa": "Stage offered",
+      "filterAll": "All",
+      "columnCodigo": "Code",
+      "columnNombre": "Center",
+      "columnMunicipio": "Town",
+      "columnProvincia": "Province",
+      "columnTitularidad": "Ownership",
+      "columnEtapas": "Stages",
+      "titularidad": {
+        "publico": "Public",
+        "concertado": "State-funded private",
+        "privado": "Private"
+      }
     },
     "etapaLabel": {
       "fp_basica": "FP Básica",
@@ -2035,6 +2053,17 @@
       "bachillerato": "Upper Secondary (Bachillerato)",
       "grado_universitario": "Bachelor degree",
       "master_universitario": "Master degree"
+    },
+    "etapaShort": {
+      "primaria": "PRI",
+      "eso": "ESO",
+      "bachillerato": "BAC",
+      "fp_basica": "FPB",
+      "fp_medio": "FPM",
+      "fp_superior": "FPS",
+      "fp_especializacion": "ESP",
+      "grado_universitario": "GRD",
+      "master_universitario": "MST"
     },
     "tipoLabel": {
       "MODULO": "Module",
