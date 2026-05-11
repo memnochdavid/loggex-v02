@@ -1325,6 +1325,7 @@
       "bodyBg": "Gorputzaren Atzeko Planoa",
       "bodyText": "Gorputzaren Testua",
       "footerBg": "Oinaren Atzeko Planoa",
+      "borderWidth": "Ertzaren lodiera",
       "closeBg": "Itxi Botoiaren Atzeko Planoa",
       "closeText": "Itxi Botoiaren Testua",
       "closeHoverBg": "Itxi Botoiaren Hover Atzeko Planoa",

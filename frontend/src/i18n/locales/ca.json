@@ -1325,6 +1325,7 @@
       "bodyBg": "Fons Cos",
       "bodyText": "Text Cos",
       "footerBg": "Fons Peu",
+      "borderWidth": "Gruix de la vora",
       "closeBg": "Fons Botó Tancar",
       "closeText": "Text Botó Tancar",
       "closeHoverBg": "Fons Botó Tancar Hover",

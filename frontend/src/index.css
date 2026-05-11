@@ -176,6 +176,7 @@
     --modal-body-bg: var(--bg-card);
     --modal-body-text: var(--text-main);
     --modal-footer-bg: var(--color-gray-50);
+    --modal-border-width: 3px;
     --modal-close-btn-bg: transparent;
     --modal-close-btn-text: var(--color-gray-500);
     --modal-close-btn-hover-bg: var(--color-gray-100);

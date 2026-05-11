@@ -1654,6 +1654,7 @@
       "bodyBg": "Fondo Cuerpo",
       "bodyText": "Texto Cuerpo",
       "footerBg": "Fondo Pie",
+      "borderWidth": "Grosor del borde",
       "closeBg": "Fondo Botón Cerrar",
       "closeText": "Texto Botón Cerrar",
       "closeHoverBg": "Fondo Botón Cerrar Hover",

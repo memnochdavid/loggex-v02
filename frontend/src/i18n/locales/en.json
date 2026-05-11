@@ -1325,6 +1325,7 @@
       "bodyBg": "Body Background",
       "bodyText": "Body Text",
       "footerBg": "Footer Background",
+      "borderWidth": "Border thickness",
       "closeBg": "Close Button Background",
       "closeText": "Close Button Text",
       "closeHoverBg": "Close Button Hover Background",

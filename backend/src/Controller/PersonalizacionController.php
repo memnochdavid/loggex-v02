@@ -141,6 +141,7 @@ class PersonalizacionController extends AbstractController
         if (isset($data['modalBodyBgColor'])) $personalizacion->setModalBodyBgColor($data['modalBodyBgColor']);
         if (isset($data['modalBodyTextColor'])) $personalizacion->setModalBodyTextColor($data['modalBodyTextColor']);
         if (isset($data['modalFooterBgColor'])) $personalizacion->setModalFooterBgColor($data['modalFooterBgColor']);
+        if (isset($data['modalBorderWidth'])) $personalizacion->setModalBorderWidth($data['modalBorderWidth']);
 
         // Modal Close Button
         if (isset($data['modalCloseButtonBgColor'])) $personalizacion->setModalCloseButtonBgColor($data['modalCloseButtonBgColor']);

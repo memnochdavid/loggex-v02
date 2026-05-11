@@ -182,6 +182,7 @@ class SecurityController extends AbstractController
             'modalBodyBgColor' => $v($p->getModalBodyBgColor(), '#ffffff'),
             'modalBodyTextColor' => $v($p->getModalBodyTextColor(), '#334155'),
             'modalFooterBgColor' => $v($p->getModalFooterBgColor(), '#f8fafc'),
+            'modalBorderWidth' => $v($p->getModalBorderWidth(), '3px'),
             'modalCloseButtonBgColor' => $v($p->getModalCloseButtonBgColor(), '#ffffff'),
             'modalCloseButtonTextColor' => $v($p->getModalCloseButtonTextColor(), '#64748b'),
             'modalCloseButtonHoverBgColor' => $v($p->getModalCloseButtonHoverBgColor(), '#f1f5f9'),

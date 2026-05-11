@@ -1325,6 +1325,7 @@
       "bodyBg": "Fondo Corpo",
       "bodyText": "Texto Corpo",
       "footerBg": "Fondo Pé",
+      "borderWidth": "Grosor do bordo",
       "closeBg": "Fondo Botón Pechar",
       "closeText": "Texto Botón Pechar",
       "closeHoverBg": "Fondo Botón Pechar Hover",

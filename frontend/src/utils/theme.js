@@ -109,6 +109,7 @@ export const applyTheme = (colors) => {
         modalBodyBgColor: '#ffffff',
         modalBodyTextColor: '#334155',
         modalFooterBgColor: '#f8fafc',
+        modalBorderWidth: '3px',
         modalCloseButtonBgColor: '#ffffff',
         modalCloseButtonTextColor: '#64748b',
         modalCloseButtonHoverBgColor: '#f1f5f9',
@@ -344,6 +345,9 @@ export const applyTheme = (colors) => {
     if (theme.modalBodyBgColor) root.style.setProperty('--modal-body-bg', applyAlpha(theme.modalBodyBgColor));
     if (theme.modalBodyTextColor) root.style.setProperty('--modal-body-text', theme.modalBodyTextColor);
     if (theme.modalFooterBgColor) root.style.setProperty('--modal-footer-bg', applyAlpha(theme.modalFooterBgColor));
+    if (theme.modalBorderWidth !== undefined && theme.modalBorderWidth !== null) {
+        root.style.setProperty('--modal-border-width', theme.modalBorderWidth);
+    }
 
     // 10. Modal Close Button
     if (theme.modalCloseButtonBgColor) root.style.setProperty('--modal-close-btn-bg', applyAlpha(theme.modalCloseButtonBgColor));

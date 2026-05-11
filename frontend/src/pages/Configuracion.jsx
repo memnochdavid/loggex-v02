@@ -721,7 +721,9 @@ const Configuracion = () => {
             case 'modal':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewModalContainer}>
+                        <div className={styles.previewModalContainer} style={{
+                            border: `${settings.modalBorderWidth || '3px'} solid ${settings.modalHeaderBgColor}`
+                        }}>
                             <div className={styles.previewModalHeader} style={{
                                 backgroundColor: settings.modalHeaderBgColor,
                                 color: settings.modalHeaderTextColor
@@ -1438,6 +1440,24 @@ const Configuracion = () => {
                                     {renderColorInput(t('config.modalTab.bodyBg'), 'modalBodyBgColor')}
                                     {renderColorInput(t('config.modalTab.bodyText'), 'modalBodyTextColor')}
                                     {renderColorInput(t('config.modalTab.footerBg'), 'modalFooterBgColor')}
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>{t('config.modalTab.borderWidth')}</label>
+                                        <select
+                                            name="modalBorderWidth"
+                                            value={settings.modalBorderWidth || '3px'}
+                                            onChange={handleChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="0">0px</option>
+                                            <option value="1px">1px</option>
+                                            <option value="2px">2px</option>
+                                            <option value="3px">3px</option>
+                                            <option value="4px">4px</option>
+                                            <option value="5px">5px</option>
+                                            <option value="6px">6px</option>
+                                        </select>
+                                    </div>
 
                                     {renderColorInput(t('config.modalTab.closeBg'), 'modalCloseButtonBgColor')}
                                     {renderColorInput(t('config.modalTab.closeText'), 'modalCloseButtonTextColor')}

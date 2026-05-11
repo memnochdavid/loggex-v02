@@ -68,6 +68,7 @@ export const DEFAULT_THEME = {
     modalBodyBgColor: '#ffffff',
     modalBodyTextColor: '#334155',
     modalFooterBgColor: '#f8fafc',
+    modalBorderWidth: '3px',
     modalCloseButtonBgColor: '#ffffff',
     modalCloseButtonTextColor: '#64748b',
     modalCloseButtonHoverBgColor: '#f1f5f9',

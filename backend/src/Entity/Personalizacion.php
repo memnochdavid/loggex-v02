@@ -327,6 +327,10 @@ class Personalizacion
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
     private ?string $modalFooterBgColor = '#f8fafc';
 
+    #[ORM\Column(length: 10)]
+    #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
+    private ?string $modalBorderWidth = '3px';
+
     // --- Modal Close Button ---
     #[ORM\Column(length: 7)]
     #[Groups(['personalizacion:read', 'personalizacion:write', 'centro:read', 'centro:write', 'user:read'])]
@@ -750,6 +754,9 @@ class Personalizacion
 
     public function getModalFooterBgColor(): ?string { return $this->modalFooterBgColor; }
     public function setModalFooterBgColor(string $color): static { $this->modalFooterBgColor = $color; return $this; }
+
+    public function getModalBorderWidth(): ?string { return $this->modalBorderWidth; }
+    public function setModalBorderWidth(string $width): static { $this->modalBorderWidth = $width; return $this; }
 
     public function getModalCloseButtonBgColor(): ?string { return $this->modalCloseButtonBgColor; }
     public function setModalCloseButtonBgColor(string $color): static { $this->modalCloseButtonBgColor = $color; return $this; }

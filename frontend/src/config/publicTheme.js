@@ -94,6 +94,7 @@ export const PUBLIC_THEME = {
     modalBodyBgColor: '#0f172a',
     modalBodyTextColor: '#cbd5e1',
     modalFooterBgColor: '#1e293b',
+    modalBorderWidth: '3px',
     modalCloseButtonBgColor: '#ef4444',
     modalCloseButtonTextColor: '#ffffff',
     modalCloseButtonHoverBgColor: '#b91c1c',

@@ -48,7 +48,7 @@
     transform: scale(0.94) translateY(8px);
     opacity: 0;
     animation: scaleIn var(--dur-slow) var(--ease-out-back) forwards;
-    border: 3px solid var(--modal-header-bg);
+    border: var(--modal-border-width, 3px) solid var(--modal-header-bg);
 }
 
 .modalContent.closing {
