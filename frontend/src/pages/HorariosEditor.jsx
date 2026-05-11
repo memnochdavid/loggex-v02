@@ -4169,16 +4169,39 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
       if (!distribution && lastDistJson?.distribution) {
         distribution = lastDistJson.distribution;
-        const sf = Object.entries(lastDistJson.shortfalls || {})
-          .map(([impId, m]) => {
-            const imp = imps.find(i => String(i.id) === String(impId));
-            return `${imp?.materia?.nombre || `imp ${impId}`}: ${Math.round(m / 60 * 10) / 10}h`;
-          }).join(', ');
-        if (sf) {
-          toast.warning(t('scheduleEditor.distributePartial', {
-            defaultValue: 'Distribución parcial: {{materias}}. El solver hará lo que pueda; ajusta a mano lo que falte.',
-            materias: sf,
-          }), { duration: 10000 });
+        // Mensaje distinto según razón del distribuidor:
+        //   - capacityShortfall = el currículo NO cabe en la ventana lectiva
+        //     (Σ horas presencial > cap calendario × jornada). Reportar
+        //     deficit agregado en horas + sugerir palancas, no listar full
+        //     horas por materia (que serían las horas totales del módulo —
+        //     señal alarmante e inútil para el admin).
+        //   - redistributionShortfall = cabe globalmente pero el greedy
+        //     dejó algunas materias por debajo de su target (caso típico
+        //     de granularidad gruesa por slotMin=60). Listar las afectadas
+        //     con cuánto les falta es accionable.
+        if (lastDistJson?.reason === 'capacityShortfall') {
+          const deficitMin = lastDistJson?.debug?.deficitMin || 0;
+          const sumObjMin = lastDistJson?.debug?.sumObjetivosMin || 0;
+          const capMin = lastDistJson?.debug?.capAnualMin || 0;
+          toast.error(t('scheduleEditor.distributeCapacityShortfall', {
+            defaultValue: 'El currículo presencial ({{currH}}h) no cabe en la ventana lectiva ({{capH}}h disponibles, faltan {{deficitH}}h). Acciones: ampliar la jornada del centro, revisar `materia.horasTotales` (puede estar sobreestimado), o pasar materias a modalidad FCT/Autónoma/No regular.',
+            currH: Math.round(sumObjMin / 60),
+            capH: Math.round(capMin / 60),
+            deficitH: Math.round(deficitMin / 60),
+          }), { duration: 14000 });
+        } else {
+          // redistributionShortfall o reasons futuras: listar materias.
+          const sf = Object.entries(lastDistJson.shortfalls || {})
+            .map(([impId, m]) => {
+              const imp = imps.find(i => String(i.id) === String(impId));
+              return `${imp?.materia?.nombre || `imp ${impId}`}: ${Math.round(m / 60 * 10) / 10}h`;
+            }).join(', ');
+          if (sf) {
+            toast.warning(t('scheduleEditor.distributePartial', {
+              defaultValue: 'Distribución parcial: faltan por cubrir {{materias}}. El solver hará lo que pueda; ajusta a mano lo que falte.',
+              materias: sf,
+            }), { duration: 10000 });
+          }
         }
       }
       if (!distribution) {

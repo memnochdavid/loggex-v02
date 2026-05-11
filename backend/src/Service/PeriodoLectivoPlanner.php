@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Catalogo\EtapaEducativa as CatalogoEtapa;
 use App\Entity\Centro;
 use App\Entity\Grupo;
 use App\Entity\Imparticion;
@@ -56,11 +57,16 @@ class PeriodoLectivoPlanner
      *         capacidadMinutos:int,
      *         feasible:bool,
      *         extendDias:int,
+     *         contractDias:int,
      *         jornadaSemanalMin:int,
      *         razonGlobal:string,
+     *         origenFechas:string,
      *         fechaInicio:?string,
      *         fechaFin:?string,
-     *         fechaFinExtendida:?string
+     *         fechaFinLectivo:?string,
+     *         fechaFinExtendida:?string,
+     *         isFp:bool,
+     *         isFpSegundo:bool
      *     }
      * }
      */
@@ -72,12 +78,77 @@ class PeriodoLectivoPlanner
             return $this->emptyResult('sin_fechas_resolubles');
         }
 
+        // Cargar evaluaciones una sola vez — se usan para cropping del fin
+        // lectivo + para `construirRangos` más abajo.
+        $allEvals = $this->em->getRepository(PeriodoEvaluativo::class)
+            ->createQueryBuilder('pe')
+            ->andWhere('pe.grupo = :g')
+            ->andWhere('pe.deleted = false')
+            ->setParameter('g', $grupo)
+            ->orderBy('pe.fechaInicio', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        // Cropping de `fin` a la ventana LECTIVA real (reglas usuario 2026-05-11):
+        //
+        //  1) Universal: las clases NUNCA caen en EXTRAORDINARIA.
+        //     `fin` se recorta a `extraordinaria.fechaInicio - 1` si lo solapa.
+        //
+        //  2) FP (cualquier curso): EN NINGÚN CASO hay clases después de la
+        //     TERCERA evaluación. `fin` se recorta a `tercera.fechaFin` si lo
+        //     solapa. Esta regla aplica también a FP 1º (donde no hay FCT en
+        //     TERCERA — pero el calendario post-TERCERA está reservado a
+        //     evaluación/repaso/EXTRAORDINARIA, no a clases lectivas).
+        //
+        //  3) FP 2º (etapa FP_* + curso=2): además, las prácticas (FCT) se
+        //     cursan en la TERCERA evaluación. La repartición de horas lectivas
+        //     debe terminar en SEGUNDA.fechaFin para dejar TERCERA libre para
+        //     FCT. `fin` se recorta a `segunda.fechaFin` (más restrictivo que
+        //     la regla 2 para 2º FP).
+        //
+        // Para no-FP (ESO/Bach/Idiomas/Artísticas/EPA…) sólo aplica la regla 1.
+        // Se evaluará caso por caso si se añaden reglas específicas — pendiente
+        // de feedback usuario.
+        //
+        // Mantenemos el `fin` original sin tocar en `diagnostico.fechaFin` por
+        // trazabilidad; el cropping vive en `finLectivo`.
+        $isFp = $this->isFp($grupo);
+        $isFp2 = $isFp && $grupo->getCurso() === 2;
+        $finLectivo = \DateTime::createFromInterface($fin);
+        foreach ($allEvals as $e) {
+            /** @var PeriodoEvaluativo $e */
+            $tipo = $e->getTipo();
+            // Regla 1 — universal.
+            if ($tipo === 'EXTRAORDINARIA' && $e->getFechaInicio() !== null) {
+                $cap = \DateTime::createFromInterface($e->getFechaInicio());
+                $cap->modify('-1 day');
+                if ($cap < $finLectivo) $finLectivo = $cap;
+            }
+            // Regla 2 — FP 1º (FP 2º recorta más con regla 3, pero también
+            // pasa por aquí: el `min` por `<` se queda con la más restrictiva).
+            if ($isFp && !$isFp2 && $tipo === 'TERCERA' && $e->getFechaFin() !== null) {
+                $cap = \DateTime::createFromInterface($e->getFechaFin());
+                if ($cap < $finLectivo) $finLectivo = $cap;
+            }
+            // Regla 3 — FP 2º.
+            if ($isFp2 && $tipo === 'SEGUNDA' && $e->getFechaFin() !== null) {
+                $cap = \DateTime::createFromInterface($e->getFechaFin());
+                if ($cap < $finLectivo) $finLectivo = $cap;
+            }
+        }
+        if ($finLectivo < \DateTime::createFromInterface($ini)) {
+            // Edge: ventana lectiva vacía (datos extraños — p.ej. EXTRAORDINARIA
+            // antes que el inicio del grupo). Mantenemos el `fin` original
+            // para no devolver una ventana imposible.
+            $finLectivo = \DateTime::createFromInterface($fin);
+        }
+
         // Calcular días lectivos reales descontando festivos.
         $info = $this->calendario->semanasLectivas(
             $grupo->getCentro(),
             null,
             \DateTime::createFromInterface($ini),
-            \DateTime::createFromInterface($fin),
+            $finLectivo,
         );
         $semanasLectivas = $info['semanas'] ?? 0.0;
         $diasLectivos = $info['diasLectivos'] ?? 0;
@@ -104,19 +175,35 @@ class PeriodoLectivoPlanner
             $curriculumMin += $materia->getObjetivoAnualMinutos();
         }
 
-        // Jornada semanal lectiva en minutos: suma duración de slots SLOT
-        // (sin recreos) por la jornada efectiva del grupo, multiplicada por
-        // los días lectivos del enum (default lun-vie = 5).
+        // Jornada semanal "lectivo curricular" (truco LOMLOE FP — alineado con
+        // `HorariosEditor.jsx:888` `jornadaSemanalLectivaMin`): suma SLOT +
+        // RECREO de la jornada efectiva por los días lectivos del grupo.
+        //
+        // Los recreos NO son colocables (el solver/distributor sólo coloca en
+        // SLOT), pero en FP el inspector LOMLOE acepta el tiempo total de
+        // permanencia (slots + recreos) como tiempo "lectivo curricular" a
+        // efectos de cumplir las horas totales del módulo. Por eso aquí
+        // sumamos ambos: la cabida que reporta el planner debe ser coherente
+        // con la cifra que ve el admin en el banner del frontend.
+        //
+        // Para etapas no-FP esta asunción puede sobreestimar capacidad ~10%
+        // (no aplica el truco). Si en su día algún centro ESO/Bach quiere
+        // descontar recreos, se parametrizará vía Centro/JornadaTipo. Hoy es
+        // universal (consistente con frontend).
         $jornada = $grupo->getEffectiveJornadaTipo();
-        $jornadaSlotsMinDia = 0;
+        $jornadaCurricularMinDia = 0;
         $jornadaTipoId = $jornada?->getId();
         if ($jornada !== null) {
             foreach ($jornada->getTramos() as $t) {
-                if ($t->getTipo() !== TipoTramo::SLOT) continue;
-                $jornadaSlotsMinDia += $t->getDuracionMinutos() ?? 0;
+                $tipo = $t->getTipo();
+                if ($tipo !== TipoTramo::SLOT && $tipo !== TipoTramo::RECREO) continue;
+                $jornadaCurricularMinDia += $t->getDuracionMinutos() ?? 0;
             }
         }
-        $jornadaSemanalMin = $jornadaSlotsMinDia * 5;
+        $diasLectivos = $jornada !== null
+            ? ($jornada->getDiasLectivos() ?: [1, 2, 3, 4, 5])
+            : [1, 2, 3, 4, 5];
+        $jornadaSemanalMin = $jornadaCurricularMinDia * count($diasLectivos);
 
         $capacidadMin = (int) round($jornadaSemanalMin * ($semanasLectivas ?? 0));
         $feasible = $jornadaSemanalMin > 0 && $curriculumMin <= $capacidadMin;
@@ -139,7 +226,11 @@ class PeriodoLectivoPlanner
         // y festivos puntuales sin tener que volver a extender.
         $extendDias = 0;
         $contractDias = 0;
-        $finExtendido = clone $fin;
+        // El cálculo de extend/contract opera sobre la ventana LECTIVA, no
+        // sobre el `fin` calendario completo. Para FP 2º esto significa que
+        // extender no puede empujar dentro del período FCT (3ª eval) ni de
+        // EXTRAORDINARIA — el cropping ya las excluyó de `finLectivo`.
+        $finExtendido = clone $finLectivo;
         if ($jornadaSemanalMin > 0) {
             $marginMin = (int) round($curriculumMin * 0.02);
             $capacidadObjetivo = $curriculumMin + $marginMin;
@@ -159,7 +250,7 @@ class PeriodoLectivoPlanner
                 $contractDias = $this->calcContractDias(
                     $grupo->getCentro(),
                     $ini,
-                    $fin,
+                    $finLectivo,
                     $jornadaSemanalMin,
                     $capacidadObjetivo,
                 );
@@ -169,7 +260,7 @@ class PeriodoLectivoPlanner
             }
         }
 
-        $rangos = $this->construirRangos($grupo, $ini, $finExtendido, $jornadaTipoId);
+        $rangos = $this->construirRangos($grupo, $ini, $finExtendido, $jornadaTipoId, $allEvals, $isFp, $isFp2);
 
         return [
             'rangos' => $rangos,
@@ -188,7 +279,10 @@ class PeriodoLectivoPlanner
                 'origenFechas' => $origenFechas,
                 'fechaInicio' => $ini->format('Y-m-d'),
                 'fechaFin' => $fin->format('Y-m-d'),
+                'fechaFinLectivo' => $finLectivo->format('Y-m-d'),
                 'fechaFinExtendida' => $finExtendido->format('Y-m-d'),
+                'isFp' => $isFp,
+                'isFpSegundo' => $isFp2,
             ],
         ];
     }
@@ -238,13 +332,29 @@ class PeriodoLectivoPlanner
     /**
      * Construye la lista de rangos según las evaluaciones del grupo.
      *
-     * Caso A: hay PeriodoEvaluativo (1ª, 2ª, 3ª, ORDINARIA_FINAL) ordenados
-     * cronológicamente. Cada evaluación define un rango "hasta esta evaluación".
-     * Si tras la última evaluación queda calendario, se añade un rango final
-     * (típicamente para FCT, recuperación o EXTRAORDINARIA).
+     * Caso A: hay PeriodoEvaluativo lectivas (1ª, 2ª, 3ª, ORDINARIA_FINAL)
+     * ordenadas cronológicamente. Cada evaluación define un rango "hasta esta
+     * evaluación". Si tras la última evaluación queda calendario lectivo
+     * (no FP 2º), se añade un rango final.
      *
-     * Caso B: sin evaluaciones → 1 único rango "Curso completo".
+     * Caso B: sin evaluaciones lectivas → 1 único rango "Curso completo".
      *
+     * Filtros aplicados sobre `$allEvals`:
+     *  - EXTRAORDINARIA siempre descartada (no es período lectivo).
+     *  - TERCERA descartada SOLO si `$isFp2` (es período FCT en FP 2º).
+     *
+     * Cola residual:
+     *  - Desactivada para CUALQUIER grupo FP (`$isFp`): regla "no clases
+     *    después de TERCERA" — el calendario post-TERCERA queda libre para
+     *    EXTRAORDINARIA / recuperación / cierre, no para lectivas.
+     *  - Para no-FP (ESO/Bach/…) se mantiene si tras la última evaluación
+     *    sigue habiendo calendario lectivo (pendiente de feedback usuario).
+     *
+     * El `$fin` recibido aquí YA viene cropped a la ventana lectiva en `plan()`
+     * (excluye EXTRAORDINARIA, post-TERCERA en FP, y SEGUNDA → adelante en
+     * FP 2º). Aún así filtramos aquí por defensa.
+     *
+     * @param list<PeriodoEvaluativo> $allEvals
      * @return list<array{nombre:string,fechaInicio:string,fechaFin:string,jornadaTipoId:?int,etiqueta:string,razon:string}>
      */
     private function construirRangos(
@@ -252,17 +362,16 @@ class PeriodoLectivoPlanner
         \DateTimeInterface $ini,
         \DateTimeInterface $fin,
         ?int $jornadaTipoId,
+        array $allEvals,
+        bool $isFp,
+        bool $isFp2,
     ): array {
-        $evals = $this->em->getRepository(PeriodoEvaluativo::class)
-            ->createQueryBuilder('pe')
-            ->andWhere('pe.grupo = :g')
-            ->andWhere('pe.deleted = false')
-            ->andWhere('pe.tipo != :extra')   // EXTRAORDINARIA no marca rango lectivo
-            ->setParameter('g', $grupo)
-            ->setParameter('extra', 'EXTRAORDINARIA')
-            ->orderBy('pe.fechaInicio', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $evals = array_values(array_filter($allEvals, function (PeriodoEvaluativo $e) use ($isFp2): bool {
+            $tipo = $e->getTipo();
+            if ($tipo === 'EXTRAORDINARIA') return false;
+            if ($isFp2 && $tipo === 'TERCERA') return false;
+            return true;
+        }));
 
         if (empty($evals)) {
             return [[
@@ -301,8 +410,12 @@ class PeriodoLectivoPlanner
             if ($cursor > $fin) break;
         }
 
-        // Cola residual si tras la última evaluación queda calendario.
-        if ($cursor <= $fin) {
+        // Cola residual: sólo para grupos NO-FP. En FP (1º o 2º) el calendario
+        // post-última-evaluación-lectiva queda libre (FCT en 2º, recuperación/
+        // EXTRAORDINARIA en 1º) y no debe llevar clases. El cropping de `fin`
+        // en `plan()` ya lo deja vacío para FP, pero mantenemos el guard
+        // explícito por claridad.
+        if (!$isFp && $cursor <= $fin) {
             $rangos[] = [
                 'nombre' => 'Tras última evaluación',
                 'fechaInicio' => $cursor->format('Y-m-d'),
@@ -369,6 +482,35 @@ class PeriodoLectivoPlanner
         return 0;
     }
 
+    /**
+     * Detecta si el grupo pertenece a alguna etapa FP (cualquier curso).
+     *
+     * Detección vía `grupo.itinerario.catalogoOrigen.etapa` ∈ {FP_BASICA,
+     * FP_MEDIO, FP_SUPERIOR, FP_ESPECIALIZACION}. Si el itinerario no está
+     * enlazado al catálogo (itinerario manual pre-catálogo), devuelve false
+     * — comportamiento conservador: las reglas FP no se aplican y se cae al
+     * comportamiento estándar.
+     *
+     * Las reglas FP que dependen de esta detección (2026-05-11):
+     *   - "No clases después de TERCERA" → cropping a `tercera.fechaFin`
+     *     en `plan()` + skip cola residual en `construirRangos()`.
+     *   - FP 2º (curso=2) suma "FCT en TERCERA" → cropping adicional a
+     *     `segunda.fechaFin` + filtrado de la TERCERA en los rangos.
+     */
+    private function isFp(Grupo $grupo): bool
+    {
+        $itinerario = $grupo->getItinerario();
+        if ($itinerario === null) return false;
+        $catalogo = $itinerario->getCatalogoOrigen();
+        if ($catalogo === null) return false;
+        return in_array($catalogo->getEtapa(), [
+            CatalogoEtapa::FP_BASICA,
+            CatalogoEtapa::FP_MEDIO,
+            CatalogoEtapa::FP_SUPERIOR,
+            CatalogoEtapa::FP_ESPECIALIZACION,
+        ], true);
+    }
+
     private function emptyResult(string $razonGlobal): array
     {
         return [
@@ -386,7 +528,10 @@ class PeriodoLectivoPlanner
                 'origenFechas' => 'sin_resolver',
                 'fechaInicio' => null,
                 'fechaFin' => null,
+                'fechaFinLectivo' => null,
                 'fechaFinExtendida' => null,
+                'isFp' => false,
+                'isFpSegundo' => false,
             ],
         ];
     }

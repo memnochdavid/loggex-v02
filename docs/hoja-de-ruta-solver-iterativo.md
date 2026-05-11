@@ -532,3 +532,31 @@ docker compose restart backend
 - **Fase C** del plan original: `solveMultiRango` debería poder CREAR un rango nuevo (extender el calendario o partir el último PL en dos) si las 12 outer iterations + redistribución no logran cubrir el currículo. Hoy reporta `stoppedReason='noRedistributionPossible'` y delega al usuario; podría intentarlo automáticamente.
 - **Fase D**: backtracking limitado en `HorarioSolverBinPacking::elegirMejorBloque` para casos de conflict profe (mover un placement ya hecho a otro slot del mismo profe).
 - **Variables que faltan**: `User.disponibilidadHoraria`, `User.jornadaSemanalMin`, `Aula` como entidad (hoy es string en `Imparticion.aulaEspecifica`).
+
+### 2026-05-11 — Fase B+: ventana lectiva real (EXTRAORDINARIA fuera, FP sin cola post-TERCERA, FP 2º sin TERCERA)
+
+**Contexto**: el planner devolvía rangos que solapaban con EXTRAORDINARIA (caso real EAG 1º DAW: `cola` 2026-05-30 → 2026-06-03 entraba en EXTRAORDINARIA del 2026-06-01). Además, para FP 2º, asignaba lectivas en el periodo de TERCERA evaluación — pero en la realidad esa evaluación se reserva a la **FCT (Formación en Centros de Trabajo)**, no hay clases regulares. Para FP 1º tampoco hay clases tras TERCERA (el espacio entre fin de TERCERA y EXTRAORDINARIA queda para recuperación/cierre, no lectivas). Resultado: el distribuidor repartía currículo en una ventana inflada, produciendo cuotas absurdas en PLs cortos (caso 2º DAM: `PL 475` de 5 días con `Σ pli = 3300 min/sem` sobre cap real 1650 → banner "−22h" estructural permanente).
+
+**Reglas de negocio implementadas en `PeriodoLectivoPlanner::plan()`**:
+
+1. **Universal**: la ventana lectiva NUNCA solapa EXTRAORDINARIA. Si el `fin` resuelto entra en `extraordinaria.fechaInicio…fechaFin`, se recorta a `extraordinaria.fechaInicio - 1`. Aplica a cualquier etapa.
+2. **FP (cualquier curso)** — `grupo.itinerario.catalogoOrigen.etapa ∈ {FP_BASICA, FP_MEDIO, FP_SUPERIOR, FP_ESPECIALIZACION}`: **NO clases después de la TERCERA evaluación**. `fin` se recorta a `tercera.fechaFin`. No se añade cola residual al final.
+3. **FP 2º** (regla 2 ∧ `curso=2`): además, la TERCERA evaluación es FCT. `fin` se recorta a `segunda.fechaFin` (override más restrictivo que regla 2) y la TERCERA se descarta de los rangos lectivos.
+
+Para no-FP (ESO/Bach/Idiomas/Artísticas/EPA…) sólo aplica la regla 1. Se evaluará caso por caso si se añaden reglas específicas — pendiente de feedback usuario.
+
+**Implementación**:
+- Helper `PeriodoLectivoPlanner::isFp(Grupo)` detecta etapa vía `catalogoOrigen` (devuelve `false` si el itinerario no está enlazado al catálogo — comportamiento conservador). El flag `isFp2 = isFp && curso === 2` deriva de éste.
+- Variable local `$finLectivo` recoge el `fin` cropped. Se usa en `semanasLectivas()`, capacity check, `calcContractDias`, `construirRangos` y `extendDias` (extender ya no puede empujar dentro de FCT/EXTRAORDINARIA/post-TERCERA).
+- `construirRangos` recibe `$allEvals + $isFp + $isFp2` precomputados; filtra `EXTRAORDINARIA` siempre, `TERCERA` si `$isFp2`. Cola residual gated por `!$isFp` (cualquier FP la desactiva).
+- Diagnóstico añade `fechaFinLectivo` (cropped), `isFp` e `isFpSegundo` para trazabilidad. `fechaFin` original se mantiene para que el banner pueda explicar la diferencia.
+
+**Efecto en datos reales (EAG, jornada FP Mañanas/Tardes 11×30min)**:
+- 1º DAW (4 evals normales): pasa de 4 rangos (3 evals + cola entrando en EXTRAORDINARIA) → **3 rangos** (1ª/2ª/3ª) terminando en `tercera.fechaFin`. Sin cola.
+- 2º DAW / 2º DAM (FP_SUPERIOR · 2): pasa de 1 rango "Curso completo" 358 días con `aporteSlot ≈ 3077` (greedy diverge en 12 attempts `redistributionShortfall`) → **2 rangos** (1ª: 13.7 sem, 2ª: 13 sem) con `aporteSlot ≈ 800`. El distribuidor converge en 1 attempt. Currículo presencial (~560h) cabe holgado en 26.7 sem × 27.5h/sem = 734h capacidad.
+
+**Compatibilidad**:
+- Frontend (`HorariosEditor.jsx::handleConfigureOptimalCourse`) sólo lee `plannerJson.rangos` — los campos nuevos del diagnóstico no rompen nada. Forward-compatible.
+- Endpoint `/api/v1/grupos/{id}/plan-rangos` mismo shape público; añade campos al `diagnostico`.
+
+**Acción usuaria**: tras `clear_cache_hard.sh`, re-ejecutar "Configurar curso óptimo" en grupos FP; el editor purgará las PLs huérfanas anteriores y construirá los rangos correctos.
