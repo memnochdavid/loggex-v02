@@ -396,6 +396,19 @@
     }
 }
 
+/* Mobile estrecho — ocultar el nombre del centro a partir de aquí. Por
+   encima de este umbral mantenemos la versión encogida (font-size 0.9rem,
+   max-width 120px) del bloque ≤768.
+   !important necesario: NameTitle.jsx renderiza el root <div> con
+   style={{ display: 'flex', ... }} inline. El inline style gana por
+   especificidad a una regla de clase, así que sin !important el
+   display: none no surte efecto. */
+@media (max-width: 415px) {
+    .nombrecentro {
+        display: none !important;
+    }
+}
+
 /* =================================================================
    Reduced motion
    ================================================================= */
