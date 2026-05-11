@@ -283,51 +283,58 @@ const DataTable = ({
                             ariaLabel={t('dataTable.rows')}
                         />
                     </div>
+                    {/* Selector de visibilidad de columnas: encajado entre el
+                        selector de filas y el contador de items para que
+                        viva en la misma línea de controles. Sólo en top. */}
+                    {position === 'top' && renderColumnsControl()}
                     <div className={styles.pageInfo}>
                         {totalItems > 0 ? `${startItem}-${endItem} ${t('common.of')} ${totalItems}` : '0 de 0'}
                     </div>
                 </div>
-
-                {position === 'top' && (
-                    <div className={styles.columnsCenter}>
-                        {renderColumnsControl()}
-                    </div>
-                )}
                 
                 <div className={styles.pageButtons}>
-                    <button 
-                        className={styles.pageButton} 
-                        onClick={() => onPageChange(1)}
-                        disabled={currentPage === 1 || loading || totalItems === 0}
-                    >
-                        <ChevronsLeft size={16} />
-                    </button>
-                    <button 
-                        className={styles.pageButton} 
-                        onClick={() => onPageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || loading || totalItems === 0}
-                    >
-                        <ChevronLeft size={16} />
-                    </button>
-                    
+                    {/* Pares agrupados: primera+anterior a la izquierda,
+                        siguiente+última a la derecha. El pageNumber queda
+                        suelto en medio. Con justify-content: space-between
+                        en mobile, los grupos se pegan a los bordes y el
+                        pageNumber se centra. */}
+                    <div className={styles.pageButtonsGroup}>
+                        <button
+                            className={styles.pageButton}
+                            onClick={() => onPageChange(1)}
+                            disabled={currentPage === 1 || loading || totalItems === 0}
+                        >
+                            <ChevronsLeft size={16} />
+                        </button>
+                        <button
+                            className={styles.pageButton}
+                            onClick={() => onPageChange(currentPage - 1)}
+                            disabled={currentPage === 1 || loading || totalItems === 0}
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                    </div>
+
                     <span className={styles.pageNumber}>
                         {t('dataTable.page')} {currentPage} {totalPages > 0 ? `${t('common.of')} ${totalPages}` : ''}
                     </span>
 
-                    <button 
-                        className={styles.pageButton} 
-                        onClick={() => onPageChange(currentPage + 1)}
-                        disabled={currentPage >= totalPages || loading || totalItems === 0}
-                    >
-                        <ChevronRight size={16} />
-                    </button>
-                    <button 
-                        className={styles.pageButton} 
-                        onClick={() => onPageChange(totalPages)}
-                        disabled={currentPage >= totalPages || loading || totalItems === 0}
-                    >
-                        <ChevronsRight size={16} />
-                    </button>
+                    <div className={styles.pageButtonsGroup}>
+                        <button
+                            className={styles.pageButton}
+                            onClick={() => onPageChange(currentPage + 1)}
+                            disabled={currentPage >= totalPages || loading || totalItems === 0}
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                        <button
+                            className={styles.pageButton}
+                            onClick={() => onPageChange(totalPages)}
+                            disabled={currentPage >= totalPages || loading || totalItems === 0}
+                        >
+                            <ChevronsRight size={16} />
+                        </button>
+                    </div>
                 </div>
             </div>
         );

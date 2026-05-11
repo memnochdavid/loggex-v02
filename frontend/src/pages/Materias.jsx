@@ -551,8 +551,13 @@ const Materias = () => {
 
   const columns = useMemo(() => [
     {
+      // No usamos MateriaLabel aquí: en este listado tenemos columna
+      // Abreviatura aparte, así que el fallback "auto a abreviatura cuando
+      // no cabe" de MateriaLabel duplica info y oculta el nombre real
+      // cuando la tabla se estrecha. Mostramos siempre el nombre completo
+      // y dejamos que wrappee si la columna se hace estrecha.
       header: t('materias.name'),
-      accessor: (row) => <MateriaLabel materia={row} />,
+      accessor: (row) => <span title={row.nombre}>{row.nombre}</span>,
       sortable: true,
       sortKey: 'nombre'
     },

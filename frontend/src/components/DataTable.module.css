@@ -24,6 +24,13 @@
     border-collapse: collapse;
     font-size: var(--text-sm);
     text-align: left;
+    /* table-layout: fixed reparte el ancho entre columnas sin estirarlas
+       al max-content. Sin esto, una celda con texto larguísimo (p.ej.
+       "Lenguajes de marcas y sistemas de gestión de información" en
+       /materias) come el ancho de la tabla y las demás columnas se
+       comprimen u overflowean. Con fixed + word-break en .td las celdas
+       wrappean a varias líneas y la tabla cabe en el viewport. */
+    table-layout: fixed;
 }
 
 .thead {
@@ -39,7 +46,12 @@
     font-size: var(--text-xs);
     letter-spacing: 0.06em;
     user-select: none;
-    white-space: nowrap;
+    /* Sin nowrap: los headers de columna wrapan a 2 líneas cuando la
+       columna se estrecha (típico en mobile/tablet). Antes "nowrap"
+       forzaba que la columna creciera al ancho del header, robando
+       espacio al contenido. overflow-wrap: break-word evita que una
+       palabra anormalmente larga rompa el ancho de la columna. */
+    overflow-wrap: break-word;
 }
 
 .th.sortable {
@@ -111,6 +123,10 @@
     padding: var(--space-3) var(--space-4);
     color: var(--text-main);
     vertical-align: middle;
+    /* Wrap natural por espacios (overflow-wrap: normal, default). Las frases
+       con espacios — "Lenguajes de marcas y sistemas..." — se parten entre
+       palabras. Las palabras solitarias muy largas (URLs, IDs sin espacios)
+       pueden overflowear; en esos casos puntuales se decide por columna. */
 }
 
 /* Columna Acciones: alineada al final tanto en cabecera como en celdas. El
@@ -134,28 +150,24 @@
 }
 
 .pagination {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     padding: var(--space-3) var(--space-4);
     background-color: var(--datatable-pagination-bg, var(--color-gray-50));
     color: var(--datatable-pagination-text, var(--color-gray-600));
     gap: var(--space-4);
 }
 
-.columnsCenter {
-    grid-column: 2;
-    justify-self: center;
-}
-
-.paginationControls {
-    grid-column: 1;
-}
-
 .paginationControls {
     display: flex;
     align-items: center;
-    gap: var(--space-6);
+    justify-content: space-between;
+    flex: 1;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 .itemsPerPage {
@@ -198,8 +210,15 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    grid-column: 3;
-    justify-self: end;
+}
+
+/* Cada par de botones (primera+anterior, siguiente+última) va junto;
+   el pageNumber vive entre ambos pares. Con space-between en mobile,
+   los pares se pegan a los bordes y el texto se centra. */
+.pageButtonsGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
 }
 
 .pageButton {
@@ -517,8 +536,15 @@
     display: block;
 }
 
-/* Ajustes de paginación para móvil */
+/* Ajustes de paginación para móvil.
+   IMPORTANTE: override del display a flex. La base usa display: grid con
+   columnas 1fr auto 1fr; sin este override flex-direction: column quedaba
+   inerte (no aplica a grid) y los hijos seguían en sus grid-columns, que a
+   <500px se aprietan y descuadran todo. Con flex column, las tres
+   secciones (paginationControls, columnsCenter, pageButtons) se apilan
+   verticalmente con gap consistente. */
 .mobileView .pagination {
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
@@ -531,14 +557,14 @@
 .mobileView .paginationControls {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--space-3);
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
 }
 
 .mobileView .pageButtons {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
