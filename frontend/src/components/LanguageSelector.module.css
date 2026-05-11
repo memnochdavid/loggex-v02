@@ -118,14 +118,23 @@
     transform: scale(0.97);
 }
 
-/* Activo: Fondo sutil, texto primario e indicador visual (borde esquerdo) */
+/* Activo: tinte primario sutil de fondo + texto `--text-main` (mismo patrón
+   que `ThemedSelect.module.css`). Antes usábamos `var(--primary-color,
+   var(--color-primary))` que NO existen como variables en el sistema
+   (`theme.js` sólo define `--color-primary-50…900`), por lo que la
+   declaración era inválida y `color` heredaba del Header: en temas con
+   header-footer-text claro y `widgetBgColor` claro (Alhambra, xp-bien…)
+   se veía texto claro sobre fondo claro. `--text-main` está garantizado
+   por el tema a ser contrastado con `--bg-card-solid`, y el accent bar
+   lateral + bold ya dan identidad visual al item activo. */
 .item.active {
-    background-color: color-mix(in srgb, var(--text-main, #000) 6%, transparent);
-    color: var(--primary-color, var(--color-primary));
+    background-color: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+    color: var(--text-main);
     font-weight: 600;
 }
 
-/* Indicador visual opcional para o item activo */
+/* Accent bar lateral en color primario real del tema (`--color-primary-500`
+   sí está siempre definido, vs el alias inexistente anterior). */
 .item.active::before {
     content: '';
     position: absolute;
@@ -134,7 +143,7 @@
     transform: translateY(-50%);
     height: 60%;
     width: 3px;
-    background-color: var(--primary-color, var(--color-primary));
+    background-color: var(--color-primary-500);
     border-radius: 2px;
 }
 

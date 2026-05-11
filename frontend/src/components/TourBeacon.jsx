@@ -8,24 +8,30 @@ import styles from './TourBeacon.module.css';
  * por una animación Lottie de fuego. Indica dónde arranca el tour; el
  * usuario pulsa y aparece el primer tooltip.
  *
- * Joyride llama al componente con `ref` para posicionarlo encima del
- * target, además de pasarle `continuous`, `locale` y `styles` (que aquí
- * no usamos porque el aspecto lo controlamos con CSS Modules).
+ * IMPORTANTE: Joyride v3+ envuelve el `beaconComponent` en su propio
+ * `<button class="react-joyride__beacon">` (con su `aria-label`, `onClick`
+ * y `onMouseEnter` para arrancar el tour, además del `style` con el
+ * `translate3d` de posición). Por eso aquí renderizamos un `<span>`:
+ *   1) Evita el HTML inválido `<button>` dentro de `<button>`.
+ *   2) Toda la interacción/posicionamiento ya está en el padre.
+ *
+ * Joyride pasa props internos al render: `continuous`, `index`,
+ * `isLastStep`, `size`, `step`. Ninguno es atributo DOM válido; los
+ * descartamos en el destructuring para que no salgan warnings tipo
+ * "Received `true` for a non-boolean attribute `continuous`" ni
+ * "React does not recognize the `isLastStep` prop on a DOM element".
  */
-/* Extraemos className del resto de props (Joyride puede enviar el suyo) y lo
-   mergeamos con el nuestro, en vez de dejar que ninguno sobreescriba al otro.
-   El resto de props (style con el translate3d de posición, onClick interno
-   de Joyride para avanzar al tooltip, etc.) se propagan tal cual. */
-const TourBeacon = forwardRef(({ className, ...props }, ref) => (
-    <button
+const TourBeacon = forwardRef((
+    { className, continuous: _c, index: _i, isLastStep: _l, size: _s, step: _st, ...rest },
+    ref,
+) => (
+    <span
         ref={ref}
-        type="button"
-        aria-label="Iniciar tutorial"
-        {...props}
+        {...rest}
         className={[styles.beacon, className].filter(Boolean).join(' ')}
     >
         <Lottie animationData={fireAnimation} loop autoplay />
-    </button>
+    </span>
 ));
 
 TourBeacon.displayName = 'TourBeacon';
