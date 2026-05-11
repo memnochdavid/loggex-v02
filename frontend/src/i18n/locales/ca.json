@@ -235,6 +235,8 @@
     "scheduleAdmin": "Horaris (administració)",
     "pin": "Ancorar",
     "unpin": "Desancorar",
+    "flatLayout": "Llistat pla",
+    "groupAccordion": "Agrupar en acordions",
     "jornadas": "Jornades",
     "exceptions": "Incidències",
     "dates": "Dates",

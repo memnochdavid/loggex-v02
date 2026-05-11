@@ -235,6 +235,8 @@
     "scheduleAdmin": "Schedules (admin)",
     "pin": "Pin",
     "unpin": "Unpin",
+    "flatLayout": "Flat list",
+    "groupAccordion": "Group in accordions",
     "jornadas": "Schedules templates",
     "exceptions": "Incidents",
     "dates": "Dates",

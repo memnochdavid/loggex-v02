@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { useTour } from '../context/TourContext';
 import { getLastPointer } from '../utils/pointerTracker';
-import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info, Clock, Shuffle, Search, X as XIcon } from 'lucide-react';
+import { Home, User, Settings, LogOut, Pin, PinOff, Building, Users, BookOpen, Layers, GraduationCap, UsersRound, Calendar, Briefcase, CalendarDays, FileText, Book, UploadCloud, AlertCircle, MessageSquare, UserCheck, BarChart3, Library, Database, Building2, Info, Clock, Shuffle, Search, X as XIcon, List, LayoutList } from 'lucide-react';
 import AccordionView from './AccordionView';
 import ConfirmLogoutModal from './ConfirmLogoutModal';
 import { useTranslation } from 'react-i18next';
@@ -330,6 +330,75 @@ const Sidebar = () => {
         });
     }, [allItems, queryNorm]);
 
+    /* Detección de altura insuficiente para acordeones.
+       Si el viewport no da para mostrar todas las cabeceras + la sección
+       con más ítems abierta sin scroll interno asfixiado, conmutamos a
+       modo plano agrupado (toda la nav scrollea en bloque). Las constantes
+       siguen los valores reales del CSS (header acordeón 52, gap 8, item 36,
+       paddings 32, header app 84, buscador+footer 180). */
+    const { sectionCount, largestSection } = useMemo(() => ({
+        sectionCount: accordionData.length,
+        largestSection: accordionData.reduce((m, s) => Math.max(m, s.items.length), 0),
+    }), [accordionData]);
+
+    const [autoFlat, setAutoFlat] = useState(false);
+
+    useEffect(() => {
+        const HEADER_PX = 84;
+        const NAV_OVERHEAD_PX = 180;
+        const ACC_HEADER_PX = 52;
+        const ACC_GAP_PX = 8;
+        const ACC_INNER_PAD_PX = 32;
+        const NAV_ITEM_PX = 36;
+
+        const compute = () => {
+            if (sectionCount === 0) { setAutoFlat(false); return; }
+            const navH = window.innerHeight - HEADER_PX - NAV_OVERHEAD_PX;
+            const headersBlock = sectionCount * ACC_HEADER_PX + Math.max(0, sectionCount - 1) * ACC_GAP_PX;
+            const openContent = ACC_INNER_PAD_PX + largestSection * NAV_ITEM_PX;
+            setAutoFlat(headersBlock + openContent > navH);
+        };
+        compute();
+        window.addEventListener('resize', compute);
+        return () => window.removeEventListener('resize', compute);
+    }, [sectionCount, largestSection]);
+
+    /* Preferencia explícita del usuario: null = automático (lo decide la
+       heurística por resolución), true/false = elección manual que prevalece
+       en cualquier resolución. Persistida igual que el pin. */
+    const [flatPreference, setFlatPreference] = useState(() => {
+        try {
+            const raw = localStorage.getItem('sidebarFlatPreference');
+            return raw === null ? null : JSON.parse(raw);
+        } catch { return null; }
+    });
+
+    useEffect(() => {
+        try {
+            if (flatPreference === null) localStorage.removeItem('sidebarFlatPreference');
+            else localStorage.setItem('sidebarFlatPreference', JSON.stringify(flatPreference));
+        } catch {}
+    }, [flatPreference]);
+
+    const effectiveFlat = flatPreference !== null ? flatPreference : autoFlat;
+
+    /* Flag transitorio sólo durante el toggle manual — usado para animar el
+       fade+slide del nuevo modo al entrar. En remounts del Sidebar (cada
+       navegación monta de nuevo Layout) este flag queda en false, así no se
+       reintroduce el flicker que se eliminó deshabilitando el stagger del
+       acordeón en .accordionWrapper. */
+    const [modeSwapping, setModeSwapping] = useState(false);
+    useEffect(() => {
+        if (!modeSwapping) return;
+        const t = setTimeout(() => setModeSwapping(false), 500);
+        return () => clearTimeout(t);
+    }, [modeSwapping]);
+
+    const toggleFlatLayout = () => {
+        setFlatPreference(prev => prev === null ? !autoFlat : !prev);
+        setModeSwapping(true);
+    };
+
     const renderNavItem = (item, opts = {}) => {
         const { showSection = false } = opts;
         const tourAttrs = item.tour ? { 'data-tour': item.tour } : {};
@@ -411,8 +480,20 @@ const Sidebar = () => {
                                     </p>
                                 )}
                             </div>
+                        ) : effectiveFlat ? (
+                            <div
+                                className={`${styles.flatGrouped} ${modeSwapping ? styles.modeSwapIn : ''}`}
+                                role="list"
+                            >
+                                {accordionData.map(section => (
+                                    <div key={section.id} className={styles.flatSection}>
+                                        <h3 className={styles.flatSectionLabel}>{section.title}</h3>
+                                        {section.items.map(it => renderNavItem({ ...it, sectionId: section.id }))}
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
-                            <div className={styles.accordionWrapper}>
+                            <div className={`${styles.accordionWrapper} ${modeSwapping ? styles.modeSwapIn : ''}`}>
                                 <AccordionView
                                     data={accordionData}
                                     renderItem={renderSectionItems}
@@ -426,18 +507,36 @@ const Sidebar = () => {
                     </nav>
 
                     <div className={styles.footer}>
-                        {/* Botón pin — solo visible expandido o en hover.
-                            En móvil se oculta por CSS. */}
-                        <button
-                            type="button"
-                            className={styles.pinBtn}
-                            onClick={togglePin}
-                            aria-pressed={isPinned}
-                            title={isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}
-                        >
-                            {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
-                            <span>{isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}</span>
-                        </button>
+                        {/* Fila de acciones del footer: anclar + alternar modo de
+                            navegación (acordeones / listado plano). Comparten línea
+                            en expandido y se apilan icon-only en colapsado. En móvil
+                            el pin está oculto por CSS, así que el toggle queda solo. */}
+                        <div className={styles.footerActions}>
+                            <button
+                                type="button"
+                                className={styles.pinBtn}
+                                onClick={togglePin}
+                                aria-pressed={isPinned}
+                                title={isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}
+                            >
+                                {isPinned ? <PinOff size={18} /> : <Pin size={18} />}
+                                <span>{isPinned ? t('sidebar.unpin', 'Desanclar') : t('sidebar.pin', 'Anclar')}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.flatBtn}
+                                onClick={toggleFlatLayout}
+                                aria-pressed={effectiveFlat}
+                                title={effectiveFlat
+                                    ? t('sidebar.groupAccordion', 'Agrupar en acordeones')
+                                    : t('sidebar.flatLayout', 'Listado plano')}
+                                aria-label={effectiveFlat
+                                    ? t('sidebar.groupAccordion', 'Agrupar en acordeones')
+                                    : t('sidebar.flatLayout', 'Listado plano')}
+                            >
+                                {effectiveFlat ? <LayoutList size={18} /> : <List size={18} />}
+                            </button>
+                        </div>
                         <div
                             className={styles.navItem}
                             onClick={() => { setLogoutConfirmOpen(true); closeSidebar(); }}

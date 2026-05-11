@@ -116,6 +116,19 @@
     width: 100%;
 }
 
+/* Fila de acciones del footer: pin + toggle modo de navegación. */
+.footerActions {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+}
+
+.sidebar.collapsed .footerActions {
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
 /* Pin button — en el footer, alterna entre sidebar anclado o hover-expand. */
 .pinBtn {
     background: transparent;
@@ -127,12 +140,12 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     letter-spacing: 0.02em;
-    margin-bottom: var(--space-2);
     white-space: nowrap;
     overflow: hidden;
     transition:
@@ -140,6 +153,53 @@
         color var(--dur-fast) var(--ease-standard),
         transform var(--dur-fast) var(--ease-standard),
         border-color var(--dur-fast) var(--ease-standard);
+}
+
+/* Toggle de modo de navegación — icon-only, mismo lenguaje visual que pinBtn. */
+.flatBtn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-sidebar-hover, var(--text-light));
+    cursor: pointer;
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard),
+        border-color var(--dur-fast) var(--ease-standard);
+}
+
+.flatBtn:hover {
+    background-color: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary-400) 28%, transparent);
+    transform: translateY(-1px);
+}
+
+.flatBtn:active {
+    transform: scale(0.94);
+}
+
+.flatBtn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 75%, transparent);
+    outline-offset: 2px;
+}
+
+/* Estado activo (lista plana forzada): mismo highlight que pin anclado. */
+.flatBtn[aria-pressed="true"] {
+    background-color: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+    color: var(--color-primary-300);
+}
+
+.sidebar.collapsed .flatBtn {
+    width: 100%;
+    transform: none !important;
 }
 
 .pinBtn:hover {
@@ -735,4 +795,88 @@
     font-size: 0.85rem;
     text-align: center;
     font-style: italic;
+}
+
+/* ----------------------------------------------------------------------
+ * Modo plano agrupado — se activa por JS cuando el viewport no da para
+ * abrir los acordeones sin asfixiar el contenido. Todas las secciones
+ * quedan visibles a la vez; los headers se reducen a mini etiquetas y la
+ * .nav scrollea como un único bloque (con el mismo fade top/bottom).
+ * ---------------------------------------------------------------------- */
+
+.flatGrouped {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: var(--space-1);
+    scrollbar-gutter: stable;
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 14px),
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        black 14px,
+        black calc(100% - 14px),
+        transparent 100%
+    );
+}
+
+.flatSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.flatSectionLabel {
+    margin: var(--space-2) var(--space-2) var(--space-1);
+    font-size: 0.7rem;
+    font-weight: var(--font-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gray-400);
+    line-height: 1;
+    user-select: none;
+}
+
+/* Colapsado (icon-only): el sidebar se reduce a 72px y las labels de los
+   navItem se ocultan. Las etiquetas de sección también, así no rompen la
+   tira vertical de iconos. El gap entre secciones (var(--space-3)) se
+   conserva como respiración visual sutil entre grupos. */
+.sidebar.collapsed .flatSectionLabel {
+    display: none;
+}
+
+/* Animación de transición al alternar acordeón ↔ plano. Sólo se aplica
+   durante el toggle manual (flag transitorio en JS), no en remounts por
+   navegación — así evitamos reintroducir el flicker que se eliminó en su
+   día desactivando el stagger del AccordionView dentro del sidebar.
+   Curva y duración alineadas con el resto de animaciones del sidebar
+   (--dur-slow + --ease-out-quart, las mismas del anclar/desanclar). */
+.modeSwapIn {
+    animation: sidebarModeSwap var(--dur-slow) var(--ease-out-quart) both;
+}
+
+@keyframes sidebarModeSwap {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modeSwapIn {
+        animation: none !important;
+    }
 }

@@ -237,6 +237,8 @@
     "scheduleAdmin": "Horarios (administración)",
     "pin": "Anclar",
     "unpin": "Desanclar",
+    "flatLayout": "Listado plano",
+    "groupAccordion": "Agrupar en acordeones",
     "catalogo": "Catálogo oficial",
     "catalogoItinerarios": "Itinerarios",
     "catalogoMaterias": "Materias",

@@ -235,6 +235,8 @@
     "scheduleAdmin": "Horarios (administración)",
     "pin": "Ancorar",
     "unpin": "Desancorar",
+    "flatLayout": "Listaxe plano",
+    "groupAccordion": "Agrupar en acordeóns",
     "jornadas": "Xornadas",
     "exceptions": "Incidencias",
     "dates": "Datas",
