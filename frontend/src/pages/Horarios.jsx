@@ -951,19 +951,21 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                             <PanelRightClose size={20} />
                         </button>
                     </div>
-                    <EventsSidebar
-                        selectedDate={selectedDate}
-                        onDateSelect={(date) => {
-                            setSelectedDate(date);
-                            setIsSidebarOpen(false);
-                        }}
-                        festivos={festivos}
-                        events={sidebarEvents}
-                        onEventClick={(event) => {
-                            setIsSidebarOpen(false);
-                            handleEventClick(event);
-                        }}
-                    />
+                    <div className={styles.mobileSidebarBody}>
+                        <EventsSidebar
+                            selectedDate={selectedDate}
+                            onDateSelect={(date) => {
+                                setSelectedDate(date);
+                                setIsSidebarOpen(false);
+                            }}
+                            festivos={festivos}
+                            events={sidebarEvents}
+                            onEventClick={(event) => {
+                                setIsSidebarOpen(false);
+                                handleEventClick(event);
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
         )}
