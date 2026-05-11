@@ -494,22 +494,22 @@ const CalificacionesDetalle = () => {
                                 <div key={tareaKey} id={`tarea-${tarea.id || tarea['@id']?.split('/').pop()}`} className={styles.taskItem}>
                                     <div className={styles.taskInfo}>
                                         <div className={styles.taskName}>
-                                            {tarea.titulo}
-                                            <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`} style={{ marginLeft: 'var(--space-2)' }}>
+                                            <span>{tarea.titulo}</span>
+                                            <span className={`${styles.taskBadge} ${getBadgeClass(tarea.tipo)}`}>
                                                 {getTypeName(tarea.tipo)}
                                             </span>
                                             {tarea.obligatoria && (
-                                                <span className={`${styles.taskBadge}`} style={{ marginLeft: 'var(--space-2)', background: 'var(--color-error)', color: 'white' }} title={t('tasks.mandatoryHelp')}>
+                                                <span className={`${styles.taskBadge}`} style={{ background: 'var(--color-error)', color: 'white' }} title={t('tasks.mandatoryHelp')}>
                                                     {t('tasks.mandatory')}
                                                 </span>
                                             )}
                                             {tarea.notaMinima != null && (
-                                                <span className={`${styles.taskBadge}`} style={{ marginLeft: 'var(--space-2)', background: 'var(--color-warning)', color: 'white' }} title={t('tasks.minGradeHelp')}>
+                                                <span className={`${styles.taskBadge}`} style={{ background: 'var(--color-warning)', color: 'white' }} title={t('tasks.minGradeHelp')}>
                                                     {t('tasks.minGradeShort', { value: tarea.notaMinima })}
                                                 </span>
                                             )}
                                             {indicadorHija && (
-                                                <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                                     {indicadorHija}
                                                 </span>
                                             )}

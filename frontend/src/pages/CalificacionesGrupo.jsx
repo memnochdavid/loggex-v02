@@ -760,28 +760,32 @@ const CalificacionesGrupo = () => {
                     />
                 </CrudHeader>
 
-                {/* Tabs principales: Alumnos | Ponderaciones */}
+                {/* Tabs principales: Alumnos | Ponderaciones + acción "Cerrar
+                    tareas vencidas". Wrapper .tabBarWithAction: en desktop comparten
+                    línea; en ≤768px el botón cae a fila propia para no quedar
+                    oculto bajo el scroll horizontal del .tabBar. */}
                 {isProfesor && selectedImparticion && (
-                    <div className={styles.tabBar} style={{ alignItems: 'center' }}>
-                        <button
-                            type="button"
-                            className={`${styles.tab} ${mainTab === 'alumnos' ? styles.tabActive : ''}`}
-                            onClick={() => setMainTab('alumnos')}
-                        >
-                            {t('grades.student')}
-                        </button>
-                        <button
-                            type="button"
-                            className={`${styles.tab} ${mainTab === 'ponderaciones' ? styles.tabActive : ''}`}
-                            onClick={() => setMainTab('ponderaciones')}
-                        >
-                            {t('grades.weights')}
-                        </button>
+                    <div className={styles.tabBarWithAction}>
+                        <div className={styles.tabBar}>
+                            <button
+                                type="button"
+                                className={`${styles.tab} ${mainTab === 'alumnos' ? styles.tabActive : ''}`}
+                                onClick={() => setMainTab('alumnos')}
+                            >
+                                {t('grades.student')}
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.tab} ${mainTab === 'ponderaciones' ? styles.tabActive : ''}`}
+                                onClick={() => setMainTab('ponderaciones')}
+                            >
+                                {t('grades.weights')}
+                            </button>
+                        </div>
                         <Button
                             variant="secondary"
                             onClick={handleCerrarVencidas}
                             disabled={closingOverdue}
-                            style={{ marginLeft: 'auto' }}
                             title={t('grades.closeOverdueTitle', { defaultValue: 'Cerrar tareas vencidas' })}
                         >
                             {closingOverdue
@@ -895,29 +899,37 @@ const CalificacionesGrupo = () => {
                         expandedId={expandedAlumnoId}
                         onToggle={(id) => setExpandedAlumnoId(prev => prev === id ? null : id)}
                         renderHeader={(row) => (
-                            <span className="accordionHeaderWithCount">
-                                <span className="accordionHeaderTitle">
-                                    {row.alumno.apellidos}, {row.alumno.nombre}
-                                </span>
-                                {row.evaluable === false ? (
-                                    <span
-                                        className={`${styles.gradeBadge} ${styles.gradeFail}`}
-                                        title={formatMotivos(row.motivosNoEvaluable, t)}
-                                    >
-                                        {t('grades.notEvaluable')}
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={`${styles.gradeBadge} ${getGradeClass(row.notaFinal)}`}
-                                        title={t('grades.finalGrade')}
-                                    >
-                                        {formatGrade(row.notaFinal)}
-                                    </span>
-                                )}
+                            <span className="accordionHeaderTitle">
+                                {row.alumno.apellidos}, {row.alumno.nombre}
                             </span>
                         )}
                         renderItem={(row) => (
                             <div className={styles.mobileRowInner}>
+                                {/* Nota final — antes en el header, ahora movida aquí
+                                    porque en mobile el header se quedaba sin espacio
+                                    horizontal (especialmente con badge "No evaluable").
+                                    Como es la info más importante de la fila, va arriba
+                                    del todo con su propio bloque destacado, no como
+                                    una chip más entre las medias parciales. */}
+                                <div className={styles.mobileFinalGrade}>
+                                    <span className={styles.mobileFinalGradeLabel}>
+                                        {t('grades.finalGrade')}
+                                    </span>
+                                    {row.evaluable === false ? (
+                                        <span
+                                            className={`${styles.gradeBadge} ${styles.gradeFail}`}
+                                            title={formatMotivos(row.motivosNoEvaluable, t)}
+                                        >
+                                            {t('grades.notEvaluable')}
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className={`${styles.gradeBadge} ${getGradeClass(row.notaFinal)}`}
+                                        >
+                                            {formatGrade(row.notaFinal)}
+                                        </span>
+                                    )}
+                                </div>
                                 <div className={styles.mobileRowStats}>
                                     <div className={styles.mobileStatChip}>
                                         <span className={styles.mobileStatLabel}>{t('grades.avgExams')}</span>

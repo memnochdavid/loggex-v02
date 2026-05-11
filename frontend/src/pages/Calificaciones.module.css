@@ -148,6 +148,27 @@
     gap: var(--space-3);
 }
 
+/* Bloque "Nota final" al tope del cuerpo del acordeón en mobile. Era el badge
+   del header pero competía con el nombre del alumno por el escaso ancho.
+   Aquí va con label + valor en una fila propia, separado por un divider sutil
+   del resto de stats. */
+.mobileFinalGrade {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mobileFinalGradeLabel {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold, 600);
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .mobileRowStats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -367,6 +388,25 @@
     overflow-y: hidden;
 }
 
+/* Wrapper para una fila con tabs + acción suelta a la derecha (p.ej. el botón
+   "Cerrar tareas vencidas" en /calificaciones). En desktop ambos comparten
+   línea; en ≤768px la acción se apila debajo para que ni los tabs (que
+   scrollean) ni el botón queden fuera de pantalla. */
+.tabBarWithAction {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-4);
+}
+
+.tabBarWithAction .tabBar {
+    margin-top: 0;
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+}
+
 /* Wrapper para el contenido de cada tab — anima la entrada al cambiar.
    Aplicar como className en el contenedor del contenido y usar `key={tab}`
    para forzar el remount y disparar la animación. */
@@ -540,6 +580,17 @@
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     color: var(--text-main);
+    /* Flex-wrap explícito: el título + sus badges (Tipo, Mandatoria,
+       Nota mín, "↑ sube/↩ recupera") deben repartirse en varias líneas
+       en cuanto no quepan. Sin esto, en anchos estrechos el último badge
+       puede empujar la fila más allá del viewport (badges son
+       inline-block; las marginLeft inline no inducen wrap fiable). */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .taskMeta {
@@ -1111,5 +1162,57 @@
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-2);
+    }
+
+    /* Tabs + acción se apilan: tabs arriba (con su scroll horizontal propio),
+       botón abajo a full-width. Así el botón siempre se ve sin scrollear. */
+    .tabBarWithAction {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-2);
+    }
+
+    /* /calificaciones/detalle — defensa contra overflow horizontal:
+       1) statValue muestra "No evaluable" a text-3xl → demasiado ancho en
+          una card de ~310px. Reducimos y permitimos break. */
+    .statValue {
+        font-size: var(--text-xl);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* 2) Título h1 de la cabecera + meta line: nombres largos (apellidos
+       compuestos, materias largas, profesor con doble apellido) no deben
+       extender el documento. */
+    .title {
+        font-size: var(--text-xl);
+        overflow-wrap: anywhere;
+    }
+
+    /* 3) Bar chart — label fijo a 100px se come demasiado en mobile.
+       Reducimos al 30% del row y alineamos a la izquierda. */
+    .barLabel {
+        min-width: 0;
+        flex: 0 0 30%;
+        text-align: left;
+    }
+
+    .barValue {
+        min-width: 0;
+        flex: 0 0 auto;
+    }
+
+    /* 4) Feedback inline: el input + 2 botones a veces no caben — wrap. */
+    .feedbackInline {
+        flex-wrap: wrap;
+    }
+
+    /* 5) taskItem en columna ya estaba, pero las dos columnas internas
+       (taskInfo y la nota editable) deben ocupar 100% en mobile para no
+       quedar mal alineadas ni cortadas. */
+    .taskItem > * {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 }
