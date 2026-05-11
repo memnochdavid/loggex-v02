@@ -83,6 +83,14 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
+**Estado tras sesión 2026-05-11 (commits `569add5` + `c6b5478`)** — Sesión FP correctness end-to-end cerrada y pusheada. 1º DAW, 1º DAM, 2º DAM completos en `/admin/horarios` (cobertura LOMLOE ≥ 95% per materia). 2º DAW completo tras rebalanceo manual del admin (IPEI II reajustada). Detalle en sección "📋 Sesión 2026-05-11" más abajo y bitácora completa en `hoja-de-ruta-solver-iterativo.md` §"2026-05-11 — Sesión correctness FP end-to-end".
+
+**Deuda dejada abierta y siguiente paso recomendado**: **fix del bin-packing priority** para que el caso IPEI II no requiera intervención manual. `HorarioSolverBinPacking::elegirMejorBloque` usa `score = liquido pendiente absoluto` → favorece materias grandes; las pequeñas como IPEI II (cuota 4-5h/sem) quedan al final y `redistribuirCrossRango` no las rescata porque mira cuotas teóricas (`accumPlacedByImp`) en vez de placements reales del bin-packing. **Fix propuesto**: añadir bonus de score por cobertura relativa baja (placed/target < 80% → bonus 700K) para que las pequeñas se prioricen cuando van atrás. ~30-45min de trabajo + validación E2E con 2º DAW EAG. Ver §"2026-05-11 — Sesión correctness FP end-to-end" en `hoja-de-ruta-solver-iterativo.md` para todo el contexto.
+
+**Cosmético menor pendiente**: renombrar la etiqueta `statusDraft` ("Borrador") en los 5 locales por algo menos confuso ("Parcial" / "Cobertura X%"). En castellano "Borrador" se asocia a "no guardado", pero el código lo usa para "currículo no cubierto al 100% aunque esté guardado". Sin gran prisa pero apuntado en la deuda.
+
+---
+
 **🟢 MVP `materias-multi-itinerario` cerrado y validado E2E (2026-05-08, sesión maratón)** — `Materia` ↔ `Itinerario` ManyToMany (tabla puente + drop columna) + solver consciente (`isProfBusyOther`: misma `materia.id` + misma franja → no conflicto profe) + UI multi-select + CTA "Añadir materia existente" en vista de itinerario. **Validado E2E en EAG**: crear DAM nuevo desde catálogo, unificar 1º DAM con 1º DAW asignando las mismas materias compartidas, comparar franjas tras Guardar — **coinciden** para las 7 materias compartidas (PR/SI/BD/LM/ED/IPEI1/DIG), el solver respeta correctamente `parallelBusy`. **Working tree con cambios sin commitear** (esperando OK explícito del usuario para empaquetar). Doc completo: `hoja-de-ruta-materias-multi-itinerario.md`.
 
 **Bugs preexistentes arreglados de paso (deuda histórica que afloraba con el nuevo flujo)**:
@@ -105,6 +113,37 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
 - **Validación cross-conflicto en POST /excepciones/intercambio** — ~0.5 sesión.
 - **Modalidad Fase 6 (PDF)** — cierra ese roadmap, ~0.5 sesión.
 - **Curriculum CCAA Fase 3 BOJA Andalucía** — crítico para centros reales, ~2 sesiones.
+
+---
+
+## 📋 Sesión 2026-05-11 — FP correctness end-to-end (planner + datos + UI + hardcodes)
+
+**Cerrados en commits `569add5` + `c6b5478`** sobre branch `develop-semanas-lectivas`. Sesión larga motivada por un solo síntoma (2º DAM EAG: `redistributionShortfall extendBy:7` 12 veces) que descubrió desalineaciones en 4 capas. Detalle completo en `hoja-de-ruta-solver-iterativo.md` §"2026-05-11 — Sesión correctness FP end-to-end".
+
+**Reglas de negocio FP nuevas en `PeriodoLectivoPlanner`** (bitácora detallada en §"Fase B+" del solver-iterativo):
+- Universal: la ventana lectiva NUNCA solapa EXTRAORDINARIA.
+- FP (cualquier curso): NO clases después de TERCERA (`fin` cropped a `tercera.fechaFin`).
+- FP 2º (`grupo.curso=2` ∧ etapa `FP_*`): además TERCERA es FCT → cropped a `segunda.fechaFin`, sin cola residual.
+- `jornadaSemanalMin` incluye SLOT+RECREO (truco LOMLOE FP, ya asumido por el frontend).
+- Detector `isFp(Grupo)` via `itinerario.catalogoOrigen.etapa ∈ {FP_BASICA, FP_MEDIO, FP_SUPERIOR, FP_ESPECIALIZACION}`.
+
+**Datos corregidos en BD EAG** (no migración — son datos de centro, no schema):
+- `jornada_tramo` id 108 borrado (FP Tardes 21:00–21:30 sobrante para igualar con FP Mañanas).
+- `materia` ids 7-10 + 13 alineados con catálogo BOE (2º DAW había quedado con `horas_totales = minutos_semanales × 36 / 60` desde abr-26, antes del enrich BOE; nadie había pulsado "Resync CCAA" sobre grupo 2). FCT 0→400h restaurado. **Idempotente con Resync** — re-ingestar el catálogo no pisa el fix.
+- 4 `periodo_evaluativo` clonados para grupo 5 (2º DAM): PRIMERA/SEGUNDA/TERCERA/EXTRAORDINARIA con las fechas estándar EAG. Sin evaluaciones, el planner caía a "Curso completo" y el distribuidor reventaba.
+
+**Fix UI en `HorariosEditor.jsx`** (banner y badge dejan de mentir/confundir):
+- Banner `curriculumMin` filtra a presencial (antes mezclaba FCT/no_regular dando Δ −562h falsa en 2º DAW).
+- Badge `allAnualCubierto` filtra a presencial + tolerancia per-materia alineada con backend (`max(60min, 5% target)`).
+- Badge `targetMinutos = slotsCapacityWeekly` directo (jornada de slots). Antes derivaba "weekly ideal" desde anual/semanasReferencia dando target 18.7h con jornada 27.5h (confundía al admin).
+- `showAnualLabel` quitado: el badge siempre muestra cifras semanales del PL activo. El estado sigue decidido por cobertura anual cross-rango.
+- Toast distingue `capacityShortfall` (no cabe → deficit agregado + palancas) de `redistributionShortfall` (cabe pero greedy desbalanceó → lista materias afectadas).
+
+**Hardcodes `* 5` quitados en 4 sitios** del editor. Nuevo memo `diasLectivosCount` deriva de `jornadaActual.diasLectivos` (JSON `int[]` del entity `JornadaTipo`). Centros con jornada de 4 días (FCT) o sábados lectivos quedan soportados de raíz.
+
+**Deuda residual anotada** (no aplicada en esta sesión):
+- Bin-packing prioriza materias grandes (`score = liquido pendiente absoluto`) → pequeñas como IPEI II (4-5h/sem) quedan famélicas y `redistribuirCrossRango` no las rescata porque mira `accumPlacedByImp` (teórico) en vez de placements reales del bin-packing. Caso real 2º DAW: IPEI II quedó 6.3h corta; admin rebalanceó manualmente. Fix propuesto: bonus de score por cobertura relativa baja.
+- Etiqueta "Borrador" del badge es engañosa en castellano (sugiere "no guardado"); cambio propuesto a "Parcial" en los 5 locales pendiente de validación término final.
 
 ---
 

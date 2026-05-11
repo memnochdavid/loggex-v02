@@ -560,3 +560,40 @@ Para no-FP (ESO/Bach/Idiomas/Artísticas/EPA…) sólo aplica la regla 1. Se eva
 - Endpoint `/api/v1/grupos/{id}/plan-rangos` mismo shape público; añade campos al `diagnostico`.
 
 **Acción usuaria**: tras `clear_cache_hard.sh`, re-ejecutar "Configurar curso óptimo" en grupos FP; el editor purgará las PLs huérfanas anteriores y construirá los rangos correctos.
+
+### 2026-05-11 — Sesión correctness FP end-to-end (planner + datos + UI + hardcodes)
+
+Sesión larga (~15-20 mensajes) detrás del fix del planner, motivada por el grupo "2º DAM" en EAG que devolvía `redistributionShortfall extendBy:7` 12 veces. Diagnóstico llevó a revisar todo el camino LOMLOE → solver → UI. Cierre con commits `569add5` (planner FP + recreos + toast), `c6b5478` (frontend banner+badge limpios + hardcodes `* 5` quitados + backup BD).
+
+**Cambios técnicos por capa** (todos en este día, todos en branch `develop-semanas-lectivas`):
+
+**Datos (BD directa, no migración — son datos de centro EAG, no schema):**
+- `jornada_tramo` id 108 borrado: la jornada "FP Tardes" tenía un tramo extra 21:00–21:30 que rompía la simetría con "FP Mañanas" (08:30–14:30). Tras el borrado, ambas jornadas tienen 13 tramos (11 slots × 30min + 2 recreos 20+10min = 6h = 30h/sem lectivo curricular con recreos / 27.5h/sem solo slots).
+- `materia` ids 7-10 + 13 actualizadas a los valores BOE del catálogo (DWEC 216→125h, DWES 288→160h, Despliegue 108→90h, Diseño 216→125h, FCT 0→400h, `minutos_semanales` puesto a NULL para evitar fallback `min × 36 / 60` inflado). Causa de la deriva: las materias se crearon abr-26 cuando el ingestor calculaba `horas_totales = minsem × 36 / 60`, antes del enrich BOE. Sólo el grupo 2 (2º DAW) usaba estas materias inflated; al pulsar "Resync CCAA" desde `/admin/grupos` el `GrupoResyncCcaaController:90-98` ya copia catálogo → materia, pero nadie lo había pulsado. **El UPDATE manual aplicado es idempotente con Resync — no es un patch que se rompa al re-ingerir el catálogo.**
+- 4 `periodo_evaluativo` creados para grupo 5 (2º DAM): PRIMERA / SEGUNDA / TERCERA / EXTRAORDINARIA, mismas fechas que los grupos 1-3 de EAG. Sin evaluaciones, el planner caía a "Curso completo" (1 rango) y el distribuidor reventaba con `aporteSlot` enorme.
+
+**Backend `CurriculumDistributor.php`** (sin cambios estructurales — la causa raíz era el planner mandando ventana inflada): siguen usándose tolerancias `max(60min, 5% target)` per-materia.
+
+**Backend `PeriodoLectivoPlanner.php`** (ver §"2026-05-11 — Fase B+" arriba) + `jornadaSemanalMin` ahora incluye RECREOS (truco LOMLOE FP): el inspector acepta el tiempo total de permanencia como lectivo curricular. Cap del planner pasa de 1650 min/sem (slots solo) a 1800 min/sem (slots+recreos). Días lectivos: usa `count($jornada->getDiasLectivos())` en vez de `* 5` hardcoded.
+
+**Frontend `HorariosEditor.jsx`** — varios fix coordinados sobre banner y badge para que dejen de mentir/confundir:
+
+1. **Banner anual `curriculumMin`** filtra a presencial (`consumeAulaModalidad`). Antes sumaba TODAS las imps (incluyendo FCT/no_regular), produciendo "Currículo 1260h" en 2º DAW y comparando con "Planificado 698h" que sólo cuenta slots → diferencia falsa −562h. Tras el fix: Currículo 680h vs Planificado ~698h, Δ +18h en verde.
+
+2. **Banner toast `capacityShortfall` vs `redistributionShortfall`** diferenciados. Antes, en capacityShortfall el toast listaba las horas TOTALES de cada materia como "faltantes" (alarmante e inútil — eran las h del módulo entero, no el déficit). Ahora reporta el déficit agregado en horas y las palancas reales (ampliar jornada, revisar `horas_totales`, pasar materias a FCT/Autónoma/No regular). `redistributionShortfall` sigue listando materias afectadas (información accionable porque ahí sí cabe y solo redistribuye).
+
+3. **Badge `allAnualCubierto`** itera SÓLO `impsPresenciales` (no FCT/no_regular, que tienen `placed=0` por naturaleza y bloqueaban el check siempre). Tolerancia per-materia bajada de 90min absolutos a `max(60min, 5% del target)` — alineado con `CurriculumDistributor.php:269`. Las sumas anuales `colocadasAnualTotalMin` y `objetivoAnualTotalMin` también filtran a presencial.
+
+4. **Badge `targetMinutos = slotsCapacityWeekly` directo** (era `min(totalMinutos, slotsCapacityWeekly)`). `totalMinutos` (cuota ideal weekly) se derivaba dividiendo horas anuales entre `semanasReferenciaCentro=36.4`, lo que daba cifras menores que la jornada (caso 2º DAW: target visual 18.7h con jornada de 27.5h). Confundía al admin: "mi jornada es 30h, ¿por qué el badge me pide 18.7h?". Ahora el target es directamente la jornada de slots colocables, igual para todos los grupos del centro.
+
+5. **`showAnualLabel` quitado**: el badge mostraba a veces cifras semanales y a veces anuales según el estado (complete + parcial → anual). Mezcla confusa. Ahora siempre semanales del PL activo. El estado ("Completo"/"Borrador"/"Incompleto") sigue decidiéndose por cobertura anual cross-rango pero la cifra del badge es estable.
+
+6. **Hardcode `* 5` quitado en 4 sitios** (`jornadaSemanalLectivaMin`, `slotsSemanalMin`, `slotsCapacityWeekly`, `pliModalSummary.capMin`). Nuevo memo `diasLectivosCount` deriva de `jornadaActual.diasLectivos` (JSON `int[]` expuesto por `JornadaTipo` en el grupo `jornada:read`). Centros con jornada de 4 días (FCT) o sábados lectivos quedan soportados de raíz.
+
+**Deuda residual identificada (no resuelta en esta sesión)**:
+
+- **Bin-packing prioriza materias grandes**: `HorarioSolverBinPacking::elegirMejorBloque` usa `score = liquidoImp - colocadoHoyImp` (líquido pendiente absoluto). Materias con cuotas grandes ganan, las pequeñas tipo IPEI II (4-5h/sem) quedan al final con slots peores. En el caso real 2º DAW EAG, IPEI II quedó 6.3h corta tras OptCurso aunque su cuota distribuida era 113.5h y target 108h. El `redistribuirCrossRango` del solver iterativo no la rescató porque `accumPlacedByImp` reflejaba la cuota teórica, no los placements reales que bin-packing acabó produciendo. **Fix propuesto pendiente**: añadir bonus de score por cobertura relativa baja (placed/target < 80% → bonus 700K) para que las pequeñas se prioricen cuando van atrás. Aplazado a sesión siguiente. Usuario rebalanceó manualmente arrastrando 1 placement de DWEC/DIW a un slot libre de IPEI II.
+
+- **Etiqueta "Borrador" del badge** es engañosa en castellano (sugiere "no guardado" pero significa "currículo no cubierto al 100%"). El usuario lo apuntó explícitamente. Cambio propuesto pendiente: renombrar a "Parcial" o "Cobertura X%" en los 5 locales (`statusDraft` key). No aplicado por falta de validación del término final.
+
+- **Coherencia banner ↔ chip**: el banner muestra "Planificado X (cuotas)" y el chip muestra "Colocado Y (placements)". Pueden diferir por overshoot natural del bin-packing (caso 1º DAW: Currículo 912 vs Planificado 907 vs chips suma 963.8). No es bug — son dos métricas distintas en dos puntos del pipeline. Ya documentado conversacionalmente; podría añadirse tooltip al banner si se quiere hacer explícito.
