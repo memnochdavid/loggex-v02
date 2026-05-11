@@ -191,9 +191,15 @@ const TemariosAlumno = () => {
             const materiales = matData['hydra:member'] || matData.member || [];
 
             const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
-            
+            const abrevModulo = imp.materia.abreviatura || imp.materia.nombre;
+            const grupoLabel = formatGrupoAbrev(imp.grupo);
+
             // Formato solicitado: [Módulo] ([Grupo]) - [Profesor]
-            const title = `${imp.materia.nombre} (${formatGrupoAbrev(imp.grupo)}) - ${nombreProfesor}`;
+            const title = `${imp.materia.nombre} (${grupoLabel}) - ${nombreProfesor}`;
+            // Versión corta para el header del AccordionView: abreviatura + grupo,
+            // sin profesor. El alumno ya sabe quién imparte cada asignatura — el
+            // título corto prioriza identificar la materia de un vistazo.
+            const titleShort = `${abrevModulo} (${grupoLabel})`;
 
             const grupoId = typeof imp.grupo === 'string'
                 ? imp.grupo.split('/').pop()
@@ -202,6 +208,7 @@ const TemariosAlumno = () => {
             asignaturasData.push({
                 id: impId,
                 title: title,
+                titleShort: titleShort,
                 profesor: nombreProfesor,
                 materiales: materiales,
                 grupoId,
@@ -427,8 +434,11 @@ const TemariosAlumno = () => {
             renderHeader={(a) => {
               const count = (a.materiales || []).filter(enPeriodo).length;
               return (
-                <span className="accordionHeaderWithCount">
-                  <span className="accordionHeaderTitle">{a.title}</span>
+                <span className="accordionHeaderWithCount" title={a.title}>
+                  <span className="accordionHeaderTitle">
+                    <span className="accordionHeaderTitleFull">{a.title}</span>
+                    <span className="accordionHeaderTitleShort">{a.titleShort || a.title}</span>
+                  </span>
                   <span className="accordionHeaderCount" aria-label={t('common.count', 'Total')}>{count}</span>
                 </span>
               );

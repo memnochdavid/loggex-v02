@@ -806,8 +806,11 @@ const Entregas = () => {
             renderHeader={(imparticion) => {
               const { tareas } = filterTareas(imparticion);
               return (
-                <span className="accordionHeaderWithCount">
-                  <span className="accordionHeaderTitle">{imparticion.title}</span>
+                <span className="accordionHeaderWithCount" title={imparticion.title}>
+                  <span className="accordionHeaderTitle">
+                    <span className="accordionHeaderTitleFull">{imparticion.title}</span>
+                    <span className="accordionHeaderTitleShort">{imparticion.titleShort || imparticion.title}</span>
+                  </span>
                   <span className="accordionHeaderCount">{tareas.length}</span>
                 </span>
               );

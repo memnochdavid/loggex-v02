@@ -173,6 +173,20 @@
     white-space: nowrap;
 }
 
+/* Versión larga vs corta del título del acordeón. Los consumidores pueden
+   pintar ambas y la media query elige cuál mostrar según el ancho:
+     · >768px → larga (.titleFull).
+     · ≤768px → corta (.titleShort, fallback al largo si no se aporta).
+   Lo gestionamos en CSS para evitar useMediaQuery + re-renders al resize y
+   para que el `title` HTML (tooltip nativo) siga teniendo el texto completo
+   incluso en móvil. */
+:global(.accordionHeaderTitleShort) { display: none; }
+
+@media (max-width: 768px) {
+    :global(.accordionHeaderTitleFull) { display: none; }
+    :global(.accordionHeaderTitleShort) { display: inline; }
+}
+
 :global(.accordionHeaderCount) {
     display: inline-flex;
     align-items: center;

@@ -133,7 +133,10 @@ const TemariosProfesor = () => {
           const materiales = matData['hydra:member'] || matData.member || [];
 
           const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
-          let title = `${imp.materia.nombre} - ${formatGrupoAbrev(imp.grupo)}`;
+          const abrevModulo = imp.materia.abreviatura || imp.materia.nombre;
+          const grupoLabel = formatGrupoAbrev(imp.grupo);
+          let title = `${imp.materia.nombre} - ${grupoLabel}`;
+          const titleShort = `${abrevModulo} - ${grupoLabel}`;
           if (isSuperAdmin && nombreProfesor) {
               title += ` (${nombreProfesor})`;
           }
@@ -141,6 +144,7 @@ const TemariosProfesor = () => {
           asignaturasData.push({
               id: impId,
               title: title,
+              titleShort: titleShort,
               materiales: materiales
           });
       }

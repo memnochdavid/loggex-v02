@@ -162,6 +162,7 @@ const useImparticiones = () => {
 
                 const mapped = items.map(imp => {
                     const nombreModulo = imp.materia?.nombre || t('common.unknownModule');
+                    const abrevModulo = imp.materia?.abreviatura || nombreModulo;
                     const nombreProfesor = imp.profesor ? `${imp.profesor.nombre} ${imp.profesor.apellidos}` : '';
 
                     // Formato consistente con `/admin/horarios` columna Grupo
@@ -172,14 +173,18 @@ const useImparticiones = () => {
                     const grupoLabel = formatGrupoAbrev(imp.grupo) || t('common.unknownGroup');
 
                     let title = `${nombreModulo} - ${grupoLabel}`;
+                    let titleShort = `${abrevModulo} - ${grupoLabel}`;
                     if ((isAlumno || isSuperAdmin) && nombreProfesor) {
                         title += ` (${nombreProfesor})`;
+                        // El short NO añade el profesor: el header debe ser
+                        // compacto. El full sigue disponible para tooltips.
                     }
 
                     return {
                         ...imp,
                         id: imp.id || imp['@id'].split('/').pop(),
                         title,
+                        titleShort,
                         tareas: imp.tareas || []
                     };
                 });

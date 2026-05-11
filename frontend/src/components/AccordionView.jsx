@@ -50,7 +50,12 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
     <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''} accordionItem ${isExpanded ? 'accordionItemOpen' : ''}`}>
       <div className={`${styles.accordionHeader} accordionHeader`} onClick={handleToggle}>
         <div className={`${styles.headerContent} headerContent`}>
-            {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}
+            {renderHeader ? renderHeader(item, isExpanded) : (
+              <span title={item.title}>
+                <span className="accordionHeaderTitleFull">{item.title}</span>
+                <span className="accordionHeaderTitleShort">{item.titleShort || item.title}</span>
+              </span>
+            )}
         </div>
         <div className={`${styles.headerActions} headerActions`}>
           {canAdd && onAdd && (
