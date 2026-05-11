@@ -710,7 +710,12 @@ const Imparticiones = () => {
                     onChange={(v) => setFormData(p => ({ ...p, materia: v }))}
                     endpoint="/api/materias"
                     extraParams={{
-                        ...(grupoFilter.itinerario ? { itinerario: grupoFilter.itinerario } : {}),
+                        // Materia.itinerarios es ManyToMany tras el refactor multi-itinerario
+                        // (doc: hoja-de-ruta-materias-multi-itinerario.md). El filtro registrado
+                        // en `Materia.php` es `itinerarios` (plural); mandando `itinerario`
+                        // (singular) API Platform lo ignoraba y devolvía todas las materias
+                        // del `curso`, mezclando p.ej. 2º DAM con 2º DAW.
+                        ...(grupoFilter.itinerario ? { itinerarios: grupoFilter.itinerario } : {}),
                         ...(grupoFilter.curso ? { curso: grupoFilter.curso } : {}),
                     }}
                     getOptionLabel={(m) => `${m.nombre} (${m.codigoOficial}) - ${m.curso}º`}
