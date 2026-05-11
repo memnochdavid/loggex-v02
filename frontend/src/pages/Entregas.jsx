@@ -161,6 +161,20 @@ const Entregas = () => {
   const [entregasTarea, setEntregasTarea] = useState([]);
   const [loadingEntregas, setLoadingEntregas] = useState(false);
   const [viewImparticionId, setViewImparticionId] = useState(null);
+  // Paginación cliente del DataTable de entregas. DataTable no rebana data;
+  // espera recibir ya la slice de la página activa. Sin esto se renderizaban
+  // las 30 filas del grupo y el modalBody no daba scroll efectivo (queda
+  // cortado bajo la altura del 90vh del modal).
+  const [entregasPage, setEntregasPage] = useState(1);
+  const [entregasPageSize, setEntregasPageSize] = useState(10);
+
+  // Al cargar entregas de una tarea distinta volvemos a página 1.
+  useEffect(() => { setEntregasPage(1); }, [entregasTarea]);
+
+  const entregasPaginadas = useMemo(() => {
+    const start = (entregasPage - 1) * entregasPageSize;
+    return entregasTarea.slice(start, start + entregasPageSize);
+  }, [entregasTarea, entregasPage, entregasPageSize]);
 
 
   // Modal Profesor: Crear/Editar Tarea
@@ -560,14 +574,25 @@ const Entregas = () => {
               </div>
               <div className={styles.itemActions}>
                 {isAlumno && entrega?.archivo && (
-                  <a
-                    href={getAssetUrl(`/uploads/entregas/${entrega.id}/${entrega.archivo}`)}
-                    target="_blank" rel="noopener noreferrer"
-                    className={styles.downloadLink}
-                    title={t('deliveries.downloadMine', { defaultValue: 'Descargar mi entrega' })}
-                  >
-                    <Download size={18} />
-                  </a>
+                  <>
+                    <a
+                      href={getAssetUrl(`/uploads/entregas/${entrega.id}/${entrega.archivo}`)}
+                      target="_blank" rel="noopener noreferrer"
+                      className={styles.downloadLink}
+                      title={t('deliveries.viewMine')}
+                    >
+                      <Paperclip size={18} />
+                    </a>
+                    <a
+                      href={getAssetUrl(`/uploads/entregas/${entrega.id}/${entrega.archivo}`)}
+                      target="_blank" rel="noopener noreferrer"
+                      download
+                      className={styles.downloadLink}
+                      title={t('deliveries.downloadMine')}
+                    >
+                      <Download size={18} />
+                    </a>
+                  </>
                 )}
                 {isAlumno && entrega?.enlace && (
                   <a
@@ -588,14 +613,25 @@ const Entregas = () => {
                 {(isProfesor || isAdmin || isSuperAdmin) && (
                   <>
                     {tarea.archivo && (
-                      <a
-                        href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
-                        target="_blank" rel="noopener noreferrer"
-                        className={styles.downloadLink}
-                        title={t('tasks.downloadAttachment')}
-                      >
-                        <Paperclip size={18} />
-                      </a>
+                      <>
+                        <a
+                          href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
+                          target="_blank" rel="noopener noreferrer"
+                          className={styles.downloadLink}
+                          title={t('common.viewAttachment')}
+                        >
+                          <Paperclip size={18} />
+                        </a>
+                        <a
+                          href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
+                          target="_blank" rel="noopener noreferrer"
+                          download
+                          className={styles.downloadLink}
+                          title={t('common.downloadAttachment')}
+                        >
+                          <Download size={18} />
+                        </a>
+                      </>
                     )}
                     <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea, imparticion.id)}>
                       <Eye size={16} style={{ marginRight: '4px' }} /> {t('deliveries.viewDeliveries')}
@@ -824,12 +860,13 @@ const Entregas = () => {
           <DataTable
             tableId="entregas"
             columns={entregasColumns}
-            data={entregasTarea}
+            data={entregasPaginadas}
             loading={loadingEntregas}
             totalItems={entregasTarea.length}
-            itemsPerPage={5}
-            currentPage={1}
-            onPageChange={() => {}}
+            itemsPerPage={entregasPageSize}
+            currentPage={entregasPage}
+            onPageChange={setEntregasPage}
+            onItemsPerPageChange={(n) => { setEntregasPageSize(n); setEntregasPage(1); }}
             pageSizeOptions={[5, 10, 20, 50, 100]}
           />
         </ModalView>

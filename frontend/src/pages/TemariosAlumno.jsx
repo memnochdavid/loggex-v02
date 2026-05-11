@@ -4,7 +4,7 @@ import AccordionView from '../components/AccordionView';
 import CrudHeader from '../components/CrudHeader';
 import ThemedSelect from '../components/ThemedSelect';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Paperclip } from 'lucide-react';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl, getAssetUrl } from '../config/api';
 import Lottie from 'lottie-react';
@@ -310,12 +310,22 @@ const TemariosAlumno = () => {
                 </span>
             </div>
             <div className={styles.itemActions}>
-                <a 
+                <a
                     href={getAssetUrl(`/uploads/materiales/${mat.id}/${mat.archivo}`)}
-                    target="_blank" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.downloadLink}
+                    title={t('common.viewAttachment')}
+                >
+                    <Paperclip size={18} />
+                </a>
+                <a
+                    href={getAssetUrl(`/uploads/materiales/${mat.id}/${mat.archivo}`)}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className={styles.downloadLink}
                     download
+                    title={t('common.downloadAttachment')}
                 >
                     <Download size={18} />
                 </a>
