@@ -846,6 +846,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return jornadasPorId[jornadaId] || null;
   }, [grupo, selectedPl, jornadasPorId]);
 
+  // Días lectivos de la semana según la jornada (1=lun…7=dom). El backend
+  // `JornadaTipo.diasLectivos` viene serializado como JSON `int[]` (default
+  // `[1,2,3,4,5]`). Lo usamos como multiplicador en todos los cálculos
+  // semanales — antes había `* 5` hardcoded en varios sitios, lo que rompe
+  // en centros con jornada de 4 días (FCT) o sábados lectivos.
+  const diasLectivosCount = useMemo(() => {
+    const d = jornadaActual?.diasLectivos;
+    return Array.isArray(d) && d.length > 0 ? d.length : 5;
+  }, [jornadaActual]);
+
   // Normaliza un valor de hora ("HH:MM" / "HH:MM:SS" / ISO) a "HH:MM:SS".
   const normHoraSlot = (v) => {
     if (!v) return null;
@@ -886,7 +896,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   }, [tramosOrdenados]);
 
   // Jornada semanal "lectiva curricular" (Fase 5 — truco recreos): incluye
-  // SLOT + RECREO × 5 días. Razón: en muchos centros (LOMLOE FP típicamente)
+  // SLOT + RECREO × diasLectivos. Razón: en muchos centros (LOMLOE FP típicamente)
   // los recreos cuentan como tiempo lectivo a efectos de cumplir el currículo
   // anual ante la inspección. La rejilla y el solver siguen ignorando recreos
   // (no se colocan materias en ellos), pero el cómputo de capacidad anual los
@@ -899,8 +909,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (t.tipo !== 'slot' && t.tipo !== 'recreo') return;
       total += Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
     });
-    return total * 5;
-  }, [tramosOrdenados]);
+    return total * diasLectivosCount;
+  }, [tramosOrdenados, diasLectivosCount]);
 
   // Recreos para renderizar como bloques no asignables en la rejilla.
   const recreosDia = useMemo(
@@ -1028,7 +1038,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     return m;
   }, [imps, semanasReferenciaCentro]);
 
-  const totalMinutos = imps.reduce((a, i) => a + (i.materia?.minutosSemanales || 0), 0);
+  // Nota (2026-05-11): el badge muestra SIEMPRE cifras semanales del PL
+  // activo. El target visual = `slotsCapacityWeekly` (= duración total de
+  // slots SLOT × días lectivos de la jornada). La etiqueta del estado
+  // ("Completo"/"Borrador"/"Incompleto") la decide la cobertura anual cross-
+  // rango per materia (`allAnualCubierto`), independiente de las cifras
+  // semanales del badge. Antes derivábamos un target "ideal weekly" desde
+  // las horas anuales / semanas referencia, pero daba cifras menores que
+  // la jornada (caso 2º DAW: 18.7h con jornada 27.5h), confundiendo al
+  // admin: "mi jornada es 30h, ¿por qué me pides 18.7?". Mucho más simple:
+  // el badge mide cuánto has llenado de tu jornada semanal.
 
   // Capacidad SOLO de slots colocables por semana (sin recreos). Necesario
   // para semanasOptimas: el solver físicamente solo coloca placements en
@@ -1039,8 +1058,8 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (t.tipo !== 'slot') return;
       total += Math.max(0, parseHmsToMin(t.horaFin) - parseHmsToMin(t.horaInicio));
     });
-    return total * 5;
-  }, [tramosOrdenados]);
+    return total * diasLectivosCount;
+  }, [tramosOrdenados, diasLectivosCount]);
 
   // Semanas óptimas necesarias para cubrir el currículo presencial al 100%
   // (Opción A 2026-04-29):
@@ -1073,12 +1092,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const colocadosMinutos = Object.values(placements).reduce(
     (a, p) => a + getPlacementDur(p), 0
   );
-  // Display semanal del badge: muestra "X/Yh" con cap a slots colocables si
-  // hay sobrecarga (no engañar al admin con un target inalcanzable).
-  const slotsCapacityWeekly = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0) * 5;
-  const targetMinutos = slotsCapacityWeekly > 0
-    ? Math.min(totalMinutos, slotsCapacityWeekly)
-    : totalMinutos;
+  // Target visual del badge: la jornada del centro en minutos colocables
+  // (slots × días lectivos). No depende del grupo ni del curso — la jornada
+  // es la misma para 1º y 2º (8:30-14:30 mañanas o 15:00-21:00 tardes en
+  // EAG, etc.). Antes intentábamos derivarlo de las cuotas anuales/semanas
+  // del grupo (caso 2º DAW: target 18.7h con jornada 27.5h), lo cual
+  // confundía al admin sin aportar nada útil.
+  const slotsCapacityWeekly = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0) * diasLectivosCount;
+  const targetMinutos = slotsCapacityWeekly;
   const totalHoras = minToHoras(targetMinutos);
   const colocadasTotal = minToHoras(colocadosMinutos);
   const completitud = targetMinutos ? (colocadosMinutos / targetMinutos) * 100 : 0;
@@ -1087,37 +1108,49 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // curricular (LOMLOE 36 sem). El cap del solver puede dejar slots vacíos en
   // el rango activo cuando otros rangos ya cubrieron — eso no es "incompleto",
   // es el comportamiento correcto del modelo cross-rango.
-  const TOLERANCIA_ANUAL_MIN = 90;
-  const allAnualCubierto = imps.length > 0 && imps.every(imp => {
+  // `allAnualCubierto` decide si el grupo está "completo" anualmente. Sólo
+  // imps presenciales pueden cubrirse colocando placements en slots; las
+  // imps no presenciales (FCT/NO_REGULAR/AUTONOMA) tienen `placed=0` por
+  // naturaleza (no van a la rejilla), así que SU `target > 0` haría fallar
+  // siempre el check y el badge nunca llegaría a "Completo" en grupos con
+  // FCT/Proyecto/Libre — caso típico de FP 2º.
+  // Filtramos igual que `curriculumMin` y `totalMinutos` (modificados
+  // 2026-05-11 por la misma razón).
+  //
+  // Tolerancia per-materia alineada con backend `CurriculumDistributor.php:269`
+  // → `max(60min, 5% del target)`. La versión antigua usaba 90min absolutos
+  // (~0.5% sobre un módulo de 125h) — más estricta que el propio distribuidor
+  // que declara la distribución `feasible`. Resultado: el distribuidor decía
+  // "OK", el bin-packing colocaba cuotas con overshoot natural del orden 5%
+  // por materia, y el badge frontend marcaba "Borrador" indefinidamente
+  // porque alguna materia caía 100-400 min por debajo del strict 90min.
+  // Reutilizamos `impsPresenciales` declarado arriba (línea 825).
+  const allAnualCubierto = impsPresenciales.length > 0 && impsPresenciales.every(imp => {
     const target = minutosAnualesObjetivoByImp[imp.id] || 0;
     if (target <= 0) return true;
     const placed = minutosAnualesColocadosByImp[imp.id] || 0;
-    return placed >= target - TOLERANCIA_ANUAL_MIN;
+    const tol = Math.max(60, Math.round(target * 0.05));
+    return placed >= target - tol;
   });
   const estado =
     allAnualCubierto ? 'complete' :
     completitud >= 80 ? 'draft' : 'incomplete';
 
-  // Cuando estado=complete por cobertura ANUAL (cross-rango) pero el rango
-  // activo está parcialmente lleno (semanal<target), las cifras semanales
-  // ("25/27.5h") generan disonancia con la etiqueta verde "Completo". Si el
-  // rango activo no está lleno semanalmente pero el currículo anual sí está
-  // cubierto, mostramos la cifra anual cross-rango para que el badge sea
-  // coherente con el color.
-  const colocadasAnualTotalMin = Object.values(minutosAnualesColocadosByImp)
-    .reduce((a, b) => a + b, 0);
-  const objetivoAnualTotalMin = Object.values(minutosAnualesObjetivoByImp)
-    .reduce((a, b) => a + b, 0);
-  const showAnualLabel = estado === 'complete' && colocadosMinutos < targetMinutos;
-  const labelDone = showAnualLabel ? minToHoras(colocadasAnualTotalMin) : colocadasTotal;
-  const labelTotal = showAnualLabel ? minToHoras(objetivoAnualTotalMin) : totalHoras;
+  // El badge muestra SIEMPRE las cifras semanales del PL activo. Antes había
+  // un fallback a cifras anuales cuando estado=complete y la jornada estaba
+  // parcial, pero confundía más que ayudaba (mezclar h/sem y h-año en el
+  // mismo badge según el contexto). La etiqueta "Completo" basta para
+  // comunicar que el grupo está cubierto anualmente; las h/sem siempre se
+  // refieren al PL activo.
+  const labelDone = colocadasTotal;
+  const labelTotal = totalHoras;
 
   const estadoBadge = {
     complete:   {
       cls: styles.statusComplete,
       icon: <CheckCircle2 size={16} />,
       label: t(
-        showAnualLabel ? 'scheduleEditor.statusCompleteAnual' : 'scheduleEditor.statusComplete',
+        'scheduleEditor.statusComplete',
         { done: labelDone, total: labelTotal },
       ),
     },
@@ -1156,15 +1189,27 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     const pls = plByGrupo[selectedGrupo] || [];
     if (pls.length === 0 || imps.length === 0) return null;
 
-    // Currículo (Opción A 2026-04-29): Σ horas totales anuales × 60 (ley LOMLOE).
+    // Currículo PRESENCIAL anual (Opción A 2026-04-29 + filtro modalidad
+    // 2026-05-11): Σ horas totales anuales × 60 (ley LOMLOE) SÓLO de imps
+    // que consumen aula (modalidad `presencial`). FCT, NO_REGULAR y AUTONOMA
+    // se entregan fuera del horario semanal (empresa, bloques concentrados,
+    // trabajo autónomo del alumno) y aparecen en el panel "OTRAS HORAS
+    // CURRICULARES" — no son comparables con `plannedMin`, que solamente
+    // suma cuotas `pli.minutosSemanales` (= cuotas en slots).
+    // Sin este filtro, en grupos con FCT/no_regular significativo (típico
+    // de FP 2º) el banner reportaba diferencias enormes (caso 2º DAW EAG:
+    // "−562h" cuando en realidad la planificación cubría el presencial con
+    // +18h de margen — los 562h "faltantes" eran FCT 400 + Libre 108 +
+    // Proyecto 72, todos no presenciales que no van a slots).
     // Fallback a min/sem × semanasReferencia si la materia no tiene horasTotales.
     const curriculumMin = imps.reduce((acc, i) => {
+      if (!consumeAulaModalidad(getEffectiveModalidad(i))) return acc;
       const horasTot = i.materia?.horasTotales;
       if (horasTot != null && horasTot > 0) return acc + horasTot * 60;
       return acc + (i.materia?.minutosSemanales || 0) * semanasReferencia;
     }, 0);
 
-    // Cap semanal "lectivo curricular" (slots + recreos × 5 días). Asumimos
+    // Cap semanal "lectivo curricular" (slots + recreos × diasLectivos). Asumimos
     // que la jornada del PL activo es representativa de todos los PLs del
     // grupo — approximación; rangos con jornadas distintas darán cifra
     // ~aproximada. Necesario para que el plan no prometa más horas que las
@@ -1263,7 +1308,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // Sugerencia de extensión de curso (Fase 5 sub-B): cuando el banner anual
   // muestra que faltan horas (tone warn/error), calcula cuántos días lectivos
   // habría que extender el curso para que el banner pase a verde. El cálculo:
-  //   - jornadaSemanal = jornadaSemanalLectivaMin (slots + recreos × 5 días,
+  //   - jornadaSemanal = jornadaSemanalLectivaMin (slots + recreos × diasLectivos,
   //     truco LOMLOE FP que cuenta recreos como lectivo curricular)
   //   - extraSemanas = ceil(faltanHoras / jornadaSemanal_en_horas)
   //   - extraDays = extraSemanas × 7 (días naturales)
@@ -1456,9 +1501,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (!pliModalPlId) return null;
     // Σ semanal del rango: con qué peso semanal está el rango planificado.
     const planMin = pliModalRows.reduce((acc, r) => acc + (r.isActive ? r.effectiveMin : 0), 0);
-    // Cap semanal de la jornada del rango: Σ slot durations × 5 días.
+    // Cap semanal de la jornada del rango: Σ slot durations × días lectivos
+    // de la jornada (default 5, configurable vía `JornadaTipo.diasLectivos`).
     const slotsMin = Object.values(slotMinutosByHi).reduce((a, b) => a + b, 0);
-    const capMin = slotsMin * 5;
+    const capMin = slotsMin * diasLectivosCount;
     // Conversión a horas anuales para el rango (Fase 5 sub-A): peso semanal × semanas.
     const semanas = pliModalSemanasRango || 0;
     const planAnualH = semanas > 0 ? Math.round((planMin * semanas / 60) * 10) / 10 : 0;
@@ -1473,7 +1519,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       semanas: Math.round(semanas * 10) / 10,
       fits: capMin > 0 ? planMin <= capMin : null,
     };
-  }, [pliModalPlId, pliModalRows, slotMinutosByHi, pliModalSemanasRango]);
+  }, [pliModalPlId, pliModalRows, slotMinutosByHi, pliModalSemanasRango, diasLectivosCount]);
 
   // Carga semanal por profesor del grupo actual (live: otros grupos + placements actuales).
   // Trabajamos en minutos internamente y exponemos horas decimales al panel
@@ -4958,7 +5004,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                 </p>
                 {/* Sub-panel "Otras horas curriculares" — Fase 4. Lista materias
                     no presenciales (FCT, NO_REGULAR, AUTONOMA) sin drag, solo
-                    informativo. Cuenta al banner anual pero no ocupa slot. */}
+                    informativo. NO se planifican en slots NI cuentan en el
+                    banner anual (filtro `consumeAulaModalidad` en `curriculumMin`
+                    desde 2026-05-11): se entregan fuera del horario semanal y
+                    su seguimiento es responsabilidad del centro/profesor. */}
                 {impsNoPresenciales.length > 0 && (
                   <div className={styles.otrasHorasSection}>
                     <h4 className={styles.otrasHorasTitle}>
