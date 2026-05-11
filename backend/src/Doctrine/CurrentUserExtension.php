@@ -60,8 +60,25 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         }
 
         $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
 
-        if (!$user instanceof User || in_array('ROLE_SUPER_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+        $isSuperAdmin = in_array('ROLE_SUPER_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles());
+
+        /* Entidades personales por naturaleza: cada usuario (incluso el
+           SuperAdmin) ve sólo las suyas. Sin esta excepción al exempt
+           general del SA, la bandeja `SystemNotificationsList` y la
+           pantalla `/mensajes` del SA se llenan con la actividad de
+           todos los centros (Mensaje: conversaciones entre cualquier par
+           de usuarios — además de privacidad; Notificacion: cada
+           `tarea_nueva` / `calificacion_publicada` / `entrega_recibida`
+           del sistema). El resto (Itinerario, Materia, Festivo, Tarea,
+           Entrega, Calificacion, Comunicado, ExcepcionHorario, User)
+           sigue exento — son vistas administrativas legítimas para SA. */
+        $personalScopedClasses = [Mensaje::class, Notificacion::class];
+
+        if ($isSuperAdmin && !in_array($resourceClass, $personalScopedClasses)) {
             return;
         }
 
@@ -74,8 +91,9 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             return;
         }
 
-        // Notificaciones — cada usuario solo ve las suyas. SuperAdmin queda
-        // exento del filtro por el early return de arriba.
+        // Notificaciones — cada usuario solo ve las suyas (incluido SuperAdmin,
+        // que está en $personalScopedClasses para no recibir la avalancha de
+        // eventos de todos los centros).
         if ($resourceClass === Notificacion::class) {
             $queryBuilder->andWhere(sprintf('%s.usuario = :current_user_id', $rootAlias))
                 ->setParameter('current_user_id', $user->getId());
