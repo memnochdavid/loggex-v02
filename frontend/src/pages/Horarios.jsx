@@ -67,9 +67,6 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   // Cargadas desde /api/my-schedule (Fase B intercambio-imparticiones, 2026-05-07).
   // El overlay se aplica en visibleSchedule cruzando (horarioBaseId, fechaConcreta) con la semana visible.
   const [excepciones, setExcepciones] = useState([]);
-  // Alineación del calendar con el grid del TimeTable: si hay mañana+tarde,
-  // el TimeTable muestra tabs encima del grid → offset al calendar para que
-  // sus días queden a la altura del grid, no de los tabs.
   // Filtra mySchedule por el PeriodoLectivo activo en `selectedDate`. Sin
   // este filtro, un grupo con N rangos cronológicos (típico: 3 evaluaciones)
   // muestra los N placements solapados en la rejilla cuando el alumno/profe
@@ -241,12 +238,6 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     });
   }, [mySchedule, selectedDate, excepciones]);
 
-  const hasBothShifts = useMemo(() => {
-    if (!Array.isArray(visibleSchedule) || visibleSchedule.length === 0) return false;
-    const morning = visibleSchedule.some(e => parseInt(e.horaInicio.split(':')[0]) < 15);
-    const afternoon = visibleSchedule.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15);
-    return morning && afternoon;
-  }, [visibleSchedule]);
   const [festivos, setFestivos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
@@ -931,7 +922,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     </div>
 
                     {!isMobile && (
-                        <div className={`${styles.calendarWrapper} ${hasBothShifts ? styles.calendarOffset : ''}`}>
+                        <div className={styles.calendarWrapper}>
                             <CalendarView
                                 selectedDate={selectedDate}
                                 onDateSelect={setSelectedDate}

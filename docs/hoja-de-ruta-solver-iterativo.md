@@ -597,3 +597,53 @@ Sesión larga (~15-20 mensajes) detrás del fix del planner, motivada por el gru
 - **Etiqueta "Borrador" del badge** es engañosa en castellano (sugiere "no guardado" pero significa "currículo no cubierto al 100%"). El usuario lo apuntó explícitamente. Cambio propuesto pendiente: renombrar a "Parcial" o "Cobertura X%" en los 5 locales (`statusDraft` key). No aplicado por falta de validación del término final.
 
 - **Coherencia banner ↔ chip**: el banner muestra "Planificado X (cuotas)" y el chip muestra "Colocado Y (placements)". Pueden diferir por overshoot natural del bin-packing (caso 1º DAW: Currículo 912 vs Planificado 907 vs chips suma 963.8). No es bug — son dos métricas distintas en dos puntos del pipeline. Ya documentado conversacionalmente; podría añadirse tooltip al banner si se quiere hacer explícito.
+
+---
+
+### 2026-05-11 — Fix balanceo entre PLs en `CurriculumDistributor` (causa real del shortfall 2º DAW)
+
+**Contexto**: la deuda anotada el día anterior ("bin-packing prioriza materias grandes → IPEI II 6.3h corta") asumía que el desempate del score era la causa. Probando un fix sobre `HorarioSolverBinPacking::elegirMejorBloque` (+700K bonus por cobertura semanal <80%) la regresión empeoró: IPEI II pasó a 11.7h cortas y arrastró a DAW (también 11.7h). Eso obligó a re-instrumentar el flujo y descubrir la causa real, que estaba en el **distribuidor**, no en el bin-packing.
+
+**Diagnóstico** (dump `[OptCurso DEBUG]` añadido temporalmente en `HorariosEditor.jsx:4341`, retirado al cerrar):
+
+Grupo 2º DAW EAG, N=2 PLs (SEMANAs `Hasta 1ª Evaluación` 13.71 sem + `Hasta 2ª Evaluación` 11.71 sem). Distribuidor asignaba:
+- PL1: 1620 min/sem (cabe en cap físico 1650).
+- PL2: 1680 min/sem (**30 min/sem por encima del cap físico**).
+
+El bin-packing de PL2 detectaba `unplaced > 0`, `solveIterativo` aplicaba `REDUCIR_CUOTA_PROPIA` 2 veces (pasadas 2 y 3): −60 min/sem a DAW (180→120) y a IPEI II (300→240). Esos 120 min/sem recortados × 11.71 sem = **702 min anuales = 11.7h** por imp. Coincidía con el shortfall reportado para ambas materias.
+
+**Causa raíz en el distribuidor** (`CurriculumDistributor.php:116`):
+```php
+$capMinTarget = $capSlotsPorSem * $slotMin;  // 55 × 60 = 3300
+```
+`capMinTarget` se usaba como techo del greedy por PL (`capMinLibres = capMinTarget`). Con jornada FP Mañanas tras la migración a slots atómicos 30min, `capSlotsPorSem = 11 × 5 = 55`. `slotMin = max(60, 30) = 60`. Producto = 3300 min/sem = **doble del cap físico real (1650)**. El greedy no estaba forzado a balancear entre PLs y podía cargar uno por encima del cap real.
+
+**Fix aplicado** (`CurriculumDistributor.php:116-117`):
+```php
+$capMinTarget = ((int) floor($cap / $slotMin)) * $slotMin;  // 1620 (27 bloques × 60min)
+```
+El cap pedagógico real es el mayor múltiplo de `slotMin` que cabe en el cap físico. Para FP Mañanas: floor(1650/60) × 60 = 1620 (los 30min residuales/sem no se pueden distribuir porque `slotMin=60` fuerza múltiplos de 60).
+
+**Resultado E2E** (mismo grupo, código revertido del bonus + fix del distribuidor):
+
+| Métrica | Pre-sesión | Post-fix |
+|---|---|---|
+| `crossRangoShortfalls.length` | 2 | **1** |
+| DAW (id 23) | 4697/5400 (87%) | **5400/5400 (100%)** ✅ |
+| IPEI II (id 42) | 6102/6805 (90%) | 6102/6805 (90%) ❌ |
+| Total horas perdidas | 23.4h | **11.7h** |
+| PL2 distribution sum | 1680 (sobre cap) | **1620** (cabe) |
+
+PL2 ahora balancea: Desarrollo web servidor (id 22) baja de 420 → 360 min/sem en PL2, DAW conserva sus 180 íntegros, total PL2 = 1620 cabe en cap físico. DAW deja de necesitar `REDUCIR_CUOTA_PROPIA`.
+
+**Deuda residual: IPEI II en PL2 sigue 11.7h corta**. La causa cambió de naturaleza: ya no es desbalance del distribuidor (PL2 distribuye 300 min/sem para IPEI II y cabe en el cap), sino **conflict de profesor estructural**. Con `MAX_DIARIO_MIN_POR_MATERIA = 120`, una cuota de 300 min/sem necesita ≥3 días lectivos libres (mínimo 2 días × 120 + 1 día × 60). Si el profe de IPEI II tiene clase en otro grupo paralelo en 3 de los 5 días en PL2, le quedan solo 2 días → cap real 240 → `REDUCIR_CUOTA_PROPIA` recorta 300→240. PL1 no tiene este problema porque la cuota IPEI II ya era 240 (cabe en 2 días).
+
+No es fix-able desde el distribuidor: PL1 ya satura a 1620, no puede absorber +60 sin sacar otra cuota. La única solución operativa es:
+- (a) reasignar profe de IPEI II en `/admin/imparticiones` para liberarlo en PL2, o
+- (b) que el admin rebalancee manualmente arrastrando 1 placement.
+
+Anotado como **deuda estructural por conflict de profe**, no del solver/distribuidor.
+
+**Lección aprendida**: la deuda residual anotada en la sesión 2026-05-11 ("bin-packing prioriza materias grandes") era una hipótesis incorrecta sobre la causa. El score base del bin-packing ya favorecía a las pequeñas correctamente vía penalty `-100 × exceso` sobre cuota diaria. El problema real estaba dos capas arriba: el distribuidor cargaba un PL por encima del cap físico y el solver iterativo lo "arreglaba" recortando 60 min destructivos. Tres pasadas en el log (`Hasta 2ª Evaluación · 3 pasadas`) era el smoking gun que debí mirar antes de tocar el bin-packing.
+
+**Cambio puntual**: `backend/src/Service/CurriculumDistributor.php:108-126` (4 líneas modificadas + comentario explicativo). Sin migración, sin cambios de schema, sin cambios de frontend (`HorariosEditor.jsx` dump debug añadido y retirado).

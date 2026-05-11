@@ -113,7 +113,23 @@ class CurriculumDistributor
             }
             $capSlotsPorSem = count($slotDurations) * $diasCount;
             $semanasFrac = $this->calcularSemanasFraccionales($pl);
-            $capMinTarget = $capSlotsPorSem * $slotMin;
+            // Cap pedagógico real: mayor múltiplo de slotMin que cabe en el
+            // cap físico de la jornada. Ej: cap=1650 (27.5h slots) con
+            // slotMin=60 → 1620 (27 bloques pedagógicos). Los 30min
+            // residuales no se pueden distribuir porque slotMin fuerza
+            // múltiplos de 60.
+            //
+            // Antes esto era `capSlotsPorSem × slotMin` (= 55 × 60 = 3300
+            // con jornada de slots atómicos 30min), valor inflado al doble
+            // del cap físico que no obligaba al greedy a balancear entre
+            // PLs. Síntoma: con N=2 rangos de longitudes distintas, el
+            // distribuidor podía cargar 1680 min/sem en un PL y 1620 en
+            // otro (en lugar de balancear a ~1650 promedio), sobrepasando
+            // el cap físico del PL más cargado. El solver iterativo
+            // detectaba `unplaced > 0` y aplicaba REDUCIR_CUOTA_PROPIA
+            // destructiva (−60 min/sem a 2 imps), generando shortfall
+            // cross-rango de 11.7h en cada una.
+            $capMinTarget = ((int) floor($cap / $slotMin)) * $slotMin;
             $plMeta[$pl->getId()] = [
                 'pl' => $pl,
                 'cap' => $cap,
