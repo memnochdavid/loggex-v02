@@ -57,6 +57,14 @@ const Sidebar = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const asideRef = useRef(null);
     const searchInputRef = useRef(null);
+    /* Ref al contenedor scrollable del modo plano agrupado.
+       En modo acordeón, cada `AccordionItem` persiste su propio scrollTop
+       (via `persistScrollKey="sidebar"`), así que al navegar y remontar
+       el Sidebar el scroll del panel abierto se restaura. En modo plano
+       no hay acordeón: la lista entera vive en `.flatGrouped` con su
+       propio overflow, por lo que necesitamos persistir aquí también
+       para que pulsar un acceso no rebobine al inicio. */
+    const flatGroupedRef = useRef(null);
     /* Si hay un tour activo, forzamos sidebar expandido para que Joyride
        pueda localizar y medir los items diana (que quedarían colapsados
        a 72px con labels ocultos si no). */
@@ -399,6 +407,31 @@ const Sidebar = () => {
         setModeSwapping(true);
     };
 
+    /* Persistencia de scroll del modo plano agrupado. Misma idea que
+       `AccordionItem.persistScrollKey`: al remontar (tras navegar a una
+       ruta), restauramos la posición previa. El tour (Joyride) hace su
+       propio scroll sobre el padre scrollable cuando lo necesita; ocurre
+       después de este restore, así que no chocamos con `scrollToFirstStep`
+       ni con el reposicionamiento entre steps. */
+    const FLAT_SCROLL_KEY = 'sidebar_flat_scroll';
+
+    useEffect(() => {
+        // Sólo aplica en modo plano y fuera del modo búsqueda.
+        if (!effectiveFlat || filteredItems !== null) return;
+        const el = flatGroupedRef.current;
+        if (!el) return;
+        try {
+            const stored = sessionStorage.getItem(FLAT_SCROLL_KEY);
+            if (stored !== null) el.scrollTop = parseInt(stored, 10) || 0;
+        } catch {}
+    }, [effectiveFlat, filteredItems]);
+
+    const handleFlatScroll = (e) => {
+        try {
+            sessionStorage.setItem(FLAT_SCROLL_KEY, String(e.currentTarget.scrollTop));
+        } catch {}
+    };
+
     const renderNavItem = (item, opts = {}) => {
         const { showSection = false } = opts;
         const tourAttrs = item.tour ? { 'data-tour': item.tour } : {};
@@ -482,6 +515,8 @@ const Sidebar = () => {
                             </div>
                         ) : effectiveFlat ? (
                             <div
+                                ref={flatGroupedRef}
+                                onScroll={handleFlatScroll}
                                 className={`${styles.flatGrouped} ${modeSwapping ? styles.modeSwapIn : ''}`}
                                 role="list"
                             >
