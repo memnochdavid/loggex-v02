@@ -140,38 +140,37 @@ Si algo falla: `docker compose logs backend` (errores del LIKE sobre JSON), `SEL
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
-**Estado tras sesión 2026-05-11 noche** — Fix balanceo entre PLs en `CurriculumDistributor` aplicado y validado E2E con 2º DAW EAG. Working tree con cambios sin commit (`backend/src/Service/CurriculumDistributor.php:108-126`, ~4 líneas modificadas). DAW resuelta al 100%, total horas perdidas baja de 23.4h a 11.7h. La deuda anotada el día anterior ("bin-packing prioriza materias grandes") era una hipótesis incorrecta sobre la causa: el problema real estaba en el distribuidor (cap pedagógico inflado `capSlotsPorSem × slotMin = 3300` en lugar de `floor(cap/slotMin) × slotMin = 1620`). Bitácora completa: `hoja-de-ruta-solver-iterativo.md` §"2026-05-11 — Fix balanceo entre PLs en `CurriculumDistributor`".
+**Tras commit `c0c8708` (2026-05-12)** — fixes de notificaciones de incidencias (dedupe por intercambioGrupoId + aviso admins APROBADA directa + cascade soft-delete por grupo) cerrados, validados E2E y empujados a `origin/develop`. Working tree limpio.
 
-**Deuda residual estructural (no del solver/distribuidor)**: IPEI II en PL2 sigue 11.7h corta por **conflict de profesor**, no por algoritmo. Con `MAX_DIARIO_MIN_POR_MATERIA = 120`, cuota 300 min/sem necesita ≥3 días lectivos libres. Si el profe tiene clase en otro grupo paralelo en 3 de los 5 días en PL2, su cap real cae a 240 → `REDUCIR_CUOTA_PROPIA` recorta 300→240. PL1 ya satura a 1620 y no puede absorber el +60 cross-rango. Solución operativa: reasignar profe en `/admin/imparticiones` o rebalanceo manual.
+**Bloqueantes residuales documentados pero NO implementados** (decisiones cerradas por el usuario en sesión 2026-05-12):
+- ❎ Renombrar etiqueta "Borrador" → "Parcial" en los 5 locales: el usuario decidió mantenerlo así.
+- ❎ i18n × 5 de `notifications.types.excepcion_aprobada_directa.{title,body}`: el backend manda texto en español (compatible); el usuario decidió mantenerlo así.
 
-**Siguiente paso recomendado**: validar el fix sobre 1º DAW, 1º DAM, 2º DAM EAG para confirmar que sigue cuadrando (no debería romper nada — el cap inflado solo se manifiesta cuando un PL excede el cap físico, lo que requería N≥2 PLs de longitudes asimétricas). Tras OK, commit + push del fix.
+**Candidatos para la siguiente sesión** (orden = recomendación por tamaño/impacto):
 
-**Cosmético menor pendiente**: renombrar la etiqueta `statusDraft` ("Borrador") en los 5 locales por algo menos confuso ("Parcial" / "Cobertura X%"). En castellano "Borrador" se asocia a "no guardado", pero el código lo usa para "currículo no cubierto al 100% aunque esté guardado". Sin gran prisa pero apuntado en la deuda.
+- **Modalidad Fase 6 (PDF)** — sección "Otras horas curriculares" tras las páginas por rango, cierra el roadmap `hoja-de-ruta-modalidad-imparticion.md`. ~0.5 sesión.
+- **C.4 página `/mis-incidencias`** — vista profe con sus solicitudes (estado, motivo, otra cara…). ~0.5-1 sesión.
+- **Fase E clases-compartidas** — PDF combinado + pase de lista compartido + render profe agrupado. ~1.5 sesiones.
+- **Badge en rejilla `/admin/horarios`** — placements con incidencia aprobada. ~0.5 sesión.
+- **Validación cross-conflicto en POST /excepciones/intercambio** — ~0.5 sesión.
+- **Pequeña mejora UX en `AdjuntarGrupoModal`** — filtrar grupo destino del selector de origen + toast de error en 422.
+- **Curriculum CCAA Fase 3 BOJA Andalucía** — **CRÍTICO** para venta a centros reales fuera del piloto EAG, ~2 sesiones.
+- **Comercialización F1.1 backups automatizados a remoto** — único ítem de comercializacion.md que si falla provoca litigio inmediato, ~1-2 sesiones.
+
+**Deuda residual estructural (no del solver/distribuidor)**: IPEI II en PL2 puede quedar 11.7h corta por **conflict de profesor**, no por algoritmo. Con `MAX_DIARIO_MIN_POR_MATERIA = 120`, cuota 300 min/sem necesita ≥3 días lectivos libres. Si el profe tiene clase en otro grupo paralelo en 3 de los 5 días en PL2, su cap real cae a 240 → `REDUCIR_CUOTA_PROPIA` recorta 300→240. Solución operativa: reasignar profe en `/admin/imparticiones` o rebalanceo manual.
 
 ---
 
-**🟢 MVP `materias-multi-itinerario` cerrado y validado E2E (2026-05-08, sesión maratón)** — `Materia` ↔ `Itinerario` ManyToMany (tabla puente + drop columna) + solver consciente (`isProfBusyOther`: misma `materia.id` + misma franja → no conflicto profe) + UI multi-select + CTA "Añadir materia existente" en vista de itinerario. **Validado E2E en EAG**: crear DAM nuevo desde catálogo, unificar 1º DAM con 1º DAW asignando las mismas materias compartidas, comparar franjas tras Guardar — **coinciden** para las 7 materias compartidas (PR/SI/BD/LM/ED/IPEI1/DIG), el solver respeta correctamente `parallelBusy`. **Working tree con cambios sin commitear** (esperando OK explícito del usuario para empaquetar). Doc completo: `hoja-de-ruta-materias-multi-itinerario.md`.
+**🟢 MVP `materias-multi-itinerario` cerrado, validado E2E y commiteado** (commit `6dd6e7c`, 2026-05-08) — `Materia` ↔ `Itinerario` ManyToMany (tabla puente + drop columna) + solver consciente (`isProfBusyOther`: misma `materia.id` + misma franja → no conflicto profe) + UI multi-select + CTA "Añadir materia existente" en vista de itinerario. **Validado E2E en EAG**: las franjas de las 7 materias compartidas DAW↔DAM coinciden tras Guardar. Doc completo: `hoja-de-ruta-materias-multi-itinerario.md`.
 
-**Bugs preexistentes arreglados de paso (deuda histórica que afloraba con el nuevo flujo)**:
+**Bugs preexistentes arreglados de paso** (incluidos en `6dd6e7c`):
 - `HorariosEditor.jsx:520` Maximum update depth (loop de `setJornadasPorId({...prev, key:null})` sin guard).
 - `Materias.jsx` PUT borraba `horasTotales` (campo nunca presente en el state del form → API Platform full replace lo ponía a NULL silenciosamente).
 - `DataTable.jsx` columna Acciones hideable por localStorage stale (faltaba guard `isActionsCol`).
 
-**🟢 Fases A + B + C + D de `hoja-de-ruta-clases-compartidas.md` cerradas y validadas E2E (2026-05-08 / 2026-05-09)** — Fase A: botón "Adjuntar a grupo existente" + endpoint backend, validado E2E (61 placements clonados, franjas DAM coinciden con DAW al 100%). **Fase B**: migración `Horario.gemelo_id` self-FK + helpers en entidad + canonicalización al raíz en el controller (cadenas evitadas, query "hermanos de X" como `WHERE id=X OR gemelo_id=X` sin recursión). **Fase C**: solver consciente cubierto sin código adicional — la ruta `materia.id` del MVP M:N (commit `6dd6e7c`) ya cumple el contrato; `gemeloId` queda reservado para Fase D. **Fase D ✅ validada E2E (2026-05-09 06:35 UTC)**: `HorarioGemeloSyncSubscriber` (`onFlush` para Horario + `postPersist`/`postFlush` para ExcepcionHorario) propaga al conjunto de hermandad: cambios en `diaSemana/horaInicio/horaFin/aula`, soft-delete del Horario, y duplicación de `ExcepcionHorario` con `intercambioGrupoId` UUID compartido para que `IntercambioGrupoCascadeSubscriber` cascadee aprobaciones/rechazos. Anti-loop con guard `$processing` estático + idempotencia por `(horarioBase, fechaConcreta, intercambioGrupoId)` antes de cada persist. Test E2E: borrar 2 placements DAW del viernes → log Doctrine confirma 4 UPDATEs (2 DAW + 2 DAM gemelos) con mismo `deleted_at` en mismo flush. **Bug crítico encontrado y arreglado durante la validación**: `preUpdate + recomputeSingleEntityChangeSet` ignora silenciosamente cambios en entidades nuevas que no estaban scheduled — migrado a `onFlush + computeChangeSet` (evento canónico para cascade modifications). Detalle en bitácora del doc. **D-1 cerrada**: clases gemelas se tratan como mismo grupo en todos los aspectos operativos. Working tree con cambios sin commit.
+**🟢 Fases A + B + C + D de `hoja-de-ruta-clases-compartidas.md` cerradas, validadas E2E y commiteadas** (commits `1543b32`/`d634aa1`/`6dd6e7c`/`0188147`, 2026-05-08/09) — Fase A: botón "Adjuntar a grupo existente" + endpoint backend, validado E2E (61 placements clonados, franjas DAM coinciden con DAW al 100%). **Fase B**: migración `Horario.gemelo_id` self-FK + helpers en entidad + canonicalización al raíz en el controller. **Fase C**: solver consciente cubierto sin código adicional vía ruta `materia.id` del MVP M:N. **Fase D**: `HorarioGemeloSyncSubscriber` (`onFlush` + `postPersist`/`postFlush`) propaga al conjunto de hermandad cambios físicos, soft-delete y duplica `ExcepcionHorario` con `intercambioGrupoId` compartido. Anti-loop con guard `$processing` estático. **D-1 cerrada**: clases gemelas se tratan como mismo grupo en todos los aspectos operativos. **Bug genérico descubierto en validación**: `preUpdate + recomputeSingleEntityChangeSet` ignora silenciosamente entidades nuevas no scheduled → migrado a `onFlush + computeChangeSet` (mismo patrón aplicado en `IntercambioGrupoCascadeSubscriber` Fase 3 cascade soft-delete, commit `c0c8708`).
 
-**Próxima ruta natural**: commit de Fase D (working tree con `HorarioGemeloSyncSubscriber.php` nuevo + actualizaciones de docs) cuando el usuario lo autorice. Tras OK, candidatos para la siguiente sesión: **C.4 página `/mis-incidencias`** (vista profe con sus solicitudes, ~0.5-1 sesión), **Fase E clases-compartidas** (PDF combinado + asistencia agrupada, ~1.5 sesiones), o pequeña mejora de UX en `AdjuntarGrupoModal` (filtrar grupo destino del selector de origen + toast de error en 422; descubierto durante la validación porque el modal permite seleccionar el mismo grupo y silencia el 422).
-
-**Validación E2E intercambio C.3 cerrada (2026-05-08, sesión siguiente)** — los 9 puntos del smoke test pasados OK. Los 4 tipos del catálogo (`sustitucion`, `cancelado`, `evento_especial`, `intercambio`) operativos desde click derecho en `/admin/horarios`. Detalle en `hoja-de-ruta-intercambio-imparticiones.md` §8.
-
-**Otras opciones abiertas** (orden = recomendación por tamaño/impacto):
-
-- **Commit de Fase D** — `HorarioGemeloSyncSubscriber.php` + actualizaciones de docs. Soft-delete validado E2E; queda anotada como cobertura adicional el caso ExcepcionHorario sobre Horario gemelo (no bloqueante para commit, ya está implementado y testeable a posteriori). **Próxima acción tras OK del usuario.**
-- **C.4 página `/mis-incidencias`** — vista profe con sus solicitudes. ~0.5-1 sesión.
-- **Fase E clases-compartidas** — PDF combinado + pase de lista compartido + render profe agrupado. ~1.5 sesiones.
-- **Badge en rejilla `/admin/horarios`** — placements con incidencia aprobada. ~0.5 sesión.
-- **Validación cross-conflicto en POST /excepciones/intercambio** — ~0.5 sesión.
-- **Modalidad Fase 6 (PDF)** — cierra ese roadmap, ~0.5 sesión.
-- **Curriculum CCAA Fase 3 BOJA Andalucía** — crítico para centros reales, ~2 sesiones.
+**Validación E2E intercambio C.3 cerrada** (commit `53367b8` + smoke test 2026-05-08) — los 9 puntos OK. Los 4 tipos del catálogo (`sustitucion`, `cancelado`, `evento_especial`, `intercambio`) operativos desde click derecho en `/admin/horarios`. Detalle en `hoja-de-ruta-intercambio-imparticiones.md` §8.
 
 ---
 
