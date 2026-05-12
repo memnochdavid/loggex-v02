@@ -192,6 +192,63 @@ El selector `elegirAccion(bottleneck, estado)` mapea bottleneck → acción cand
 
 ## 9. Bitácora de implementación
 
+### 2026-05-12 — Fase B FP 2º ✅ Done — Arrastrar no presenciales al rango "Tercera evaluación"
+
+Tras Fase A (que solo creaba el contenedor vacío del rango 3), Fase B habilita el flow funcional: el admin coloca FCT, Proyecto y HLC sobre la rejilla del rango 3 vía drag/drop, reusando la misma UI que para las presenciales sin componente nuevo.
+
+**Diseño minimalista propuesto por el usuario tras ver una captura real de su horario de prácticas FP** (08:30-15:30 FCT Lun-Vie + Martes 18:00-20:00 Proyecto): no inventar vista nueva, dejar la rejilla actual, y permitir que el rango 3 tenga **jornada custom** (creada manualmente desde `/admin/jornadas`). Las decisiones de modelado B.1-B.4 quedan resueltas pragmáticamente sin cambios estructurales.
+
+**Cambios** (sin migration, sin entity nueva, sin endpoint nuevo):
+
+1. **`HorariosEditor.jsx::handleConfigureOptimalCourse`** — el rango con `etiqueta='no_presenciales'` ahora hereda la jornada del grupo igual que las demás SEMANAs. Quitado el `jornadaTipoId = null` que metí en Fase A (que dejaba la rejilla vacía sin slots arrastrables). El admin asigna jornada custom desde "Editar PL" tras crear los rangos.
+
+2. **`OtrasHorasItem`** — prop nueva `draggable` (default `false`). Cuando `true`, envuelve el componente con `useDraggable` usando el mismo prefijo `mod:` y `data.type='module'` que `ModuleChip`, así `onDragEnd` lo trata idéntico. Sin esto las chips eran solo informativas (`<div>` con badge).
+
+3. **Call site del item** — pasa `draggable={selectedPl?.etiqueta === 'no_presenciales'}`. Solo arrastrable en el rango 3, no en rangos lectivos (donde poner FCT no tiene sentido semántico).
+
+4. **CSS `.otrasHorasItemDraggable`** — variante themed con `cursor: grab` + hover sutil (border-color primary + bg-card). Sin colores hex hardcodeados — todo variables del tema.
+
+5. **Validación**: `validateDrop` y `onDragEnd` son agnósticos a modalidad. Solo chequean celda libre + profesor no ocupado en paralelo. FCT típicamente no tiene profesor (`profId=null`) → salta el chequeo de paralelos. Sin cambios necesarios.
+
+**Acciones del admin para activar el flow** (no son código, las hace una sola vez):
+
+a. `/admin/jornadas` → crear jornada "FP 3ª evaluación" con 3 tramos:
+   - SLOT 08:30-15:30 (420 min — un solo slot grande para FCT diaria).
+   - RECREO 15:30-18:00 (hueco visual entre bloques).
+   - SLOT 18:00-20:00 (120 min — para tutoría de Proyecto puntual).
+
+b. `/admin/horarios` → grupo FP 2º → "Configurar curso óptimo" → 3 SEMANAs creadas (Fase A). Click "Editar PL" sobre el rango 3 → cambiar jornada a "FP 3ª evaluación" → guardar.
+
+c. Sub-panel "Otras horas curriculares" del lateral muestra FCT, Proyecto y HLC como chips arrastrables (con cursor grab).
+
+d. Arrastrar FCT al slot Lun 08:30 → bloque cubre todo el slot (7h). Repetir Mar-Vie. Arrastrar Proyecto al slot Mar 18:00 → bloque cubre 2h.
+
+**Decisiones B.1-B.4 cerradas**:
+
+- **B.1** — Formato visual: misma rejilla que presenciales. La jornada custom resuelve el problema de slots grandes (1 slot = 7h en lugar de 30min × 14).
+- **B.2** — Banner anual: sin cambios. Sigue contando `materia.horasTotales × 60` (decoupling total entre placement y currículo legal). Los placements son informativos para "cuándo se hace".
+- **B.3** — Solver: solo manual. El solver actual filtra por modalidad presencial (Fase 3 modalidad) y skipea PLs `no_presenciales` (Fase A). Sin cambios.
+- **B.4** — Multi-grupo gemelo: `HorarioGemeloSyncSubscriber` ya replica `Horario` a hermanos. Los placements no presenciales son `Horario` normales → se cascadean sin código nuevo.
+
+**Lo que NO se hace en Fase B** (diferido):
+
+- Botón "Aplicar a toda la semana" para replicar el placement diario de Lun a Mar-Vie (el admin arrastra 5 veces). Si en uso real lo pide, ~0.5 sesión.
+- Filtrado del modal "Materias del rango" sobre el rango 3 (sigue mostrando presenciales heredadas de PLANTILLA). Cosmético — la rejilla no las pinta porque no hay placements ahí. Si confunde al admin, filtrar PLI en SEMANAs `no_presenciales` a solo no presenciales.
+
+**Cambios adicionales tras feedback del usuario** (misma sesión, post-validación inicial):
+
+6. **`OtrasHorasItem` contador X/Y**: coherencia con `ModuleChip`. Antes mostraba solo "400h totales"; ahora "Nh/400h totales" donde N = `minutosAnualesColocadosByImp[imp.id]` (cross-rango). El admin ve el progreso de FCT/Proyecto/HLC en horas colocadas como en las presenciales. Sin esto la coherencia visual del panel lateral se rompía al hacer drag.
+
+7. **Tap-mode en `OtrasHorasItem`** (mismo patrón que `ModuleChip`): click sin arrastrar selecciona la chip (estilo themed `.otrasHorasItemSelected`); siguiente click en celda vacía coloca el placement vía `handleTapCell` ya existente (reusa `selectedImpId` y `handleSelectModule`, agnóstico a modalidad). Solo activo cuando `draggable={true}` (rango `no_presenciales`). El admin con manos cansadas de arrastrar 5 veces FCT puede tap-tap-tap-tap-tap en lugar.
+
+8. **No presenciales no acaparan al profe**: el profe tutor de FCT no está físicamente con el alumno en empresa, así que sus "horas de FCT" no deben generar colisión de paralelos ni sumar a carga semanal real. Filtros añadidos en 3 sitios:
+   - Construcción de `parallelBusy` (línea ~806): skip `h.imparticion.modalidad !== 'presencial'`. El profe puede tener FCT Lun 8-15h y a la vez clase regular en otro grupo a las 10h — no es conflicto real.
+   - Construcción de `otherGroupsMinutes` (línea ~840): skip no presenciales. La carga semanal del `ProfLoadPanel` solo cuenta presenciales.
+   - Cómputo `profeCarga` (línea ~1577): skip placements del grupo activo con modalidad no presencial.
+   Defensa con `?? 'presencial'` si la modalidad no llega serializada (legacy): comportamiento previo preservado.
+
+**Validación E2E pendiente**: el usuario crea la jornada "FP 3ª evaluación", entra en el editor, "Configurar curso óptimo" sobre 2º DAW, cambia jornada del rango 3, arrastra FCT y Proyecto. Esperado: rejilla replica la captura real del horario.
+
 ### 2026-05-12 — Fase A FP 2º ✅ Done — Rango "Tercera evaluación" en "Configurar curso óptimo"
 
 Cierra el bloqueo de visibilidad temporal para horas no presenciales en FP 2º. Antes de esta fase, `PeriodoLectivoPlanner::plan()` recortaba la ventana lectiva a `segunda.fechaFin` y `construirRangos()` filtraba TERCERA del array, así que un grupo FP 2º quedaba con 2 rangos en el strip del editor y los ~3 meses de la 3ª evaluación (FCT 400h + Proyecto 40-72h + HLC 108h en DAW/DAM) no tenían contenedor temporal. El admin no veía el calendario completo del grupo.

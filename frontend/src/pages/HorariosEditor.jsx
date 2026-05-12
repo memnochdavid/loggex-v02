@@ -144,46 +144,69 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
   );
 };
 
-// ─── Item del panel "Otras horas curriculares" (no draggable) ─────────
-// Lista las materias no presenciales (FCT, NO_REGULAR, AUTONOMA) sin drag-
-// and-drop ni contador de progreso: cuentan al currículo anual pero no
-// ocupan slots. Su carga se ve en el banner anual; aquí solo se enumeran
-// con badge de modalidad para que el admin entienda dónde quedan.
-const OtrasHorasItem = ({ imparticion, minutosSemanales, modalidad, color, t }) => {
-  // Cascada de cifra a mostrar (preferente → fallback):
-  //   1) materia.horasTotales (dato legal LOMLOE — RD del título): "400h totales".
-  //   2) minutosSemanales > 0: "3h/sem".
-  //   3) nada (caso edge: ambas vacías).
-  // Las no presenciales suelen tener horasTotales (BOE las define así) pero
-  // pueden carecer de minutosSemanales (FCT no es semanal). Mostrar h totales
-  // es más informativo para el admin que un "0h/sem" vacío.
-  const horasTotales = imparticion.materia?.horasTotales ?? null;
-  const horasSem = minutosSemanales > 0 ? minToHoras(minutosSemanales) : null;
-  const counter = horasTotales != null && horasTotales > 0
-    ? { value: horasTotales, suffix: t('scheduleEditor.hTotalSuffix', { defaultValue: 'h totales' }) }
-    : horasSem !== null
-      ? { value: horasSem, suffix: t('scheduleEditor.hWeekSuffix', { defaultValue: 'h/sem' }) }
+// ─── Item del panel "Otras horas curriculares" ────────────────────────
+// Lista las materias no presenciales (FCT, NO_REGULAR, AUTONOMA). Por
+// defecto NO arrastrable ni interactivo (cuentan al currículo anual pero
+// no ocupan slots en los rangos lectivos). En rangos con
+// `etiqueta='no_presenciales'` (Tercera evaluación de FP 2º) sí son
+// arrastrables + tap-mode, para que el admin las ancle temporalmente al
+// rango — la jornada del rango la define el centro vía "Editar PL"
+// (típico: SLOT 08:30-15:30 + SLOT 18:00-20:00 para FCT + tutoría Proyecto).
+//
+// Apariencia idéntica a ModuleChip (Fase B fix 2026-05-12): mismo
+// styles.moduleChip + dot + meta(nombre/profe) + counter. Sin badge de
+// modalidad separado — el contador "h totales" ya diferencia respecto al
+// "h/sem" de presenciales y el aspecto coherente facilita la lectura.
+const OtrasHorasItem = ({ imparticion, minutosSemanales, color, t, draggable = false, minutosColocados = 0, selected = false, onSelect }) => {
+  // Contador "colocadas/totales" coherente con ModuleChip:
+  //   - Si hay horasTotales legales (LOMLOE — RD del título): "Nh/Yh totales".
+  //   - Si no, fallback a "Nh/Yh/sem" usando minutosSemanales.
+  //   - Si no hay ninguna: no se muestra contador.
+  const horasTotalesLOMLOE = imparticion.materia?.horasTotales ?? null;
+  const horasColocadas = minToHoras(minutosColocados);
+  const counter = horasTotalesLOMLOE != null && horasTotalesLOMLOE > 0
+    ? `${horasColocadas}/${horasTotalesLOMLOE}${t('scheduleEditor.hTotalSuffix', { defaultValue: 'h totales' })}`
+    : minutosSemanales > 0
+      ? `${horasColocadas}/${minToHoras(minutosSemanales)}${t('scheduleEditor.hWeekSuffix', { defaultValue: 'h/sem' })}`
       : null;
-  // Etiqueta del badge i18n. Default values en español.
-  const badgeLabel = t(`modalidad.badge.${modalidad}`, {
-    defaultValue: modalidad === 'fct' ? 'FCT'
-      : modalidad === 'no_regular' ? 'No regular'
-      : modalidad === 'autonoma' ? 'Autónoma'
-      : modalidad,
+  // Hook siempre; aplicamos listeners solo si draggable.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `mod:${imparticion.id}`,
+    data: { type: 'module', imparticionId: imparticion.id },
+    disabled: !draggable,
   });
+  // Detección "completo" para hint visual styles.moduleChipDone — paridad
+  // con ModuleChip (cuando el objetivo anual está cubierto).
+  const minutosTotalesObj = horasTotalesLOMLOE != null && horasTotalesLOMLOE > 0
+    ? horasTotalesLOMLOE * 60
+    : minutosSemanales > 0
+      ? minutosSemanales * 36   // fallback LOMLOE estándar
+      : 0;
+  const done = minutosColocados >= minutosTotalesObj && minutosTotalesObj > 0;
   return (
-    <div className={styles.otrasHorasItem} title={badgeLabel}>
+    <div
+      ref={draggable ? setNodeRef : undefined}
+      className={`${styles.moduleChip}${isDragging ? ' ' + (styles.moduleChipDragging || '') : ''}${done ? ' ' + (styles.moduleChipDone || '') : ''}${selected ? ' ' + (styles.moduleChipSelected || '') : ''}${!draggable ? ' ' + (styles.moduleChipDisabled || '') : ''}`}
+      style={!draggable ? { cursor: 'default', opacity: 0.85 } : undefined}
+      {...(draggable ? listeners : {})}
+      {...(draggable ? attributes : {})}
+      onClick={draggable ? (e) => {
+        e.stopPropagation();
+        onSelect?.(imparticion.id);
+      } : undefined}
+      title={counter || undefined}
+    >
       <span className={styles.moduleDot} style={{ backgroundColor: color }} />
       <div className={styles.moduleMeta}>
         <span className={styles.moduleName}>
           {imparticion.materia ? <MateriaLabel materia={imparticion.materia} /> : '—'}
         </span>
-        <span className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${modalidad}`] || ''}`}>
-          {badgeLabel}
+        <span className={styles.moduleProfe}>
+          {imparticion.profesor ? `${imparticion.profesor.nombre || ''} ${imparticion.profesor.apellidos || ''}`.trim() : '—'}
         </span>
       </div>
       {counter !== null && (
-        <span className={styles.moduleCounter}>{counter.value}{counter.suffix}</span>
+        <span className={styles.moduleCounter}>{counter}</span>
       )}
     </div>
   );
@@ -788,6 +811,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         items.forEach(h => {
           const hi = normHora(h.horaInicio);
           if (!hi) return;
+          // Fase B FP 2º (2026-05-12): skip si la imparticion es NO presencial
+          // (FCT, NO_REGULAR, AUTONOMA). El profe tutor de FCT no está
+          // físicamente con el alumno en empresa, así que no genera colisión
+          // de paralelos. Igual aplica para Proyecto/HLC: tutorías no
+          // presenciales no acaparan al profe a esa hora. Defensa con `??`
+          // hacia 'presencial' si modalidad no llega serializada (legacy).
+          const impMod = h.imparticion?.modalidad ?? h.imparticion?.materia?.modalidad ?? 'presencial';
+          if (impMod !== 'presencial') return;
           const profId = h.imparticion?.profesor?.id
             ?? h.imparticion?.profesor?.['@id']?.split('/').pop()
             ?? (typeof h.imparticion?.profesor === 'string' ? h.imparticion.profesor.split('/').pop() : null);
@@ -815,6 +846,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       results.forEach(d => {
         const items = d['hydra:member'] || d.member || [];
         items.forEach(h => {
+          // Fase B FP 2º (2026-05-12): skip imparticiones no presenciales
+          // (FCT/Proyecto/HLC). El profe tutor no está físicamente
+          // impartiendo a esa hora; sus horas no presenciales NO suman
+          // carga semanal real para el panel `ProfLoadPanel`.
+          const impMod = h.imparticion?.modalidad ?? h.imparticion?.materia?.modalidad ?? 'presencial';
+          if (impMod !== 'presencial') return;
           const pid = h.imparticion?.profesor?.id
             ?? h.imparticion?.profesor?.['@id']?.split('/').pop();
           if (!pid) return;
@@ -1548,6 +1585,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const imp = impById[p.imparticionId];
       const pid = imp?.profesor?.id;
       if (!pid) return;
+      // Fase B FP 2º (2026-05-12): skip placements no presenciales (FCT/
+      // Proyecto/HLC). El profe tutor no está físicamente con el alumno
+      // — sus horas no presenciales NO suman a la carga real del panel.
+      if (!consumeAulaModalidad(getEffectiveModalidad(imp))) return;
       const dur = getPlacementDur(p);
       currentMinPerProf[pid] = (currentMinPerProf[pid] || 0) + dur;
     });
@@ -1606,11 +1647,18 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       }
     }
 
-    // Regla 2: profesor ocupado en grupo paralelo
-    const profId = imp.profesor?.id;
-    if (profId && parallelBusy[key]?.has(Number(profId))) {
-      const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
-      return { ok: false, reason: t('scheduleEditor.reasonTeacherBusy', { teacher }) };
+    // Regla 2: profesor ocupado en grupo paralelo.
+    // Fase B FP 2º (2026-05-12): si la imp arrastrada NO es presencial
+    // (FCT/Proyecto/HLC), el profe-tutor NO está físicamente impartiendo,
+    // así que da igual que tenga clase regular en otro grupo a esa hora.
+    // No hay colisión real. Skip del chequeo.
+    const impMod = getEffectiveModalidad(imp);
+    if (consumeAulaModalidad(impMod)) {
+      const profId = imp.profesor?.id;
+      if (profId && parallelBusy[key]?.has(Number(profId))) {
+        const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
+        return { ok: false, reason: t('scheduleEditor.reasonTeacherBusy', { teacher }) };
+      }
     }
 
     return { ok: true };
@@ -2372,11 +2420,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       // Sin bloqueo por "módulo lleno" (2026-05-05): el admin puede colocar
       // con overshoot si el caso real lo requiere. El chip lateral indica
       // visualmente cuando se sobrepasa el target anual.
-      const profId = imp.profesor?.id;
-      if (profId && parallelBusy[key]?.has(Number(profId))) {
-        const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
-        toast.error(t('scheduleEditor.reasonTeacherBusy', { teacher }));
-        return;
+      // Fase B FP 2º (2026-05-12): si la imp no es presencial, el profe-
+      // tutor no está físicamente en aula — skip el chequeo de paralelos.
+      if (consumeAulaModalidad(getEffectiveModalidad(imp))) {
+        const profId = imp.profesor?.id;
+        if (profId && parallelBusy[key]?.has(Number(profId))) {
+          const teacher = `${imp.profesor?.nombre || ''} ${imp.profesor?.apellidos || ''}`.trim();
+          toast.error(t('scheduleEditor.reasonTeacherBusy', { teacher }));
+          return;
+        }
       }
       const tapDur = slotMinutosByHi[slotsDia[slotIdx][0]] || 0;
       setState(prev => ({
@@ -2425,8 +2477,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     if (placements[key]) return false;
     const imp = impById[selectedImpId];
     if (!imp) return false;
-    const profId = imp.profesor?.id;
-    if (profId && parallelBusy[key]?.has(Number(profId))) return false;
+    // Fase B FP 2º (2026-05-12): no presenciales no se bloquean por profe
+    // paralelo (el profe-tutor no está físicamente en empresa con el alumno).
+    if (consumeAulaModalidad(getEffectiveModalidad(imp))) {
+      const profId = imp.profesor?.id;
+      if (profId && parallelBusy[key]?.has(Number(profId))) return false;
+    }
     return true;
   }, [selectedImpId, slotsDia, placements, impById, parallelBusy]);
 
@@ -4233,15 +4289,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const semanasVirtuales = tramos.map((tr, i) => {
         const tempId = tempIdSeqRef.current;
         tempIdSeqRef.current -= 1;
-        // Fase A FP 2º: rangos con etiqueta='no_presenciales' (Tercera
-        // evaluación) NO llevan jornadaTipo — son contenedores temporales
-        // para FCT/Proyecto/HLC, no rejilla de clases regulares. Sin esto
-        // se les asignaría la jornada por defecto y la rejilla pintaría
-        // slots vacíos confundiendo al admin.
-        const esNoPresenciales = tr.etiqueta === 'no_presenciales';
-        const jornadaIdEfectivaSemana = esNoPresenciales
-          ? null
-          : (tr.jornadaTipoId || jornadaIdEfectiva);
+        // Fase B FP 2º (2026-05-12): el rango 'no_presenciales' (Tercera
+        // evaluación) hereda la jornada del grupo igual que las demás
+        // SEMANAs. El admin la cambia con "Editar PL" a una jornada
+        // custom (p.ej. "FP 3ª evaluación" con slots 08:30-15:30 +
+        // 18:00-20:00) para reflejar el horario real de prácticas+proyecto.
+        // Sin esta jornada heredada el rango nacía sin rejilla y el admin
+        // no podía arrastrar las no presenciales (FCT, Proyecto, HLC).
+        const jornadaIdEfectivaSemana = tr.jornadaTipoId || jornadaIdEfectiva;
         return {
           tempId, id: tempId, _pending: 'create',
           tipo: 'semana',
@@ -5131,9 +5186,23 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         key={imp.id}
                         imparticion={imp}
                         minutosSemanales={imp.materia?.minutosSemanales || 0}
-                        modalidad={getEffectiveModalidad(imp)}
+                        // Minutos colocados cross-rango (Fase B 2026-05-12):
+                        // mismo cálculo que ModuleChip para coherencia visual.
+                        // Suma placements de TODOS los rangos del grupo.
+                        minutosColocados={minutosAnualesColocadosByImp[imp.id] || 0}
                         color={colorForModule(imp.materia?.id || imp.id)}
                         t={t}
+                        // Fase B FP 2º (2026-05-12): solo arrastrable cuando el PL
+                        // activo es 'no_presenciales' (Tercera evaluación). En
+                        // rangos lectivos las no presenciales NO se arrastran
+                        // (FCT no va en un rango con clases regulares).
+                        draggable={selectedPl?.etiqueta === 'no_presenciales'}
+                        // Tap-mode (Fase B 2026-05-12): reusa el mismo
+                        // `selectedImpId` que ModuleChip — al hacer click en
+                        // una celda vacía, `handleTapCell` coloca la imp
+                        // seleccionada sin necesidad de arrastrar.
+                        selected={selectedImpId === imp.id}
+                        onSelect={selectedPl?.etiqueta === 'no_presenciales' ? handleSelectModule : undefined}
                       />
                     ))}
                   </div>

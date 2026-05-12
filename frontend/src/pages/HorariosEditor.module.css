@@ -267,19 +267,20 @@
     font-style: italic;
 }
 
-.otrasHorasItem {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    margin-bottom: var(--space-2);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+/* Fase B FP 2º (2026-05-12): el componente `OtrasHorasItem` reusa
+   .moduleChip y derivados para coherencia visual con las presenciales.
+   En rangos lectivos (no draggable) aplicamos `.moduleChipDisabled` —
+   apariencia atenuada e inerte. En rango `no_presenciales` queda como
+   un ModuleChip normal: arrastrable + tap-mode + counter + estados
+   `selected` / `dragging` / `done`. */
+.moduleChipDisabled {
+    cursor: default !important;
+    opacity: 0.85;
+}
+.moduleChipDisabled:hover {
+    border-color: var(--border-color);
     background: var(--bg-subtle, var(--bg-card));
-    user-select: none;
-    color: var(--text-main);
-    cursor: default;
-    opacity: 0.9;
+    transform: none;
 }
 
 /* Badge de modalidad: FCT (azul), NO_REGULAR (ámbar), AUTONOMA (gris). */
