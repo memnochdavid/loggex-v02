@@ -1602,6 +1602,7 @@
     "panelOtrasHorasHint": "Don't take classroom slots but count toward the annual curriculum.",
     "hTotalSuffix": "h total",
     "hWeekSuffix": "h/wk",
+    "solverSkipNoPresenciales": "Solver does not apply to \"Third assessment\" — it's a container for non-classroom hours (workplace training, project, electives).",
     "optimalAction": "Configure optimal course ({{semanas}} wks)",
     "optimalActionTitle": "Create optimal terms ({{semanas}} wks) + run solver",
     "optimalNoData": "Cannot compute optimal course (missing schedule template or subjects)",

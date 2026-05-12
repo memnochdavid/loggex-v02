@@ -164,6 +164,28 @@ class PeriodoLectivo
     #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write'])]
     private int $orden = 0;
 
+    /**
+     * Etiqueta semántica del PL (proviene del planner). Discriminador
+     * opcional para que el frontend trate ciertos PLs de forma especial
+     * sin tener que parsear el `nombre`.
+     *
+     * Valores conocidos (extensible):
+     *  - null            → SEMANA lectiva normal o PLANTILLA (default).
+     *  - 'no_presenciales' → SEMANA contenedora de horas no lectivas (FP 2º
+     *                       Tercera evaluación: FCT, Proyecto, HLC). El
+     *                       solver y el distribuidor de currículo NO operan
+     *                       sobre este PL — su rejilla queda vacía y las
+     *                       imparticiones no presenciales se anclan
+     *                       manualmente al rango (Fase B pendiente).
+     *
+     * Sin este campo no podríamos distinguir el rango especial tras
+     * recargar el editor: el planner devuelve `etiqueta` en cada llamada
+     * pero `runSolverAllRangos` itera PLs reales sin consultarlo.
+     */
+    #[ORM\Column(length: 32, nullable: true)]
+    #[Groups(['periodo_lectivo:read', 'periodo_lectivo:write'])]
+    private ?string $etiqueta = null;
+
     #[ORM\OneToMany(mappedBy: 'periodoLectivo', targetEntity: PeriodoLectivoImparticion::class, cascade: ['persist'], orphanRemoval: true)]
     #[Groups(['periodo_lectivo:read'])]
     private Collection $imparticiones;
@@ -251,6 +273,17 @@ class PeriodoLectivo
     public function setOrden(int $orden): static
     {
         $this->orden = $orden;
+        return $this;
+    }
+
+    public function getEtiqueta(): ?string
+    {
+        return $this->etiqueta;
+    }
+
+    public function setEtiqueta(?string $etiqueta): static
+    {
+        $this->etiqueta = $etiqueta;
         return $this;
     }
 

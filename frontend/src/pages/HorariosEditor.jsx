@@ -1421,7 +1421,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
     // Capacidad lectiva curricular: incluye recreos (truco LOMLOE FP).
     const jornadaSemanalMin = jornadaSemanalLectivaMin;
     if (jornadaSemanalMin <= 0) return null;
-    const semanasTotal = Object.values(semanasByPlId).reduce((a, b) => a + b, 0);
+    // Fase A FP 2º: excluir PLs con etiqueta='no_presenciales' (Tercera
+    // evaluación) del cómputo de capacidad — son contenedores de FCT/
+    // Proyecto/HLC sin slots de aula. Si los sumáramos, el banner anual
+    // reportaría 3 meses extra de capacidad presencial que no existe.
+    const plsParaCap = (plByGrupo[selectedGrupo] || []).filter(pl => pl.etiqueta !== 'no_presenciales');
+    const semanasTotal = plsParaCap.reduce((acc, pl) => acc + (semanasByPlId[pl.id] || 0), 0);
     if (semanasTotal <= 0) return null;
     const capacidadAnualMin = jornadaSemanalMin * semanasTotal;
     const fits = capacidadAnualMin >= sumCurriculumMin;
@@ -1921,6 +1926,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       if (draft.plantillaBase) body.plantillaBase = draft.plantillaBase;
       if (draft.semanaNumero != null) body.semanaNumero = draft.semanaNumero;
       if (draft.jornadaTipoId) body.jornadaTipo = `/api/jornada_tipos/${draft.jornadaTipoId}`;
+      // Etiqueta semántica del planner (Fase A FP 2º): persistir para que
+      // el solver/distribuidor la respete al recargar el editor.
+      if (draft.etiqueta) body.etiqueta = draft.etiqueta;
       const r = await fetch(getApiUrl('/api/periodo_lectivos'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/ld+json', 'Accept': 'application/ld+json' },
@@ -3155,6 +3163,19 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   const runSolver = async (seed = null, skipConfirm = false, plIdOverride = null, alreadyPlacedOverride = null, useIterativo = false, suppressToast = false) => {
     if (!selectedGrupo) return null;
     const targetPlId = plIdOverride ?? selectedPlId;
+    // Fase A FP 2º (2026-05-12): el solver NO debe correrse sobre PLs
+    // con etiqueta='no_presenciales' (Tercera evaluación de FP 2º) —
+    // son contenedores temporales para FCT/Proyecto/HLC sin slots de aula.
+    // Defensa por si el caller (UI o runSolverAllRangos) lo invoca.
+    const targetPl = (plByGrupo[selectedGrupo] || []).find(p => String(p.id) === String(targetPlId));
+    if (targetPl?.etiqueta === 'no_presenciales') {
+      if (!suppressToast) {
+        toast.info(t('scheduleEditor.solverSkipNoPresenciales', {
+          defaultValue: 'El solver no aplica a "Tercera evaluación" — es un contenedor de horas no presenciales (FCT/Proyecto/HLC).',
+        }));
+      }
+      return null;
+    }
     const targetStateKey = (selectedGrupo && targetPlId) ? `${selectedGrupo}_${targetPlId}` : '';
     const targetPlacements = (state[targetStateKey]?.placements) || {};
     const hasContent = Object.keys(targetPlacements).length > 0;
@@ -3234,7 +3255,10 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
         const txDeleteSet = new Set((tx.plsToDelete || []).map(String));
         const realesVivos = (plByGrupo[selectedGrupo] || [])
           .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
-        const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
+        // Fase A FP 2º: excluir no_presenciales del cap anual (no aporta
+        // capacidad presencial — es contenedor de FCT/Proyecto/HLC).
+        const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])]
+          .filter(p => p.etiqueta !== 'no_presenciales');
         // Modelo semanal: PLANTILLA → semanasReferenciaCentro; SEMANAs → ~1.
         const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) =>
           acc + getSemanasOfPl(pl, semanasReferenciaCentro), 0);
@@ -3397,8 +3421,14 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   // un solo flujo, donde React aún no ha re-rendereado tras el setState.
   const runSolverAllRangos = async (plsOverride = null, autoSave = false) => {
     if (!selectedGrupo) return;
-    const pls = (plsOverride ?? plByGrupo[selectedGrupo] ?? []).slice().sort((a, b) =>
-      (a.fechaInicio || '').localeCompare(b.fechaInicio || ''));
+    // Fase A FP 2º (2026-05-12): los PLs con etiqueta='no_presenciales'
+    // (Tercera evaluación en FP 2º) son contenedores temporales para
+    // FCT/Proyecto/HLC sin slots de aula. El solver no debe iterarlos:
+    // no hay imparticiones presenciales que colocar allí.
+    const pls = (plsOverride ?? plByGrupo[selectedGrupo] ?? [])
+      .filter(pl => pl.etiqueta !== 'no_presenciales')
+      .slice()
+      .sort((a, b) => (a.fechaInicio || '').localeCompare(b.fechaInicio || ''));
     if (pls.length === 0) {
       toast.error(t('scheduleEditor.solverAllNoRangos', { defaultValue: 'El grupo no tiene rangos lectivos.' }));
       return;
@@ -3445,7 +3475,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const txDeleteSet = new Set((tx.plsToDelete || []).map(String));
       const realesVivos = (plByGrupo[selectedGrupo] || [])
         .filter(p => !p._pending && !txDeleteSet.has(String(p.id)));
-      const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])];
+      // Fase A FP 2º: excluir no_presenciales del cap anual del solver
+      // multi-rango — el rango Tercera evaluación no aporta capacidad
+      // presencial y el solver no opera sobre él.
+      const allPlsForCap = [...realesVivos, ...(tx.plsToCreate || [])]
+        .filter(p => p.etiqueta !== 'no_presenciales');
       // Modelo semanal: PLANTILLA aporta `semanasReferenciaCentro` (calendario
       // real del centro o 36 LOMLOE de fallback). SEMANAs aportan ~1 cada una.
       const totalSemanasGrupo = allPlsForCap.reduce((acc, pl) => {
@@ -4163,6 +4197,15 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       const semanasVirtuales = tramos.map((tr, i) => {
         const tempId = tempIdSeqRef.current;
         tempIdSeqRef.current -= 1;
+        // Fase A FP 2º: rangos con etiqueta='no_presenciales' (Tercera
+        // evaluación) NO llevan jornadaTipo — son contenedores temporales
+        // para FCT/Proyecto/HLC, no rejilla de clases regulares. Sin esto
+        // se les asignaría la jornada por defecto y la rejilla pintaría
+        // slots vacíos confundiendo al admin.
+        const esNoPresenciales = tr.etiqueta === 'no_presenciales';
+        const jornadaIdEfectivaSemana = esNoPresenciales
+          ? null
+          : (tr.jornadaTipoId || jornadaIdEfectiva);
         return {
           tempId, id: tempId, _pending: 'create',
           tipo: 'semana',
@@ -4170,10 +4213,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           nombre: tr.nombre,
           fechaInicio: tr.fechaInicio,
           fechaFin: tr.fechaFin,
-          jornadaTipo: { id: tr.jornadaTipoId || jornadaIdEfectiva },
-          jornadaTipoId: tr.jornadaTipoId || jornadaIdEfectiva,
+          jornadaTipo: jornadaIdEfectivaSemana ? { id: jornadaIdEfectivaSemana } : null,
+          jornadaTipoId: jornadaIdEfectivaSemana,
           orden: i + 1,  // 0 reservado a la PLANTILLA conceptualmente
           semanaNumero: i + 1,
+          etiqueta: tr.etiqueta || null,
           _plannerEtiqueta: tr.etiqueta,
           _plannerRazon: tr.razon,
         };
@@ -4192,11 +4236,16 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            rangos: semanasVirtuales.map(s => ({
-              tempId: s.tempId, nombre: s.nombre,
-              fechaInicio: s.fechaInicio, fechaFin: s.fechaFin,
-              jornadaTipoId: s.jornadaTipoId,
-            })),
+            // Filtrar rangos no_presenciales (Fase A FP 2º): el distribuidor
+            // opera sobre presenciales — la Tercera evaluación de FP 2º es
+            // un contenedor temporal para FCT/Proyecto/HLC sin slots de aula.
+            rangos: semanasVirtuales
+              .filter(s => s.etiqueta !== 'no_presenciales')
+              .map(s => ({
+                tempId: s.tempId, nombre: s.nombre,
+                fechaInicio: s.fechaInicio, fechaFin: s.fechaFin,
+                jornadaTipoId: s.jornadaTipoId,
+              })),
           }),
         });
         if (!distRes.ok) {

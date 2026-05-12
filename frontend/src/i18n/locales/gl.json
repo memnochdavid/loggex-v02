@@ -1602,6 +1602,7 @@
     "panelOtrasHorasHint": "Non ocupan aula pero contan ao currículo anual.",
     "hTotalSuffix": "h totais",
     "hWeekSuffix": "h/sem",
+    "solverSkipNoPresenciales": "O solver non se aplica a \"Terceira avaliación\" — é un contedor de horas non presenciais (FCT/Proxecto/HLC).",
     "optimalAction": "Configurar curso óptimo ({{semanas}} sem)",
     "optimalActionTitle": "Crear períodos óptimos ({{semanas}} sem) + lanzar solver",
     "optimalNoData": "Non se pode calcular o curso óptimo (faltan xornada ou materias)",

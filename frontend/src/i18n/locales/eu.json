@@ -1602,6 +1602,7 @@
     "panelOtrasHorasHint": "Ez dute gelarik hartzen baina urteko kurrikulumean kontatzen dute.",
     "hTotalSuffix": "ordu guztiak",
     "hWeekSuffix": "ordu/aste",
+    "solverSkipNoPresenciales": "Solverra ez da aplikatzen \"Hirugarren ebaluazioan\" — aurrez aurrekoak ez diren orduak biltzen ditu (LPP/Proiektua/HLC).",
     "optimalAction": "Ikastaro optimoa konfiguratu ({{semanas}} ast)",
     "optimalActionTitle": "Aldi optimoak sortu ({{semanas}} ast) + solver-a abiarazi",
     "optimalNoData": "Ezin da ikastaro optimoa kalkulatu (lan-eguna edo ikasgaiak falta)",

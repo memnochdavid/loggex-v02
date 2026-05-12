@@ -426,6 +426,53 @@ class PeriodoLectivoPlanner
             ];
         }
 
+        // Rango EXTRA para FP 2º: "Tercera evaluación" (Fase A 2026-05-12).
+        //
+        // En FP 2º la regla universal recorta `fin` a `segunda.fechaFin`
+        // (regla 3 de `plan()`) para que las clases presenciales terminen
+        // antes de la TERCERA, que es el período de FCT + Proyecto + HLC.
+        // Hasta ahora ese período quedaba sin contenedor en el strip del
+        // editor, así que las horas no presenciales del currículo (FCT 400h,
+        // Proyecto 40-72h, HLC 108h) no tenían "donde aterrizar" temporalmente
+        // y el admin no veía el calendario completo del grupo.
+        //
+        // Añadimos una entrada extra al array de rangos con:
+        //   - nombre genérico "Tercera evaluación" (no se asume FCT — funciona
+        //     para itinerarios FP 2º con otras configuraciones de TERCERA).
+        //   - etiqueta='no_presenciales' como discriminador: frontend skipea
+        //     este rango en el solver y el distribuidor de currículo. Persiste
+        //     en BD via `PeriodoLectivo.etiqueta` (migration 20260512200000).
+        //   - jornadaTipoId=null: el rango no tiene jornada lectiva (no se
+        //     colocan clases regulares; las prácticas tienen horario propio).
+        //   - razon='tercera_evaluacion_fp2_no_presenciales' para diagnóstico.
+        //
+        // Skip silencioso si no hay TERCERA configurada (centro no completó
+        // sus evaluaciones — el admin solo verá los 2 rangos lectivos como
+        // antes). No es error: es defensa frente a datos incompletos.
+        if ($isFp2) {
+            $tercera = null;
+            foreach ($allEvals as $e) {
+                /** @var PeriodoEvaluativo $e */
+                if ($e->getTipo() === 'TERCERA'
+                    && $e->getFechaInicio() !== null
+                    && $e->getFechaFin() !== null
+                ) {
+                    $tercera = $e;
+                    break;
+                }
+            }
+            if ($tercera !== null) {
+                $rangos[] = [
+                    'nombre' => 'Tercera evaluación',
+                    'fechaInicio' => $tercera->getFechaInicio()->format('Y-m-d'),
+                    'fechaFin' => $tercera->getFechaFin()->format('Y-m-d'),
+                    'jornadaTipoId' => null,
+                    'etiqueta' => 'no_presenciales',
+                    'razon' => 'tercera_evaluacion_fp2_no_presenciales',
+                ];
+            }
+        }
+
         // Si por algún motivo (todas evaluaciones fuera de la ventana, datos
         // corruptos…) no quedó ningún rango, fallback al rango único.
         if (empty($rangos)) {

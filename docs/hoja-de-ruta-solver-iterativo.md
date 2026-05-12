@@ -192,6 +192,57 @@ El selector `elegirAccion(bottleneck, estado)` mapea bottleneck → acción cand
 
 ## 9. Bitácora de implementación
 
+### 2026-05-12 — Fase A FP 2º ✅ Done — Rango "Tercera evaluación" en "Configurar curso óptimo"
+
+Cierra el bloqueo de visibilidad temporal para horas no presenciales en FP 2º. Antes de esta fase, `PeriodoLectivoPlanner::plan()` recortaba la ventana lectiva a `segunda.fechaFin` y `construirRangos()` filtraba TERCERA del array, así que un grupo FP 2º quedaba con 2 rangos en el strip del editor y los ~3 meses de la 3ª evaluación (FCT 400h + Proyecto 40-72h + HLC 108h en DAW/DAM) no tenían contenedor temporal. El admin no veía el calendario completo del grupo.
+
+**Diseño**: añadir 3er rango "Tercera evaluación" con un discriminador semántico que el solver y el distribuidor de currículo respeten. El nuevo campo `PeriodoLectivo.etiqueta` actúa como marca futura-proof — extensible a otros casos (`examen`, `recuperacion`, etc.) sin tocar el esquema.
+
+**Cambios**:
+
+1. **Migration `Version20260512200000`** — `ALTER TABLE periodo_lectivo ADD etiqueta VARCHAR(32) DEFAULT NULL`. Sin backfill (NULL = "rango normal", default semántico).
+
+2. **Entity `PeriodoLectivo`** — campo `?string $etiqueta = null` con `length: 32` + getter/setter + grupos `periodo_lectivo:read/write`. Sin enum PHP — string suelto para que el frontend pueda usar valores futuros sin migración. Comentario en el field doc lista los valores conocidos (`no_presenciales`) y deja la puerta abierta.
+
+3. **`PeriodoLectivoPlanner::construirRangos()`** — tras los rangos lectivos y la cola residual, si `$isFp2` busca TERCERA en `$allEvals`. Si existe y tiene fechas, añade rango extra:
+   ```
+   ['nombre' => 'Tercera evaluación', 'fechaInicio' => tercera.fechaInicio,
+    'fechaFin' => tercera.fechaFin, 'jornadaTipoId' => null,
+    'etiqueta' => 'no_presenciales', 'razon' => 'tercera_evaluacion_fp2_no_presenciales']
+   ```
+   Skip silencioso si no hay TERCERA (defensa frente a centros con datos incompletos — el admin verá los 2 rangos lectivos como antes).
+
+4. **Frontend `HorariosEditor.jsx::handleConfigureOptimalCourse`**:
+   - Las SEMANAs virtuales mapean `etiqueta` del planner al campo nativo del PL (antes solo se guardaba en `_plannerEtiqueta` para tracking en-memoria).
+   - Las SEMANAs con `etiqueta='no_presenciales'` NO reciben `jornadaTipo`: no son rejilla de aula y forzar la jornada por defecto pintaría slots vacíos confusos.
+   - El array enviado a `/api/v1/grupos/{gid}/distribute-curriculum-dry-run` filtra `etiqueta !== 'no_presenciales'` — el distribuidor opera sobre presenciales.
+
+5. **Frontend `applyPendingTxForGrupo`** — el body del POST `/api/periodo_lectivos` incluye `etiqueta` cuando el draft lo tiene, para que persista en BD.
+
+6. **Frontend `runSolverAllRangos`** — filtra `pls` por `etiqueta !== 'no_presenciales'` al inicio. El solver multi-rango itera solo lectivos.
+
+7. **Frontend `runSolver`** (single PL) — defensa al inicio: si el PL activo tiene `etiqueta === 'no_presenciales'`, muestra toast `scheduleEditor.solverSkipNoPresenciales` (i18n × 5) y retorna `null`.
+
+8. **Frontend cómputos `capacityFeasibilityAnual` y `totalSemanasGrupo` (en runSolver y runSolverAllRangos)** — excluyen los PLs con `etiqueta === 'no_presenciales'` antes de sumar semanas. Sin esta exclusión el banner anual reportaría 3 meses extra de capacidad presencial inexistente, validando `fits=true` falsamente.
+
+**Lo que NO se tocó**:
+
+- `PeriodoLectivoCreateProcessor` — sigue creando PLIs auto solo en PLANTILLA (no en SEMANA). La SEMANA "Tercera evaluación" queda sin PLIs explícitas — al render hereda las cuotas de la PLANTILLA, pero como no hay placements (el solver no corre allí), la rejilla queda visualmente vacía. Esto es correcto para Fase A.
+- "Crear Rangos Recomendados" (`handleCreateRecommendedRangos`) — sigue siendo manual/tonto (reparto uniforme N tramos). Ignora evaluaciones por diseño. Pendiente como mejora futura — requiere consultar `/api/periodo_evaluativos?grupo=X&tipo=TERCERA` desde el frontend para conocer las fechas.
+- Modal "Materias del rango" del rango Tercera evaluación — sigue mostrando las imparticiones heredadas con sus cuotas (las presenciales con sus minutos/sem). Esto no rompe nada porque no hay placements; mostrarlas distintas (filtrar a no presenciales) es deuda de Fase B.
+
+**Validación E2E pendiente** (tras `docker compose exec backend php bin/console doctrine:migrations:migrate` + restart backend):
+
+1. Grupo FP 2º con TERCERA configurada (ej. 2º DAW EAG) → "Configurar curso óptimo" → strip muestra **3 pills** (Hasta PRIMERA, Hasta SEGUNDA, Tercera evaluación).
+2. Click en la pill "Tercera evaluación" → rejilla vacía (sin placements).
+3. Pulsar "Solver" sobre la pill 3 → toast `solverSkipNoPresenciales`.
+4. Banner anual: cifras consistentes con FP 2º normal (sin 3 meses extra de capacidad falsa).
+5. Grupo FP 2º sin TERCERA → comportamiento idéntico al actual (2 rangos sin pill extra).
+6. Grupo NO-FP / FP 1º → comportamiento idéntico al actual.
+7. `SELECT id, nombre, etiqueta FROM periodo_lectivo WHERE grupo_id=X;` — la SEMANA Tercera evaluación tiene `etiqueta='no_presenciales'`.
+
+**Pendiente Fase B** (no entra en esta tanda): arrastrar las imparticiones no presenciales del sub-panel "Otras horas curriculares" del editor sobre la rejilla del rango 3. Requiere decidir B.1-B.4 (formato visual del bloque, cómo cuenta al banner, si el solver auto-coloca, manejo multi-grupo gemelo) antes de tocar código.
+
 ### 2026-05-01 — Doc creado + Fase 1 ✅ Done
 
 Tras discusión con el usuario sobre por qué el solver para con materias al 80%/120% sin explicar nada. Plan completo arriba.
