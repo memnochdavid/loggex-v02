@@ -1600,6 +1600,8 @@
     "panelHint": "Arrastatu ikasgai bat ordutegira. Arrastatu klase bat panelera kentzeko.",
     "panelOtrasHoras": "Beste ordu kurrikularrak ({{count}})",
     "panelOtrasHorasHint": "Ez dute gelarik hartzen baina urteko kurrikulumean kontatzen dute.",
+    "hTotalSuffix": "ordu guztiak",
+    "hWeekSuffix": "ordu/aste",
     "optimalAction": "Ikastaro optimoa konfiguratu ({{semanas}} ast)",
     "optimalActionTitle": "Aldi optimoak sortu ({{semanas}} ast) + solver-a abiarazi",
     "optimalNoData": "Ezin da ikastaro optimoa kalkulatu (lan-eguna edo ikasgaiak falta)",

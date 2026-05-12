@@ -1600,6 +1600,8 @@
     "panelHint": "Arrossega una matèria a l'horari. Arrossega una classe al panell per treure-la.",
     "panelOtrasHoras": "Altres hores curriculars ({{count}})",
     "panelOtrasHorasHint": "No ocupen aula però compten al currículum anual.",
+    "hTotalSuffix": "h totals",
+    "hWeekSuffix": "h/set",
     "optimalAction": "Configurar curs òptim ({{semanas}} set)",
     "optimalActionTitle": "Crear períodes òptims ({{semanas}} set) + executar solver",
     "optimalNoData": "No es pot calcular el curs òptim (falten jornada o matèries)",

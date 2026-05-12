@@ -150,7 +150,20 @@ const ModuleChip = ({ imparticion, minutosTotales, minutosColocados, color, sele
 // ocupan slots. Su carga se ve en el banner anual; aquí solo se enumeran
 // con badge de modalidad para que el admin entienda dónde quedan.
 const OtrasHorasItem = ({ imparticion, minutosSemanales, modalidad, color, t }) => {
+  // Cascada de cifra a mostrar (preferente → fallback):
+  //   1) materia.horasTotales (dato legal LOMLOE — RD del título): "400h totales".
+  //   2) minutosSemanales > 0: "3h/sem".
+  //   3) nada (caso edge: ambas vacías).
+  // Las no presenciales suelen tener horasTotales (BOE las define así) pero
+  // pueden carecer de minutosSemanales (FCT no es semanal). Mostrar h totales
+  // es más informativo para el admin que un "0h/sem" vacío.
+  const horasTotales = imparticion.materia?.horasTotales ?? null;
   const horasSem = minutosSemanales > 0 ? minToHoras(minutosSemanales) : null;
+  const counter = horasTotales != null && horasTotales > 0
+    ? { value: horasTotales, suffix: t('scheduleEditor.hTotalSuffix', { defaultValue: 'h totales' }) }
+    : horasSem !== null
+      ? { value: horasSem, suffix: t('scheduleEditor.hWeekSuffix', { defaultValue: 'h/sem' }) }
+      : null;
   // Etiqueta del badge i18n. Default values en español.
   const badgeLabel = t(`modalidad.badge.${modalidad}`, {
     defaultValue: modalidad === 'fct' ? 'FCT'
@@ -169,8 +182,8 @@ const OtrasHorasItem = ({ imparticion, minutosSemanales, modalidad, color, t }) 
           {badgeLabel}
         </span>
       </div>
-      {horasSem !== null && (
-        <span className={styles.moduleCounter}>{horasSem}h/sem</span>
+      {counter !== null && (
+        <span className={styles.moduleCounter}>{counter.value}{counter.suffix}</span>
       )}
     </div>
   );

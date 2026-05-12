@@ -1600,6 +1600,8 @@
     "panelHint": "Arrastra un materia ao horario. Arrastra unha clase ao panel para quitala.",
     "panelOtrasHoras": "Outras horas curriculares ({{count}})",
     "panelOtrasHorasHint": "Non ocupan aula pero contan ao currículo anual.",
+    "hTotalSuffix": "h totais",
+    "hWeekSuffix": "h/sem",
     "optimalAction": "Configurar curso óptimo ({{semanas}} sem)",
     "optimalActionTitle": "Crear períodos óptimos ({{semanas}} sem) + lanzar solver",
     "optimalNoData": "Non se pode calcular o curso óptimo (faltan xornada ou materias)",

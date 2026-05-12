@@ -1929,6 +1929,8 @@
     "panelHint": "Arrastra una materia al horario. Arrastra una clase del horario al panel para quitarla.",
     "panelOtrasHoras": "Otras horas curriculares ({{count}})",
     "panelOtrasHorasHint": "No ocupan slot de aula pero cuentan al currículo anual.",
+    "hTotalSuffix": "h totales",
+    "hWeekSuffix": "h/sem",
     "optimalAction": "Configurar curso óptimo ({{semanas}} sem)",
     "optimalActionTitle": "Crear rangos óptimos ({{semanas}} sem) + lanzar solver",
     "optimalNoData": "Sin datos para calcular el curso óptimo (faltan jornada o materias)",

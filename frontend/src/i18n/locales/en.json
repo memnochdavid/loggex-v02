@@ -1600,6 +1600,8 @@
     "panelHint": "Drag a subject onto the timetable. Drag a class onto the panel to remove it.",
     "panelOtrasHoras": "Other curricular hours ({{count}})",
     "panelOtrasHorasHint": "Don't take classroom slots but count toward the annual curriculum.",
+    "hTotalSuffix": "h total",
+    "hWeekSuffix": "h/wk",
     "optimalAction": "Configure optimal course ({{semanas}} wks)",
     "optimalActionTitle": "Create optimal terms ({{semanas}} wks) + run solver",
     "optimalNoData": "Cannot compute optimal course (missing schedule template or subjects)",
