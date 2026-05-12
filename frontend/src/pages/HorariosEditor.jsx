@@ -3854,6 +3854,42 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
       cursor.setDate(cursor.getDate() + dias);
     }
 
+    // Fase A FP 2º (2026-05-12): consultar al planner si hay rango extra
+    // con `etiqueta='no_presenciales'` (Tercera evaluación en FP 2º) y
+    // adjuntarlo al final. Esto reusa la detección isFp2 + TERCERA del
+    // backend en lugar de duplicarla aquí. La acción sigue siendo "tonta"
+    // (reparto uniforme); el rango extra solo se añade cuando el planner
+    // lo identifica. Si el fetch falla o el grupo no es FP 2º, se sigue
+    // sin añadirlo y el comportamiento queda como antes.
+    try {
+      const planRes = await fetch(getApiUrl(`/api/v1/grupos/${selectedGrupo}/plan-rangos`), {
+        headers: { 'Accept': 'application/json' }, credentials: 'include',
+      });
+      if (planRes.ok) {
+        const planJson = await planRes.json();
+        const noPresRango = (planJson?.rangos || []).find(r => r.etiqueta === 'no_presenciales');
+        if (noPresRango && noPresRango.fechaInicio && noPresRango.fechaFin) {
+          const tempId = tempIdSeqRef.current;
+          tempIdSeqRef.current -= 1;
+          plsToCreate.push({
+            tempId,
+            id: tempId,
+            _pending: 'create',
+            nombre: noPresRango.nombre || t('scheduleEditor.recommendedRangoNoPresNombre', { defaultValue: 'Tercera evaluación' }),
+            fechaInicio: noPresRango.fechaInicio,
+            fechaFin: noPresRango.fechaFin,
+            jornadaTipo: null,  // contenedor temporal sin rejilla de aula
+            jornadaTipoId: null,
+            orden: N,  // tras los N rangos lectivos
+            etiqueta: 'no_presenciales',
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[CrearRangos] planner no disponible para detectar no_presenciales:', err);
+      // Fallthrough: el reparto uniforme N tramos sigue siendo válido.
+    }
+
     setPendingTxByGrupo(prev => ({
       ...prev,
       [selectedGrupo]: {
@@ -4766,6 +4802,12 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                         defaultValue: 'Adjuntar a grupo existente',
                       })}</span>
                     </button>
+                    {/* "Crear Rangos Recomendados" ocultado 2026-05-12 por
+                        decisión UX: solapaba con "Configurar curso óptimo"
+                        (este último crea rangos alineados con evaluaciones,
+                        que es lo que se quiere casi siempre). El handler
+                        `handleCreateRecommendedRangos` se mantiene por si
+                        se reactiva el botón en el futuro.
                     <button
                       type="button"
                       className={styles.cursoActionsItem}
@@ -4774,6 +4816,7 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                       <CalendarDays size={14} />
                       <span>{t('scheduleEditor.createRecommendedAction', { defaultValue: 'Crear Rangos Recomendados' })}</span>
                     </button>
+                    */}
                     <button
                       type="button"
                       className={styles.cursoActionsItem}
@@ -5243,30 +5286,17 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                       const blockTitle = solverHardBlocked
                         ? t('scheduleEditor.capacityAnualInfeasibleTitle', { defaultValue: 'El currículo no cabe en el calendario actual' })
                         : undefined;
-                      return (
-                        <>
-                          <Button
-                            onClick={() => runSolver(null)}
-                            disabled={baseDisabled || solverHardBlocked || solverAllRunning}
-                            variant="secondary"
-                            title={blockTitle}
-                          >
-                            <Sparkles size={14} style={{ marginRight: 4 }} />
-                            {solving ? t('scheduleEditor.solving') : t('scheduleEditor.solverSuggest')}
-                          </Button>
-                          <Button
-                            onClick={() => runSolverAllRangos()}
-                            disabled={baseDisabled || solverHardBlocked || solverAllRunning || (plByGrupo[selectedGrupo] || []).length === 0}
-                            variant="secondary"
-                            title={blockTitle || t('scheduleEditor.solverAllHint', { defaultValue: 'Ejecuta el solver en todos los rangos del curso, en orden cronológico' })}
-                          >
-                            <Layers size={14} style={{ marginRight: 4 }} />
-                            {solverAllRunning
-                              ? t('scheduleEditor.solverAllRunning', { defaultValue: 'Sugiriendo todo el curso…' })
-                              : t('scheduleEditor.solverAll', { defaultValue: 'Sugerir todo el curso' })}
-                          </Button>
-                        </>
-                      );
+                      // Botones "Sugerir" (runSolver) y "Sugerir todo el curso"
+                      // (runSolverAllRangos) ocultados 2026-05-12 por decisión
+                      // UX: solapan con "Configurar curso óptimo" (que combina
+                      // crear+distribuir+solver). Las funciones se mantienen
+                      // por si se reactivan en el futuro (también las usa
+                      // "Configurar curso óptimo" internamente).
+                      // Variable `solverHardBlocked`/`baseDisabled`/`blockTitle`
+                      // se calculan más arriba; quedan sin uso visible pero
+                      // sin coste material para evitar churn al reactivar.
+                      void solverHardBlocked; void baseDisabled; void blockTitle;
+                      return null;
                     })()}
                   </div>
                 </div>

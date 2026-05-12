@@ -228,7 +228,7 @@ Cierra el bloqueo de visibilidad temporal para horas no presenciales en FP 2º. 
 **Lo que NO se tocó**:
 
 - `PeriodoLectivoCreateProcessor` — sigue creando PLIs auto solo en PLANTILLA (no en SEMANA). La SEMANA "Tercera evaluación" queda sin PLIs explícitas — al render hereda las cuotas de la PLANTILLA, pero como no hay placements (el solver no corre allí), la rejilla queda visualmente vacía. Esto es correcto para Fase A.
-- "Crear Rangos Recomendados" (`handleCreateRecommendedRangos`) — sigue siendo manual/tonto (reparto uniforme N tramos). Ignora evaluaciones por diseño. Pendiente como mejora futura — requiere consultar `/api/periodo_evaluativos?grupo=X&tipo=TERCERA` desde el frontend para conocer las fechas.
+- ~~"Crear Rangos Recomendados" (`handleCreateRecommendedRangos`)~~ ✅ Ampliado en la misma sesión 2026-05-12: tras construir los N rangos uniformes invoca al planner (`GET /api/v1/grupos/{gid}/plan-rangos`) para detectar si hay rango con `etiqueta='no_presenciales'` y lo añade al final. Reusa la lógica `isFp2 + TERCERA` del backend sin duplicarla en frontend. La acción sigue siendo "tonta" (los N rangos siguen siendo reparto uniforme); el extra solo aparece cuando el planner lo identifica. Si el fetch falla → fallthrough silencioso al reparto uniforme original.
 - Modal "Materias del rango" del rango Tercera evaluación — sigue mostrando las imparticiones heredadas con sus cuotas (las presenciales con sus minutos/sem). Esto no rompe nada porque no hay placements; mostrarlas distintas (filtrar a no presenciales) es deuda de Fase B.
 
 **Validación E2E pendiente** (tras `docker compose exec backend php bin/console doctrine:migrations:migrate` + restart backend):
