@@ -105,6 +105,16 @@ class GetMyScheduleController extends AbstractController
         // PDF sí la mostraba (deriva slots de horarios reales).
         $slotsByKey = [];
 
+        // Refactor Fase B fix 2026-05-12: slots agrupados por PeriodoLectivo
+        // para que el frontend pueda pintar SOLO los del PL aplicable a la
+        // fecha visible. Sin este agrupamiento, un alumno de FP 2º veía
+        // mezclados los slots de "FP Mañanas" (rangos 1ª/2ª eval) con los
+        // slots de "FP 3ª evaluación" (rango 3) — filas fantasma en la
+        // rejilla y bloque FCT visualmente desproporcionado.
+        // Mantenemos `slots` plano (unión) como legacy fallback compatible.
+        // El frontend con cascada SEMANA→PLANTILLA elige `slotsByPlId[plId]`.
+        $slotsByPlId = [];
+
         foreach ($horarios as $h) {
             $grupo = $h->getImparticion()->getGrupo();
             $profesorNombre = 'Sin asignar';
@@ -147,12 +157,27 @@ class GetMyScheduleController extends AbstractController
             ];
 
             // (1) Jornada efectiva del PL del horario, si existe.
+            // Acumula tanto en el conjunto plano (legacy `slots`) como en el
+            // agrupado por PL (`slotsByPlId`, Fase B fix 2026-05-12). El
+            // frontend usa el agrupado para pintar SOLO los del PL aplicable
+            // a la fecha visible, evitando filas fantasma de jornadas de
+            // otros rangos.
             $jornadaPl = $h->getPeriodoLectivo()?->getEffectiveJornadaTipo();
             if ($jornadaPl !== null) {
                 $this->collectSlots($jornadaPl, $slotsByKey);
+                $plId = $h->getPeriodoLectivo()?->getId();
+                if ($plId !== null) {
+                    if (!isset($slotsByPlId[$plId])) {
+                        $slotsByPlId[$plId] = [];
+                    }
+                    $this->collectSlots($jornadaPl, $slotsByPlId[$plId]);
+                }
             }
 
             // (2) Jornada efectiva del grupo (override o itinerario).
+            // Solo va al plano `slots` legacy — el agrupado `slotsByPlId`
+            // tiene que reflejar EXACTAMENTE la jornada del PL para que el
+            // frontend no mezcle.
             $jornadaGrupo = $grupo->getEffectiveJornadaTipo();
             if ($jornadaGrupo !== null) {
                 $this->collectSlots($jornadaGrupo, $slotsByKey);
@@ -171,6 +196,15 @@ class GetMyScheduleController extends AbstractController
 
         $slots = array_values($slotsByKey);
         usort($slots, fn ($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+
+        // Convertir slotsByPlId al shape de salida: cada PL → array ordenado
+        // por horaInicio (consistente con `slots` legacy).
+        $slotsByPlIdOut = [];
+        foreach ($slotsByPlId as $plId => $kvByKey) {
+            $arr = array_values($kvByKey);
+            usort($arr, fn ($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+            $slotsByPlIdOut[(string) $plId] = $arr;
+        }
 
         // Excepciones APROBADAS aplicables a los horarios del user (Fase B
         // del refactor intercambio-imparticiones, 2026-05-07). El frontend
@@ -192,6 +226,11 @@ class GetMyScheduleController extends AbstractController
         return [
             'events' => $events,
             'slots' => $slots,
+            // Fase B fix 2026-05-12: el frontend con cascada SEMANA→PLANTILLA
+            // elige `slotsByPlId[plId]` del PL aplicable a la fecha visible
+            // para evitar mezcla de jornadas entre rangos lectivos y rango
+            // "Tercera evaluación" (FP 2º) con jornada custom.
+            'slotsByPlId' => $slotsByPlIdOut,
             'excepciones' => $excepciones,
         ];
     }

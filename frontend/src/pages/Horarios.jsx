@@ -63,6 +63,11 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const [horarios, setHorarios] = useState([]);
   const [mySchedule, setMySchedule] = useState([]);
   const [myScheduleSlots, setMyScheduleSlots] = useState(null);  // null = no hay jornada conocida → fallback hardcoded en TimeTable
+  // Fase B fix 2026-05-12: slots agrupados por PL (`{ [plId]: [...slots] }`).
+  // Si está set, el frontend selecciona los slots del PL aplicable a la
+  // fecha visible (cascada SEMANA→PLANTILLA). Si null, fallback al
+  // `myScheduleSlots` plano (unión de jornadas — comportamiento legacy).
+  const [myScheduleSlotsByPlId, setMyScheduleSlotsByPlId] = useState(null);
   // Excepciones APROBADAS aplicables a los horarios del usuario.
   // Cargadas desde /api/my-schedule (Fase B intercambio-imparticiones, 2026-05-07).
   // El overlay se aplica en visibleSchedule cruzando (horarioBaseId, fechaConcreta) con la semana visible.
@@ -238,6 +243,57 @@ const Horarios = ({ embedded = false, tabs = null }) => {
     });
   }, [mySchedule, selectedDate, excepciones]);
 
+  // Fase B fix 2026-05-12: slots aplicables a la fecha visible.
+  // Resuelve qué PL cubre `selectedDate` por cada grupo del usuario y
+  // devuelve la UNIÓN de slots de esos PLs. Sin esto, un alumno FP 2º
+  // veía mezclados los slots de "FP Mañanas" (rangos 1ª/2ª eval) con los
+  // de "FP 3ª evaluación" (rango 3 con jornada custom) — filas fantasma
+  // y bloques FCT visualmente cortados.
+  //
+  // Cascada SEMANA→PLANTILLA por (grupo): si HAY una SEMANA cuya fecha
+  // cubre `selectedDate`, usar su PL; si no, fallback a la PLANTILLA del
+  // mismo grupo. Misma regla que `visibleSchedule` arriba para eventos.
+  //
+  // Si `myScheduleSlotsByPlId` no llegó (endpoint legacy), usamos el
+  // `myScheduleSlots` plano sin filtrar (comportamiento anterior).
+  const visibleSlots = useMemo(() => {
+    if (!myScheduleSlotsByPlId) return myScheduleSlots;
+    if (!Array.isArray(mySchedule) || mySchedule.length === 0) return myScheduleSlots;
+    const y = selectedDate.getFullYear();
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedDate.getDate()).padStart(2, '0');
+    const dateISO = `${y}-${m}-${d}`;
+
+    // PL aplicable por grupo: prioriza SEMANA-cubre-fecha sobre PLANTILLA.
+    const plPorGrupo = {};
+    for (const e of mySchedule) {
+      if (e.periodoLectivoId == null || e.grupoId == null) continue;
+      const gid = String(e.grupoId);
+      if (e.periodoLectivoTipo === 'semana'
+        && e.periodoLectivoFechaInicio && e.periodoLectivoFechaFin
+        && dateISO >= e.periodoLectivoFechaInicio
+        && dateISO <= e.periodoLectivoFechaFin
+      ) {
+        plPorGrupo[gid] = e.periodoLectivoId;
+      } else if (e.periodoLectivoTipo === 'plantilla' && plPorGrupo[gid] == null) {
+        plPorGrupo[gid] = e.periodoLectivoId;
+      }
+    }
+
+    // Unión de slots de los PLs aplicables, dedup por "HH:MM-HH:MM".
+    const byKey = {};
+    for (const plId of Object.values(plPorGrupo)) {
+      const arr = myScheduleSlotsByPlId[String(plId)] || [];
+      for (const s of arr) {
+        const key = `${s.horaInicio}-${s.horaFin}`;
+        if (!byKey[key]) byKey[key] = s;
+      }
+    }
+    const out = Object.values(byKey);
+    out.sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+    return out.length > 0 ? out : myScheduleSlots;
+  }, [myScheduleSlotsByPlId, myScheduleSlots, mySchedule, selectedDate]);
+
   const [festivos, setFestivos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [imparticiones, setImparticiones] = useState([]);
@@ -386,10 +442,17 @@ const Horarios = ({ embedded = false, tabs = null }) => {
           if (Array.isArray(scheduleData)) {
               setMySchedule(scheduleData);
               setMyScheduleSlots(null);
+              setMyScheduleSlotsByPlId(null);
               setExcepciones([]);
           } else {
               setMySchedule(scheduleData?.events || []);
               setMyScheduleSlots(scheduleData?.slots?.length ? scheduleData.slots : null);
+              // Fase B fix 2026-05-12: slots agrupados por PL para evitar
+              // mezclar jornadas de rangos distintos (caso FP 2º Tercera
+              // evaluación con jornada custom). Si vacío, fallback a slots
+              // legacy plano.
+              const sByPl = scheduleData?.slotsByPlId;
+              setMyScheduleSlotsByPlId(sByPl && typeof sByPl === 'object' && Object.keys(sByPl).length > 0 ? sByPl : null);
               setExcepciones(scheduleData?.excepciones || []);
           }
 
@@ -901,7 +964,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     <div className={styles.timeTableWrapper}>
                         <TimeTable
                             events={visibleSchedule}
-                            slots={myScheduleSlots}
+                            slots={visibleSlots}
                             festivos={festivos}
                             tareas={tareas}
                             title="Mi Horario"

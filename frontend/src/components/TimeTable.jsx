@@ -558,9 +558,17 @@ const TimeTable = ({
                             // mismo tramo). Factor 1.5 px/min asegura que
                             // slots de 1h tienen 90px, 90min → 135px.
                             const dMin = slotDurationMin(slot);
+                            // Altura proporcional acotada (Fase B fix 2026-05-12):
+                            // sin cap, un slot de 7h (FCT en rango "Tercera
+                            // evaluación" FP 2º) ocupaba 630px y descuadraba la
+                            // tabla. El cap mantiene la sensación visual de
+                            // "slot largo" sin que la fila se vuelva absurda.
+                            //   - SLOT normal: factor 1.5px/min, cap 240px (≈160min).
+                            //   - RECREO: factor 1.2px/min, cap 80px (no lleva
+                            //     contenido, no necesita altura grande).
                             const slotMinH = slot.tipo === 'recreo'
-                                ? `${Math.max(20, Math.round(dMin * 1.2))}px`
-                                : `${Math.max(48, Math.round(dMin * 1.5))}px`;
+                                ? `${Math.max(20, Math.min(Math.round(dMin * 1.2), 80))}px`
+                                : `${Math.max(48, Math.min(Math.round(dMin * 1.5), 240))}px`;
 
                             if (tInfo.isRecreo) {
                                 return (
