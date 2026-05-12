@@ -6,6 +6,7 @@ import AccordionView from '../components/AccordionView';
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import ModalView from '../components/ModalView';
+import modalViewStyles from '../components/ModalView.module.css';
 import CrudHeader from '../components/CrudHeader';
 import SuperAdminFilters from '../components/SuperAdminFilters';
 import ThemedSelect from '../components/ThemedSelect';
@@ -858,6 +859,11 @@ const Entregas = () => {
           onClose={() => setIsViewModalOpen(false)}
           title={t('deliveries.deliveriesTitle', { title: currentTarea?.titulo })}
           size="large"
+          // bodyWithTable: comprime el body sin padding y fuerza al
+          // DataTable hijo a respetar el flex column con overflow propio
+          // (Fase B fix 2026-05-12). Sin esto, el contenido excedía el
+          // modal sin activar scroll cuando había muchas entregas.
+          bodyClassName={modalViewStyles.bodyWithTable}
           footer={<Button type="button" variant="secondary" onClick={() => setIsViewModalOpen(false)}>{t('common.close')}</Button>}
         >
           <DataTable

@@ -158,6 +158,35 @@
     color: var(--modal-body-text, var(--text-main));
 }
 
+/* Variante para modales que contienen un DataTable como contenido
+   principal (Fase B fix 2026-05-12). Pasar `bodyClassName={styles.bodyWithTable}`
+   al ModalView. Sin esta variante, el `.container` del DataTable
+   (con `overflow: hidden`) no respeta el flex del modalBody y el
+   contenido excede el modal sin activar scroll.
+
+   Estrategia: cero padding en el body + el primer hijo (el container del
+   DataTable) toma todo el espacio vía `flex: 1 + min-height: 0`. Su
+   `overflow: hidden` interno deja al `.tableWrapper` interno (que tiene
+   `overflow-x: auto`) gestionar el scroll horizontal, y la altura del
+   contenedor queda comprimida al espacio del modal. El paginador queda
+   visible en la parte inferior porque está dentro del container flex. */
+.bodyWithTable {
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+}
+.bodyWithTable > * {
+    flex: 1;
+    min-height: 0;
+    border-radius: 0;
+    box-shadow: none;
+    /* Override `overflow: hidden` que trae el .container del DataTable.
+       `!important` necesario porque ambos selectores tienen la misma
+       especificidad (0,1,0) y según el orden de carga de los módulos
+       CSS Modules gana el del DataTable. */
+    overflow: auto !important;
+}
+
 .modalFooter {
     padding: var(--space-4) var(--space-6);
     border-top: 1px solid var(--border-color);
