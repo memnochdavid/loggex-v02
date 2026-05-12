@@ -18143,7 +18143,7 @@ INSERT INTO `usuario` VALUES
 (62,'correa.mariacarmen@hotmail.com','[\"ROLE_ALUMNO\"]','$2y$13$AbwRR6McTGXozobYeH9eleBYdKdWjo/S3a5VpSBJJBXYBNC0KCuLS','Rosa María','Partida Cortez','986 073091','57058938D','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (63,'escobar.arnau@hotmail.es','[\"ROLE_ALUMNO\"]','$2y$13$sGQa65iAvDcXYf3oqD48D.0kLg6wq7TT2915CeiFFEKsRwgislD8u','Aurora','Soler Solano','+34 912377588','31521589C','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (64,'hsedillo@pereira.es','[\"ROLE_ALUMNO\"]','$2y$13$mlZcuTyli1xgjxCamR2LNe5InMngraJjM3YAE9LqwjFRYCJF33zbe','Biel','Colunga Casillas','+34 941-488626','66364474K','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
-(65,'ainara.montero@castellano.es','[\"ROLE_ALUMNO\"]','$2y$13$9j/m78a7YvBMeL/LYWrpguF2MA.SAZuu5H2mN0BlJexJsw2zzRpDG','Fernando','Domenech Ordóñez','+34 987-07-3304','19596477V','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
+(65,'ainara.montero@castellano.es','[\"ROLE_ALUMNO\"]','$2y$13$9j/m78a7YvBMeL/LYWrpguF2MA.SAZuu5H2mN0BlJexJsw2zzRpDG','Fernando','Domenech Ordóñez','+34 987-07-3304','19596477V','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[\"alumno-entregar-tarea\",\"admin-personalizar-centro\",\"alumno-ver-calificaciones\",\"primer-login\",\"profesor-poner-nota\",\"profesor-editor-horarios\",\"admin-crear-grupo\"]','2026-01-31 22:12:20','2026-05-12 11:26:12',0,NULL,3),
 (66,'rodrigo08@gmail.com','[\"ROLE_ALUMNO\"]','$2y$13$54Zyude4z5xv1ddZM6i7p.8nk3z3D4EFi/uBHr5nJJBz6Le5XLRhW','Paula','Castellanos Rosas','+34 904953726','76908969M','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (67,'hnino@munoz.com.es','[\"ROLE_ALUMNO\"]','$2y$13$VKic4BlrmRfh/BBsqW12iurh4iODOGhVMGDICoRrO3mDs3H6xnJbi','Izan','Briseño Villarreal','+34 975 822358','60471060N','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (68,'munguia.ariadna@hispavista.com','[\"ROLE_ALUMNO\"]','$2y$13$kQhkGcigWjkEsYSqDprPtO1ZQJZRravcqkljYaOlYPfsOnujUSkV2','Jorge','Elizondo Castaño','908445241','11435655D','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
@@ -18170,4 +18170,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-12 11:20:44
+-- Dump completed on 2026-05-12 12:42:12
