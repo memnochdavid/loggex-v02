@@ -57,7 +57,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     'curso' => 'exact'
 ])]
 #[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial'])]
-#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'id'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(OrderFilter::class, properties: ['nombre', 'abreviatura', 'codigoOficial', 'curso', 'horasTotales', 'modalidad', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Materia
 {
     use TimestampableTrait;

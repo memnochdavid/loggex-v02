@@ -6,8 +6,10 @@ use App\Entity\EstadoExcepcion;
 use App\Entity\ExcepcionHorario;
 use App\Entity\Grupo;
 use App\Entity\Horario;
+use App\Entity\Imparticion;
 use App\Entity\JornadaTipo;
 use App\Entity\Matricula;
+use App\Entity\Modalidad;
 use App\Entity\PeriodoLectivo;
 use App\Entity\TipoExcepcion;
 use App\Entity\TipoTramo;
@@ -183,6 +185,12 @@ class HorarioPdfController extends AbstractController
         // Quitamos los campos por-página del top-level (ahora viven en paginas[]).
         unset($context['slotsManana'], $context['slotsTarde'], $context['matriz']);
 
+        // Fase 6 modalidad: anexo "Otras horas curriculares" tras las páginas
+        // por rango. Recoge imparticiones del grupo cuya modalidad efectiva
+        // no es PRESENCIAL (FCT, NO_REGULAR, AUTONOMA) — no van a la grilla
+        // pero cuentan al currículo total RD del título.
+        $context['otrasHoras'] = $this->loadOtrasHorasCurriculares($grupo);
+
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/horario.html.twig', $context, 'A4', 'landscape');
         $filename = sprintf('horario_%s_%s.pdf',
             $this->slugify($grupo->getNombre() ?? 'grupo'),
@@ -271,6 +279,67 @@ class HorarioPdfController extends AbstractController
         }
 
         return $horarios;
+    }
+
+    /**
+     * Imparticiones del grupo cuya modalidad efectiva NO es PRESENCIAL.
+     * FCT/NO_REGULAR/AUTONOMA cuentan al currículo total LOMLOE pero no
+     * van a la rejilla de horario (Fase 3+4 modalidad). El PDF las expone
+     * como anexo informativo al final.
+     *
+     * Ordena por modalidad y luego por nombre de materia para que el bloque
+     * agrupe FCT primero, luego NO_REGULAR, luego AUTONOMA.
+     *
+     * @return list<array{materia: string, modalidad: string, modalidadLabelKey: string, horasTotales: ?int, profesor: ?string}>
+     */
+    private function loadOtrasHorasCurriculares(Grupo $grupo): array
+    {
+        /** @var Imparticion[] $impsAll */
+        $impsAll = $this->em->createQuery(
+            "SELECT i, m, p FROM App\\Entity\\Imparticion i
+             JOIN i.materia m
+             LEFT JOIN i.profesor p
+             WHERE i.grupo = :grupoId AND i.deleted = false AND m.deleted = false"
+        )->setParameter('grupoId', $grupo->getId())->getResult();
+
+        $rows = [];
+        foreach ($impsAll as $imp) {
+            $modalidad = $imp->getEffectiveModalidad();
+            if ($modalidad === Modalidad::PRESENCIAL) {
+                continue;
+            }
+            $materia = $imp->getMateria();
+            if ($materia === null) {
+                continue;
+            }
+            $profesor = $imp->getProfesor();
+            $profesorLabel = $profesor
+                ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
+                : null;
+            $rows[] = [
+                'materia' => $materia->getNombre() ?? '',
+                'modalidad' => $modalidad->value,
+                'modalidadLabelKey' => match ($modalidad) {
+                    Modalidad::FCT        => 'modality_fct',
+                    Modalidad::NO_REGULAR => 'modality_no_regular',
+                    Modalidad::AUTONOMA   => 'modality_autonoma',
+                    default               => 'modality_presencial',
+                },
+                'horasTotales' => $materia->getHorasTotales(),
+                'profesor' => $profesorLabel !== '' ? $profesorLabel : null,
+            ];
+        }
+
+        // Orden: FCT → NO_REGULAR → AUTONOMA, luego alfabético por materia.
+        $weight = [Modalidad::FCT->value => 0, Modalidad::NO_REGULAR->value => 1, Modalidad::AUTONOMA->value => 2];
+        usort($rows, function ($a, $b) use ($weight) {
+            $wa = $weight[$a['modalidad']] ?? 99;
+            $wb = $weight[$b['modalidad']] ?? 99;
+            if ($wa !== $wb) return $wa <=> $wb;
+            return strcmp($a['materia'], $b['materia']);
+        });
+
+        return $rows;
     }
 
     /** @return Horario[] */
@@ -564,6 +633,16 @@ class HorarioPdfController extends AbstractController
                 'date' => $t('horario.date'),
                 'time' => $t('horario.time'),
                 'noClasses' => $t('horario.no_classes'),
+                'otherHoursTitle' => $t('horario.other_hours_title'),
+                'otherHoursSubtitle' => $t('horario.other_hours_subtitle'),
+                'otherHoursSubject' => $t('horario.other_hours_subject'),
+                'otherHoursModality' => $t('horario.other_hours_modality'),
+                'otherHoursHours' => $t('horario.other_hours_hours'),
+                'otherHoursTeacher' => $t('horario.other_hours_teacher'),
+                'modalityFct' => $t('horario.modality_fct'),
+                'modalityNoRegular' => $t('horario.modality_no_regular'),
+                'modalityAutonoma' => $t('horario.modality_autonoma'),
+                'noHoursSet' => $t('horario.no_hours_set'),
             ],
         ];
     }

@@ -530,6 +530,10 @@
     "course1": "1r",
     "course2": "2n",
     "weeklyHours": "Hores setmanals",
+    "weeklyHoursHint": "Quota setmanal suggerida (regulació autonòmica o repartiment intern). En FP Superior pot estar buida: la dada legal són les hores totals.",
+    "totalHours": "Hores totals",
+    "totalHoursHint": "Càrrega anual del mòdul segons el RD del títol (BOE/BOJA). És la xifra que la inspecció comprova.",
+    "totalHoursTooltip": "Hores anuals segons el RD del títol (LOMLOE)",
     "modality": "Modalitat",
     "modalityHint": "Només \"Presencial\" ocupa slots a l'horari. Les altres compten al currículum però no a la graella."
   },

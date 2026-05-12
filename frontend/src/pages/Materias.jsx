@@ -439,11 +439,18 @@ const Materias = () => {
       const minutosSemanales = horasSemRaw === '' || horasSemRaw === null || horasSemRaw === undefined
         ? null
         : Math.round(parseFloat(horasSemRaw) * 60);
+      // horasTotales (LOMLOE — h anuales del RD): ahora editable desde la UI.
+      // Permitir vacío → null (caso: itinerario sin RD definido aún).
+      const horasTotalesRaw = formData.horasTotales;
+      const horasTotales = horasTotalesRaw === '' || horasTotalesRaw === null || horasTotalesRaw === undefined
+        ? null
+        : parseInt(horasTotalesRaw, 10);
       const { horasSemanales: _drop, ...rest } = formData;
       const payload = {
         ...rest,
         curso: parseInt(formData.curso),
         minutosSemanales,
+        horasTotales,
         // tipo es enum nullable; '' del select equivale a sin valor.
         tipo: formData.tipo === '' ? null : formData.tipo,
         // M:N: array de IRIs. Acepta IDs crudos vía idToIri.
@@ -569,6 +576,18 @@ const Materias = () => {
     },
     { header: t('materias.code'), accessor: 'codigoOficial', sortable: true, sortKey: 'codigoOficial' },
     { header: t('materias.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
+    {
+        // Horas anuales LOMLOE (RD del título). Antes oculto en BD, ahora
+        // visible para que el admin pueda auditarlas frente al BOE/BOJA.
+        // Materias sin horas totales (creadas pre-Opción A o no presenciales
+        // sin RD definido) muestran `—`.
+        header: t('materias.totalHours', { defaultValue: 'Horas totales' }),
+        accessor: (row) => row.horasTotales != null
+            ? <span title={t('materias.totalHoursTooltip', { defaultValue: 'Horas anuales según el RD del título (LOMLOE)' })}>{row.horasTotales} h</span>
+            : <span className={styles.modalidadDefault}>—</span>,
+        sortable: true,
+        sortKey: 'horasTotales',
+    },
     {
         header: t('materias.cycle'),
         accessor: (row) => {
@@ -832,6 +851,28 @@ const Materias = () => {
                     max="30"
                     step="0.25"
                 />
+                <small className={styles.formHint}>
+                    {t('materias.weeklyHoursHint', { defaultValue: 'Cuota semanal sugerida (BOJA o reparto interno). En FP Superior puede estar vacía: el dato legal son las horas totales.' })}
+                </small>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('materias.totalHours', { defaultValue: 'Horas totales' })}
+                </label>
+                <input
+                    type="number"
+                    name="horasTotales"
+                    value={formData.horasTotales ?? ''}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    min="0"
+                    max="2000"
+                    step="1"
+                />
+                <small className={styles.formHint}>
+                    {t('materias.totalHoursHint', { defaultValue: 'Carga anual del módulo según el RD del título (BOE/BOJA). Es la cifra que la inspección comprueba.' })}
+                </small>
             </div>
 
             <div className={styles.formGroup}>

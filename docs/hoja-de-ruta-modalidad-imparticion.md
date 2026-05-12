@@ -1,6 +1,6 @@
 # Modalidad de imparticion — separar placement vs currículo
 
-> **Status (2026-04-29)**: 🟡 Fases 1+2+3+4 ✅ Done (modelo + catálogo + solver + UI editor). El editor de horarios (`/admin/horarios`) ahora muestra solo PRESENCIAL en el panel arrastrable y un sub-panel "Otras horas curriculares" para FCT/NO_REGULAR/AUTONOMA con badge de modalidad. Banner anual sigue contando todo el currículo (presencial + no presencial). i18n × 5 idiomas. **Siguiente**: Fase 5 (UI editar modalidad — columna en `/admin/materias` y `/admin/imparticiones`).
+> **Status (2026-05-12)**: 🟢 **Fases 1-6 ✅ Done — roadmap cerrado**. Modelo + catálogo + solver + UI editor + UI admin + PDF anexo. El PDF del horario de grupo añade una página final "Otras horas curriculares" cuando el grupo tiene imparticiones FCT/NO_REGULAR/AUTONOMA. i18n × 5 idiomas. Pendiente ampliar al PDF personal (/horario/me) si se considera útil — diferido por baja prioridad: el caso de uso principal es el PDF del grupo que entrega el admin a profes y alumnos.
 >
 > **Alcance** (discusión 2026-04-29): no es parche para DAW/DAM 2º — resuelve **todo FP LOMLOE** (Básica, Medio, Superior, Especialización) y abre la puerta a ESO/Bach/Uni. Aditivo: default `PRESENCIAL` = comportamiento actual idéntico, sin riesgo de regresión.
 
@@ -177,19 +177,14 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 
 **Esfuerzo real**: ~30 min.
 
-### Fase 6 — PDF con sección "Otras horas curriculares"
+### Fase 6 — PDF con sección "Otras horas curriculares" ✅ Done (2026-05-12)
 
-- `HorarioPdfController::horarioGrupo()`: tras las páginas por rango (multi-página actual), añadir una página final con tabla de modalidades no presenciales:
-  ```
-  Otras horas curriculares (no regulares)
-  ─────────────────────────────────────────
-  Proyecto Intermodular DAM         (NO_REGULAR)  72 h totales
-  Horas de libre configuración      (NO_REGULAR) 108 h totales
-  Formación en Centros de Trabajo   (FCT)        370 h totales
-  ```
-- Twig `pdf/horario.html.twig`: nueva sub-sección al final del template multi-página.
+- `HorarioPdfController::horarioGrupo()`: tras las páginas por rango, añade una página final con tabla de modalidades no presenciales. Implementado vía helper `loadOtrasHorasCurriculares(Grupo)` que lee imparticiones del grupo, filtra `effectiveModalidad !== PRESENCIAL` y ordena FCT → NO_REGULAR → AUTONOMA + alfabético por materia. Las horas totales se leen de `Materia.horasTotales` (Opción A 2026-04-29 — fuente legal LOMLOE).
+- Twig `pdf/horario.html.twig`: nueva página condicional `{% if hasOtrasHoras %}` tras el `{% endfor paginas %}` con cabecera, subtítulo explicativo y tabla 4 columnas (materia, modalidad badge, horas totales, profesor). Badge con color por modalidad (gris/marrón/verde).
+- i18n × 5: 10 claves nuevas bajo `horario.*` (other_hours_title/subtitle/subject/modality/hours/teacher + modality_fct/no_regular/autonoma + no_hours_set).
+- Page-break automático: la última página por rango lleva `page-break` solo si después viene el anexo de "Otras horas".
 
-**Esfuerzo**: ~0.5 sesión.
+**Implementación**: PDF personal (`horarioPersonal`) NO se tocó. El caso de uso principal es el PDF del grupo que entrega el admin a profes y alumnos; añadir el anexo al PDF personal requeriría calcular qué materias no presenciales corresponden a cada usuario (alumno = materias de sus matrículas; profe = materias que imparte), lo que duplica la lógica sin valor añadido evidente. Diferido por baja prioridad.
 
 ### Total esfuerzo: ~3 sesiones.
 
@@ -216,6 +211,37 @@ Tres no presenciales correctamente excluidas del placement: `1713 Proyecto Inter
 ---
 
 ## 6. Bitácora de implementación
+
+### 2026-05-12 — Fase 6 ✅ Done (PDF anexo "Otras horas curriculares") — ROADMAP CERRADO
+
+Cierra el roadmap completo. La sesión 2026-05-12 lo abordó tras el último commit de notificaciones (`c0c8708`) cuando el usuario aprobó cerrar Modalidad como primera tarea pendiente.
+
+**Cambios**:
+
+- **`backend/src/Controller/HorarioPdfController.php`**:
+  - Nuevo helper `loadOtrasHorasCurriculares(Grupo $grupo): array` que ejecuta una sola query DQL sobre `Imparticion` del grupo (deleted=false + materia deleted=false), filtra `effectiveModalidad !== PRESENCIAL` en PHP y ordena FCT → NO_REGULAR → AUTONOMA + alfabético. Las horas se toman de `Materia.horasTotales` (Opción A 2026-04-29). Profesor opcional (`null` si la imparticion no tiene profesor asignado).
+  - Invocación en `horarioGrupo()` tras construir las páginas: `$context['otrasHoras'] = $this->loadOtrasHorasCurriculares($grupo)`.
+  - Bloque `i18n` ampliado con 10 claves nuevas: `otherHoursTitle/Subtitle/Subject/Modality/Hours/Teacher`, `modalityFct/NoRegular/Autonoma`, `noHoursSet`.
+
+- **`backend/templates/pdf/horario.html.twig`**:
+  - CSS nuevo para `.other-hours-title`, `.other-hours-subtitle`, `.other-hours-table` (4 columnas con anchos definidos), `.modality-badge` (paleta sobria gris/marrón/verde por modalidad, diferenciada de los colores HSL deterministas de la grilla).
+  - Bloque condicional `{% if hasOtrasHoras %}` dentro del modo multi-página (después del `{% endfor paginas %}`): página adicional con header + título + subtítulo + tabla 4 columnas (Materia, Modalidad badge, Horas totales, Profesor).
+  - Lógica `needsBreak` para que la última página por rango lleve `page-break` solo si el anexo viene a continuación.
+
+- **`backend/translations/horario.{es,en,ca,eu,gl}.yaml`**: 10 claves nuevas por idioma, con etiquetas educativas naturales en cada lengua (FCT español, "Work placement" inglés, "LPP" euskera, etc.).
+
+**Decisión nueva no anticipada**:
+
+- **D-Fase6-1** (cerrada) — el PDF personal (`/api/v1/informes/horario/me`, `horarioPersonal()`) NO recibe el anexo en esta fase. Razón: el caso de uso principal es el PDF del grupo que el admin entrega a profes y alumnos. Añadirlo al personal implicaría calcular qué no presenciales corresponden a cada usuario (alumno = vía matrículas; profe = vía imparticiones que imparte), lo que duplica lógica. Diferido como mejora opcional si llega demanda.
+
+**Limitaciones documentadas**:
+
+- Si una materia no presencial tiene `horasTotales = null` (raro: el catálogo BOE lo trae casi siempre, pero podría ocurrir si se creó una imparticion manual sin catálogo), la celda muestra `—`. Sin fallback a `minutosSemanales × semanas` para no inventar cifras.
+- Si la imparticion no tiene profesor asignado, la celda muestra `—` también. UX correcta para FCT (que muchas veces no lleva profesor responsable hasta empezar el curso).
+
+**Validación E2E pendiente** (tras `docker compose restart backend`):
+- Generar PDF de un grupo FP LOMLOE con materias FCT/Proyecto/HLC (p.ej. 2º DAM EAG): debe aparecer página final "Otras horas curriculares" con `Proyecto Intermodular [No regular]`, `Horas de libre configuración [No regular]`, `Formación en Centros de Trabajo [FCT]` y sus horas totales.
+- Generar PDF de un grupo sin no presenciales (p.ej. 1º ESO si no hay FCT en ESO): el PDF debe quedar como antes — sin página anexa, sin page-break tras la última parrilla.
 
 ### 2026-04-29 noche — Fase 5 ✅ Done (UI editar modalidad)
 

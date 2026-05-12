@@ -530,6 +530,10 @@
     "course1": "1st",
     "course2": "2nd",
     "weeklyHours": "Weekly Hours",
+    "weeklyHoursHint": "Suggested weekly load (regional regulation or internal split). May be empty for upper FP: the legal figure is total hours.",
+    "totalHours": "Total hours",
+    "totalHoursHint": "Annual load of the module per the qualification's Royal Decree (national/regional bulletin). This is the figure the inspectorate checks.",
+    "totalHoursTooltip": "Annual hours per the qualification's Royal Decree (LOMLOE)",
     "modality": "Modality",
     "modalityHint": "Only \"In-class\" occupies slots in the schedule. The others count toward the curriculum but not in the grid."
   },

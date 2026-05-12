@@ -146,6 +146,61 @@
         /* Salto de página entre rangos */
         .page-break { page-break-after: always; }
 
+        /* Anexo "Otras horas curriculares" (Fase 6 modalidad-imparticion) */
+        .other-hours-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+        .other-hours-subtitle {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .other-hours-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        .other-hours-table th,
+        .other-hours-table td {
+            border: 1px solid #999;
+            padding: 5px 8px;
+            font-size: 10px;
+            vertical-align: middle;
+        }
+        .other-hours-table thead th {
+            background-color: #f0f0f0;
+            text-align: left;
+            font-weight: bold;
+        }
+        .other-hours-table td.col-hours {
+            text-align: right;
+            white-space: nowrap;
+            width: 14%;
+        }
+        .other-hours-table td.col-modality {
+            width: 16%;
+        }
+        .other-hours-table td.col-teacher {
+            width: 22%;
+            color: #444;
+        }
+        .modality-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .modality-fct        { background-color: #6d6875; }
+        .modality-no_regular { background-color: #7d6f5a; }
+        .modality-autonoma   { background-color: #5b8a72; }
+
         /* Pie */
         .footer {
             margin-top: 14px;
@@ -293,8 +348,13 @@
 
 {# Modo multi-página: una entrada por PeriodoLectivo (rango). #}
 {% if paginas is defined and paginas|length > 0 %}
+    {% set hasOtrasHoras = otrasHoras is defined and otrasHoras|length > 0 %}
     {% for pagina in paginas %}
-        <div class="page{{ not loop.last ? ' page-break' : '' }}">
+        {# La última página por rango lleva page-break si después viene el
+           anexo de "Otras horas". Sin él, la última es la última y no
+           lleva separador. #}
+        {% set needsBreak = not loop.last or hasOtrasHoras %}
+        <div class="page{{ needsBreak ? ' page-break' : '' }}">
             {{ parts.headerBlock(centro, logoUrl, nameTitleConfig, subjectLine, contextLine, isPersonal, anioEscolar, fechaEmision, i18n) }}
             {% if pagina.plNombre %}
                 <div class="pl-header">
@@ -308,6 +368,53 @@
             <div class="footer">{{ centro.nombre }}</div>
         </div>
     {% endfor %}
+
+    {# Anexo: "Otras horas curriculares" (FCT, NO_REGULAR, AUTONOMA).
+       Se renderiza como página adicional tras las parrillas si hay
+       imparticiones no presenciales en el grupo. #}
+    {% if hasOtrasHoras %}
+        {% set modalityLabels = {
+            'fct': i18n.modalityFct,
+            'no_regular': i18n.modalityNoRegular,
+            'autonoma': i18n.modalityAutonoma
+        } %}
+        <div class="page">
+            {{ parts.headerBlock(centro, logoUrl, nameTitleConfig, subjectLine, contextLine, isPersonal, anioEscolar, fechaEmision, i18n) }}
+            <div class="other-hours-title">{{ i18n.otherHoursTitle }}</div>
+            <div class="other-hours-subtitle">{{ i18n.otherHoursSubtitle }}</div>
+            <table class="other-hours-table">
+                <thead>
+                    <tr>
+                        <th>{{ i18n.otherHoursSubject }}</th>
+                        <th class="col-modality">{{ i18n.otherHoursModality }}</th>
+                        <th class="col-hours" style="text-align: right;">{{ i18n.otherHoursHours }}</th>
+                        <th class="col-teacher">{{ i18n.otherHoursTeacher }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in otrasHoras %}
+                        <tr>
+                            <td>{{ row.materia }}</td>
+                            <td class="col-modality">
+                                <span class="modality-badge modality-{{ row.modalidad }}">
+                                    {{ modalityLabels[row.modalidad]|default(row.modalidad) }}
+                                </span>
+                            </td>
+                            <td class="col-hours">
+                                {% if row.horasTotales %}
+                                    {{ row.horasTotales }} h
+                                {% else %}
+                                    {{ i18n.noHoursSet }}
+                                {% endif %}
+                            </td>
+                            <td class="col-teacher">{{ row.profesor|default(i18n.noHoursSet) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="footer">{{ centro.nombre }}</div>
+        </div>
+    {% endif %}
 {% else %}
     {# Modo single-page (compatibilidad: /horario/me). #}
     <div class="page">

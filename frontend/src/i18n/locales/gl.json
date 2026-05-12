@@ -530,6 +530,10 @@
     "course1": "1º",
     "course2": "2º",
     "weeklyHours": "Horas Semanais",
+    "weeklyHoursHint": "Cota semanal suxerida (regulación autonómica ou repartimento interno). En FP Superior pode estar baleira: o dato legal son as horas totais.",
+    "totalHours": "Horas totais",
+    "totalHoursHint": "Carga anual do módulo segundo o RD do título (BOE/DOG). É a cifra que a inspección comproba.",
+    "totalHoursTooltip": "Horas anuais segundo o RD do título (LOMLOE)",
     "modality": "Modalidade",
     "modalityHint": "Só \"Presencial\" ocupa slots no horario. As demais contan ao currículo pero non na grade."
   },
