@@ -181,6 +181,11 @@ class NotificationDispatchSubscriber
             $this->dispatcher->notifyExcepcionResuelta($eh, true);
             $this->dispatcher->notifySustitucionAsignada($eh);
             $this->dispatcher->notifyAlumnosCambioClase($eh);
+            // La otra cara del INTERCAMBIO (profe destinatario) también debe
+            // enterarse cuando el admin lo crea APROBADA directa. El dispatcher
+            // tiene guard interno "destinatario = solicitante → return", así
+            // que admin solicitante nunca se auto-notifica.
+            $this->dispatcher->notifyIncidenciaPropuesta($eh);
         }
     }
 

@@ -81,6 +81,40 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
 
 ---
 
+## 🚨🚨 MÁXIMA PRIORIDAD 2026-05-12 — Notificaciones de incidencias
+
+**Sesión 2026-05-12 noche** dejó dos cosas pendientes alrededor de `ExcepcionHorario`/notificaciones, descubiertas tras informe del usuario "el admin no recibe notificaciones para intercambios de clase y se reciben alertas duplicadas". El working tree quedó con cambios sin commit:
+
+### 1) Fix aplicado pero NO validado E2E — `notifyIncidenciaPropuesta` en APROBADA directa
+
+**Síntoma**: cuando el admin crea un INTERCAMBIO desde la rejilla `/admin/horarios` (estado APROBADA directa, commit `53367b8`), el profe destinatario (la "otra cara" del intercambio) NO recibía la notificación `incidencia_propuesta`. La función solo se invocaba en la rama PENDIENTE.
+
+**Causa**: `NotificationDispatchSubscriber::dispatchExcepcionPersist` invocaba `notifyIncidenciaPropuesta` únicamente cuando el estado inicial era `PENDIENTE_APROBACION`. Para `APROBADA` solo se llamaba a `notifyExcepcionResuelta` (que retorna si solicitante=aprobador, spam guard), `notifySustitucionAsignada` (solo aplica si hay `profeOverride` — no INTERCAMBIO) y `notifyAlumnosCambioClase`.
+
+**Fix aplicado** (`backend/src/EventSubscriber/NotificationDispatchSubscriber.php:184-189`): añadida una línea `$this->dispatcher->notifyIncidenciaPropuesta($eh);` dentro de la rama `APROBADA`. El propio dispatcher tiene guard interno "destinatario = solicitante → return" (línea 392 del dispatcher), así que admin solicitante nunca se auto-notifica.
+
+**Validar E2E**: loguear como admin, click derecho en placement → "Solicitar cambio" → INTERCAMBIO con picker → guardar. Otra pestaña con el profe destinatario (cara B): debería llegar campanita "Te han propuesto un cambio de horario" + enlace `/horarios?fecha=…&excepcion=…`.
+
+### 2) Bug DESCUBIERTO sin fix — Notificaciones duplicadas en intercambios
+
+**Síntoma reportado**: el profe destinatario recibe N notificaciones por un intercambio, no 1. Sospecha inicial del usuario (lecciones de 120 min) era accidental — el factor real son **N>1 `ExcepcionHorario` con el mismo `intercambioGrupoId` apuntando al mismo destinatario semántico**.
+
+**Dos vías independientes que disparan el duplicado**:
+
+- **Multi-bloque** (`IntercambioController.php:251-286`): un intercambio crea 1 cara A + N caras B con el mismo `intercambioGrupoId`. Cara A → destinatario = profe B[0]. Cada cara B[i] → destinatario = profe A. Si el admin selecciona N>1 bloques B en el picker (multi-selección permitida) para cubrir A, **Profe A recibe N notificaciones**.
+- **Clases gemelas** (`HorarioGemeloSyncSubscriber.php:233-262`): si el `Horario` intercambiado pertenece a una clase compartida (DAW+DAM unificadas en EAG por RD 405/2023), el subscriber duplica la `ExcepcionHorario` para el gemelo con mismo `intercambioGrupoId` e `imparticionEfectiva` → **mismo destinatario recibe 2 notificaciones** (una por EH original, otra por la copia gemela).
+
+**Fix propuesto (NO aplicado, decisión del usuario pendiente)**: dedupe en `notifyIncidenciaPropuesta` por `(destinatario, tipo, intercambioGrupoId)`:
+
+1. Añadir `'intercambioGrupoId' => $eh->getIntercambioGrupoId()` al `payload` (`backend/src/Service/NotificationDispatcher.php:422-428`).
+2. Antes de `createPersist`, escanear hasta 50 notificaciones recientes del destinatario con `tipo='incidencia_propuesta'`; si alguna tiene `payload.intercambioGrupoId === $grupoId`, return. Sin migración SQL, query localizada al destinatario.
+
+**Alcance pendiente de decidir con el usuario**: el mismo patrón probablemente duplique en `notifyExcepcionResuelta` (solicitante recibe N veces "tu solicitud aprobada") y `notifySustitucionAsignada` (sustituto recibe N veces). `notifyAlumnosCambioClase` NO duplica (grupos gemelos tienen alumnos distintos). Decisión propuesta: aplicar dedupe a los 3 `notify*` afectados con el mismo patrón.
+
+**Diagnóstico completo y propuesta detallada**: este mismo INDEX, sección anterior, no hay doc dedicado todavía. Cuando se aplique el fix, abrir bitácora en `hoja-de-ruta-intercambio-imparticiones.md` (o `hoja-de-ruta-notificaciones.md` reabriendo) con la entrada R5 o equivalente.
+
+---
+
 ## 🚨 Primera acción al retomar la próxima sesión
 
 **Estado tras sesión 2026-05-11 noche** — Fix balanceo entre PLs en `CurriculumDistributor` aplicado y validado E2E con 2º DAW EAG. Working tree con cambios sin commit (`backend/src/Service/CurriculumDistributor.php:108-126`, ~4 líneas modificadas). DAW resuelta al 100%, total horas perdidas baja de 23.4h a 11.7h. La deuda anotada el día anterior ("bin-packing prioriza materias grandes") era una hipótesis incorrecta sobre la causa: el problema real estaba en el distribuidor (cap pedagógico inflado `capSlotsPorSem × slotMin = 3300` en lugar de `floor(cap/slotMin) × slotMin = 1620`). Bitácora completa: `hoja-de-ruta-solver-iterativo.md` §"2026-05-11 — Fix balanceo entre PLs en `CurriculumDistributor`".
