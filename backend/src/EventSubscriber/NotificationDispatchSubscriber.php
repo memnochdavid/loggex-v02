@@ -186,6 +186,11 @@ class NotificationDispatchSubscriber
             // tiene guard interno "destinatario = solicitante → return", así
             // que admin solicitante nunca se auto-notifica.
             $this->dispatcher->notifyIncidenciaPropuesta($eh);
+            // Otros admins del centro (no el solicitante) reciben aviso del
+            // movimiento. Sin esto, la rejilla /admin/horarios silencia las
+            // acciones de terceros admins. El dispatcher excluye al
+            // solicitante y dedupe por intercambioGrupoId para clases gemelas.
+            $this->dispatcher->notifyExcepcionAprobadaDirecta($eh);
         }
     }
 

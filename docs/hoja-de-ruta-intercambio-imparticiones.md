@@ -408,6 +408,71 @@ CREATE INDEX idx_eh_estado         ON excepcion_horario(estado, deleted);
 
 ## 8. Bitácora de implementación
 
+### 2026-05-12 (noche) — Dedupe notifs clases gemelas + aviso admins APROBADA directa 🟡 PENDIENTE E2E
+
+Cerrados en código los bugs reportados esa misma sesión sobre `ExcepcionHorario`/notificaciones. Working tree con `backend/src/Service/NotificationDispatcher.php` + `backend/src/EventSubscriber/NotificationDispatchSubscriber.php` modificados; sintaxis PHP validada; **pendiente validación E2E en navegador antes de commit**.
+
+**Síntomas reportados por el usuario** (caso real profe→profe, intercambio 1 lección 120 min, 1º DAM LM&SG):
+1. Profe solicitado: **2 notifs idénticas** `incidencia_propuesta` "Alberto te propone una intercambio para el 2026-05-13 (LM&SG · 1º DAM)".
+2. Admin del centro: **4 notifs idénticas** `excepcion_pendiente` "Alberto ha solicitado una intercambio para el 2026-05-13".
+3. Sospecha del usuario sobre el caso APROBADA directa: "el admin no recibe nada cuando otro admin crea, ¿afectó la corrección anterior de SuperAdmin?".
+
+**Diagnóstico**:
+
+- **Bug del duplicado** (4 admin, 2 destinatario): clases gemelas (1º DAW ↔ 1º DAM unificadas EAG, RD 405/2023) **+ intercambio bilateral**. `IntercambioController` crea 2 EH (cara A + cara B) con mismo `intercambioGrupoId`. `HorarioGemeloSyncSubscriber::postFlush` (línea 247-262) duplica cada cara para el hermano gemelo **copiando la misma `imparticionEfectiva`** del original → **4 EH** total. Cada EH PENDIENTE dispara `notifyExcepcionPendiente` (admin recibe 4) y `notifyIncidenciaPropuesta` (destinatario recibe 2 — sólo las 2 caras que lo apuntan a él). Patrón replicado en `notifyExcepcionResuelta` y `notifySustitucionAsignada`. NO afecta a `notifyAlumnosCambioClase` (grupos gemelos = alumnos distintos).
+
+- **Bug del admin en APROBADA directa**: la sospecha del usuario era errónea. Verificada `notifyExcepcionPendiente` (líneas 287-295): la query de admins/superadmins del centro sigue intacta. El bug real: `NotificationDispatchSubscriber::dispatchExcepcionPersist` solo invocaba `notifyExcepcionPendiente` en rama PENDIENTE — la rama APROBADA (admin crea desde `/admin/horarios`, commit `53367b8`) **nunca avisaba a admins/superadmins del centro**. Olvido del flow APROBADA al cablear C.3, no regresión.
+
+- **Trampa subyacente del dedupe DQL puro**: la primera tanda de fix se aplicó solo a 3 `notify*` (incidencia_propuesta, excepcion_resuelta, sustitucion_asignada) con DQL LIKE sobre `payload`. **El usuario validó y siguieron llegando 2 + 4 notifs**. Análisis: las N EH cascadeadas se procesan secuencialmente en el mismo `postFlush` del subscriber; cada `notify*` persiste vía `em->persist()` sin flush intermedio, así que la query DQL del helper **no ve** las notifs previas del batch — el dedupe falla. Además, faltaba aplicar el helper a `notifyExcepcionPendiente` (el bug del admin que recibía 4).
+
+**Fix aplicado** (sin migración SQL, sin cambios en frontend):
+
+1. **Memoria in-process en el dispatcher** — propiedad `private array $emitidasEsteRequest = []` indexada por clave `tipo|usuario_id|intercambioGrupoId`. Se rellena en `createPersist` y se consulta antes de hacer DQL.
+
+2. **Helper `yaNotificadoPorIntercambioGrupoId(User, string, ?string)` refactorizado** — primero memoria in-process (captura emisiones del mismo batch sin flush); si no, fallback DQL LIKE sobre `payload` (json type, `json_encode` sin espacios, UUID v4 único); cachea el hit DQL en la memoria.
+
+3. **`createPersist` registra la clave** si el payload incluye `intercambioGrupoId`.
+
+4. **4 `notify*` cascadeables** con `intercambioGrupoId` en payload + guard al inicio:
+   - `notifyExcepcionPendiente` (admin recibía N, ahora 1).
+   - `notifyIncidenciaPropuesta` (destinatario semántico recibía N, ahora 1).
+   - `notifyExcepcionResuelta` (solicitante recibía N, ahora 1).
+   - `notifySustitucionAsignada` (sustituto recibía N, ahora 1).
+
+5. **Método nuevo** `notifyExcepcionAprobadaDirecta(ExcepcionHorario)` — clon de `notifyExcepcionPendiente` con tipo `'excepcion_aprobada_directa'`, título "Incidencia aprobada en tu centro", enlace `/admin/incidencias`. Excluye solicitante + usa el mismo dedupe.
+
+6. **1 línea añadida** en `NotificationDispatchSubscriber.php` rama APROBADA (línea 189): `$this->dispatcher->notifyExcepcionAprobadaDirecta($eh);` después del `notifyIncidenciaPropuesta` ya existente del commit `83b483a`.
+
+7. **Cascade soft-delete por grupo** en `backend/src/EventSubscriber/IntercambioGrupoCascadeSubscriber.php`. Bug descubierto en la misma sesión durante la consulta del usuario: borrar desde `/admin/incidencias` solo borraba 1 fila aunque hubiera N caras del mismo intercambio (cara A + cara B × clases gemelas = hasta 4 EH por incidencia). El admin tenía que ir borrando una a una.
+   - **Primer intento (fallido)** — ampliar el `preUpdate` existente para detectar `hasChangedField('deleted') && oldValue=false && newValue=true` y propagar a hermanas con `recomputeSingleEntityChangeSet`. El usuario reportó "sigue teniendo que borrar 4 registros".
+   - **Causa del fallo**: `recomputeSingleEntityChangeSet` SOLO funciona para entidades **ya scheduled for update** en este flush. Las hermanas cargadas con un query nuevo no están scheduled — el método las ignora silenciosamente. Esta es exactamente la limitación que `HorarioGemeloSyncSubscriber` (Fase D, 2026-05-08) ya había documentado y resuelto migrando de `preUpdate` a `onFlush + computeChangeSet`. El cascade de **estado** del mismo subscriber funciona porque, en su flujo (PATCH API Platform sobre 1 EH), la mutación ya pone la entidad disparadora en el changeset principal — pero ni siquiera ahí está claro que las hermanas reciban UPDATE consistentemente: posiblemente sólo funciona porque las hermanas son cargadas por el cascade processor anterior. Esa rama queda intacta porque ya pasa los E2E manuales.
+   - **Refactor al patrón canónico (segundo intento)**:
+     - Subscriber ahora suscribe a dos eventos: `preUpdate` (cascade de estado, lógica preexistente sin cambios) + `onFlush` (cascade soft-delete, rama nueva).
+     - `onFlush` itera `getScheduledEntityUpdates`, filtra `ExcepcionHorario` con `changeSet['deleted'] = [false, true]`, carga hermanas vivas del grupo y aplica `setDeleted(true) + computeChangeSet` — esto sí registra los UPDATEs en el UoW.
+     - Helper `loadOtrosDelGrupo(em, grupoId, selfId)` extraído (DRY entre preUpdate y onFlush).
+     - Guard `$processing` compartido entre ambos eventos (anti-loop común).
+     - Manejo del caso "batch borra A y luego B en el mismo flush": si la hermana ya está scheduled con `deleted=true`, se salta.
+   - Limitaciones documentadas: reactivación (`deleted: true → false`) no se propaga; hard-delete vía `em->remove()` tampoco. Todo el delete del producto pasa por `SoftDeleteProcessor`, así que no es problema operativo.
+
+**Validación E2E pendiente** (tras `docker compose restart backend`):
+1. Caso real profe→profe (el reporte): Alberto desde `/horarios` solicita intercambio sobre 1º DAM LM&SG → destinatario recibe **1 notif** (antes 2), admin recibe **1 notif** (antes 4). SQL spot-check: `SELECT id, tipo, JSON_EXTRACT(payload,'$.intercambioGrupoId') FROM notificacion WHERE usuario_id=X ORDER BY id DESC LIMIT 10;`.
+2. Caso admin→APROBADA directa: otro admin del centro recibe **1 notif** "Incidencia aprobada en tu centro · …".
+3. No regresión aprobación: admin aprueba PENDIENTE → solicitante recibe **1** "aprobada", no N.
+4. No regresión cancelado/sustitucion/evento: alumnos siguen recibiendo 1 notif por su grupo (los hermanos tienen alumnos distintos).
+5. Borrado cascade: `/admin/incidencias` → click "borrar" en una sola fila de un intercambio multi-cara → todas las hermanas del grupo desaparecen del listado en una sola acción. SQL: `SELECT id, deleted, intercambio_grupo_id FROM excepcion_horario WHERE intercambio_grupo_id = '<uuid>';` — todas con `deleted=1` tras el flush.
+
+**Decisión nueva (D-nuevas)**:
+
+- **D-NOTIF-1** (cerrada) — Cuando un admin crea APROBADA directa, los OTROS admins del centro reciben notif tipo `excepcion_aprobada_directa` (distinto de `excepcion_pendiente` para que el frontend pueda diferenciar copy). Razón: la rejilla `/admin/horarios` no avisa de acciones de terceros admins; sin esta notif el equipo de coordinación pierde visibilidad. Solicitante queda excluido por el mismo guard que `excepcion_pendiente`. El destinatario semántico admin+profe (caso Sara) recibe **dos** notifs simultáneas (incidencia_propuesta + excepcion_aprobada_directa) — aceptado como redundancia útil (rol profe vs rol admin); si molesta en uso real, excluir destinatario semántico del set de admins.
+
+- **D-NOTIF-2** (cerrada) — Dedupe por `intercambioGrupoId` se implementa en el dispatcher (no en el subscriber gemelo). Razón: el subscriber gemelo cumple su contrato canónico (duplica la EH para que aprobaciones cascadeen); la responsabilidad de no spamear es del dispatcher, donde se aplica a los 4 `notify*` cascadeables con un solo helper reutilizable.
+
+- **D-NOTIF-3** (cerrada) — Memoria in-process + DQL para el dedupe. Razón: las N notifs cascadeadas se persisten sin flush intermedio en el mismo batch; el DQL solo no las detecta. El array no se resetea entre batches (UUIDs únicos descartan colisiones; tamaño despreciable en escala del producto). Trade-off aceptado: ~1 query extra DQL por notificación cascadeable (el primer chequeo siempre, los subsiguientes hit memoria).
+
+- **D-CASCADE-1** (cerrada) — El cascade soft-delete vive en `IntercambioGrupoCascadeSubscriber` (mismo subscriber que el cascade de estado), no en un subscriber separado. Razón: ambos son la misma operación conceptual ("mutación atómica del grupo de caras"); duplicar el patrón en dos clases multiplica el riesgo de divergencia. El refactor extrae los dos comportamientos a métodos privados (`cascadeEstado`, `cascadeSoftDelete`) reusando el mismo guard, la misma query "otros del grupo" y el mismo `$processing` anti-loop. UI mantiene EH como filas individuales — no se agrupa el listado de `/admin/incidencias` (el usuario lo prefiere así para auditar cada cara por separado).
+
+**Mejora opcional pendiente** (no bloqueante): claves i18n × 5 para `notifications.types.excepcion_aprobada_directa.{title,body}` + icon Lucide en `<SystemNotificationsList>`. Sin esto, el frontend muestra el texto en español que envía el backend (compatible). Apuntar como item residual cuando se reabra ronda de pulido UX.
+
 ### 2026-05-08 (sesión siguiente) — Smoke test E2E intercambio ✅ Cerrado
 
 Tras levantar Docker en la siguiente sesión y ejecutar los 9 puntos del smoke test pendientes de la sesión anterior (Fase C.3 modal "Nueva incidencia"), el usuario reportó OK en todos. Los 4 tipos del catálogo (`sustitucion`, `cancelado`, `evento_especial`, `intercambio`) operativos desde click derecho en `/admin/horarios`.

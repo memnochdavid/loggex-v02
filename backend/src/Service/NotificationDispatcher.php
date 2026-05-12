@@ -34,6 +34,23 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class NotificationDispatcher
 {
+    /**
+     * Memoria in-process de claves `tipo|usuario_id|intercambioGrupoId` ya
+     * emitidas en este request. Necesaria porque el dedupe DQL no ve las
+     * notificaciones encoladas en el UnitOfWork hasta el flush final del
+     * subscriber: cuando se procesan N EH cascadeadas (clases gemelas /
+     * multi-bloque) en el mismo `postFlush`, sus notifs se persistan sin
+     * flush intermedio y la query LIKE no las encuentra.
+     *
+     * El array no se resetea entre batches: cada `intercambioGrupoId` es un
+     * UUID v4 único, así que las claves no colisionan entre requests
+     * distintos. Si un mismo request emite muchas notifs distintas, el
+     * tamaño es despreciable (~decenas de entradas por request).
+     *
+     * @var array<string,true>
+     */
+    private array $emitidasEsteRequest = [];
+
     public function __construct(
         private readonly EntityManagerInterface $em,
     ) {
@@ -281,6 +298,7 @@ class NotificationDispatcher
 
         $tipo = $eh->getTipo()?->value ?? '?';
         $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
+        $grupoId = $eh->getIntercambioGrupoId();
 
         // Admins/SuperAdmins del centro. SuperAdmin global (sin centro) recibe
         // también para todos los centros.
@@ -298,6 +316,11 @@ class NotificationDispatcher
             // Evita auto-notificación si el solicitante también es admin
             // (caso sara, admin+profe). Si el admin solicita, ya sabe.
             if ($solicitanteId !== null && $admin->getId() === $solicitanteId) continue;
+            // Dedupe por intercambioGrupoId: el solicitante puede generar
+            // varias EH PENDIENTE en un mismo batch (cara A + N caras B en
+            // multi-bloque, + duplicación por clases gemelas). Sin esto
+            // cada admin recibe N notifs idénticas (caso real reportado).
+            if ($this->yaNotificadoPorIntercambioGrupoId($admin, 'excepcion_pendiente', $grupoId)) continue;
             $this->createPersist($admin, [
                 'tipo'    => 'excepcion_pendiente',
                 'titulo'  => 'Nueva incidencia pendiente',
@@ -312,6 +335,7 @@ class NotificationDispatcher
                     'fecha'              => $eh->getFechaConcreta()?->format('Y-m-d'),
                     'solicitanteId'      => $solicitanteId,
                     'solicitanteNombre'  => $solicitanteNombre,
+                    'intercambioGrupoId' => $grupoId,
                 ],
             ]);
         }
@@ -343,6 +367,13 @@ class NotificationDispatcher
         $titulo   = $aprobada ? 'Tu incidencia ha sido aprobada' : 'Tu incidencia ha sido rechazada';
         $verbo    = $aprobada ? 'aprobado' : 'rechazado';
 
+        // Dedupe por intercambioGrupoId: cuando la EH se cascadea a clases
+        // gemelas o multi-bloque, cada hermana resuelta dispararía otra notif
+        // al mismo solicitante con el mismo grupoId — return.
+        if ($this->yaNotificadoPorIntercambioGrupoId($solicitante, $tipoNoti, $eh->getIntercambioGrupoId())) {
+            return;
+        }
+
         $this->createPersist($solicitante, [
             'tipo'    => $tipoNoti,
             'titulo'  => $titulo,
@@ -352,12 +383,13 @@ class NotificationDispatcher
             ),
             'enlace'  => '/horarios',
             'payload' => [
-                'excepcionId' => $eh->getId(),
-                'tipo'        => $tipo,
-                'fecha'       => $eh->getFechaConcreta()?->format('Y-m-d'),
-                'aprobadorId' => $aprobador?->getId(),
-                'aprobadorNombre' => $aprobadorNombre,
-                'respuestaAdmin'  => $eh->getRespuestaAdmin(),
+                'excepcionId'        => $eh->getId(),
+                'tipo'               => $tipo,
+                'fecha'              => $eh->getFechaConcreta()?->format('Y-m-d'),
+                'aprobadorId'        => $aprobador?->getId(),
+                'aprobadorNombre'    => $aprobadorNombre,
+                'respuestaAdmin'     => $eh->getRespuestaAdmin(),
+                'intercambioGrupoId' => $eh->getIntercambioGrupoId(),
             ],
         ]);
     }
@@ -390,6 +422,12 @@ class NotificationDispatcher
         // (caso edge, p.ej. admin se asigna a sí mismo como sustituto).
         $solicitanteId = $eh->getSolicitadaPor()?->getId();
         if ($solicitanteId !== null && $solicitanteId === $destinatario->getId()) {
+            return;
+        }
+        // Dedupe por intercambioGrupoId: clases gemelas + multi-bloque crean
+        // varias EH con el mismo grupoId apuntando al mismo destinatario
+        // semántico. Sin este guard el profe recibiría N notifs idénticas.
+        if ($this->yaNotificadoPorIntercambioGrupoId($destinatario, 'incidencia_propuesta', $eh->getIntercambioGrupoId())) {
             return;
         }
 
@@ -428,6 +466,7 @@ class NotificationDispatcher
                 'grupo'              => $grupoLabel,
                 'solicitanteId'      => $solicitanteId,
                 'solicitanteNombre'  => $solicitanteNombre,
+                'intercambioGrupoId' => $eh->getIntercambioGrupoId(),
             ],
         ]);
     }
@@ -440,6 +479,13 @@ class NotificationDispatcher
     {
         $sustituto = $eh->getProfeOverride();
         if ($sustituto === null) return;
+
+        // Dedupe por intercambioGrupoId: clases gemelas / multi-bloque
+        // cascadean varias EH con el mismo grupoId apuntando al mismo
+        // sustituto — return tras la primera notif.
+        if ($this->yaNotificadoPorIntercambioGrupoId($sustituto, 'sustitucion_asignada', $eh->getIntercambioGrupoId())) {
+            return;
+        }
 
         $hb = $eh->getHorarioBase();
         $imp = $hb?->getImparticion();
@@ -462,12 +508,13 @@ class NotificationDispatcher
             ),
             'enlace'  => '/horarios',
             'payload' => [
-                'excepcionId' => $eh->getId(),
-                'fecha'       => $eh->getFechaConcreta()?->format('Y-m-d'),
-                'hora'        => $hora,
-                'materia'     => $materia,
-                'grupo'       => $grupoLabel,
-                'motivo'      => $eh->getMotivo(),
+                'excepcionId'        => $eh->getId(),
+                'fecha'              => $eh->getFechaConcreta()?->format('Y-m-d'),
+                'hora'               => $hora,
+                'materia'            => $materia,
+                'grupo'              => $grupoLabel,
+                'motivo'             => $eh->getMotivo(),
+                'intercambioGrupoId' => $eh->getIntercambioGrupoId(),
             ],
         ]);
     }
@@ -528,6 +575,114 @@ class NotificationDispatcher
         }
     }
 
+    /**
+     * Notifica a los admins/superadmins del centro cuando otro admin crea
+     * una incidencia APROBADA directa desde /admin/horarios. Complementa
+     * `notifyExcepcionPendiente` (que cubre el flow del profe puro). Sin
+     * esto los otros admins del centro no se enteran porque la rejilla
+     * `/admin/horarios` no avisa de cambios hechos por terceros.
+     *
+     * Dedupe por intercambioGrupoId: clases gemelas cascadean varias EH
+     * con el mismo grupoId; cada admin debe recibir 1 sola notif por
+     * intercambio.
+     */
+    public function notifyExcepcionAprobadaDirecta(ExcepcionHorario $eh): void
+    {
+        $centro = $eh->getHorarioBase()?->getImparticion()?->getGrupo()?->getCentro();
+        if ($centro === null) return;
+
+        $solicitante = $eh->getSolicitadaPor();
+        $solicitanteId = $solicitante?->getId();
+        $solicitanteNombre = $solicitante
+            ? trim(($solicitante->getNombre() ?? '') . ' ' . ($solicitante->getApellidos() ?? ''))
+            : 'Un administrador';
+
+        $tipo = $eh->getTipo()?->value ?? '?';
+        $fecha = $this->fmtFechaEs($eh->getFechaConcreta());
+        $grupoId = $eh->getIntercambioGrupoId();
+
+        // Misma cascada que notifyExcepcionPendiente: admins del centro +
+        // SuperAdmins globales (u.centro IS NULL).
+        $admins = $this->em->getRepository(User::class)->createQueryBuilder('u')
+            ->where('u.deleted = :false')
+            ->andWhere("(u.roles LIKE :ra OR u.roles LIKE :rsa)")
+            ->andWhere('u.centro = :centro OR u.centro IS NULL')
+            ->setParameter('false', false)
+            ->setParameter('ra', '%ROLE_ADMIN%')
+            ->setParameter('rsa', '%ROLE_SUPERADMIN%')
+            ->setParameter('centro', $centro)
+            ->getQuery()->getResult();
+
+        foreach ($admins as $admin) {
+            if ($solicitanteId !== null && $admin->getId() === $solicitanteId) continue;
+            if ($this->yaNotificadoPorIntercambioGrupoId($admin, 'excepcion_aprobada_directa', $grupoId)) continue;
+            $this->createPersist($admin, [
+                'tipo'    => 'excepcion_aprobada_directa',
+                'titulo'  => 'Incidencia aprobada en tu centro',
+                'mensaje' => sprintf(
+                    '%s ha creado una %s aprobada para el %s.',
+                    $solicitanteNombre, $this->labelTipoExcepcion($tipo), $fecha
+                ),
+                'enlace'  => '/admin/incidencias',
+                'payload' => [
+                    'excepcionId'        => $eh->getId(),
+                    'tipo'               => $tipo,
+                    'fecha'              => $eh->getFechaConcreta()?->format('Y-m-d'),
+                    'solicitanteId'      => $solicitanteId,
+                    'solicitanteNombre'  => $solicitanteNombre,
+                    'intercambioGrupoId' => $grupoId,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Dedupe por `intercambioGrupoId` para notificaciones cascadeables.
+     * `HorarioGemeloSyncSubscriber` duplica `ExcepcionHorario` para cada
+     * hermano de un placement gemelo, y `IntercambioController` crea N
+     * caras (A + N caras B) en multi-bloque; todas comparten
+     * `intercambioGrupoId`. Sin este guard el destinatario recibiría N
+     * notifs idénticas.
+     *
+     * Doble nivel:
+     *  1. Memoria in-process (`$emitidasEsteRequest`): captura las notifs
+     *     emitidas en este batch que aún no se han flushed. Necesario para
+     *     que la segunda EH de un mismo grupoId no vuelva a emitir.
+     *  2. DQL LIKE sobre `payload` (columna Doctrine `json`, `json_encode`
+     *     sin espacios; UUID v4 único): captura emisiones de batches
+     *     anteriores (raro pero posible si un cron reprocesa). Si se
+     *     encuentra, cachea la clave en la memoria in-process.
+     */
+    private function yaNotificadoPorIntercambioGrupoId(User $destinatario, string $tipo, ?string $grupoId): bool
+    {
+        if ($grupoId === null || $grupoId === '') {
+            return false;
+        }
+        $key = $this->dedupeKey($destinatario, $tipo, $grupoId);
+        if (isset($this->emitidasEsteRequest[$key])) {
+            return true;
+        }
+        $existing = $this->em->getRepository(Notificacion::class)->createQueryBuilder('n')
+            ->andWhere('n.usuario = :usuario')
+            ->andWhere('n.tipo = :tipo')
+            ->andWhere('n.payload LIKE :pattern')
+            ->setParameter('usuario', $destinatario)
+            ->setParameter('tipo', $tipo)
+            ->setParameter('pattern', '%"intercambioGrupoId":"' . $grupoId . '"%')
+            ->setMaxResults(1)
+            ->getQuery()->getOneOrNullResult();
+        if ($existing !== null) {
+            $this->emitidasEsteRequest[$key] = true;
+            return true;
+        }
+        return false;
+    }
+
+    private function dedupeKey(User $destinatario, string $tipo, string $grupoId): string
+    {
+        return sprintf('%s|%d|%s', $tipo, $destinatario->getId() ?? 0, $grupoId);
+    }
+
     private function labelTipoExcepcion(string $tipo): string
     {
         return match ($tipo) {
@@ -555,6 +710,14 @@ class NotificationDispatcher
             ->setEnlace($data['enlace'] ?? null)
             ->setPayload($data['payload'] ?? null);
         $this->em->persist($n);
+
+        // Registro in-process para que `yaNotificadoPorIntercambioGrupoId`
+        // vea esta emisión en la siguiente llamada del mismo batch (antes
+        // del flush). Sólo aplica a notifs cascadeables (con grupoId).
+        $grupoId = $data['payload']['intercambioGrupoId'] ?? null;
+        if (is_string($grupoId) && $grupoId !== '') {
+            $this->emitidasEsteRequest[$this->dedupeKey($usuario, $data['tipo'], $grupoId)] = true;
+        }
     }
 
     private function fmtNota(?float $nota): string

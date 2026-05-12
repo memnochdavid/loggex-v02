@@ -81,39 +81,62 @@ Confirmación explícita por operación. No commit/push automático tras cerrar 
 
 ---
 
-## 🚨🚨 MÁXIMA PRIORIDAD 2026-05-12 — Notificaciones de incidencias
+## 🟡 PENDIENTE VALIDACIÓN E2E 2026-05-12 — Notificaciones de incidencias
 
-**Sesión 2026-05-12 noche** dejó dos cosas pendientes alrededor de `ExcepcionHorario`/notificaciones, descubiertas tras informe del usuario "el admin no recibe notificaciones para intercambios de clase y se reciben alertas duplicadas". El working tree quedó con cambios sin commit:
+**Sesión 2026-05-12 noche** cerró en código los dos bugs descubiertos esa misma tarde sobre `ExcepcionHorario`/notificaciones. Working tree con 2 archivos modificados (`NotificationDispatcher.php` + `NotificationDispatchSubscriber.php`), sintaxis PHP validada, **pendiente test E2E en navegador antes de commit**.
 
-### 1) Fix aplicado pero NO validado E2E — `notifyIncidenciaPropuesta` en APROBADA directa
+### 1) Duplicado por clases gemelas / multi-bloque — FIX APLICADO
 
-**Síntoma**: cuando el admin crea un INTERCAMBIO desde la rejilla `/admin/horarios` (estado APROBADA directa, commit `53367b8`), el profe destinatario (la "otra cara" del intercambio) NO recibía la notificación `incidencia_propuesta`. La función solo se invocaba en la rama PENDIENTE.
+**Síntoma reportado** (caso real profe→profe, 1 lección 120 min):
+- Solicitado: **2 notifs idénticas** `incidencia_propuesta` "Alberto te propone una intercambio para el 2026-05-13 (LM&SG · 1º DAM)".
+- Admin del centro: **4 notifs idénticas** `excepcion_pendiente` "Alberto ha solicitado una intercambio para el 2026-05-13".
 
-**Causa**: `NotificationDispatchSubscriber::dispatchExcepcionPersist` invocaba `notifyIncidenciaPropuesta` únicamente cuando el estado inicial era `PENDIENTE_APROBACION`. Para `APROBADA` solo se llamaba a `notifyExcepcionResuelta` (que retorna si solicitante=aprobador, spam guard), `notifySustitucionAsignada` (solo aplica si hay `profeOverride` — no INTERCAMBIO) y `notifyAlumnosCambioClase`.
+**Causa real**: clases gemelas (1º DAW ↔ 1º DAM unificadas en EAG, RD 405/2023) + multi-bloque del intercambio bilateral. `IntercambioController` crea 2 EH (cara A + cara B) con mismo `intercambioGrupoId`; `HorarioGemeloSyncSubscriber::postFlush` duplica cada cara para el hermano gemelo copiando la misma `imparticionEfectiva` → **4 EH** total. Cada EH dispara:
+- `notifyExcepcionPendiente` → admin recibe 4.
+- `notifyIncidenciaPropuesta` → destinatario semántico recibe 2 (sólo las 2 caras que lo apuntan a él).
 
-**Fix aplicado** (`backend/src/EventSubscriber/NotificationDispatchSubscriber.php:184-189`): añadida una línea `$this->dispatcher->notifyIncidenciaPropuesta($eh);` dentro de la rama `APROBADA`. El propio dispatcher tiene guard interno "destinatario = solicitante → return" (línea 392 del dispatcher), así que admin solicitante nunca se auto-notifica.
+Patrón replicado también en `notifyExcepcionResuelta` y `notifySustitucionAsignada`. NO afecta a `notifyAlumnosCambioClase` (grupos gemelos tienen alumnos distintos).
 
-**Validar E2E**: loguear como admin, click derecho en placement → "Solicitar cambio" → INTERCAMBIO con picker → guardar. Otra pestaña con el profe destinatario (cara B): debería llegar campanita "Te han propuesto un cambio de horario" + enlace `/horarios?fecha=…&excepcion=…`.
+**Trampa adicional encontrada**: el dedupe DQL solo no basta. Las notifs previas del mismo batch están persistadas en el UnitOfWork sin flush, así que la query LIKE no las ve. Necesario combinar memoria in-process + DQL.
 
-### 2) Bug DESCUBIERTO sin fix — Notificaciones duplicadas en intercambios
+**Fix aplicado** en `backend/src/Service/NotificationDispatcher.php`:
+- Propiedad privada `$emitidasEsteRequest: array<string, true>` indexada por `tipo|usuario_id|intercambioGrupoId`. Se rellena al `createPersist` y se consulta antes de emitir.
+- Helper `yaNotificadoPorIntercambioGrupoId(User, string, ?string)` consulta primero la memoria in-process; si no, fallback a DQL LIKE sobre `payload` (json type, `json_encode` sin espacios, UUID v4 único); cachea el resultado.
+- Los **4 `notify*` cascadeables** ahora añaden `intercambioGrupoId` al payload y consultan el helper antes de `createPersist`: `notifyIncidenciaPropuesta`, `notifyExcepcionResuelta`, `notifySustitucionAsignada`, `notifyExcepcionPendiente`.
 
-**Síntoma reportado**: el profe destinatario recibe N notificaciones por un intercambio, no 1. Sospecha inicial del usuario (lecciones de 120 min) era accidental — el factor real son **N>1 `ExcepcionHorario` con el mismo `intercambioGrupoId` apuntando al mismo destinatario semántico**.
+### 2) Admin del centro sin notificación en APROBADA directa — FIX APLICADO
 
-**Dos vías independientes que disparan el duplicado**:
+**Síntoma reportado**: el admin (que también es profe) no recibe nada cuando otro user crea un intercambio APROBADA directa.
 
-- **Multi-bloque** (`IntercambioController.php:251-286`): un intercambio crea 1 cara A + N caras B con el mismo `intercambioGrupoId`. Cara A → destinatario = profe B[0]. Cada cara B[i] → destinatario = profe A. Si el admin selecciona N>1 bloques B en el picker (multi-selección permitida) para cubrir A, **Profe A recibe N notificaciones**.
-- **Clases gemelas** (`HorarioGemeloSyncSubscriber.php:233-262`): si el `Horario` intercambiado pertenece a una clase compartida (DAW+DAM unificadas en EAG por RD 405/2023), el subscriber duplica la `ExcepcionHorario` para el gemelo con mismo `intercambioGrupoId` e `imparticionEfectiva` → **mismo destinatario recibe 2 notificaciones** (una por EH original, otra por la copia gemela).
+**Causa real**: `NotificationDispatchSubscriber::dispatchExcepcionPersist` solo invocaba `notifyExcepcionPendiente` en la rama PENDIENTE. La rama APROBADA nunca avisaba a admins/superadmins del centro. NO es regresión de la "corrección anterior de SuperAdmin" — la query de admins en `NotificationDispatcher.php:287-295` sigue intacta. El commit `83b483a` (2026-05-12 mañana) arregló sólo `notifyIncidenciaPropuesta` para el destinatario semántico en APROBADA, no abrió la rama a admins.
 
-**Fix propuesto (NO aplicado, decisión del usuario pendiente)**: dedupe en `notifyIncidenciaPropuesta` por `(destinatario, tipo, intercambioGrupoId)`:
+**Fix aplicado**:
+- Nuevo método `NotificationDispatcher::notifyExcepcionAprobadaDirecta(ExcepcionHorario)` similar a `notifyExcepcionPendiente` pero tipo `'excepcion_aprobada_directa'`, título "Incidencia aprobada en tu centro", enlace `/admin/incidencias`. Excluye al solicitante (mismo guard) y dedupe por `intercambioGrupoId` (in-process + DQL).
+- 1 línea añadida en `NotificationDispatchSubscriber.php` rama APROBADA: `$this->dispatcher->notifyExcepcionAprobadaDirecta($eh);` después de `notifyIncidenciaPropuesta`.
 
-1. Añadir `'intercambioGrupoId' => $eh->getIntercambioGrupoId()` al `payload` (`backend/src/Service/NotificationDispatcher.php:422-428`).
-2. Antes de `createPersist`, escanear hasta 50 notificaciones recientes del destinatario con `tipo='incidencia_propuesta'`; si alguna tiene `payload.intercambioGrupoId === $grupoId`, return. Sin migración SQL, query localizada al destinatario.
+### 3) Borrado de incidencias desde `/admin/incidencias` requería N clicks — FIX APLICADO
 
-**Alcance pendiente de decidir con el usuario**: el mismo patrón probablemente duplique en `notifyExcepcionResuelta` (solicitante recibe N veces "tu solicitud aprobada") y `notifySustitucionAsignada` (sustituto recibe N veces). `notifyAlumnosCambioClase` NO duplica (grupos gemelos tienen alumnos distintos). Decisión propuesta: aplicar dedupe a los 3 `notify*` afectados con el mismo patrón.
+**Síntoma**: el admin al borrar una incidencia desde `/admin/incidencias` borraba solo 1 `ExcepcionHorario` aunque hubiera N caras del mismo intercambio (cara A + cara B × clases gemelas DAW+DAM = hasta 4 filas para 1 sola incidencia). Tenía que borrar manualmente las N. Si dejaba alguna, el estado del grupo quedaba incoherente.
 
-**Diagnóstico completo y propuesta detallada**: este mismo INDEX, sección anterior, no hay doc dedicado todavía. Cuando se aplique el fix, abrir bitácora en `hoja-de-ruta-intercambio-imparticiones.md` (o `hoja-de-ruta-notificaciones.md` reabriendo) con la entrada R5 o equivalente.
+**Causa**: `IntercambioGrupoCascadeSubscriber` (Plan B 2026-05-08) cascadeaba SOLO cambios de estado vía `preUpdate hasChangedField('estado')`. Soft-delete del `SoftDeleteProcessor` también es un `preUpdate` (setea `deleted=true` y persiste, no es REMOVE), pero el guard original lo ignoraba.
 
----
+**Fix aplicado** en `backend/src/EventSubscriber/IntercambioGrupoCascadeSubscriber.php`:
+- Subscriber ahora escucha **dos eventos**: `preUpdate` (estado, lógica preexistente sin cambios) + `onFlush` (soft-delete, nueva rama).
+- **Primer intento usaba preUpdate también para soft-delete y NO funcionó**: el usuario reportó que seguían quedando las 4 filas tras borrar una. Causa: `SoftDeleteProcessor` invoca `setDeleted(true) + persist + flush`; las hermanas cargadas con query nuevo NO están scheduled for update y `recomputeSingleEntityChangeSet` las ignora silenciosamente (limitación documentada en `HorarioGemeloSyncSubscriber` Fase D — preUpdate solo recompone changesets ya scheduled, no añade nuevos).
+- **Refactor al patrón canónico**: `onFlush` itera `getScheduledEntityUpdates`, detecta EH con `changeSet['deleted'] = [false, true]`, carga hermanas y aplica `setDeleted(true) + computeChangeSet` para que los UPDATEs entren en el mismo flush.
+- Reusa el mismo `$processing` anti-loop (compartido entre preUpdate y onFlush) y el helper `loadOtrosDelGrupo` extraído.
+- **Limitaciones documentadas**: reactivación (deleted: true→false) no se propaga; hard-delete vía `em->remove()` tampoco — todo el delete del producto pasa por `SoftDeleteProcessor`.
+
+### Validación E2E pendiente (antes de commit)
+
+Tras `docker compose restart backend` (opcache PHP-FPM):
+
+1. **Dedupe profe→profe** (el reporte original): Alberto solicita desde `/horarios` intercambio sobre 1º DAM LM&SG → destinatario recibe **1 notif** (antes 2), admin recibe **1 notif** (antes 4). SQL: `SELECT id, tipo, JSON_EXTRACT(payload, '$.intercambioGrupoId') FROM notificacion WHERE usuario_id=X ORDER BY id DESC LIMIT 10;`.
+2. **Admin APROBADA directa**: admin crea desde `/admin/horarios` → otro admin del centro recibe **1 notif** `excepcion_aprobada_directa`.
+3. **No regresión aprobación**: admin aprueba PENDIENTE → solicitante recibe **1** "aprobada", no N.
+4. **Borrado en cascade**: admin va a `/admin/incidencias` → click "borrar" en una sola fila del intercambio → todas las hermanas del grupo (incluidas las gemelas DAW↔DAM) desaparecen del listado. SQL: `SELECT id, deleted, intercambio_grupo_id FROM excepcion_horario WHERE intercambio_grupo_id = '<uuid>';` — todas con `deleted=1`.
+
+Si algo falla: `docker compose logs backend` (errores del LIKE sobre JSON), `SELECT payload FROM notificacion ORDER BY id DESC LIMIT 3;` (verificar serialización sin espacios), `app:mercure:invalidate -t /users/{id}/notifications` como palanca de recuperación.
 
 ## 🚨 Primera acción al retomar la próxima sesión
 
