@@ -111,7 +111,7 @@ const Sidebar = () => {
         '/horarios': 'general',
         '/admin/horarios': 'administracion',
         '/admin/jornadas': 'administracion',
-        '/admin/excepciones': 'administracion',
+        '/admin/incidencias': 'administracion',
         '/mensajes': 'general',
         '/perfil': 'general',
 
@@ -121,7 +121,7 @@ const Sidebar = () => {
         '/claustro': 'profesor',
         '/mis-alumnos': 'profesor',
 
-        '/apuntes': 'alumno',
+        '/mis-apuntes': 'alumno',
         '/mis-calificaciones': 'alumno',
         '/faltas': 'alumno',
         '/companeros': 'alumno',
@@ -132,11 +132,11 @@ const Sidebar = () => {
         '/grupos': 'administracion',
         '/materias': 'administracion',
         '/matriculas': 'administracion',
-        '/imparticiones': 'administracion',
+        '/docencia': 'administracion',
         '/centros': 'administracion',
         '/fechas': 'administracion',
-        '/admin/calificaciones': 'administracion',
-        '/configuracion': 'administracion',
+        '/admin/estadisticas': 'administracion',
+        '/personalizacion': 'administracion',
 
         '/admin/catalogo': 'catalogo',
 
@@ -264,7 +264,7 @@ const Sidebar = () => {
         // 3. Alumno
         if (isAlumno || isSuperAdmin) {
             const items = [
-                { to: '/apuntes', Icon: FileText, label: t('sidebar.myNotes'), tour: 'sidebar-apuntes' },
+                { to: '/mis-apuntes', Icon: FileText, label: t('sidebar.myNotes'), tour: 'sidebar-apuntes' },
                 { to: '/faltas', Icon: AlertCircle, label: t('sidebar.myAbsences'), tour: 'sidebar-faltas' },
                 { to: '/mis-calificaciones', Icon: BarChart3, label: t('sidebar.myGrades'), tour: 'sidebar-mis-calificaciones' },
                 { to: '/companeros', Icon: UsersRound, label: t('sidebar.myClassmates') },
@@ -285,19 +285,19 @@ const Sidebar = () => {
                 { to: '/grupos', Icon: UsersRound, label: t('sidebar.groups'), tour: 'sidebar-grupos' },
                 { to: '/materias', Icon: BookOpen, label: t('sidebar.materias'), tour: 'sidebar-materias' },
                 { to: '/matriculas', Icon: GraduationCap, label: t('sidebar.enrollments'), tour: 'sidebar-matriculas' },
-                { to: '/imparticiones', Icon: Briefcase, label: t('sidebar.teaching'), tour: 'sidebar-imparticiones' },
+                { to: '/docencia', Icon: Briefcase, label: t('sidebar.teaching'), tour: 'sidebar-imparticiones' },
                 { to: '/admin/horarios', Icon: Calendar, label: t('sidebar.schedule'), tour: 'sidebar-admin-horarios' },
                 { to: '/admin/jornadas', Icon: Clock, label: t('sidebar.jornadas', { defaultValue: 'Jornadas' }), tour: 'sidebar-admin-jornadas' },
-                { to: '/admin/excepciones', Icon: Shuffle, label: t('sidebar.exceptions', { defaultValue: 'Excepciones' }), tour: 'sidebar-admin-excepciones' },
+                { to: '/admin/incidencias', Icon: Shuffle, label: t('sidebar.exceptions', { defaultValue: 'Excepciones' }), tour: 'sidebar-admin-excepciones' },
                 { to: '/fechas', Icon: CalendarDays, label: t('sidebar.dates', { defaultValue: 'Fechas' }) },
-                { to: '/admin/calificaciones', Icon: BarChart3, label: t('sidebar.stats') },
+                { to: '/admin/estadisticas', Icon: BarChart3, label: t('sidebar.stats') },
             ];
             if (isSuperAdmin) {
                 // Centros solo lo gestiona el SuperAdmin (la ruta tiene guard
                 // ROLE_SUPERADMIN tanto en frontend como en API Platform).
                 items.push({ to: '/centros', Icon: Building, label: t('sidebar.centers'), tour: 'sidebar-centros' });
             }
-            items.push({ to: '/configuracion', Icon: Settings, label: t('sidebar.settings'), tour: 'sidebar-configuracion' });
+            items.push({ to: '/personalizacion', Icon: Settings, label: t('sidebar.settings'), tour: 'sidebar-configuracion' });
             sections.push({ id: 'administracion', title: t('sidebar.admin'), items });
         }
 

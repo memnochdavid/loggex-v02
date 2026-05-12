@@ -19,13 +19,13 @@ const usePageTitle = (baseTitle = 'Loggex-Machina') => {
       '/grupos': t('groups.title'),
       '/materias': t('materias.title'),
       '/matriculas': t('enrollments.title'),
-      '/imparticiones': t('teaching.title'),
+      '/docencia': t('teaching.title'),
       '/horarios': t('schedules.title'),
       '/fechas': 'Fechas',
       '/admin/horarios': t('sidebar.scheduleAdmin'),
       '/entregas': t('deliveries.title'),
       '/faltas': t('myAbsences.title'),
-      '/apuntes': t('studentMaterials.title'),
+      '/mis-apuntes': t('studentMaterials.title'),
       '/mis-temarios': t('teacherMaterials.title'),
       '/mensajes': t('messages.title'),
       '/claustro': t('faculty.title'),
@@ -35,9 +35,9 @@ const usePageTitle = (baseTitle = 'Loggex-Machina') => {
       '/calificaciones': t('grades.title'),
       '/calificaciones/detalle': t('grades.title'),
       '/mis-calificaciones': t('grades.myGradesTitle'),
-      '/admin/calificaciones': t('grades.adminTitle'),
+      '/admin/estadisticas': t('grades.adminTitle'),
       '/perfil': t('sidebar.profile'),
-      '/configuracion': t('config.title'),
+      '/personalizacion': t('config.title'),
     };
 
     const title = routeTitles[path] || '';

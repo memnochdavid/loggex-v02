@@ -305,7 +305,7 @@ class NotificationDispatcher
                     '%s ha solicitado una %s para el %s.',
                     $solicitanteNombre, $this->labelTipoExcepcion($tipo), $fecha
                 ),
-                'enlace'  => '/admin/excepciones',
+                'enlace'  => '/admin/incidencias',
                 'payload' => [
                     'excepcionId'        => $eh->getId(),
                     'tipo'               => $tipo,

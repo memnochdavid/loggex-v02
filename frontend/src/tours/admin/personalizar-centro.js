@@ -10,7 +10,7 @@ export default {
     roles: ['ROLE_ADMIN', 'ROLE_SUPERADMIN'],
     accordionSection: 'administracion',
     isAutoStart: false,
-    trigger: { route: '/configuracion' },
+    trigger: { route: '/personalizacion' },
     steps: [
         {
             targetId: 'sidebar-configuracion',

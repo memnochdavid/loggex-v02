@@ -546,3 +546,65 @@ Los popovers de mensajes y notificaciones del header (`layout/Header.module.css 
 ### R3.3 — Botón "Rechazar este cambio" con variant=danger ✅ 2026-05-08 (`29ce569`)
 
 El botón del modal placement de `TimeTable` para que un destinatario rechace una incidencia INTERCAMBIO pendiente usaba `variant="secondary"` con estilos inline `color: var(--color-error)` y `borderColor: var(--color-error)`. Cambiado a `variant="danger"` para coincidir visualmente con el botón "Cerrar sesión" del `ConfirmLogoutModal` (mismo patrón). Estilos inline eliminados.
+
+---
+
+# Ronda 4 — abierta 2026-05-12
+
+| # | Ítem | Tipo | Estado |
+|---|---|---|---|
+| R4.1 | Coherencia ruta ↔ label sidebar ↔ H1 de vista | UX / IA | ✅ 2026-05-12 (pendiente verificación navegador) |
+
+## Bitácora Ronda 4
+
+### R4.1 — Coherencia ruta ↔ label ↔ H1 ✅ 2026-05-12
+
+Varias vistas tenían tres nombres distintos en tres capas: URL, label en el sidebar y `<CrudHeader title>`. Casos detectados:
+
+| Ruta antigua | Label sidebar | H1 de la vista | Outlier |
+|---|---|---|---|
+| `/apuntes` | Mis Temarios | Mis Temarios | ruta |
+| `/imparticiones` | Docencia | Asignación de Docencia | ruta |
+| `/admin/excepciones` | Incidencias | Incidencias | ruta |
+| `/admin/calificaciones` | Estadísticas | Resumen de Calificaciones | ruta + label disienten |
+| `/configuracion` | Configuración | Personalización | ruta + label |
+| `/calificaciones` | Notas | Calificaciones | label |
+| `/mis-calificaciones` | Mis Notas | Mis Calificaciones | label |
+
+**Decisión** (preferencia del usuario: renombrar rutas cuando el outlier es la ruta):
+
+1. **Renombradas 5 rutas outlier** y se añadió `<Route … element={<Navigate to=… replace />} />` retroactivo para cada antigua (preserva bookmarks y enlaces ya emitidos en notificaciones BD):
+   - `/apuntes` → `/mis-apuntes`
+   - `/imparticiones` → `/docencia`
+   - `/admin/excepciones` → `/admin/incidencias`
+   - `/admin/calificaciones` → `/admin/estadisticas`
+   - `/configuracion` → `/personalizacion`
+2. **Calificaciones (vistas alumno/profe)**: el outlier era el label del sidebar (la ruta y el H1 coincidían con la entidad BD `Calificacion`). Se alineó el label a la H1 en los 5 idiomas:
+   - `sidebar.grades`: Notas → Calificaciones · Notes → Qualificacions · Notak → Kalifikazioak · Notas → Cualificacións. EN ya estaba "Grades".
+   - `sidebar.myGrades`: equivalente con "Mis/Les Meves/Nire/As Miñas".
+3. **Personalización**: el H1 (`config.title`) ya decía "Personalización / Customization / Personalització / Pertsonalizazioa / Personalización" en los 5 idiomas. Solo el label del sidebar y la ruta estaban desalineados:
+   - Ruta `/configuracion` → `/personalizacion`.
+   - `sidebar.settings`: Configuración → Personalización · Settings → Customization (EN sigue la H1) · Configuració → Personalització · Konfigurazioa → Pertsonalizazioa · Configuración → Personalización.
+4. **`sidebar.stats`** (Estadísticas): se mantiene tal cual. La H1 de la vista renombrada `/admin/estadisticas` sigue siendo `grades.adminTitle` ("Resumen de Calificaciones"); en sidebar "Estadísticas" es más conciso y semánticamente distinto (panel agregado vs. notas individuales). Asimetría label↔H1 asumida conscientemente. La ruta `/admin/estadisticas` queda alineada con el label, que es la pieza visible al usuario.
+
+**Archivos tocados**:
+
+- `frontend/src/App.jsx`: import `Navigate`; 5 routes renombradas + 5 routes redirect.
+- `frontend/src/components/Sidebar.jsx`: `routeToAccordionMap` (5 claves) + `accordionData` items (5 `to:`).
+- `frontend/src/hooks/usePageTitle.js`: 4 claves del map (`/apuntes` → `/mis-apuntes`, `/imparticiones` → `/docencia`, `/admin/calificaciones` → `/admin/estadisticas`, `/configuracion` → `/personalizacion`). El hook no tenía entrada previa para `/admin/excepciones` (deuda residual no ampliada aquí).
+- `frontend/src/tours/admin/personalizar-centro.js`: `trigger.route` `/configuracion` → `/personalizacion`. El redirect dispara la nueva URL antes de que `useLocation` evalúe el `ContextualHelpBadge`.
+- `frontend/src/i18n/locales/{es,en,ca,eu,gl}.json`: `sidebar.grades`, `sidebar.myGrades` y `sidebar.settings` por idioma. `sidebar.stats` revertido a "Estadísticas" tras feedback del usuario.
+- `backend/src/Service/NotificationDispatcher.php:308`: `'/admin/excepciones'` → `'/admin/incidencias'` para notificaciones nuevas. Las ya emitidas en BD llegan a la nueva ruta vía redirect.
+
+**No tocados (intencional)**:
+
+- **Topics Mercure** que comparten string con rutas frontend (`/imparticiones/{id}/entregas`, `/imparticiones/{id}/temarios`, `/imparticiones/{id}/asistencias`, y el topic `/admin/calificaciones` del entity `Calificacion`, presente en `MisCalificaciones.jsx:270`, `CalificacionesAdmin.jsx:139`, `Entregas.jsx:59`, `Calificacion.php:36/42`). Son strings opacos del hub PubSub y la entidad BD sigue llamándose `Imparticion` / `Calificacion`. Renombrar el topic obligaría a tocar `MercureAuthController` (JWT), todos los `#[LivePublish]` afectados y los `useLiveRefetch`/`useLiveCollection` que escuchan esos topics — sin beneficio funcional. Asimetrías asumidas: "ruta UI `/docencia` ↔ topic `/imparticiones/…`" y "ruta UI `/admin/estadisticas` ↔ topic `/admin/calificaciones`".
+- Hijos de las rutas renombradas: ninguna ruta renombrada tiene hijos. Solo `/calificaciones` tiene `/calificaciones/detalle`, pero esa rama no se ha renombrado (decisión 2 dejó las rutas `/calificaciones*` de profe/alumno intactas).
+- `Configuracion.jsx` (nombre del componente y del archivo): detalle interno, no UI; renombrarlo es churn sin valor.
+- Texto histórico en `docs/`: no se reescribe. Las bitácoras anteriores mencionan las rutas antiguas y eso es parte del histórico — el redirect cubre cualquier link en docs que alguien siga.
+
+**Coste real**: 1 sesión corta. Sin migración SQL, sin renombrar entidades, sin tocar Mercure.
+
+**Riesgo**: bajo. Los redirects cubren bookmarks, query params (`/mis-calificaciones?tarea=N` se mantiene tal cual porque la ruta no se renombró) y los `enlace` de `Notificacion` ya emitidos en BD con texto antiguo (`/admin/excepciones`).
+
+**Pendiente de validación**: prueba en navegador (login admin → click sidebar Docencia/Incidencias; login alumno → Mis Apuntes; navegar manualmente a las 3 rutas viejas y verificar redirect + acordeón correcto + título de pestaña).

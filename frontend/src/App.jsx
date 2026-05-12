@@ -5,6 +5,7 @@ import {
   Route,
   RouterProvider,
   Outlet,
+  Navigate,
   useLocation,
 } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -155,11 +156,16 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/imparticiones" element={
+                <Route path="/docencia" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Imparticiones />
                   </PrivateRoute>
                 } />
+                {/* Redirect retroactivo: la ruta se renombró 2026-05-12 para
+                    alinearla con label/H1. La entidad de BD sigue siendo
+                    Imparticion (topics Mercure /imparticiones/{id}/... no se
+                    tocan: son strings opacos del hub). */}
+                <Route path="/imparticiones" element={<Navigate to="/docencia" replace />} />
 
                 <Route path="/horarios" element={
                   <PrivateRoute>
@@ -185,11 +191,15 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/admin/excepciones" element={
+                <Route path="/admin/incidencias" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <Excepciones />
                   </PrivateRoute>
                 } />
+                {/* Redirect retroactivo: ruta renombrada 2026-05-12 para
+                    alinearla con label/H1. Las notificaciones ya emitidas en
+                    BD con enlace="/admin/excepciones" llegan aquí. */}
+                <Route path="/admin/excepciones" element={<Navigate to="/admin/incidencias" replace />} />
 
                 <Route path="/fechas" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
@@ -212,11 +222,14 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/apuntes" element={
+                <Route path="/mis-apuntes" element={
                   <PrivateRoute allowedRoles={['ROLE_ALUMNO']}>
                     <TemariosAlumno />
                   </PrivateRoute>
                 } />
+                {/* Redirect retroactivo: la ruta se renombró 2026-05-12 para
+                    alinearla con label/H1. Conserva bookmarks y enlaces vivos. */}
+                <Route path="/apuntes" element={<Navigate to="/mis-apuntes" replace />} />
 
                 <Route path="/mis-temarios" element={
                   <PrivateRoute allowedRoles={['ROLE_PROFESOR']}>
@@ -261,11 +274,15 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/configuracion" element={
+                <Route path="/personalizacion" element={
                   <PrivateRoute>
                     <Configuracion />
                   </PrivateRoute>
                 } />
+                {/* Redirect retroactivo: ruta renombrada 2026-05-12 para
+                    alinearla con label "Personalización" + H1 ya existente. El
+                    componente sigue siendo Configuracion.jsx (detalle interno). */}
+                <Route path="/configuracion" element={<Navigate to="/personalizacion" replace />} />
 
                 {/* /calificaciones: vista de profe (sus grupos+tareas para
                     corregir). Alumno tiene su propia /mis-calificaciones.
@@ -288,11 +305,16 @@ const router = createBrowserRouter(
                   </PrivateRoute>
                 } />
 
-                <Route path="/admin/calificaciones" element={
+                <Route path="/admin/estadisticas" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
                     <CalificacionesAdmin />
                   </PrivateRoute>
                 } />
+                {/* Redirect retroactivo: ruta renombrada 2026-05-12 para
+                    alinearla con el label "Estadísticas". El componente y la
+                    entidad BD siguen llamándose Calificacion; los topics
+                    Mercure /admin/calificaciones permanecen. */}
+                <Route path="/admin/calificaciones" element={<Navigate to="/admin/estadisticas" replace />} />
 
                 <Route path="/admin/catalogo/itinerarios" element={
                   <PrivateRoute allowedRoles={['ROLE_ADMIN']}>
