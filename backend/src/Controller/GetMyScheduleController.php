@@ -48,6 +48,14 @@ class GetMyScheduleController extends AbstractController
         $roles = $user->getRoles();
         $userId = $user->getId();
 
+        // Set de IDs de horarios cargados "como alumno" (vía matrícula). Usado
+        // para preservar los placements no_presenciales en el horario del
+        // alumno (caso 2º DAW navegando a 3ª evaluación: VE su FCT/Proyecto)
+        // mientras el profe que los imparte NO los ve en su /horarios (su
+        // jornada custom 08:30-15:30 descuadraría su rejilla con clases
+        // regulares en otros grupos).
+        $idsOrigenAlumno = [];
+
         // 1. Buscar como ALUMNO
         if (in_array('ROLE_ALUMNO', $roles)) {
             $dql = "SELECT h, i, m, g, p
@@ -60,7 +68,11 @@ class GetMyScheduleController extends AbstractController
                     WHERE mat.alumno = :userId AND h.deleted = false";
 
             $query = $entityManager->createQuery($dql)->setParameter('userId', $userId);
-            $horarios = array_merge($horarios, $query->getResult());
+            $resAlumno = $query->getResult();
+            foreach ($resAlumno as $h) {
+                $idsOrigenAlumno[$h->getId()] = true;
+            }
+            $horarios = array_merge($horarios, $resAlumno);
         }
 
         // 2. Buscar como PROFESOR/ADMIN
@@ -127,6 +139,20 @@ class GetMyScheduleController extends AbstractController
             // cronológicos muestra 3 copias del mismo bloque (mismo día y
             // hora) en widgets/grillas que no controlan el rango.
             $pl = $h->getPeriodoLectivo();
+            // Skip placements no_presenciales SOLO si llegan vía rol profe
+            // (Fase B fix 2026-05-12). Razón: las prácticas (FCT/Proyecto/HLC)
+            // tienen jornada custom (08:30-15:30) que NO encaja con la jornada
+            // lectiva regular del profe en sus otros grupos — mezclar ambas
+            // descuadra la rejilla. El ALUMNO sí debe verlas (su rango 3 es
+            // su semana real de prácticas), y para él no hay conflicto porque
+            // solo tiene un grupo activo. El `idsOrigenAlumno` distingue:
+            // si el horario lo cargamos por matrícula, es del alumno y se
+            // conserva; si solo viene por imparticion.profesor, se filtra.
+            if ($pl?->getEtiqueta() === 'no_presenciales'
+                && !isset($idsOrigenAlumno[$h->getId()])
+            ) {
+                continue;
+            }
             $plFechaInicio = $pl?->getFechaInicio()?->format('Y-m-d');
             $plFechaFin    = $pl?->getFechaFin()?->format('Y-m-d');
             // Refactor modelo semanal (2026-05-06): exponemos `tipo` para que
