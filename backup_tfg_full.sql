@@ -11525,7 +11525,7 @@ CREATE TABLE `excepcion_horario` (
   CONSTRAINT `FK_eh_intercambio_pareja` FOREIGN KEY (`intercambio_pareja_id`) REFERENCES `excepcion_horario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_eh_profe_override` FOREIGN KEY (`profe_override_id`) REFERENCES `usuario` (`id`) ON DELETE SET NULL,
   CONSTRAINT `FK_eh_solicitada_por` FOREIGN KEY (`solicitada_por_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=86 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -11535,30 +11535,10 @@ CREATE TABLE `excepcion_horario` (
 LOCK TABLES `excepcion_horario` WRITE;
 /*!40000 ALTER TABLE `excepcion_horario` DISABLE KEYS */;
 INSERT INTO `excepcion_horario` VALUES
-(33,4995,'2026-05-06','intercambio',37,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-07 19:27:48',55,'2026-05-07 19:58:44',NULL,0,'2026-05-07 19:27:48','2026-05-07 20:31:58',1,'2026-05-07 20:31:58','cf15698b-c482-424c-9329-c3d51e93b09f'),
-(34,5000,'2026-05-08','intercambio',15,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-07 19:27:48',55,'2026-05-07 19:58:44',NULL,0,'2026-05-07 19:27:48','2026-05-07 19:58:44',0,NULL,'cf15698b-c482-424c-9329-c3d51e93b09f'),
-(35,5000,'2026-05-15','intercambio',15,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-07 19:27:48',55,'2026-05-07 19:58:44',NULL,0,'2026-05-07 19:27:48','2026-05-07 19:58:44',0,NULL,'cf15698b-c482-424c-9329-c3d51e93b09f'),
-(37,4989,'2026-05-04','cancelado',NULL,NULL,NULL,'aaa','aaa','aprobada',50,'2026-05-07 20:02:31',55,'2026-05-07 20:02:53',NULL,0,'2026-05-07 20:02:31','2026-05-07 20:32:03',1,'2026-05-07 20:32:03',NULL),
-(38,4989,'2026-05-11','intercambio',18,NULL,39,NULL,NULL,'rechazada',50,'2026-05-07 20:23:29',50,'2026-05-07 20:23:34',NULL,0,'2026-05-07 20:23:29','2026-05-07 20:23:34',0,NULL,'4e7e1671-cf0c-4587-ac8c-c9a8d6b5d38d'),
-(39,4991,'2026-05-12','intercambio',15,NULL,38,NULL,NULL,'rechazada',50,'2026-05-07 20:23:29',50,'2026-05-07 20:23:34',NULL,0,'2026-05-07 20:23:29','2026-05-07 20:23:34',0,NULL,'4e7e1671-cf0c-4587-ac8c-c9a8d6b5d38d'),
-(40,6707,'2026-05-07','intercambio',52,NULL,41,NULL,NULL,'aprobada',55,'2026-05-09 07:30:30',55,'2026-05-09 07:30:30',NULL,0,'2026-05-09 07:30:30','2026-05-09 07:37:34',1,'2026-05-09 07:37:34','45f1497e-0b49-4111-9411-8f802a42a7fc'),
-(41,6642,'2026-05-07','intercambio',41,NULL,40,NULL,NULL,'aprobada',55,'2026-05-09 07:30:30',55,'2026-05-09 07:30:30',NULL,0,'2026-05-09 07:30:30','2026-05-09 07:37:36',1,'2026-05-09 07:37:36','45f1497e-0b49-4111-9411-8f802a42a7fc'),
-(42,6570,'2026-05-07','intercambio',41,NULL,NULL,NULL,NULL,'aprobada',55,'2026-05-09 07:30:30',55,'2026-05-09 07:30:30',NULL,0,'2026-05-09 07:30:30','2026-05-09 07:37:39',1,'2026-05-09 07:37:39','45f1497e-0b49-4111-9411-8f802a42a7fc'),
-(43,6573,'2026-05-08','intercambio',21,NULL,44,NULL,NULL,'aprobada',50,'2026-05-09 07:33:15',55,'2026-05-09 07:34:05',NULL,0,'2026-05-09 07:33:15','2026-05-09 07:37:16',1,'2026-05-09 07:37:16','f3b8ee1d-e4d2-4d5c-9130-5c9d165bb92c'),
-(44,6711,'2026-05-08','intercambio',15,NULL,43,NULL,NULL,'aprobada',50,'2026-05-09 07:33:15',55,'2026-05-09 07:34:05',NULL,0,'2026-05-09 07:33:15','2026-05-09 07:37:26',1,'2026-05-09 07:37:26','f3b8ee1d-e4d2-4d5c-9130-5c9d165bb92c'),
-(45,6645,'2026-05-08','intercambio',21,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-09 07:33:15',55,'2026-05-09 07:34:05',NULL,0,'2026-05-09 07:33:15','2026-05-09 07:37:21',1,'2026-05-09 07:37:21','f3b8ee1d-e4d2-4d5c-9130-5c9d165bb92c'),
-(46,7031,'2026-05-14','intercambio',50,NULL,47,NULL,NULL,'aprobada',55,'2026-05-12 06:14:30',55,'2026-05-12 06:14:30',NULL,0,'2026-05-12 06:14:30','2026-05-12 06:18:00',1,'2026-05-12 06:18:00','ab298ae6-ec71-40c5-9ada-aa04d81416e4'),
-(47,7652,'2026-05-12','intercambio',37,NULL,46,NULL,NULL,'aprobada',55,'2026-05-12 06:14:30',55,'2026-05-12 06:14:30',NULL,0,'2026-05-12 06:14:30','2026-05-12 06:18:06',1,'2026-05-12 06:18:06','ab298ae6-ec71-40c5-9ada-aa04d81416e4'),
-(48,7658,'2026-05-14','intercambio',50,NULL,NULL,NULL,NULL,'aprobada',55,'2026-05-12 06:14:30',55,'2026-05-12 06:14:30',NULL,0,'2026-05-12 06:14:30','2026-05-12 06:18:03',1,'2026-05-12 06:18:03','ab298ae6-ec71-40c5-9ada-aa04d81416e4'),
-(49,7025,'2026-05-12','intercambio',37,NULL,NULL,NULL,NULL,'aprobada',55,'2026-05-12 06:14:30',55,'2026-05-12 06:14:30',NULL,0,'2026-05-12 06:14:30','2026-05-12 06:18:08',1,'2026-05-12 06:18:08','ab298ae6-ec71-40c5-9ada-aa04d81416e4'),
-(50,7031,'2026-05-14','intercambio',50,NULL,51,NULL,NULL,'aprobada',55,'2026-05-12 06:23:28',55,'2026-05-12 06:23:28',NULL,0,'2026-05-12 06:23:28','2026-05-12 06:23:29',0,NULL,'dd7ba324-7418-40f5-b225-b6a7a32ef9b6'),
-(51,7652,'2026-05-12','intercambio',37,NULL,50,NULL,NULL,'aprobada',55,'2026-05-12 06:23:28',55,'2026-05-12 06:23:28',NULL,0,'2026-05-12 06:23:28','2026-05-12 06:23:29',0,NULL,'dd7ba324-7418-40f5-b225-b6a7a32ef9b6'),
-(52,7658,'2026-05-14','intercambio',50,NULL,NULL,NULL,NULL,'aprobada',55,'2026-05-12 06:23:28',55,'2026-05-12 06:23:28',NULL,0,'2026-05-12 06:23:29','2026-05-12 06:23:29',0,NULL,'dd7ba324-7418-40f5-b225-b6a7a32ef9b6'),
-(53,7025,'2026-05-12','intercambio',37,NULL,NULL,NULL,NULL,'aprobada',55,'2026-05-12 06:23:28',55,'2026-05-12 06:23:28',NULL,0,'2026-05-12 06:23:29','2026-05-12 06:23:29',0,NULL,'dd7ba324-7418-40f5-b225-b6a7a32ef9b6'),
-(54,7027,'2026-05-13','intercambio',50,NULL,55,NULL,NULL,'aprobada',50,'2026-05-12 06:25:34',55,'2026-05-12 06:26:21',NULL,0,'2026-05-12 06:25:34','2026-05-12 06:26:21',0,NULL,'039a24a9-da37-4af4-a1d6-3b3c31305bea'),
-(55,7652,'2026-05-12','intercambio',15,NULL,54,NULL,NULL,'aprobada',50,'2026-05-12 06:25:34',55,'2026-05-12 06:26:21',NULL,0,'2026-05-12 06:25:34','2026-05-12 06:26:22',0,NULL,'039a24a9-da37-4af4-a1d6-3b3c31305bea'),
-(56,7654,'2026-05-13','intercambio',50,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-12 06:25:34',55,'2026-05-12 06:26:21',NULL,0,'2026-05-12 06:25:34','2026-05-12 06:26:22',0,NULL,'039a24a9-da37-4af4-a1d6-3b3c31305bea'),
-(57,7025,'2026-05-12','intercambio',15,NULL,NULL,NULL,NULL,'aprobada',50,'2026-05-12 06:25:34',55,'2026-05-12 06:26:21',NULL,0,'2026-05-12 06:25:34','2026-05-12 06:26:22',0,NULL,'039a24a9-da37-4af4-a1d6-3b3c31305bea');
+(82,7027,'2026-05-13','intercambio',50,NULL,83,NULL,NULL,'pendiente',50,'2026-05-12 08:40:03',NULL,NULL,NULL,0,'2026-05-12 08:40:03','2026-05-12 08:40:52',1,'2026-05-12 08:40:52','6f541979-44f6-4537-a9a1-49311afeac0a'),
+(83,7652,'2026-05-12','intercambio',15,NULL,82,NULL,NULL,'pendiente',50,'2026-05-12 08:40:03',NULL,NULL,NULL,0,'2026-05-12 08:40:03','2026-05-12 08:40:52',1,'2026-05-12 08:40:52','6f541979-44f6-4537-a9a1-49311afeac0a'),
+(84,7654,'2026-05-13','intercambio',50,NULL,NULL,NULL,NULL,'pendiente',50,'2026-05-12 08:40:03',NULL,NULL,NULL,0,'2026-05-12 08:40:03','2026-05-12 08:40:52',1,'2026-05-12 08:40:52','6f541979-44f6-4537-a9a1-49311afeac0a'),
+(85,7025,'2026-05-12','intercambio',15,NULL,NULL,NULL,NULL,'pendiente',50,'2026-05-12 08:40:03',NULL,NULL,NULL,0,'2026-05-12 08:40:03','2026-05-12 08:40:52',1,'2026-05-12 08:40:52','6f541979-44f6-4537-a9a1-49311afeac0a');
 /*!40000 ALTER TABLE `excepcion_horario` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -15135,7 +15115,7 @@ CREATE TABLE `notificacion` (
   KEY `IDX_notif_usuario` (`usuario_id`),
   KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
   CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=196 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=253 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -15145,22 +15125,9 @@ CREATE TABLE `notificacion` (
 LOCK TABLES `notificacion` WRITE;
 /*!40000 ALTER TABLE `notificacion` DISABLE KEYS */;
 INSERT INTO `notificacion` VALUES
-(180,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',0,'2026-05-12 06:25:35',NULL,'2026-05-12 06:25:35','2026-05-12 06:25:35'),
-(181,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:26:10','2026-05-12 06:25:35','2026-05-12 06:26:10'),
-(182,51,'incidencia_propuesta','Te han propuesto un cambio de horario','Alberto Núñez Papo te propone una intercambio para el Mié 13/05/2026 (Bases de Datos · 1º DAM, 08:30-10:30).','/horarios?fecha=2026-05-13&excepcion=54','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Bases de Datos\",\"grupo\":\"1\\u00ba DAM\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:25:50','2026-05-12 06:25:35','2026-05-12 06:25:50'),
-(183,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mar 12/05/2026.','/admin/incidencias','{\"excepcionId\":55,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-12\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',0,'2026-05-12 06:25:35',NULL,'2026-05-12 06:25:35','2026-05-12 06:25:35'),
-(184,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mar 12/05/2026.','/admin/incidencias','{\"excepcionId\":55,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-12\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:29:25','2026-05-12 06:25:35','2026-05-12 06:29:25'),
-(185,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":56,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',0,'2026-05-12 06:25:35',NULL,'2026-05-12 06:25:35','2026-05-12 06:25:35'),
-(186,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":56,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:29:26','2026-05-12 06:25:35','2026-05-12 06:29:26'),
-(187,51,'incidencia_propuesta','Te han propuesto un cambio de horario','Alberto Núñez Papo te propone una intercambio para el Mié 13/05/2026 (Bases de Datos · 1º DAM, 08:30-10:30).','/horarios?fecha=2026-05-13&excepcion=56','{\"excepcionId\":56,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Bases de Datos\",\"grupo\":\"1\\u00ba DAM\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:26:02','2026-05-12 06:25:35','2026-05-12 06:26:02'),
-(188,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mar 12/05/2026.','/admin/incidencias','{\"excepcionId\":57,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-12\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',0,'2026-05-12 06:25:35',NULL,'2026-05-12 06:25:35','2026-05-12 06:25:35'),
-(189,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mar 12/05/2026.','/admin/incidencias','{\"excepcionId\":57,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-12\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\"}',1,'2026-05-12 06:25:35','2026-05-12 06:29:20','2026-05-12 06:25:35','2026-05-12 06:29:20'),
-(190,50,'excepcion_aprobada','Tu incidencia ha sido aprobada','Sara Alberti Marizza ha aprobado tu solicitud de intercambio para el Mié 13/05/2026.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"aprobadorId\":55,\"aprobadorNombre\":\"Sara Alberti Marizza\",\"respuestaAdmin\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21'),
-(191,57,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del Mié 13/05/2026 a las 08:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21'),
-(192,58,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del Mié 13/05/2026 a las 08:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21'),
-(193,59,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del Mié 13/05/2026 a las 08:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21'),
-(194,60,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del Mié 13/05/2026 a las 08:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21'),
-(195,61,'clase_trasladada','Una clase ha cambiado','La clase de Sistemas informáticos del Mié 13/05/2026 a las 08:30-10:30 tendrá un cambio puntual.','/horarios','{\"excepcionId\":54,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Sistemas inform\\u00e1ticos\",\"motivo\":null}',0,'2026-05-12 06:26:21',NULL,'2026-05-12 06:26:21','2026-05-12 06:26:21');
+(250,49,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":82,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\",\"intercambioGrupoId\":\"6f541979-44f6-4537-a9a1-49311afeac0a\"}',0,'2026-05-12 08:40:03',NULL,'2026-05-12 08:40:03','2026-05-12 08:40:03'),
+(251,55,'excepcion_pendiente','Nueva incidencia pendiente','Alberto Núñez Papo ha solicitado una intercambio para el Mié 13/05/2026.','/admin/incidencias','{\"excepcionId\":82,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\",\"intercambioGrupoId\":\"6f541979-44f6-4537-a9a1-49311afeac0a\"}',1,'2026-05-12 08:40:03','2026-05-12 08:40:14','2026-05-12 08:40:03','2026-05-12 08:40:14'),
+(252,51,'incidencia_propuesta','Te han propuesto un cambio de horario','Alberto Núñez Papo te propone una intercambio para el Mié 13/05/2026 (Bases de Datos · 1º DAM, 08:30-10:30).','/horarios?fecha=2026-05-13&excepcion=82','{\"excepcionId\":82,\"tipo\":\"intercambio\",\"fecha\":\"2026-05-13\",\"hora\":\"08:30-10:30\",\"materia\":\"Bases de Datos\",\"grupo\":\"1\\u00ba DAM\",\"solicitanteId\":50,\"solicitanteNombre\":\"Alberto N\\u00fa\\u00f1ez Papo\",\"intercambioGrupoId\":\"6f541979-44f6-4537-a9a1-49311afeac0a\"}',1,'2026-05-12 08:40:03','2026-05-12 08:40:26','2026-05-12 08:40:03','2026-05-12 08:40:26');
 /*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -18054,4 +18021,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-12  6:33:36
+-- Dump completed on 2026-05-12  8:42:30
