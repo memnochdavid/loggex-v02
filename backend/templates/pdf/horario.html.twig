@@ -84,6 +84,7 @@
         .schedule-table .hour-cell {
             background-color: #f8f8f8;
             text-align: center;
+            vertical-align: middle;
             font-weight: bold;
             font-size: 8px;
             color: #555;
@@ -92,11 +93,15 @@
         }
         .schedule-table .day-cell {
             width: 18%;
+            padding: 0;
+            vertical-align: top;
         }
         .event {
             border-radius: 3px;
             padding: 3px 4px;
             color: #fff;
+            box-sizing: border-box;
+            display: block;
         }
         .event .ev-mod {
             font-weight: bold;
@@ -292,50 +297,47 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for slot in bloque.slots %}
-                            {% set slotKey = slot.horaInicio ~ '-' ~ slot.horaFin %}
-                            {% set fila = matriz[slotKey] is defined ? matriz[slotKey] : {} %}
-                            {# Si TODOS los días en esta fila son skip (continuación
-                               de bloques que empezaron antes), ocultar la fila. #}
-                            {% set allSkipped = fila|length == diasSemana|length %}
-                            {% if allSkipped %}
-                                {% for d in diasSemana %}
-                                    {% set cd = fila[d] is defined ? fila[d] : null %}
-                                    {% if not cd or not cd.skip %}{% set allSkipped = false %}{% endif %}
-                                {% endfor %}
-                            {% endif %}
-                            {% if not allSkipped %}
+                        {# Una fila por tramo (Fase B fix 2026-05-12). La
+                           matriz se indexa por tramoKey y cada celda día
+                           es una LISTA de eventos del tramo apilados en
+                           orden cronológico. Sin rowspans complejos →
+                           Dompdf renderiza sin "Undefined array key X". #}
+                        {% for tramo in bloque.slots %}
+                            {% set tramoKey = tramo.horaInicio ~ '-' ~ tramo.horaFin %}
+                            {% set fila = matriz[tramoKey] is defined ? matriz[tramoKey] : {} %}
                             <tr>
                                 <td class="hour-cell">
-                                    {{ slot.horaInicio }}<br>{{ slot.horaFin }}
+                                    {{ tramo.horaInicio }}<br>{{ tramo.horaFin }}
                                 </td>
                                 {% for d in diasSemana %}
-                                    {% set ev = fila[d] is defined ? fila[d] : null %}
-                                    {% if ev and ev.skip %}
-                                        {# Celda omitida: cubierta por el rowspan
-                                           del bloque que empezó en una fila anterior. #}
-                                    {% else %}
-                                        <td class="day-cell"{% if ev and ev.rowSpan|default(1) > 1 %} rowspan="{{ ev.rowSpan }}"{% endif %}>
-                                            {% if ev %}
-                                                <div class="event" style="background-color: {{ ev.color }};">
-                                                    <div class="ev-mod">{{ ev.materia }}</div>
-                                                    {% if ev.profesor %}
-                                                        <div class="ev-meta">{{ ev.profesor }}</div>
-                                                    {% endif %}
-                                                    {% if ev.aula %}
-                                                        <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
-                                                    {% endif %}
-                                                    {% if isPersonal and ev.grupoNombre %}
-                                                        {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
-                                                        <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
-                                                    {% endif %}
-                                                </div>
-                                            {% endif %}
-                                        </td>
-                                    {% endif %}
+                                    {% set evs = fila[d]|default([]) %}
+                                    <td class="day-cell">
+                                        {% for ev in evs %}
+                                            {# min-height proporcional. Si la celda tiene 1 solo
+                                               evento, usa la duración del tramo entero. Si tiene
+                                               varios, cada uno con su duración propia. #}
+                                            {% set durHi = ev.horaInicio|split(':') %}
+                                            {% set durHf = ev.horaFin|split(':') %}
+                                            {% set durMin = (durHf[0] * 60 + durHf[1]) - (durHi[0] * 60 + durHi[1]) %}
+                                            {% set efectivoMin = evs|length == 1 ? tramo.durMin : durMin %}
+                                            {% set minH = (efectivoMin * 0.8)|round %}
+                                            <div class="event" style="background-color: {{ ev.color }}; min-height: {{ minH < 30 ? 30 : minH }}px;">
+                                                <div class="ev-mod">{{ ev.materia }}</div>
+                                                {% if ev.profesor %}
+                                                    <div class="ev-meta">{{ ev.profesor }}</div>
+                                                {% endif %}
+                                                {% if ev.aula %}
+                                                    <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
+                                                {% endif %}
+                                                {% if isPersonal and ev.grupoNombre %}
+                                                    {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
+                                                    <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </td>
                                 {% endfor %}
                             </tr>
-                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

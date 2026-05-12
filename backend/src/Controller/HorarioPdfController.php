@@ -72,6 +72,10 @@ class HorarioPdfController extends AbstractController
         }
 
         $lang = substr($request->query->get('lang', 'es'), 0, 2);
+        $jornadaPersonal = null;
+        if (!empty($horarios)) {
+            $jornadaPersonal = $horarios[0]->getPeriodoLectivo()?->getEffectiveJornadaTipo();
+        }
         $context = $this->buildScheduleContext(
             centro: $centro,
             grupo: null,
@@ -79,6 +83,7 @@ class HorarioPdfController extends AbstractController
             horarios: $horarios,
             lang: $lang,
             fecha: $fecha,
+            jornada: $jornadaPersonal,
         );
 
         $pdf = $this->pdfGenerator->generateFromTwig('pdf/horario.html.twig', $context, 'A4', 'landscape');
@@ -470,29 +475,88 @@ class HorarioPdfController extends AbstractController
             $slots = array_values($slotsMap);
         }
 
-        // Particionado mañana/tarde: corte en 14:30
-        $slotsManana = [];
-        $slotsTarde = [];
-        foreach ($slots as $s) {
-            if (strcmp($s['horaInicio'], '14:30') < 0) {
-                $slotsManana[] = $s;
+        // Tramos contiguos (Fase B fix 2026-05-12): agrupar slots cuyos
+        // horaFin === slot.horaInicio del siguiente. Réplica del modelo
+        // del web (TimeTable.jsx): la columna "Hora" muestra el rango del
+        // tramo entero (p.ej. "08:30-10:30") con rowspan = N sub-slots,
+        // en lugar de N filas separadas con su sub-rango (08:30-09:00,
+        // 09:00-09:30, …). Sin agrupar, el PDF salía con 11 filas donde
+        // el web tiene 5 — visual completamente distinto.
+        $n = count($slots);
+        $i = 0;
+        while ($i < $n) {
+            $tramoStartIdx = $i;
+            $tramoStart = $slots[$i]['horaInicio'];
+            $j = $i;
+            while ($j + 1 < $n && $slots[$j]['horaFin'] === $slots[$j + 1]['horaInicio']) {
+                $j++;
+            }
+            $tramoEnd = $slots[$j]['horaFin'];
+            $span = $j - $i + 1;
+            for ($k = $i; $k <= $j; $k++) {
+                $slots[$k]['tramoStart'] = $tramoStart;
+                $slots[$k]['tramoEnd'] = $tramoEnd;
+                $slots[$k]['tramoSpan'] = $k === $tramoStartIdx ? $span : 0;
+                $slots[$k]['isTramoStart'] = $k === $tramoStartIdx;
+            }
+            $i = $j + 1;
+        }
+
+        // Construir lista de TRAMOS: un row por tramo contiguo (Fase B fix
+        // 2026-05-12). Réplica simplificada del modelo del web: cada tramo
+        // = una fila del PDF; los placements del tramo se renderizan
+        // apilados en la celda del día. Sin rowspan en celdas, solo
+        // anidación visual. Esto elimina los bugs de Dompdf con filas
+        // vacías cubiertas por rowspans (Cellmap.php "Undefined array key").
+        $tramos = [];
+        $i = 0;
+        $n = count($slots);
+        $hmToMin = function (string $hm): int {
+            [$h, $m] = explode(':', $hm);
+            return ((int) $h) * 60 + (int) $m;
+        };
+        while ($i < $n) {
+            $tramoStart = $slots[$i]['horaInicio'];
+            $j = $i;
+            while ($j + 1 < $n && $slots[$j]['horaFin'] === $slots[$j + 1]['horaInicio']) {
+                $j++;
+            }
+            $tramoEnd = $slots[$j]['horaFin'];
+            $tramos[] = [
+                'key' => $tramoStart . '-' . $tramoEnd,
+                'horaInicio' => $tramoStart,
+                'horaFin' => $tramoEnd,
+                // Duración total del tramo en minutos (para el cálculo
+                // proporcional de min-height en el PDF — si una celda tiene
+                // UN solo placement, se expande a esta duración para no
+                // dejar hueco; si tiene varios, cada uno se reparte).
+                'durMin' => $hmToMin($tramoEnd) - $hmToMin($tramoStart),
+            ];
+            $i = $j + 1;
+        }
+
+        // Particionado mañana/tarde: corte en 14:30 (sobre tramos)
+        $tramosManana = [];
+        $tramosTarde = [];
+        foreach ($tramos as $tr) {
+            if (strcmp($tr['horaInicio'], '14:30') < 0) {
+                $tramosManana[] = $tr;
             } else {
-                $slotsTarde[] = $s;
+                $tramosTarde[] = $tr;
             }
         }
 
-        // Matriz [slotKey][diaSemana] => {evento, rowSpan, skip}
-        // - Cada horario es UN bloque (60-120min). Se coloca en su slot inicio
-        //   con rowSpan = N (cuántos slots de la jornada cubre).
-        // - Los slots intermedios y final se marcan skip=true → el twig los omite.
-        // - Si todos los días en una fila son skip, el twig oculta la fila.
+        // Matriz [tramoKey][diaSemana] => [evento1, evento2, ...]
+        // Cada placement se asigna al tramo que lo CONTIENE temporalmente.
+        // Si un tramo del día tiene varios placements (caso típico: Vie
+        // 08:30-10:30 con BD 08:30-09:30 + LM 09:30-10:30), se apilan en
+        // la celda en orden cronológico.
         $matriz = [];
         foreach ($horarios as $h) {
             $hi = $h->getHoraInicio()?->format('H:i');
             $hf = $h->getHoraFin()?->format('H:i');
             $dia = $h->getDiaSemana();
             if (!$hi || !$hf || !$dia) continue;
-            $key = $hi . '-' . $hf;
             $imp = $h->getImparticion();
             $materia = $imp?->getMateria();
             $profesor = $imp?->getProfesor();
@@ -506,7 +570,6 @@ class HorarioPdfController extends AbstractController
                 $excepcionTipo = $excepcion->getTipo()?->value;
                 $excepcionMotivo = $excepcion->getMotivo();
                 if ($excepcion->getTipo() === TipoExcepcion::CANCELADO) {
-                    // No incluir en la matriz: la franja queda en blanco ese día.
                     continue;
                 }
                 if ($excepcion->getTipo() === TipoExcepcion::INTERCAMBIO && $excepcion->getImparticionEfectiva() !== null) {
@@ -517,8 +580,6 @@ class HorarioPdfController extends AbstractController
                 } elseif ($excepcion->getTipo() === TipoExcepcion::SUSTITUCION && $excepcion->getProfeOverride() !== null) {
                     $profesor = $excepcion->getProfeOverride();
                 } elseif ($excepcion->getTipo() === TipoExcepcion::EVENTO_ESPECIAL) {
-                    // Sustituye la materia por el motivo del evento. Profe queda
-                    // si lo había (facilitador) o NULL.
                     $materia = null;
                     if ($excepcion->getProfeOverride() !== null) {
                         $profesor = $excepcion->getProfeOverride();
@@ -529,39 +590,29 @@ class HorarioPdfController extends AbstractController
             $profNombre = $profesor
                 ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
                 : null;
-
-            // Calcular rowSpan: cuántos slots de la jornada cubre el bloque.
-            $rowSpan = 1;
-            $slotsCubiertos = [];
-            $startedCovering = false;
-            foreach ($slots as $s) {
-                if ($s['horaInicio'] === $hi) {
-                    $startedCovering = true;
-                    continue; // saltar el slot inicio (es el del propio evento)
-                }
-                if (!$startedCovering) continue;
-                if ($s['horaInicio'] >= $hf) break;
-                $slotsCubiertos[] = $s['key'];
-                $rowSpan++;
-            }
-
-            // Para que la fila inicio pueda buscar la celda usando el key del SLOT
-            // (no el del evento), buscamos el slot cuyo horaInicio == hi y usamos
-            // su key. Si no existe (bloque desalineado), fallback al key del evento.
-            $startSlotKey = null;
-            foreach ($slots as $s) {
-                if ($s['horaInicio'] === $hi) { $startSlotKey = $s['key']; break; }
-            }
-            $cellKey = $startSlotKey ?? $key;
-
-            // Para EVENTO_ESPECIAL la materia se sustituye por el motivo
-            // (charla, simulacro, taller — texto libre del admin/profe).
             $materiaLabel = $materia?->getNombre() ?? '—';
             if ($excepcionTipo === 'evento_especial') {
                 $materiaLabel = $excepcionMotivo ?: 'Evento especial';
             }
 
-            $matriz[$cellKey][$dia] = [
+            // Encontrar el tramo que contiene este placement (horaInicio
+            // dentro del rango [tramoStart, tramoEnd]).
+            $tramoKey = null;
+            foreach ($tramos as $tr) {
+                if ($tr['horaInicio'] <= $hi && $tr['horaFin'] >= $hf) {
+                    $tramoKey = $tr['key'];
+                    break;
+                }
+            }
+            if ($tramoKey === null) continue;  // placement fuera de tramos (raro)
+
+            if (!isset($matriz[$tramoKey])) {
+                $matriz[$tramoKey] = [];
+            }
+            if (!isset($matriz[$tramoKey][$dia])) {
+                $matriz[$tramoKey][$dia] = [];
+            }
+            $matriz[$tramoKey][$dia][] = [
                 'materia' => $materiaLabel,
                 'moduloId' => $materia?->getId() ?? 0,
                 'profesor' => $profNombre,
@@ -570,18 +621,49 @@ class HorarioPdfController extends AbstractController
                 'grupoAbreviatura' => $grupoEv?->getAbreviatura(),
                 'grupoCurso' => $grupoEv?->getCurso(),
                 'color' => $this->colorForModule($materia?->getId() ?? 0),
-                'rowSpan' => $rowSpan,
-                'skip' => false,
-                'excepcionTipo' => $excepcionTipo,  // null|intercambio|sustitucion|evento_especial
+                'horaInicio' => $hi,
+                'horaFin' => $hf,
+                'excepcionTipo' => $excepcionTipo,
                 'excepcionMotivo' => $excepcionMotivo,
             ];
-            // Marcar slots cubiertos como skip (no renderizar celda).
-            foreach ($slotsCubiertos as $skKey) {
-                if (!isset($matriz[$skKey][$dia])) {
-                    $matriz[$skKey][$dia] = ['skip' => true];
-                }
-            }
         }
+        // Ordenar eventos dentro de cada celda por horaInicio y MERGEAR
+        // consecutivos de la misma imparticion (Fase B fix 2026-05-12).
+        // Caso típico: Vie 10:50-12:50 con 4 placements de Programación de
+        // 30min cada uno → se muestran como UN solo bloque continuo de
+        // 10:50-12:50 en lugar de 4 cards repetidas con el mismo nombre.
+        foreach ($matriz as &$rowDias) {
+            foreach ($rowDias as &$evs) {
+                usort($evs, fn($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+                // Merge: si dos eventos consecutivos tienen el mismo
+                // moduloId + profesor + aula, fusionar en uno solo
+                // extendiendo el horaFin del anterior. Comparamos por la
+                // tripleta para tolerar imparticiones distintas con la
+                // misma materia (raro pero posible).
+                $merged = [];
+                foreach ($evs as $ev) {
+                    $last = $merged ? $merged[count($merged) - 1] : null;
+                    if ($last !== null
+                        && $last['moduloId'] === $ev['moduloId']
+                        && $last['profesor'] === $ev['profesor']
+                        && $last['aula'] === $ev['aula']
+                        && $last['horaFin'] === $ev['horaInicio']
+                    ) {
+                        $merged[count($merged) - 1]['horaFin'] = $ev['horaFin'];
+                    } else {
+                        $merged[] = $ev;
+                    }
+                }
+                $evs = $merged;
+            }
+            unset($evs);
+        }
+        unset($rowDias);
+
+        // Alias compatibles con el resto del código y los callers (el PDF
+        // de grupo multi-página accede `slotsManana`/`slotsTarde`).
+        $slotsManana = $tramosManana;
+        $slotsTarde = $tramosTarde;
 
         $diasSemana = [1, 2, 3, 4, 5];
 
