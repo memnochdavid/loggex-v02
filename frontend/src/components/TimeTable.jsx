@@ -45,6 +45,102 @@ const formatGruposLabel = (event) => {
     ].filter(Boolean).join(' ');
 };
 
+// Fusiona events contiguos del mismo bloque lógico (misma imparticion+aula+PL,
+// mismo día, horaFin del anterior === horaInicio del siguiente). Razón:
+// `/admin/horarios` puede persistir un placement como N mini-Horarios de 30 min
+// en lugar de UN bloque grande (caso real EAG 1º DAW: "Entornos de desarrollo"
+// y "DIG" son 3×30min, mientras que "Programación" es 1×90min). Sin esta
+// fusión, tras el merge de slots a macro-tramos, solo el primer mini matchea
+// `horaInicio === slot.start` y `processEvents` se queda con un evento de
+// 13:00-13:30 dentro de un macro de 13:00-14:30 — el modal pinta el rango
+// truncado aunque la card visual ocupe toda la franja. La fusión devuelve
+// un único evento con `horaFin` extendida al final del último mini.
+// Los sintéticos de excepción (`_overrideAssigned`) NO se fusionan: cada uno
+// es una fecha puntual con su propio `_overrideExcepcionId`.
+const mergeContiguousEvents = (events) => {
+    if (!Array.isArray(events) || events.length === 0) return events;
+    const sinteticos = [];
+    const regulares = [];
+    for (const e of events) {
+        if (!e) continue;
+        if (e._overrideAssigned) sinteticos.push(e);
+        else regulares.push(e);
+    }
+    // Clave estable que define "es la misma clase":
+    //   diaSemana + imparticion + aula + PL.
+    // (Si imparticionId falta, fallback a moduloId para defenderse de events
+    // mal formados, aunque en la práctica `imparticionId` siempre viene.)
+    const byKey = new Map();
+    for (const e of regulares) {
+        const key = [
+            e.diaSemana,
+            e.imparticionId ?? e.moduloId ?? '',
+            e.aula ?? '',
+            e.periodoLectivoId ?? '',
+        ].join('|');
+        if (!byKey.has(key)) byKey.set(key, []);
+        byKey.get(key).push(e);
+    }
+    const out = [...sinteticos];
+    for (const group of byKey.values()) {
+        group.sort((a, b) => String(a.horaInicio).localeCompare(String(b.horaInicio)));
+        let buf = null;
+        for (const e of group) {
+            if (!buf) { buf = { ...e }; continue; }
+            if (buf.horaFin === e.horaInicio) {
+                buf.horaFin = e.horaFin;
+            } else {
+                out.push(buf);
+                buf = { ...e };
+            }
+        }
+        if (buf) out.push(buf);
+    }
+    return out;
+};
+
+// Fusiona slots SLOT contiguos en macro-slots. Mantiene los RECREO como
+// separadores. Razón: `GetMyScheduleController::collectSlots` acumula slots
+// de TODAS las jornadas tocadas por los horarios del user (mañana + tarde,
+// varios grupos), dedup solo por "HH:MM-HH:MM". Si el profe imparte en
+// grupos con jornadas de granularidad distinta (30 min vs 60 min), el set
+// resultante tiene slots mezclados y el grid pinta líneas internas
+// "fantasma" entre cada slot (capturas 2026-05-13: el tramo 08:30-10:30
+// aparecía subdividido en 4 sub-filas en la vista profe). Aquí los
+// colapsamos en macros como los que ve el alumno: 1 fila por tramo entre
+// recreos. No afecta a backend, solver, capacity, ni al PDF.
+// Edge case conocido: un evento que empiece en medio del macro (ej. 9:00
+// dentro de macro 8:30-10:30) no encontrará slot exacto en `processEvents`
+// y no se renderizará. En este proyecto los bloques son 60-120 min con
+// `horaInicio` alineado al inicio del tramo, así que el caso no se da en
+// la práctica.
+const mergeContiguousSlots = (slots) => {
+    if (!Array.isArray(slots) || slots.length === 0) return slots;
+    const out = [];
+    let buf = null;
+    for (const s of slots) {
+        if (!s) continue;
+        if (s.tipo === 'recreo') {
+            if (buf) { out.push(buf); buf = null; }
+            out.push(s);
+            continue;
+        }
+        // SLOT (default)
+        if (!buf) {
+            buf = { ...s };
+        } else if (s.start === buf.end) {
+            buf.end = s.end;
+            // Etiqueta del macro queda neutra (puede contener varias).
+            buf.etiqueta = null;
+        } else {
+            out.push(buf);
+            buf = { ...s };
+        }
+    }
+    if (buf) out.push(buf);
+    return out;
+};
+
 // Duración del slot en minutos (start/end formato 'HH:MM'). Usada para
 // dar altura proporcional a la celda — sin esto, slots de 30 vs 90 min
 // rendereaban con la misma altura mínima de 22px y la rejilla quedaba
@@ -211,6 +307,14 @@ const TimeTable = ({
         ];
     }, [slots]);
 
+    // Events fusionados para la rejilla y el modal (2026-05-13): junta los
+    // mini-Horarios contiguos persistidos como 3×30min en BD (caso real EAG
+    // DIG / Entornos de desarrollo). Sin esto, tras el merge de slots, solo
+    // el primer mini matchea `slot.start` y el modal muestra el rango truncado.
+    // `hasMorning/hasAfternoon` siguen usando `events` raw porque solo
+    // necesitan detectar la presencia del turno, no el detalle.
+    const mergedEvents = useMemo(() => mergeContiguousEvents(events), [events]);
+
     // Detectar turnos
     const hasAfternoon = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) >= 15), [events]);
     const hasMorning = useMemo(() => Array.isArray(events) && events.some(e => parseInt(e.horaInicio.split(':')[0]) < 15), [events]);
@@ -250,12 +354,14 @@ const TimeTable = ({
         // 8:30→9:30): el evento se coloca en su slot inicio con rowSpan = N
         // (cuántos slots de la jornada cubre); los slots intermedios y final
         // se marcan skip=true para no renderizarse.
-        if (Array.isArray(events)) {
+        // Usamos `mergedEvents` (no `events` raw) para juntar mini-Horarios
+        // contiguos persistidos como 3×30min en BD.
+        if (Array.isArray(mergedEvents)) {
             slots.forEach((slot, hIndex) => {
                 days.forEach((day, dIndex) => {
                     if (grid[hIndex][dIndex]) return;
 
-                    const event = events.find(e =>
+                    const event = mergedEvents.find(e =>
                         e.diaSemana === (dIndex + 1) &&
                         e.horaInicio === slot.start
                     );
@@ -314,9 +420,14 @@ const TimeTable = ({
         return grid;
     };
 
+    // Slots fusionados: macros entre recreos. Ver `mergeContiguousSlots`
+    // arriba del archivo para la razón (2026-05-13).
+    const morningSlotsMerged = useMemo(() => mergeContiguousSlots(morningSlots), [morningSlots]);
+    const afternoonSlotsMerged = useMemo(() => mergeContiguousSlots(afternoonSlots), [afternoonSlots]);
+
     // Pre-calcular grids
-    const morningGrid = useMemo(() => processEvents(morningSlots), [events, morningSlots, weekDates, festivos]);
-    const afternoonGrid = useMemo(() => processEvents(afternoonSlots), [events, afternoonSlots, weekDates, festivos]);
+    const morningGrid = useMemo(() => processEvents(morningSlotsMerged), [mergedEvents, morningSlotsMerged, weekDates, festivos]);
+    const afternoonGrid = useMemo(() => processEvents(afternoonSlotsMerged), [mergedEvents, afternoonSlotsMerged, weekDates, festivos]);
 
     const handleEventClick = (event) => {
         setSelectedEvent(event);
@@ -579,17 +690,17 @@ const TimeTable = ({
                             // mismo tramo). Factor 1.5 px/min asegura que
                             // slots de 1h tienen 90px, 90min → 135px.
                             const dMin = slotDurationMin(slot);
-                            // Altura proporcional acotada (Fase B fix 2026-05-12):
-                            // sin cap, un slot de 7h (FCT en rango "Tercera
-                            // evaluación" FP 2º) ocupaba 630px y descuadraba la
-                            // tabla. El cap mantiene la sensación visual de
-                            // "slot largo" sin que la fila se vuelva absurda.
-                            //   - SLOT normal: factor 1.5px/min, cap 240px (≈160min).
-                            //   - RECREO: factor 1.2px/min, cap 80px (no lleva
-                            //     contenido, no necesita altura grande).
+                            // Altura proporcional acotada (Fase B fix 2026-05-12,
+                            // recalibrada 2026-05-13 a 2/3 del factor original
+                            // para reducir espacio vertical desperdiciado en la
+                            // rejilla tras la fusión de slots contiguos):
+                            //   - SLOT normal: factor 1.0px/min (era 1.5),
+                            //     cap 160px (era 240), min 32px (era 48).
+                            //   - RECREO: factor 0.8px/min (era 1.2),
+                            //     cap 54px (era 80), min 14px (era 20).
                             const slotMinH = slot.tipo === 'recreo'
-                                ? `${Math.max(20, Math.min(Math.round(dMin * 1.2), 80))}px`
-                                : `${Math.max(48, Math.min(Math.round(dMin * 1.5), 240))}px`;
+                                ? `${Math.max(14, Math.min(Math.round(dMin * 0.8), 54))}px`
+                                : `${Math.max(32, Math.min(Math.round(dMin * 1.0), 160))}px`;
 
                             if (tInfo.isRecreo) {
                                 return (
@@ -742,7 +853,7 @@ const TimeTable = ({
         shiftsData.push({
             id: 'morning',
             title: t('timetable.morningShift'),
-            slots: morningSlots,
+            slots: morningSlotsMerged,
             grid: morningGrid
         });
     }
@@ -750,7 +861,7 @@ const TimeTable = ({
         shiftsData.push({
             id: 'afternoon',
             title: t('timetable.afternoonShift'),
-            slots: afternoonSlots,
+            slots: afternoonSlotsMerged,
             grid: afternoonGrid
         });
     }
@@ -761,8 +872,8 @@ const TimeTable = ({
         const date = weekDates[index];
         const festivo = getFestivoForDay(date);
 
-        const dayEvents = Array.isArray(events) 
-            ? events
+        const dayEvents = Array.isArray(mergedEvents)
+            ? mergedEvents
                 .filter(e => e.diaSemana === dayIndex)
                 .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
             : [];
