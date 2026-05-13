@@ -612,14 +612,32 @@ class HorarioPdfController extends AbstractController
             if (!isset($matriz[$tramoKey][$dia])) {
                 $matriz[$tramoKey][$dia] = [];
             }
+            // Etiqueta normalizada de grupo: "{curso}º {abreviatura|nombre}".
+            // Precomputada en PHP para que el dedup (mismo bloque físico
+            // impartido a varios grupos, p.ej. 1º DAW + 1º DAM compartiendo
+            // módulo de FP) pueda concatenarlas con " · " sin duplicar
+            // lógica en Twig.
+            $grupoNombre = $grupoEv?->getNombre();
+            $grupoAbrev = $grupoEv?->getAbreviatura();
+            $grupoCurso = $grupoEv?->getCurso();
+            $grupoLabel = null;
+            if ($grupoNombre !== null && $grupoNombre !== '') {
+                $base = ($grupoAbrev !== null && $grupoAbrev !== '') ? $grupoAbrev : $grupoNombre;
+                $grupoLabel = $grupoCurso !== null && $grupoCurso !== ''
+                    ? $grupoCurso . 'º ' . $base
+                    : $base;
+            }
+
             $matriz[$tramoKey][$dia][] = [
                 'materia' => $materiaLabel,
                 'moduloId' => $materia?->getId() ?? 0,
                 'profesor' => $profNombre,
                 'aula' => $h->getAula(),
-                'grupoNombre' => $grupoEv?->getNombre(),
-                'grupoAbreviatura' => $grupoEv?->getAbreviatura(),
-                'grupoCurso' => $grupoEv?->getCurso(),
+                'grupoNombre' => $grupoNombre,
+                'grupoAbreviatura' => $grupoAbrev,
+                'grupoCurso' => $grupoCurso,
+                'grupoLabel' => $grupoLabel,
+                'gruposLabel' => $grupoLabel,
                 'color' => $this->colorForModule($materia?->getId() ?? 0),
                 'horaInicio' => $hi,
                 'horaFin' => $hf,
@@ -635,6 +653,35 @@ class HorarioPdfController extends AbstractController
         foreach ($matriz as &$rowDias) {
             foreach ($rowDias as &$evs) {
                 usort($evs, fn($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
+
+                // Dedup paralelo (Fase B fix 2026-05-13): mismo bloque físico
+                // impartido simultáneamente a varios grupos (caso FP típico
+                // de 1º DAW + 1º DAM compartiendo módulo "Sistemas
+                // informáticos" — son dos imparticiones porque hay dos grupos,
+                // pero una sola clase real). Si dos eventos coinciden en
+                // moduloId + profesor + aula + horaInicio + horaFin, los
+                // colapsamos en uno y concatenamos sus grupoLabel con " · ".
+                $byKey = [];
+                $order = [];
+                foreach ($evs as $ev) {
+                    $k = ($ev['moduloId'] ?? 0) . '|' . ($ev['profesor'] ?? '') . '|' . ($ev['aula'] ?? '')
+                        . '|' . $ev['horaInicio'] . '|' . $ev['horaFin']
+                        . '|' . ($ev['excepcionTipo'] ?? '');
+                    if (!isset($byKey[$k])) {
+                        $byKey[$k] = $ev;
+                        $order[] = $k;
+                    } else {
+                        $extra = $ev['grupoLabel'] ?? null;
+                        $current = $byKey[$k]['gruposLabel'] ?? null;
+                        if ($extra !== null && $extra !== '' && (!$current || !str_contains($current, $extra))) {
+                            $byKey[$k]['gruposLabel'] = $current
+                                ? $current . ' · ' . $extra
+                                : $extra;
+                        }
+                    }
+                }
+                $evs = array_values(array_map(fn($k) => $byKey[$k], $order));
+
                 // Merge: si dos eventos consecutivos tienen el mismo
                 // moduloId + profesor + aula, fusionar en uno solo
                 // extendiendo el horaFin del anterior. Comparamos por la

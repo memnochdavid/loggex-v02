@@ -329,9 +329,12 @@
                                                 {% if ev.aula %}
                                                     <div class="ev-meta">{{ i18n.classroom }}: {{ ev.aula }}</div>
                                                 {% endif %}
-                                                {% if isPersonal and ev.grupoNombre %}
-                                                    {% set grupoLabel = ev.grupoAbreviatura ?: ev.grupoNombre %}
-                                                    <div class="ev-group">{% if ev.grupoCurso %}{{ ev.grupoCurso }}º {% endif %}{{ grupoLabel }}</div>
+                                                {% if isPersonal and ev.gruposLabel %}
+                                                    {# `gruposLabel` viene pre-formateado del controller —
+                                                       un solo grupo "1º DAW" o varios concatenados
+                                                       "1º DAW · 1º DAM" cuando un bloque físico se
+                                                       imparte simultáneamente a varios grupos. #}
+                                                    <div class="ev-group">{{ ev.gruposLabel }}</div>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
