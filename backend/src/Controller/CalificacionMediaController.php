@@ -428,7 +428,22 @@ class CalificacionMediaController extends AbstractController
 
         $resultado = [];
         foreach ($grupos as $grupo) {
-            $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+            // DQL en lugar de findBy para:
+            //  - JOIN i.materia m (INNER): el SoftDeleteFilter añade
+            //    `m.deleted = false` al ON, así excluimos imparticiones que
+            //    referencian materias soft-deleted (sin esto, lazy-load de
+            //    getMateria() lanza EntityNotFoundException → 500).
+            //  - LEFT JOIN i.profesor p: el profesor es nullable
+            //    (Imparticion.php:71 — resync CCAA crea imp sin profe), por
+            //    lo que mantenemos la imparticion aunque el profe sea null
+            //    o soft-deleted, y null-check al renderizar.
+            $imparticiones = $this->em->createQuery(
+                'SELECT i, m, p FROM App\Entity\Imparticion i
+                 JOIN i.materia m
+                 LEFT JOIN i.profesor p
+                 WHERE i.grupo = :grupo'
+            )->setParameter('grupo', $grupo)->getResult();
+
             $matriculas = $this->em->getRepository(Matricula::class)->findBy(['grupo' => $grupo]);
             $alumnos = array_map(fn($m) => $m->getAlumno(), $matriculas);
 
@@ -445,10 +460,13 @@ class CalificacionMediaController extends AbstractController
 
                 $aprobados = count(array_filter($notas, fn($n) => $n >= 5));
                 $total = count($notas);
+                $profesor = $imp->getProfesor();
 
                 $modulosData[] = [
                     'materia' => $imp->getMateria()->getNombre(),
-                    'profesor' => $imp->getProfesor()->getNombre() . ' ' . $imp->getProfesor()->getApellidos(),
+                    'profesor' => $profesor
+                        ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
+                        : null,
                     'mediaGrupo' => $total > 0 ? round(array_sum($notas) / $total, 2) : null,
                     'aprobados' => $aprobados,
                     'suspensos' => $total - $aprobados,
@@ -514,17 +532,28 @@ class CalificacionMediaController extends AbstractController
         $materias = [];
         foreach ($matriculas as $matricula) {
             $grupo = $matricula->getGrupo();
-            $imparticiones = $this->em->getRepository(Imparticion::class)->findBy(['grupo' => $grupo]);
+            // Mismo motivo que en resumenCalificaciones: JOIN materia (INNER) +
+            // LEFT JOIN profesor para evitar 500 por imparticiones huérfanas
+            // (materia soft-deleted) y para tolerar profesor null/soft-deleted.
+            $imparticiones = $this->em->createQuery(
+                'SELECT i, m, p FROM App\Entity\Imparticion i
+                 JOIN i.materia m
+                 LEFT JOIN i.profesor p
+                 WHERE i.grupo = :grupo'
+            )->setParameter('grupo', $grupo)->getResult();
 
             foreach ($imparticiones as $imparticion) {
                 $pesos = $this->ponderacionRepo->getPesosParaImparticion($imparticion->getId());
                 $media = $this->calcularMediaAlumno($imparticion->getId(), $alumno->getId(), $pesos, $periodo);
+                $profesor = $imparticion->getProfesor();
 
                 $materias[] = [
                     'imparticion' => [
                         'id' => $imparticion->getId(),
                         'materia' => $imparticion->getMateria()->getNombre(),
-                        'profesor' => $imparticion->getProfesor()->getNombre() . ' ' . $imparticion->getProfesor()->getApellidos(),
+                        'profesor' => $profesor
+                            ? trim(($profesor->getNombre() ?? '') . ' ' . ($profesor->getApellidos() ?? ''))
+                            : null,
                         'grupo' => $this->formatGrupoLabel($grupo),
                     ],
                     ...$media,
