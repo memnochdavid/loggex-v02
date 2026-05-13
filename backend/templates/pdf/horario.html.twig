@@ -94,7 +94,8 @@
         .schedule-table .day-cell {
             width: 18%;
             padding: 0;
-            vertical-align: top;
+            vertical-align: middle;
+            text-align: center;
         }
         .event {
             border-radius: 3px;
@@ -102,6 +103,7 @@
             color: #fff;
             box-sizing: border-box;
             display: block;
+            text-align: center;
         }
         .event .ev-mod {
             font-weight: bold;
@@ -311,7 +313,17 @@
                                 </td>
                                 {% for d in diasSemana %}
                                     {% set evs = fila[d]|default([]) %}
-                                    <td class="day-cell">
+                                    {% set solo = evs|length == 1 %}
+                                    {# Cuando la celda tiene 1 evento, pintamos el FONDO del <td> con
+                                       el color de la materia (no el del div interno). Razón: el
+                                       <td> se estira automáticamente a la altura del <tr>, que la
+                                       determina la celda más alta (a menudo otra con 2+ eventos
+                                       o texto multi-línea). Sin esto, un `min-height` proporcional
+                                       en el div .event se queda corto y deja hueco blanco bajo la
+                                       card. Con el bg en el <td>, el color cubre toda la celda
+                                       sin importar la altura final del row. #}
+                                    <td class="day-cell"
+                                        {% if solo %}style="background-color: {{ evs[0].color }}; color: #fff;"{% endif %}>
                                         {% for ev in evs %}
                                             {# min-height proporcional. Si la celda tiene 1 solo
                                                evento, usa la duración del tramo entero. Si tiene
@@ -319,9 +331,10 @@
                                             {% set durHi = ev.horaInicio|split(':') %}
                                             {% set durHf = ev.horaFin|split(':') %}
                                             {% set durMin = (durHf[0] * 60 + durHf[1]) - (durHi[0] * 60 + durHi[1]) %}
-                                            {% set efectivoMin = evs|length == 1 ? tramo.durMin : durMin %}
+                                            {% set efectivoMin = solo ? tramo.durMin : durMin %}
                                             {% set minH = (efectivoMin * 0.8)|round %}
-                                            <div class="event" style="background-color: {{ ev.color }}; min-height: {{ minH < 30 ? 30 : minH }}px;">
+                                            <div class="event"
+                                                 style="{% if solo %}background-color: transparent;{% else %}background-color: {{ ev.color }}; min-height: {{ minH < 30 ? 30 : minH }}px;{% endif %}">
                                                 <div class="ev-mod">{{ ev.materia }}</div>
                                                 {% if ev.profesor %}
                                                     <div class="ev-meta">{{ ev.profesor }}</div>
@@ -332,7 +345,7 @@
                                                 {% if isPersonal and ev.gruposLabel %}
                                                     {# `gruposLabel` viene pre-formateado del controller —
                                                        un solo grupo "1º DAW" o varios concatenados
-                                                       "1º DAW · 1º DAM" cuando un bloque físico se
+                                                       "1º DAW + 1º DAM" cuando un bloque físico se
                                                        imparte simultáneamente a varios grupos. #}
                                                     <div class="ev-group">{{ ev.gruposLabel }}</div>
                                                 {% endif %}
