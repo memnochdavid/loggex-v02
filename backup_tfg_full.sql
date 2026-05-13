@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.16-MariaDB-ubu2204
+-- Server version	10.11.15-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -40,7 +40,7 @@ CREATE TABLE `asistencia` (
   KEY `IDX_D8264A8DFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_D8264A8D5396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`),
   CONSTRAINT `FK_D8264A8DFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2053 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2064 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1533,7 +1533,18 @@ INSERT INTO `asistencia` VALUES
 (1969,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,18,57),
 (1970,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,19,57),
 (1971,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,37,57),
-(1972,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,38,57);
+(1972,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,38,57),
+(2053,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,61),
+(2054,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,72),
+(2055,'2026-05-07','10:50:00','F','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,74),
+(2056,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,73),
+(2057,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,76),
+(2058,'2026-05-07','10:50:00','R','y soy un trolassssoooo','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,80),
+(2059,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,58),
+(2060,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,75),
+(2061,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,59),
+(2062,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,60),
+(2063,'2026-05-07','10:50:00','F','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,57);
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12583,7 +12594,7 @@ CREATE TABLE `entrega` (
   KEY `IDX_E56D596BFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_E56D596B6D5BDFE1` FOREIGN KEY (`tarea_id`) REFERENCES `tarea` (`id`),
   CONSTRAINT `FK_E56D596BFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=968 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=969 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -13243,7 +13254,8 @@ INSERT INTO `entrega` VALUES
 (964,'2026-03-12 12:47:00',NULL,'Dummy.pdf',NULL,'2026-03-12 12:47:00','2026-03-12 12:47:00',0,NULL,261,63),
 (965,'2026-03-18 13:14:00',NULL,'Dummy.pdf',NULL,'2026-03-18 13:14:00','2026-03-18 13:14:00',0,NULL,261,64),
 (966,'2026-03-17 09:20:00',NULL,'Dummy.pdf','Trabajo realizado en grupo con compañero.','2026-03-17 09:20:00','2026-03-17 09:20:00',0,NULL,261,65),
-(967,'2026-03-14 18:30:00',NULL,'Dummy.pdf',NULL,'2026-03-14 18:30:00','2026-03-14 18:30:00',0,NULL,261,66);
+(967,'2026-03-14 18:30:00',NULL,'Dummy.pdf',NULL,'2026-03-14 18:30:00','2026-03-14 18:30:00',0,NULL,261,66),
+(968,'2026-05-13 13:46:20',NULL,NULL,NULL,'2026-05-13 13:46:20','2026-05-13 13:46:20',0,NULL,30,80);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -13522,7 +13534,7 @@ LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
 (1,'Desarrollo de Aplicaciones Web','DAW',1,'2025-2026','2025-09-15',NULL,NULL,'2026-05-04 10:44:04',0,NULL,3,3,'Aula 4',NULL),
-(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-15',NULL,NULL,'2026-05-01 21:27:20',0,NULL,3,3,'Aula 5',NULL),
+(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-15',NULL,NULL,'2026-05-13 13:10:43',0,NULL,3,3,'Aula 5',8),
 (3,'Desarrollo de Aplicaciones Multiplataforma','DAM',1,'2025-2026','2025-09-15',NULL,NULL,'2026-05-08 16:34:49',0,NULL,7,3,'Aula 4',NULL),
 (4,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026','2025-09-15',NULL,'2026-05-11 13:00:34','2026-05-11 13:00:50',1,'2026-05-11 13:00:50',7,3,'Aula 5',NULL),
 (5,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026','2025-09-15',NULL,'2026-05-11 13:01:31','2026-05-11 13:12:18',0,NULL,7,3,'Aula 5',6);
@@ -16566,7 +16578,7 @@ CREATE TABLE `jornada_tipo` (
   PRIMARY KEY (`id`),
   KEY `IDX_57BBA106298137A7` (`centro_id`),
   CONSTRAINT `FK_57BBA106298137A7` FOREIGN KEY (`centro_id`) REFERENCES `centro` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -16578,7 +16590,8 @@ LOCK TABLES `jornada_tipo` WRITE;
 INSERT INTO `jornada_tipo` VALUES
 (3,'FP Mañanas','manana','[1,2,3,4,5]','2026-04-26 20:05:11','2026-04-26 20:05:11',0,NULL,3),
 (6,'FP Tardes','tarde','[1,2,3,4,5]','2026-04-28 20:46:22','2026-05-11 13:18:45',0,NULL,3),
-(7,'FP 3ª evaluación','manana','[1,2,3,4,5]','2026-05-12 10:31:42','2026-05-12 10:31:42',0,NULL,3);
+(7,'2º FP 3ª evaluación','especial','[1,2,3,4,5]',NULL,'2026-05-13 13:10:29',1,'2026-05-13 13:10:29',3),
+(8,'2º FP 3ª evaluación','especial','[1,2,3,4,5]','2026-05-13 13:10:22','2026-05-13 13:10:22',0,NULL,3);
 /*!40000 ALTER TABLE `jornada_tipo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -16601,7 +16614,7 @@ CREATE TABLE `jornada_tramo` (
   UNIQUE KEY `uniq_jornada_tramo_orden` (`jornada_tipo_id`,`orden`),
   KEY `IDX_4EF1F68B89635E79` (`jornada_tipo_id`),
   CONSTRAINT `FK_4EF1F68B89635E79` FOREIGN KEY (`jornada_tipo_id`) REFERENCES `jornada_tipo` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=112 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=115 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -16637,9 +16650,9 @@ INSERT INTO `jornada_tramo` VALUES
 (105,11,'slot','19:30:00','20:00:00',NULL,6),
 (106,12,'slot','20:00:00','20:30:00',NULL,6),
 (107,13,'slot','20:30:00','21:00:00',NULL,6),
-(109,0,'slot','08:30:00','15:30:00',NULL,7),
-(110,1,'recreo','15:30:00','18:00:00','Libre',7),
-(111,2,'slot','18:00:00','20:00:00',NULL,7);
+(112,0,'slot','08:30:00','15:30:00',NULL,8),
+(113,1,'recreo','15:30:00','18:00:00','Libre',8),
+(114,2,'slot','18:00:00','20:00:00',NULL,8);
 /*!40000 ALTER TABLE `jornada_tramo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -16984,7 +16997,7 @@ CREATE TABLE `notificacion` (
   KEY `IDX_notif_usuario` (`usuario_id`),
   KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
   CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=253 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=254 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -16993,6 +17006,8 @@ CREATE TABLE `notificacion` (
 
 LOCK TABLES `notificacion` WRITE;
 /*!40000 ALTER TABLE `notificacion` DISABLE KEYS */;
+INSERT INTO `notificacion` VALUES
+(253,54,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Entornos de desarrollo - Proyecto final tema\".','/entregas?tarea=30','{\"entregaId\":968,\"tareaId\":30,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Entornos de desarrollo - Proyecto final tema\"}',0,'2026-05-13 13:46:20',NULL,'2026-05-13 13:46:20','2026-05-13 13:46:20');
 /*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -17369,7 +17384,7 @@ INSERT INTO `periodo_lectivo` VALUES
 (554,5,NULL,'Plantilla del curso',NULL,NULL,0,'plantilla',NULL,NULL,'2026-05-12 10:00:06','2026-05-12 10:00:06',0,NULL,NULL),
 (555,5,6,'Hasta 1ª Evaluación','2025-09-15','2025-12-19',1,'semana',1,554,'2026-05-12 10:00:54','2026-05-12 10:00:54',0,NULL,'evaluacion'),
 (556,5,6,'Hasta 2ª Evaluación','2025-12-20','2026-02-11',2,'semana',2,554,'2026-05-12 10:00:54','2026-05-12 10:00:54',0,NULL,'evaluacion'),
-(557,5,7,'Tercera evaluación','2026-03-12','2026-06-05',3,'semana',3,554,'2026-05-12 10:00:55','2026-05-12 14:39:56',0,NULL,'no_presenciales'),
+(557,5,8,'Tercera evaluación','2026-03-12','2026-06-05',3,'semana',3,554,'2026-05-12 10:00:55','2026-05-13 13:11:15',0,NULL,'no_presenciales'),
 (558,2,7,'Tercera evaluación','2026-03-23','2026-05-29',3,'semana',3,544,'2026-05-12 10:59:20','2026-05-12 10:59:32',1,'2026-05-12 10:59:32','no_presenciales'),
 (559,2,NULL,'Plantilla del curso',NULL,NULL,0,'plantilla',NULL,NULL,'2026-05-12 10:59:35','2026-05-12 10:59:35',0,NULL,NULL),
 (560,2,3,'Hasta 1ª Evaluación','2025-09-15','2025-12-19',1,'semana',1,559,'2026-05-12 11:00:13','2026-05-12 11:00:13',0,NULL,'evaluacion'),
@@ -20094,7 +20109,7 @@ INSERT INTO `usuario` VALUES
 (76,'rey.omar@verduzco.com.es','[\"ROLE_ALUMNO\"]','$2y$13$AweRu9/TW0l/KEzzpgOBVO09Qopl3l2684Fi1sMJwKwm5/je7ttCa','Laia','Delarosa Montez','+34 936 86 1825','21052314T','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (77,'pepe@iestech.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$7OivdXwRW2aOHtTiLw96wO8/p7hY4BATQTpAp0Ve/o/BRYAd0G.ni','Theodore','Robert Bundy','+34 900-59-7119','48507053F','admin','/uploads/avatar/f0dc3678d4d52bf22d2ebcdfd9cd28e4f1b99cb6.jpg',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,4),
 (78,'ggg@correo.com','[\"ROLE_ALUMNO\"]','$2y$13$GdBVvV0SIXtF4c7SgrLxqusDVwCBQeDNupR2QtkcnxGw4ljAeOIMK','ggg','ggg','444444444','55555555T','alumno',NULL,NULL,'[]','2026-04-30 07:17:01','2026-04-30 07:17:11',1,'2026-04-30 07:17:11',3),
-(80,'ivan_gay_skull@correos.com','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$fhusYQCd7QvctlkezKvoGuuLIyFQhJY5uFS7JWsc8e1yyVFy3BAnm','Iván','El Trolazo','699845886','12345678Z','alumno','/uploads/avatar/heman-69fef9e54650c.jpg',NULL,'[]','2026-05-09 09:09:57','2026-05-09 09:27:48',0,NULL,3);
+(80,'ivan_gay_skull@correos.com','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$fhusYQCd7QvctlkezKvoGuuLIyFQhJY5uFS7JWsc8e1yyVFy3BAnm','Iván','El Trolazo','699845886','12345678Z','alumno','/uploads/avatar/heman-69fef9e54650c.jpg',NULL,'[\"primer-login\",\"profesor-editor-horarios\",\"profesor-poner-nota\",\"alumno-ver-calificaciones\",\"admin-crear-grupo\",\"admin-personalizar-centro\",\"alumno-entregar-tarea\"]','2026-05-09 09:09:57','2026-05-13 13:43:07',0,NULL,3);
 /*!40000 ALTER TABLE `usuario` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -20107,4 +20122,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 10:21:10
+-- Dump completed on 2026-05-13 14:31:17
