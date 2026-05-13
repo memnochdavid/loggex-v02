@@ -31,8 +31,9 @@ const DIAS_SEMANA = [
 ];
 
 const TURNOS = [
-  { value: 'manana', key: 'jornadas.turnoManana' },
-  { value: 'tarde',  key: 'jornadas.turnoTarde' },
+  { value: 'manana',   key: 'jornadas.turnoManana' },
+  { value: 'tarde',    key: 'jornadas.turnoTarde' },
+  { value: 'especial', key: 'jornadas.turnoEspecial' },
 ];
 
 // Helpers de tiempo: las TIME columns vienen como "HH:MM:SS" del backend.
@@ -404,9 +405,12 @@ const JornadasAdmin = () => {
     { header: t('jornadas.name', { defaultValue: 'Nombre' }), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     {
       header: t('jornadas.turno', { defaultValue: 'Turno' }),
-      accessor: (row) => row.turno === 'manana'
-        ? t('jornadas.turnoManana', { defaultValue: 'Mañana' })
-        : t('jornadas.turnoTarde', { defaultValue: 'Tarde' }),
+      accessor: (row) => {
+        if (row.turno === 'manana')   return t('jornadas.turnoManana', { defaultValue: 'Mañana' });
+        if (row.turno === 'tarde')    return t('jornadas.turnoTarde',  { defaultValue: 'Tarde' });
+        if (row.turno === 'especial') return t('jornadas.turnoEspecial', { defaultValue: 'Especial' });
+        return row.turno;
+      },
       sortable: true, sortKey: 'turno',
     },
     {
@@ -479,9 +483,10 @@ const JornadasAdmin = () => {
             minWidth={150}
             ariaLabel={t('jornadas.allTurnos', { defaultValue: 'Todos los turnos' })}
             options={[
-              { value: '', label: t('jornadas.allTurnos', { defaultValue: 'Todos los turnos' }) },
-              { value: 'manana', label: t('jornadas.turnoManana', { defaultValue: 'Mañana' }) },
-              { value: 'tarde',  label: t('jornadas.turnoTarde',  { defaultValue: 'Tarde' }) },
+              { value: '',         label: t('jornadas.allTurnos',     { defaultValue: 'Todos los turnos' }) },
+              { value: 'manana',   label: t('jornadas.turnoManana',   { defaultValue: 'Mañana' }) },
+              { value: 'tarde',    label: t('jornadas.turnoTarde',    { defaultValue: 'Tarde' }) },
+              { value: 'especial', label: t('jornadas.turnoEspecial', { defaultValue: 'Especial' }) },
             ]}
           />
           <SearchBar

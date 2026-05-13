@@ -969,7 +969,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
   );
 
   // Etiqueta del turno (informativa, viene de la jornada). Sin jornada, queda en blanco.
-  const turnoGrupo = jornadaActual?.turno === 'tarde' ? 'T' : 'M';
+  const turnoGrupo = jornadaActual?.turno === 'tarde' ? 'T'
+    : jornadaActual?.turno === 'especial' ? 'E'
+    : 'M';
 
   // Helper: duración real de un placement. Con el solver de bloques (2026-05-01),
   // un placement puede abarcar N slots de 30min (bloques de 60-120min). La
@@ -5312,7 +5314,9 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                     const options = opciones.map(j => {
                       const turnoLabel = j.turno === 'tarde'
                         ? t('scheduleEditor.turnoAfternoon')
-                        : t('scheduleEditor.turnoMorning');
+                        : j.turno === 'especial'
+                          ? t('scheduleEditor.turnoSpecial')
+                          : t('scheduleEditor.turnoMorning');
                       const isInherited = String(j.id) === String(inheritedItinId || '');
                       const inheritedSuffix = isInherited
                         ? ` ${t('scheduleEditor.jornadaInheritedSuffix', { defaultValue: '(itinerario)' })}`
@@ -5338,7 +5342,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                       </span>
                     );
                   })()}
-                  <span><b>{t('scheduleEditor.turno')}:</b> {turnoGrupo === 'M' ? t('scheduleEditor.turnoMorning') : t('scheduleEditor.turnoAfternoon')}</span>
+                  <span><b>{t('scheduleEditor.turno')}:</b> {
+                    turnoGrupo === 'T' ? t('scheduleEditor.turnoAfternoon')
+                    : turnoGrupo === 'E' ? t('scheduleEditor.turnoSpecial')
+                    : t('scheduleEditor.turnoMorning')
+                  }</span>
                   <span><b>{t('scheduleEditor.classroom')}:</b> {grupo?.aulaDefault || (grupo?.abreviatura ? `Aula ${grupo.abreviatura}` : '—')}</span>
                   <div className={styles.infoBarActions}>
                     {(() => {
@@ -5595,7 +5603,11 @@ const HorariosEditor = ({ embedded = false, tabs = null }) => {
                   { value: '', label: t('scheduleEditor.rangoJornadaInherit', { defaultValue: '— Heredar del grupo —' }) },
                   ...((extractFkId(grupo?.centro) && jornadasByCentro[extractFkId(grupo?.centro)]) || []).map(j => ({
                     value: String(j.id),
-                    label: `${j.nombre} · ${j.turno === 'tarde' ? t('scheduleEditor.turnoAfternoon') : t('scheduleEditor.turnoMorning')}`,
+                    label: `${j.nombre} · ${
+                      j.turno === 'tarde' ? t('scheduleEditor.turnoAfternoon')
+                      : j.turno === 'especial' ? t('scheduleEditor.turnoSpecial')
+                      : t('scheduleEditor.turnoMorning')
+                    }`,
                   })),
                 ]}
                 placeholder={t('scheduleEditor.rangoJornadaInherit', { defaultValue: '— Heredar del grupo —' })}

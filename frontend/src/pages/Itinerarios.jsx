@@ -868,7 +868,10 @@ const Itinerarios = () => {
                                 const centroId = isSuperAdmin ? formData.centro : (user.centro?.id || '');
                                 return centroId ? { centro: centroId } : {};
                             })()}
-                            getOptionLabel={(j) => `${j.nombre} (${j.turno === 'manana' ? 'M' : 'T'})`}
+                            getOptionLabel={(j) => {
+                                const tag = j.turno === 'tarde' ? 'T' : j.turno === 'especial' ? 'E' : 'M';
+                                return `${j.nombre} (${tag})`;
+                            }}
                             getOptionValue={(j) => j.id || j['@id']?.split('/').pop()}
                             placeholder={t('itinerarios.jornadaPlaceholder', { defaultValue: 'Selecciona una jornada (recomendado)…' })}
                         />
