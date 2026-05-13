@@ -339,6 +339,7 @@
     "rollCallTitle": "Bertaratzea Pasatu: {{module}}",
     "scheduleLabel": "Ordutegia:",
     "groupLabel": "Taldea:",
+    "groupsLabel": "Taldeak:",
     "classroomLabel": "Gela:",
     "teacherLabel": "Irakaslea:",
     "dayEvents": "Eguneko gertaerak:",
@@ -910,6 +911,7 @@
     "dayEvents": "Eguneko gertaerak:",
     "scheduleLabel": "Ordutegia:",
     "groupLabel": "Taldea:",
+    "groupsLabel": "Taldeak:",
     "classroomLabel": "Gela:",
     "teacherLabel": "Irakaslea:"
   },

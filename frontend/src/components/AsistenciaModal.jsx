@@ -8,6 +8,12 @@ import { useTranslation } from 'react-i18next';
 const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) => {
     const { t } = useTranslation();
     const [alumnos, setAlumnos] = useState([]);
+    // Fase E clases-compartidas: si el bloque es compartido (1º DAW + 1º DAM),
+    // el backend devuelve `gruposCompartidos[]` y la tabla añade columna Grupo.
+    // Cada alumno trae su `imparticionId` natural (la de SU grupo) para que
+    // las asistencias se registren contra la imp correcta — el handleSave del
+    // padre lo lee y lo envía por asistencia.
+    const [gruposCompartidos, setGruposCompartidos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [expandedId, setExpandedId] = useState(null);
@@ -43,12 +49,18 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
             });
             if (response.ok) {
                 const data = await response.json();
-                const initializedData = data.map(a => ({
+                // Fase E: el backend devuelve array flat si no hay gemelos
+                // (compat con clientes viejos), o `{alumnos, gruposCompartidos}`
+                // cuando el bloque es compartido entre grupos hermanos.
+                const arr = Array.isArray(data) ? data : (data.alumnos ?? []);
+                const grupos = Array.isArray(data) ? [] : (data.gruposCompartidos ?? []);
+                const initializedData = arr.map(a => ({
                     ...a,
                     estado: a.asistencia ? a.asistencia.estado : 'P',
                     comentario: a.asistencia ? a.asistencia.comentario : ''
                 }));
                 setAlumnos(initializedData);
+                setGruposCompartidos(grupos);
             }
         } catch (error) {
             console.error("Error cargando alumnos:", error);
@@ -121,6 +133,20 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
         </div>
     );
 
+    const showGrupoCol = gruposCompartidos.length > 1;
+
+    // Fase E: chip pequeño con el curso+abreviatura del grupo del alumno
+    // (solo cuando la hoja es compartida entre grupos gemelos).
+    const grupoChip = (alumno) => {
+        if (!showGrupoCol || !alumno.grupo) return null;
+        const g = alumno.grupo;
+        const label = [
+            g.curso ? `${g.curso}º` : null,
+            (g.abreviatura && String(g.abreviatura).trim() !== '') ? g.abreviatura : g.nombre,
+        ].filter(Boolean).join(' ');
+        return <span className={styles.grupoChip}>{label}</span>;
+    };
+
     const renderMobileHeader = (alumno) => (
         <div className={styles.tdAlumno}>
             <div className={styles.avatar}>
@@ -132,7 +158,10 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     </div>
                 )}
             </div>
-            <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
+            <div className={styles.alumnoName}>
+                {alumno.apellidos}, {alumno.nombre}
+                {grupoChip(alumno)}
+            </div>
         </div>
     );
 
@@ -170,7 +199,10 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         )}
                                     </div>
                                     <div>
-                                        <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
+                                        <div className={styles.alumnoName}>
+                                            {alumno.apellidos}, {alumno.nombre}
+                                            {grupoChip(alumno)}
+                                        </div>
                                     </div>
                                 </td>
                                 <td className={styles.tdActions}>

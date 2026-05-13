@@ -1,9 +1,11 @@
 # Hoja de ruta: clases compartidas entre grupos
 
-> **Estado**: 🟡 PARCIAL — Fases A + B + C + D ✅ Done (2026-05-08 / 2026-05-09).
-> Quedan diferidas Fase E (vistas combinadas PDF/asistencia) y la detección
-> automática 🟢/🟡/🔴 con CTAs.
-> **Branch sugerida**: `feat/clases-compartidas` cuando se aborde Fase E.
+> **Estado**: 🟢 CASI CERRADA — Fases A + B + C + D + **E ✅ Done (2026-05-13)**.
+> Quedan diferidas solo la detección automática 🟢/🟡/🔴 con CTAs y el
+> refactor N:M `imparticion_grupo` (opción C, evolución mayor sin demanda actual).
+> Fase E entrega vistas combinadas: TimeTable web + PDF horario personal +
+> pase de lista compartido. Sin cambios en calificaciones (siguen por grupo
+> por diseño).
 > **Origen**: conversación 2026-05-06 sesión 4 tras cierre Fase B modelo-semanal.
 >
 > ### ⚠️ MVP cubierto por otro doc
@@ -219,12 +221,21 @@ que rotan entre grupos sin un patrón de "compartido fijo").
 - Mover un placement en 1º DAW lo mueve automáticamente en 1º DAM.
 - Toast informativo "Cambio replicado en clase gemela 1º DAM".
 
-### Fase E — Vistas dependientes (PDF, vista profe, asistencia)
-- PDF profesor / `/horarios`: detectar gemelos y mostrar UNA lección con
-  etiqueta combinada "Programación · 1º DAW + 1º DAM".
-- Pase de lista: si la lección es compartida, mostrar alumnos de ambos
-  grupos en un solo registro con dos columnas o tabs.
-- Calificaciones: sin cambios — siguen siendo por grupo.
+### Fase E — Vistas dependientes (PDF, vista profe, asistencia) ✅ Done (2026-05-13)
+- ✅ **TimeTable `/horarios`** (vista web del profe): `GetMyScheduleController`
+  agrupa los placements con mismo conjunto de hermandad (`getGemeloRoot()`) en
+  UN event con array `gruposCompartidos[]`. Frontend pinta etiqueta combinada
+  "1º DAW + 1º DAM" en card desktop, mobile y modal de detalle.
+- ✅ **PDF horario personal**: `HorarioPdfController` ya tenía dedup paralelo
+  por `moduloId|profesor|aula|horaInicio|horaFin|excepcionTipo` desde la Fase B
+  fix del 12-may (cerró el caso 1º DAW + 1º DAM tras la unificación de la Fase A
+  M:N). El separador se unificó de " · " a " + " para coincidir con el TimeTable.
+- ✅ **Pase de lista**: `AsistenciaController.getSheet` recolecta imps gemelas
+  vía `findImparticionesGemelas()` y mete alumnos de todos los grupos hermanos
+  en una sola hoja. Cada alumno trae su `imparticionId` natural; `saveBatch`
+  acepta override por asistencia para registrar contra la imp correcta. UI:
+  chip con grupo en cada fila cuando la hoja es compartida.
+- Calificaciones: sin cambios — siguen siendo por grupo (decisión de diseño).
 
 ### Total estimado
 - Fase A: 1 sesión.
@@ -756,3 +767,134 @@ guardar en uno de esos grupos, su `state[gid_plId]` se borra — pero
 ese caso es raro (el editor mantiene `pendingTx` por grupo y solo es
 relevante para el grupo activo durante la edición). Anotado como
 edge case poco frecuente.
+
+### 2026-05-13 — Fase E ✅ Done (vistas combinadas TimeTable + PDF + asistencia)
+
+Cerrado en una sesión sin precedente de fricción real — el usuario quería
+atacarla "antes de que aparezca". Bloque a bloque:
+
+**1) Backend agrupador — `GetMyScheduleController::computeSchedule`**
+
+Refactor del loop de events a un map `eventsByRootId` indexado por el id del
+raíz de hermandad (`$h->getGemeloRoot()->getId()`). Para horarios sin gemelo
+la clave es el propio id (no fusiona). Para horarios con gemelo, todos los
+del conjunto caen en el mismo bucket: el primero crea el event, los siguientes
+solo añaden su grupo al array `gruposCompartidos[]` y hacen `continue`.
+
+Estructura del campo nuevo en cada event:
+```json
+"gruposCompartidos": [
+  {"id": 1, "nombre": "1º DAW", "abreviatura": "DAW", "curso": 1, "imparticionId": 4},
+  {"id": 2, "nombre": "1º DAM", "abreviatura": "DAM", "curso": 1, "imparticionId": 7}
+]
+```
+
+Casos cubiertos:
+- **Alumno**: solo carga su grupo vía matrícula → array con 1 entrada. El
+  frontend lo trata como antes (etiqueta singular).
+- **Profe que imparte ambos**: la query del profe carga las 2 imparticiones →
+  el map fusiona → UN solo event con 2 grupos. La rejilla pinta UNA card.
+- **Profe que imparte solo uno** (caso edge, no se da en EAG): array con 1
+  entrada del único grupo que carga.
+
+Los `loadOverrideAssignedEvents` (sintéticos por excepciones) no se tocaron:
+una excepción aprobada actúa sobre UN bloque concreto, no sobre el conjunto
+de hermandad (la cascade de gemelos en `HorarioGemeloSyncSubscriber` duplica
+la excepción a la cara hermana, así que cada hermano recibe la suya).
+
+⚠️ **Cache**: el controller cachea 5 min por user. Tras desplegar hay que
+hacer `docker compose exec backend php bin/console cache:pool:clear cache.app`
+(o esperar) para que los clientes vean el shape nuevo.
+
+**2) Frontend TimeTable — etiqueta combinada**
+
+Helper nuevo `formatGruposLabel(event)` que devuelve "1º DAW + 1º DAM" cuando
+`gruposCompartidos.length > 1`, o el formato singular previo si no. Aplicado
+en 3 sitios: `.eventGroupSmall` (card desktop), `.mobileEventSubtitle` (móvil),
+y modal de detalle del placement (que ahora usa `i18n: timetable.groupsLabel`
+plural y renderiza lista cuando hay >1).
+
+i18n × 5 idiomas: clave nueva `timetable.groupsLabel` (Grupos / Groups / Grups /
+Taldeak / Grupos) — añadida en los DOS bloques `timetable` que tiene cada
+locale (uno en `dashboard.*`/`home.*` y otro en `timetable.*`).
+
+La dedup vertical existente (línea ~278, fusión de bloques contiguos misma
+materia+grupo+aula) sigue funcionando: el `event.grupo` retenido es el del
+primer horario del bucket, así que la comparación se mantiene consistente
+dentro de un mismo conjunto de hermandad.
+
+**3) PDF horario personal — separador unificado**
+
+`HorarioPdfController::buildScheduleContext` ya había sido extendido en la
+sesión del 12-may (Fase B fix) con dedup paralelo por
+`moduloId|profesor|aula|horaInicio|horaFin|excepcionTipo` que concatenaba
+`grupoLabel` en `gruposLabel`. El twig (`templates/pdf/horario.html.twig:332`)
+ya renderiza `ev.gruposLabel` cuando `isPersonal`. Sin cambios estructurales
+necesarios. Solo se unificó el separador `·` → `+` para coincidir con el
+TimeTable web (consistencia visual entre PDF descargado y rejilla en pantalla).
+
+**4) Pase de lista compartido — `AsistenciaController`**
+
+- **`getSheet`**: nuevo helper `findImparticionesGemelas(Imparticion, EM)`
+  que vuelve `[$imp, $impHermana1, ...]` resolviendo el conjunto de hermandad
+  vía `Horario.gemelo_id` (raíz↔hojas, DQL `WHERE h.id IN (:roots) OR
+  h.gemelo IN (:roots)`). Carga matrículas (vivas) de TODOS los grupos
+  involucrados; cada alumno conserva su `imparticionId` natural (la de SU
+  grupo) en el DTO de respuesta.
+- **Forma de la respuesta**: array flat `[{...}]` si solo hay 1 grupo (compat
+  con clientes viejos). Objeto `{alumnos, gruposCompartidos}` si hay gemelos.
+  Frontend usa `Array.isArray(data)` como discriminador.
+- **`saveBatch`**: acepta opcionalmente `imparticionId` por asistencia.
+  Si presente y distinto del global, se persiste contra esa imp (alumno
+  gemelo → imp correcta). Si ausente, fallback al global (compat).
+- **Frontend**:
+  - `AsistenciaModal.jsx`: nuevo estado `gruposCompartidos`, parser tolerante
+    a ambos shapes, helper `grupoChip(alumno)` que pinta un badge themed
+    (CSS module `.grupoChip` con `color-mix` sobre `--color-primary-500`)
+    junto al nombre del alumno SOLO cuando la hoja es compartida.
+  - `TimeTable.jsx::handleSaveAttendance`: incluye `imparticionId` por
+    asistencia si el alumno lo trae.
+
+**Decisión de diseño relevante (Opción B sobre A)**: la asistencia del alumno
+se registra contra SU imparticion, no contra la del titular. Esto preserva
+la integridad del summary del alumno (`AsistenciaController::getAlumnoSummary`
+itera matrículas → imparticiones del alumno; sin esta decisión, el alumno
+DAM tendría asistencias contra imp DAW y su summary no las encontraría) y
+mantiene las medias por grupo separadas en las calificaciones (que siguen
+siendo por grupo). El profe sigue viendo una sola hoja; el backend reparte.
+
+**Bug encontrado en validación E2E (mismo día, fix in-line)**:
+Primera versión de `findImparticionesGemelas` usaba DQL
+`SELECT DISTINCT i FROM Horario h JOIN h.imparticion i WHERE ...`. Doctrine
+falló con `QueryException: Cannot select entity through identification
+variables without choosing at least one root entity alias` — DQL exige que
+la entidad seleccionada sea la raíz del FROM, no un alias obtenido por JOIN.
+Reescrito a `SELECT DISTINCT i FROM Imparticion i JOIN i.horarios h WHERE
+(h.id IN (:roots) OR h.gemelo IN (:roots)) AND h.deleted = false`, que aprovecha
+la relación inversa `OneToMany Imparticion::horarios` (mappedBy='imparticion').
+Síntoma: `getSheet` devolvía 500 → AsistenciaModal aparecía vacío sin error
+visible en UI (solo `console.error`). Cobertura defensiva mejorable: añadir
+toast cuando el response no es OK.
+
+**Validación E2E pendiente**:
+1. Profe (Alberto) que imparte 1º DAW + 1º DAM gemelos: ir a `/horarios`,
+   confirmar que cada bloque compartido aparece UNA vez con etiqueta
+   "1º DAW + 1º DAM". (Requiere `cache:pool:clear cache.app` tras desplegar.)
+2. Click en bloque → modal de detalle muestra los 2 grupos en una lista.
+3. Click "Pasar lista" → tabla muestra alumnos de ambos grupos con chip
+   con el grupo. Marcar asistencia, guardar.
+4. `SELECT alumno_id, imparticion_id, estado FROM asistencia WHERE
+   fecha='YYYY-MM-DD' AND hora='HH:MM:SS';` → cada asistencia contra la
+   imp del grupo del alumno (no la del bloque clicado).
+5. PDF horario personal del profe → bloque pinta "1º DAW + 1º DAM" con
+   separador " + ".
+6. Página `/mis-faltas` del alumno DAM → debe mostrar la falta/presencia
+   correctamente atribuida a su materia/imparticion del DAM.
+
+**Diferidos** (sin demanda actual, anotados como mejoras opcionales):
+- Detección automática 🟢/🟡/🔴 + banner contextual + modal "Asignar
+  profesor compartido" (UX-only, no estructural).
+- Refactor N:M `imparticion_grupo` (opción C del análisis original) — la
+  evolución mayor que sustituye `gemelo_id` por relación nativa. Solo cuando
+  haya fricción real con clientes (a hoy, gemelo_id cubre los casos vistos
+  en EAG sin colisiones).

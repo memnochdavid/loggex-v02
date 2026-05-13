@@ -339,6 +339,7 @@
     "rollCallTitle": "Passar llista: {{module}}",
     "scheduleLabel": "Horari:",
     "groupLabel": "Grup:",
+    "groupsLabel": "Grups:",
     "classroomLabel": "Aula:",
     "teacherLabel": "Professor:",
     "dayEvents": "Esdeveniments del dia:",
@@ -910,6 +911,7 @@
     "dayEvents": "Esdeveniments del dia:",
     "scheduleLabel": "Horari:",
     "groupLabel": "Grup:",
+    "groupsLabel": "Grups:",
     "classroomLabel": "Aula:",
     "teacherLabel": "Professor:"
   },

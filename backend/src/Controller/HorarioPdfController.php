@@ -654,13 +654,14 @@ class HorarioPdfController extends AbstractController
             foreach ($rowDias as &$evs) {
                 usort($evs, fn($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));
 
-                // Dedup paralelo (Fase B fix 2026-05-13): mismo bloque físico
-                // impartido simultáneamente a varios grupos (caso FP típico
-                // de 1º DAW + 1º DAM compartiendo módulo "Sistemas
-                // informáticos" — son dos imparticiones porque hay dos grupos,
-                // pero una sola clase real). Si dos eventos coinciden en
-                // moduloId + profesor + aula + horaInicio + horaFin, los
-                // colapsamos en uno y concatenamos sus grupoLabel con " · ".
+                // Dedup paralelo (Fase B fix 2026-05-13, separador unificado
+                // 2026-05-13 Fase E): mismo bloque físico impartido simultáneamente
+                // a varios grupos (caso FP típico de 1º DAW + 1º DAM compartiendo
+                // módulo "Sistemas informáticos" — son dos imparticiones porque
+                // hay dos grupos, pero una sola clase real). Si dos eventos
+                // coinciden en moduloId + profesor + aula + horaInicio + horaFin,
+                // los colapsamos en uno y concatenamos sus grupoLabel con " + "
+                // (mismo separador que TimeTable en frontend).
                 $byKey = [];
                 $order = [];
                 foreach ($evs as $ev) {
@@ -675,7 +676,7 @@ class HorarioPdfController extends AbstractController
                         $current = $byKey[$k]['gruposLabel'] ?? null;
                         if ($extra !== null && $extra !== '' && (!$current || !str_contains($current, $extra))) {
                             $byKey[$k]['gruposLabel'] = $current
-                                ? $current . ' · ' . $extra
+                                ? $current . ' + ' . $extra
                                 : $extra;
                         }
                     }

@@ -339,6 +339,7 @@
     "rollCallTitle": "Take Attendance: {{module}}",
     "scheduleLabel": "Schedule:",
     "groupLabel": "Group:",
+    "groupsLabel": "Groups:",
     "classroomLabel": "Classroom:",
     "teacherLabel": "Teacher:",
     "dayEvents": "Today's events:",
@@ -910,6 +911,7 @@
     "dayEvents": "Today's events:",
     "scheduleLabel": "Schedule:",
     "groupLabel": "Group:",
+    "groupsLabel": "Groups:",
     "classroomLabel": "Classroom:",
     "teacherLabel": "Teacher:"
   },

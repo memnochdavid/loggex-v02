@@ -621,6 +621,7 @@
     "rollCallTitle": "Pasar Lista: {{module}}",
     "scheduleLabel": "Horario:",
     "groupLabel": "Grupo:",
+    "groupsLabel": "Grupos:",
     "classroomLabel": "Aula:",
     "teacherLabel": "Profesor:",
     "dayEvents": "Eventos del día:",
@@ -1233,6 +1234,7 @@
     "dayEvents": "Eventos del día:",
     "scheduleLabel": "Horario:",
     "groupLabel": "Grupo:",
+    "groupsLabel": "Grupos:",
     "classroomLabel": "Aula:",
     "teacherLabel": "Profesor:"
   },

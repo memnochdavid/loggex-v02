@@ -104,6 +104,16 @@ class GetMyScheduleController extends AbstractController
         }
 
         $events = [];
+        // Fase E clases-compartidas (2026-05-13): cuando un profe imparte una
+        // clase gemela (misma materia, dos grupos hermanos LOMLOE — caso real
+        // 1º DAW + 1º DAM EAG), la query lo carga DOS veces (una por imp). En
+        // lugar de pintar dos cards solapadas, fusionamos los horarios del
+        // mismo conjunto de hermandad (`gemelo_id`) en UN event con array
+        // `gruposCompartidos` que el frontend usa para etiquetar "1º DAW + 1º DAM".
+        // Indexamos por `rootId` (id del raíz de hermandad — getGemeloRoot).
+        // Un alumno solo carga su grupo, así que su array tendrá 1 entrada
+        // (sin etiqueta combinada). Un profe que imparte ambos verá UNA card.
+        $eventsByRootId = [];
         // Recolectamos también los slots para que el TimeTable los renderice.
         // Tres fuentes (en este orden, dedup por clave "HH:MM-HH:MM"):
         //  1) Jornada efectiva de cada PeriodoLectivo de los horarios (cubre el
@@ -161,8 +171,41 @@ class GetMyScheduleController extends AbstractController
             // queda como "matchea cualquier fecha" y se mezcla con SEMANAs).
             $plTipo = $pl?->getTipo()?->value;
 
-            $events[] = [
+            // Fase E: clave de agrupación = id del raíz de hermandad. Para
+            // horarios sin gemelo, es el id del propio horario (no fusiona con
+            // nadie). Para horarios con gemelo, todos los del conjunto comparten
+            // el mismo raíz y caen en el mismo bucket.
+            $rootId = $h->getGemeloRoot()->getId();
+            $grupoCompartido = [
+                'id' => $grupo->getId(),
+                'nombre' => $grupo->getNombre(),
+                'abreviatura' => $grupo->getAbreviatura(),
+                'curso' => $grupo->getCurso(),
+                'imparticionId' => $h->getImparticion()->getId(),
+            ];
+
+            if (isset($eventsByRootId[$rootId])) {
+                // Ya hay un event para este conjunto de hermandad: solo añadimos
+                // el grupo al array compartido (si no estaba ya). El primer
+                // event que entra en el bucket sigue siendo el "principal"
+                // (sus campos `grupo`/`imparticionId`/etc. se preservan por
+                // compat con clientes viejos; el frontend nuevo lee
+                // `gruposCompartidos`).
+                $idx =& $eventsByRootId[$rootId];
+                $yaPresente = false;
+                foreach ($idx['gruposCompartidos'] as $g) {
+                    if ($g['id'] === $grupo->getId()) { $yaPresente = true; break; }
+                }
+                if (!$yaPresente) {
+                    $idx['gruposCompartidos'][] = $grupoCompartido;
+                }
+                // Continuamos al siguiente horario sin pushear event nuevo.
+                continue;
+            }
+
+            $eventsByRootId[$rootId] = [
                 'id' => $h->getId(),
+                'rootId' => $rootId,
                 'diaSemana' => $h->getDiaSemana(),
                 'horaInicio' => $h->getHoraInicio()->format('H:i'),
                 'horaFin' => $h->getHoraFin()->format('H:i'),
@@ -180,6 +223,11 @@ class GetMyScheduleController extends AbstractController
                 'periodoLectivoTipo' => $plTipo,  // 'plantilla' | 'semana' | null
                 'periodoLectivoFechaInicio' => $plFechaInicio,
                 'periodoLectivoFechaFin' => $plFechaFin,
+                // Fase E: array con TODOS los grupos del conjunto de hermandad
+                // presentes en este user. Si solo hay 1, el frontend renderiza
+                // como antes (etiqueta singular). Si hay >1, etiqueta combinada
+                // "1º DAW + 1º DAM" en card y modal de detalle.
+                'gruposCompartidos' => [$grupoCompartido],
             ];
 
             // (1) Jornada efectiva del PL del horario, si existe.
@@ -219,6 +267,11 @@ class GetMyScheduleController extends AbstractController
             // frontend renderiza los bloques con `gridRow span` proporcional
             // a la duración del horario.
         }
+
+        // Fase E: materializamos el array de events desde el map por rootId.
+        // El orden no importa (el frontend rebina por diaSemana × horaInicio
+        // al renderizar la rejilla).
+        $events = array_values($eventsByRootId);
 
         $slots = array_values($slotsByKey);
         usort($slots, fn ($a, $b) => strcmp($a['horaInicio'], $b['horaInicio']));

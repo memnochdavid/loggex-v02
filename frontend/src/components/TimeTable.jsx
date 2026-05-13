@@ -24,6 +24,27 @@ const colorForModule = (mid) => {
     return `hsl(${hue}, 55%, 48%)`;
 };
 
+// Fase E clases-compartidas (2026-05-13): formato unificado del grupo en la
+// card y modal. Si el event llega del backend con `gruposCompartidos.length > 1`
+// (profe que imparte la misma clase en grupos gemelos LOMLOE, ej. 1º DAW + 1º DAM)
+// renderiza "1º DAW + 1º DAM". Si no, mantiene el formato singular previo.
+const formatGruposLabel = (event) => {
+    const arr = Array.isArray(event?.gruposCompartidos) ? event.gruposCompartidos : null;
+    if (arr && arr.length > 1) {
+        return arr.map(g => {
+            const curso = g.curso ? `${g.curso}º` : '';
+            const abrev = (g.abreviatura && String(g.abreviatura).trim() !== '') ? g.abreviatura : g.nombre;
+            return [curso, abrev].filter(Boolean).join(' ');
+        }).join(' + ');
+    }
+    return [
+        event?.grupoCurso ? `${event.grupoCurso}º` : null,
+        (event?.grupoAbreviatura && event.grupoAbreviatura.trim() !== '')
+            ? event.grupoAbreviatura
+            : event?.grupo,
+    ].filter(Boolean).join(' ');
+};
+
 // Duración del slot en minutos (start/end formato 'HH:MM'). Usada para
 // dar altura proporcional a la celda — sin esto, slots de 30 vs 90 min
 // rendereaban con la misma altura mínima de 22px y la rejilla quedaba
@@ -668,12 +689,7 @@ const TimeTable = ({
                                                         }} />
                                                     </div>
                                                     <div className={styles.eventGroupSmall}>
-                                                        {[
-                                                            cellData.event.grupoCurso ? `${cellData.event.grupoCurso}º` : null,
-                                                            (cellData.event.grupoAbreviatura && cellData.event.grupoAbreviatura.trim() !== '')
-                                                                ? cellData.event.grupoAbreviatura
-                                                                : cellData.event.grupo,
-                                                        ].filter(Boolean).join(' ')}
+                                                        {formatGruposLabel(cellData.event)}
                                                     </div>
                                                     {exc && (
                                                         <div className={styles.eventExceptionTag}>
@@ -784,10 +800,7 @@ const TimeTable = ({
                             }} />
                         </div>
                         <div className={styles.mobileEventSubtitle}>
-                            {[
-                                event.grupoCurso ? `${event.grupoCurso}º` : null,
-                                (event.grupoAbreviatura && event.grupoAbreviatura.trim() !== '') ? event.grupoAbreviatura : event.grupo,
-                            ].filter(Boolean).join(' ')} • {event.aula}
+                            {formatGruposLabel(event)} • {event.aula}
                         </div>
                     </div>
                 ))
@@ -814,7 +827,12 @@ const TimeTable = ({
                 asistencias: asistenciaData.alumnos.map(a => ({
                     alumnoId: a.id,
                     estado: a.estado,
-                    comentario: a.comentario
+                    comentario: a.comentario,
+                    // Fase E clases-compartidas: alumnos de grupos gemelos
+                    // traen su `imparticionId` natural (la de SU grupo). El
+                    // backend usa éste si difiere del global para que la
+                    // Asistencia se registre contra la imp correcta.
+                    ...(a.imparticionId ? { imparticionId: a.imparticionId } : {}),
                 }))
             };
 
@@ -1042,12 +1060,29 @@ const TimeTable = ({
                             <div className={styles.detailRow}>
                                 <Users size={18} className={styles.icon} />
                                 <div>
-                                    <span className={styles.label}>{t('timetable.groupLabel')}</span>
-                                    <span className={styles.value}>
-                                        {selectedEvent.grupoCurso ? `${selectedEvent.grupoCurso}º ` : ''}{selectedEvent.grupo}
+                                    <span className={styles.label}>
+                                        {Array.isArray(selectedEvent.gruposCompartidos) && selectedEvent.gruposCompartidos.length > 1
+                                            ? t('timetable.groupsLabel', { defaultValue: 'Grupos' })
+                                            : t('timetable.groupLabel')}
                                     </span>
-                                    {selectedEvent.grupoAbreviatura && (
-                                        <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
+                                    {Array.isArray(selectedEvent.gruposCompartidos) && selectedEvent.gruposCompartidos.length > 1 ? (
+                                        <span className={styles.value}>
+                                            {selectedEvent.gruposCompartidos.map(g => {
+                                                const curso = g.curso ? `${g.curso}º ` : '';
+                                                const abrev = (g.abreviatura && String(g.abreviatura).trim() !== '')
+                                                    ? ` (${g.abreviatura})` : '';
+                                                return `${curso}${g.nombre}${abrev}`;
+                                            }).join(' + ')}
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <span className={styles.value}>
+                                                {selectedEvent.grupoCurso ? `${selectedEvent.grupoCurso}º ` : ''}{selectedEvent.grupo}
+                                            </span>
+                                            {selectedEvent.grupoAbreviatura && (
+                                                <span className={styles.subValue}> ({selectedEvent.grupoAbreviatura})</span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Asistencia;
+use App\Entity\Horario;
 use App\Entity\Imparticion;
 use App\Entity\Matricula;
 use App\Entity\User;
@@ -32,16 +33,46 @@ class AsistenciaController extends AbstractController
             return $this->json(['message' => 'Impartición no encontrada'], 404);
         }
 
-        // Obtener alumnos del grupo
-        $matriculas = $entityManager->getRepository(Matricula::class)->findBy(['grupo' => $imparticion->getGrupo()]);
+        // Fase E clases-compartidas (2026-05-13): cuando la imparticion pertenece
+        // a un conjunto de hermandad (algún Horario con `gemelo_id` apuntando a
+        // otra imparticion gemela, caso típico 1º DAW + 1º DAM LOMLOE), incluir
+        // a los alumnos de TODOS los grupos hermanos en una sola hoja. Cada
+        // alumno conserva su `imparticionId` natural (la de SU grupo) para que
+        // su Asistencia se registre contra ella, manteniendo la integridad del
+        // summary del alumno y de las medias por grupo.
+        $impsGemelas = $this->findImparticionesGemelas($imparticion, $entityManager);
+        $gruposGemelos = [];
+        $impIdByGrupoId = [];
+        foreach ($impsGemelas as $i) {
+            $g = $i->getGrupo();
+            if (!$g) continue;
+            $gruposGemelos[$g->getId()] = $g;
+            $impIdByGrupoId[$g->getId()] = $i->getId();
+        }
+        if (empty($gruposGemelos)) {
+            // Fallback defensivo: imparticion sin grupo (caso edge improbable).
+            $gruposGemelos[$imparticion->getGrupo()->getId()] = $imparticion->getGrupo();
+            $impIdByGrupoId[$imparticion->getGrupo()->getId()] = $imparticion->getId();
+        }
+
+        $matriculas = $entityManager->getRepository(Matricula::class)->findBy([
+            'grupo' => array_values($gruposGemelos),
+            'deleted' => false,
+        ]);
 
         $alumnosData = [];
         foreach ($matriculas as $matricula) {
             $alumno = $matricula->getAlumno();
+            $grupo = $matricula->getGrupo();
+            $impIdAlumno = $impIdByGrupoId[$grupo->getId()] ?? $imparticion->getId();
 
-            // Buscar asistencia existente
+            // Asistencia existente: SIEMPRE contra la imparticion natural del
+            // alumno (la de su grupo). Sin esto, alumnos del grupo gemelo
+            // verían registros pegados a la imp del grupo del titular y el
+            // summary del alumno (que itera por SUS matriculas → SUS imps) no
+            // los encontraría.
             $asistencia = $entityManager->getRepository(Asistencia::class)->findOneBy([
-                'imparticion' => $imparticion,
+                'imparticion' => $entityManager->getReference(Imparticion::class, $impIdAlumno),
                 'alumno' => $alumno,
                 'fecha' => new \DateTime($fecha),
                 'hora' => new \DateTime($hora) // La hora es importante si hay varias clases el mismo día
@@ -52,6 +83,13 @@ class AsistenciaController extends AbstractController
                 'nombre' => $alumno->getNombre(),
                 'apellidos' => $alumno->getApellidos(),
                 'foto' => $alumno->getFoto(),
+                'imparticionId' => $impIdAlumno,
+                'grupo' => [
+                    'id' => $grupo->getId(),
+                    'nombre' => $grupo->getNombre(),
+                    'abreviatura' => $grupo->getAbreviatura(),
+                    'curso' => $grupo->getCurso(),
+                ],
                 'asistencia' => $asistencia ? [
                     'id' => $asistencia->getId(),
                     'estado' => $asistencia->getEstado(),
@@ -65,7 +103,69 @@ class AsistenciaController extends AbstractController
             return strcmp($a['apellidos'], $b['apellidos']);
         });
 
-        return $this->json($alumnosData);
+        // Compat: si solo hay 1 grupo (caso mayoritario), devolvemos el array
+        // flat de toda la vida. Si hay gemelos, devolvemos objeto con
+        // `gruposCompartidos` para que el frontend muestre la columna Grupo.
+        if (count($gruposGemelos) <= 1) {
+            return $this->json($alumnosData);
+        }
+
+        $gruposCompartidos = array_values(array_map(fn ($g) => [
+            'id' => $g->getId(),
+            'nombre' => $g->getNombre(),
+            'abreviatura' => $g->getAbreviatura(),
+            'curso' => $g->getCurso(),
+        ], $gruposGemelos));
+
+        return $this->json([
+            'alumnos' => $alumnosData,
+            'gruposCompartidos' => $gruposCompartidos,
+        ]);
+    }
+
+    /**
+     * Devuelve las imparticiones del conjunto de hermandad de `$imp` (la
+     * propia incluida). Para clases gemelas (1º DAW + 1º DAM LOMLOE),
+     * recolecta TODAS las imparticiones cuyo placement pertenece al mismo
+     * conjunto de `Horario.gemelo_id` (raíz + copias).
+     *
+     * @return list<Imparticion>
+     */
+    private function findImparticionesGemelas(Imparticion $imp, EntityManagerInterface $em): array
+    {
+        $rootIds = [];
+        foreach ($imp->getHorarios() as $h) {
+            if ($h->isDeleted()) continue;
+            $rootIds[$h->getGemeloRoot()->getId()] = true;
+        }
+        if (empty($rootIds)) {
+            return [$imp];
+        }
+        $rootIdArr = array_keys($rootIds);
+        // Por convención (canonicalización Fase B), `gemelo` apunta SIEMPRE
+        // al raíz, no encadena. Así la query "todos los hermanos de X" es
+        // `WHERE h.id = X OR h.gemelo = X` para cada raíz. DQL no permite
+        // seleccionar `i` directamente desde JOIN sin alias raíz, por lo que
+        // usamos `Imparticion` como root y filtramos por su relación inversa
+        // a Horario.
+        $dql = "SELECT DISTINCT i
+                FROM App\\Entity\\Imparticion i
+                JOIN i.horarios h
+                WHERE (h.id IN (:roots) OR h.gemelo IN (:roots))
+                  AND h.deleted = false";
+        $rows = $em->createQuery($dql)
+            ->setParameter('roots', $rootIdArr)
+            ->getResult();
+        // Garantizamos que la propia $imp esté presente (en caso edge de que
+        // un horario no esté en hermandad pero la query gemela traiga otras).
+        $byId = [];
+        foreach ($rows as $i) {
+            $byId[$i->getId()] = $i;
+        }
+        if (!isset($byId[$imp->getId()])) {
+            $byId[$imp->getId()] = $imp;
+        }
+        return array_values($byId);
     }
 
     #[Route('/api/v1/asistencia/batch', name: 'api_asistencia_batch', methods: ['POST'])]
@@ -87,9 +187,22 @@ class AsistenciaController extends AbstractController
             $alumno = $entityManager->getRepository(User::class)->find($item['alumnoId']);
             if (!$alumno) continue;
 
+            // Fase E clases-compartidas (2026-05-13): si el item trae su propio
+            // `imparticionId`, lo usamos en lugar del global (alumno de grupo
+            // gemelo → su asistencia se registra contra SU imparticion, no
+            // contra la del titular del bloque). El frontend nuevo lo envía
+            // siempre que el backend haya marcado la hoja como compartida.
+            $impForItem = $imparticion;
+            if (!empty($item['imparticionId']) && (int) $item['imparticionId'] !== $imparticion->getId()) {
+                $impCandidate = $entityManager->getRepository(Imparticion::class)->find($item['imparticionId']);
+                if ($impCandidate) {
+                    $impForItem = $impCandidate;
+                }
+            }
+
             // Buscar si ya existe para actualizar
             $asistencia = $entityManager->getRepository(Asistencia::class)->findOneBy([
-                'imparticion' => $imparticion,
+                'imparticion' => $impForItem,
                 'alumno' => $alumno,
                 'fecha' => $fecha,
                 'hora' => $hora
@@ -97,7 +210,7 @@ class AsistenciaController extends AbstractController
 
             if (!$asistencia) {
                 $asistencia = new Asistencia();
-                $asistencia->setImparticion($imparticion);
+                $asistencia->setImparticion($impForItem);
                 $asistencia->setAlumno($alumno);
                 $asistencia->setFecha($fecha);
                 $asistencia->setHora($hora);
