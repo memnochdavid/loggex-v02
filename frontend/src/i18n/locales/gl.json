@@ -778,7 +778,8 @@
     "saveGrade": "Gardar Cualificación",
     "errorLoadDeliveries": "Erro cargando entregas",
     "errorUpload": "Erro ao subir entrega",
-    "errorSaveGrade": "Erro ao gardar cualificación"
+    "errorSaveGrade": "Erro ao gardar cualificación",
+    "emptyFormError": "Debes anexar un ficheiro, unha ligazón ou un comentario antes de enviar a entrega."
   },
   "profile": {
     "personalInfo": "Información Persoal",

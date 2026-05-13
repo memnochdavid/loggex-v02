@@ -778,7 +778,8 @@
     "saveGrade": "Gorde Kalifikazioa",
     "errorLoadDeliveries": "Errorea bidalketak kargatzean",
     "errorUpload": "Errorea bidalketa igotzean",
-    "errorSaveGrade": "Errorea kalifikazioa gordetzean"
+    "errorSaveGrade": "Errorea kalifikazioa gordetzean",
+    "emptyFormError": "Fitxategi bat, esteka bat edo iruzkin bat erantsi behar duzu entrega bidali aurretik."
   },
   "profile": {
     "personalInfo": "Informazio Pertsonala",

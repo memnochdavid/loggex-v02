@@ -324,6 +324,18 @@ const Entregas = () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    // Validación: una entrega debe traer AL MENOS uno de los 3 campos
+    // (archivo, enlace o comentario). Sin esto, el backend acepta un POST
+    // solo con `tareaId` y crea una Entrega vacía (sin contenido entregable)
+    // que cuenta como "entregado" en las medias y notificaciones, falseando
+    // el estado pedagógico real.
+    const tieneArchivo = !!uploadFormData.archivo;
+    const tieneEnlace = uploadFormData.enlace && uploadFormData.enlace.trim() !== '';
+    const tieneComentario = uploadFormData.comentario && uploadFormData.comentario.trim() !== '';
+    if (!tieneArchivo && !tieneEnlace && !tieneComentario) {
+      toast.error(t('deliveries.emptyFormError', { defaultValue: 'Debes adjuntar un archivo, un enlace o un comentario antes de enviar la entrega.' }));
+      return;
+    }
     setUploading(true);
     try {
       const data = new FormData();

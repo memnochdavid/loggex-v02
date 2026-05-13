@@ -778,7 +778,8 @@
     "saveGrade": "Save Grade",
     "errorLoadDeliveries": "Error loading deliveries",
     "errorUpload": "Error uploading delivery",
-    "errorSaveGrade": "Error saving grade"
+    "errorSaveGrade": "Error saving grade",
+    "emptyFormError": "You must attach a file, a link, or a comment before submitting the delivery."
   },
   "profile": {
     "personalInfo": "Personal Information",

@@ -778,7 +778,8 @@
     "saveGrade": "Desar qualificació",
     "errorLoadDeliveries": "Error carregant lliuraments",
     "errorUpload": "Error en pujar lliurament",
-    "errorSaveGrade": "Error en desar qualificació"
+    "errorSaveGrade": "Error en desar qualificació",
+    "emptyFormError": "Has d'adjuntar un fitxer, un enllaç o un comentari abans d'enviar el lliurament."
   },
   "profile": {
     "personalInfo": "Informació personal",
