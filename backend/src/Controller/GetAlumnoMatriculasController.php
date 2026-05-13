@@ -30,12 +30,13 @@ class GetAlumnoMatriculasController extends AbstractController
                 'id' => $matricula->getId(),
                 'grupo' => [
                     'nombre' => $grupo->getNombre(),
+                    'abreviatura' => $grupo->getAbreviatura(),
                     'curso' => $grupo->getCurso(),
                     'anioEscolar' => $grupo->getAnioEscolar(),
-                    'ciclo' => [
-                        'nombre' => $itinerario->getNombre()
-                    ]
-                ]
+                    'itinerario' => $itinerario ? [
+                        'nombre' => $itinerario->getNombre(),
+                    ] : null,
+                ],
             ];
         }
 
