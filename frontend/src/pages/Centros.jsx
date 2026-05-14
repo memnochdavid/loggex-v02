@@ -82,6 +82,7 @@ const Centros = () => {
         provincia: '',  // código INE
         fechaInicioCurso: '',  // ISO YYYY-MM-DD ('' = sin override)
         fechaFinCurso: '',
+        porcentajeMaxFaltas: '20',  // umbral de pérdida de evaluación continua
     });
     // Trazabilidad al catálogo oficial. Solo se establece al elegir desde el
     // selector y solo se envía si el centro es nuevo (en edición no se permite
@@ -296,6 +297,7 @@ const Centros = () => {
                 provincia: provinciaCodigo,
                 fechaInicioCurso: centro.fechaInicioCurso ? centro.fechaInicioCurso.slice(0, 10) : '',
                 fechaFinCurso: centro.fechaFinCurso ? centro.fechaFinCurso.slice(0, 10) : '',
+                porcentajeMaxFaltas: centro.porcentajeMaxFaltas != null ? String(centro.porcentajeMaxFaltas) : '20',
             });
             setLogoPreview(centro.logo ? getLogoUrl(centro.logo) : null);
         } else {
@@ -310,6 +312,7 @@ const Centros = () => {
                 provincia: '',
                 fechaInicioCurso: '',
                 fechaFinCurso: '',
+                porcentajeMaxFaltas: '20',
             });
             setLogoPreview(null);
         }
@@ -357,6 +360,7 @@ const Centros = () => {
             provincia: provinciaCodigo,
             fechaInicioCurso: '',
             fechaFinCurso: '',
+            porcentajeMaxFaltas: '20',
         });
         setCalendarioSugerido(null);
         setIsCatalogPickerOpen(false);
@@ -406,6 +410,7 @@ const Centros = () => {
             data.append('provincia', formData.provincia || '');
             data.append('fechaInicioCurso', formData.fechaInicioCurso || '');
             data.append('fechaFinCurso', formData.fechaFinCurso || '');
+            data.append('porcentajeMaxFaltas', formData.porcentajeMaxFaltas || '20');
 
             // Solo en alta: si el centro vino del selector de catálogo, persistir
             // la trazabilidad. En edición se ignora — no se permite reescribir
@@ -778,6 +783,26 @@ const Centros = () => {
                                 : t('centers.fechaCursoHint', {
                                     defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
                                 })}
+                        </small>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            {t('centers.porcentajeMaxFaltas', { defaultValue: 'Umbral de faltas para pérdida de evaluación (%)' })}
+                        </label>
+                        <input
+                            type="number"
+                            name="porcentajeMaxFaltas"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={formData.porcentajeMaxFaltas}
+                            onChange={handleInputChange}
+                            className={styles.input}
+                            placeholder="20"
+                        />
+                        <small className={styles.helpText}>
+                            {t('centers.porcentajeMaxFaltasHint', { defaultValue: 'Si un alumno supera este % de faltas (faltas + justificadas) en una materia, se marca como no evaluable en Calificaciones. Por defecto 20%.' })}
                         </small>
                     </div>
 

@@ -411,7 +411,9 @@
     "fechaInicioCurso": "Academic year start",
     "fechaFinCurso": "Academic year end",
     "fechaCursoHint": "Overrides the CCAA calendar. Leave empty to use the official autonomous one.",
-    "fechaCursoSuggested": "Suggested by {{ccaa}} calendar: {{fecha}} (editable)."
+    "fechaCursoSuggested": "Suggested by {{ccaa}} calendar: {{fecha}} (editable).",
+    "porcentajeMaxFaltas": "Absence threshold for loss of assessment (%)",
+    "porcentajeMaxFaltasHint": "If a student exceeds this % of absences (absences + justified) in a subject, they are flagged as non-assessable in Grades. Defaults to 20%."
   },
   "itinerarios": {
     "title": "Itineraries",
@@ -1482,6 +1484,7 @@
     "notEvaluableTitle": "Student not gradeable",
     "reasonMandatoryMissing": "not submitted (mandatory)",
     "reasonBelowMin": "below minimum",
+    "reasonAbsences": "Absences: {{porcentaje}}% (exceeds {{umbral}}%)",
     "recoveriesTitle": "Retakes / Grade upgrades",
     "recTypeRecovery": "Retake",
     "recTypeUpgrade": "Upgrade",

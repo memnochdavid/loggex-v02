@@ -693,7 +693,9 @@
     "fechaInicioCurso": "Inicio del curso académico",
     "fechaFinCurso": "Fin del curso académico",
     "fechaCursoHint": "Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.",
-    "fechaCursoSuggested": "Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar)."
+    "fechaCursoSuggested": "Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).",
+    "porcentajeMaxFaltas": "Umbral de faltas para pérdida de evaluación (%)",
+    "porcentajeMaxFaltasHint": "Si un alumno supera este % de faltas (faltas + justificadas) en una materia, se marca como no evaluable en Calificaciones. Por defecto 20%."
   },
   "itinerarios": {
     "title": "Itinerarios",
@@ -1812,6 +1814,7 @@
     "notEvaluableTitle": "Alumno no evaluable",
     "reasonMandatoryMissing": "no entregada (obligatoria)",
     "reasonBelowMin": "por debajo del mínimo",
+    "reasonAbsences": "Faltas de asistencia: {{porcentaje}}% (supera el {{umbral}}%)",
     "recoveriesTitle": "Recuperaciones / Subidas de nota",
     "recTypeRecovery": "Recuperación",
     "recTypeUpgrade": "Subida de nota",

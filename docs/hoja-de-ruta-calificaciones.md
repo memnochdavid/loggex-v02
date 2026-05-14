@@ -615,3 +615,21 @@ Lo que faltaba era cubrir POST/PUT directos al recurso API Platform `/api/entreg
 **Bug menor encontrado durante test**: opcache de PHP-FPM no recogía cambios al añadir el callback hasta `docker compose restart backend`. `cache:clear` no basta. Si tras añadir un validator nuevo algo no funciona, reiniciar el servicio backend.
 
 **Estado de Fase F**: cerrada al 100%. La cola pendiente queda solo en el cron opcional (A1) — feature nice-to-have, no bloqueante.
+
+### 2026-05-14 — No evaluable por faltas de asistencia ✅ Done
+
+Petición del usuario: igual que una tarea obligatoria no entregada deja a un alumno "no evaluable" (motivo `obligatoria_no_entregada` ya existente), superar un % de faltas en una materia también debe marcarlo. Caso reportado: "Daniel Rosario Gálvez" en 1º DAW con muchas faltas seguía saliendo evaluable.
+
+**Decisiones acordadas con el usuario** (3 preguntas):
+1. **Umbral configurable por centro** — campo nuevo `Centro.porcentajeMaxFaltas` (INT, default 20). Migración `Version20260514120000`. Cada centro ajusta a su orden autonómica (FP Andalucía suele 25-30%); default 20 → centros existentes adoptan el umbral sin intervención.
+2. **Cuentan F + J** — faltas y justificadas suman como ausencia; retrasos (R) no. Mismo criterio que `AsistenciaController::getAlumnoSummary` (`/mis-faltas`), para que el % sea coherente entre vistas.
+3. **% siempre anual** — denominador = `Materia.getObjetivoAnualMinutos() / 60` (horas legales del catálogo BOE/BOJA), nunca acotado al periodo evaluativo seleccionado. Si la materia no tiene horas en catálogo, la regla se omite (no se penaliza con 0% engañoso).
+
+**Implementación** (1 punto de decisión, sin tocar lógica previa — solo añade un motivo más):
+- `CalificacionMediaController::calcularMediaAlumno()` — tras el bucle de tareas, antes de `$evaluable = empty(...)`: `COUNT` de `Asistencia` con `estado IN ('F','J')` y `deleted = false` del par alumno+impartición; si `% > centro.porcentajeMaxFaltas` → push `motivosNoEvaluable[] = {razon:'falta_asistencia', porcentaje, umbral, ausencias, totalHoras}`. El nulado de `notaFinal` y `evaluable=false` ya era automático al no estar vacío `motivosNoEvaluable`.
+- `Centro.php` + migración + `CentroController::handleForm()` (lee/valida 0-100) + campo en el form de `Centros.jsx`.
+- Frontend: rama `falta_asistencia` en el banner de `CalificacionesDetalle.jsx` y en `formatMotivos` de `CalificacionesGrupo.jsx`. Clave i18n `grades.reasonAbsences` + `centers.porcentajeMaxFaltas*` en los 5 idiomas.
+
+**Verificación E2E con datos reales**: Daniel (alumno 57) en impartición 15 (Sistemas informáticos, `horas_totales=170`) tiene 30 F + 1 J = 31 ausencias → 31/170 = **18,24%**, legítimamente por debajo del 20% → sigue evaluable. La regla funciona; el usuario confirmó que el caso era correcto. Nota de diseño: con denominador anual, a mitad de curso es difícil superar el umbral aunque se haya faltado a casi todas las clases *dadas* (Daniel: 31 de 35 registradas ≈ 88%). Se mantuvo el criterio anual por ser el legal de FP; si se quisiera reflejar "clases impartidas hasta la fecha" sería un cambio de denominador futuro.
+
+**Clases gemelas**: la asistencia se registra siempre contra la impartición natural del alumno (ver `AsistenciaController` Fase E), así que el `COUNT WHERE imparticion = :imp` es correcto sin tratar hermandades.

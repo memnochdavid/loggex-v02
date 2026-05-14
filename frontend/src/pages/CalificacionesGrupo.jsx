@@ -28,6 +28,13 @@ export const formatMotivos = (motivos, t) => {
         if (m.razon === 'nota_minima_no_alcanzada') {
             return `${m.titulo}: ${t('grades.reasonBelowMin', { defaultValue: 'por debajo del mínimo' })} (${m.nota} < ${m.notaMinima})`;
         }
+        if (m.razon === 'falta_asistencia') {
+            return t('grades.reasonAbsences', {
+                defaultValue: 'Faltas de asistencia: {{porcentaje}}% (supera el {{umbral}}%)',
+                porcentaje: m.porcentaje,
+                umbral: m.umbral,
+            });
+        }
         return m.titulo;
     }).join('\n');
 };

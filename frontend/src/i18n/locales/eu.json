@@ -411,7 +411,9 @@
     "fechaInicioCurso": "Ikasturtearen hasiera",
     "fechaFinCurso": "Ikasturtearen amaiera",
     "fechaCursoHint": "EAren egutegia gainidazten du. Hutsik utziz gero, ofiziala erabiliko da.",
-    "fechaCursoSuggested": "{{ccaa}} egutegiak iradokia: {{fecha}} (edita daiteke)."
+    "fechaCursoSuggested": "{{ccaa}} egutegiak iradokia: {{fecha}} (edita daiteke).",
+    "porcentajeMaxFaltas": "Ebaluazioa galtzeko hutsegite-atalasea (%)",
+    "porcentajeMaxFaltasHint": "Ikasle batek materia batean hutsegiteen % hau gainditzen badu (hutsegiteak + justifikatuak), ez-ebaluagarri gisa markatzen da Kalifikazioetan. Lehenetsia: %20."
   },
   "itinerarios": {
     "title": "Itinerarioak",
@@ -1482,6 +1484,7 @@
     "notEvaluableTitle": "Ikaslea ebaluagaitz",
     "reasonMandatoryMissing": "entregatu gabe (derrigorrezkoa)",
     "reasonBelowMin": "gutxieneko azpitik",
+    "reasonAbsences": "Hutsegiteak: %{{porcentaje}} (%{{umbral}} gainditzen du)",
     "recoveriesTitle": "Errekuperazioak / Nota igoerak",
     "recTypeRecovery": "Errekuperazioa",
     "recTypeUpgrade": "Nota igoera",

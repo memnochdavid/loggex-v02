@@ -368,6 +368,41 @@ class CalificacionMediaController extends AbstractController
             $notaFinal = round($sumaPonderada / $pesoTotal, 2);
         }
 
+        // No evaluable por faltas de asistencia: si las ausencias (faltas F +
+        // justificadas J, igual criterio que `/mis-faltas`) superan el umbral
+        // configurado del centro sobre el objetivo anual de horas de la
+        // materia. El % se calcula SIEMPRE sobre el total anual (no se acota
+        // al periodo seleccionado), coherente con `getAlumnoSummary`. Si la
+        // materia no tiene horas en catálogo, el % no es calculable y la
+        // regla se omite (no se penaliza con un 0% engañoso).
+        $imparticion = $this->em->getRepository(Imparticion::class)->find($imparticionId);
+        $objetivoMinutos = $imparticion?->getMateria()?->getObjetivoAnualMinutos() ?? 0;
+        $totalHorasAnuales = (int) round($objetivoMinutos / 60);
+        if ($totalHorasAnuales > 0) {
+            $ausencias = (int) $this->em->createQuery(
+                'SELECT COUNT(a.id) FROM App\Entity\Asistencia a
+                 WHERE a.imparticion = :imp AND a.alumno = :alumno
+                   AND a.deleted = false AND a.estado IN (:estados)'
+            )
+                ->setParameter('imp', $imparticionId)
+                ->setParameter('alumno', $alumnoId)
+                ->setParameter('estados', ['F', 'J'])
+                ->getSingleScalarResult();
+
+            $porcentajeFaltas = round(($ausencias / $totalHorasAnuales) * 100, 2);
+            $umbralFaltas = $imparticion->getGrupo()?->getCentro()?->getPorcentajeMaxFaltas() ?? 20;
+
+            if ($porcentajeFaltas > $umbralFaltas) {
+                $motivosNoEvaluable[] = [
+                    'razon' => 'falta_asistencia',
+                    'porcentaje' => $porcentajeFaltas,
+                    'umbral' => $umbralFaltas,
+                    'ausencias' => $ausencias,
+                    'totalHoras' => $totalHorasAnuales,
+                ];
+            }
+        }
+
         $evaluable = empty($motivosNoEvaluable);
         if (!$evaluable) {
             $notaFinal = null;

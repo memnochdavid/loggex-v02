@@ -397,7 +397,15 @@ const CalificacionesDetalle = () => {
                             <ul style={{ margin: '6px 0 0', paddingLeft: '1.2em', fontSize: 'var(--text-sm)' }}>
                                 {(mediaData.motivosNoEvaluable || []).map((m, i) => (
                                     <li key={i}>
-                                        <strong>{m.titulo}</strong>
+                                        {m.razon === 'falta_asistencia' ? (
+                                            <strong>{t('grades.reasonAbsences', {
+                                                defaultValue: 'Faltas de asistencia: {{porcentaje}}% (supera el {{umbral}}%)',
+                                                porcentaje: m.porcentaje,
+                                                umbral: m.umbral,
+                                            })}</strong>
+                                        ) : (
+                                            <strong>{m.titulo}</strong>
+                                        )}
                                         {m.razon === 'obligatoria_no_entregada' && (
                                             <> — {t('grades.reasonMandatoryMissing', { defaultValue: 'no entregada (obligatoria)' })}</>
                                         )}

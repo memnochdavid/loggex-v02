@@ -86,6 +86,18 @@ class CentroController extends AbstractController
             }
         }
 
+        // Umbral de pérdida de evaluación continua por faltas de asistencia.
+        // Se acota a 0-100; valores fuera de rango o no numéricos se ignoran.
+        if ($request->request->has('porcentajeMaxFaltas')) {
+            $raw = $request->request->get('porcentajeMaxFaltas');
+            if ($raw !== '' && $raw !== null && is_numeric($raw)) {
+                $pct = (int) $raw;
+                if ($pct >= 0 && $pct <= 100) {
+                    $centro->setPorcentajeMaxFaltas($pct);
+                }
+            }
+        }
+
         // Fechas del curso académico (override del calendario CCAA). Vacío → null.
         if ($request->request->has('fechaInicioCurso')) {
             $v = $request->request->get('fechaInicioCurso');
@@ -135,6 +147,7 @@ class CentroController extends AbstractController
                 'provincia' => $centro->getProvincia()?->getCodigo(),
                 'fechaInicioCurso' => $centro->getFechaInicioCurso()?->format('Y-m-d'),
                 'fechaFinCurso' => $centro->getFechaFinCurso()?->format('Y-m-d'),
+                'porcentajeMaxFaltas' => $centro->getPorcentajeMaxFaltas(),
                 'catalogoOrigen' => $centro->getCatalogoOrigen()?->getId(),
             ]
         ]);

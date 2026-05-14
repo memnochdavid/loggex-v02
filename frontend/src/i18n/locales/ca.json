@@ -411,7 +411,9 @@
     "fechaInicioCurso": "Inici del curs acadèmic",
     "fechaFinCurso": "Final del curs acadèmic",
     "fechaCursoHint": "Sobreescriu el calendari de la CCAA. Si el deixes buit, s'usarà l'oficial autonòmic.",
-    "fechaCursoSuggested": "Suggerit pel calendari {{ccaa}}: {{fecha}} (editable)."
+    "fechaCursoSuggested": "Suggerit pel calendari {{ccaa}}: {{fecha}} (editable).",
+    "porcentajeMaxFaltas": "Llindar de faltes per a pèrdua d'avaluació (%)",
+    "porcentajeMaxFaltasHint": "Si un alumne supera aquest % de faltes (faltes + justificades) en una matèria, es marca com a no avaluable a Qualificacions. Per defecte 20%."
   },
   "itinerarios": {
     "title": "Itineraris",
@@ -1482,6 +1484,7 @@
     "notEvaluableTitle": "Alumne no avaluable",
     "reasonMandatoryMissing": "no lliurada (obligatòria)",
     "reasonBelowMin": "per sota del mínim",
+    "reasonAbsences": "Faltes d'assistència: {{porcentaje}}% (supera el {{umbral}}%)",
     "recoveriesTitle": "Recuperacions / Pujades de nota",
     "recTypeRecovery": "Recuperació",
     "recTypeUpgrade": "Pujada de nota",

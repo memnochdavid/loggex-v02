@@ -163,6 +163,18 @@ class Centro
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
 
+    /**
+     * Umbral de faltas de asistencia (en %) a partir del cual un alumno pierde
+     * la evaluación continua en una materia y se marca "no evaluable" en
+     * Calificaciones. El cálculo (ver `CalificacionMediaController`) cuenta
+     * faltas F + justificadas J sobre el objetivo anual de horas de la materia.
+     * Default 20: normativa habitual de pérdida de evaluación continua; cada
+     * centro puede ajustarlo a su orden autonómica (FP Andalucía suele 25-30%).
+     */
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 20])]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private int $porcentajeMaxFaltas = 20;
+
     public function __construct()
     {
         $this->usuarios = new ArrayCollection();
@@ -400,6 +412,17 @@ class Centro
             }
         }
 
+        return $this;
+    }
+
+    public function getPorcentajeMaxFaltas(): int
+    {
+        return $this->porcentajeMaxFaltas;
+    }
+
+    public function setPorcentajeMaxFaltas(int $porcentajeMaxFaltas): static
+    {
+        $this->porcentajeMaxFaltas = $porcentajeMaxFaltas;
         return $this;
     }
 
