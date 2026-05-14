@@ -85,10 +85,8 @@ const CalificacionesAdmin = () => {
                 if (!res.ok) return;
                 const d = await res.json();
                 const all = d['hydra:member'] || d.member || [];
-                const hoy = new Date(); hoy.setHours(0,0,0,0);
-                const all_fin = all.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                 const byName = new Map();
-                all_fin.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
+                all.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
                 const unique = [...byName.values()];
                 // Ordinarias primero por fecha, extraordinaria siempre al final
                 unique.sort((a, b) => {

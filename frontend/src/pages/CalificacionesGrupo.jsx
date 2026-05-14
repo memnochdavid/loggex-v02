@@ -449,9 +449,6 @@ const CalificacionesGrupo = () => {
                     if (pRes.ok) {
                         const pData = await pRes.json();
                         let items = pData['hydra:member'] || pData.member || [];
-                        // Solo evaluaciones ya finalizadas (fechaFin < hoy)
-                        const hoy = new Date(); hoy.setHours(0,0,0,0);
-                        items = items.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
                         items.sort((a, b) => {
                             const aExtra = a.tipo === 'EXTRAORDINARIA' ? 1 : 0;
                             const bExtra = b.tipo === 'EXTRAORDINARIA' ? 1 : 0;

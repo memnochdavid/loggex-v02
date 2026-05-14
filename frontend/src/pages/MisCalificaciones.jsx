@@ -202,9 +202,7 @@ const MisCalificaciones = () => {
                     });
                 }
 
-                // Solo evaluaciones ya finalizadas
-                const hoy = new Date(); hoy.setHours(0,0,0,0);
-                let result = allPeriodos.filter(p => p.fechaFin && new Date(p.fechaFin) < hoy);
+                let result = [...allPeriodos];
                 if (grupoIds.length > 1) {
                     const byName = new Map();
                     result.forEach(p => { if (!byName.has(p.nombre)) byName.set(p.nombre, p); });
