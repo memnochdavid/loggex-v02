@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.15-MariaDB-ubu2204
+-- Server version	10.11.16-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -40,7 +40,7 @@ CREATE TABLE `asistencia` (
   KEY `IDX_D8264A8DFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_D8264A8D5396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`),
   CONSTRAINT `FK_D8264A8DFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2064 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1973 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1533,18 +1533,7 @@ INSERT INTO `asistencia` VALUES
 (1969,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,18,57),
 (1970,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,19,57),
 (1971,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,37,57),
-(1972,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,38,57),
-(2053,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,61),
-(2054,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,72),
-(2055,'2026-05-07','10:50:00','F','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,74),
-(2056,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,73),
-(2057,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,76),
-(2058,'2026-05-07','10:50:00','R','y soy un trolassssoooo','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,80),
-(2059,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,58),
-(2060,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,54,75),
-(2061,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,59),
-(2062,'2026-05-07','10:50:00','P','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,60),
-(2063,'2026-05-07','10:50:00','F','','2026-05-13 13:42:50','2026-05-13 13:42:50',0,NULL,37,57);
+(1972,'2025-12-15','08:30:00','F',NULL,'2026-05-13 10:00:51','2026-05-13 10:00:51',0,NULL,38,57);
 /*!40000 ALTER TABLE `asistencia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1616,7 +1605,7 @@ CREATE TABLE `calificacion` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_8A3AF2187AB91AEC` (`entrega_id`),
   CONSTRAINT `FK_8A3AF2187AB91AEC` FOREIGN KEY (`entrega_id`) REFERENCES `entrega` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=968 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2276,7 +2265,18 @@ INSERT INTO `calificacion` VALUES
 (964,6.95,NULL,'2026-03-21 09:00:00','2026-03-21 09:00:00',0,NULL,964),
 (965,7.5,'Cumple con lo pedido, mejorable la presentación.','2026-03-21 09:00:00','2026-03-21 09:00:00',0,NULL,965),
 (966,9.05,'Perfecto, has cubierto todos los puntos.','2026-03-21 09:00:00','2026-03-21 09:00:00',0,NULL,966),
-(967,6.1,NULL,'2026-03-21 09:00:00','2026-03-21 09:00:00',0,NULL,967);
+(967,6.1,NULL,'2026-03-21 09:00:00','2026-03-21 09:00:00',0,NULL,967),
+(968,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,968),
+(969,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,969),
+(970,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,970),
+(971,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,971),
+(972,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,972),
+(973,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,973),
+(974,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,974),
+(975,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,975),
+(976,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,976),
+(977,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,977),
+(978,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,978);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12464,6 +12464,7 @@ CREATE TABLE `centro` (
   `provincia_id` varchar(2) DEFAULT NULL,
   `fecha_inicio_curso` date DEFAULT NULL,
   `fecha_fin_curso` date DEFAULT NULL,
+  `porcentaje_max_faltas` int(11) NOT NULL DEFAULT 20,
   PRIMARY KEY (`id`),
   KEY `IDX_2675036B438E8617` (`catalogo_origen_id`),
   KEY `IDX_2675036B4E7121AF` (`provincia_id`),
@@ -12479,8 +12480,8 @@ CREATE TABLE `centro` (
 LOCK TABLES `centro` WRITE;
 /*!40000 ALTER TABLE `centro` DISABLE KEYS */;
 INSERT INTO `centro` VALUES
-(3,'Escuela Arte Granada','B18000000',1,NULL,'logoEAG-69820676cd526.png','Av. Dr. Oloriz, 6, Beiro, 18012 Granada','958 27 80 60','2026-01-31 22:12:20','2026-05-04 11:02:01',0,NULL,2333,'AN',NULL,'2025-09-15','2026-06-22'),
-(4,'IES Tecnológico','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20','2026-03-21 08:36:25',0,NULL,NULL,NULL,NULL,NULL,NULL);
+(3,'Escuela Arte Granada','B18000000',1,NULL,'logoEAG-69820676cd526.png','Av. Dr. Oloriz, 6, Beiro, 18012 Granada','958 27 80 60','2026-01-31 22:12:20','2026-05-04 11:02:01',0,NULL,2333,'AN',NULL,'2025-09-15','2026-06-22',20),
+(4,'IES Tecnológico','B5363643538',1,NULL,'161072a8938d361bab5d9d4234e6e2eaa6488d8f-697e2433c8e80.png','Calle Falsa, 123','958 11 11 11','2026-01-31 22:12:20','2026-03-21 08:36:25',0,NULL,NULL,NULL,NULL,NULL,NULL,20);
 /*!40000 ALTER TABLE `centro` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12566,7 +12567,8 @@ INSERT INTO `doctrine_migration_versions` VALUES
 ('DoctrineMigrations\\Version20260508220000','2026-05-08 19:43:34',1931),
 ('DoctrineMigrations\\Version20260509120000','2026-05-09 08:58:35',533),
 ('DoctrineMigrations\\Version20260511220000','2026-05-11 21:22:27',54),
-('DoctrineMigrations\\Version20260512200000','2026-05-12 09:59:04',50);
+('DoctrineMigrations\\Version20260512200000','2026-05-12 09:59:04',50),
+('DoctrineMigrations\\Version20260514120000','2026-05-14 07:43:27',576);
 /*!40000 ALTER TABLE `doctrine_migration_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12594,7 +12596,7 @@ CREATE TABLE `entrega` (
   KEY `IDX_E56D596BFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_E56D596B6D5BDFE1` FOREIGN KEY (`tarea_id`) REFERENCES `tarea` (`id`),
   CONSTRAINT `FK_E56D596BFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=969 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -13255,7 +13257,17 @@ INSERT INTO `entrega` VALUES
 (965,'2026-03-18 13:14:00',NULL,'Dummy.pdf',NULL,'2026-03-18 13:14:00','2026-03-18 13:14:00',0,NULL,261,64),
 (966,'2026-03-17 09:20:00',NULL,'Dummy.pdf','Trabajo realizado en grupo con compañero.','2026-03-17 09:20:00','2026-03-17 09:20:00',0,NULL,261,65),
 (967,'2026-03-14 18:30:00',NULL,'Dummy.pdf',NULL,'2026-03-14 18:30:00','2026-03-14 18:30:00',0,NULL,261,66),
-(968,'2026-05-13 13:46:20',NULL,NULL,NULL,'2026-05-13 13:46:20','2026-05-13 13:46:20',0,NULL,30,80);
+(968,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,31,80),
+(969,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,32,80),
+(970,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,33,80),
+(971,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,34,80),
+(972,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,35,80),
+(973,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,57),
+(974,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,58),
+(975,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,59),
+(976,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,60),
+(977,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,61),
+(978,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,80);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -13534,7 +13546,7 @@ LOCK TABLES `grupo` WRITE;
 /*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
 INSERT INTO `grupo` VALUES
 (1,'Desarrollo de Aplicaciones Web','DAW',1,'2025-2026','2025-09-15',NULL,NULL,'2026-05-04 10:44:04',0,NULL,3,3,'Aula 4',NULL),
-(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-15',NULL,NULL,'2026-05-13 13:10:43',0,NULL,3,3,'Aula 5',8),
+(2,'Desarrollo de Aplicaciones Web','DAW',2,'2025-2026','2025-09-15',NULL,NULL,'2026-05-01 21:27:20',0,NULL,3,3,'Aula 5',NULL),
 (3,'Desarrollo de Aplicaciones Multiplataforma','DAM',1,'2025-2026','2025-09-15',NULL,NULL,'2026-05-08 16:34:49',0,NULL,7,3,'Aula 4',NULL),
 (4,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026','2025-09-15',NULL,'2026-05-11 13:00:34','2026-05-11 13:00:50',1,'2026-05-11 13:00:50',7,3,'Aula 5',NULL),
 (5,'Desarrollo de Aplicaciones Multiplataforma','DAM',2,'2025-2026','2025-09-15',NULL,'2026-05-11 13:01:31','2026-05-11 13:12:18',0,NULL,7,3,'Aula 5',6);
@@ -16590,8 +16602,8 @@ LOCK TABLES `jornada_tipo` WRITE;
 INSERT INTO `jornada_tipo` VALUES
 (3,'FP Mañanas','manana','[1,2,3,4,5]','2026-04-26 20:05:11','2026-04-26 20:05:11',0,NULL,3),
 (6,'FP Tardes','tarde','[1,2,3,4,5]','2026-04-28 20:46:22','2026-05-11 13:18:45',0,NULL,3),
-(7,'2º FP 3ª evaluación','especial','[1,2,3,4,5]',NULL,'2026-05-13 13:10:29',1,'2026-05-13 13:10:29',3),
-(8,'2º FP 3ª evaluación','especial','[1,2,3,4,5]','2026-05-13 13:10:22','2026-05-13 13:10:22',0,NULL,3);
+(7,'FP 3ª evaluación','especial','[1,2,3,4,5]',NULL,'2026-05-13 10:52:48',1,'2026-05-13 10:52:48',3),
+(8,'FP 3ª evaluación','especial','[1,2,3,4,5]','2026-05-13 10:52:32','2026-05-13 10:52:32',0,NULL,3);
 /*!40000 ALTER TABLE `jornada_tipo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -16997,7 +17009,7 @@ CREATE TABLE `notificacion` (
   KEY `IDX_notif_usuario` (`usuario_id`),
   KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
   CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=254 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=275 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -17007,7 +17019,28 @@ CREATE TABLE `notificacion` (
 LOCK TABLES `notificacion` WRITE;
 /*!40000 ALTER TABLE `notificacion` DISABLE KEYS */;
 INSERT INTO `notificacion` VALUES
-(253,54,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Entornos de desarrollo - Proyecto final tema\".','/entregas?tarea=30','{\"entregaId\":968,\"tareaId\":30,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Entornos de desarrollo - Proyecto final tema\"}',0,'2026-05-13 13:46:20',NULL,'2026-05-13 13:46:20','2026-05-13 13:46:20');
+(253,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Itinerario Personal Empleabilidad I - Examen Tema 1\".','/entregas?tarea=31','{\"entregaId\":968,\"tareaId\":31,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Examen Tema 1\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(254,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Itinerario Personal Empleabilidad I - Examen Tema 1\".','/mis-calificaciones?tarea=31','{\"entregaId\":968,\"tareaId\":31,\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Examen Tema 1\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(255,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Itinerario Personal Empleabilidad I - Ejercicios Tema 2\".','/entregas?tarea=32','{\"entregaId\":969,\"tareaId\":32,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Ejercicios Tema 2\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(256,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Itinerario Personal Empleabilidad I - Ejercicios Tema 2\".','/mis-calificaciones?tarea=32','{\"entregaId\":969,\"tareaId\":32,\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Ejercicios Tema 2\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(257,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Itinerario Personal Empleabilidad I - Trabajo Tema 3\".','/entregas?tarea=33','{\"entregaId\":970,\"tareaId\":33,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Trabajo Tema 3\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(258,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Itinerario Personal Empleabilidad I - Trabajo Tema 3\".','/mis-calificaciones?tarea=33','{\"entregaId\":970,\"tareaId\":33,\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Trabajo Tema 3\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(259,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Itinerario Personal Empleabilidad I - Examen Tema 4\".','/entregas?tarea=34','{\"entregaId\":971,\"tareaId\":34,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Examen Tema 4\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(260,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Itinerario Personal Empleabilidad I - Examen Tema 4\".','/mis-calificaciones?tarea=34','{\"entregaId\":971,\"tareaId\":34,\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Examen Tema 4\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(261,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Itinerario Personal Empleabilidad I - Práctica integradora\".','/entregas?tarea=35','{\"entregaId\":972,\"tareaId\":35,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Pr\\u00e1ctica integradora\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(262,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Itinerario Personal Empleabilidad I - Práctica integradora\".','/mis-calificaciones?tarea=35','{\"entregaId\":972,\"tareaId\":35,\"tareaTitulo\":\"Itinerario Personal Empleabilidad I - Pr\\u00e1ctica integradora\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(263,55,'entrega_recibida','Nueva entrega recibida','Daniel Rosario Gálvez ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":973,\"tareaId\":175,\"alumnoId\":57,\"alumnoNombre\":\"Daniel Rosario G\\u00e1lvez\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(264,57,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":973,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(265,55,'entrega_recibida','Nueva entrega recibida','Noa Figueroa Negrón ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":974,\"tareaId\":175,\"alumnoId\":58,\"alumnoNombre\":\"Noa Figueroa Negr\\u00f3n\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(266,58,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":974,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(267,55,'entrega_recibida','Nueva entrega recibida','Celia Maldonado Treviño ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":975,\"tareaId\":175,\"alumnoId\":59,\"alumnoNombre\":\"Celia Maldonado Trevi\\u00f1o\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(268,59,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":975,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(269,55,'entrega_recibida','Nueva entrega recibida','Saúl Ortega Regalado ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":976,\"tareaId\":175,\"alumnoId\":60,\"alumnoNombre\":\"Sa\\u00fal Ortega Regalado\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(270,60,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":976,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(271,55,'entrega_recibida','Nueva entrega recibida','Guillermo Baca Heredia ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":977,\"tareaId\":175,\"alumnoId\":61,\"alumnoNombre\":\"Guillermo Baca Heredia\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(272,61,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":977,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(273,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":978,\"tareaId\":175,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(274,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":978,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06');
 /*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -17384,12 +17417,12 @@ INSERT INTO `periodo_lectivo` VALUES
 (554,5,NULL,'Plantilla del curso',NULL,NULL,0,'plantilla',NULL,NULL,'2026-05-12 10:00:06','2026-05-12 10:00:06',0,NULL,NULL),
 (555,5,6,'Hasta 1ª Evaluación','2025-09-15','2025-12-19',1,'semana',1,554,'2026-05-12 10:00:54','2026-05-12 10:00:54',0,NULL,'evaluacion'),
 (556,5,6,'Hasta 2ª Evaluación','2025-12-20','2026-02-11',2,'semana',2,554,'2026-05-12 10:00:54','2026-05-12 10:00:54',0,NULL,'evaluacion'),
-(557,5,8,'Tercera evaluación','2026-03-12','2026-06-05',3,'semana',3,554,'2026-05-12 10:00:55','2026-05-13 13:11:15',0,NULL,'no_presenciales'),
+(557,5,8,'Tercera evaluación','2026-03-12','2026-06-05',3,'semana',3,554,'2026-05-12 10:00:55','2026-05-13 10:53:41',0,NULL,'no_presenciales'),
 (558,2,7,'Tercera evaluación','2026-03-23','2026-05-29',3,'semana',3,544,'2026-05-12 10:59:20','2026-05-12 10:59:32',1,'2026-05-12 10:59:32','no_presenciales'),
 (559,2,NULL,'Plantilla del curso',NULL,NULL,0,'plantilla',NULL,NULL,'2026-05-12 10:59:35','2026-05-12 10:59:35',0,NULL,NULL),
 (560,2,3,'Hasta 1ª Evaluación','2025-09-15','2025-12-19',1,'semana',1,559,'2026-05-12 11:00:13','2026-05-12 11:00:13',0,NULL,'evaluacion'),
 (561,2,3,'Hasta 2ª Evaluación','2025-12-20','2026-03-11',2,'semana',2,559,'2026-05-12 11:00:13','2026-05-12 11:00:13',0,NULL,'evaluacion'),
-(562,2,7,'Tercera evaluación','2026-03-12','2026-05-29',3,'semana',3,559,'2026-05-12 11:00:13','2026-05-12 14:39:31',0,NULL,'no_presenciales');
+(562,2,8,'Tercera evaluación','2026-03-12','2026-05-29',3,'semana',3,559,'2026-05-12 11:00:13','2026-05-13 10:53:32',0,NULL,'no_presenciales');
 /*!40000 ALTER TABLE `periodo_lectivo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -19463,7 +19496,7 @@ CREATE TABLE `personalizacion` (
 LOCK TABLES `personalizacion` WRITE;
 /*!40000 ALTER TABLE `personalizacion` DISABLE KEYS */;
 INSERT INTO `personalizacion` VALUES
-(1,'#1d4e89','#c4704a','#fbf6ec','0',1,1,NULL,100,0,'#0f2942','#1d4e89','#f5e9d3','#142e4d','#f5e9d3',100,'#142e4d','#ecdcc2','#0a1d36','#c8d3e0','#2a2e3a','#6b7280','#ffffff','#1d4e89','#ffffff','#ffffff','#1d4e89','#0f2942','#ecdcc2',100,'#c4704a','#fbf6ec','#a85a39','10px','#1d4e89','#ffffff','#f3e8d8','#6b7280','#f3e8d8','#1d4e89','#fbf6ec','#6b7280','#e7b89a','#7a3a1f','#fdebd9','#1d4e89','#f5e9d3','#3978c4','#ffffff','#0f2942','#f5e9d3','#fbf6ec','#2a2e3a','#ffffff','#1d4e89','#f3e8d8','#0f2942','#1d4e89','#ffffff','#c4704a','#ffffff','#a85a39','#ffffff','#ffffff','#2a2e3a','#1d4e89','#f5e9d3','#ffffff','#2a2e3a','#fbf6ec','#1d4e89','#f5e9d3','#c4704a','#ffffff','#0f2942','#f5e9d3','#a8c5e6','#ffffff','#f3e8d8','#fdebd9','#c4704a','#2a2e3a','#6b7280','#c4704a','#ffffff','#0f2942','#ecdcc2','#fbf6ec','#ffffff','#1d4e89','#ffffff','#ffffff','#2a2e3a','#ffffff','#2a2e3a','#e0d4bf','#1d4e89','#e7eef7','#ffffff','#e0d4bf','#1d4e89','#6b7280','transparent','#1d4e89','#ffffff','#ffffff','#1d4e89','#e0d4bf','#2a2e3a','#f3e8d8','#c4704a',20,20,20,20,20,20,20,20,'{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','2026-02-01 10:25:33','2026-05-12 06:10:57',0,NULL,3,'0'),
+(1,'#1d4e89','#c4704a','#fbf6ec','0',1,1,NULL,100,0,'#0f2942','#1d4e89','#f5e9d3','#142e4d','#f5e9d3',100,'#142e4d','#ecdcc2','#0a1d36','#c8d3e0','#2a2e3a','#6b7280','#ffffff','#1d4e89','#ffffff','#ffffff','#1d4e89','#0f2942','#ecdcc2',100,'#c4704a','#fbf6ec','#a85a39','10px','#1d4e89','#ffffff','#f3e8d8','#6b7280','#f3e8d8','#1d4e89','#fbf6ec','#6b7280','#e7b89a','#7a3a1f','#fdebd9','#1d4e89','#f5e9d3','#3978c4','#ffffff','#0f2942','#f5e9d3','#fbf6ec','#2a2e3a','#ffffff','#1d4e89','#f3e8d8','#0f2942','#1d4e89','#ffffff','#c4704a','#ffffff','#a85a39','#ffffff','#ffffff','#2a2e3a','#1d4e89','#f5e9d3','#ffffff','#2a2e3a','#fbf6ec','#ff0000','#ffffff','#e35959','#ffffff','#0f2942','#f5e9d3','#a8c5e6','#ffffff','#f3e8d8','#fdebd9','#c4704a','#2a2e3a','#6b7280','#c4704a','#ffffff','#0f2942','#ecdcc2','#fbf6ec','#ffffff','#1d4e89','#ffffff','#ffffff','#2a2e3a','#ffffff','#2a2e3a','#e0d4bf','#1d4e89','#e7eef7','#ffffff','#e0d4bf','#1d4e89','#6b7280','transparent','#1d4e89','#ffffff','#ffffff','#1d4e89','#e0d4bf','#2a2e3a','#f3e8d8','#c4704a',20,20,20,20,20,20,20,20,'{\"words\":[{\"text\":\"Escuela\",\"color\":\"#ffffff\"},{\"text\":\"Arte\",\"color\":\"#ff0000\"},{\"text\":\"Granada\",\"color\":\"#ffffff\"}],\"spacing\":\"0.1rem\",\"casing\":\"lowercase\",\"alignment\":\"flex-end\"}','2026-02-01 10:25:33','2026-05-14 07:20:26',0,NULL,3,'0'),
 (4,'#6366f1','#1e293b','#001657','0.75rem',1,1,'waves',40,3,'#623c9a','#38316d','#ffffff','#433e70','#ffffff',0,'#52406d','#ffffff','#221d49','#94a3b8','#f1f5f9','#94a3b8','#f1f5f9','#6366f1','#ffffff','#334155','#f8fafc','#603e93','#f8fafc',30,'#475569','#0f172a','#64748b','10px','#6366f1','#ffffff','#1e293b','#94a3b8','#1e293b','#cbd5e1','#0f172a','#94a3b8','#312e81','#818cf8','#1e1b4b','#4338ca','#cbd5e1','#5d51db','#ffffff','#312e81','#ffffff','#312e81','#cbd5e1','#6366f1','#ffffff','#475569','#ffffff','#334155','#ffffff','#221d49','#ffffff','#2d275d','#ffffff','#1e293b','#cbd5e1','#1e293b','#ffffff','#0f172a','#cbd5e1','#1e293b','#ef4444','#ffffff','#b91c1c','#ffffff','#2d394e','#ffffff','#94a3b8','#1e293b','#334155','#312e81','#6366f1','#f1f5f9','#94a3b8','#6366f1','#ffffff','#1e293b','#ffffff','#1e2943','#1e293b','#6366f1','#ffffff','#334155','#f1f5f9','#314059','#ffffff','#919191','#676565','#948f8f','#1e293b','#334155','#f8fafc','#94a3b8','transparent','#f8fafc','#232037','#221d49','#e0e7ff','#334155','#cbd5e1','#334155','#818cf8',10,10,10,10,10,10,10,10,'{\"words\":[],\"spacing\":\"0.5rem\",\"casing\":\"original\",\"alignment\":\"center\"}','2026-03-07 15:52:21','2026-04-12 10:00:47',0,NULL,NULL,'3px');
 /*!40000 ALTER TABLE `personalizacion` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -19488,7 +19521,7 @@ CREATE TABLE `ponderacion_imparticion` (
   UNIQUE KEY `unique_imparticion_tipo` (`imparticion_id`,`tipo_tarea`),
   KEY `IDX_A8C81A9D5396730A` (`imparticion_id`),
   CONSTRAINT `FK_A8C81A9D5396730A` FOREIGN KEY (`imparticion_id`) REFERENCES `imparticion` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=106 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=85 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -20109,7 +20142,7 @@ INSERT INTO `usuario` VALUES
 (76,'rey.omar@verduzco.com.es','[\"ROLE_ALUMNO\"]','$2y$13$AweRu9/TW0l/KEzzpgOBVO09Qopl3l2684Fi1sMJwKwm5/je7ttCa','Laia','Delarosa Montez','+34 936 86 1825','21052314T','alumno','/uploads/avatar/avatar-placeholder.png',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,3),
 (77,'pepe@iestech.com','[\"ROLE_PROFESOR\",\"ROLE_ADMIN\"]','$2y$13$7OivdXwRW2aOHtTiLw96wO8/p7hY4BATQTpAp0Ve/o/BRYAd0G.ni','Theodore','Robert Bundy','+34 900-59-7119','48507053F','admin','/uploads/avatar/f0dc3678d4d52bf22d2ebcdfd9cd28e4f1b99cb6.jpg',NULL,'[]','2026-01-31 22:12:20','2026-01-31 23:41:56',0,NULL,4),
 (78,'ggg@correo.com','[\"ROLE_ALUMNO\"]','$2y$13$GdBVvV0SIXtF4c7SgrLxqusDVwCBQeDNupR2QtkcnxGw4ljAeOIMK','ggg','ggg','444444444','55555555T','alumno',NULL,NULL,'[]','2026-04-30 07:17:01','2026-04-30 07:17:11',1,'2026-04-30 07:17:11',3),
-(80,'ivan_gay_skull@correos.com','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$fhusYQCd7QvctlkezKvoGuuLIyFQhJY5uFS7JWsc8e1yyVFy3BAnm','Iván','El Trolazo','699845886','12345678Z','alumno','/uploads/avatar/heman-69fef9e54650c.jpg',NULL,'[\"primer-login\",\"profesor-editor-horarios\",\"profesor-poner-nota\",\"alumno-ver-calificaciones\",\"admin-crear-grupo\",\"admin-personalizar-centro\",\"alumno-entregar-tarea\"]','2026-05-09 09:09:57','2026-05-13 13:43:07',0,NULL,3);
+(80,'ivan_gay_skull@correos.com','[\"ROLE_ALUMNO\",\"ROLE_USER\"]','$2y$13$fhusYQCd7QvctlkezKvoGuuLIyFQhJY5uFS7JWsc8e1yyVFy3BAnm','Iván','El Trolazo','699845886','12345678Z','alumno','/uploads/avatar/heman-69fef9e54650c.jpg',NULL,'[]','2026-05-09 09:09:57','2026-05-09 09:27:48',0,NULL,3);
 /*!40000 ALTER TABLE `usuario` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -20122,4 +20155,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-13 14:31:17
+-- Dump completed on 2026-05-14  7:51:56
