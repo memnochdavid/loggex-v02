@@ -39,6 +39,22 @@ export const formatMotivos = (motivos, t) => {
     }).join('\n');
 };
 
+// Persistencia de los filtros de la vista (centro/año/grupo/materia/evaluación)
+// en sessionStorage. Sin esto, al entrar al detalle de un alumno y volver, los
+// selects se reseteaban a su opción genérica aunque la tabla siguiera mostrando
+// el último grupo: `selectedImparticion` se rehidrata del query param pero el
+// resto de la cascada no. Se guarda por sesión de pestaña.
+const FILTROS_STORAGE_KEY = 'calificaciones:filtros';
+
+const leerFiltrosGuardados = () => {
+    try {
+        const raw = sessionStorage.getItem(FILTROS_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+};
+
 // Editor de peso por item (tarea individual) — agrupado por tipo
 const ItemsWeightEditor = ({ tareas, saving, onSave, periodos = [], selectedPeriodo = '', t }) => {
     const confirm = useConfirm();
@@ -215,12 +231,15 @@ const CalificacionesGrupo = () => {
     const isMobile = useMediaQuery('(max-width: 768px)');
     const [expandedAlumnoId, setExpandedAlumnoId] = useState(null);
 
+    // Filtros rehidratados de sessionStorage (una sola lectura al montar).
+    const [filtrosGuardados] = useState(leerFiltrosGuardados);
+
     // Data
     const [mediasData, setMediasData] = useState(null);
     const [periodos, setPeriodos] = useState([]);
-    const [selectedPeriodo, setSelectedPeriodo] = useState('');
+    const [selectedPeriodo, setSelectedPeriodo] = useState(filtrosGuardados.periodo || '');
     const [imparticiones, setImparticiones] = useState([]);
-    const [selectedImparticion, setSelectedImparticion] = useState(imparticionId || '');
+    const [selectedImparticion, setSelectedImparticion] = useState(imparticionId || filtrosGuardados.imparticion || '');
 
     // Tabs principales: alumnos | ponderaciones
     const [mainTab, setMainTab] = useState('alumnos');
@@ -244,14 +263,34 @@ const CalificacionesGrupo = () => {
 
     // Filtros SuperAdmin
     const [centros, setCentros] = useState([]);
-    const [selectedCentro, setSelectedCentro] = useState('');
+    const [selectedCentro, setSelectedCentro] = useState(filtrosGuardados.centro || '');
     const [allImparticiones, setAllImparticiones] = useState([]);
-    const [selectedYear, setSelectedYear] = useState('');
+    const [selectedYear, setSelectedYear] = useState(filtrosGuardados.year || '');
     // Grupo intermedio en la cascada Centro → Año → Grupo → Materia. Antes
     // el select de imparticiones mostraba "Modulo — Grupo" para todas las
     // del profesor/admin y crecía mucho. Filtrando primero por grupo, el
     // select de Materia solo lista las del grupo activo.
-    const [selectedGrupo, setSelectedGrupo] = useState('');
+    const [selectedGrupo, setSelectedGrupo] = useState(filtrosGuardados.grupo || '');
+
+    // Refs para distinguir "el usuario cambió este filtro" de "el efecto se
+    // disparó solo porque acaban de cargar los datos". Sin esto, los efectos
+    // de carga reseteaban la cascada y pisaban los filtros rehidratados.
+    const prevSelectedYearRef = React.useRef(selectedYear);
+    const prevSelectedCentroRef = React.useRef(selectedCentro);
+
+    // Persistir los filtros en cada cambio para sobrevivir al ir/volver del
+    // detalle de un alumno (el componente se remonta al cambiar de ruta).
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(FILTROS_STORAGE_KEY, JSON.stringify({
+                centro: selectedCentro,
+                year: selectedYear,
+                grupo: selectedGrupo,
+                imparticion: selectedImparticion,
+                periodo: selectedPeriodo,
+            }));
+        } catch { /* sessionStorage no disponible: degradación silenciosa */ }
+    }, [selectedCentro, selectedYear, selectedGrupo, selectedImparticion, selectedPeriodo]);
 
     // Años disponibles (extraídos de los grupos de las imparticiones)
     const availableYears = [...new Set(
@@ -264,13 +303,18 @@ const CalificacionesGrupo = () => {
             ? allImparticiones.filter(i => (i.grupo?.anioEscolar || i.grupo?.anio_escolar) === selectedYear)
             : allImparticiones;
         setImparticiones(filtered);
-        // Cambiar de año reinicia la cascada Grupo + Materia.
-        setSelectedGrupo('');
+        // Cambiar de año reinicia la cascada Grupo + Materia. Pero NO cuando el
+        // efecto se dispara solo porque `allImparticiones` acaba de cargar: eso
+        // borraría el grupo rehidratado de sessionStorage al volver del detalle.
+        if (prevSelectedYearRef.current !== selectedYear) {
+            prevSelectedYearRef.current = selectedYear;
+            setSelectedGrupo('');
+        }
         if (filtered.length === 0 && allImparticiones.length > 0) {
             setSelectedImparticion('');
             setMediasData(null);
         }
-    }, [selectedYear, allImparticiones]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedYear, allImparticiones]);
 
     // Grupos únicos derivados de las imparticiones visibles. Se ordenan por
     // (curso, nombre) para que aparezcan agrupados de forma intuitiva.
@@ -320,11 +364,14 @@ const CalificacionesGrupo = () => {
                 const first = imparticionesFiltradas[0];
                 setSelectedImparticion(String(first.id ?? first['@id']?.split('/').pop()));
             }
-        } else if (selectedGrupo && imparticionesFiltradas.length === 0) {
+        } else if (selectedGrupo && imparticiones.length > 0 && imparticionesFiltradas.length === 0) {
+            // Solo limpiar si la lista YA cargó y este grupo no tiene materias;
+            // mientras `imparticiones` está vacía es que aún está cargando, y
+            // limpiar aquí borraría la materia rehidratada de sessionStorage.
             setSelectedImparticion('');
             setMediasData(null);
         }
-    }, [selectedGrupo, imparticionesFiltradas]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedGrupo, imparticionesFiltradas, imparticiones]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Cargar centros para SuperAdmin
     useEffect(() => {
@@ -363,7 +410,12 @@ const CalificacionesGrupo = () => {
                 const data = await response.json();
                 const items = data['hydra:member'] || data.member || [];
                 setAllImparticiones(items);
-                setSelectedYear('');
+                // Resetear el año solo si el centro cambió de verdad; en el
+                // montaje inicial borraría el año rehidratado de sessionStorage.
+                if (prevSelectedCentroRef.current !== selectedCentro) {
+                    prevSelectedCentroRef.current = selectedCentro;
+                    setSelectedYear('');
+                }
             } catch {
                 setError(t('grades.errorLoading'));
                 setLoading(false);
