@@ -21,7 +21,11 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: PeriodoEvaluativoRepository::class)]
+    #[Assert\Expression(
+        'this.fechaFin > this.fechaInicio',
+        message: 'La fecha de fin debe ser posterior a la fecha de inicio.'
+    )]
+    #[ORM\Entity(repositoryClass: PeriodoEvaluativoRepository::class)]
 #[ORM\Table(name: 'periodo_evaluativo')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
@@ -57,10 +61,13 @@ class PeriodoEvaluativo
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 100)]
     #[Groups(['periodo:read', 'periodo:write'])]
     private ?string $nombre = null;
 
     #[ORM\Column(length: 30)]
+    #[Assert\NotBlank]
     #[Assert\Choice(
         choices: ['PRIMERA', 'SEGUNDA', 'TERCERA', 'ORDINARIA_FINAL', 'EXTRAORDINARIA'],
         message: 'El tipo debe ser PRIMERA, SEGUNDA, TERCERA, ORDINARIA_FINAL o EXTRAORDINARIA.'
@@ -69,15 +76,18 @@ class PeriodoEvaluativo
     private ?string $tipo = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['periodo:read', 'periodo:write'])]
     private ?\DateTimeInterface $fechaInicio = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['periodo:read', 'periodo:write'])]
     private ?\DateTimeInterface $fechaFin = null;
 
     #[ORM\ManyToOne(targetEntity: Grupo::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['periodo:read', 'periodo:write'])]
     private ?Grupo $grupo = null;
 

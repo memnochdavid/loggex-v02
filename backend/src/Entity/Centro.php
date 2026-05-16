@@ -70,14 +70,20 @@ class Centro
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema_visual:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
+    #[NifEspanol]
     #[Groups(['centro:read', 'centro:write'])]
     private ?string $cif = null;
 
     #[ORM\Column(type: 'boolean')]
+    #[Assert\NotNull]
     #[Groups(['centro:read', 'centro:write'])]
     private bool $activo = true;
 
@@ -96,10 +102,14 @@ class Centro
     private ?string $logo = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['centro:read', 'centro:write'])]
     private ?string $direccion = null;
 
     #[ORM\Column(length: 25, nullable: true)]
+    #[Assert\Length(max: 25)]
+    #[Assert\Regex(pattern: '/^[6-9]\d{8}$/', match: true, message: 'El teléfono debe tener 9 dígitos y empezar por 6, 7, 8 o 9.')]
     #[Groups(['centro:read', 'centro:write'])]
     private ?string $telefono = null;
 

@@ -83,7 +83,11 @@ class JornadaTipo
     private ?Centro $centro = null;
 
     #[ORM\Column(type: 'string', length: 16, enumType: TurnoJornada::class)]
-    #[Assert\NotNull]
+    #[Assert\NotBlank]
+    #[Assert\Choice(
+        choices: [TurnoJornada::MANANA, TurnoJornada::TARDE, TurnoJornada::ESPECIAL],
+        message: 'El turno debe ser manana, tarde o especial.'
+    )]
     #[Groups(['jornada:read', 'jornada:write', 'itinerario:read'])]
     private ?TurnoJornada $turno = null;
 
@@ -94,6 +98,7 @@ class JornadaTipo
      * @var int[]
      */
     #[ORM\Column(type: Types::JSON)]
+    #[Assert\NotBlank]
     #[Groups(['jornada:read', 'jornada:write'])]
     private array $diasLectivos = [1, 2, 3, 4, 5];
 

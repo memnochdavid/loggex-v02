@@ -90,6 +90,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Assert\NotBlank(groups: ['create'])]
+    #[Assert\Length(min: 8, groups: ['create'], minMessage: 'La contraseña debe tener al menos 8 caracteres.')]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
@@ -116,7 +118,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?string $nif = null;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column]
+    #[Assert\NotNull]
+    #[Assert\Choice(
+        choices: ['ROLE_ADMIN', 'ROLE_PROFESOR', 'ROLE_ALUMNO'],
+        message: 'El rol debe ser ROLE_ADMIN, ROLE_PROFESOR o ROLE_ALUMNO.'
+    )]
     #[Groups(['user:read', 'user:write'])]
     private ?string $rol_app = null;
 

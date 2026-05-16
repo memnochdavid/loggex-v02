@@ -8,8 +8,8 @@
 
 ## ⚡ Snapshot para retomar
 
-**Estado**: 🟡 Fase 1 completada. Fase 2 y 3 pendientes.
-**Siguiente**: Fase 2 — Completar validación en entidades parciales (Centro, Grupo, PeriodoEvaluativo, User, JornadaTipo)
+**Estado**: 🟡 Fase 1 + Fase 2 completadas. Fase 3 pendiente.
+**Siguiente**: Fase 3 — Frontend validation (cross-field, maxLength, pattern, archivos)
 
 ---
 
@@ -193,6 +193,25 @@
 ---
 
 ## Bitácora de Implementación
+
+### 2026-05-16 — Fase 2 completa: 5 entidades parciales completadas
+
+**Entidades modificadas (5 archivos):**
+
+1. **Centro** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en nombre, `#[Assert\NotBlank]` + `#[Assert\Length(max:20)]` + `#[NifEspanol]` en cif, `#[Assert\NotNull]` en activo, `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en direccion, `#[Assert\Length(max:25)]` + `#[Assert\Regex]` (regex español) en telefono.
+2. **Grupo** — `#[Assert\NotBlank]` + `#[Assert\Length(max:50)]` en nombre, `#[Assert\NotBlank]` + `#[Assert\Length(max:10)]` en abreviatura, `#[Assert\Length(max:100)]` en aulaDefault.
+3. **PeriodoEvaluativo** — `#[Assert\NotBlank]` + `#[Assert\Length(max:100)]` en nombre, `#[Assert\NotBlank]` en tipo, `#[Assert\NotBlank]` en fechaInicio/fechaFin, `#[Assert\NotNull]` en grupo, `#[Assert\Expression('fechaFin > fechaInicio')]` a nivel clase.
+4. **User** — `#[Assert\NotBlank(groups: ['create'])]` + `#[Assert\Length(min:8, groups: ['create'])]` en password, `#[Assert\NotNull]` + `#[Assert\Choice(['ROLE_ADMIN','ROLE_PROFESOR','ROLE_ALUMNO'])]` en rol_app.
+5. **JornadaTipo** — `#[Assert\NotBlank]` + `#[Assert\Choice]` en turno (reemplaza NotNull), `#[Assert\NotBlank]` en diasLectivos.
+
+**Compatibilidad con datos existentes**: Todas las constraints son compatibles con `backup_tfg_full.sql`:
+- `centro.cif`: valores existentes son CIF/NIF válidos → compatible con NifEspanol.
+- `centro.telefono`: nullable, valores existentes son 9 dígitos → compatible con Regex.
+- `user.rol_app`: valores existentes son ROLE_ADMIN/ROLE_PROFESOR/ROLE_ALUMNO → compatible con Choice.
+- `jornada_tipo.turno`: valores existentes son manana/tarde/especial → compatible con Choice.
+- `periodo_evaluativo.fechaFin > fechaInicio`: datos existentes cumplen → compatible con Expression.
+
+**Validación**: `php -l` OK en los 5 archivos. `cache:clear` OK.
 
 ### 2026-05-16 — Fase 1 completa: 12 entidades sin validación → todas con Assert constraints
 

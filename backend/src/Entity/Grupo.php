@@ -67,10 +67,14 @@ class Grupo
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])] // Añadido horario:read
     private ?string $nombre = null;
 
-    #[ORM\Column(length: 20, nullable: true)]
+    #[ORM\Column(length: 10)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 10)]
     #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?string $abreviatura = null;
 
@@ -80,6 +84,7 @@ class Grupo
      * Si NULL, fallback final del solver: "Aula " + abreviatura.
      */
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['grupo:read', 'grupo:write', 'imparticion:read'])]
     private ?string $aulaDefault = null;
 
