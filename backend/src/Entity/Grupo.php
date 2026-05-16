@@ -23,10 +23,13 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: GrupoRepository::class)]
 #[ORM\Table(name: 'grupo')]
 #[ORM\HasLifecycleCallbacks]
+#[Assert\Callback('validateAnioEscolar')]
 #[ApiResource(
     operations: [
         new Get(),
@@ -85,6 +88,7 @@ class Grupo
     private ?int $curso = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\Regex(pattern: '/^\d{4}-\d{4}$/', message: 'El año escolar debe tener el formato YYYY-YYYY (ej. 2025-2026).')]
     #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
     private ?string $anioEscolar = null;
 
@@ -257,5 +261,25 @@ class Grupo
     public function getEffectiveJornadaTipo(): ?JornadaTipo
     {
         return $this->jornadaTipoOverride ?? $this->itinerario?->getJornadaTipo();
+    }
+
+    public function validateAnioEscolar(ExecutionContextInterface $context): void
+    {
+        if (!$this->anioEscolar) {
+            return;
+        }
+        if (!preg_match('/^(\d{4})-(\d{4})$/', $this->anioEscolar, $matches)) {
+            $context->buildViolation('El año escolar debe tener el formato YYYY-YYYY (ej. 2025-2026).')
+                ->atPath('anioEscolar')
+                ->addViolation();
+            return;
+        }
+        $inicio = (int) $matches[1];
+        $fin = (int) $matches[2];
+        if ($fin !== $inicio + 1) {
+            $context->buildViolation('El segundo año debe ser exactamente el siguiente al primero (ej. 2025-2026).')
+                ->atPath('anioEscolar')
+                ->addViolation();
+        }
     }
 }

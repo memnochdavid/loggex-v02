@@ -1,0 +1,201 @@
+# Hoja de Ruta — Validación de Formularios
+
+> **Creada**: 2026-05-16
+> **Audit**: `docs/audit-validacion-formularios.md`
+> **Objetivo**: Que toda entidad con exposición API tenga validación Symfony completa y el frontend refleje las mismas reglas
+
+---
+
+## ⚡ Snapshot para retomar
+
+**Estado**: 🔴 Sin empezar
+**Siguiente**: Fase 1.1 — Añadir `#[Assert\...]` a las 12 entidades sin ninguna validación
+
+---
+
+## Principios de Diseño
+
+1. **Backend es la fuente de verdad**: toda regla de validación vive primero en la entidad Symfony con `#[Assert\...]`
+2. **Frontend replica para UX**: el frontend aplica las mismas reglas para feedback inmediato, pero nunca como única barrera
+3. **Mensajes en español**: cada constraint lleva `message:` explícito en español
+4. **Grupos de validación**: usar `groups: ['create']` para campos que solo aplican en creación (ej. password)
+5. **No romper datos existentes**: las nuevas constraints deben ser compatibles con los datos ya persistidos
+
+---
+
+## Fase 1 — Gaps críticos: entidades sin NINGUNA validación
+
+**Objetivo**: Las 12 entidades que hoy tienen cero `#[Assert\...]` tengan al menos NotBlank en campos obligatorios, Length en campos string, y constraints de negocio clave.
+
+### 1.1 Horario (`Horario.php`)
+- `#[Assert\NotBlank]` en `diaSemana`, `horaInicio`, `horaFin`, `aula`
+- `#[Assert\Range(min: 1, max: 7)]` en `diaSemana`
+- `#[Assert\Length(max: 50)]` en `aula`
+- `#[Assert\Callback]` → validar `horaFin > horaInicio`
+- **Archivos**: `backend/src/Entity/Horario.php`, `frontend/src/pages/Horarios.jsx` (o donde se cree/edite)
+
+### 1.2 Materia (`Materia.php`)
+- `#[Assert\NotBlank]` en `nombre`
+- `#[Assert\Length(max: 100)]` en `nombre`
+- `#[Assert\Length(max: 10)]` en `abreviatura`
+- `#[Assert\PositiveOrZero]` en `minutosSemanales`, `horasTotales`
+- `#[Assert\Choice(choices: ['presencial', 'fct', 'no_regular', 'autonoma'])]` en `modalidad`
+- **Archivos**: `backend/src/Entity/Materia.php`, `frontend/src/pages/Materias.jsx`
+
+### 1.3 Itinerario (`Itinerario.php`)
+- `#[Assert\NotBlank]` en `nombre`
+- `#[Assert\Length(max: 100)]` en `nombre`
+- `#[Assert\Length(max: 10)]` en `abreviatura`
+- `#[Assert\Length(max: 500)]` en `descripcion`
+- `#[Assert\Choice(choices: [...EtapaEducativa])]` en `etapa`
+- `#[Assert\Positive]` en `anioInicio`
+- **Archivos**: `backend/src/Entity/Itinerario.php`, `frontend/src/pages/Itinerarios.jsx`
+
+### 1.4 Imparticion (`Imparticion.php`)
+- `#[Assert\NotBlank]` en `materia`, `profesor`, `grupo`
+- `#[Assert\Length(max: 50)]` en `aulaEspecifica`
+- `#[Assert\Choice(choices: ['presencial', 'fct', 'no_regular', 'autonoma'])]` en `modalidad`
+- **Archivos**: `backend/src/Entity/Imparticion.php`, `frontend/src/pages/Imparticiones.jsx`
+
+### 1.5 Matricula (`Matricula.php`)
+- `#[Assert\NotBlank]` en `alumno`, `grupo`
+- `#[Assert\Choice(choices: ['activa', 'baja', 'pendiente'])]` en `estado`
+- **Archivos**: `backend/src/Entity/Matricula.php`, `frontend/src/pages/Matriculas.jsx`
+
+### 1.6 Asistencia (`Asistencia.php`)
+- `#[Assert\NotBlank]` en `estado`, `fecha`, `imparticion`, `alumno`
+- `#[Assert\Choice(choices: ['P', 'R', 'J'])]` en `estado`
+- `#[Assert\Length(max: 500)]` en `comentario`
+- **Archivos**: `backend/src/Entity/Asistencia.php`
+
+### 1.7 Calificacion (`Calificacion.php`)
+- `#[Assert\NotBlank]` en `nota`, `entrega`
+- `#[Assert\Range(min: 0, max: 10)]` en `nota`
+- `#[Assert\Length(max: 1000)]` en `feedbackProfesor`
+- **Archivos**: `backend/src/Entity/Calificacion.php`, `frontend/src/pages/CalificacionesDetalle.jsx`
+
+### 1.8 Tarea (`Tarea.php`)
+- `#[Assert\NotBlank]` en `titulo`, `imparticion`
+- `#[Assert\Length(max: 100)]` en `titulo`
+- `#[Assert\Length(max: 2000)]` en `descripcion`
+- `#[Assert\Choice(choices: ['examen', 'tarea', 'practica'])]` en `tipo`
+- `#[Assert\Range(min: 0, max: 10)]` en `notaMinima`
+- **Archivos**: `backend/src/Entity/Tarea.php`
+
+### 1.9 Festivo (`Festivo.php`)
+- `#[Assert\NotBlank]` en `nombre`
+- `#[Assert\Length(max: 100)]` en `nombre`
+- `#[Assert\Expression('this.fechaInicio <= this.fechaFin', message: '...')]`
+- **Archivos**: `backend/src/Entity/Festivo.php`, `frontend/src/pages/Festivos.jsx`
+
+### 1.10 Mensaje (`Mensaje.php`)
+- `#[Assert\NotBlank]` en `asunto`, `contenido`, `remitente`
+- `#[Assert\Length(max: 100)]` en `asunto`
+- `#[Assert\Length(max: 5000)]` en `contenido`
+- `#[Assert\Count(min: 1)]` en `destinatarios`
+- **Archivos**: `backend/src/Entity/Mensaje.php`, `frontend/src/pages/Mensajes.jsx`
+
+### 1.11 Comunicado (`Comunicado.php`)
+- `#[Assert\NotBlank]` en `titulo`, `contenido`, `centro`
+- `#[Assert\Length(max: 100)]` en `titulo`
+- `#[Assert\Length(max: 5000)]` en `contenido`
+- **Archivos**: `backend/src/Entity/Comunicado.php`
+
+### 1.12 Temario (`Temario.php`)
+- `#[Assert\NotBlank]` en `titulo`, `imparticion`
+- `#[Assert\Length(max: 100)]` en `titulo`
+- **Archivos**: `backend/src/Entity/Temario.php`, `frontend/src/pages/TemariosProfesor.jsx`
+
+---
+
+## Fase 2 — Completar validación en entidades parciales
+
+### 2.1 Centro (`Centro.php`)
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 255)]` en `nombre`
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 20)]` en `cif`
+- `#[NifEspanol]` en `cif` (como en User)
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 255)]` en `direccion`
+- `#[Assert\Regex('/^[6-9]\d{8}$/')]` en `telefono` (como en User)
+
+### 2.2 Grupo (`Grupo.php`)
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 50)]` en `nombre`
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 10)]` en `abreviatura`
+- `#[Assert\Length(max: 50)]` en `aulaDefault`
+
+### 2.3 PeriodoEvaluativo (`PeriodoEvaluativo.php`)
+- `#[Assert\NotBlank]` + `#[Assert\Length(max: 50)]` en `nombre`
+- `#[Assert\LessThan(propertyPath: 'fechaFin', message: '...')]` en `fechaInicio`
+- `#[Assert\Range(min: 0, max: 1)]` en `peso` (ya existe)
+
+### 2.4 User (`User.php`)
+- `#[Assert\Length(min: 8, groups: ['create'])]` en `password` (o campo `plainPassword`)
+- `#[Assert\Choice(choices: ['ROLE_ADMIN', 'ROLE_PROFESOR', 'ROLE_ALUMNO'], groups: ['create'])]` en `roles`
+
+### 2.5 JornadaTipo (`JornadaTipo.php`)
+- `#[Assert\Choice(choices: ['manana', 'tarde', 'especial'])]` en `turno`
+
+---
+
+## Fase 3 — Frontend: replicar validación backend
+
+### 3.1 Validación cross-field en formularios
+- `Horarios.jsx`: `horaFin > horaInicio` (comparar valores de time inputs)
+- `Festivos.jsx`: `fechaInicio ≤ fechaFin`
+- `Evaluaciones.jsx`: `fechaInicio ≤ fechaFin`
+- `CalificacionesDetalle.jsx`: `nota ∈ [0, 10]` (ya tiene HTML5, añadir JS check)
+
+### 3.2 maxLength en inputs de texto
+- Barrido de todos los `<input type="text">` y `<textarea>` para añadir `maxLength` que coincida con `#[Assert\Length(max: N)]` del backend
+
+### 3.3 pattern en inputs de teléfono
+- `Usuarios.jsx`: `pattern="[6-9][0-9]{8}"` en campo teléfono
+- `Centros.jsx`: igual
+
+### 3.4 password minLength
+- `Usuarios.jsx`: `minLength={8}` en campo password (solo create)
+
+### 3.5 Validación de archivos en frontend
+- Barrido de todos los `<input type="file">`: añadir `accept` attribute + validación JS de tamaño máximo
+
+### 3.6 Choices en selects
+- Añadir validación JS en formularios que usan selects para etapa, modalidad, turno, estado, tipo (defensa contra DOM manipulation)
+
+---
+
+## Fase 4 — Robustez adicional
+
+### 4.1 CSRF en endpoints custom
+- Identificar todos los controllers custom que aceptan POST/PUT/PATCH con cookies
+- Añadir protección CSRF o migrar a JWT en header
+
+### 4.2 Sanitización de nombres de archivo
+- Revisar `TemarioUploadController`, `CentroLogoController`, etc.
+- Sanitizar nombres antes de almacenar y al mostrar en UI
+
+### 4.3 Validación de solapamientos
+- `Horario`: validar que un profesor no tenga dos horarios en la misma franja del mismo grupo
+- Frontend: aviso visual al crear/editar
+
+### 4.4 Debounce en AsyncSearchSelect
+- Añadir debounce a búsquedas para reducir carga en API
+
+---
+
+## Decisiones Abiertas
+
+| ID | Decisión | Recomendación |
+|---|---|---|
+| D1 | ¿Validar unicidad en frontend (email, NIF)? | No — requiere query al servidor, mejor confiar en `#[UniqueEntity]` del backend + manejo del 409/422 |
+| D2 | ¿Usar Validation Groups en entities existentes? | Sí — `groups: ['create']` para password, `groups: ['Default']` para el resto |
+| D3 | ¿Mensajes de error en español en backend o traducir en frontend? | Español en backend (message: explícito) — el frontend ya traduce las respuestas 422 con `parseErrorResponse` |
+| D4 | ¿Añadir `#[Assert\NotNull]` en FKs que ya son `nullable: false` en ORM? | Sí — Doctrine lanza 500, Assert lanza 422. Mejor UX y consistencia |
+
+---
+
+## Bitácora de Implementación
+
+### 2026-05-16 — Creación del roadmap
+- Auditoría completa de 24 entities + 24 páginas frontend
+- Documento audit: `docs/audit-validacion-formularios.md`
+- Hallazgo principal: 12 de 24 entidades sin NINGUNA validación Symfony
+- Fix previo: `Grupo.anioEscolar` con Regex + Callback (hecho en esta sesión)

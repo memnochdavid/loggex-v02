@@ -70,7 +70,7 @@ const Grupos = () => {
     abreviatura: '',
     aulaDefault: '',
     curso: 1,
-    anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+    anioEscolarInicio: new Date().getFullYear(),
     fechaInicio: '',
     fechaFin: '',
     itinerario: '',
@@ -284,12 +284,19 @@ const Grupos = () => {
           }
       }
 
+      const anioInicio = (() => {
+          const ae = grupo.anioEscolar;
+          if (!ae) return new Date().getFullYear();
+          const m = String(ae).match(/^(\d{4})-/);
+          return m ? parseInt(m[1], 10) : new Date().getFullYear();
+      })();
+
       setFormData({
         nombre: grupo.nombre,
         abreviatura: grupo.abreviatura || '',
         aulaDefault: grupo.aulaDefault || '',
         curso: grupo.curso,
-        anioEscolar: grupo.anioEscolar,
+        anioEscolarInicio: anioInicio,
         fechaInicio: grupo.fechaInicio ? grupo.fechaInicio.split('T')[0] : '',
         fechaFin: grupo.fechaFin ? grupo.fechaFin.split('T')[0] : '',
         itinerario: itinerarioId,
@@ -302,7 +309,7 @@ const Grupos = () => {
         abreviatura: '',
         aulaDefault: '',
         curso: 1,
-        anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+        anioEscolarInicio: new Date().getFullYear(),
         fechaInicio: '',
         fechaFin: '',
         ciclo: '',
@@ -344,6 +351,7 @@ const Grupos = () => {
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
+        anioEscolar: `${formData.anioEscolarInicio}-${formData.anioEscolarInicio + 1}`,
         itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
         centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null,
         fechaInicio: formData.fechaInicio || null,
@@ -351,6 +359,7 @@ const Grupos = () => {
         aulaDefault: formData.aulaDefault?.trim() || null,
       };
       delete payload.ciclo;
+      delete payload.anioEscolarInicio;
 
       // Si no es superadmin, asignar centro automáticamente si es nuevo
       if (!isSuperAdmin && !currentGrupo && user.centro) {
@@ -632,15 +641,17 @@ const Grupos = () => {
 
             <div className={styles.formGroup}>
                 <label className={styles.label}>{t('groups.schoolYear')}</label>
-                <input
-                    type="text"
-                    name="anioEscolar"
-                    value={formData.anioEscolar}
+                <select
+                    name="anioEscolarInicio"
+                    value={formData.anioEscolarInicio}
                     onChange={handleInputChange}
-                    className={styles.input}
+                    className={styles.select}
                     required
-                    placeholder={t('groups.schoolYearPlaceholder')}
-                />
+                >
+                    {Array.from({ length: 16 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                        <option key={year} value={year}>{year}-{year + 1}</option>
+                    ))}
+                </select>
             </div>
 
             <div className={styles.formGroup}>
