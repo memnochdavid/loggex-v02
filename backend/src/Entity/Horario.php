@@ -80,7 +80,7 @@ class Horario
 
     #[ORM\Column]
     #[Assert\NotBlank]
-    #[Assert\Range(min: 1, max: 7, minMessage: 'El día de la semana debe estar entre 1 (lunes) y 7 (domingo).', maxMessage: 'El día de la semana debe estar entre 1 (lunes) y 7 (domingo).')]
+    #[Assert\Range(min: 1, max: 7, notInRangeMessage: 'El día de la semana debe estar entre 1 (lunes) y 7 (domingo).')]
     #[Groups(['horario:read', 'horario:write'])]
     private ?int $diaSemana = null;
 
