@@ -714,6 +714,10 @@ const Horarios = ({ embedded = false, tabs = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.horaFin <= formData.horaInicio) {
+      toast.warning(t('horarios.horaFinAfterHoraInicio', { defaultValue: 'La hora de fin debe ser posterior a la hora de inicio' }));
+      return;
+    }
     setSaving(true);
 
     try {

@@ -289,6 +289,10 @@ const Festivos = ({ embedded = false, tabs = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.fechaFin && formData.fechaFin < formData.fechaInicio) {
+      toast.warning(t('holidays.fechaFinAfterFechaInicio', { defaultValue: 'La fecha de fin debe ser igual o posterior a la fecha de inicio' }));
+      return;
+    }
     setSaving(true);
 
     try {

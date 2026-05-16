@@ -158,6 +158,10 @@ const Evaluaciones = ({ embedded = false, tabs = null }) => {
       toast.warning(t('evaluations.selectGroup', { defaultValue: 'Selecciona un grupo' }));
       return;
     }
+    if (formData.fechaFin <= formData.fechaInicio) {
+      toast.warning(t('evaluations.fechaFinAfterFechaInicio', { defaultValue: 'La fecha de fin debe ser posterior a la fecha de inicio' }));
+      return;
+    }
     setSaving(true);
     try {
       const id = current ? getId(current) : null;

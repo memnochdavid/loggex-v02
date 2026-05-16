@@ -217,6 +217,10 @@ const TemariosProfesor = () => {
         toast.warning(t('teacherMaterials.fillAllFields'));
         return;
     }
+    if (!isEditing && formData.archivo && formData.archivo.size > 10 * 1024 * 1024) {
+        toast.warning(t('teacherMaterials.fileTooLarge', { defaultValue: 'El archivo no debe superar 10 MB' }));
+        return;
+    }
 
     setUploading(true);
 

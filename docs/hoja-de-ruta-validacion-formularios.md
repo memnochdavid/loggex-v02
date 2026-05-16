@@ -8,8 +8,8 @@
 
 ## ⚡ Snapshot para retomar
 
-**Estado**: 🟡 Fase 1 + Fase 2 completadas. Fase 3 pendiente.
-**Siguiente**: Fase 3 — Frontend validation (cross-field, maxLength, pattern, archivos)
+**Estado**: ✅ Fase 1 + Fase 2 + Fase 3 completadas.
+**Siguiente**: Fase 4 — Robustez adicional (CSRF, sanitización, solapamientos, debounce)
 
 ---
 
@@ -193,6 +193,38 @@
 ---
 
 ## Bitácora de Implementación
+
+### 2026-05-16 — Fase 3 completa: Frontend validation (cross-field, maxLength, pattern, archivos)
+
+**3.1 Cross-field validation (JS checks antes de submit):**
+- `Horarios.jsx`: `horaFin > horaInicio` — toast.warning si no cumple.
+- `Festivos.jsx`: `fechaFin >= fechaInicio` (si fechaFin está definido) — toast.warning si no cumple.
+- `Evaluaciones.jsx`: `fechaFin > fechaInicio` — toast.warning si no cumple.
+- `CalificacionesDetalle.jsx`: ya tenía `nota ∈ [0,10]` en `handleSaveNota` — confirmado.
+
+**3.2 maxLength en inputs de texto:**
+- `Usuarios.jsx`: nombre(255), apellidos(255), email(180), telefono(20), nif(20).
+- `Centros.jsx`: nombre(255), cif(20), direccion(255), telefono(20).
+- `Itinerarios.jsx`: nombre(255).
+- `Materias.jsx`: nombre(255), abreviatura(16 — ya tenía), codigoOficial(50).
+
+**3.3 pattern en teléfono:**
+- `Usuarios.jsx`: `pattern="[6-9][0-9]{8}"` en campo telefono.
+- `Centros.jsx`: `pattern="[6-9][0-9]{8}"` en campo telefono.
+
+**3.4 password minLength:**
+- `Usuarios.jsx`: `minLength={8}` en campo password (aplica en create por `required={!currentUser}`).
+
+**3.5 Validación de archivos (tamaño máximo JS):**
+- `Centros.jsx`: logo ≤ 5 MB en `handleFileChange`.
+- `Usuarios.jsx`: avatar ≤ 5 MB en `handleFileChange`.
+- `Entregas.jsx`: archivo entrega ≤ 10 MB en `handleUploadSubmit`.
+- `Entregas.jsx`: archivo tarea ≤ 10 MB en `handleSaveTarea`.
+- `TemariosProfesor.jsx`: archivo temario ≤ 10 MB en `handleSubmit`.
+- `Perfil.jsx`: avatar ≤ 5 MB en `handleAvatarChange`.
+
+**Archivos modificados (8 frontend):**
+`Horarios.jsx`, `Festivos.jsx`, `Evaluaciones.jsx`, `Usuarios.jsx`, `Centros.jsx`, `Itinerarios.jsx`, `Materias.jsx`, `Entregas.jsx`, `TemariosProfesor.jsx`, `Perfil.jsx`.
 
 ### 2026-05-16 — Fase 2 completa: 5 entidades parciales completadas
 

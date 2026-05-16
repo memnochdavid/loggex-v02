@@ -752,6 +752,7 @@ const Materias = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
+                    maxLength={255}
                     placeholder={t('materias.namePlaceholder')}
                 />
             </div>
@@ -777,6 +778,7 @@ const Materias = () => {
                     value={formData.codigoOficial}
                     onChange={handleInputChange}
                     className={styles.input}
+                    maxLength={50}
                     placeholder={t('materias.codePlaceholder')}
                 />
             </div>

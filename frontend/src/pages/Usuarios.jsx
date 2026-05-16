@@ -338,6 +338,11 @@ const Usuarios = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            toast.warning(t('users.avatarTooLarge', { defaultValue: 'El avatar no debe superar 5 MB' }));
+            e.target.value = '';
+            return;
+        }
         setAvatarFile(file);
         const reader = new FileReader();
         reader.onloadend = () => setAvatarPreview(reader.result);
@@ -576,37 +581,37 @@ const Usuarios = () => {
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('users.firstName')}</label>
               <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.nombre} required />
+                className={styles.input} aria-invalid={!!errors.nombre} required maxLength={255} />
               {errors.nombre && <span className={styles.errorText}>{errors.nombre}</span>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('users.lastName')}</label>
               <input type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.apellidos} required />
+                className={styles.input} aria-invalid={!!errors.apellidos} required maxLength={255} />
               {errors.apellidos && <span className={styles.errorText}>{errors.apellidos}</span>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('users.email')}</label>
               <input type="email" name="email" value={formData.email} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.email} required />
+                className={styles.input} aria-invalid={!!errors.email} required maxLength={180} />
               {errors.email && <span className={styles.errorText}>{errors.email}</span>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('users.phone')}</label>
               <input type="tel" name="telefono" value={formData.telefono} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.telefono} />
+                className={styles.input} aria-invalid={!!errors.telefono} maxLength={20} pattern="[6-9][0-9]{8}" />
               {errors.telefono && <span className={styles.errorText}>{errors.telefono}</span>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('users.nif')}</label>
               <input type="text" name="nif" value={formData.nif} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.nif} />
+                className={styles.input} aria-invalid={!!errors.nif} maxLength={20} />
               {errors.nif && <span className={styles.errorText}>{errors.nif}</span>}
             </div>
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('common.password')} {currentUser && t('users.passwordHelper')}</label>
               <input type="password" name="password" value={formData.password} onChange={handleInputChange} onBlur={handleBlurValidate}
-                className={styles.input} aria-invalid={!!errors.password} required={!currentUser} />
+                className={styles.input} aria-invalid={!!errors.password} required={!currentUser} minLength={8} />
               {errors.password && <span className={styles.errorText}>{errors.password}</span>}
             </div>
             <div className={styles.formGroup}>

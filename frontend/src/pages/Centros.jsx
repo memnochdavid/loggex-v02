@@ -379,6 +379,11 @@ const Centros = () => {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.warning(t('centers.logoTooLarge', { defaultValue: 'El logo no debe superar 5 MB' }));
+                e.target.value = '';
+                return;
+            }
             setLogoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -670,6 +675,7 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
+                            maxLength={255}
                             placeholder={t('centers.namePlaceholder')}
                         />
                     </div>
@@ -683,6 +689,7 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
+                            maxLength={20}
                             placeholder={t('centers.cifPlaceholder')}
                         />
                     </div>
@@ -696,6 +703,7 @@ const Centros = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
+                            maxLength={255}
                             placeholder={t('centers.addressPlaceholder')}
                         />
                     </div>
@@ -814,6 +822,8 @@ const Centros = () => {
                             value={formData.telefono}
                             onChange={handleInputChange}
                             className={styles.input}
+                            maxLength={20}
+                            pattern="[6-9][0-9]{8}"
                             placeholder={t('centers.phonePlaceholder')}
                         />
                     </div>

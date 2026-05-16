@@ -781,6 +781,7 @@ const Itinerarios = () => {
                             onChange={handleInputChange}
                             className={styles.input}
                             required
+                            maxLength={255}
                             placeholder={t('itinerarios.namePlaceholder')}
                         />
                     </div>
