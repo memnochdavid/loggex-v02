@@ -624,29 +624,29 @@ const Entregas = () => {
                     {entrega ? t('common.edit') : t('deliveries.deliver')}
                   </Button>
                 )}
+                {tarea.archivo && (
+                  <>
+                    <a
+                      href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
+                      target="_blank" rel="noopener noreferrer"
+                      className={styles.downloadLink}
+                      title={t('common.viewAttachment')}
+                    >
+                      <Paperclip size={18} />
+                    </a>
+                    <a
+                      href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
+                      target="_blank" rel="noopener noreferrer"
+                      download
+                      className={styles.downloadLink}
+                      title={t('common.downloadAttachment')}
+                    >
+                      <Download size={18} />
+                    </a>
+                  </>
+                )}
                 {(isProfesor || isAdmin || isSuperAdmin) && (
                   <>
-                    {tarea.archivo && (
-                      <>
-                        <a
-                          href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
-                          target="_blank" rel="noopener noreferrer"
-                          className={styles.downloadLink}
-                          title={t('common.viewAttachment')}
-                        >
-                          <Paperclip size={18} />
-                        </a>
-                        <a
-                          href={getAssetUrl(`/uploads/tareas/${tarea.id}/${tarea.archivo}`)}
-                          target="_blank" rel="noopener noreferrer"
-                          download
-                          className={styles.downloadLink}
-                          title={t('common.downloadAttachment')}
-                        >
-                          <Download size={18} />
-                        </a>
-                      </>
-                    )}
                     <Button size="sm" variant="secondary" onClick={() => handleViewEntregas(tarea, imparticion.id)}>
                       <Eye size={16} style={{ marginRight: '4px' }} /> {t('deliveries.viewDeliveries')}
                     </Button>

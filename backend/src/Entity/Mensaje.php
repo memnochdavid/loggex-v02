@@ -51,7 +51,6 @@ class Mensaje
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Assert\NotBlank]
     private ?string $contenido = null;
 
     #[Groups(['mensaje:read', 'mensaje:write'])]
@@ -64,13 +63,11 @@ class Mensaje
     private ?\DateTimeInterface $fechaEnvio = null;
 
     #[ORM\Column]
-    #[Assert\NotNull]
-    #[Groups(['mensaje:read', 'mensaje:write'])]
+    #[Groups(['mensaje:read'])]
     private ?bool $leido = false;
 
     #[ORM\ManyToOne(inversedBy: 'mensajesEnviados')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
     #[Groups(['mensaje:read'])]
     private ?User $remitente = null;
 

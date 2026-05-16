@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './utils/csrfInterceptor'
 import './index.css'
 import './styles/toast.css'
 import './i18n/i18n'

@@ -42,6 +42,31 @@ class UploadTemarioController extends AbstractController
             return $this->json(['message' => 'Faltan datos requeridos (file, titulo, imparticionId)'], 400);
         }
 
+        // Validación de tamaño (10 MB máx)
+        $maxSize = 10 * 1024 * 1024;
+        if ($file->getSize() > $maxSize) {
+            return $this->json(['message' => 'El archivo no debe superar 10 MB'], 400);
+        }
+
+        // Allowlist de MIME types para materiales docentes
+        $allowedMimeTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'image/png',
+            'image/jpeg',
+            'image/gif',
+        ];
+        $mimeType = $file->getMimeType();
+        if (!in_array($mimeType, $allowedMimeTypes, true)) {
+            return $this->json(['message' => 'Tipo de archivo no permitido. Tipos aceptados: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, PNG, JPG, GIF'], 400);
+        }
+
         // Buscar impartición
         $imparticion = $entityManager->getRepository(Imparticion::class)->find($imparticionId);
 

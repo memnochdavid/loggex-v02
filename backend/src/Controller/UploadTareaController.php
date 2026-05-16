@@ -116,6 +116,12 @@ class UploadTareaController extends AbstractController
 
             // Procesar archivo si existe
             if ($file) {
+                // Validación de tamaño (10 MB máx)
+                $maxSize = 10 * 1024 * 1024;
+                if ($file->getSize() > $maxSize) {
+                    return $this->json(['message' => 'El archivo no debe superar 10 MB'], 400);
+                }
+
                 $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();

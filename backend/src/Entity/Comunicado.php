@@ -72,7 +72,6 @@ class Comunicado
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
     #[Groups(['comunicado:read'])]
     private ?User $autor = null;
 

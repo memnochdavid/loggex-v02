@@ -6,6 +6,7 @@ use App\Entity\Imparticion;
 use App\Entity\Matricula;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityNotFoundException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -32,8 +33,13 @@ class GetAlumnoProfesoresController extends AbstractController
         if (!empty($grupos)) {
             $imparticiones = $entityManager->getRepository(Imparticion::class)->findBy(['grupo' => $grupos]);
             foreach ($imparticiones as $imp) {
-                $profesor = $imp->getProfesor();
-                if ($profesor) {
+                try {
+                    $profesor = $imp->getProfesor();
+                    $materia = $imp->getMateria();
+                } catch (EntityNotFoundException) {
+                    continue;
+                }
+                if ($profesor && $materia) {
                     $id = $profesor->getId();
                     if (!isset($profesoresMap[$id])) {
                         $profesoresMap[$id] = [
@@ -41,7 +47,7 @@ class GetAlumnoProfesoresController extends AbstractController
                             'asignaturas' => []
                         ];
                     }
-                    $profesoresMap[$id]['asignaturas'][] = $imp->getMateria()->getNombre();
+                    $profesoresMap[$id]['asignaturas'][] = $materia->getNombre();
                 }
             }
         }

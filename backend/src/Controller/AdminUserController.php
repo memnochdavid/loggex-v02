@@ -61,6 +61,19 @@ class AdminUserController extends AbstractController
         $centroId = $request->request->get('centro');
         $avatarFile = $request->files->get('avatar');
 
+        // Validación de archivo (avatar: imagen ≤ 5 MB)
+        if ($avatarFile) {
+            $maxSize = 5 * 1024 * 1024;
+            if ($avatarFile->getSize() > $maxSize) {
+                return $this->json(['message' => 'El avatar no debe superar 5 MB'], Response::HTTP_BAD_REQUEST);
+            }
+            $allowedMimeTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            $mimeType = $avatarFile->getMimeType();
+            if (!in_array($mimeType, $allowedMimeTypes, true)) {
+                return $this->json(['message' => 'El avatar debe ser una imagen (PNG, JPG, GIF, WEBP)'], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
         // Validaciones básicas para crear
         if (!$user->getId() && (!$email || !$password || !$nombre || !$apellidos)) {
             return $this->json(['message' => 'Faltan campos obligatorios'], Response::HTTP_BAD_REQUEST);

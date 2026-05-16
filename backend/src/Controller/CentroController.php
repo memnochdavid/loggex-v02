@@ -42,6 +42,19 @@ class CentroController extends AbstractController
 
         $logoFile = $request->files->get('logo');
 
+        // Validación de archivo (logo: imagen ≤ 5 MB)
+        if ($logoFile) {
+            $maxSize = 5 * 1024 * 1024;
+            if ($logoFile->getSize() > $maxSize) {
+                return $this->json(['message' => 'El logo no debe superar 5 MB'], 400);
+            }
+            $allowedMimeTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            $mimeType = $logoFile->getMimeType();
+            if (!in_array($mimeType, $allowedMimeTypes, true)) {
+                return $this->json(['message' => 'El logo debe ser una imagen (PNG, JPG, GIF, WEBP)'], 400);
+            }
+        }
+
         // Validaciones básicas
         if (!$centro->getId() && (!$nombre || !$cif || !$direccion)) {
             return $this->json(['message' => 'Faltan campos obligatorios (nombre, cif, direccion)'], 400);
@@ -113,7 +126,7 @@ class CentroController extends AbstractController
 
             // Crear directorio si no existe
             if (!file_exists($destination)) {
-                if (!@mkdir($destination, 0777, true) && !is_dir($destination)) {
+                if (!@mkdir($destination, 0755, true) && !is_dir($destination)) {
                     return $this->json(['message' => 'Error al crear el directorio de destino'], 500);
                 }
             }

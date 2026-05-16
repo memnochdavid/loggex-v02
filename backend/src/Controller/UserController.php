@@ -31,6 +31,19 @@ class UserController extends AbstractController
             $nif = $request->request->get('nif');
             $avatarFile = $request->files->get('avatar');
 
+            // Validación de archivo (avatar: imagen ≤ 5 MB)
+            if ($avatarFile) {
+                $maxSize = 5 * 1024 * 1024;
+                if ($avatarFile->getSize() > $maxSize) {
+                    return $this->json(['message' => 'El avatar no debe superar 5 MB'], 400);
+                }
+                $allowedMimeTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+                $mimeType = $avatarFile->getMimeType();
+                if (!in_array($mimeType, $allowedMimeTypes, true)) {
+                    return $this->json(['message' => 'El avatar debe ser una imagen (PNG, JPG, GIF, WEBP)'], 400);
+                }
+            }
+
             if ($nombre) {
                 $user->setNombre($nombre);
             }
@@ -48,7 +61,7 @@ class UserController extends AbstractController
 
                 // Crear directorio si no existe
                 if (!file_exists($destination)) {
-                    if (!@mkdir($destination, 0777, true) && !is_dir($destination)) {
+                    if (!@mkdir($destination, 0755, true) && !is_dir($destination)) {
                         throw new \RuntimeException(sprintf('No se pudo crear el directorio "%s". Verifique permisos.', $destination));
                     }
                 }
