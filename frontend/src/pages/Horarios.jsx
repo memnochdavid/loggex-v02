@@ -38,7 +38,7 @@ const Horarios = ({ embedded = false, tabs = null }) => {
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const canEdit = isSuperAdmin || isAdmin;
   
-  const isMobile = useMediaQuery('(max-width: 900px)');
+  const isMobile = useMediaQuery('(max-width: 600px)');
 
   const [viewMode, setViewMode] = useState(embedded ? 'list' : 'calendar');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -971,8 +971,6 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                             selectedDate={selectedDate}
                             autoOpenExcepcionId={autoOpenExcepcionId}
                             onAutoOpenConsumed={() => {
-                                // Tras abrir el modal, limpia el query param para que
-                                // un F5 no vuelva a abrirlo.
                                 setAutoOpenExcepcionId(null);
                                 setSearchParams((prev) => {
                                     const next = new URLSearchParams(prev);
@@ -985,6 +983,16 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                     </div>
 
                     {!isMobile && (
+                        <div className={styles.weekStripWrapper}>
+                            <WeekStrip
+                                selectedDate={selectedDate}
+                                events={sidebarEvents}
+                                onEventClick={handleEventClick}
+                            />
+                        </div>
+                    )}
+
+                    {!isMobile && (
                         <div className={styles.calendarWrapper}>
                             <CalendarView
                                 selectedDate={selectedDate}
@@ -994,14 +1002,6 @@ const Horarios = ({ embedded = false, tabs = null }) => {
                         </div>
                     )}
                 </div>
-
-                {!isMobile && (
-                    <WeekStrip
-                        selectedDate={selectedDate}
-                        events={sidebarEvents}
-                        onEventClick={handleEventClick}
-                    />
-                )}
             </>
         )}
 

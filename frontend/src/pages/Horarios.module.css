@@ -125,25 +125,68 @@
     background-color: var(--color-error);
 }
 
-/* Layout de Vista Calendario — Fila 1: TimeTable + CalendarView; Fila 2: WeekStrip */
+/* Layout de Vista Calendario — grid de 3 bloques */
 .calendarViewModeContainer {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-6);
-    align-items: flex-start;
     width: 100%;
 }
 
 .timeTableWrapper {
-    flex: 1 1 auto;
-    min-width: 0;
+    grid-column: 1 / -1;
     background-color: transparent;
 }
 
+.weekStripWrapper {
+    grid-column: 1;
+}
+
 .calendarWrapper {
-    width: 340px;
-    flex-shrink: 0;
-    position: sticky;
-    top: var(--space-4);
+    grid-column: 2;
+}
+
+/* ≥970px: TimeTable ocupa col1 (rows 1-2), CalendarView col2-row1, WeekStrip col1-row2 */
+@media (min-width: 970px) {
+    .calendarViewModeContainer {
+        grid-template-columns: 1fr 340px;
+    }
+
+    .timeTableWrapper {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .calendarWrapper {
+        grid-column: 2;
+        grid-row: 1;
+        position: sticky;
+        top: var(--space-4);
+    }
+}
+
+/* ≤600px: todo en columna, CalendarView oculto (drawer móvil) */
+@media (max-width: 600px) {
+    .container {
+        padding: 0 var(--space-2);
+        height: auto;
+        overflow: visible;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .calendarWrapper {
+        display: none;
+    }
+
+    .modal {
+        max-height: 100vh;
+        border-radius: 0;
+    }
 }
 
 /* Sidebar Móvil (Drawer) — mismo patrón que el sidebar principal: respeta el header */
@@ -177,8 +220,8 @@
     box-sizing: border-box;
 }
 
-/* Header reducido (<=768px) — idéntico al del sidebar principal */
-@media (max-width: 768px) {
+/* Header reducido (<=600px) — idéntico al del sidebar principal */
+@media (max-width: 600px) {
     .mobileSidebarOverlay {
         top: 76px;
         height: calc(100vh - 76px);
@@ -373,38 +416,6 @@
 
 .input:focus-visible {
     outline: none;
-}
-
-/* Media Queries */
-@media (max-width: 900px) {
-    .container {
-        padding: 0 var(--space-2);
-        height: auto;
-        overflow: visible;
-    }
-
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--space-4);
-    }
-
-    .calendarViewModeContainer {
-        flex-direction: column;
-    }
-
-    .timeTableWrapper {
-        width: 100%;
-    }
-
-    .calendarWrapper {
-        display: none;
-    }
-
-    .modal {
-        max-height: 100vh;
-        border-radius: 0;
-    }
 }
 
 /* Reduced motion */
