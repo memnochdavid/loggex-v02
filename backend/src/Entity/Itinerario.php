@@ -22,6 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ItinerarioRepository::class)]
 #[ORM\Table(name: 'itinerario')]
@@ -60,15 +61,20 @@ class Itinerario
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['itinerario:read', 'itinerario:write', 'materia:read', 'grupo:read', 'matricula:read'])] // Añadido matricula:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 50)]
     #[Groups(['itinerario:read', 'itinerario:write', 'materia:read'])]
     private ?string $nivel = null;
 
     #[ORM\ManyToOne(inversedBy: 'itinerarios')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['itinerario:read', 'itinerario:write'])]
     private ?Centro $centro = null;
 

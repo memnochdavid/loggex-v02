@@ -17,6 +17,7 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ComunicadoRepository::class)]
 #[ORM\Table(name: 'comunicado')]
@@ -54,19 +55,24 @@ class Comunicado
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['comunicado:read', 'comunicado:write'])]
     private ?string $titulo = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank]
     #[Groups(['comunicado:read', 'comunicado:write'])]
     private ?string $contenido = null;
 
     #[ORM\Column(type: 'boolean')]
+    #[Assert\NotNull]
     #[Groups(['comunicado:read', 'comunicado:write'])]
     private bool $global = false;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['comunicado:read'])]
     private ?User $autor = null;
 

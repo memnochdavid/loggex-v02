@@ -10,10 +10,12 @@
 
 | Categoría | Conteo |
 |---|---|
-| Entidades con **alguna** validación backend (`#[Assert\...]`) | **12 de 24** |
-| Entidades con validación **completa** (NotBlank + Length + constraints de negocio) | **3** (User, ExcepcionHorario, PeriodoLectivo) |
-| Entidades con **cero** validación backend | **12** |
+| Entidades con **alguna** validación backend (`#[Assert\...]`) | **22 de 24** (antes 12) |
+| Entidades con validación **completa** (NotBlank + Length + constraints de negocio) | **15** (antes 3) |
+| Entidades con **cero** validación backend | **2** (Personalizacion, PonderacionImparticion) |
 | Formularios frontend con validación más allá de `required` HTML5 | **~4** (NIF, nota calificación, algunos inline) |
+
+**✅ Fase 1 completada 2026-05-16**: Las 12 entidades sin NINGUNA validación ahora tienen constraints Symfony completas. Ver bitácora en `hoja-de-ruta-validacion-formularios.md`.
 
 **Hallazgo principal**: La mayoría de entidades del dominio **no tienen ninguna validación Symfony**. Campos como `nombre`, `descripcion`, `tipo`, `estado`, `nota`, `titulo` en entidades como `Itinerario`, `Materia`, `Imparticion`, `Horario`, `Matricula`, `Asistencia`, `Calificacion`, `Tarea`, `Temario`, `Mensaje`, `Comunicado`, `Festivo` se persisten sin filtro a nivel de entidad. La única red de seguridad es el `length` del `#[ORM\Column]` (que produce un error 500 de Doctrine, no un 422 de validación).
 
@@ -193,28 +195,27 @@
 
 ## Recomendaciones Prioritarias
 
-### Fase 1 — Gaps críticos (impedir datos corruptos)
-1. **Añadir `#[Assert\...]` a las 12 entidades sin ninguna validación** (Itinerario, Materia, Imparticion, Horario, Matricula, Asistencia, Calificacion, Tarea, Temario, Mensaje, Comunicado, Festivo)
-2. **Validación cross-field en frontend**: `horaFin > horaInicio`, `fechaInicio ≤ fechaFin`, `nota ∈ [0,10]`
-3. **Completar validación en entidades parciales**: Centro (NotBlank en nombre/cif, NifEspanol en cif, Length), PeriodoEvaluativo (NotBlank, LessThan fechas), Grupo (NotBlank/Length en nombre/abreviatura)
+### ~~Fase 1~~ — ✅ COMPLETADA 2026-05-16
+Las 12 entidades sin validación ahora tienen constraints Symfony completas. Ver bitácora en `hoja-de-ruta-validacion-formularios.md`.
 
 ### Fase 2 — Consistencia frontend↔backend
-4. `password` minLength=8 en frontend + Assert\Length(min:8) en backend
-5. Choices validados en frontend (etapa, modalidad, turno, estado, tipo)
-6. maxLength en inputs frontend que lo tienen en ORM
-7. Validación de archivos en frontend (tamaño + tipo)
+1. `password` minLength=8 en frontend + Assert\Length(min:8) en backend
+2. Choices validados en frontend (etapa, modalidad, turno, estado, tipo)
+3. maxLength en inputs frontend que lo tienen en ORM
+4. Validación de archivos en frontend (tamaño + tipo)
+5. Completar entidades parciales: Centro, Grupo, PeriodoEvaluativo, User, JornadaTipo
 
 ### Fase 3 — Robustez adicional
-8. CSRF en endpoints custom con cookies
-9. Validación de solapamientos de horarios
-10. Sanitización de nombres de archivo subidos
-11. Debounce en búsquedas de AsyncSearchSelect
+6. CSRF en endpoints custom con cookies
+7. Validación de solapamientos de horarios
+8. Sanitización de nombres de archivo subidos
+9. Debounce en búsquedas de AsyncSearchSelect
 
 ---
 
 ## Detalle por Entidad
 
-### User (`User.php`) — Parcial
+### User (`User.php`) — Parcial (Fase 2 pendiente)
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
 | email | NotBlank, Email, Length(180) | required, type="email" | ✅ |
@@ -226,7 +227,7 @@
 | roles | **NINGUNO** | checkboxes | ⚠️ sin Choice |
 | foto | **NINGUNO** en entity | sin validación | ⚠️ sin tamaño/tipo |
 
-### Centro (`Centro.php`) — Mínimo
+### Centro (`Centro.php`) — Mínimo (Fase 2 pendiente)
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
 | nombre | **NINGUNO** | required | 🔴 sin NotBlank/Length |
@@ -236,7 +237,7 @@
 | logo | **NINGUNO** en entity | sin validación | ⚠️ sin tamaño/tipo |
 | fechaInicio/FinCurso | Expression (inicio < fin) | dos date inputs | ✅ |
 
-### Grupo (`Grupo.php`) — Parcial
+### Grupo (`Grupo.php`) — Parcial (Fase 2 pendiente)
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
 | nombre | **NINGUNO** | required | 🔴 sin NotBlank/Length |
@@ -245,95 +246,105 @@
 | anioEscolar | Regex, Callback (año+1) | select de años | ✅ (recién fixeado) |
 | aulaDefault | **NINGUNO** | sin validación | ⚠️ sin Length |
 
-### Itinerario (`Itinerario.php`) — **CERO validación**
+### Itinerario (`Itinerario.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| nombre | **NINGUNO** | required | 🔴 |
-| abreviatura | **NINGUNO** | sin required | 🔴 |
-| descripcion | **NINGUNO** | sin validación | 🔴 |
-| etapa | **NINGUNO** | select | 🔴 sin Choice |
-| jornadaTipo | **NINGUNO** | select | ⚠️ |
-| anioInicio | **NINGUNO** | sin validación | ⚠️ |
+| nombre | NotBlank, Length(255) | required | ✅ |
+| nivel | NotBlank, Length(50) | required | ✅ |
+| centro | NotNull | required | ✅ |
 
-### Materia (`Materia.php`) — **CERO validación**
+### Materia (`Materia.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| nombre | **NINGUNO** | required | 🔴 |
-| abreviatura | **NINGUNO** | sin required | 🔴 |
-| minutosSemanales | **NINGUNO** | sin validación | 🔴 sin PositiveOrZero |
-| horasTotales | **NINGUNO** | sin validación | 🔴 sin PositiveOrZero |
-| modalidad | **NINGUNO** | select | 🔴 sin Choice |
+| nombre | NotBlank, Length(255) | required | ✅ |
+| abreviatura | Length(16) | sin required | ✅ |
+| curso | NotBlank, Positive | required | ✅ |
+| minutosSemanales | PositiveOrZero | sin validación | ✅ |
+| horasTotales | PositiveOrZero | sin validación | ✅ |
+| modalidad | enum default 'presencial' | select | ✅ |
 
-### Horario (`Horario.php`) — **CERO validación**
+### Horario (`Horario.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| diaSemana | **NINGUNO** | select 1-7 | 🔴 sin Range(1,7) |
-| horaInicio | **NINGUNO** | required, type="time" | 🔴 |
-| horaFin | **NINGUNO** | required, type="time" | 🔴 sin > horaInicio |
-| aula | **NINGUNO** | required | 🔴 sin Length |
+| diaSemana | NotBlank, Range(1,7) | select 1-7 | ✅ |
+| horaInicio | NotBlank | required, type="time" | ✅ |
+| horaFin | NotBlank, Callback(horaFin > horaInicio) | required, type="time" | ✅ |
+| aula | NotBlank, Length(255) | required | ✅ |
+| imparticion | NotNull | required | ✅ |
 
-### Imparticion (`Imparticion.php`) — **CERO validación**
+### Imparticion (`Imparticion.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| materia | **NINGUNO** | required | 🔴 sin NotBlank |
-| profesor | **NINGUNO** | required | 🔴 sin NotBlank |
-| grupo | **NINGUNO** | required | 🔴 sin NotBlank |
-| aulaEspecifica | **NINGUNO** | sin validación | ⚠️ sin Length |
-| modalidad | **NINGUNO** | select | 🔴 sin Choice |
+| materia | NotNull | required | ✅ |
+| profesor | nullable (intencional) | required | ✅ |
+| grupo | NotNull | required | ✅ |
+| aulaEspecifica | Length(100) | sin validación | ✅ |
+| modalidad | enum nullable | select | ✅ |
 
-### Matricula (`Matricula.php`) — **CERO validación**
+### Matricula (`Matricula.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| alumno | **NINGUNO** | required | 🔴 sin NotBlank |
-| grupo | **NINGUNO** | required | 🔴 sin NotBlank |
-| estado | **NINGUNO** | select | 🔴 sin Choice |
+| alumno | NotNull | required | ✅ |
+| grupo | NotNull | required | ✅ |
 
-### Asistencia (`Asistencia.php`) — **CERO validación**
+### Asistencia (`Asistencia.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| estado | **NINGUNO** | select P/R/J | 🔴 sin Choice |
-| fecha | **NINGUNO** | sin validación | 🔴 sin NotBlank |
-| comentario | **NINGUNO** | sin validación | ⚠️ sin Length |
+| fecha | NotBlank | sin validación | ✅ |
+| hora | NotBlank | sin validación | ✅ |
+| estado | NotBlank, Choice(['P','R','J']) | select P/R/J | ✅ |
+| comentario | Length(500) | sin validación | ✅ |
+| imparticion | NotNull | sin validación | ✅ |
+| alumno | NotNull | sin validación | ✅ |
 
-### Calificacion (`Calificacion.php`) — **CERO validación**
+### Calificacion (`Calificacion.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| nota | **NINGUNO** | min=0, max=10 HTML5 | 🔴 sin Range(0,10) |
-| feedbackProfesor | **NINGUNO** | sin validación | ⚠️ sin Length |
+| nota | NotBlank, Range(0,10) | min=0, max=10 HTML5 | ✅ |
+| feedbackProfesor | Length(1000) | sin validación | ✅ |
+| entrega | NotNull | sin validación | ✅ |
 
-### Tarea (`Tarea.php`) — **CERO validación**
+### Tarea (`Tarea.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| titulo | **NINGUNO** | required | 🔴 sin NotBlank/Length |
-| descripcion | **NINGUNO** | sin validación | ⚠️ sin Length |
-| tipo | **NINGUNO** | select | 🔴 sin Choice |
-| fechaLimite | **NINGUNO** | sin validación | ⚠️ sin DateTime |
-| notaMinima | **NINGUNO** | sin validación | ⚠️ sin Range |
+| titulo | NotBlank, Length(255) | required | ✅ |
+| descripcion | Length(2000) | sin validación | ✅ |
+| tipo | NotBlank, Choice(['examen','tarea','practica']) | select | ✅ |
+| fechaLimite | NotBlank | sin validación | ✅ |
+| peso | Range(0,1) | sin validación | ✅ |
+| notaMinima | Range(0,10) | sin validación | ✅ |
+| imparticion | NotNull | required | ✅ |
 
-### Festivo (`Festivo.php`) — **CERO validación**
+### Festivo (`Festivo.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| nombre | **NINGUNO** | required | 🔴 sin NotBlank/Length |
-| fechaInicio | **NINGUNO** | required, type="date" | 🔴 sin ≤ fechaFin |
-| fechaFin | **NINGUNO** | required, type="date" | 🔴 |
+| nombre | NotBlank, Length(255) | required | ✅ |
+| fechaInicio | NotBlank | required, type="date" | ✅ |
+| fechaFin | Expression(fechaFin >= fechaInicio) | required, type="date" | ✅ |
 
-### Mensaje (`Mensaje.php`) — **CERO validación**
+### Mensaje (`Mensaje.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| asunto | **NINGUNO** | required | 🔴 sin NotBlank/Length |
-| contenido | **NINGUNO** | required | 🔴 sin NotBlank/Length |
-| destinatarios | **NINGUNO** | JS check | 🔴 sin Count(min:1) |
+| texto | NotBlank(write), Length(5000,write) | required | ✅ |
+| contenido | NotBlank | cifrado auto | ✅ |
+| remitente | NotNull | auto | ✅ |
+| destinatario | NotNull | required | ✅ |
 
-### Comunicado (`Comunicado.php`) — **CERO validación**
+### Comunicado (`Comunicado.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| titulo | **NINGUNO** | required | 🔴 sin NotBlank/Length |
-| contenido | **NINGUNO** | required | 🔴 sin NotBlank/Length |
+| titulo | NotBlank, Length(255) | required | ✅ |
+| contenido | NotBlank | required | ✅ |
+| global | NotNull | sin validación | ✅ |
+| autor | NotNull | auto | ✅ |
 
-### Temario (`Temario.php`) — **CERO validación**
+### Temario (`Temario.php`) — ✅ FIXED 2026-05-16
 | Campo | Backend | Frontend | Gap |
 |---|---|---|---|
-| titulo | **NINGUNO** | required | 🔴 sin NotBlank/Length |
+| titulo | NotBlank, Length(255) | required | ✅ |
+| archivo | NotBlank, Length(255) | required | ✅ |
+| fechaSubida | NotBlank | sin validación | ✅ |
+| imparticion | NotNull | sin validación | ✅ |
 
 ### ExcepcionHorario (`ExcepcionHorario.php`) — Buena ✅
 | Campo | Backend | Frontend | Gap |

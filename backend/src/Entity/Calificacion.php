@@ -17,6 +17,7 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CalificacionRepository::class)]
 #[ORM\Table(name: 'calificacion')]
@@ -54,15 +55,19 @@ class Calificacion
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Range(min: 0, max: 10, notInRangeMessage: 'La nota debe estar entre 0 y 10.')]
     #[Groups(['calificacion:read', 'calificacion:write', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?float $nota = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 1000)]
     #[Groups(['calificacion:read', 'calificacion:write', 'entrega:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $feedbackProfesor = null;
 
     #[ORM\OneToOne(inversedBy: 'calificacion', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['calificacion:read', 'calificacion:write'])]
     private ?Entrega $entrega = null;
 

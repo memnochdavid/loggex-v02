@@ -18,10 +18,15 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: FestivoRepository::class)]
 #[ORM\Table(name: 'festivo')]
 #[ORM\HasLifecycleCallbacks]
+#[Assert\Expression(
+    'this.fechaFin === null or this.fechaFin >= this.fechaInicio',
+    message: 'La fecha de fin debe ser igual o posterior a la fecha de inicio.'
+)]
 #[ApiResource(
     operations: [
         new Get(),
@@ -53,10 +58,13 @@ class Festivo
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['festivo:read', 'festivo:write'])]
     private ?string $nombre = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['festivo:read', 'festivo:write'])]
     private ?\DateTimeInterface $fechaInicio = null;
 

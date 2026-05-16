@@ -18,6 +18,7 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TemarioRepository::class)]
 #[ORM\Table(name: 'temario')]
@@ -54,19 +55,25 @@ class Temario
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['temario:read', 'temario:write'])]
     private ?string $titulo = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['temario:read', 'temario:write'])]
     private ?string $archivo = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['temario:read', 'temario:write'])]
     private ?\DateTimeInterface $fechaSubida = null;
 
     #[ORM\ManyToOne(inversedBy: 'temarios')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['temario:read', 'temario:write'])]
     private ?Imparticion $imparticion = null;
 

@@ -18,6 +18,7 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AsistenciaRepository::class)]
 #[ORM\Table(name: 'asistencia')]
@@ -62,28 +63,35 @@ class Asistencia
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?\DateTimeInterface $fecha = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?\DateTimeInterface $hora = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank]
+    #[Assert\Choice(choices: ['P', 'R', 'J'], message: 'El estado debe ser P (presente), R (retraso) o J (justificada).')]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?string $estado = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 500)]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?string $comentario = null;
 
     #[ORM\ManyToOne(inversedBy: 'asistencias')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?Imparticion $imparticion = null;
 
     #[ORM\ManyToOne(inversedBy: 'asistencias')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['asistencia:read', 'asistencia:write'])]
     private ?User $alumno = null;
 

@@ -19,10 +19,13 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: HorarioRepository::class)]
 #[ORM\Table(name: 'horario')]
 #[ORM\HasLifecycleCallbacks]
+#[Assert\Callback('validateHoras')]
 #[ApiResource(
     operations: [
         new Get(),
@@ -76,23 +79,30 @@ class Horario
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Range(min: 1, max: 7, minMessage: 'El día de la semana debe estar entre 1 (lunes) y 7 (domingo).', maxMessage: 'El día de la semana debe estar entre 1 (lunes) y 7 (domingo).')]
     #[Groups(['horario:read', 'horario:write'])]
     private ?int $diaSemana = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['horario:read', 'horario:write'])]
     private ?\DateTimeInterface $horaInicio = null;
 
     #[ORM\Column(type: Types::TIME_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['horario:read', 'horario:write'])]
     private ?\DateTimeInterface $horaFin = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['horario:read', 'horario:write'])]
     private ?string $aula = null;
 
     #[ORM\ManyToOne(inversedBy: 'horarios')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['horario:read', 'horario:write'])]
     private ?Imparticion $imparticion = null;
 
@@ -216,5 +226,16 @@ class Horario
     {
         $this->periodoLectivo = $periodoLectivo;
         return $this;
+    }
+
+    public function validateHoras(ExecutionContextInterface $context): void
+    {
+        if ($this->horaInicio !== null && $this->horaFin !== null) {
+            if ($this->horaFin <= $this->horaInicio) {
+                $context->buildViolation('La hora de fin debe ser posterior a la hora de inicio.')
+                    ->atPath('horaFin')
+                    ->addViolation();
+            }
+        }
     }
 }

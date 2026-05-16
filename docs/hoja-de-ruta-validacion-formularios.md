@@ -8,8 +8,8 @@
 
 ## ⚡ Snapshot para retomar
 
-**Estado**: 🔴 Sin empezar
-**Siguiente**: Fase 1.1 — Añadir `#[Assert\...]` a las 12 entidades sin ninguna validación
+**Estado**: 🟡 Fase 1 completada. Fase 2 y 3 pendientes.
+**Siguiente**: Fase 2 — Completar validación en entidades parciales (Centro, Grupo, PeriodoEvaluativo, User, JornadaTipo)
 
 ---
 
@@ -193,6 +193,33 @@
 ---
 
 ## Bitácora de Implementación
+
+### 2026-05-16 — Fase 1 completa: 12 entidades sin validación → todas con Assert constraints
+
+**Entidades modificadas (12 archivos):**
+
+1. **Horario** — `#[Assert\NotBlank]` + `#[Assert\Range(1,7)]` en diaSemana, `#[Assert\NotBlank]` en horaInicio/horaFin/aula, `#[Assert\Length(max:255)]` en aula, `#[Assert\NotNull]` en imparticion. `#[Assert\Callback('validateHoras')]` → valida `horaFin > horaInicio`.
+2. **Materia** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en nombre, `#[Assert\Length(max:50)]` en codigoOficial, `#[Assert\Length(max:16)]` en abreviatura, `#[Assert\Positive]` en curso, `#[Assert\PositiveOrZero]` en minutosSemanales y horasTotales.
+3. **Itinerario** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en nombre, `#[Assert\NotBlank]` + `#[Assert\Length(max:50)]` en nivel, `#[Assert\NotNull]` en centro.
+4. **Imparticion** — `#[Assert\NotNull]` en materia y grupo (profesor es nullable intencionalmente), `#[Assert\Length(max:100)]` en aulaEspecifica.
+5. **Matricula** — `#[Assert\NotNull]` en alumno y grupo. **Nota**: Matricula NO tiene campo `estado` (la auditoría inicial era incorrecta).
+6. **Asistencia** — `#[Assert\NotBlank]` en fecha, hora, estado, `#[Assert\Choice(['P','R','J'])]` en estado, `#[Assert\Length(max:500)]` en comentario, `#[Assert\NotNull]` en imparticion y alumno.
+7. **Calificacion** — `#[Assert\NotBlank]` + `#[Assert\Range(0,10)]` en nota, `#[Assert\Length(max:1000)]` en feedbackProfesor, `#[Assert\NotNull]` en entrega.
+8. **Tarea** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en titulo, `#[Assert\Length(max:2000)]` en descripcion, `#[Assert\Length(max:255)]` en archivo, `#[Assert\NotBlank]` en fechaLimite, `#[Assert\NotNull]` en visible/obligatoria, `#[Assert\Choice(['examen','tarea','practica'])]` en tipo, `#[Assert\Range(0,1)]` en peso, `#[Assert\Range(0,10)]` en notaMinima, `#[Assert\NotNull]` en imparticion.
+9. **Festivo** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en nombre, `#[Assert\NotBlank]` en fechaInicio, `#[Assert\Expression('fechaFin >= fechaInicio')]`.
+10. **Mensaje** — `#[Assert\NotBlank]` en contenido, `#[Assert\NotBlank]` + `#[Assert\Length(max:5000)]` en texto (grupo 'write'), `#[Assert\NotNull]` en leido/remitente/destinatario.
+11. **Comunicado** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en titulo, `#[Assert\NotBlank]` en contenido, `#[Assert\NotNull]` en global/autor.
+12. **Temario** — `#[Assert\NotBlank]` + `#[Assert\Length(max:255)]` en titulo/archivo, `#[Assert\NotBlank]` en fechaSubida, `#[Assert\NotNull]` en imparticion.
+
+**Compatibilidad con datos existentes**: Todas las constraints se han diseñado para ser compatibles con los datos actuales de `backup_tfg_full.sql`:
+- `asistencia.estado`: valores existentes son 'P', 'R', 'J' → compatible con Choice.
+- `tarea.tipo`: valores existentes son 'examen', 'tarea', 'practica' → compatible con Choice.
+- `calificacion.nota`: valores entre 0 y 10 → compatible con Range.
+- `tarea.peso`: valores entre 0 y 1 → compatible con Range.
+- `horario.diaSemana`: valores 1-7 → compatible con Range.
+- `festivo.fechaFin`: nullable, cuando existe ≥ fechaInicio → compatible con Expression.
+
+**Validación**: `php -l` OK en los 12 archivos.
 
 ### 2026-05-16 — Creación del roadmap
 - Auditoría completa de 24 entities + 24 páginas frontend

@@ -21,6 +21,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ImparticionRepository::class)]
 #[ORM\Table(name: 'imparticion')]
@@ -74,11 +75,13 @@ class Imparticion
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Materia $materia = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Grupo $grupo = null;
 
@@ -88,6 +91,7 @@ class Imparticion
      * "Lenguajes de marcas", aula de música para una asignatura ESO.
      */
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
     private ?string $aulaEspecifica = null;
 

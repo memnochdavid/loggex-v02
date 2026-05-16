@@ -22,6 +22,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TareaRepository::class)]
 #[ORM\Table(name: 'tarea')]
@@ -64,18 +65,23 @@ class Tarea
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $titulo = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 2000)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $archivo = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotBlank]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?\DateTimeInterface $fechaLimite = null;
 
@@ -84,27 +90,34 @@ class Tarea
     private ?\DateTimeInterface $fechaInicio = null;
 
     #[ORM\Column(type: 'boolean')]
+    #[Assert\NotNull]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read'])]
     private bool $visible = true;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank]
+    #[Assert\Choice(choices: ['examen', 'tarea', 'practica'], message: 'El tipo debe ser examen, tarea o practica.')]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $tipo = null;
 
     #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Assert\Range(min: 0, max: 1, notInRangeMessage: 'El peso debe estar entre 0 y 1.')]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?float $peso = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[Assert\NotNull]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private bool $obligatoria = true;
 
     #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Assert\Range(min: 0, max: 10, notInRangeMessage: 'La nota mínima debe estar entre 0 y 10.')]
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?float $notaMinima = null;
 
     #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?Imparticion $imparticion = null;
 

@@ -24,6 +24,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MateriaRepository::class)]
 #[ORM\Table(name: 'materia')]
@@ -70,10 +71,13 @@ class Materia
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Length(max: 50)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])] // Añadido tarea:read
     private ?string $codigoOficial = null;
 
@@ -82,10 +86,13 @@ class Materia
      * (vista móvil de AccordionView, TimeTable, etc.).
      */
     #[ORM\Column(length: 16, nullable: true)]
+    #[Assert\Length(max: 16)]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read', 'horario:read', 'tarea:read'])]
     private ?string $abreviatura = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $curso = null;
 
@@ -106,6 +113,7 @@ class Materia
      * totales anuales del módulo (BOE/BOJA).
      */
     #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $minutosSemanales = null;
 
@@ -124,6 +132,7 @@ class Materia
      * y deja las h totales editables por el admin si difieren del catálogo.
      */
     #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero]
     #[Groups(['materia:read', 'materia:write', 'imparticion:read'])]
     private ?int $horasTotales = null;
 

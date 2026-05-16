@@ -16,6 +16,7 @@ use App\State\MensajeProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MensajeRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -50,9 +51,12 @@ class Mensaje
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank]
     private ?string $contenido = null;
 
     #[Groups(['mensaje:read', 'mensaje:write'])]
+    #[Assert\NotBlank(groups: ['write'])]
+    #[Assert\Length(max: 5000, groups: ['write'])]
     private ?string $texto = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -60,16 +64,19 @@ class Mensaje
     private ?\DateTimeInterface $fechaEnvio = null;
 
     #[ORM\Column]
+    #[Assert\NotNull]
     #[Groups(['mensaje:read', 'mensaje:write'])]
     private ?bool $leido = false;
 
     #[ORM\ManyToOne(inversedBy: 'mensajesEnviados')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['mensaje:read'])]
     private ?User $remitente = null;
 
     #[ORM\ManyToOne(inversedBy: 'mensajesRecibidos')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['mensaje:read', 'mensaje:write'])]
     private ?User $destinatario = null;
 

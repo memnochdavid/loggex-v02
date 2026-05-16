@@ -18,6 +18,7 @@ use App\Repository\MatriculaRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MatriculaRepository::class)]
 #[ORM\Table(name: 'matricula')]
@@ -58,11 +59,13 @@ class Matricula
 
     #[ORM\ManyToOne(inversedBy: 'matriculas')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['matricula:read', 'matricula:write'])]
     private ?User $alumno = null;
 
     #[ORM\ManyToOne(inversedBy: 'matriculas')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     #[Groups(['matricula:read', 'matricula:write'])]
     private ?Grupo $grupo = null;
 
