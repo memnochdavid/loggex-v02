@@ -75,7 +75,7 @@ for i in $(seq 1 15); do
     sleep 2
 done
 
-# ── 3. Configurar MinIO (bucket loggex-data) ─────────────────────────────────
+# ── 3. Configurar MinIO + restaurar storage ──────────────────────────────────
 echo ""
 info "Configurando bucket MinIO 'loggex-data'..."
 NETWORK=$(docker network ls -q --filter name=loggex-v02_default | head -n 1)
@@ -88,25 +88,43 @@ docker run --rm --network "$NETWORK" \
     minio/mc mb --ignore-existing myminio/loggex-data >/dev/null 2>&1
 ok "Bucket 'loggex-data' creado"
 
-# ── 4. Instalar dependencias Backend (Composer) ──────────────────────────────
+if [ -d minio_backup ]; then
+    info "Restaurando archivos desde minio_backup/..."
+    bash scripts/restore_storage.sh
+    ok "Storage restaurado"
+else
+    warn "minio_backup/ no encontrado — bucket vacío (avatares, logos, entregas no estarán disponibles)"
+fi
+
+# ── 4. Restaurar BD desde backup (idempotente sobre entrypoint-initdb) ────────
+echo ""
+if [ -f backup_tfg_full.sql ]; then
+    info "Restaurando base de datos desde backup_tfg_full.sql..."
+    bash scripts/restore_db.sh
+    ok "Base de datos restaurada"
+else
+    warn "backup_tfg_full.sql no encontrado — BD vacía (solo schema de migraciones)"
+fi
+
+# ── 5. Instalar dependencias Backend (Composer) ──────────────────────────────
 echo ""
 info "Instalando dependencias de Symfony (composer install)..."
 docker compose exec -T backend composer install --no-interaction --optimize-autoloader
 ok "Composer install completado"
 
-# ── 5. Generar claves JWT ────────────────────────────────────────────────────
+# ── 6. Generar claves JWT ────────────────────────────────────────────────────
 echo ""
 info "Generando claves JWT..."
 docker compose exec -T backend php bin/console lexik:jwt:generate-keypair --skip-if-exists --no-interaction
 ok "Claves JWT generadas"
 
-# ── 6. Aplicar migraciones Doctrine ──────────────────────────────────────────
+# ── 7. Aplicar migraciones Doctrine ──────────────────────────────────────────
 echo ""
 info "Aplicando migraciones Doctrine..."
 docker compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 ok "Migraciones aplicadas"
 
-# ── 7. Limpiar caché + permisos ──────────────────────────────────────────────
+# ── 8. Limpiar caché + permisos ──────────────────────────────────────────────
 echo ""
 info "Limpiando caché y ajustando permisos..."
 docker compose exec -T backend rm -rf var/cache/dev var/cache/prod
@@ -114,13 +132,13 @@ docker compose exec -T backend php bin/console cache:clear
 docker compose exec -T backend chown -R www-data:www-data var/
 ok "Caché limpio y permisos ajustados"
 
-# ── 8. Instalar dependencias Frontend (NPM) ──────────────────────────────────
+# ── 9. Instalar dependencias Frontend (NPM) ──────────────────────────────────
 echo ""
 info "Instalando dependencias de React (npm install)..."
 docker compose exec -T frontend npm install
 ok "npm install completado"
 
-# ── 9. Reiniciar backend (OPcache) ───────────────────────────────────────────
+# ── 10. Reiniciar backend (OPcache) ──────────────────────────────────────────
 echo ""
 info "Reiniciando backend para aplicar OPcache..."
 docker compose restart backend
@@ -138,8 +156,4 @@ echo "  MinIO:       http://localhost:9001  (admin / minio_password)"
 echo ""
 echo "  Credenciales por defecto (backup):"
 echo "    superadmin@loggex.com / 1234"
-echo ""
-echo "  Próximos pasos opcionales:"
-echo "    ./scripts/restore_db.sh    → restaurar backup completo"
-echo "    docker compose exec backend php bin/console app:catalogo:refresh"
 echo ""
