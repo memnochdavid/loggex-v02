@@ -98,25 +98,12 @@ const UserProfileView = ({ user: initialUser }) => {
         ? user.roles.filter(r => r !== 'ROLE_USER').map(r => r.replace('ROLE_', '')).join(', ') 
         : 'Usuario';
 
-    // Obtener nombre del centro de forma segura
     let centroNombre = t('userProfile.noCenter');
     if (user.centro) {
-        if (typeof user.centro === 'string') {
-            // Si sigue siendo string tras el fetch (raro con user:read, pero posible), intentamos mostrar algo o dejarlo
-            // Podríamos hacer otro fetch aquí, pero ya hicimos uno completo.
-            // Si el backend devuelve IRI en user:read, es configuración de serialización.
-            // Asumiremos que si es string es un IRI y no tenemos el nombre a mano.
-            centroNombre = t('userProfile.loadingCenter'); 
-            // Intento de fetch adicional solo para el centro si es necesario
-             fetch(getApiUrl(user.centro), { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
-                .then(r => r.json()).then(d => {
-                     // Esto es un hack sucio para actualizar la UI, mejor sería tener estado.
-                     // Pero como ya tenemos estado user, si user.centro es string, es que la API lo devuelve así.
-                     // Vamos a confiar en que la API devuelve objeto si está bien configurada.
-                     // Si no, mostraremos "Ver detalles" o similar.
-                }).catch(() => {});
-        } else if (user.centro.nombre) {
+        if (typeof user.centro === 'object' && user.centro.nombre) {
             centroNombre = user.centro.nombre;
+        } else if (typeof user.centro === 'string') {
+            centroNombre = user.centro;
         }
     }
 

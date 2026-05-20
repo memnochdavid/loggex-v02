@@ -540,11 +540,24 @@ const DataTable = ({
                                                 />
                                             )}
                                             <div className={styles.mobileHeaderInfo}>
-                                                {headerCols.map((col, idx) => (
-                                                    <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>
-                                                        {getCellValue(col, row)}
-                                                    </div>
-                                                ))}
+                                                {headerCols.map((col, idx) => {
+                                                    const val = getCellValue(col, row);
+                                                    if (idx === 0 && row.titleShort) {
+                                                        return (
+                                                            <div key={idx} className={styles.mobileHeaderAvatar}>
+                                                                <span title={typeof val === 'string' ? val : undefined}>
+                                                                    <span className="accordionHeaderTitleFull">{val}</span>
+                                                                    <span className="accordionHeaderTitleShort">{row.titleShort}</span>
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div key={idx} className={idx === 0 ? styles.mobileHeaderAvatar : styles.mobileHeaderText}>
+                                                            {val}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                             {actionsCol && (
                                                 <div className={styles.mobileHeaderActions} onClick={(e) => e.stopPropagation()}>

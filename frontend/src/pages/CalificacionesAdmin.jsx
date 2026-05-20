@@ -179,6 +179,7 @@ const CalificacionesAdmin = () => {
             result[ciclo].push({
                 id: g.grupo.id,
                 title: formatGrupoNombre(g.grupo),
+                titleShort: `${g.grupo.curso || '?'}º ${g.grupo.abreviatura || g.grupo.nombre || ''}`,
                 modulos: g.modulos,
             });
         });

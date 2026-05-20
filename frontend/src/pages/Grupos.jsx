@@ -167,6 +167,9 @@ const Grupos = () => {
       const items = data['hydra:member'] || data.member || [];
       const total = data['hydra:totalItems'] || data.totalItems || items.length;
       
+      items.forEach(item => {
+        item.titleShort = `${item.curso || '?'}º ${item.abreviatura || item.nombre}`;
+      });
       setGrupos(items);
       setTotalItems(total);
       setError(null);

@@ -175,6 +175,13 @@ const Itinerarios = () => {
       const items = data['hydra:member'] || data.member || [];
       const total = data['hydra:totalItems'] || data.totalItems || items.length;
       
+      items.forEach(item => {
+        item.titleShort = item.nombre
+          ?.split(' ')
+          .filter(w => w && w[0] === w[0].toUpperCase())
+          .map(w => w[0])
+          .join('') || item.nombre;
+      });
       setItinerarios(items);
       setTotalItems(total);
       setError(null);

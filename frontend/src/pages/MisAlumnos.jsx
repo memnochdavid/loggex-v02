@@ -231,16 +231,17 @@ const MisAlumnos = () => {
                 }
             }
 
-            // Adaptar para AccordionView. Formato exacto pedido: "[curso]º [grupo] - [n] alumnos"
-            // donde [grupo] = nombre del grupo (no abreviatura).
             const adaptedData = data.map(item => {
                 const cursoPrefix = item.curso ? `${item.curso}º ` : '';
                 const count = item.alumnos ? item.alumnos.length : 0;
                 const title = `${cursoPrefix}${item.nombre} - ${t('myStudents.studentCount', { count })}`;
+                const shortName = item.abreviatura || item.nombre;
+                const titleShort = `${cursoPrefix}${shortName} - ${t('myStudents.studentCount', { count })}`;
 
                 return {
                     ...item,
                     title,
+                    titleShort,
                     alumnos: item.alumnos || []
                 };
             });
