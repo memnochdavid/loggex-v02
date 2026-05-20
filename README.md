@@ -13,18 +13,91 @@ chmod +x scripts/setup.sh
 
 ## 🔄 Inicio Rápido (Clonar Proyecto Existente)
 
-Si acabas de clonar este repositorio desde Git en un equipo nuevo:
+Si acabas de clonar este repositorio desde Git en un equipo nuevo, sigue estos pasos en orden.
 
-1. Dale permisos al script de inicialización:
+> **⚠️ Linux vs Windows**
+>
+> **Linux es el entorno recomendado para desplegar y desarrollar este proyecto.** Docker funciona de forma nativa y el rendimiento es óptimo.
+>
+> **En Windows, instala y clona el proyecto DENTRO de WSL** (Windows Subsystem for Linux). Docker Desktop se integra con WSL y los contenedores corren sobre el kernel Linux.
+>
+> **NO clones el proyecto en el filesystem de Windows** (`C:\Users\...\`) si luego vas a usar Docker Desktop. El volumen montado sobre el filesystem NTFS a través de la capa de compatibilidad de Docker hace que las operaciones de base de datos (especialmente las migraciones Doctrine y las consultas con JOINs) sean **extremadamente lentas** — lo que tarda 2 segundos en WSL puede tardar 30-60 segundos fuera de WSL.
+>
+> **Forma correcta en Windows:**
+> 1. Abre una terminal WSL (`wsl` desde PowerShell/CMD, o abre Ubuntu desde el menú Inicio).
+> 2. Clona el proyecto dentro del filesystem de WSL: `git clone ... ~/loggex-v02`
+> 3. Sigue los pasos de **Linux** que aparecen abajo.
+>
+> **Forma alternativa (no recomendada):** si necesitas trabajar desde cmd.exe/PowerShell fuera de WSL, usa los scripts `.bat` que aparecen más abajo, pero espera un rendimiento muy inferior en operaciones de base de datos.
+
+### Linux (nativo o WSL)
+
+1. **Dar permisos a los scripts**:
    ```bash
-   chmod +x scripts/init.sh
+   chmod +x scripts/init.sh scripts/migrate.sh scripts/force_update.sh scripts/restore_db.sh scripts/restore_storage.sh
    ```
 
-2. Ejecuta el script para instalar dependencias y levantar todo:
+2. **Levantar contenedores + instalar dependencias**:
    ```bash
    ./scripts/init.sh
    ```
-   *Este script se encarga de levantar Docker, instalar dependencias (Composer/NPM), generar claves JWT y ejecutar migraciones.*
+   *Levanta todos los contenedores, instala dependencias PHP (composer) y JS (npm), genera claves JWT.*
+
+3. **Aplicar migraciones pendientes**:
+   ```bash
+   ./scripts/migrate.sh
+   ```
+   *Si las migraciones fallan (schema desalineado), usa `./scripts/force_update.sh` como alternativa.*
+
+4. **Restaurar base de datos** (datos de prueba):
+   ```bash
+   ./scripts/restore_db.sh
+   ```
+
+5. **Restaurar archivos de almacenamiento** (avatares, logos, entregas, catálogo):
+   ```bash
+   ./scripts/restore_storage.sh
+   ```
+
+### Windows (cmd.exe / PowerShell — fuera de WSL, no recomendado)
+
+> **Antes de empezar:** asegúrate de tener **Docker Desktop** instalado y en ejecución. Sin él, los contenedores no arrancarán.
+
+1. **Levantar contenedores + instalar dependencias**:
+   ```cmd
+   scripts\init.bat
+   ```
+   *Si `composer install` o `npm install` fallan por problemas de red, ejecútalos manualmente:*
+   ```cmd
+   docker compose exec backend composer install
+   docker compose exec frontend npm install
+   ```
+
+2. **Aplicar migraciones pendientes**:
+   ```cmd
+   scripts\migrate.bat
+   ```
+   *Si las migraciones fallan (schema desalineado), usa `scripts\force_update.bat` como alternativa.*
+
+3. **Restaurar base de datos** (datos de prueba):
+   ```cmd
+   scripts\restore_db.bat
+   ```
+
+4. **Restaurar archivos de almacenamiento** (avatares, logos, entregas, catálogo):
+   ```cmd
+   scripts\restore_storage.bat
+   ```
+
+> **¿Qué hace cada script?**
+>
+> | Script | Función |
+> |---|---|
+> | `init` | `docker compose up -d --build`, `composer install`, `npm install`, genera claves JWT. Levanta todo el stack y descarga dependencias. |
+> | `migrate` | `doctrine:migrations:migrate` + `cache:clear` + restart backend. Aplica las migraciones Doctrine que versionan el esquema de BD. |
+> | `force_update` | `doctrine:schema:update --force --complete` + regenera JWT + rebuild sin caché. Alternativa cuando las migraciones fallan por desalineación entre entidades y BD. |
+> | `restore_db` | Inyecta `backup_tfg_full.sql` en MariaDB. Puebla la BD con datos de prueba (usuarios, centros, itinerarios, materias, etc.). |
+> | `restore_storage` | Restaura el contenido de `minio_backup/` en el bucket `loggex-data` de MinIO. Recupera avatares, logos de centros, entregas, materiales del catálogo y firmas. |
 
 ---
 
@@ -132,11 +205,18 @@ Se recomienda usar CSS Modules.
 ### Infraestructura
 - `docker-compose.yml`: Orquestación de servicios.
 - `Caddyfile`: Configuración del Proxy HTTPS.
-- `scripts/setup.sh`: Script para crear el proyecto desde cero (scaffolding).
-- `scripts/init.sh`: Script para instalar dependencias tras clonar (bootstrapping).
-- `scripts/fix_env.sh`: Script para corregir permisos y claves JWT.
+- `scripts/setup.sh` / `setup.bat`: Script para crear el proyecto desde cero (scaffolding).
+- `scripts/init.sh` / `init.bat`: Levantar contenedores + instalar dependencias + generar JWT (bootstrapping).
+- `scripts/migrate.sh` / `migrate.bat`: Aplicar migraciones Doctrine pendientes + limpiar caché.
+- `scripts/force_update.sh` / `force_update.bat`: Forzar actualización del schema + rebuild sin caché (alternativa a migrate).
+- `scripts/restore_db.sh` / `restore_db.bat`: Restaurar BD desde `backup_tfg_full.sql`.
+- `scripts/restore_storage.sh` / `restore_storage.bat`: Restaurar bucket MinIO desde `minio_backup/`.
+- `scripts/fix_env.sh` / `fix_env.bat`: Corregir permisos, claves JWT y entorno.
 
 ## 🔧 Solución de Problemas
+
+**Rendimiento lento en Windows (fuera de WSL)**
+Si las consultas a la base de datos, las migraciones o el `composer install` son extremadamente lentos, es porque el proyecto está clonado en el filesystem de Windows (`C:\Users\...`) y Docker lo monta a través de la capa de compatibilidad NTFS→ext4. **Solución:** clona el proyecto dentro de WSL (`~/` en Ubuntu) y usa Docker Desktop con integración WSL habilitada. La diferencia es de 10x a 30x en operaciones de BD.
 
 **Compatibilidad con Fedora (SELinux)**
 La configuración de Docker incluye el flag `:z` en los volúmenes para compatibilidad con SELinux.
