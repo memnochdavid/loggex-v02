@@ -1,9 +1,9 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for debian-linux-gnu (x86_64)
+-- MariaDB dump 10.19  Distrib 10.11.15-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: localhost    Database: app_db
 -- ------------------------------------------------------
--- Server version	10.11.16-MariaDB-ubu2204
+-- Server version	10.11.15-MariaDB-ubu2204
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -1605,7 +1605,7 @@ CREATE TABLE `calificacion` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQ_8A3AF2187AB91AEC` (`entrega_id`),
   CONSTRAINT `FK_8A3AF2187AB91AEC` FOREIGN KEY (`entrega_id`) REFERENCES `entrega` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=990 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2276,7 +2276,18 @@ INSERT INTO `calificacion` VALUES
 (975,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,975),
 (976,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,976),
 (977,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,977),
-(978,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,978);
+(978,0,'Cierre automático: tarea no entregada en plazo.','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,978),
+(979,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,979),
+(980,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,980),
+(981,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,981),
+(982,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,982),
+(983,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,983),
+(984,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,984),
+(985,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,985),
+(986,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,986),
+(987,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,987),
+(988,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,988),
+(989,0,'Cierre automático: tarea no entregada en plazo.','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,989);
 /*!40000 ALTER TABLE `calificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12596,7 +12607,7 @@ CREATE TABLE `entrega` (
   KEY `IDX_E56D596BFC28E5EE` (`alumno_id`),
   CONSTRAINT `FK_E56D596B6D5BDFE1` FOREIGN KEY (`tarea_id`) REFERENCES `tarea` (`id`),
   CONSTRAINT `FK_E56D596BFC28E5EE` FOREIGN KEY (`alumno_id`) REFERENCES `usuario` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=990 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -13267,7 +13278,18 @@ INSERT INTO `entrega` VALUES
 (975,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,59),
 (976,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,60),
 (977,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,61),
-(978,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,80);
+(978,'2026-05-14 07:50:06',NULL,NULL,'(no entregado)','2026-05-14 07:50:06','2026-05-14 07:50:06',0,NULL,175,80),
+(979,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,1,80),
+(980,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,2,80),
+(981,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,3,80),
+(982,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,4,80),
+(983,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,5,80),
+(984,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,57),
+(985,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,58),
+(986,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,59),
+(987,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,60),
+(988,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,61),
+(989,'2026-05-18 14:52:00',NULL,NULL,'(no entregado)','2026-05-18 14:52:00','2026-05-18 14:52:00',0,NULL,6,80);
 /*!40000 ALTER TABLE `entrega` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -17009,7 +17031,7 @@ CREATE TABLE `notificacion` (
   KEY `IDX_notif_usuario` (`usuario_id`),
   KEY `idx_notif_usuario_leida_fecha` (`usuario_id`,`leida`,`fecha_creacion`),
   CONSTRAINT `FK_notif_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=275 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -17040,7 +17062,29 @@ INSERT INTO `notificacion` VALUES
 (271,55,'entrega_recibida','Nueva entrega recibida','Guillermo Baca Heredia ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":977,\"tareaId\":175,\"alumnoId\":61,\"alumnoNombre\":\"Guillermo Baca Heredia\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
 (272,61,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":977,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
 (273,55,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"tarea de prueba\".','/entregas?tarea=175','{\"entregaId\":978,\"tareaId\":175,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"tarea de prueba\"}',1,'2026-05-14 07:50:06','2026-05-14 07:50:58','2026-05-14 07:50:06','2026-05-14 07:50:06'),
-(274,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":978,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06');
+(274,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"tarea de prueba\".','/mis-calificaciones?tarea=175','{\"entregaId\":978,\"tareaId\":175,\"tareaTitulo\":\"tarea de prueba\",\"nota\":0.0}',0,'2026-05-14 07:50:06',NULL,'2026-05-14 07:50:06','2026-05-14 07:50:06'),
+(275,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Examen Tema 1\".','/entregas?tarea=1','{\"entregaId\":979,\"tareaId\":1,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Examen Tema 1\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(276,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Examen Tema 1\".','/mis-calificaciones?tarea=1','{\"entregaId\":979,\"tareaId\":1,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Examen Tema 1\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(277,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Ejercicios Tema 2\".','/entregas?tarea=2','{\"entregaId\":980,\"tareaId\":2,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Ejercicios Tema 2\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(278,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Ejercicios Tema 2\".','/mis-calificaciones?tarea=2','{\"entregaId\":980,\"tareaId\":2,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Ejercicios Tema 2\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(279,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Trabajo Tema 3\".','/entregas?tarea=3','{\"entregaId\":981,\"tareaId\":3,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Trabajo Tema 3\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(280,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Trabajo Tema 3\".','/mis-calificaciones?tarea=3','{\"entregaId\":981,\"tareaId\":3,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Trabajo Tema 3\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(281,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Examen Tema 4\".','/entregas?tarea=4','{\"entregaId\":982,\"tareaId\":4,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Examen Tema 4\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(282,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Examen Tema 4\".','/mis-calificaciones?tarea=4','{\"entregaId\":982,\"tareaId\":4,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Examen Tema 4\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(283,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Práctica integradora\".','/entregas?tarea=5','{\"entregaId\":983,\"tareaId\":5,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Pr\\u00e1ctica integradora\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(284,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Práctica integradora\".','/mis-calificaciones?tarea=5','{\"entregaId\":983,\"tareaId\":5,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Pr\\u00e1ctica integradora\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(285,50,'entrega_recibida','Nueva entrega recibida','Daniel Rosario Gálvez ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":984,\"tareaId\":6,\"alumnoId\":57,\"alumnoNombre\":\"Daniel Rosario G\\u00e1lvez\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(286,57,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":984,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(287,50,'entrega_recibida','Nueva entrega recibida','Noa Figueroa Negrón ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":985,\"tareaId\":6,\"alumnoId\":58,\"alumnoNombre\":\"Noa Figueroa Negr\\u00f3n\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(288,58,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":985,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(289,50,'entrega_recibida','Nueva entrega recibida','Celia Maldonado Treviño ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":986,\"tareaId\":6,\"alumnoId\":59,\"alumnoNombre\":\"Celia Maldonado Trevi\\u00f1o\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(290,59,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":986,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(291,50,'entrega_recibida','Nueva entrega recibida','Saúl Ortega Regalado ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":987,\"tareaId\":6,\"alumnoId\":60,\"alumnoNombre\":\"Sa\\u00fal Ortega Regalado\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(292,60,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":987,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(293,50,'entrega_recibida','Nueva entrega recibida','Guillermo Baca Heredia ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":988,\"tareaId\":6,\"alumnoId\":61,\"alumnoNombre\":\"Guillermo Baca Heredia\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(294,61,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":988,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(295,50,'entrega_recibida','Nueva entrega recibida','Iván El Trolazo ha entregado \"Sistemas informáticos - Proyecto final tema\".','/entregas?tarea=6','{\"entregaId\":989,\"tareaId\":6,\"alumnoId\":80,\"alumnoNombre\":\"Iv\\u00e1n El Trolazo\",\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\"}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00'),
+(296,80,'calificacion_publicada','Tu calificación está disponible','Has obtenido 0 en \"Sistemas informáticos - Proyecto final tema\".','/mis-calificaciones?tarea=6','{\"entregaId\":989,\"tareaId\":6,\"tareaTitulo\":\"Sistemas inform\\u00e1ticos - Proyecto final tema\",\"nota\":0.0}',0,'2026-05-18 14:52:00',NULL,'2026-05-18 14:52:00','2026-05-18 14:52:00');
 /*!40000 ALTER TABLE `notificacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -20155,4 +20199,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-14  7:51:56
+-- Dump completed on 2026-05-20 14:30:19
