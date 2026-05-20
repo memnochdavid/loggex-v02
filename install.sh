@@ -19,6 +19,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
 
 info()  { echo -e "${CYAN}ℹ️  $1${NC}"; }
@@ -26,22 +27,72 @@ ok()    { echo -e "${GREEN}✅ $1${NC}"; }
 warn()  { echo -e "${YELLOW}⚠️  $1${NC}"; }
 fail()  { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
-# ── Pre-flight checks ────────────────────────────────────────────────────────
+# ── Banner + Requisitos del sistema ──────────────────────────────────────────
 echo ""
 echo "=============================================="
 echo "  LOGGEX v02 — Instalación post-clone"
 echo "=============================================="
 echo ""
 
-command -v docker >/dev/null 2>&1 || fail "docker no está instalado"
-command -v docker compose >/dev/null 2>&1 || fail "docker compose no está disponible"
+echo -e "${BOLD}Requisitos del sistema:${NC}"
+echo "  Docker (Engine o Desktop) ............ requerido"
+echo "  Docker Compose (plugin v2) ........... requerido"
+echo ""
+echo "  NO se requiere en el host: PHP, Composer, Node.js, npm, MariaDB"
+echo "  (todo se ejecuta dentro de contenedores Docker)"
+echo ""
 
-# Verificar que estamos en la raíz del repo
-[ -f docker-compose.yml ] || fail "docker-compose.yml no encontrado — ejecuta desde la raíz del repo"
-[ -d backend ]            || fail "directorio backend/ no encontrado"
-[ -d frontend ]           || fail "directorio frontend/ no encontrado"
+# Verificar dependencias
+MISSING=0
 
-ok "Pre-flight OK"
+if command -v docker >/dev/null 2>&1; then
+    DOCKER_VER=$(docker --version 2>/dev/null | sed 's/Docker version //;s/,.*//')
+    ok "Docker $DOCKER_VER"
+else
+    warn "Docker NO encontrado — instálalo: https://docs.docker.com/engine/install/"
+    MISSING=1
+fi
+
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_VER=$(docker compose version 2>/dev/null | sed 's/Docker Compose version //')
+    ok "Docker Compose $COMPOSE_VER"
+else
+    warn "Docker Compose NO encontrado — viene con Docker Desktop o instala el plugin"
+    MISSING=1
+fi
+
+# Verificar estructura del repo
+echo ""
+if [ -f docker-compose.yml ] && [ -d backend ] && [ -d frontend ]; then
+    ok "Estructura del repo OK (docker-compose.yml, backend/, frontend/)"
+else
+    fail "Estructura del repo incompleta — ejecuta desde la raíz del proyecto"
+fi
+
+# Si falta algo crítico, abortar
+if [ "$MISSING" -eq 1 ]; then
+    echo ""
+    echo -e "${RED}Faltan dependencias del sistema. Instálalas y vuelve a ejecutar este script.${NC}"
+    exit 1
+fi
+
+# Confirmación
+echo ""
+echo -e "${BOLD}El script realizará las siguientes acciones:${NC}"
+echo "  1. Levantar contenedores (build + up)"
+echo "  2. Restaurar BD desde backup_tfg_full.sql (si existe)"
+echo "  3. Restaurar storage desde minio_backup/ (si existe)"
+echo "  4. Instalar dependencias backend (composer install)"
+echo "  5. Generar claves JWT"
+echo "  6. Aplicar migraciones Doctrine"
+echo "  7. Instalar dependencias frontend (npm install)"
+echo "  8. Reiniciar backend"
+echo ""
+read -p "¿Continuar? (s/N): " confirm
+if [[ "$confirm" != [sS] && "$confirm" != [sS][iI] ]]; then
+    echo "Cancelado."
+    exit 0
+fi
 
 # ── 1. Levantar contenedores ─────────────────────────────────────────────────
 echo ""
@@ -96,7 +147,7 @@ else
     warn "minio_backup/ no encontrado — bucket vacío (avatares, logos, entregas no estarán disponibles)"
 fi
 
-# ── 4. Restaurar BD desde backup (idempotente sobre entrypoint-initdb) ────────
+# ── 4. Restaurar BD desde backup ─────────────────────────────────────────────
 echo ""
 if [ -f backup_tfg_full.sql ]; then
     info "Restaurando base de datos desde backup_tfg_full.sql..."

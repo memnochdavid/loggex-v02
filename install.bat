@@ -19,18 +19,76 @@ echo   LOGGEX v02 — Instalación post-clone
 echo ==============================================
 echo.
 
-:: ── Pre-flight checks ────────────────────────────────────────────────────────
+:: ── Requisitos del sistema ───────────────────────────────────────────────────
+echo Requisitos del sistema:
+echo   Docker Desktop para Windows ............ requerido
+echo   Docker Compose (plugin v2) ............. requerido
+echo.
+echo   NO se requiere en el host: PHP, Composer, Node.js, npm, MariaDB
+echo   (todo se ejecuta dentro de contenedores Docker)
+echo.
+
+:: Verificar dependencias
+set "MISSING=0"
+
 docker --version >nul 2>&1
-IF !ERRORLEVEL! NEQ 0 ( echo Error: docker no está instalado & exit /b 1 )
+IF !ERRORLEVEL! EQU 0 (
+    for /f "tokens=3" %%v in ('docker --version 2^>nul') do echo ✅ Docker %%v
+) else (
+    echo ⚠️  Docker NO encontrado — instala Docker Desktop: https://www.docker.com/products/docker-desktop/
+    set "MISSING=1"
+)
 
 docker compose version >nul 2>&1
-IF !ERRORLEVEL! NEQ 0 ( echo Error: docker compose no está disponible & exit /b 1 )
+IF !ERRORLEVEL! EQU 0 (
+    for /f "tokens=4" %%v in ('docker compose version 2^>nul') do echo ✅ Docker Compose %%v
+) else (
+    echo ⚠️  Docker Compose NO encontrado — viene con Docker Desktop
+    set "MISSING=1"
+)
 
-IF NOT EXIST "%PROJECT_DIR%\docker-compose.yml" ( echo Error: docker-compose.yml no encontrado & exit /b 1 )
-IF NOT EXIST "%PROJECT_DIR%\backend"            ( echo Error: directorio backend\ no encontrado & exit /b 1 )
-IF NOT EXIST "%PROJECT_DIR%\frontend"           ( echo Error: directorio frontend\ no encontrado & exit /b 1 )
+:: Verificar estructura del repo
+echo.
+IF EXIST "%PROJECT_DIR%\docker-compose.yml" (
+    IF EXIST "%PROJECT_DIR%\backend" (
+        IF EXIST "%PROJECT_DIR%\frontend" (
+            echo ✅ Estructura del repo OK (docker-compose.yml, backend\, frontend\)
+        ) else (
+            echo Error: directorio frontend\ no encontrado & goto :FAIL
+        )
+    ) else (
+        echo Error: directorio backend\ no encontrado & goto :FAIL
+    )
+) else (
+    echo Error: docker-compose.yml no encontrado & goto :FAIL
+)
 
-echo ✅ Pre-flight OK
+:: Si falta algo crítico, abortar
+IF "%MISSING%"=="1" (
+    echo.
+    echo Faltan dependencias del sistema. Instálalas y vuelve a ejecutar este script.
+    exit /b 1
+)
+
+:: Confirmación
+echo.
+echo El script realizará las siguientes acciones:
+echo   1. Levantar contenedores (build + up)
+echo   2. Restaurar BD desde backup_tfg_full.sql (si existe)
+echo   3. Restaurar storage desde minio_backup\ (si existe)
+echo   4. Instalar dependencias backend (composer install)
+echo   5. Generar claves JWT
+echo   6. Aplicar migraciones Doctrine
+echo   7. Instalar dependencias frontend (npm install)
+echo   8. Reiniciar backend
+echo.
+set /p "confirm=¿Continuar? (s/N): "
+IF /I NOT "!confirm!"=="s" (
+    IF /I NOT "!confirm!"=="si" (
+        echo Cancelado.
+        exit /b 0
+    )
+)
 
 :: ── 1. Levantar contenedores ─────────────────────────────────────────────────
 echo.
@@ -53,7 +111,6 @@ for /l %%i in (1,1,30) do (
 echo Error: MariaDB no respondió tras 30 intentos & exit /b 1
 
 :DB_OK
-:: ── Esperar a que MinIO esté listo ───────────────────────────────────────────
 echo ℹ️  Esperando a que MinIO esté listo...
 for /l %%i in (1,1,15) do (
     %DC% exec -T minio mc alias set myminio http://localhost:9000 minio_admin minio_password >nul 2>&1
@@ -155,3 +212,9 @@ echo.
 echo   Credenciales por defecto (backup):
 echo     superadmin@loggex.com / 1234
 echo.
+goto :EOF
+
+:FAIL
+echo.
+echo Estructura del repo incompleta — ejecuta desde la raíz del proyecto
+exit /b 1
