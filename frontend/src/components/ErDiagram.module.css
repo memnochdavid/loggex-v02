@@ -221,6 +221,8 @@
 .relGroup {
     color: rgba(165, 180, 252, 0.35);
     transition: color var(--dur-base) var(--ease-standard), opacity var(--dur-base) var(--ease-standard);
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 .relPath {
@@ -235,6 +237,11 @@
     font-weight: 700;
     font-family: var(--font-mono, ui-monospace, monospace);
     user-select: none;
+    paint-order: stroke;
+    stroke: #0a0f1c;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     transition: fill var(--dur-base) var(--ease-standard), font-size var(--dur-base) var(--ease-standard);
 }
 

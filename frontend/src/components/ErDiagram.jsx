@@ -259,6 +259,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
+    const [selectedRel, setSelectedRel] = useState(null);
     const [search, setSearch] = useState('');
 
     const containerRef = useRef(null);
@@ -312,16 +313,20 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
 
     /* ---------- Foco / dim ---------- */
     const focusedId = hoveredId || selectedId;
+    const focusedRel = !focusedId ? selectedRel : null;
 
     const relatedSet = useMemo(() => {
-        if (!focusedId) return null;
-        const set = new Set([focusedId]);
-        ER_RELATIONS.forEach(r => {
-            if (r.from === focusedId) set.add(r.to);
-            if (r.to === focusedId) set.add(r.from);
-        });
-        return set;
-    }, [focusedId]);
+        if (!focusedId && !focusedRel) return null;
+        if (focusedId) {
+            const set = new Set([focusedId]);
+            ER_RELATIONS.forEach(r => {
+                if (r.from === focusedId) set.add(r.to);
+                if (r.to === focusedId) set.add(r.from);
+            });
+            return set;
+        }
+        return new Set([focusedRel.from, focusedRel.to]);
+    }, [focusedId, focusedRel]);
 
     const matchedSet = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -339,15 +344,16 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
 
     const isDimmed = useCallback((id) => {
         if (matchedSet && !matchedSet.has(id)) return true;
-        if (focusedId && !relatedSet.has(id)) return true;
+        if (relatedSet && !relatedSet.has(id)) return true;
         return false;
-    }, [matchedSet, focusedId, relatedSet]);
+    }, [matchedSet, relatedSet]);
 
     const isRelationDimmed = useCallback((rel) => {
         if (matchedSet && !(matchedSet.has(rel.from) && matchedSet.has(rel.to))) return true;
+        if (focusedRel && focusedRel !== rel) return true;
         if (focusedId && rel.from !== focusedId && rel.to !== focusedId) return true;
         return false;
-    }, [matchedSet, focusedId]);
+    }, [matchedSet, focusedId, focusedRel]);
 
     /* ---------- Pan ---------- */
     const onCanvasMouseDown = (e) => {
@@ -372,6 +378,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
         // Si fue un click limpio (no arrastrado) sobre el fondo → deseleccionar
         if (dragRef.current.active && !dragRef.current.moved) {
             setSelectedId(null);
+            setSelectedRel(null);
         }
         dragRef.current.active = false;
     };
@@ -590,7 +597,8 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                             {routedPaths.map(({ rel, path }, i) => {
                                 if (!path) return null;
                                 const dimmed = isRelationDimmed(rel);
-                                const active = focusedId && (rel.from === focusedId || rel.to === focusedId);
+                                const active = (focusedId && (rel.from === focusedId || rel.to === focusedId))
+                                    || rel === focusedRel;
                                 if (hideUnrelatedRels && !active) return null;
                                 const dStr = pointsToRoundedPath(path.finalPoints, 8);
 
@@ -603,6 +611,12 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                     <g
                                         key={i}
                                         className={`${styles.relGroup} ${dimmed ? styles.relDim : ''} ${active ? styles.relActive : ''}`}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedRel(prev => prev === rel ? null : rel);
+                                            setSelectedId(null);
+                                        }}
                                     >
                                         <path
                                             d={dStr}
@@ -612,16 +626,16 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                         />
                                         {/* Cardinalidad: 'N'/'1' junto al lado FK, '1' junto al lado PK */}
                                         <text
-                                            x={a.sExitX + (a.fromOnLeft ? -8 : 8)}
-                                            y={a.sFkY - 5}
+                                            x={a.sExitX + (a.fromOnLeft ? -14 : 14)}
+                                            y={a.sFkY - 4}
                                             className={styles.relCard}
                                             textAnchor={a.fromOnLeft ? 'end' : 'start'}
                                         >
                                             {fromCard}
                                         </text>
                                         <text
-                                            x={a.tEnterX + (a.fromOnLeft ? 8 : -8)}
-                                            y={a.tPkY - 5}
+                                            x={a.tEnterX + (a.fromOnLeft ? 14 : -14)}
+                                            y={a.tPkY - 4}
                                             className={styles.relCard}
                                             textAnchor={a.fromOnLeft ? 'start' : 'end'}
                                         >
