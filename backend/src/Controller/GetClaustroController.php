@@ -2,25 +2,35 @@
 
 namespace App\Controller;
 
+use App\Entity\Centro;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class GetClaustroController extends AbstractController
 {
     #[Route('/api/v1/profesor/claustro', name: 'api_profesor_claustro', methods: ['GET'])]
-    public function __invoke(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager): JsonResponse
+    public function __invoke(#[CurrentUser] ?User $user, EntityManagerInterface $entityManager, Request $request): JsonResponse
     {
         if (!$user) {
             return $this->json(['message' => 'No autenticado'], 401);
         }
 
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+
+        // SuperAdmin puede pasar ?centroId para filtrar por centro
+        $centroId = $isSuperAdmin ? $request->query->get('centroId') : null;
         $centro = $user->getCentro();
 
-        if (!$centro && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+        if ($centroId) {
+            $centro = $entityManager->getRepository(Centro::class)->find($centroId);
+        }
+
+        if (!$centro && !$isSuperAdmin) {
             return $this->json([]);
         }
 

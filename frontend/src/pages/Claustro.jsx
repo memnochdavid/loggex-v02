@@ -59,23 +59,14 @@ const Claustro = () => {
     const fetchProfesores = async () => {
         setLoading(true);
         try {
-            let url;
-            let options = {
-                headers: { 'Accept': 'application/json' }, // Por defecto JSON simple para endpoint custom
+            let url = getApiUrl('/api/v1/profesor/claustro');
+            if (isSuperAdmin && selectedCentro) {
+                url += `?centroId=${selectedCentro}`;
+            }
+            const options = {
+                headers: { 'Accept': 'application/json' },
                 credentials: 'include'
             };
-
-            if (isSuperAdmin) {
-                // Superadmin usa endpoint estándar de usuarios filtrado por rol y centro
-                url = getApiUrl('/api/users?roles=ROLE_PROFESOR&pagination=false');
-                if (selectedCentro) {
-                    url += `&centro=${selectedCentro}`;
-                }
-                options.headers['Accept'] = 'application/ld+json'; // API Platform usa ld+json
-            } else {
-                // Usuarios normales usan el endpoint custom que ya filtra por su contexto
-                url = getApiUrl('/api/v1/profesor/claustro');
-            }
 
             const response = await fetch(url, options);
 
