@@ -81,7 +81,12 @@ const computeRelPath = (rel, source, target, heights, showAudit, sameColSide) =>
     /* ---- Mismo column: desvío por gutter lateral ---- */
     if (sCol === tCol) {
         /* alterna lado para no apilar todas las internas en la misma columna */
-        const useLeft = sameColSide === 'left' || (sameColSide == null && sCol > 0);
+        let useLeft = sameColSide === 'left' || (sameColSide == null && sCol > 0);
+        /* Col 0 (izquierda) sólo puede ir por la derecha; col N (derecha)
+           sólo puede ir por la izquierda — no hay gutter fuera del mundo. */
+        const maxCol = ER_LAYOUT.columnX.length - 1;
+        if (sCol === 0) useLeft = false;
+        if (sCol === maxCol) useLeft = true;
         const gutterIdx = useLeft ? sCol - 1 : sCol;
         const channelX = ER_LAYOUT.gutterCenterX[gutterIdx];
         const sExitX  = useLeft ? source.position.x : source.position.x + ER_LAYOUT.cardWidth;
@@ -196,17 +201,15 @@ const applyLanes = (paths, gutterLanes, highwayLanes) => {
         const newPoints = p.points.map((pt, ptIdx) => {
             let { x, y } = pt;
             if (pt.channelGutter != null) {
-                /* Cada punto puede pertenecer a una de las channels[]; busca
-                   la que coincide con su gutterIdx para coger el lane correcto. */
                 const cIdx = p.channels.findIndex(c => c.gutterIdx === pt.channelGutter);
                 const lane = gutterLanes[`${pIdx}_${cIdx}`] ?? 0;
-                x = ER_LAYOUT.gutterCenterX[pt.channelGutter] + lane * ER_LAYOUT.laneStep;
+                const gx = ER_LAYOUT.gutterCenterX[pt.channelGutter];
+                if (gx !== undefined) {
+                    x = gx + lane * ER_LAYOUT.laneStep;
+                }
             }
             if (pt.highwayLane) {
                 const lane = highwayLanes[pIdx] ?? 0;
-                /* Lane 0 = la más arriba; cada lane siguiente baja una pista.
-                   Así las líneas más largas (asignadas a lane 0) quedan en el
-                   borde y las más cortas más cerca de las cajas. */
                 y = ER_LAYOUT.highwayTopY + lane * ER_LAYOUT.highwayLaneStep;
             }
             return { x, y };
@@ -220,12 +223,13 @@ const applyLanes = (paths, gutterLanes, highwayLanes) => {
  * suavemente redondeadas (cuarto de círculo de radio `r`).
  */
 const pointsToRoundedPath = (points, r = 6) => {
-    if (points.length < 2) return '';
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length - 1; i++) {
-        const prev = points[i - 1];
-        const curr = points[i];
-        const next = points[i + 1];
+    const valid = points.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+    if (valid.length < 2) return '';
+    let d = `M ${valid[0].x} ${valid[0].y}`;
+    for (let i = 1; i < valid.length - 1; i++) {
+        const prev = valid[i - 1];
+        const curr = valid[i];
+        const next = valid[i + 1];
         const d1x = curr.x - prev.x;
         const d1y = curr.y - prev.y;
         const len1 = Math.hypot(d1x, d1y) || 1;
@@ -239,7 +243,7 @@ const pointsToRoundedPath = (points, r = 6) => {
         const by = curr.y + (d2y / len2) * radius;
         d += ` L ${ax} ${ay} Q ${curr.x} ${curr.y} ${bx} ${by}`;
     }
-    const last = points[points.length - 1];
+    const last = valid[valid.length - 1];
     d += ` L ${last.x} ${last.y}`;
     return d;
 };
