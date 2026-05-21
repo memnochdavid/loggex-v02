@@ -2,12 +2,15 @@
 
 namespace App\Controller;
 
+use App\Entity\Catalogo\CatalogoCentro;
 use App\Entity\Catalogo\CatalogoItinerario;
 use App\Entity\Catalogo\CatalogoMateria;
 use App\Entity\Catalogo\EtapaEducativa;
+use App\Entity\Ccaa;
 use App\Entity\Centro;
 use App\Entity\Itinerario;
 use App\Entity\Materia;
+use App\Entity\Provincia;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -92,6 +95,146 @@ final class CatalogoMaterializationController extends AbstractController
             'catalogoItinerarioId' => $catalogoItinerario->getId(),
             'modulosCreados' => $materiasCreadas,
         ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/centros/from-catalogo', name: 'api_centros_from_catalogo', methods: ['POST'])]
+    public function centrosFromCatalogo(Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
+
+        $payload = json_decode($request->getContent(), true);
+        $catalogoCentroId = $payload['catalogoCentroId'] ?? null;
+
+        if (!is_int($catalogoCentroId)) {
+            return $this->json(
+                ['message' => 'Falta o es inválido el campo "catalogoCentroId" (debe ser entero).'],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        $catalogoCentro = $this->em->getRepository(CatalogoCentro::class)->find($catalogoCentroId);
+        if (!$catalogoCentro) {
+            return $this->json(
+                ['message' => 'No se encuentra el centro solicitado en el catálogo.'],
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        try {
+            $centro = $this->buildCentroFromCatalogo($catalogoCentro);
+            $this->em->persist($centro);
+            $this->em->flush();
+        } catch (\Throwable $e) {
+            return $this->json(
+                ['message' => 'Error al materializar el centro desde el catálogo: ' . $e->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+        return $this->json([
+            'id' => $centro->getId(),
+            'nombre' => $centro->getNombre(),
+            'ccaa' => $centro->getCcaa()?->value,
+            'provincia' => $centro->getProvincia()?->getCodigo(),
+        ], Response::HTTP_CREATED);
+    }
+
+    private function buildCentroFromCatalogo(CatalogoCentro $catalogoCentro): Centro
+    {
+        $centro = new Centro();
+        $centro->setNombre($catalogoCentro->getNombre());
+        $centro->setDireccion($catalogoCentro->getDireccion() ?? '');
+        $centro->setCif('');
+        $centro->setActivo(true);
+        $centro->setTelefono(null);
+        $centro->setPorcentajeMaxFaltas(20);
+        $centro->setCatalogoOrigen($catalogoCentro);
+
+        $ccaa = $this->mapCatalogoCcaa($catalogoCentro->getCcaa());
+        if ($ccaa !== null) {
+            $centro->setCcaa($ccaa);
+        }
+
+        $provincia = $this->resolveProvincia($catalogoCentro->getProvincia());
+        if ($provincia !== null) {
+            $centro->setProvincia($provincia);
+        }
+
+        return $centro;
+    }
+
+    /**
+     * Map 3-letter Catalogo CCAA codes to the 2-letter Ccaa enum.
+     * Currently only 'AND' is actually ingested (Junta de Andalucía).
+     * The rest are mapped preemptively for future adapters.
+     */
+    private function mapCatalogoCcaa(string $ccaa3): ?Ccaa
+    {
+        return match ($ccaa3) {
+            'AND'  => Ccaa::AN,
+            'ARA'  => Ccaa::AR,
+            'AST'  => Ccaa::AS,
+            'CAB',
+            'CANT' => Ccaa::CB,
+            'CEU'  => Ccaa::CE,
+            'CLE',
+            'CYL'  => Ccaa::CL,
+            'CLM'  => Ccaa::CM,
+            'CNA',
+            'CAN'  => Ccaa::CN,
+            'CAT'  => Ccaa::CT,
+            'EXT'  => Ccaa::EX,
+            'GAL'  => Ccaa::GA,
+            'BAL'  => Ccaa::IB,
+            'MUR'  => Ccaa::MC,
+            'MAD'  => Ccaa::MD,
+            'MEL'  => Ccaa::ML,
+            'NAV'  => Ccaa::NC,
+            'PVA',
+            'PVS'  => Ccaa::PV,
+            'RIO'  => Ccaa::RI,
+            'VAL'  => Ccaa::VC,
+            default => null,
+        };
+    }
+
+    /**
+     * Resolve Provincia entity by normalized name from CatalogoCentro.
+     * Falls back to prefix matching if exact match fails.
+     */
+    private function resolveProvincia(?string $provinciaNombre): ?Provincia
+    {
+        if ($provinciaNombre === null || $provinciaNombre === '') {
+            return null;
+        }
+
+        $normalize = function (string $s): string {
+            $s = mb_strtolower($s, 'UTF-8');
+            return str_replace(
+                ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'],
+                ['a', 'e', 'i', 'o', 'u', 'u', 'n'],
+                $s
+            );
+        };
+
+        $target = $normalize($provinciaNombre);
+        $provincias = $this->em->getRepository(Provincia::class)->findAll();
+
+        foreach ($provincias as $provincia) {
+            if ($normalize($provincia->getNombre()) === $target) {
+                return $provincia;
+            }
+        }
+
+        // Prefix fallback (e.g., "Santa Cruz de Tenerife" vs "Santa Cruz")
+        foreach ($provincias as $provincia) {
+            $norm = $normalize($provincia->getNombre());
+            if (str_starts_with($target, $norm) || str_starts_with($norm, $target)) {
+                return $provincia;
+            }
+        }
+
+        return null;
     }
 
     private function resolveCentro(User $currentUser, mixed $requestedCentroId): ?Centro

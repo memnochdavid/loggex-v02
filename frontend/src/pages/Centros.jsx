@@ -88,9 +88,11 @@ const Centros = () => {
     // selector y solo se envía si el centro es nuevo (en edición no se permite
     // cambiar el origen — sería un falso positivo de "lo creé desde catálogo").
     const [catalogoOrigenId, setCatalogoOrigenId] = useState(null);
-    // Modal de selección desde catálogo (Junta de Andalucía).
-    const [isCatalogPickerOpen, setIsCatalogPickerOpen] = useState(false);
-    const [pickerSelected, setPickerSelected] = useState(null);  // objeto CatalogoCentro
+
+    // Modo de creación: 'manual' (formulario completo) o 'catalogo' (desde catálogo oficial).
+    const [createMode, setCreateMode] = useState('manual');
+    const [selectedCatalogoCentroId, setSelectedCatalogoCentroId] = useState('');
+    const [selectedCatalogoCentro, setSelectedCatalogoCentro] = useState(null);
     // Lista de provincias cargada upfront (52 fijas, no cambia).
     const [provincias, setProvincias] = useState([]);
     // Sugerencia (CalendarioEscolarCcaa) para la CCAA actual del modal.
@@ -315,6 +317,10 @@ const Centros = () => {
                 porcentajeMaxFaltas: '20',
             });
             setLogoPreview(null);
+            // Reset del modo creación: por defecto catálogo (vía recomendada).
+            setCreateMode('catalogo');
+            setSelectedCatalogoCentroId('');
+            setSelectedCatalogoCentro(null);
         }
         setCalendarioSugerido(null);
         setIsModalOpen(true);
@@ -326,47 +332,10 @@ const Centros = () => {
         setLogoFile(null);
         setLogoPreview(null);
         setCatalogoOrigenId(null);
+        setCreateMode('manual');
+        setSelectedCatalogoCentroId('');
+        setSelectedCatalogoCentro(null);
     };
-
-    // Prefilla el modal de creación con un centro elegido del catálogo oficial
-    // (CatalogoCentro). Mapea provincia (string) al código INE más cercano
-    // buscando en `provincias`. CIF, teléfono y fechas se dejan al admin: el
-    // catálogo de la Junta no expone CIFs y los contactos cambian.
-    const handlePickFromCatalog = useCallback(() => {
-        if (!pickerSelected) return;
-        const c = pickerSelected;
-        const ccaaCode = c.ccaa === 'AND' ? 'AN' : (c.ccaa || '');
-        let provinciaCodigo = '';
-        if (c.provincia) {
-            const norm = (s) => (s || '').toLowerCase()
-                .normalize('NFD').replace(/[̀-ͯ]/g, '');
-            const target = norm(c.provincia);
-            const match = provincias.find(p => norm(p.nombre) === target
-                || norm(p.nombre).startsWith(target));
-            if (match) provinciaCodigo = match.codigo;
-        }
-        const direccion = c.direccion || (c.municipio ? c.municipio : '');
-        setLogoFile(null);
-        setLogoPreview(null);
-        setCurrentCentro(null);
-        setCatalogoOrigenId(c.id ?? null);
-        setFormData({
-            nombre: c.nombre || '',
-            cif: '',
-            direccion: direccion,
-            telefono: '',
-            activo: true,
-            ccaa: ccaaCode,
-            provincia: provinciaCodigo,
-            fechaInicioCurso: '',
-            fechaFinCurso: '',
-            porcentajeMaxFaltas: '20',
-        });
-        setCalendarioSugerido(null);
-        setIsCatalogPickerOpen(false);
-        setPickerSelected(null);
-        setIsModalOpen(true);
-    }, [pickerSelected, provincias]);
 
     const handleInputChange = (e) => {
         const {name, value, type, checked} = e.target;
@@ -391,6 +360,50 @@ const Centros = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
+
+        // Creación desde el catálogo oficial.
+        if (!currentCentro && createMode === 'catalogo') {
+            try {
+                if (!selectedCatalogoCentroId) {
+                    toast.warning(t('centers.catalogo.selectRequired', {
+                        defaultValue: 'Selecciona un centro del catálogo o cambia a modo manual.',
+                    }));
+                    setSaving(false);
+                    return;
+                }
+
+                const response = await fetch(getApiUrl('/api/centros/from-catalogo'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        catalogoCentroId: parseInt(selectedCatalogoCentroId, 10),
+                    }),
+                });
+
+                if (!response.ok) {
+                    const message = await parseErrorResponse(response);
+                    throw new Error(message);
+                }
+
+                fetchCentrosData({
+                    page: currentPage, itemsPerPage, searchTerm, searchField,
+                    sortColumn, sortDirection,
+                });
+                handleCloseModal();
+                toast.success(t('centers.catalogo.createdSuccess', {
+                    defaultValue: 'Centro creado desde el catálogo oficial',
+                }));
+            } catch (err) {
+                console.error('Error creando centro desde catálogo:', err);
+                toast.error(err.message, {
+                    description: t('centers.errorCreating', { defaultValue: 'No se ha podido crear el centro' }),
+                });
+            } finally {
+                setSaving(false);
+            }
+            return;
+        }
 
         try {
             const id = currentCentro ? getCentroId(currentCentro) : null;
@@ -600,10 +613,6 @@ const Centros = () => {
                         selectedField={searchField}
                         onFieldChange={setSearchField}
                     />
-                    <Button variant="secondary" onClick={() => { setPickerSelected(null); setIsCatalogPickerOpen(true); }}>
-                        <BookOpen size={18} style={{marginRight: '8px'}}/>
-                        {t('centers.fromCatalog', { defaultValue: 'Crear desde catálogo' })}
-                    </Button>
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={18} style={{marginRight: '8px'}}/>
                         {t('common.new')}
@@ -640,248 +649,271 @@ const Centros = () => {
                     onSubmit={handleSubmit}
                     isSubmitting={saving}
                 >
-                    {/* Campo de Logo */}
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.logoLabel')}</label>
-                        <div className={styles.logoPreviewContainer}>
-                            {logoPreview ? (
-                                <img src={logoPreview} alt="Previsualización" className={styles.logoPreview}/>
-                            ) : (
-                                <div className={styles.logoPreview}
-                                     style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                    <ImageIcon size={24} color="#cbd5e1"/>
-                                </div>
-                            )}
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className={styles.fileInput}
-                            />
-                        </div>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.nameLabel')}</label>
-                        <input
-                            type="text"
-                            name="nombre"
-                            value={formData.nombre}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.namePlaceholder')}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.cif')}</label>
-                        <input
-                            type="text"
-                            name="cif"
-                            value={formData.cif}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.cifPlaceholder')}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.address')}</label>
-                        <input
-                            type="text"
-                            name="direccion"
-                            value={formData.direccion}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            required
-                            placeholder={t('centers.addressPlaceholder')}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.ccaa', { defaultValue: 'Comunidad Autónoma' })}
-                        </label>
-                        <ThemedSelect
-                            value={formData.ccaa}
-                            onChange={(v) => setFormData(p => ({ ...p, ccaa: v, provincia: '' }))}
-                            options={[
-                                { value: '', label: t('centers.ccaaNone', { defaultValue: '— Sin asignar —' }) },
-                                ...CCAA_OPTIONS,
-                            ]}
-                        />
-                        <small className={styles.helpText}>
-                            {t('centers.ccaaHint', { defaultValue: 'Determina los festivos autonómicos aplicables. Cambiarla resetea la provincia.' })}
-                        </small>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.provincia', { defaultValue: 'Provincia' })}
-                        </label>
-                        <ThemedSelect
-                            value={formData.provincia}
-                            onChange={(v) => setFormData(p => ({ ...p, provincia: v }))}
-                            options={[
-                                { value: '', label: t('centers.provinciaNone', { defaultValue: '— Sin asignar —' }) },
-                                ...provincias
-                                    .filter(p => !formData.ccaa || p.ccaa === formData.ccaa)
-                                    .map(p => ({ value: p.codigo, label: `${p.nombre} (${p.codigo})` })),
-                            ]}
-                        />
-                        <small className={styles.helpText}>
-                            {t('centers.provinciaHint', { defaultValue: 'Filtrada por CCAA seleccionada. Necesaria para festivos provinciales y locales.' })}
-                        </small>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.fechaInicioCurso', { defaultValue: 'Inicio del curso académico' })}
-                        </label>
-                        <input
-                            type="date"
-                            name="fechaInicioCurso"
-                            value={formData.fechaInicioCurso}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder={calendarioSugerido?.fechaInicio?.slice(0, 10) || ''}
-                        />
-                        <small className={styles.helpText}>
-                            {calendarioSugerido?.fechaInicio
-                                ? t('centers.fechaCursoSuggested', {
-                                    defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
-                                    ccaa: formData.ccaa,
-                                    fecha: new Date(calendarioSugerido.fechaInicio).toLocaleDateString('es-ES'),
-                                })
-                                : t('centers.fechaCursoHint', {
-                                    defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
-                                })}
-                        </small>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.fechaFinCurso', { defaultValue: 'Fin del curso académico' })}
-                        </label>
-                        <input
-                            type="date"
-                            name="fechaFinCurso"
-                            value={formData.fechaFinCurso}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder={calendarioSugerido?.fechaFin?.slice(0, 10) || ''}
-                        />
-                        <small className={styles.helpText}>
-                            {calendarioSugerido?.fechaFin
-                                ? t('centers.fechaCursoSuggested', {
-                                    defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
-                                    ccaa: formData.ccaa,
-                                    fecha: new Date(calendarioSugerido.fechaFin).toLocaleDateString('es-ES'),
-                                })
-                                : t('centers.fechaCursoHint', {
-                                    defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
-                                })}
-                        </small>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.porcentajeMaxFaltas', { defaultValue: 'Umbral de faltas para pérdida de evaluación (%)' })}
-                        </label>
-                        <input
-                            type="number"
-                            name="porcentajeMaxFaltas"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={formData.porcentajeMaxFaltas}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder="20"
-                        />
-                        <small className={styles.helpText}>
-                            {t('centers.porcentajeMaxFaltasHint', { defaultValue: 'Si un alumno supera este % de faltas (faltas + justificadas) en una materia, se marca como no evaluable en Calificaciones. Por defecto 20%.' })}
-                        </small>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('centers.phone')}</label>
-                        <input
-                            type="tel"
-                            name="telefono"
-                            value={formData.telefono}
-                            onChange={handleInputChange}
-                            className={styles.input}
-                            placeholder={t('centers.phonePlaceholder')}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                name="activo"
-                                checked={formData.activo}
-                                onChange={handleInputChange}
-                            />
-                            {t('centers.activeCheckbox')}
-                        </label>
-                    </div>
-                </ModalView>
-
-                {/* Modal selector de catálogo oficial (Junta de Andalucía).
-                    Lista los ~7100 centros andaluces ingestados y al elegir uno
-                    prefilla el formulario de creación. CIF, contacto y fechas
-                    los completa el admin: el catálogo no expone CIFs y los
-                    contactos cambian. */}
-                <ModalView
-                    isOpen={isCatalogPickerOpen}
-                    onClose={() => { setIsCatalogPickerOpen(false); setPickerSelected(null); }}
-                    title={t('centers.catalogPickerTitle', { defaultValue: 'Crear desde catálogo oficial' })}
-                    onSubmit={(e) => { e.preventDefault(); handlePickFromCatalog(); }}
-                    submitText={t('centers.catalogPickerSubmit', { defaultValue: 'Continuar y completar' })}
-                    isSubmitting={false}
-                >
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            {t('centers.catalogPickerLabel', { defaultValue: 'Centro oficial' })}
-                        </label>
-                        <AsyncSearchSelect
-                            value={pickerSelected?.id ?? ''}
-                            onChange={(_v, item) => setPickerSelected(item || null)}
-                            endpoint="/api/catalogo_centros"
-                            getOptionLabel={(c) => {
-                                const muni = c.municipio ? ` · ${c.municipio}` : '';
-                                const prov = c.provincia && c.provincia !== c.municipio ? ` (${c.provincia})` : '';
-                                const codigo = c.codigoCentro ? `${c.codigoCentro} — ` : '';
-                                return `${codigo}${c.nombre}${muni}${prov}`;
-                            }}
-                            getOptionValue={(c) => c.id}
-                            placeholder={t('centers.catalogPickerPlaceholder', {
-                                defaultValue: 'Busca por nombre, código o municipio…',
-                            })}
-                            minQueryLength={0}
-                            itemsPerPage={20}
-                        />
-                        <small className={styles.helpText}>
-                            {t('centers.catalogPickerHint', {
-                                defaultValue: 'Datos abiertos de la Junta de Andalucía (CC BY 4.0). Tras elegir, podrás completar CIF, contacto y fechas.',
-                            })}
-                        </small>
-                    </div>
-
-                    {pickerSelected && (
-                        <div className={styles.formGroup} style={{ background: 'var(--bg-card)', padding: '0.75rem 1rem', borderRadius: '8px' }}>
-                            <strong style={{ display: 'block', marginBottom: '0.4rem' }}>{pickerSelected.nombre}</strong>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'grid', gap: '0.2rem' }}>
-                                {pickerSelected.codigoCentro && <span>{t('centers.catalogPickerPreviewCode', { defaultValue: 'Código' })}: <strong>{pickerSelected.codigoCentro}</strong></span>}
-                                {pickerSelected.direccion && <span>{pickerSelected.direccion}</span>}
-                                {pickerSelected.municipio && <span>{pickerSelected.municipio}{pickerSelected.provincia ? `, ${pickerSelected.provincia}` : ''}</span>}
-                                {pickerSelected.titularidad && <span>{t(`catalogo.centros.titularidad.${pickerSelected.titularidad}`, pickerSelected.titularidad)}</span>}
+                    {/* Toggle de modo (solo en creación). Edición siempre es manual. */}
+                    {!currentCentro && (
+                        <div className={styles.formGroup}>
+                            <div className={styles.modeToggle} role="tablist" aria-label={t('centers.modeToggleAria', { defaultValue: 'Modo de creación' })}>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={createMode === 'catalogo'}
+                                    className={`${styles.modeToggleBtn} ${createMode === 'catalogo' ? styles.modeToggleActive : ''}`}
+                                    onClick={() => setCreateMode('catalogo')}
+                                >
+                                    {t('centers.modeCatalogo', { defaultValue: 'Catálogo oficial' })}
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={createMode === 'manual'}
+                                    className={`${styles.modeToggleBtn} ${createMode === 'manual' ? styles.modeToggleActive : ''}`}
+                                    onClick={() => setCreateMode('manual')}
+                                >
+                                    {t('centers.modeManual', { defaultValue: 'Manual' })}
+                                </button>
                             </div>
                         </div>
+                    )}
+
+                    {/* MODO CATÁLOGO: AsyncSearchSelect contra /api/catalogo_centros + preview */}
+                    {!currentCentro && createMode === 'catalogo' ? (
+                        <>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.catalogo.searchLabel', { defaultValue: 'Buscar en el catálogo oficial' })}
+                                </label>
+                                <AsyncSearchSelect
+                                    name="catalogoCentro"
+                                    value={selectedCatalogoCentroId}
+                                    onChange={(id, item) => {
+                                        setSelectedCatalogoCentroId(id);
+                                        setSelectedCatalogoCentro(item);
+                                    }}
+                                    endpoint="/api/catalogo_centros"
+                                    getOptionLabel={(c) => {
+                                        const muni = c.municipio ? ` · ${c.municipio}` : '';
+                                        const prov = c.provincia && c.provincia !== c.municipio ? ` (${c.provincia})` : '';
+                                        const codigo = c.codigoCentro ? `${c.codigoCentro} — ` : '';
+                                        return `${codigo}${c.nombre}${muni}${prov}`;
+                                    }}
+                                    getOptionValue={(c) => c.id}
+                                    placeholder={t('centers.catalogo.searchPlaceholder', {
+                                        defaultValue: 'Busca por nombre, código o municipio…',
+                                    })}
+                                    minQueryLength={0}
+                                    itemsPerPage={20}
+                                />
+                                <small className={styles.helpText}>
+                                    {t('centers.catalogo.searchHint', {
+                                        defaultValue: 'Datos abiertos de la Junta de Andalucía (CC BY 4.0). El centro se creará con los datos del catálogo; CIF y contacto se completan después.',
+                                    })}
+                                </small>
+                            </div>
+
+                            {selectedCatalogoCentro && (
+                                <div className={styles.catalogoPreview}>
+                                    <strong style={{ display: 'block', marginBottom: '0.4rem' }}>{selectedCatalogoCentro.nombre}</strong>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'grid', gap: '0.2rem' }}>
+                                        {selectedCatalogoCentro.codigoCentro && <span>{t('centers.catalogo.previewCode', { defaultValue: 'Código' })}: <strong>{selectedCatalogoCentro.codigoCentro}</strong></span>}
+                                        {selectedCatalogoCentro.direccion && <span>{selectedCatalogoCentro.direccion}</span>}
+                                        {selectedCatalogoCentro.municipio && <span>{selectedCatalogoCentro.municipio}{selectedCatalogoCentro.provincia ? `, ${selectedCatalogoCentro.provincia}` : ''}</span>}
+                                        {selectedCatalogoCentro.titularidad && <span>{t(`catalogo.centros.titularidad.${selectedCatalogoCentro.titularidad}`, selectedCatalogoCentro.titularidad)}</span>}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        /* MODO MANUAL (creación libre o edición) */
+                        <>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('centers.logoLabel')}</label>
+                                <div className={styles.logoPreviewContainer}>
+                                    {logoPreview ? (
+                                        <img src={logoPreview} alt="Previsualización" className={styles.logoPreview}/>
+                                    ) : (
+                                        <div className={styles.logoPreview}
+                                             style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                            <ImageIcon size={24} color="#cbd5e1"/>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className={styles.fileInput}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('centers.nameLabel')}</label>
+                                <input
+                                    type="text"
+                                    name="nombre"
+                                    value={formData.nombre}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    required
+                                    placeholder={t('centers.namePlaceholder')}
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('centers.cif')}</label>
+                                <input
+                                    type="text"
+                                    name="cif"
+                                    value={formData.cif}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    required
+                                    placeholder={t('centers.cifPlaceholder')}
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('centers.address')}</label>
+                                <input
+                                    type="text"
+                                    name="direccion"
+                                    value={formData.direccion}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    required
+                                    placeholder={t('centers.addressPlaceholder')}
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.ccaa', { defaultValue: 'Comunidad Autónoma' })}
+                                </label>
+                                <ThemedSelect
+                                    value={formData.ccaa}
+                                    onChange={(v) => setFormData(p => ({ ...p, ccaa: v, provincia: '' }))}
+                                    options={[
+                                        { value: '', label: t('centers.ccaaNone', { defaultValue: '— Sin asignar —' }) },
+                                        ...CCAA_OPTIONS,
+                                    ]}
+                                />
+                                <small className={styles.helpText}>
+                                    {t('centers.ccaaHint', { defaultValue: 'Determina los festivos autonómicos aplicables. Cambiarla resetea la provincia.' })}
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.provincia', { defaultValue: 'Provincia' })}
+                                </label>
+                                <ThemedSelect
+                                    value={formData.provincia}
+                                    onChange={(v) => setFormData(p => ({ ...p, provincia: v }))}
+                                    options={[
+                                        { value: '', label: t('centers.provinciaNone', { defaultValue: '— Sin asignar —' }) },
+                                        ...provincias
+                                            .filter(p => !formData.ccaa || p.ccaa === formData.ccaa)
+                                            .map(p => ({ value: p.codigo, label: `${p.nombre} (${p.codigo})` })),
+                                    ]}
+                                />
+                                <small className={styles.helpText}>
+                                    {t('centers.provinciaHint', { defaultValue: 'Filtrada por CCAA seleccionada. Necesaria para festivos provinciales y locales.' })}
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.fechaInicioCurso', { defaultValue: 'Inicio del curso académico' })}
+                                </label>
+                                <input
+                                    type="date"
+                                    name="fechaInicioCurso"
+                                    value={formData.fechaInicioCurso}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    placeholder={calendarioSugerido?.fechaInicio?.slice(0, 10) || ''}
+                                />
+                                <small className={styles.helpText}>
+                                    {calendarioSugerido?.fechaInicio
+                                        ? t('centers.fechaCursoSuggested', {
+                                            defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
+                                            ccaa: formData.ccaa,
+                                            fecha: new Date(calendarioSugerido.fechaInicio).toLocaleDateString('es-ES'),
+                                        })
+                                        : t('centers.fechaCursoHint', {
+                                            defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
+                                        })}
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.fechaFinCurso', { defaultValue: 'Fin del curso académico' })}
+                                </label>
+                                <input
+                                    type="date"
+                                    name="fechaFinCurso"
+                                    value={formData.fechaFinCurso}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    placeholder={calendarioSugerido?.fechaFin?.slice(0, 10) || ''}
+                                />
+                                <small className={styles.helpText}>
+                                    {calendarioSugerido?.fechaFin
+                                        ? t('centers.fechaCursoSuggested', {
+                                            defaultValue: 'Sugerido por calendario {{ccaa}}: {{fecha}} (puedes editar).',
+                                            ccaa: formData.ccaa,
+                                            fecha: new Date(calendarioSugerido.fechaFin).toLocaleDateString('es-ES'),
+                                        })
+                                        : t('centers.fechaCursoHint', {
+                                            defaultValue: 'Override del calendario CCAA. Si lo dejas vacío, se usará el oficial autonómico.',
+                                        })}
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {t('centers.porcentajeMaxFaltas', { defaultValue: 'Umbral de faltas para pérdida de evaluación (%)' })}
+                                </label>
+                                <input
+                                    type="number"
+                                    name="porcentajeMaxFaltas"
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    value={formData.porcentajeMaxFaltas}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    placeholder="20"
+                                />
+                                <small className={styles.helpText}>
+                                    {t('centers.porcentajeMaxFaltasHint', { defaultValue: 'Si un alumno supera este % de faltas (faltas + justificadas) en una materia, se marca como no evaluable en Calificaciones. Por defecto 20%.' })}
+                                </small>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('centers.phone')}</label>
+                                <input
+                                    type="tel"
+                                    name="telefono"
+                                    value={formData.telefono}
+                                    onChange={handleInputChange}
+                                    className={styles.input}
+                                    placeholder={t('centers.phonePlaceholder')}
+                                />
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        name="activo"
+                                        checked={formData.activo}
+                                        onChange={handleInputChange}
+                                    />
+                                    {t('centers.activeCheckbox')}
+                                </label>
+                            </div>
+                        </>
                     )}
                 </ModalView>
             </div>
