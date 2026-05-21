@@ -9,11 +9,18 @@ import { createPortal } from 'react-dom';
 import styles from './AboutErModel.module.css';
 
 const ErFullscreen = ({ onExit }) => {
+    const [exiting, setExiting] = useState(false);
+
+    const handleExit = () => {
+        setExiting(true);
+        setTimeout(() => onExit(), 200);
+    };
+
     return createPortal(
-        <div className={styles.fullscreenShell}>
+        <div className={`${styles.fullscreenShell} ${exiting ? styles.fsExiting : ''}`}>
             <ErDiagram
                 fullscreen={true}
-                onToggleFullscreen={onExit}
+                onToggleFullscreen={handleExit}
             />
         </div>,
         document.body

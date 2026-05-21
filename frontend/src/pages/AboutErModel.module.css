@@ -181,6 +181,34 @@
     display: flex;
     flex-direction: column;
     background: #0a0f1c;
+    animation: fsEnter var(--dur-base) var(--ease-out-back) both;
+}
+
+.fsExiting {
+    animation: fsExit var(--dur-exit) var(--ease-standard) both;
+    pointer-events: none;
+}
+
+@keyframes fsEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fsExit {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
 }
 
 .fullscreenShell > div {
