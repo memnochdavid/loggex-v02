@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
     ZoomIn, ZoomOut, Maximize2, Minimize2, Eye, EyeOff, Search, X,
     Key, Link2, Hash, Calendar, ToggleLeft, FileText, Type,
@@ -263,8 +263,12 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
     const [search, setSearch] = useState('');
 
     const containerRef = useRef(null);
-    const dragRef = useRef({ active: false });
+    const worldRef = useRef(null);
     const didFitRef = useRef(false);
+    /* Única fuente de verdad para la posición de la cámara.
+       Se actualiza desde los eventos pointermove durante el arrastre
+       y se sincroniza con el estado `transform` en los demás casos. */
+    const camRef = useRef({ x: transform.x, y: transform.y });
 
     /* ---------- Heights por entidad ---------- */
     const heights = useMemo(() => {
@@ -355,32 +359,46 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
         return false;
     }, [matchedSet, focusedId, focusedRel]);
 
-    /* ---------- Pan ---------- */
-    const onCanvasMouseDown = (e) => {
+    /* ---------- Pan con Pointer Events + setPointerCapture ----------
+       setPointerCapture garantiza que todos los eventos posteriores
+       (pointermove, pointerup) se entreguen a este elemento aunque el
+       puntero salga de sus límites.  No necesita onMouseLeave.
+       camRef es la única fuente de verdad de la posición durante el drag.
+       React estado `transform` solo se actualiza al soltar el arrastre.
+       ─────────────────────────────────────────────────────────────── */
+    const [dragging, setDragging] = useState(false);
+    const pointerStartRef = useRef({ x: 0, y: 0 });
+    const pointerOriginRef = useRef({ x: 0, y: 0 });
+
+    const onPointerDown = (e) => {
         if (e.button !== 0) return;
-        dragRef.current = {
-            active: true,
-            startX: e.clientX,
-            startY: e.clientY,
-            ox: transform.x,
-            oy: transform.y,
-            moved: false,
-        };
+        /* Lee la posición desde el estado `transform` (render más
+           reciente) en vez de `camRef`, porque `camRef` no se actualiza
+           con el zoom y tendría coordenadas anteriores al zoom. */
+        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+        pointerOriginRef.current = { x: transform.x, y: transform.y };
+        camRef.current.x = transform.x;
+        camRef.current.y = transform.y;
+        setDragging(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
     };
-    const onCanvasMouseMove = (e) => {
-        if (!dragRef.current.active) return;
-        const dx = e.clientX - dragRef.current.startX;
-        const dy = e.clientY - dragRef.current.startY;
-        if (Math.abs(dx) + Math.abs(dy) > 4) dragRef.current.moved = true;
-        setTransform(t => ({ ...t, x: dragRef.current.ox + dx, y: dragRef.current.oy + dy }));
-    };
-    const onCanvasMouseUp = () => {
-        // Si fue un click limpio (no arrastrado) sobre el fondo → deseleccionar
-        if (dragRef.current.active && !dragRef.current.moved) {
-            setSelectedId(null);
-            setSelectedRel(null);
+    const onPointerMove = (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - pointerStartRef.current.x;
+        const dy = e.clientY - pointerStartRef.current.y;
+        const nx = pointerOriginRef.current.x + dx;
+        const ny = pointerOriginRef.current.y + dy;
+        camRef.current.x = nx;
+        camRef.current.y = ny;
+        if (worldRef.current) {
+            worldRef.current.style.transform =
+                `translate(${nx}px, ${ny}px) scale(${transform.scale})`;
         }
-        dragRef.current.active = false;
+    };
+    const onPointerUp = () => {
+        if (!dragging) return;
+        setDragging(false);
+        setTransform(t => ({ ...t, x: camRef.current.x, y: camRef.current.y }));
     };
 
     /* ---------- Zoom (rueda + ctrl/cmd) ---------- */
@@ -463,12 +481,25 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
         return () => cancelAnimationFrame(r1);
     }, [fullscreen, fitToScreen]);
 
-    /* Listeners globales para soltar el drag fuera del canvas. */
-    useEffect(() => {
-        const up = () => { dragRef.current.active = false; };
-        window.addEventListener('mouseup', up);
-        return () => window.removeEventListener('mouseup', up);
-    }, []);
+    /* ─── Sincronización del transform al DOM y a camRef ────────
+       Tras CADA render:
+       1. Si NO estamos arrastrando, volcamos `transform` (React)
+          a `camRef` para que esté siempre al día.
+       2. Aplicamos la posición correcta al DOM directamente (sin
+          pasar por JSX style, para que React nunca lo machaque).
+       ──────────────────────────────────────────────────────────── */
+    useLayoutEffect(() => {
+        if (!dragging) {
+            camRef.current.x = transform.x;
+            camRef.current.y = transform.y;
+        }
+        if (worldRef.current) {
+            const x = dragging ? camRef.current.x : transform.x;
+            const y = dragging ? camRef.current.y : transform.y;
+            worldRef.current.style.transform =
+                `translate(${x}px, ${y}px) scale(${transform.scale})`;
+        }
+    });
 
     /* ---------- Entidad seleccionada ---------- */
     const selectedEntity = selectedId ? ENTITY_BY_ID[selectedId] : null;
@@ -553,17 +584,16 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                 <div
                     ref={containerRef}
                     className={styles.canvas}
-                    onMouseDown={onCanvasMouseDown}
-                    onMouseMove={onCanvasMouseMove}
-                    onMouseUp={onCanvasMouseUp}
-                    onMouseLeave={onCanvasMouseUp}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
                 >
                     <div
+                        ref={worldRef}
                         className={styles.world}
                         style={{
                             width:  ER_LAYOUT.worldWidth,
                             height: ER_LAYOUT.worldHeight,
-                            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
                         }}
                     >
                         {/* Líneas de relación detrás de las cajas */}
@@ -673,7 +703,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                     }}
                                     onMouseEnter={() => setHoveredId(entity.id)}
                                     onMouseLeave={() => setHoveredId(null)}
-                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedId(prev => prev === entity.id ? null : entity.id);
