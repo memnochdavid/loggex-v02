@@ -184,7 +184,7 @@ class MercureAuthController extends AbstractController
             ->withHttpOnly(true)
             ->withSameSite(Cookie::SAMESITE_STRICT)
             ->withSecure($request->isSecure())
-            ->withExpires(new \DateTimeImmutable('+1 hour'));
+            ->withExpires(new \DateTimeImmutable('+24 hours'));
 
         $response = $this->json([
             'topics' => $topics,

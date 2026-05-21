@@ -75,6 +75,7 @@ services:
       MERCURE_EXTRA_DIRECTIVES: |
         cors_origins https://localhost:8443 https://localhost:8888
         anonymous
+        heartbeat 30s
     volumes:
       - mercure_data:/data
       - mercure_config:/config

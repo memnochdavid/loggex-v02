@@ -16,7 +16,9 @@
 (app_routes) {
     # Hub Mercure (SSE + publish). Debe ir antes que /api/* para no ser engullido.
     handle /.well-known/mercure* {
-        reverse_proxy mercure:80
+        reverse_proxy mercure:80 {
+            flush_interval -1
+        }
     }
 
     # Redirigir peticiones API al backend
