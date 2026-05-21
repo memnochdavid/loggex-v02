@@ -255,6 +255,8 @@ const pointsToRoundedPath = (points, r = 6) => {
 const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
     const [transform, setTransform] = useState({ x: 60, y: 40, scale: 0.55 });
     const [showAudit, setShowAudit] = useState(false);
+    const [hideUnrelatedRels, setHideUnrelatedRels] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
     const [selectedId, setSelectedId] = useState(null);
     const [search, setSearch] = useState('');
@@ -473,7 +475,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
 
     /* ---------- Render ---------- */
     return (
-        <div className={styles.shell}>
+        <div className={`${styles.shell} ${fullscreen ? styles.shellFullscreen : ''}`}>
             {/* ============ TOOLBAR ============ */}
             <div className={styles.toolbar}>
                 <div className={styles.searchWrap}>
@@ -501,6 +503,14 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                         {showAudit ? <Eye size={14} /> : <EyeOff size={14} />}
                         <span>Auditoría</span>
                     </button>
+                    <button
+                        className={`${styles.tbBtn} ${hideUnrelatedRels ? styles.tbBtnActive : ''}`}
+                        onClick={() => setHideUnrelatedRels(h => !h)}
+                        title="Ocultar relaciones no conectadas a la entidad seleccionada"
+                    >
+                        <Link2 size={14} />
+                        <span>Solo conexiones</span>
+                    </button>
                 </div>
 
                 <div className={styles.toolbarGroup}>
@@ -516,9 +526,16 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                             if (onToggleFullscreen) onToggleFullscreen();
                             else fitToScreen();
                         }}
-                        title={fullscreen ? 'Salir de pantalla completa' : 'Ajustar a pantalla'}
+                        title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
                     >
                         {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    </button>
+                    <button
+                        className={`${styles.tbBtn} ${sidebarCollapsed ? styles.tbBtnActive : ''}`}
+                        onClick={() => setSidebarCollapsed(s => !s)}
+                        title={sidebarCollapsed ? 'Mostrar panel lateral' : 'Ocultar panel lateral'}
+                    >
+                        {sidebarCollapsed ? <Eye size={14} /> : <EyeOff size={14} />}
                     </button>
                     <span className={styles.zoomLabel}>{Math.round(transform.scale * 100)}%</span>
                 </div>
@@ -572,9 +589,10 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
 
                             {routedPaths.map(({ rel, path }, i) => {
                                 if (!path) return null;
-                                const dStr = pointsToRoundedPath(path.finalPoints, 8);
                                 const dimmed = isRelationDimmed(rel);
                                 const active = focusedId && (rel.from === focusedId || rel.to === focusedId);
+                                if (hideUnrelatedRels && !active) return null;
+                                const dStr = pointsToRoundedPath(path.finalPoints, 8);
 
                                 /* 'N' o '1' del lado FK; siempre '1' del lado PK. */
                                 const fromCard = rel.cardinality.split(':')[0];
@@ -710,15 +728,17 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                 </div>
 
                 {/* ============ SIDEBAR ============ */}
-                <aside className={styles.sidebar}>
-                    {selectedEntity ? (
-                        <DetailPanel
-                            entity={selectedEntity}
-                            relations={selectedRelations}
-                            onClose={() => setSelectedId(null)}
-                        />
-                    ) : (
-                        <LegendPanel />
+                <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
+                    {!sidebarCollapsed && (
+                        selectedEntity ? (
+                            <DetailPanel
+                                entity={selectedEntity}
+                                relations={selectedRelations}
+                                onClose={() => setSelectedId(null)}
+                            />
+                        ) : (
+                            <LegendPanel />
+                        )
                     )}
                 </aside>
             </div>
