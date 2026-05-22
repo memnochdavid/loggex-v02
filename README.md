@@ -24,13 +24,16 @@ Si acabas de clonar este repositorio desde Git en un equipo nuevo, sigue estos p
 > **NO clones el proyecto en el filesystem de Windows** (`C:\Users\...\`) si luego vas a usar Docker Desktop. El volumen montado sobre el filesystem NTFS a través de la capa de compatibilidad de Docker hace que las operaciones de base de datos (especialmente las migraciones Doctrine y las consultas con JOINs) sean **extremadamente lentas** — lo que tarda 2 segundos en WSL puede tardar 30-60 segundos fuera de WSL.
 >
 > **Forma correcta en Windows:**
-> 1. Abre una terminal WSL (`wsl` desde PowerShell/CMD, o abre Ubuntu desde el menú Inicio).
-> 2. Clona el proyecto dentro del filesystem de WSL: `git clone ... ~/loggex-v02`
-> 3. Sigue los pasos de **Linux** que aparecen abajo.
+> 1. Clona el proyecto DENTRO del filesystem de WSL desde una terminal WSL: `git clone ... ~/loggex-v02`.
+> 2. Desde una **PowerShell/CMD normal de Windows** (no WSL), navega al proyecto vía `\\wsl.localhost\Ubuntu\home\tu-usuario\loggex-v02`:
+>    ```powershell
+>    cd \\wsl.localhost\Ubuntu\home\tu-usuario\loggex-v02
+>    ```
+> 3. Sigue los pasos de la sección **Windows** de abajo (usa los scripts `.bat`).
 >
-> **Forma alternativa (no recomendada):** si necesitas trabajar desde cmd.exe/PowerShell fuera de WSL, usa los scripts `.bat` que aparecen más abajo, pero espera un rendimiento muy inferior en operaciones de base de datos.
+>    > ℹ️ Los scripts `.sh` pueden fallar al ejecutarse desde la terminal WSL por diferencias de permisos o fin de línea (EOF). Los scripts `.bat` desde PowerShell/CMD funcionan de forma fiable sobre el mismo proyecto alojado en WSL, y el rendimiento es equivalente porque Docker Desktop se integra directamente con WSL.
 
-### Linux (nativo o WSL)
+### Linux (nativo)
 
 1. **Dar permisos a los scripts**:
    ```bash
@@ -59,9 +62,13 @@ Si acabas de clonar este repositorio desde Git en un equipo nuevo, sigue estos p
    ./scripts/restore_storage.sh
    ```
 
-### Windows (cmd.exe / PowerShell — fuera de WSL, no recomendado)
+### Windows (PowerShell/CMD)
 
-> **Antes de empezar:** asegúrate de tener **Docker Desktop** instalado y en ejecución. Sin él, los contenedores no arrancarán.
+> **Antes de empezar:** asegúrate de tener **Docker Desktop** instalado y en ejecución. El proyecto debe estar clonado **dentro del filesystem de WSL** (ver "Forma correcta en Windows" más arriba). Desde PowerShell/CMD navega a la ruta WSL del proyecto para ejecutar los scripts `.bat`:
+>
+> ```powershell
+> cd \\wsl.localhost\Ubuntu\home\tu-usuario\loggex-v02
+> ```
 
 1. **Levantar contenedores + instalar dependencias**:
    ```cmd
