@@ -768,10 +768,20 @@
    ================================================================= */
 .featuresGrid {
     display: grid;
-    /* 240px permite 5 cols en desktop amplio → 9 features quedan en 5+4 (sin
-       huérfana última fila). En anchos medios colapsa a 3/2 columnas. */
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: var(--space-4);
+}
+
+@media (max-width: 1100px) {
+    .featuresGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .featuresGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .featuresGrid { grid-template-columns: 1fr; }
 }
 
 .featureItem {
