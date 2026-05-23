@@ -616,10 +616,17 @@
    ================================================================= */
 .grid {
     display: grid;
-    /* 230px permite 4 cols en desktop amplio y 2+2 en medio — sin dejar huérfana. */
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--space-5);
     perspective: 1200px;
+}
+
+@media (max-width: 1024px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
 }
 
 .card {
