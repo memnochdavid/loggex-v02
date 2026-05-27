@@ -277,6 +277,19 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
         return m;
     }, [showAudit]);
 
+    /* Una sola flecha por par (from→to): cuando hay varias FKs entre las
+       mismas dos entidades (ej. Mensaje→User: remitente + destinatario)
+       el canvas muestra una línea; el detalle completo está en el panel lateral. */
+    const dedupedRelations = useMemo(() => {
+        const seen = new Set();
+        return ER_RELATIONS.filter(rel => {
+            const key = `${rel.from}→${rel.to}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, []);
+
     /* ---------- Routing ortogonal de TODAS las relaciones ----------
        Calcula primero el camino base de cada relación, luego asigna
        sub-lanes por gutter/highway y por último compone los puntos
@@ -285,7 +298,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
         /* Para entidades en la misma columna, alterna lado izquierdo/derecho
            para que las relaciones internas no se apilen todas a la izquierda. */
         const sameColCounter = {};
-        const basePaths = ER_RELATIONS.map((rel) => {
+        const basePaths = dedupedRelations.map((rel) => {
             const from = ENTITY_BY_ID[rel.from];
             const to   = ENTITY_BY_ID[rel.to];
             if (!from || !to) return { rel, path: null };
@@ -313,7 +326,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
             rel,
             path: path ? withLanes[i++] : null,
         }));
-    }, [heights, showAudit]);
+    }, [heights, showAudit, dedupedRelations]);
 
     /* ---------- Foco / dim ---------- */
     const focusedId = hoveredId || selectedId;
@@ -622,13 +635,33 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                 >
                                     <path d="M0,0 L10,5 L0,10 Z" fill="#c7d2fe" />
                                 </marker>
+                                <marker
+                                    id="er-arrow-outgoing"
+                                    viewBox="0 0 10 10"
+                                    refX="8" refY="5"
+                                    markerWidth="7" markerHeight="7"
+                                    orient="auto-start-reverse"
+                                >
+                                    <path d="M0,0 L10,5 L0,10 Z" fill="#fbbf24" />
+                                </marker>
+                                <marker
+                                    id="er-arrow-incoming"
+                                    viewBox="0 0 10 10"
+                                    refX="8" refY="5"
+                                    markerWidth="7" markerHeight="7"
+                                    orient="auto-start-reverse"
+                                >
+                                    <path d="M0,0 L10,5 L0,10 Z" fill="#67e8f9" />
+                                </marker>
                             </defs>
 
                             {routedPaths.map(({ rel, path }, i) => {
                                 if (!path) return null;
                                 const dimmed = isRelationDimmed(rel);
-                                const active = (focusedId && (rel.from === focusedId || rel.to === focusedId))
-                                    || rel === focusedRel;
+                                const isOutgoing   = focusedId != null && rel.from === focusedId;
+                                const isIncoming   = focusedId != null && rel.to   === focusedId;
+                                const isRelFocused = focusedId == null && rel === focusedRel;
+                                const active = isOutgoing || isIncoming || isRelFocused;
                                 if (hideUnrelatedRels && !active) return null;
                                 const dStr = pointsToRoundedPath(path.finalPoints, 8);
 
@@ -637,10 +670,19 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                 const toCard   = rel.cardinality.split(':')[1];
                                 const a = path.anchors;
 
+                                const dirClass = isOutgoing ? styles.relOutgoing
+                                    : isIncoming            ? styles.relIncoming
+                                    : isRelFocused          ? styles.relActive
+                                    : '';
+                                const markerEnd = isOutgoing   ? 'url(#er-arrow-outgoing)'
+                                    : isIncoming               ? 'url(#er-arrow-incoming)'
+                                    : isRelFocused             ? 'url(#er-arrow-active)'
+                                    : 'url(#er-arrow)';
+
                                 return (
                                     <g
                                         key={i}
-                                        className={`${styles.relGroup} ${dimmed ? styles.relDim : ''} ${active ? styles.relActive : ''}`}
+                                        className={`${styles.relGroup} ${dimmed ? styles.relDim : ''} ${dirClass}`}
                                         onMouseDown={(e) => e.stopPropagation()}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -651,7 +693,7 @@ const ErDiagram = ({ fullscreen = false, onToggleFullscreen = null } = {}) => {
                                         <path
                                             d={dStr}
                                             className={styles.relPath}
-                                            markerEnd={active ? 'url(#er-arrow-active)' : 'url(#er-arrow)'}
+                                            markerEnd={markerEnd}
                                             fill="none"
                                         />
                                         {/* Cardinalidad: 'N'/'1' junto al lado FK, '1' junto al lado PK */}

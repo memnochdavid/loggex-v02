@@ -233,7 +233,7 @@
 
 .relCard {
     fill: rgba(255, 255, 255, 0.55);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     font-family: var(--font-mono, ui-monospace, monospace);
     user-select: none;
@@ -260,6 +260,36 @@
 
 .relActive .relCard {
     fill: #c7d2fe;
+    font-size: 14px;
+}
+
+/* Flecha saliente: la FK está en la entidad seleccionada → color ámbar */
+.relOutgoing {
+    color: #fbbf24;
+}
+
+.relOutgoing .relPath {
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.55));
+}
+
+.relOutgoing .relCard {
+    fill: #fbbf24;
+    font-size: 13px;
+}
+
+/* Flecha entrante: la FK está en otra entidad que apunta a la seleccionada → color cian */
+.relIncoming {
+    color: #67e8f9;
+}
+
+.relIncoming .relPath {
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 4px rgba(103, 232, 249, 0.55));
+}
+
+.relIncoming .relCard {
+    fill: #67e8f9;
     font-size: 13px;
 }
 
@@ -367,7 +397,7 @@
     margin: 0;
     padding: 0;
     font-family: var(--font-mono, ui-monospace, monospace);
-    font-size: 0.74rem;
+    font-size: 0.81rem;
 }
 
 .field {
@@ -441,7 +471,7 @@
 
 .fieldType {
     color: rgba(255, 255, 255, 0.4);
-    font-size: 0.68rem;
+    font-size: 0.73rem;
     flex-shrink: 0;
 }
 

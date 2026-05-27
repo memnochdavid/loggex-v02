@@ -673,7 +673,7 @@ export const ER_ENTITIES = [
         id: 'Notificacion',
         table: 'notificacion',
         domain: 'communication',
-        position: { x: 40, y: 1960 },
+        position: { x: 40, y: 2074 },
         timestamps: true,
         softDelete: false,
         fields: composeFields([
@@ -807,7 +807,7 @@ export const ER_LAYOUT = {
     fieldHeight: 22,
     footerHeight: 14,
     worldWidth: 2920,
-    worldHeight: 2300,
+    worldHeight: 2480,
 
     /* X de la esquina izquierda de cada columna. Debe coincidir con
        las posiciones x de las entidades. */
@@ -819,11 +819,11 @@ export const ER_LAYOUT = {
 
     /* Anchura del gutter y separación entre sub-lanes dentro de él. */
     gutterWidth: 160,
-    laneStep: 11,
+    laneStep: 15,
 
     /* Highway horizontal por encima de todas las cajas (las cajas empiezan
        en y=60). highwayTopY es la Y de la lane 0 (la más arriba); lanes
        inferiores van bajando hasta tocar las cajas. */
     highwayTopY: 10,
-    highwayLaneStep: 9,
+    highwayLaneStep: 13,
 };
