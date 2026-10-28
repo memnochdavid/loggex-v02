@@ -1,0 +1,126 @@
+/* ======================================================================
+ * Integración de sonner con el sistema de tematización de Loggex.
+ *
+ * Estilo unificado (refactor 2026-04-30 — doc sistema-toasts §12):
+ * fondo SATURADO al 100% del color semántico, texto blanco, close button
+ * arriba-derecha (solo X color texto + sombreado sutil en hover/click),
+ * animación slide-in desde abajo. Las CSS vars del tema (--toast-*,
+ * --border-radius, --elements-blur) las inyecta theme.js.
+ * ====================================================================== */
+
+[data-sonner-toaster] {
+    --normal-bg: var(--widget-bg);
+    --normal-text: var(--text-main);
+    --normal-border: var(--border-color);
+
+    /* Tipos semánticos: fondo saturado al 100%, texto blanco. */
+    --success-bg: var(--toast-success);
+    --success-text: #fff;
+    --success-border: transparent;
+
+    --error-bg: var(--toast-error);
+    --error-text: #fff;
+    --error-border: transparent;
+
+    --warning-bg: var(--toast-warning);
+    --warning-text: #fff;
+    --warning-border: transparent;
+
+    --info-bg: var(--toast-info);
+    --info-text: #fff;
+    --info-border: transparent;
+
+    font-family: inherit;
+    --width: 380px;
+    --gap: 12px;
+}
+
+[data-sonner-toaster] [data-sonner-toast] {
+    border-radius: var(--border-radius) !important;
+    font-family: inherit;
+    padding: 14px 40px 14px 16px !important;
+    gap: 12px !important;
+    border: 1px solid transparent;
+    box-shadow:
+        0 1px 2px color-mix(in srgb, var(--color-gray-900, #0f172a) 12%, transparent),
+        0 10px 28px -8px color-mix(in srgb, var(--color-gray-900, #0f172a) 22%, transparent) !important;
+    animation: toastSlide var(--dur-base, 220ms) var(--ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"],
+[data-sonner-toaster] [data-sonner-toast][data-type="error"],
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"],
+[data-sonner-toaster] [data-sonner-toast][data-type="info"] {
+    border-color: color-mix(in srgb, #fff 18%, transparent);
+}
+
+@keyframes toastSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-icon] {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    color: inherit;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-content] {
+    gap: 4px;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-title] {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    color: inherit;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+    color: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    opacity: 0.88;
+}
+
+/* Close button — arriba-derecha, solo X color texto, sombreado sutil en hover/click.
+ * Sin rotación, sin escalado. Visible siempre (no requiere hover del toast). */
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    transform: none !important;
+    background: transparent !important;
+    border: none !important;
+    color: inherit !important;
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: var(--radius-sm, 4px) !important;
+    opacity: 0.85;
+    transition:
+        background-color var(--dur-fast, 150ms) var(--ease-standard, ease),
+        opacity var(--dur-fast, 150ms) var(--ease-standard, ease);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+    background: color-mix(in srgb, #fff 18%, transparent) !important;
+    opacity: 1;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:active {
+    background: color-mix(in srgb, #fff 28%, transparent) !important;
+}
+
+/* Toast neutro (sin tipo): mantiene el closeButton en color texto del tema. */
+[data-sonner-toaster] [data-sonner-toast]:not([data-type]) [data-close-button]:hover {
+    background: var(--widget-item-hover-bg, color-mix(in srgb, var(--text-main) 8%, transparent)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-sonner-toaster] [data-sonner-toast] {
+        animation: none;
+    }
+}

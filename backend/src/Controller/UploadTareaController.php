@@ -6,8 +6,8 @@ use App\Entity\Imparticion;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,7 +23,8 @@ class UploadTareaController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
         #[CurrentUser] ?User $user,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        FilesystemOperator $storage
     ): JsonResponse
     {
         try {
@@ -42,8 +43,11 @@ class UploadTareaController extends AbstractController
             $fechaLimiteStr = $request->request->get('fechaLimite');
             $tipo = $request->request->get('tipo');
             $visible = $request->request->get('visible') === 'true';
+            $obligatoria = $request->request->get('obligatoria') === 'true';
+            $notaMinimaStr = $request->request->get('notaMinima');
             $imparticionId = $request->request->get('imparticionId');
             $tareaId = $request->request->get('id'); // Si viene ID, es edición
+            $tareaOriginalId = $request->request->get('tareaOriginalId'); // Si viene, la tarea es una recu/subida de nota
 
             $logger->info('UploadTarea: Datos recibidos', [
                 'titulo' => $titulo,
@@ -87,6 +91,21 @@ class UploadTareaController extends AbstractController
             $tarea->setDescripcion($descripcion);
             $tarea->setTipo($tipo);
             $tarea->setVisible($visible);
+            $tarea->setObligatoria($obligatoria);
+            // tareaOriginal solo se setea al crear (no editable después)
+            if (!$tareaId && $tareaOriginalId) {
+                $tareaOriginalIdClean = basename($tareaOriginalId);
+                $tareaOriginal = $entityManager->getRepository(Tarea::class)->find($tareaOriginalIdClean);
+                if ($tareaOriginal) {
+                    $tarea->setTareaOriginal($tareaOriginal);
+                }
+            }
+            if ($notaMinimaStr === null || $notaMinimaStr === '') {
+                $tarea->setNotaMinima(null);
+            } else {
+                $nm = (float) $notaMinimaStr;
+                $tarea->setNotaMinima($nm >= 0 && $nm <= 10 ? $nm : null);
+            }
 
             try {
                 $fechaLimite = new \DateTime($fechaLimiteStr);
@@ -101,19 +120,23 @@ class UploadTareaController extends AbstractController
                 $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
 
-                $targetDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/tareas';
-
-                if (!file_exists($targetDirectory)) {
-                    if (!mkdir($targetDirectory, 0777, true) && !is_dir($targetDirectory)) {
-                        throw new \RuntimeException(sprintf('Directory "%s" was not created', $targetDirectory));
-                    }
-                }
-
                 try {
-                    $file->move($targetDirectory, $newFilename);
+                    // Subir a MinIO usando Flysystem
+                    $stream = fopen($file->getRealPath(), 'r+');
+                    $storage->writeStream('tareas/' . $newFilename, $stream);
+                    fclose($stream);
+
+                    // Borrar archivo antiguo si existe
+                    if ($tarea->getArchivo()) {
+                        $oldPath = 'tareas/' . $tarea->getArchivo();
+                        if ($storage->has($oldPath)) {
+                            $storage->delete($oldPath);
+                        }
+                    }
+
                     $tarea->setArchivo($newFilename);
-                } catch (FileException $e) {
-                    $logger->error('UploadTarea: Error al mover archivo', ['error' => $e->getMessage()]);
+                } catch (\Exception $e) {
+                    $logger->error('UploadTarea: Error al subir archivo', ['error' => $e->getMessage()]);
                     return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
                 }
             }

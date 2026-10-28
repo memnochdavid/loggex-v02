@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import UserCard from '../components/UserCard';
 import { useAuth } from '../context/AuthContext';
 import styles from './Academic.module.css'; // Usar estilos académicos unificados
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import teacherAnimation from '../../public/teacher.json';
+import { useTranslation } from 'react-i18next';
+import LoadingView from '../components/LoadingView';
 
 const Claustro = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profesores, setProfesores] = useState([]);
@@ -18,29 +22,59 @@ const Claustro = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchField, setSearchField] = useState('nombre');
 
+    const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN') || user?.roles?.includes('ROLE_SUPERADMIN');
+
+    // Estados para filtros de SuperAdmin
+    const [centros, setCentros] = useState([]);
+    const [selectedCentro, setSelectedCentro] = useState('');
+
     const searchFields = [
-        { value: 'nombre', label: 'Nombre' },
-        { value: 'apellidos', label: 'Apellidos' },
-        { value: 'email', label: 'Email' }
+        { value: 'nombre', label: t('users.firstName') },
+        { value: 'apellidos', label: t('users.lastName') },
+        { value: 'email', label: t('users.email') }
     ];
+
+    // Cargar centros para SuperAdmin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetch(getApiUrl('/api/centros?pagination=false'), {
+                headers: { 'Accept': 'application/ld+json' },
+                credentials: 'include'
+            })
+            .then(res => res.json())
+            .then(data => {
+                const items = data['hydra:member'] || data.member || [];
+                setCentros(items);
+            })
+            .catch(err => console.error("Error cargando centros:", err));
+        }
+    }, [isSuperAdmin]);
 
     useEffect(() => {
         if (user) {
             fetchProfesores();
         }
-    }, [user]);
+    }, [user, selectedCentro]);
 
     const fetchProfesores = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getApiUrl('/api/v1/profesor/claustro'), {
+            let url = getApiUrl('/api/v1/profesor/claustro');
+            if (isSuperAdmin && selectedCentro) {
+                url += `?centroId=${selectedCentro}`;
+            }
+            const options = {
                 headers: { 'Accept': 'application/json' },
                 credentials: 'include'
-            });
+            };
+
+            const response = await fetch(url, options);
 
             if (response.ok) {
                 const data = await response.json();
-                setProfesores(data);
+                // Normalizar respuesta (endpoint custom devuelve array directo, API Platform devuelve hydra:member)
+                const items = Array.isArray(data) ? data : (data['hydra:member'] || data.member || []);
+                setProfesores(items);
             }
         } catch (error) {
             console.error("Error cargando claustro:", error);
@@ -62,13 +96,30 @@ const Claustro = () => {
     return (
         <Layout>
             <div className={styles.container}>
-                <CrudHeader title="Claustro de Profesores"
-                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+                <CrudHeader title={t('faculty.title')}
+ subtitle={t('faculty.subtitle')}
+                            breadcrumbs={[
+                                { label: t('sidebar.home'), to: '/' },
+                                { label: t('faculty.title') },
+                            ]}
+                            logo={<Lottie animationData={teacherAnimation} loop={true} style={{ width: 56, height: 56 }} />}
                 >
+                    {isSuperAdmin && (
+                        <ThemedSelect
+                            value={selectedCentro}
+                            onChange={setSelectedCentro}
+                            minWidth={200}
+                            ariaLabel={t('common.allCenters')}
+                            options={[
+                                { value: '', label: t('common.allCenters') },
+                                ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                            ]}
+                        />
+                    )}
                     <SearchBar 
                         value={searchTerm} 
                         onChange={setSearchTerm} 
-                        placeholder="Buscar profesor..." 
+                        placeholder={t('faculty.searchPlaceholder')}
                         fields={searchFields}
                         selectedField={searchField}
                         onFieldChange={setSearchField}
@@ -76,7 +127,7 @@ const Claustro = () => {
                 </CrudHeader>
 
                 {loading ? (
-                    <div className={styles.loadingContainer}>Cargando...</div>
+                    <LoadingView />
                 ) : (
                     <div className={styles.grid}>
                         {filteredProfesores.map(prof => (
@@ -87,7 +138,11 @@ const Claustro = () => {
                             />
                         ))}
                         {filteredProfesores.length === 0 && (
-                            <div className={styles.emptyState}>No se encontraron profesores.</div>
+                            <div className={styles.emptyState}>
+                                {isSuperAdmin && !selectedCentro 
+                                    ? t('faculty.selectCenter') 
+                                    : t('faculty.noTeachers')}
+                            </div>
                         )}
                     </div>
                 )}

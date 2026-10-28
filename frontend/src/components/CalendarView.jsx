@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import styles from './CalendarView.module.css';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
+    const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [direction, setDirection] = useState(0); // -1 prev, +1 next, 0 initial
 
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year, month) => {
@@ -18,10 +21,12 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
     const firstDay = getFirstDayOfMonth(year, month);
 
     const handlePrevMonth = () => {
+        setDirection(-1);
         setCurrentDate(new Date(year, month - 1, 1));
     };
 
     const handleNextMonth = () => {
+        setDirection(1);
         setCurrentDate(new Date(year, month + 1, 1));
     };
 
@@ -70,41 +75,41 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
     };
 
     const monthNames = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        t('months.january'), t('months.february'), t('months.march'), t('months.april'), t('months.may'), t('months.june'),
+        t('months.july'), t('months.august'), t('months.september'), t('months.october'), t('months.november'), t('months.december')
     ];
 
-    const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    const weekDays = [
+        t('days.shortMon'), t('days.shortTue'), t('days.shortWed'), t('days.shortThu'), t('days.shortFri'), t('days.shortSat'), t('days.shortSun')
+    ];
 
     const renderDays = () => {
         const days = [];
-        
-        // Días vacíos antes del primer día del mes
+
         for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className={styles.emptyDay}></div>);
+            days.push(<div key={`empty-${i}`} className={styles.emptyDay} />);
         }
 
-        // Días del mes
         for (let day = 1; day <= daysInMonth; day++) {
             const selected = isSelected(day);
             const today = isToday(day);
             const festivo = isFestivo(day);
-            
-            // Si es festivo, añadimos una clase especial. 
-            // Podemos reutilizar estilos de fin de semana o crear uno nuevo.
-            // En el CSS module, añadiremos la clase .festivo
-            
+            const cellIndex = firstDay + day - 1;
+
             days.push(
                 <button
                     key={day}
                     className={`
-                        ${styles.day} 
-                        ${selected ? styles.selected : ''} 
+                        ${styles.day}
+                        ${selected ? styles.selected : ''}
                         ${today ? styles.today : ''}
                         ${festivo ? styles.festivo : ''}
                     `}
+                    style={{ '--i': cellIndex }}
                     onClick={() => handleDayClick(day)}
-                    title={festivo ? 'Festivo' : ''}
+                    aria-label={`${day} ${monthNames[month]} ${year}`}
+                    aria-pressed={selected}
+                    title={festivo ? t('calendar.holiday') : ''}
                 >
                     {day}
                 </button>
@@ -114,17 +119,35 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
         return days;
     };
 
+    const gridDirectionClass =
+        direction > 0 ? styles.slideFromRight :
+        direction < 0 ? styles.slideFromLeft : '';
+
     return (
         <div className={styles.calendar}>
             <div className={styles.header}>
-                <button className={styles.navButton} onClick={handlePrevMonth}>
-                    <ChevronLeft size={20} />
+                <button
+                    className={styles.navButton}
+                    onClick={handlePrevMonth}
+                    aria-label={t('calendar.prevMonth', 'Mes anterior')}
+                    type="button"
+                >
+                    <ChevronLeft size={20} aria-hidden="true" />
                 </button>
-                <span className={styles.monthTitle}>
+                <span
+                    key={`${year}-${month}`}
+                    className={styles.monthTitle}
+                    aria-live="polite"
+                >
                     {monthNames[month]} {year}
                 </span>
-                <button className={styles.navButton} onClick={handleNextMonth}>
-                    <ChevronRight size={20} />
+                <button
+                    className={styles.navButton}
+                    onClick={handleNextMonth}
+                    aria-label={t('calendar.nextMonth', 'Mes siguiente')}
+                    type="button"
+                >
+                    <ChevronRight size={20} aria-hidden="true" />
                 </button>
             </div>
             <div className={styles.weekDays}>
@@ -132,7 +155,10 @@ const CalendarView = ({ selectedDate, onDateSelect, festivos = [] }) => {
                     <div key={day} className={styles.weekDay}>{day}</div>
                 ))}
             </div>
-            <div className={styles.daysGrid}>
+            <div
+                key={`${year}-${month}`}
+                className={`${styles.daysGrid} ${gridDirectionClass}`}
+            >
                 {renderDays()}
             </div>
         </div>

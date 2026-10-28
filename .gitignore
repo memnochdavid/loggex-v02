@@ -4,10 +4,15 @@
 *.swp
 *.swo
 
+# Claude Code local settings (permisos y config específicos de cada máquina)
+.claude/
+
 # Docker Volumes & Data
 caddy_data/
 caddy_config/
 db_data/
+# minio_backup/
+minio_data/
 
 # Logs
 *.log
@@ -19,3 +24,13 @@ Thumbs.db
 
 # token file
 token-github.txt
+
+# Cert raíz de Caddy extraído localmente (específico de cada máquina)
+caddy-root.crt
+
+# Entregas TFG (documentos personales, capturas y PDFs generados)
+docs/entregas/
+
+# Dump filtrado generado durante el refactor de renombrado.
+# Se regenera con: awk -f /tmp/extract_preserve.awk backup_tfg_full.sql > backup_preserve.sql
+backup_preserve.sql

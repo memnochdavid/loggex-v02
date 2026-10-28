@@ -2,6 +2,16 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # Jerarquía de roles del proyecto.
+    # SUPERADMIN incluye los privilegios de ADMIN: cualquier IsGranted('ROLE_ADMIN')
+    # se cumple también para un SuperAdmin sin tener que enumerar ambos.
+    # NO se inclu­ye ADMIN→PROFESOR ni PROFESOR→ALUMNO porque son roles con
+    # responsabilidades distintas (un admin no es un profesor; un profesor no
+    # es un alumno). Si en el futuro algún recurso quiere "todos los roles
+    # autenticados", se usa IS_AUTHENTICATED_FULLY o se construye con OR explícito.
+    role_hierarchy:
+        ROLE_SUPERADMIN: [ROLE_ADMIN]
+
     providers:
         app_user_provider:
             entity:
@@ -29,11 +39,13 @@ security:
                 path: api_logout
                 target: api_logout_success
 
+            # Importante: No ponemos 'stateless: true' aquí.
+            # Al ser stateful, la sesión creada en el login se reutiliza en las peticiones subsiguientes.
+
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api$,      roles: PUBLIC_ACCESS } # Permitir Swagger UI
-        - { path: ^/api/docs,  roles: PUBLIC_ACCESS } # Permitir Docs JSON
-        - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY } # Bloquear el resto
+        - { path: ^/api/logout_success, roles: PUBLIC_ACCESS }
+        - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:

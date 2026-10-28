@@ -2,12 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './UserAvatar.module.css';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut, Settings, GraduationCap } from 'lucide-react';
 import { getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
+import HelpMenu from './HelpMenu';
+import ConfirmLogoutModal from './ConfirmLogoutModal';
 
 const UserAvatar = ({ size = 40, className = '' }) => {
+    const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [helpOpen, setHelpOpen] = useState(false);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -36,9 +42,16 @@ const UserAvatar = ({ size = 40, className = '' }) => {
         };
     }, [isOpen]);
 
-    const handleLogout = () => {
-        logout();
+    /* Paso 1: abrir modal de confirmación desde el dropdown. */
+    const requestLogout = () => {
         setIsOpen(false);
+        setLogoutConfirmOpen(true);
+    };
+
+    /* Paso 2: si el usuario confirma, ejecuta el logout real. */
+    const performLogout = () => {
+        setLogoutConfirmOpen(false);
+        logout();
         navigate('/login');
     };
 
@@ -47,18 +60,23 @@ const UserAvatar = ({ size = 40, className = '' }) => {
         setIsOpen(false);
     };
 
+    const handleOpenHelp = () => {
+        setIsOpen(false);
+        setHelpOpen(true);
+    };
+
     if (!user) return null;
 
     const avatarUrl = getImageUrl(user.foto);
     const initials = user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U';
 
     return (
-        <div className={`${styles.container} ${className}`} ref={menuRef}>
-            <button 
-                className={styles.avatarButton} 
+        <div className={`${styles.container} ${className}`} ref={menuRef} data-tour="header-user-menu">
+            <button
+                className={styles.avatarButton}
                 onClick={() => setIsOpen(!isOpen)}
                 style={{ width: size, height: size }}
-                aria-label="Menú de usuario"
+                aria-label={t('userAvatar.menuLabel')}
                 aria-expanded={isOpen}
             >
                 {avatarUrl ? (
@@ -84,30 +102,42 @@ const UserAvatar = ({ size = 40, className = '' }) => {
                     <div className={styles.menuHeader}>
                         <span className={styles.userName}>{user.nombre || 'Usuario'}</span>
                         <span className={styles.userEmail}>{user.email}</span>
+                        <span className={styles.userRoles}>
+                            {user.roles
+                                ?.filter(role => role !== "ROLE_USER")
+                                .map(role => role.replace("ROLE_", ""))
+                                .join(", ")}
+                        </span>
                     </div>
                     <ul className={styles.menuList}>
                         <li>
                             <button className={styles.menuItem} onClick={handleProfile}>
                                 <User size={16} />
-                                Perfil
+                                {t('userAvatar.profile')}
                             </button>
                         </li>
-                        {/* Podríamos añadir Configuración aquí si fuera diferente de Perfil */}
-                        {/* <li>
-                            <button className={styles.menuItem} onClick={() => navigate('/configuracion')}>
-                                <Settings size={16} />
-                                Configuración
-                            </button>
-                        </li> */}
                         <li>
-                            <button className={`${styles.menuItem} ${styles.danger}`} onClick={handleLogout}>
+                            <button className={styles.menuItem} onClick={handleOpenHelp}>
+                                <GraduationCap size={16} />
+                                {t('userAvatar.tutorials')}
+                            </button>
+                        </li>
+                        <li>
+                            <button className={`${styles.menuItem} ${styles.danger}`} onClick={requestLogout}>
                                 <LogOut size={16} />
-                                Cerrar Sesión
+                                {t('userAvatar.logout')}
                             </button>
                         </li>
                     </ul>
                 </div>
             )}
+
+            <HelpMenu open={helpOpen} onClose={() => setHelpOpen(false)} />
+            <ConfirmLogoutModal
+                isOpen={logoutConfirmOpen}
+                onClose={() => setLogoutConfirmOpen(false)}
+                onConfirm={performLogout}
+            />
         </div>
     );
 };

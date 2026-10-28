@@ -1,0 +1,1376 @@
+# Catálogo Oficial de Ofertas Educativas — Hoja de Ruta
+
+Documento de arquitectura y planificación. Define cómo Loggex va a ofrecer al admin de un centro una **lista oficial y siempre actualizada** de ciclos, cursos, modalidades y asignaturas para que dar de alta un Ciclo / Curso / Asignatura sea **seleccionar de un desplegable**, no rellenar campos a mano. El objetivo es eliminar el riesgo de typo, código oficial mal escrito o currículo desactualizado.
+
+Estado: **implementado y operativo** (abril 2026).
+
+## 0. Mapa rápido del documento
+
+Para evitar leer 1 400 líneas si no hace falta:
+
+| Sección | Qué contiene | Cuándo leerla |
+|---|---|---|
+| §1–§11 | Diseño original | Para entender el "porqué" arquitectónico |
+| §12 | Plan multi-etapa pendiente | Cuando llegue un centro no-FP que pida más |
+| §13 | **Snapshot del estado actual** | **Para saber qué hay hoy** |
+| §14–§15 | Análisis de fuentes oficiales y arquitectura por capas de scraping | Antes de añadir un adapter nuevo |
+| §16 | Dispatcher por etapa (`BasicaParser`, `EspecializacionParser`) | Si tocas el enriquecimiento BOE |
+| §17 | Vistas admin del catálogo (UI) | Si tocas `/admin/catalogo/*` |
+| §18 | Rename a vocabulario neutro (`CicloFormativo` → `Itinerario`, etc.) | Si encuentras refs a clases/rutas viejas |
+| §19 | Soporte de ESO (RD 217/2022 LOMLOE) | Para añadir Bachillerato u otra etapa |
+| §20 | Currículo por CCAA (overlay sobre nacional) | Para entender cómo se ajusta el catálogo a Andalucía/Cataluña/etc. |
+
+**Estado en una línea**: 230 itinerarios cargados (229 FP nacionales + 1 ESO), ~2 230 materias enriquecidas desde BOE, vistas admin operativas, vocabulario neutro multi-etapa, refresh idempotente vía `app:catalogo:refresh [fuente]`.
+
+> **Nomenclatura post-§18**: el doc original habla de `CicloFormativo`, `Modulo`, `Material`, `Tema`. Tras el refactor de §18 esas clases se llaman **`Itinerario`**, **`Materia`**, **`Temario`**, **`TemaVisual`** respectivamente, y las tablas siguen el mismo cambio. Las rutas `/ciclos`, `/modulos` pasan a `/itinerarios`, `/materias`. Donde hace falta, se anota la equivalencia inline; el resto se conserva como referencia histórica del diseño.
+
+---
+
+## 1. Objetivo y alcance
+
+### Objetivo de producto
+
+Cuando un admin entra a `/ciclos → Nuevo`, en lugar de un formulario vacío, ve un `AsyncSearchSelect` contra el catálogo oficial:
+
+- *"Desarrollo de Aplicaciones Web"* → Ciclo Superior, familia Informática y Comunicaciones, código IFC32, currículo nacional (Real Decreto 686/2010), 2.000 horas, 14 módulos predefinidos con su carga horaria y curso de impartición.
+- *"1º Educación Secundaria Obligatoria"* → ESO, primer curso, asignaturas troncales y específicas LOMLOE con sus horas semanales según CCAA.
+- *"2º Bachillerato — Modalidad Ciencias y Tecnología"* → Bachillerato, segundo curso, asignaturas troncales por modalidad con sus horas.
+- *"Grado en Ingeniería Informática — Universidad de Granada"* → Universidad, grado RUCT, plan de estudios con créditos ECTS por asignatura (cuando lo tengamos).
+
+Al seleccionar uno, Loggex **materializa** una instancia editable del ciclo/curso para ese centro: se copia la estructura curricular (módulos / asignaturas con sus horas y créditos), se asigna el grupo, y queda referenciado al ítem del catálogo para futuras sincronizaciones.
+
+Además, el admin puede **importar el calendario escolar oficial** de su CCAA y curso para que las festividades, periodos de evaluación y días lectivos del centro queden alineados con la normativa, sin tener que copiarlos a mano del BOJA.
+
+### Alcance por nivel educativo (priorizado)
+
+| Nivel | Cobertura objetivo | Fuente principal | Dificultad | Fase |
+|---|---|---|---|---|
+| FP (Básica, Media, Superior, Especialización) | Catálogo nacional (185 ciclos en abr-2026) con módulos, horas totales, horas por curso | TodoFP + INCUAL | Media | **MVP** |
+| ESO | LOMLOE, asignaturas por curso y CCAA con horas semanales | BOE + BOJA (en Andalucía) | Media-Alta | **Fase 2** |
+| Bachillerato | Modalidades + asignaturas por curso y CCAA con horas semanales | BOE + BOJA | Media-Alta | **Fase 2** |
+| Universidad — Grados | Catálogo RUCT (títulos oficiales) con duración total en ECTS | Sede Electrónica MECD | Alta | **Fase 3** |
+| Universidad — Asignaturas | Plan de estudios por universidad con ECTS por asignatura | Web universidades (heterogénea) | Muy alta | **Fase 4 (opcional)** |
+| Primaria | LOMLOE, áreas con horas semanales | BOE + BOJA | Media | **Fase 5** |
+| **Calendario escolar** | Curso lectivo, festivos, periodos de evaluación, días no lectivos por CCAA | Órdenes anuales BOJA + DOCM + DOG + … | Media | **Fase 1.5** |
+
+**Nota explícita:** salvo FP, no existe una API REST oficial; todo se obtiene parseando HTML, PDFs y XML del BOE/BOJA. Eso hace los scrapers frágiles y obliga a planificar mantenimiento (ver sección 8).
+
+### Lo que NO va a hacer este sistema
+
+- No reemplaza al admin: el admin sigue gestionando grupos, matrículas, horarios, etc. Solo le simplifica el alta inicial.
+- No expone el catálogo a usuarios finales (alumnos/profesores). Es metadata para administradores.
+- No hace scraping en runtime ante una petición del navegador. Toda la ingesta es programada y cacheada.
+
+---
+
+## 2. Modelo de datos
+
+Dos espacios separados, **catálogo oficial** (read-only desde la app, escrito solo por jobs de ingesta) e **instancias del centro** (lo que ya existe hoy: `CicloFormativo`, `Modulo`, `Grupo`, etc.).
+
+### 2.1 Catálogo oficial (entidades nuevas)
+
+Ubicación propuesta: `backend/src/Entity/Catalogo/`.
+
+```
+EtapaEducativa            (enum: PRIMARIA, ESO, BACHILLERATO, FP_BASICA, FP_MEDIO,
+                           FP_SUPERIOR, FP_ESPECIALIZACION, GRADO_UNIVERSITARIO, …)
+
+CatalogoItinerario        Un ciclo de FP, una modalidad de Bachillerato, un grado universitario.
+  ├── id
+  ├── etapa                EtapaEducativa
+  ├── codigoOficial        IFC32 / RD686-2010 / RUCT-XXXX
+  ├── nombre               "Desarrollo de Aplicaciones Web"
+  ├── familia              "Informática y Comunicaciones" (FP) / "Ciencias y Tecnología" (Bach)
+  ├── nivel                "Superior" / "Modalidad" / "Grado"
+  ├── duracionTotalHoras   2000 / null
+  ├── ccaa                 NULL = nacional, "AND" = solo Andalucía, etc.
+  ├── normativa            "Real Decreto 686/2010 de 20 de mayo"
+  ├── boletinUrl           https://www.boe.es/eli/es/rd/2010/05/20/686
+  ├── vigenteDesde         2010-09-01
+  ├── vigenteHasta         null (NULL = activo)
+  ├── fuenteIngesta        "TodoFP" / "BOE" / "BOJA" / "RUCT"
+  ├── fuenteHash           sha256 del payload original (para detectar cambios)
+  ├── ingestadoAt
+  └── itemsCurriculo       OneToMany → CatalogoMateria
+
+CatalogoMateria           Un módulo (FP) o asignatura (ESO/Bach/Uni).
+  ├── id
+  ├── itinerario           ManyToOne → CatalogoItinerario
+  ├── codigoOficial        "0612" (módulo FP) / "MAT-I" (asignatura)
+  ├── nombre               "Lenguajes de Marcas y Sistemas de Gestión de Información"
+  ├── tipo                 enum: MODULO / TRONCAL / ESPECIFICA / OPTATIVA /
+  │                              LIBRE_CONFIGURACION / FCT / PROYECTO / …
+  ├── curso                1 / 2 (dentro del itinerario)
+  ├── horasTotales         160      (carga total del módulo/asignatura, fuente normativa)
+  ├── horasSemanales       4        (horas/semana en el horario lectivo — clave para el horario)
+  ├── distribucionAnual    json     (anual / 1er-trimestre / 1er-cuatrimestre / 2o-cuatrimestre…)
+  ├── ects                 6        (universidad, NULL en FP/ESO/Bach)
+  ├── obligatoria          bool     (true troncales/módulos; false optativas)
+  ├── prerequisitos        json     (códigos de otras materias requeridas — útil en FP y uni)
+  ├── descripcion          texto breve
+  ├── competencias         json     (competencias profesionales/clave asociadas)
+  └── orden                int      (para ordenar el plan de estudios)
+
+CatalogoCentro            Centro educativo oficialmente registrado (para autocompletar
+                          el alta de Centros en Loggex con datos fiables).
+  ├── id
+  ├── codigoCentro         "11700199" (Andalucía) / "28000123" (estatal)
+  ├── nombre
+  ├── ccaa
+  ├── provincia
+  ├── municipio
+  ├── direccion
+  ├── titularidad          PUBLICO / CONCERTADO / PRIVADO
+  ├── etapasOfrecidas      json: ["ESO", "BACHILLERATO", "FP_SUPERIOR"]
+  ├── fuenteIngesta        "RegistroEstatal" / "JuntaAndalucia"
+  └── ingestadoAt
+
+CatalogoCalendarioEscolar   Calendario oficial publicado por la administración
+                            educativa para un curso académico y CCAA.
+  ├── id
+  ├── ccaa                  "AND" / "MAD" / "CAT" / …
+  ├── etapa                 EtapaEducativa (puede haber matices: ESO+BACH separado de FP)
+  ├── anioAcademico         "2025-2026"
+  ├── inicioCurso           DATE  primer día lectivo del curso
+  ├── finCurso              DATE  último día lectivo
+  ├── inicioPrimerTrimestre DATE
+  ├── finPrimerTrimestre    DATE
+  ├── inicioSegundoTrimestre DATE
+  ├── finSegundoTrimestre   DATE
+  ├── inicioTercerTrimestre DATE
+  ├── finTercerTrimestre    DATE
+  ├── diasLectivosTotales   int  (175 mínimo en ESO/Bach por normativa estatal)
+  ├── normativa             "Orden de X/X/2025 de la Consejería… (BOJA nº…)"
+  ├── boletinUrl            URL al BOJA/DOCM/…
+  ├── fuenteIngesta         "BOJA" / "DOCM" / "DOG" / …
+  ├── fuenteHash            sha256 del payload
+  ├── ingestadoAt
+  └── periodos              OneToMany → CatalogoPeriodoCalendario
+
+CatalogoPeriodoCalendario   Tramos del calendario: festivos nacionales/autonómicos,
+                            puentes, vacaciones, días no lectivos pedagógicos,
+                            sesiones de evaluación, periodos de recuperación.
+  ├── id
+  ├── calendario            ManyToOne → CatalogoCalendarioEscolar
+  ├── tipo                  enum: FESTIVO_NACIONAL / FESTIVO_AUTONOMICO /
+  │                                FESTIVO_LOCAL / VACACIONES_NAVIDAD /
+  │                                VACACIONES_SEMANA_SANTA / VACACIONES_VERANO /
+  │                                NO_LECTIVO_PEDAGOGICO /
+  │                                SESION_EVALUACION_1T / SESION_EVALUACION_2T /
+  │                                SESION_EVALUACION_3T / SESION_EVALUACION_FINAL /
+  │                                PERIODO_RECUPERACION /
+  │                                INICIO_FCT / FIN_FCT
+  ├── nombre                "Día de Andalucía" / "Vacaciones de Navidad" / …
+  ├── fechaInicio           DATE
+  ├── fechaFin              DATE  (igual a inicio si es un solo día)
+  ├── ambitoMunicipal       string  NULL si nacional/autonómico; "Granada" si solo Granada
+  └── notas                 texto opcional
+```
+
+> **Sobre festivos locales**: cada municipio en España tiene 2 festivos locales fijados por su ayuntamiento. Estos NO forman parte del calendario escolar publicado por la Consejería, pero el centro tiene que respetarlos. El catálogo solo trae los nacionales y autonómicos; los locales los añade manualmente el admin del centro al festivo del calendario, o los importa de los datos abiertos municipales (fase futura).
+
+### 2.2 Relación con las entidades del centro existentes
+
+Las entidades actuales (`CicloFormativo`, `Modulo`, `Grupo`, `Centro`) ganan un campo opcional de **trazabilidad al catálogo**:
+
+```php
+class CicloFormativo {
+    // … campos actuales …
+
+    #[ORM\ManyToOne(targetEntity: CatalogoItinerario::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CatalogoItinerario $catalogoOrigen = null;
+}
+
+class Modulo {
+    // … campos actuales …
+
+    #[ORM\ManyToOne(targetEntity: CatalogoMateria::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CatalogoMateria $catalogoOrigen = null;
+}
+
+class Centro {
+    // … campos actuales …
+
+    #[ORM\ManyToOne(targetEntity: CatalogoCentro::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CatalogoCentro $catalogoOrigen = null;
+}
+
+class Festivo {
+    // … campos actuales …
+
+    /** Origen: si vino de importar un CatalogoPeriodoCalendario, queda
+     *  trazado para detectar futuras ediciones del calendario oficial. */
+    #[ORM\ManyToOne(targetEntity: CatalogoPeriodoCalendario::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CatalogoPeriodoCalendario $catalogoOrigen = null;
+}
+
+class PeriodoEvaluativo {
+    // … campos actuales …
+
+    #[ORM\ManyToOne(targetEntity: CatalogoPeriodoCalendario::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CatalogoPeriodoCalendario $catalogoOrigen = null;
+}
+```
+
+**Nullable** porque debe seguir siendo posible crear ciclos/módulos/festivos manuales (test data, casos especiales, currículos no estandarizados, festivos del centro propios). El catálogo es ayuda, no jaula.
+
+### 2.3 Materialización al seleccionar del catálogo
+
+Cuando un admin selecciona "Desarrollo de Aplicaciones Web" en el modal de nuevo ciclo:
+
+1. Se crea un `CicloFormativo` del centro, copiando `nombre`, `nivel`, `codigoOficial`, `duracionTotalHoras` del `CatalogoItinerario`.
+2. Se rellena `catalogoOrigen` con la FK al ítem del catálogo.
+3. Se crean automáticamente los `Modulo` correspondientes copiando los `CatalogoMateria` hijos: `nombre`, `codigoOficial`, `curso`, `horasSemanales`, `horasTotales`, y `ects` si aplica.
+4. El admin puede editar después libremente (p. ej. ajustar `horasSemanales` si su centro reparte distinto las horas dentro del marco normativo). Las ediciones no propagan al catálogo (es read-only).
+5. Si el catálogo se actualiza con un cambio normativo, se notifica al admin (no se sobrescribe nada automáticamente).
+
+Y al seleccionar el calendario escolar oficial:
+
+1. Para cada `CatalogoPeriodoCalendario` con `tipo` festivo/vacaciones/no-lectivo, se crea un `Festivo` del centro con `fechaInicio`/`fechaFin`/`nombre` copiados, y se traza el origen.
+2. Para cada `CatalogoPeriodoCalendario` con `tipo` sesión de evaluación, se crea o actualiza un `PeriodoEvaluativo` del grupo correspondiente con las fechas oficiales.
+3. El admin puede editar después: añadir festivos locales, días puente del centro, retrasar una sesión, etc.
+
+### 2.4 Carga horaria, créditos y unidades de medida
+
+El sistema usa unidades distintas según etapa, y hay que mantener la traza para que los reportes oficiales (al final de curso) sean fiables.
+
+| Etapa | Unidad oficial | Lo que guardamos en `CatalogoMateria` |
+|---|---|---|
+| FP (todos los niveles) | **Horas** (lectivas) | `horasTotales` (módulo completo, dato del Real Decreto), `horasSemanales` (reparto en horario), `curso` (1 o 2) |
+| ESO | **Horas semanales** | `horasSemanales` por curso, `horasTotales` derivable (= h. semanales × ~30 semanas) |
+| Bachillerato | **Horas semanales** | Igual que ESO |
+| Universidad | **ECTS** (1 ECTS = 25-30 horas estimadas) | `ects` por asignatura, `horasSemanales` opcional (lo fija cada universidad por horario propio) |
+| Primaria | **Horas semanales** | Igual que ESO |
+
+**Reglas de validación al materializar:**
+
+- Si `etapa ∈ {FP_*}`, se exige `horasTotales` y `horasSemanales` no NULL en cada `CatalogoMateria`. La suma de `horasTotales` por curso debe cuadrar con `duracionTotalHoras / 2` aproximadamente (margen del 10% para módulos transversales como FCT).
+- Si `etapa = GRADO_UNIVERSITARIO`, se exige `ects` no NULL. Total ECTS del grado normalmente 240 (4 cursos × 60).
+- Si `etapa ∈ {ESO, BACHILLERATO, PRIMARIA}`, se exige `horasSemanales` no NULL. El total semanal por curso debe estar entre 25 y 32 (rango legal típico).
+
+Estas validaciones se ejecutan en el job de ingesta y un `CatalogoMateria` que las incumpla queda marcado como `vigenteHasta = hoy` con `notas = "Datos incompletos detectados en ingesta"`. Eso evita que un parser roto contamine el catálogo con datos basura.
+
+### 2.5 Periodicidad y vigencia temporal
+
+El catálogo es **versionado por curso académico** en lo que toca a calendario y carga horaria, y **versionado por normativa** en lo que toca a currículo.
+
+- `CatalogoItinerario.vigenteDesde / vigenteHasta` → cubre el ciclo de vida normativo (un Real Decreto deroga al anterior).
+- `CatalogoCalendarioEscolar.anioAcademico` → un calendario por curso/CCAA. Los anteriores se conservan para que un centro pueda consultar el calendario que aplicó en cursos pasados.
+- `CatalogoMateria.horasSemanales` puede variar entre versiones de un mismo `CatalogoItinerario` cuando una CCAA modifica su Decreto curricular sin cambiar el código del ciclo. Solución: si la CCAA modifica el reparto, se crea una NUEVA fila `CatalogoItinerario` con la misma `codigoOficial` pero distinto `ccaa` y `vigenteDesde`, y los `CatalogoMateria` cuelgan de la nueva.
+
+El frontend siempre presenta al admin la versión vigente más reciente para su CCAA. Si no hay versión específica de su CCAA, cae a la nacional.
+
+---
+
+## 3. Pipeline de ingesta
+
+### 3.1 Arquitectura por capas
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Cron (Symfony Scheduler) / SuperAdmin manual / Webhook             │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │ dispara
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Symfony Messenger — cola "catalogo"                                 │
+│    RefreshSourceMessage("todofp" | "boe" | "ruct" | "andalucia" | …) │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │ consume worker
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Source Adapters (uno por fuente, interfaz común)                    │
+│    interface CatalogoSourceAdapterInterface {                        │
+│        public function fetch(): iterable<CatalogoDto>;               │
+│        public function source(): string;                             │
+│    }                                                                 │
+│    implementaciones:                                                 │
+│      - TodoFpAdapter            scraper HTML + parseo PDF            │
+│      - BoeBojaCurriculumAdapter ELI XML del BOE/BOJA (currículo)     │
+│      - BoeBojaCalendarioAdapter ELI XML del BOJA (orden anual de     │
+│                                  calendario escolar)                 │
+│      - RuctAdapter              consulta sede.educacion.gob.es       │
+│      - JuntaAndaluciaCentrosAdapter   API REST oficial               │
+│      - RegistroEstatalCentrosAdapter  scraping del registro          │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │ devuelve DTOs normalizados
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  CatalogoIngestService                                               │
+│    - dedup por codigoOficial + fuente                                │
+│    - hash de fuente para detectar cambios                            │
+│    - persistencia idempotente (UPSERT)                               │
+│    - marcado de ítems retirados como vigenteHasta=hoy                │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  MariaDB (catálogo)  +  Redis (cache de queries de lectura)          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Adapters: separación por fuente
+
+Cada fuente externa es un adapter aislado. Uno se rompe → el resto sigue trabajando. Vive en `backend/src/Catalogo/Source/`.
+
+**Contrato** (todos devuelven el mismo DTO normalizado):
+
+```php
+final readonly class CatalogoItinerarioDto {
+    public function __construct(
+        public string $codigoOficial,
+        public EtapaEducativa $etapa,
+        public string $nombre,
+        public ?string $familia,
+        public ?int $duracionTotalHoras,
+        public ?string $ccaa,
+        public ?string $normativa,
+        public ?string $boletinUrl,
+        public ?\DateTimeImmutable $vigenteDesde,
+        public ?\DateTimeImmutable $vigenteHasta,
+        /** @var CatalogoMateriaDto[] */
+        public array $itemsCurriculo,
+        public string $fuenteHash,
+    ) {}
+}
+```
+
+### 3.3 Job de ingesta — frecuencia y orquestación
+
+| Adapter | Frecuencia | Razón |
+|---|---|---|
+| `TodoFpAdapter` | Mensual | El catálogo nacional cambia con cada nuevo Real Decreto, ~5-10/año |
+| `BoeBojaCurriculumAdapter` | Diario (filtrado por temas) | Para detectar nuevos RD curriculares en cuanto se publican |
+| `BoeBojaCalendarioAdapter` | Mensual con foco mayo-julio | Las órdenes de calendario escolar se publican tarde primavera/verano para el curso siguiente |
+| `RuctAdapter` | Mensual | Universidades lentas en cambiar |
+| `JuntaAndaluciaCentrosAdapter` | Semanal | Centros pueden abrir/cerrar |
+| `RegistroEstatalCentrosAdapter` | Mensual | Más estable que el regional |
+
+Implementación con **Symfony Scheduler** (no cron del SO — más controlable). El comando `app:catalogo:refresh <fuente>` también puede invocarse manualmente desde un panel de SuperAdmin para refrescos puntuales.
+
+### 3.4 Detección de cambios y idempotencia
+
+Cada DTO trae un `fuenteHash` calculado a partir del payload bruto de la fuente (sha256). Al persistir:
+
+- Si no existe el `codigoOficial+fuente` → INSERT.
+- Si existe y `fuenteHash` cambia → UPDATE + log de auditoría.
+- Si existe y `fuenteHash` igual → no-op.
+- Si tras una ingesta completa hay ítems del catálogo que no aparecieron en la fuente → marcarlos `vigenteHasta = hoy` (no borrar nunca, conservar para trazabilidad histórica de centros que ya importaron de ese ítem).
+
+### 3.5 Errores y resiliencia
+
+- Cada job fallido se reintenta con backoff exponencial (mecanismo nativo de Messenger).
+- Tras 3 fallos consecutivos, se notifica a SuperAdmin (toast + email opcional).
+- Un fallo en un adapter no afecta a otros: se procesan independientemente.
+- Antes de UPSERT en BD, se hace un *dry-run* opcional que reporta diff (cuántos ítems nuevos, cuántos modificados, cuántos retirados) — útil para refresh manual.
+
+---
+
+## 4. Capa de cache (Redis)
+
+Redis ya está en el `docker-compose.yml` para Messenger. Le añadimos un segundo namespace para cache de lectura del catálogo.
+
+### 4.1 Qué se cachea
+
+**Sí cacheado en Redis:**
+- Resultado de `GET /api/catalogo/itinerarios?etapa=fp_superior&q=desarrollo` — TTL 1 hora. Invalidación al terminar una ingesta.
+- Resultado de `GET /api/catalogo/centros?ccaa=AND&q=granada` — TTL 24 horas.
+- Familias profesionales, etapas educativas, modalidades de Bachillerato — TTL 1 día (datos casi inmutables).
+
+**No cacheado:**
+- Las propias entidades del centro (`CicloFormativo`, `Modulo`, `Grupo`) ya tienen sus mecanismos de query y no merecen cache.
+- Las consultas individuales por id (Doctrine ya tiene su L1 cache).
+
+### 4.2 Por qué Redis y no Doctrine query cache
+
+Doctrine query cache es por proceso (PHP-FPM). Redis cachea entre procesos y entre instancias horizontales del backend (cuando escalemos). Las queries de catálogo son las que más usuarios hacen simultáneamente al abrir el modal de nuevo ciclo, son perfectas para cache compartido.
+
+### 4.3 Política de invalidación
+
+Tras cada `CatalogoIngestService::flush()`:
+
+```php
+$cache->invalidateTags(['catalogo:itinerario', 'catalogo:materia']);
+```
+
+Tags de Symfony Cache atadas a Redis. Granular: si solo cambia el catálogo de FP, invalidamos `catalogo:itinerario:fp` sin tocar el resto.
+
+---
+
+## 5. Endpoints de la API Loggex
+
+Bajo `/api/catalogo/*`, **read-only** desde el front:
+
+| Endpoint | Uso | Auth |
+|---|---|---|
+| `GET /api/catalogo/itinerarios?etapa=&q=&ccaa=&itemsPerPage=20` | Buscar ciclos/cursos/grados — alimenta `AsyncSearchSelect` | autenticado |
+| `GET /api/catalogo/itinerarios/{id}` | Detalle con currículo expandido | autenticado |
+| `GET /api/catalogo/centros?ccaa=&q=&itemsPerPage=20` | Autocompletar alta de Centro | autenticado |
+| `GET /api/catalogo/etapas` | Lista de etapas educativas (enum) | autenticado |
+| `GET /api/catalogo/familias` | Familias profesionales / modalidades | autenticado |
+| `POST /api/catalogo/refresh/{fuente}` | Disparar ingesta manual | `ROLE_SUPERADMIN` |
+| `GET /api/catalogo/refresh/status` | Estado de las últimas ingestas | `ROLE_SUPERADMIN` |
+
+Todas las consultas usan el `SearchAnyFilter` ya existente en backend (sección de `docs/async-select.md`). El frontend reutiliza `AsyncSearchSelect` sin tocar nada.
+
+---
+
+## 6. UX en Loggex
+
+### 6.1 Modal "Nuevo Ciclo / Curso"
+
+Antes (esto):
+
+```
+[ Nombre del ciclo: ___________ ]
+[ Nivel: [Básico/Medio/Superior] ]
+[ Familia: ___________ ]
+[ Código oficial: ___________ ]
+[ Curso: 1 / 2 ]
+[ Horas: ___ ]
+…
+```
+
+Después:
+
+```
+┌─ ¿De dónde sacamos los datos? ──────────────────────┐
+│  ◉ Catálogo oficial (recomendado)                   │
+│  ○ Definir manualmente                              │
+└─────────────────────────────────────────────────────┘
+
+[ Etapa educativa: [ FP Superior ▾ ] ]
+
+[ Buscar en el catálogo: 🔍 desarrollo___________ ]
+   ▷ Desarrollo de Aplicaciones Web (IFC32)
+   ▷ Desarrollo de Aplicaciones Multiplataforma (IFC30)
+   ▷ Desarrollo de Productos Audiovisuales… (IMG…)
+
+[ Resumen del ciclo seleccionado ]
+  • Familia: Informática y Comunicaciones
+  • Duración: 2.000 horas (2 cursos)
+  • Currículo: 14 módulos predefinidos (se crearán automáticamente)
+  • Normativa: Real Decreto 686/2010
+  • Vigente desde: 2010-09-01
+```
+
+Al pulsar "Crear", se materializa todo (ciclo + 14 módulos automáticos). El admin puede luego editar lo que necesite (p. ej. asignar profesores a cada módulo).
+
+### 6.2 Modal "Nuevo Centro" (alta por SuperAdmin)
+
+Idéntico patrón pero contra `/api/catalogo/centros`. Al seleccionar un centro del registro oficial, se autocompleta nombre, CIF/código, dirección, titularidad. El SuperAdmin solo añade la configuración propia de Loggex (logo, personalización, admins…).
+
+### 6.3 Indicador de procedencia
+
+En la tabla de ciclos, junto al nombre, un icono pequeño que indique:
+
+- 🏛 **Oficial sincronizado** (catalogoOrigen != null y hash actualizado)
+- ⚠ **Oficial desincronizado** (catalogoOrigen != null pero la fuente cambió desde el alta — invitación a revisar)
+- ✏ **Manual** (sin catalogoOrigen)
+
+El mismo indicador se aplica a Festivos, PeriodoEvaluativo y Centros con su catálogo correspondiente.
+
+### 6.4 Importar calendario escolar oficial
+
+En `/festivos` (o en una nueva sección `/calendario`), un botón "Importar calendario oficial":
+
+```
+┌─ Importar calendario oficial ───────────────────────┐
+│                                                     │
+│  CCAA         [ Andalucía ▾ ]                       │
+│  Etapa        [ ESO / Bachillerato / FP ▾ ]         │
+│  Curso        [ 2025-2026 ▾ ]                       │
+│                                                     │
+│  Vista previa:                                      │
+│  • Inicio del curso: 11 sep 2025                    │
+│  • Fin del curso:    23 jun 2026                    │
+│  • Festivos a importar: 14                          │
+│  • Sesiones de evaluación: 6 (3 trimestrales +      │
+│    1 ordinaria final + 2 extraordinarias)           │
+│  • No lectivos pedagógicos: 2                       │
+│                                                     │
+│  Normativa: Orden 15/06/2025 (BOJA nº 117)          │
+│                                                     │
+│  ☑ Importar festivos al centro                      │
+│  ☑ Crear periodos de evaluación para grupos:        │
+│     [ ☑ Todos los grupos del año académico ▾ ]      │
+│                                                     │
+│  [ Cancelar ]      [ Importar al centro ]           │
+└─────────────────────────────────────────────────────┘
+```
+
+Tras la importación:
+
+- Los `Festivo` aparecen en la lista del centro con icono 🏛.
+- Los `PeriodoEvaluativo` se crean para los grupos seleccionados.
+- El admin puede añadir festivos locales (los 2 del municipio + los puentes que decida el centro) como entradas manuales con icono ✏.
+
+Si al año siguiente la Junta publica una nueva Orden y se actualiza el catálogo, el admin ve un aviso *"Calendario 2026-2027 ya disponible — importar"* y repite el flujo. El catálogo nunca borra nada del centro: solo añade/sugiere.
+
+---
+
+## 7. Plan en fases
+
+**Fase 0 — Infraestructura común (1 semana de trabajo)** ✅ **COMPLETADA**
+- Modelo de datos (entidades `Catalogo*`).
+- Comando `app:catalogo:refresh` skeleton.
+- Endpoints `/api/catalogo/*` skeleton (sin datos aún).
+- Cache Redis con tags.
+- Refactor mínimo: añadir `catalogoOrigen` nullable a `CicloFormativo`, `Modulo`, `Centro`.
+
+**Fase 1 — MVP con FP nacional (2 semanas)** ✅ **COMPLETADA (superada por 1.6+1.7)**
+
+El bootstrap JSON cumplió su función como demo end-to-end y se retiró cuando 1.6+1.7 entregaron datos oficiales. La materialización backend + UX `/ciclos → Nuevo` con toggle catálogo/manual sigue operativa, ahora alimentada por los 229 itinerarios reales.
+
+**Fase 1.6 — TodoFpHttpAdapter (1-2 semanas)** ✅ **COMPLETADA**
+- Scraper HTTP de TodoFP operativo (`App\Catalogo\Source\TodoFpHttpAdapter`).
+- 229 itinerarios persistidos: 34 FP Básica + 67 FP Medio + 94 FP Superior + 34 Especialización.
+- Metadata: nombre, etapa, familia, nivel, `boletinUrl`, `curriculoUrl`.
+- `SELECTORS.md` documentado.
+
+**Fase 1.7 — BoeRdAdapter (1-2 semanas)** ✅ **COMPLETADA**
+- 229/229 itinerarios con módulos extraídos del BOE — **2576 materias** totales.
+- Cobertura por estructura de RD: `tabla` (mayoría), `parrafos` (LOMLOE 2019-2023 sin tabla), `logse` (RDs 1995-2005 sin códigos oficiales), más los pipelines `basica` y `especializacion` ya existentes.
+- 99.6% de las materias con `horas_totales`, 63.8% con `horas_semanales`, 72.5% con `curso`.
+- Detalle del cierre y bugs cazados en sección 13.4 (log 2026-04-26).
+
+**Fase 1.5 — Calendario escolar (1 semana)** ⏳ **SIGUIENTE**
+- Entidades `CatalogoCalendarioEscolar` y `CatalogoPeriodoCalendario`.
+- `BoeBojaCalendarioAdapter` v1: parser de la Orden anual del BOJA para Andalucía.
+- UX para importar al centro (sección 6.4).
+- FK `catalogoOrigen` en `Festivo` y `PeriodoEvaluativo`.
+- Detección y aviso de calendario nuevo cada curso.
+
+**Fase 2 — Centros docentes (1 semana)**
+- `JuntaAndaluciaCentrosAdapter` (API REST oficial — la única "fácil").
+- `RegistroEstatalCentrosAdapter` para el resto de CCAA (scrapeado).
+- UX en `/centros → Nuevo`.
+
+**Fase 3 — ESO + Bachillerato (3 semanas)**
+- `BoeBojaAdapter` con parser de ELI XML del BOE.
+- Capa CCAA opcional (Andalucía como referencia).
+- Modalidades de Bachillerato + asignaturas troncales/específicas.
+- UX adaptada (etapa selector → carga distinta UI).
+
+**Fase 4 — Universidad: grados (3 semanas)**
+- `RuctAdapter` para los títulos oficiales.
+- Sin plan de estudios todavía (solo el grado).
+- UX para crear "ciclos universitarios" como entidad genérica.
+
+**Fase 5 — Plan de estudios universitarios (?)**
+- Cada universidad publica el plan de estudios en su web sin formato común.
+- Solución probable: ingesta manual asistida por SuperAdmin (CSV upload por universidad), no scraping.
+
+**Fase 6 — Primaria (1 semana)**
+- LOMLOE en BOE + currículo CCAA.
+- Reusa la infraestructura de Fase 3.
+
+**Fase 7 — Mantenimiento continuo**
+- Monitor de salud de adapters.
+- Auditoría de cambios mostrada al SuperAdmin.
+
+---
+
+## 8. Riesgos y plan de fallback
+
+### 8.1 Scrapers se rompen
+
+**Probabilidad:** alta. TodoFP cambia su HTML cada cierto tiempo, los PDFs no tienen estructura garantizada, el BOE/BOJA varía en sus plantillas ELI.
+
+**Mitigación:**
+- Tests de snapshot: cada adapter tiene un fixture HTML/PDF de referencia y un test que falla si el parser produce un DTO distinto.
+- Alertas: tras 3 fallos consecutivos de un adapter, notificación al SuperAdmin.
+- Fallback graceful: si el adapter falla, el catálogo no se actualiza pero **no se borra**. Los datos antiguos siguen disponibles. El admin sigue pudiendo crear ciclos manualmente.
+
+### 8.2 Currículos regionales divergen
+
+**Problema:** un Ciclo de FP es nacional en código y horas totales, pero su desarrollo curricular concreto (qué se da en cada módulo) lo regula cada CCAA. Andalucía → Decreto. Madrid → otro.
+
+**Mitigación:**
+- `CatalogoItinerario.ccaa` permite tener varias entradas para el mismo `codigoOficial` con currículos distintos.
+- Al crear un ciclo en Loggex, el centro elige la versión que corresponde a su CCAA.
+- En el MVP solo modelamos el currículo nacional; las variantes CCAA llegan en Fase 3.
+
+### 8.3 La Junta cambia la API de centros
+
+**Probabilidad:** baja (es una API oficial con OpenAPI documentado), pero existe.
+
+**Mitigación:**
+- Adapter aislado, fácil de reescribir.
+- Cache Redis aguanta varios días de outage sin afectar UX.
+
+### 8.4 Saturar las fuentes con scraping
+
+**Mitigación:**
+- Rate limiting en cada adapter: máx 1 req/segundo, respetando `robots.txt`.
+- Cache HTTP con `If-Modified-Since` cuando la fuente lo soporta.
+- Ejecutar cron en horarios de baja actividad (madrugada).
+
+### 8.5 LegalIty del scraping
+
+**Cuestión:** ¿Está permitido scrapeear TodoFP / BOE / etc.?
+
+**Análisis:**
+- BOE/BOJA: contenido público por definición. Sin restricciones.
+- TodoFP: web pública del Ministerio sin login. Términos de uso permiten consulta personal/educativa; un scraper consume datos para uso interno de Loggex (no redistribución masiva). Riesgo bajo.
+- Junta de Andalucía: API oficial pensada precisamente para esto, licencia abierta.
+- Universidades: cada una con sus términos. Hay que revisar caso por caso.
+
+**Recomendación:** documentar el scraper de TodoFP con respect a `robots.txt`, y publicar atribución clara en Loggex ("datos basados en TodoFP del Ministerio de Educación, FP y Deportes").
+
+### 8.6 Calendario publicado tarde
+
+**Problema:** las CCAA publican la Orden de calendario escolar a veces en mayo, otras veces en julio del curso anterior. Si un centro quiere preparar el curso 2026-2027 en junio y la Junta aún no ha publicado la Orden, el catálogo está vacío para ese curso.
+
+**Mitigación:**
+- El admin sigue pudiendo crear festivos manualmente; la importación oficial es una ayuda, no un bloqueo.
+- El catálogo ofrece, mientras tanto, "calendario provisional basado en el del curso anterior" como sugerencia (con etiqueta clara de que es estimación). Cuando la Orden real se publique, el sistema avisa al admin para sincronizar.
+
+### 8.7 Currículos con horas semanales que no salen redondas
+
+**Problema:** algunos planes oficiales (especialmente FP) reparten las horas totales en horas semanales no enteras (p. ej. 3.5 h/semana porque 105 h / 30 semanas = 3.5).
+
+**Mitigación:**
+- `horasSemanales` es `decimal(4,2)` no entero.
+- En el horario lectivo (`Horario`), las sesiones siguen siendo de 1h o 0.5h; el sistema tolera que la suma semanal redondee al alza o a la baja respecto al currículo, dejando un campo de holgura aceptable (±10%) y avisando si se supera.
+
+### 8.8 Coste operativo
+
+**Cuestión:** ¿esto encarece el hosting?
+
+**Estimación:** 
+- BD del catálogo completo: <100 MB (tablas pequeñas, bien indexadas).
+- Cache Redis: <50 MB (solo queries calientes).
+- Scrapers en workers: ~5 minutos por ejecución mensual de TodoFP. Negligible.
+
+**Conclusión:** coste operativo despreciable.
+
+---
+
+## 9. Trabajo estimado y orden
+
+| Fase | Esfuerzo | Aporta valor | Estado |
+|---|---|---|---|
+| 0 — Infra | 1 semana | Sin demo, base para todo | ✅ Done |
+| 1 — FP nacional (bootstrap JSON) | 2 semanas | **Demo vendible** — pipeline end-to-end con datos provisionales | ✅ Done (retirado en favor de 1.6+1.7) |
+| 1.6 — TodoFpHttpAdapter | 1-2 semanas | Datos oficiales: 229 itinerarios verificables (vs 4 a mano) | ✅ Done |
+| 1.7 — BoeRdAdapter | 1-2 semanas | Horas por módulo desde el BOE — 2576 materias, 100% cobertura | ✅ Done |
+| 1.5 — Calendario escolar | 1 semana | Habilita reportes oficiales y elimina trabajo manual cada inicio de curso | ⏳ Siguiente |
+| 2 — Centros | 1 semana | Mejora alta administrativa | ⏳ |
+| 3 — ESO + Bach | 3 semanas | Cubre la mayoría de centros no-FP | ⏳ |
+| 4 — Grados RUCT | 3 semanas | Habilita universidades | ⏳ |
+| 5 — Plan uni | indef. | Solo si hay demanda real | ⏳ |
+| 6 — Primaria | 1 semana | Cierra la cobertura | ⏳ |
+
+**Total bloque 0+1+1.6+1.7+1.5+2 (lo que merece la pena hacer ya):** 8-9 semanas.
+
+El resto se aborda según evolución del proyecto y feedback de centros piloto. La arquitectura está pensada para que cada fase añada un Adapter sin tocar las demás.
+
+---
+
+## 10. Decisiones abiertas
+
+- ¿Diferenciamos `CatalogoItinerario` por entidad (CicloFP, ModalidadBach, GradoUni…) o lo mantenemos polimórfico con `etapa`? **Recomendación: polimórfico con discriminador**, hasta ver si el dominio justifica clases hijas.
+- ¿Permitir al SuperAdmin "promover" un ciclo manual a referencia oficial? **No en MVP**, más complejidad de la que aporta.
+- ¿Internacionalización del catálogo (catalán, euskera, gallego, valenciano)? **Aplazado**: empezar en español castellano, los nombres oficiales de los ciclos están en castellano en el BOE.
+- ¿Versionado del catálogo (snapshot histórico)? **Por implementación**: el campo `vigenteHasta` y conservar registros retirados ya da trazabilidad mínima. Snapshots completos son fase 7.
+
+---
+
+## 11. Próximo paso concreto
+
+A fecha de **2026-04-26**, completadas Fase 0 + Fase 1 + Fase 1.6 + Fase 1.7. Estado de la BD:
+- `catalogo_itinerario`: **229** filas (cobertura nacional FP completa).
+- `catalogo_materia`: **2576** filas, **229/229** itinerarios con módulos.
+- `catalogo_centro`: **0** filas (Fase 2 sin iniciar).
+
+El siguiente trabajo es la **Fase 1.5 — Calendario escolar** (más ROI: ahorra trabajo manual recurrente al admin de un centro cada inicio de curso). Como alternativa, **Fase 2 — Centros** desbloquea el alta de centros vía catálogo oficial.
+
+### Pasos para Fase 1.5 (calendario escolar)
+
+**A — Modelo de datos**
+- Entidades `CatalogoCalendarioEscolar` y `CatalogoPeriodoCalendario` (sección 2).
+- FK `catalogoOrigen` (nullable) en `Festivo` y `PeriodoEvaluativo`.
+- Migración Doctrine.
+
+**B — `BoeBojaCalendarioAdapter` v1 (Andalucía)**
+- Scraper de la Orden anual del BOJA que fija el calendario escolar.
+- Extracción de fechas: inicio/fin de curso, trimestres, festivos autonómicos, sesiones de evaluación, periodos de recuperación.
+- Throttle, hash de fuente, marcado de calendarios viejos como `vigenteHasta`.
+
+**C — UX de importación al centro**
+- Botón "Importar calendario oficial" en `/festivos` o nueva sección `/calendario`.
+- Selector de CCAA + Etapa + Curso académico con vista previa (sección 6.4).
+- Materialización: crear `Festivo` y `PeriodoEvaluativo` en el centro con `catalogoOrigen` trazado.
+
+**D — Detección de calendario nuevo**
+- Aviso al admin cuando la Junta publica una nueva Orden y el catálogo se actualiza.
+
+### Después de 1.5
+
+- **Fase 2 (Centros)** — `JuntaAndaluciaCentrosAdapter` + `RegistroEstatalCentrosAdapter`.
+- **§12 Refactor FP→multi-etapa** — bloqueador antes de Fase 3 (ESO + Bach).
+
+Cada adapter es trabajo aislado, no bloquea a los siguientes. La infraestructura común (Fase 0) ya está, así que cualquier adapter nuevo es solo: implementar la interface, registrar en `services.yaml`, ejecutar.
+
+---
+
+## 12. Refactor de nomenclatura: de FP-only a multi-etapa
+
+> **Status:** pendiente. Es el bloqueador más importante para que Loggex deje de ser "una herramienta de FP" y pase a ser "una plataforma de gestión académica". No tiene sentido lanzar Fase 3 (ESO + Bach) sin haber hecho antes este refactor, o como mínimo decidido la estrategia. Queda documentado aquí para que no se ignore.
+
+### 12.1 Por qué es necesario
+
+Loggex se diseñó originalmente para Formación Profesional. Esa decisión inicial caló en **toda** la pila — base de datos, entidades Doctrine, controladores, rutas API, componentes React, claves i18n, copys de la UI, documentación. Pero la visión del proyecto (ver introducción de este documento) abarca cualquier nivel educativo: Primaria, ESO, Bachillerato, FP, Universidad.
+
+El choque concreto:
+
+- En FP existen **"ciclos formativos"** que se componen de **"módulos"**. Una clase es una **"impartición"** (profesor + módulo + grupo).
+- En ESO/Bach/Primaria no hay ciclos: hay **"cursos"** o **"etapas"** con **"asignaturas"**. Las "imparticiones" se llaman simplemente "asignaciones docentes".
+- En Universidad hay **"grados"/"másteres"** con **"asignaturas"** que valen ECTS.
+
+Si un IES de ESO entra hoy a Loggex y crea un grupo, el sistema le pide que lo asocie a un *"ciclo formativo"* y a *"módulos"*. El admin del IES no entiende esa terminología — para él son "1º ESO" y "Lengua Castellana", no un ciclo y un módulo. La aplicación queda inutilizable o, en el mejor caso, parece amateur.
+
+El refactor cubre dos planos:
+
+1. **Plano semántico de datos** (entidades, tablas, columnas, FKs). El nombre del concepto a nivel código y BD.
+2. **Plano de presentación** (UI, copys, rutas, i18n). Lo que el admin ve.
+
+Ambos están entrelazados ahora mismo. Hay que separarlos.
+
+### 12.2 Inventario de lo que está acoplado a FP
+
+#### 12.2.1 Backend: entidades y tablas
+
+| Entidad / tabla actual | Concepto | Propuesta multi-etapa | Comentario |
+|---|---|---|---|
+| `CicloFormativo` / `ciclo_formativo` | Programa formativo de un grupo | `ItinerarioFormativo` o `ProgramaEducativo` o `Plan` | El más invasivo. Aparece en muchos joins. |
+| `Modulo` / `modulo` | Unidad docente de un programa | `Materia` o `UnidadDocente` | "Asignatura" suena natural pero choca con el dialecto FP. "Materia" es más neutro y se entiende en todas las etapas. |
+| `Imparticion` / `imparticion` | Profesor + materia + grupo | `Docencia` o `Asignacion` | "Imparticion" no es palabra estrictamente FP, pero se lee así por contexto. |
+| `Tarea` / `tarea` | Actividad evaluable | (igual) | OK, neutro. |
+| `Entrega` / `entrega` | Entrega del alumno | (igual) | OK. |
+| `Calificacion` / `calificacion` | Nota | (igual) | OK. |
+| `Grupo` / `grupo` | Conjunto de alumnos | (igual) | OK; el campo `curso` ya admite distintos significados. |
+| `Matricula` / `matricula` | Inscripción alumno↔grupo | (igual) | OK. |
+| `PeriodoEvaluativo` / `periodo_evaluativo` | Trimestre / cuatrimestre | (igual) | Neutro. |
+| `Asistencia`, `Material`, `Festivo`, `Centro`, `User`, `Mensaje`, `Comunicado` | — | (igual) | Todos neutros. |
+
+Conclusión: **3 entidades** acopladas a FP por nombre (`CicloFormativo`, `Modulo`, `Imparticion`). El resto del modelo es ya neutro.
+
+Pero esas 3 son justamente las entidades centrales del dominio académico, así que su refactor toca **todo**: relaciones, repositorios, fixtures, migraciones, fixtures de test, fixtures de seed, controladores, normalizadores, DTOs, filtros, columnas de DataTable.
+
+#### 12.2.2 Backend: rutas API y código
+
+- `/api/ciclo_formativos` (autogenerada por API Platform).
+- `/api/modulos`.
+- `/api/imparticions` (sí, con typo plural inglés — bug histórico que también convendría arreglar al renombrar).
+- Filtros y SearchFilters declarados con paths `ciclo.nombre`, `modulo.nombre`, `imparticion.modulo`, etc.
+- `CurrentUserExtension` con whitelist de clases, varias FP-céntricas.
+- Repositorios `CicloFormativoRepository`, `ModuloRepository`, `ImparticionRepository`.
+- Mensajería i18n del backend (errores) con cadenas tipo *"No se ha podido borrar el ciclo formativo"*.
+
+#### 12.2.3 Frontend: rutas, componentes, i18n
+
+| Capa | Estado actual | Cambio necesario |
+|---|---|---|
+| Rutas SPA | `/ciclos`, `/modulos`, `/imparticiones` | Rutas neutras. Posible: `/programas`, `/materias`, `/docencias`. O mantener URLs por compatibilidad y solo cambiar labels. |
+| Páginas | `pages/CiclosFormativos.jsx`, `pages/Modulos.jsx`, `pages/Imparticiones.jsx` | Renombrar archivos + clases internas. |
+| Sidebar | Items con etiquetas "Ciclos", "Módulos", "Imparticiones" | Etiquetas dinámicas según etapa principal del centro o agnósticas. |
+| Modales | Títulos "Nuevo ciclo formativo", "Nuevo módulo" | Adaptar a la etapa: el modal de "nuevo programa" muestra "Nuevo ciclo"/"Nueva modalidad"/"Nuevo grado" según contexto. |
+| Componentes auxiliares | `ModuloLabel.jsx` | Renombrar a `MateriaLabel.jsx`. |
+| Claves i18n | `cycles.*`, `modules.*`, `teaching.*` (53 + 47 + 31 ocurrencias aprox.) | Migrar a `programs.*`, `subjects.*`, `lessons.*` con scripts de búsqueda y reemplazo. Mantener un alias de compatibilidad durante una transición. |
+| Copy en español | "Ciclo Formativo", "Módulo", "Impartición" | Por nivel: en FP siguen apareciendo (es el término oficial), en ESO/Bach pasan a "Curso"/"Asignatura"/"Asignación". |
+
+#### 12.2.4 Documentación, scripts, datos
+
+- `CLAUDE.md` lista entidades como `CicloFormativo`, `Modulo`, `Imparticion`. Mantenerlo coherente.
+- Fixtures Doctrine en `backend/src/DataFixtures/` — habrá que regenerarlas cuando cambien los nombres.
+- `docs/sistema-toasts.md` y otros docs internos — referencias menores.
+- `backup_tfg*.sql` — backups con el esquema antiguo. Tras la migración los backups viejos no se podrán restaurar sin transformación.
+- Scripts `scripts/init.sh`, `scripts/seed_calificaciones.sql`, `scripts/regen_fixtures.py` — referencias a tablas.
+
+### 12.3 Estrategias posibles
+
+#### Estrategia A — Solo capa de presentación (cambio cosmético)
+
+Dejar entidades, tablas y rutas API como están. Solo cambiar **etiquetas de UI** según la etapa del centro/grupo: el mismo registro de `CicloFormativo` se muestra como "Ciclo" en FP y como "Curso" en ESO.
+
+- **Pros:** trabajo mínimo. Cero migraciones de BD. APIs siguen funcionando.
+- **Contras:** mentira semántica. Cualquier desarrollador nuevo lee el código y se pregunta *"¿por qué un curso de 1º ESO está en la tabla `ciclo_formativo`?"*. La deuda técnica se cronifica. Las migraciones futuras (importar de catálogo no-FP) escupen datos en tablas con nombre engañoso.
+
+#### Estrategia B — Refactor profundo (rename masivo)
+
+Renombrar entidades, tablas, columnas, rutas, claves i18n, componentes. Migración de datos completa.
+
+- **Pros:** dominio limpio y honesto. Onboarding de devs nuevos sin rozaduras. Diccionario único para la próxima década.
+- **Contras:** **muy costoso** (estimación abajo). Migración de datos invasiva. Rompe URLs, rompe APIs si hay clientes externos (móvil), rompe backups antiguos. Una semana sin features mientras se ejecuta.
+
+#### Estrategia C — Híbrido (renombrar entidades, mantener tablas con aliases)
+
+Renombrar **clases PHP/JS** (capa lógica) pero **dejar las tablas con su nombre actual** vía atributos `#[ORM\Table(name: 'ciclo_formativo')]`. APIs existentes mantienen sus URLs vía `uriTemplate` explícito en `#[ApiResource]`. Solo el código nuevo usa los nombres limpios.
+
+- **Pros:** ahorra la migración de datos. Devs nuevos solo ven los nombres limpios. Compatibilidad de APIs.
+- **Contras:** la BD queda en un limbo donde el dev tiene que recordar que `ItinerarioFormativo` mapea a `ciclo_formativo`. Pasa el problema al SQL crudo.
+
+### 12.4 Estrategia recomendada
+
+**Híbrido (C) en lo profundo + retoques cosméticos (A) en el corto plazo.**
+
+Razones:
+
+- La migración masiva de tablas (Estrategia B) es un proyecto de 2-3 semanas con riesgo alto y casi cero valor añadido para el usuario final. No la haríamos hasta tener un cliente real que justifique el esfuerzo.
+- La Estrategia A pura (solo etiquetas) ya nos rompe ahora porque el catálogo oficial (este documento) introduce las entidades `Catalogo*` con nombres limpios y multi-etapa. Tener `CatalogoItinerario` apuntando a `CicloFormativo` ya empieza a oler raro.
+- La C nos da un compromiso razonable: el nuevo código (catálogo, próximos features) usa nomenclatura limpia. El código viejo sigue funcionando. Las tablas viejas se dejan estar.
+
+**Plan concreto:**
+
+1. **Renombrar clases PHP** sin tocar tablas:
+   - `CicloFormativo` → `ItinerarioFormativo` (clase) pero `#[ORM\Table(name: 'ciclo_formativo')]`.
+   - `Modulo` → `Materia` (clase) pero `#[ORM\Table(name: 'modulo')]`.
+   - `Imparticion` → `Docencia` (clase) pero `#[ORM\Table(name: 'imparticion')]`.
+2. **Renombrar componentes y páginas frontend** (archivos JSX) manteniendo rutas SPA actuales por backwards-compat. Cambiar URLs es opcional, en otra ronda.
+3. **Generalizar copys e i18n** con un `useTerminologia(etapa)` hook que devuelve el label correcto según el contexto. *"Ciclo"* en FP, *"Curso"* en ESO, *"Modalidad"* en Bach, *"Grado"* en Universidad. El admin del centro elige (o se infiere por el catálogo).
+4. **APIs**: mantener `/api/ciclo_formativos` para no romper clientes (sería breaking change). Cuando exista una API v2 o un cliente nuevo, ofrecer `/api/itinerarios` como alias.
+5. **Documentación interna** (`CLAUDE.md`, `docs/*.md`): actualizar a la nomenclatura nueva, dejando notas históricas donde haga falta.
+
+Para los siguientes 3-6 meses esto es suficiente. La migración total de tablas (Estrategia B) puede ejecutarse cuando haya tiempo "de oficina" — un sprint dedicado entre lanzamientos de features — sin bloquear nada.
+
+### 12.5 Plan en sub-fases
+
+| Sub-fase | Esfuerzo | Bloquea a |
+|---|---|---|
+| 12.A — Hook `useTerminologia` + diccionario base | 2 días | Nada (puro frontend, no rompe) |
+| 12.B — Renombrar componentes JSX (`Modulos.jsx` → `Materias.jsx`, etc.) | 3 días | Hay que actualizar imports y rutas internas |
+| 12.C — Renombrar clases PHP (mantener tablas) | 5 días | API contracts: requiere `uriTemplate` explícito en `#[ApiResource]` |
+| 12.D — Generalizar i18n keys (`cycles.*` → `programs.*`) con alias | 3 días | Toda la UI; alias para no romper traducciones existentes |
+| 12.E — Actualizar copys españoles según etapa | 2 días | Tras 12.A |
+| 12.F — Actualizar `CLAUDE.md` y docs internos | 1 día | Final, una vez todo lo demás esté consistente |
+| 12.G *(opcional, futuro)* — Migrar tablas de BD a nombres limpios | 2-3 semanas | Bloquea features mientras se ejecuta |
+
+**Total bloque obligatorio (12.A-12.F):** ~3 semanas. Encaja como **bloqueador previo a Fase 3** del catálogo (cuando arranque ESO/Bach).
+
+### 12.6 Migración de datos (si en algún momento se ejecuta 12.G)
+
+Si en el futuro ejecutamos 12.G:
+
+1. Migración Doctrine que crea las tablas nuevas (`itinerario_formativo`, `materia`, `docencia`).
+2. Migración SQL que copia datos: `INSERT INTO itinerario_formativo SELECT * FROM ciclo_formativo`.
+3. Migración que actualiza FKs en tablas dependientes: `UPDATE grupo SET itinerario_formativo_id = ciclo_id`, etc.
+4. Borrar tablas viejas (con backup previo).
+5. Renombrar atributos `#[ORM\Table]` para apuntar a las nuevas tablas.
+
+Tiempo estimado de ventana de mantenimiento: **2-4 horas** para una BD de tamaño medio (decenas de miles de filas). Para evitar downtime se puede hacer con doble escritura durante una transición.
+
+### 12.7 Riesgos
+
+- **APIs externas**: si Loggex llega a tener una app móvil o integraciones B2B, cualquier cambio de URL/recurso es breaking. Antes de tocar `/api/*` hay que inventariar consumidores. Hoy no hay ninguno (sección 5.3 del doc de autenticación).
+- **Marcadores y URLs guardadas**: usuarios que tengan `https://centro.loggex.com/ciclos` guardado verán 404 si cambiamos a `/programas`. Mitigación: redirect 301 permanente.
+- **Backups antiguos**: los `backup_tfg*.sql` ya no se podrán restaurar tal cual tras el rename de tablas (12.G). Se mantiene un script de transformación en `scripts/migrate_backup_to_v2.sh` que cualquiera puede aplicar a un dump viejo para adaptarlo.
+- **Búsqueda en logs/issues antiguos**: cualquier referencia a "Ciclo Formativo" en issues, commits o documentación queda como referencia histórica. Conviene NO reescribir el historial git para preservar trazabilidad.
+- **Equipo nuevo**: durante la transición convivirán dos terminologías. Hay que comunicarlo al onboarding.
+
+### 12.8 Estimación final y recomendación de cuándo
+
+| Bloque | Duración | Cuándo encaja |
+|---|---|---|
+| 12.A → 12.F (estrategia C) | ~3 semanas | **Antes de Fase 3** del catálogo (ESO + Bach) |
+| 12.G (opcional, estrategia B completa) | 2-3 semanas | Cuando se quiera limpieza arqueológica del esquema, sin bloquear features. Probablemente nunca, salvo razón estratégica. |
+
+**Recomendación:** ejecutar 12.A-12.F como **prerrequisito de Fase 3**. Sin esto, importar el catálogo de ESO funciona técnicamente pero es UX inadmisible (admin de IES viendo "Nuevo módulo de FP" cuando intenta crear "Lengua Castellana"). 12.G se aplaza sine die.
+
+---
+
+## 13. Estado de implementación (snapshot abril 2026)
+
+Este apartado registra lo que está construido y operativo a fecha de **2026-04-26**. Sirve para que cualquiera (yo dentro de un mes, otro colaborador, futuro auditor) sepa exactamente qué hay sin tener que leer commits.
+
+> **Resumen actualizado 2026-04-26:** Fases 0 + 1 + 1.6 + 1.7 cerradas. Catálogo de FP **completo**: 229/229 itinerarios con materias (2576 totales), todos verificados contra BOE. Las subsecciones 13.1–13.3 quedan como registro histórico del proceso; el log de 2026-04-26 (§13.4) documenta el cierre de Fase 1.7 al 100%.
+
+### 13.1 Fase 0 — Infraestructura común ✅
+
+Todo el cableado base está hecho:
+
+- Entidades Doctrine: `CatalogoItinerario`, `CatalogoMateria`, `CatalogoCentro` (más enums `EtapaEducativa`, `TipoMateria`, `Titularidad`).
+- Migración `Version20260425160000` aplicada — tablas + FKs `catalogo_origen_id` en `ciclo_formativo`, `modulo`, `centro`. *(Tras §18, esas tablas se llaman `itinerario`, `materia`, `centro` y la migración fue squasheada.)*
+- DTOs: `CatalogoItinerarioDto`, `CatalogoMateriaDto`, `CatalogoCentroDto`.
+- `CatalogoSourceAdapterInterface` + `CatalogoSourceAdapterRegistry` (auto-tag vía `_instanceof`).
+- `CatalogoIngestService` con UPSERT idempotente, hash, dry-run y marcado de retirados.
+- Comando `app:catalogo:refresh [fuente] [--dry-run] [--list]`.
+- API REST autogenerada (read-only) con `SearchAnyFilter`: `/api/catalogo_itinerarios`, `/api/catalogo_materias`, `/api/catalogo_centros`.
+- `role_hierarchy` con `ROLE_SUPERADMIN: [ROLE_ADMIN]` para que controllers protegidos con `IsGranted('ROLE_ADMIN')` los pueda usar también un SuperAdmin.
+
+### 13.2 Fase 1 — MVP con FP nacional ✅ completa + ESO añadida
+
+**Cobertura final tras Fases 1.6 + 1.7 + §16 + §19:**
+
+| Etapa | Itinerarios | Sin módulos | Total módulos | Fuente |
+|---|---|---|---|---|
+| FP Básica | 34 | 0 | ~340 | TodoFP + BOE |
+| FP Medio | 67 | ~13 | ~640 | TodoFP + BOE |
+| FP Superior | 94 | ~16 | ~1 040 | TodoFP + BOE |
+| Cursos de Especialización | 34 | 0 | ~150 | TodoFP + BOE |
+| ESO | 1 | 0 | 28 | RD 217/2022 |
+| **Total** | **230** | **~30 (13 %)** | **~2 230** | |
+
+Los ~30 sin módulos son ciclos cuyo currículo (Orden EDU) tiene una estructura HTML atípica que `ModulosTableParser` no cubre todavía — limitación documentada para v1.1, no bloqueante para producción.
+
+**Componentes operativos:**
+
+- **`TodoFpHttpAdapter`** (sección 15.1): scraper HTTP de TodoFP, produce los 229 itinerarios nacionales con `boletinUrl` apuntando al RD del BOE.
+- **`BoeRdEnricher`** (sección 16): enriquece cada itinerario con identificación + módulos extraídos del XML del BOE. Despacha por etapa:
+  - `enrichTabla` para Grado Medio/Superior (currículo con tabla).
+  - `enrichBasica` (BasicaParser) para FP Básica (RD multi-título con anexos).
+  - `enrichEspecializacion` (EspecializacionParser) para Cursos de Especialización.
+- **`SeccionModulosParser`** común a Básica + Especialización: regex case-insensitive sobre `<strong>Módulo Profesional:` / `<strong>Código:` / `<strong>Duración:` con tolerancia a guiones Unicode y nombres partidos en `<strong>`s.
+- **`TodoFpJsonAdapter` retirado**: el JSON manual con 4 ciclos sirvió como bootstrap; tras la cobertura completa por scraping ya no se usa. `DummyFixturesAdapter` también retirado.
+- **Endpoint backend `POST /api/itinerarios/from-catalogo`** (controller `CatalogoMaterializationController`): recibe el id del itinerario y crea `Itinerario` + sus `Materia` automáticamente, todo con `catalogoOrigen` trazado. *(Tras §18: era `/api/ciclos/from-catalogo` con clases `CicloFormativo`/`Modulo`.)*
+- **Frontend modal de Nuevo Itinerario** con toggle **Catálogo / Manual**, `AsyncSearchSelect` abierto a TODAS las etapas implementadas (FP + ESO; el admin discrimina tecleando), vista previa con familia/nivel/duración/módulos/normativa y materialización al confirmar.
+- **Vistas admin del catálogo** (§17): `/admin/catalogo/itinerarios`, `/.../itinerarios/:id`, `/.../materias`, `/.../centros` (SUPERADMIN-only stub), `/.../acerca` con `DataProvenanceBanner` reutilizable.
+
+### 13.3 Lo que queda para v1.1 (no bloqueante)
+
+1. Soporte de **RDs de modificación post-LOMLOE** (p. ej. RD 498/2024 que altera anexos de RD 127/2014). Hoy: 1 ciclo afectado (Carpintería y Mueble actualizada). Mitigación: detectar por heurística `<p class="articulo">Modificación…</p>` y mapear al original.
+2. Cobertura de los ~30 itinerarios huérfanos de FP Medio/Superior (currículos con HTML atípico que `ModulosTableParser` no cubre).
+3. Variantes por CCAA (Fase 3 del plan original — ver §15.3 capa 3 de adapters por CCAA).
+4. Fase 2: ingestión del directorio nacional de centros docentes (`centros.gob.es`).
+
+### 13.4 Log de decisiones
+
+**2026-04-25 — Decisión: ejecutar 1.6 + 1.7 en bloque (opción A).**
+Análisis previo en sección 14 mostró que TodoFP no expone ni el código oficial ni los módulos detallados — solo enumera ciclos y enlaza al RD del BOE. Si paramos en 1.6, los itinerarios serían "esqueletos sin código ni módulos", lo que sería **regresión** respecto al JSON actual. Por eso hacemos 1.6 + 1.7 juntas como un único entregable. Estimación: 3-4 semanas en lugar de 2+2 secuenciales (gracias a fixtures e integración compartidas). Cuando esto cierre, se elimina el `TodoFpJsonAdapter` y el JSON `itinerarios-fp.json`.
+
+**2026-04-25 — Decisión: NO usar `symfony/panther`.**
+Inspección manual del HTML de TodoFP (3 páginas tipo) confirma que el contenido relevante es estático. `Symfony\Contracts\HttpClient` + `Symfony\Component\DomCrawler` es suficiente. Evita la dependencia pesada de Chromium headless en producción.
+
+**2026-04-25 — Decisión: TodoFP es índice, BOE es fuente real del detalle.**
+TodoFP no expone código oficial (IFC32, etc.) ni tabla estructurada de módulos. El detalle vive solo en el RD del BOE. Por tanto:
+- `TodoFpHttpAdapter` produce solo metadata: nombre, etapa, familia, nivel, URL del RD del BOE, URL del currículo.
+- `BoeRdAdapter` lee el XML ELI de cada RD enlazado y completa: código oficial, módulos con códigos y nombres, horas totales/semanales por módulo, fecha de vigencia.
+- Ambos adapters trabajan secuencialmente sobre los mismos `CatalogoItinerario` (TodoFP los crea, BOE los enriquece).
+
+**2026-04-25 — Avance: TodoFpHttpAdapter operativo.**
+Implementado y validado en BD con un refresh real (no dry-run). 229 itinerarios persistidos (34 FP Básica + 67 FP Medio + 94 FP Superior + 34 Cursos de Especialización). El conteo > 185 incluye ciclos LOE en transición y nuevos LOMLOE; aceptado como esperado. Cada itinerario tiene `boletin_url` apuntando al BOE. El `codigo_oficial` lleva el slug de la URL de TodoFP (p. ej. `des-aplicaciones-web`) como provisional — BoeRdAdapter lo sobrescribirá con el código real (IFC32, etc.) cuando procese el RD.
+
+**Bug histórico encontrado y resuelto en `CiclosParser`:**
+La primera versión leía un mapping por texto de cabecera y fallaba en TODAS las familias (0 ciclos parseados). Al inspeccionar el HTML real:
+- La celda de Nivel es un `<th class="Nv">` (no `<td>`); el parser inicial solo recorría `<td>`.
+- El nivel usa `rowspan="N"` agrupando ciclos del mismo nivel; las filas posteriores no tienen celda Nv propia y hay que heredarla.
+- TodoFP usa clases CSS estables (`Nv`, `Tit`, `Rd`, `Curriculomecd`, `Curriculoccaa`) que son más fiables que mapping por texto.
+
+Reescrito el parser usando esas clases + manejo de rowspan. Ahora 229 ciclos parseados sin warnings. Estrategia documentada en `backend/src/Catalogo/Source/TodoFpHttp/SELECTORS.md`.
+
+**2026-04-25 — Inspección XML del BOE: hallazgos clave.**
+Inspección manual del XML del RD del título (RD 686/2010 — DAW) y del XML del currículo (Orden EDU/2887/2010) para diseñar `BoeRdAdapter`. Documentación técnica completa en `backend/src/Catalogo/Source/BoeRd/BOE_XML_STRUCTURE.md`. Hallazgos:
+
+1. **El código `IFC32` NO existe en el BOE**. Es un mnemónico coloquial (academias, dataset community), no una nomenclatura oficial. Decisión: el campo `codigoOficial` se queda con el slug derivado de la URL de TodoFP (p. ej. `des-aplicaciones-web`); BoeRdAdapter NO lo sobrescribirá. Si en el futuro se quiere añadir IFC32 como dato extra, se hará desde un dataset community separado.
+2. **La tabla con horas por módulo NO está en el RD del título**, sino en el **currículo del Ministerio** (Orden EDU separada que TodoFP enlaza en una columna distinta). Para cada ciclo necesitamos DOS URLs del BOE: la del RD del título (para fecha de vigencia, denominación, duración total) y la del currículo (para módulos+horas).
+3. **Falta persistir `curriculoUrl`** en el modelo. Ahora mismo `TodoFpHttpAdapter` lo extrae pero no lo pasa al DTO. Tarea bloqueante antes de implementar `BoeRdAdapter`:
+   - Añadir campo `curriculoUrl` (nullable, `VARCHAR(500)`) a `CatalogoItinerario`.
+   - Migración Doctrine.
+   - Modificar `CatalogoItinerarioDto` y `TodoFpHttpAdapter::buildDto()` para que viajen ambas URLs.
+   - Re-ejecutar `app:catalogo:refresh todofp_http` para llenar el campo en los 229 itinerarios existentes.
+4. La tabla del currículo tiene cabeceras con `rowspan/colspan` (Primer curso h/semana + Segundo curso 2T+1T). Hay que filtrar filas espurias ("Horario reservado para inglés", "Total en el ciclo formativo"). Heurística para curso (1 vs 2): qué columna tiene horas. Heurística para tipo de módulo (`MODULO`/`FCT`/`PROYECTO`): por palabras clave en el nombre.
+
+**2026-04-25 — Avance: `curriculoUrl` añadido al modelo y persistido.**
+Migración `Version20260425170000` aplicada. Campo `curriculo_url VARCHAR(500) DEFAULT NULL` añadido a `catalogo_itinerario`. Refresh de TodoFP procesa los 229 itinerarios y rellena el campo donde aplica. Datos verificados:
+- Los **3 ciclos LOMLOE de Informática** (SMR, ASIR, DAM, DAW) tienen ambas URLs: `boletin_url` (RD del título) + `curriculo_url` (Orden EDU del Ministerio).
+- Los **2 ciclos de FP Básica** de la familia Informática (Informática de Oficina, Informática y Comunicaciones) NO tienen `curriculo_url`. La razón: en FP Básica todo el contenido (incluyendo módulos+horas) está en el propio RD del título; no hay Orden EDU separada.
+
+→ **Implicación para `BoeRdAdapter`:** debe manejar dos casos:
+  - Caso A (Medio/Superior/Especialización): leer `curriculoUrl` para módulos+horas.
+  - Caso B (Básica): leer `boletinUrl` (el RD del título) porque ahí está todo.
+La heurística será simple: `if (curriculoUrl) use curriculoUrl else use boletinUrl`.
+
+**2026-04-25 — Fase 1.7 cerrada: BoeRdAdapter operativo.**
+Implementado como servicio separado (`BoeRdEnricher`) + comando (`app:catalogo:enrich-boe`), no como `CatalogoSourceAdapterInterface`. Razón: BoeRd enriquece registros existentes, no produce nuevos — usar la interface confundiría la semántica.
+
+Componentes:
+- `App\Catalogo\BoeRd\BoeXmlFetcher` — normaliza las 3 formas de URL del BOE (`txt.php`, ELI, PDF) a un endpoint XML único, con throttle 300ms.
+- `App\Catalogo\BoeRd\IdentificacionParser` — extrae denominación, nivel, duración, familia, fecha, número de RD del XML del título.
+- `App\Catalogo\BoeRd\ModulosTableParser` — localiza la tabla del Anexo II y extrae módulos con código, nombre, curso, horas totales y semanales.
+- `App\Catalogo\BoeRd\BoeRdEnricher` — orquesta el flujo: identifica el RD apropiado (currículo en FP Medio/Superior, RD del título en FP Básica), parsea, hace patch update sobre el `CatalogoItinerario` existente.
+- `App\Command\Catalogo\EnrichFromBoeCommand` — CLI con flags `--codigo`, `--limit`, `--force`, `--dry-run`.
+
+**Resultados del refresh end-to-end:**
+- 228 itinerarios procesados (1 sin `boletinUrl` se queda fuera).
+- 1668 módulos extraídos con códigos oficiales del BOE.
+- Cobertura efectiva: 161 ciclos FP Medio+Superior con módulos completos, 153 con duración total.
+- Salto vs el bootstrap JSON: de 4 ciclos curados a mano a 161 verificados contra fuente oficial (40×).
+
+**Limitaciones documentadas (aceptadas en v1):**
+- **FP Básica** (34 ciclos): el RD 127/2014 regula 14 títulos básicos en un único documento con estructura atípica. La identificación queda en NULL y no se extraen módulos. Solución para v2: parser específico para RD multi-título.
+- **FP Especialización** (34 ciclos): los Cursos de Especialización tienen los módulos como secciones libres con `<strong>Duración: N horas.</strong>` por módulo, no en tabla. Solución para v2: parser por secciones.
+
+**Bugs cazados durante la implementación:**
+
+1. **Bug regex `Unknown modifier ']'`.** El delimitador `#` chocaba con `[^?#]+?` dentro del patrón en `BoeXmlFetcher::normalizeToXmlUrl`. Fix: usar `~` como delimitador.
+
+2. **Tabla con clase variable.** El parser inicial filtraba `table[@class="tabla"]`, pero ASIR usa `table[@class="tabla_ancha"]` y otros RDs pueden tener variantes. Fix: quitar el filtro de clase y confiar en la heurística de cabecera ("Módulo profesional" + horas) para identificar la tabla correcta.
+
+3. **Formato del nombre de módulo.** DAW: `0483. Sistemas informáticos`. ASIR: `0370 Planificación...` (sin punto). Regex relajada para aceptar punto opcional.
+
+4. **`Duración:` ambigua.** En SMR, la "Duración: 2.000 horas" del título estaba en un `<p>` multi-línea junto con Nivel/Familia/etc., y mi parser cogía la siguiente "Duración: 130 horas" de un módulo concreto. Fix: `findByPrefix` ahora itera líneas dentro de cada `<p>` y se limita a los primeros N párrafos del documento.
+
+5. **Columna `normativa` demasiado corta.** El RD 127/2014 (FP Básica) tiene un título de >500 caracteres. Migración `Version20260425180000` la pasó de `VARCHAR(255)` a `LONGTEXT`.
+
+6. **TodoFP refresh BORRABA datos de BOE.** El bug más serio del lote. `CatalogoIngestService::upsertItinerario` reemplazaba todas las materias y sobrescribía los campos con `null` cuando el DTO de TodoFP llegaba con `materias=[]` y campos null (lo que es siempre — TodoFP no expone esos datos). Cada refresh de TodoFP destruía el trabajo del BoeRdAdapter.
+
+   **Fix arquitectural:** `upsertItinerario` ahora hace **patch update**: solo sobrescribe campos cuando el DTO trae valor no nulo, y solo reemplaza materias si el DTO trae al menos una. Esto permite que múltiples adapters contribuyan al mismo registro sin pisarse — patrón estándar para ingestas en capas.
+
+   **Lección:** documentar explícitamente la semántica de UPSERT cuando hay múltiples adapters por entidad. Lo añadimos a los riesgos del modelo de datos para futura referencia.
+
+7. **URLs con espacios trailing.** TodoFP a veces deja `<a href="...PDF.pdf "` (con espacio). El fetcher lo trataba como caracter válido y la URL resultante era inválida. Fix: trim defensivo en `CiclosParser::extractFirstBoeUrl` y `BoeXmlFetcher::normalizeToXmlUrl`.
+
+**2026-04-26 — Cierre de Fase 1.7 al 100% (de 202/229 a 229/229 itinerarios con materias).**
+Ejecución del enricher BOE en limpio dejó 27 itinerarios sin módulos. Investigados uno a uno y resueltos:
+
+- **Bug en `ModulosTableParser::parse`:** la detección de cabecera usaba `stripos('MÓDULO PROFESIONAL', 'Módulo profesional')` y devolvía `false`. PHP `stripos` solo case-foldea ASCII; los caracteres multi-byte como Ó/ó no se equiparan. Fix: `mb_stripos`. Desbloqueó ~10 RDs con cabecera en mayúsculas (automoción, video-discjockey, transporte-marítimo, etc.).
+- **Captions previos al header de la tabla:** RDs como mecanizado tenían dos filas de caption ("ANEXO II", "Ciclo formativo: Mecanizado") antes del header real. La detección escanea ahora las primeras 3 filas combinadas. Eliminado el `headerRowsToSkip = 2` hardcoded — la primera fila de datos se detecta dinámicamente cuando `cells[0]` es un código numérico.
+- **Layout LOMLOE 2024+:** sanidad-ambiental y prevención-2024 usan `Código | Módulo Profesional | Horas 50% | Horas 60%` con el código y el nombre en celdas separadas. `ModulosTableParser` ahora soporta ambas variantes (legacy "0612. Nombre" en una sola celda y LOMLOE en celdas separadas). Para las dos columnas "Horas X%" se toma la mayor como `horasTotales`.
+- **`ParrafosModulosParser` (nuevo):** RDs LOMLOE 2019-2023 (familia aeromecánica×5, RD 570/2023 técnico-seguridad, RD 178/2021 movilidad) describen los módulos como párrafos secuenciales: `<p>Módulo Profesional: NAME</p>` → `<p>Equivalencia ECTS: N</p>` → `<p>Código: NNNN</p>` → más adelante `<p>Duración: NNN horas</p>`. Parser de máquina de estados que recorre los párrafos del XML del RD del título.
+- **`LegacyLogseModulosParser` (nuevo):** RDs LOGSE 1995-2005 (cuidados-aux-enfermería, dietética, joyería, óptica-anteojería, prevención-2003) no tenían tabla ni códigos oficiales (los introdujo la LOE en 2006). Patrón: `<p>Módulo profesional N: NAME</p>` … `<p>CONTENIDOS (duración NNN horas)</p>`. Genera códigos sintéticos `MP1`, `MP2`, …, `FCT` únicos dentro del itinerario.
+- **Cascada de fallbacks en `BoeRdEnricher::enrichTabla`:** `tabla` → `parrafos` → `logse`, sobre el RD del título y la URL del currículo si difieren. La versión del enricher se serializa en `fuenteHash` (`boe_rd_v1_tabla` / `_parrafos` / `_logse`) para invalidar caché tras cambios de parser. Trazabilidad: el método de extracción usado queda implícito en el hash.
+- **Parche puntual en BD:** `servicios-funerarios.boletin_url` ← `BOE-A-2025-14086` (RD 533/2025, publicado tan reciente que TodoFP aún no lo enlazaba). El próximo refresh de `todofp_http` debería recoger la URL automáticamente cuando el ministerio actualice la página.
+
+**Resultado final del refresh BOE:**
+- 229/229 itinerarios con materias (100%).
+- 2576 materias totales.
+- 2567 con `horas_totales` (99.6%).
+- 1643 con `horas_semanales` (63.8%).
+- 1867 con `curso` (72.5%).
+- 221 con `ects` (los Cursos de Especialización; donde aplica).
+- 213 itinerarios con `duracion_total_horas` (16 sin: deuda menor del `IdentificacionParser`, no bloqueante).
+
+**Lecciones:**
+
+1. **Multi-byte case-fold:** en proyectos con texto en español (acentos), usar siempre `mb_stripos`/`mb_strtolower`. PHP `stripos` solo cubre ASCII.
+2. **No hay un único formato de RD del BOE:** la legislación educativa española tiene al menos 4 estructuras documentales convivientes (LOMLOE 2024+, LOMLOE 2019-2023, LOE-LOMCE 2006-2018, LOGSE 1995-2005). El cierre del 100% requiere parsers específicos por época, no un único parser "universal".
+3. **Cascada > monolito:** el enricher con cascada de parsers (`tabla → parrafos → logse`) es más mantenible que un parser con `if/else` ramificado por estructura. Cada parser tiene una responsabilidad clara y se puede testear/sustituir aisladamente.
+
+---
+
+## 14. Análisis de fuentes oficiales
+
+Antes de programar el scraper hay que evaluar honestamente qué nos puede dar cada fuente para no caer en falsas expectativas. Esta sección documenta el análisis.
+
+### 14.1 Comparativa por fuente
+
+| Fuente | URL canónica | Autoridad | Cobertura | Frescura | Scraping estable |
+|---|---|---|---|---|---|
+| **TodoFP** | `todofp.es` | ⭐⭐⭐⭐⭐ Ministerio | Metadata estatal de los 185 ciclos. Lista de módulos sin horas. | Lag de semanas/meses tras un RD nuevo. | ⭐⭐⭐ HTML CMS, cambia periódicamente. |
+| **BOE** | `boe.es` (ELI) | ⭐⭐⭐⭐⭐⭐ El BOE *es* la fuente. | Currículo completo: módulos + horas + competencias. | Real-time (es donde se publican). | ⭐⭐⭐⭐ XML estructurado con ELI; PDF para legibilidad humana. |
+| **BOJA** | `juntadeandalucia.es/boja` | ⭐⭐⭐⭐⭐ regional | Variantes andaluzas del currículo. | Lag pequeño tras BOE. | ⭐⭐⭐ Similar al BOE pero menos uniforme. |
+| **DOCM, DOG, …** | varios | ⭐⭐⭐⭐⭐ regional | Variantes de cada CCAA. | Variable. | ⭐⭐ Cada CCAA tiene su formato. |
+| **INCUAL** | `incual.educacion.gob.es` | ⭐⭐⭐⭐⭐ | Solo competencias profesionales (no curriculum). | Estable. | ⭐⭐ Web compleja, datos en BD propia. |
+| Datasets community (GitHub) | — | ⭐⭐ no oficial | Variable. | Variable. | ⭐⭐⭐⭐ JSON/CSV ya parseado. |
+| **datos.gob.es** | datos.gob.es | ⭐⭐⭐ aggregator | Centros sí, ciclos no en general. | Variable. | ⭐⭐⭐⭐ APIs OpenAPI cuando existen. |
+
+### 14.2 ¿Qué da TodoFP en concreto?
+
+Inventario de lo que SÍ podemos extraer scrapeando TodoFP:
+
+- ✅ Lista completa de las **28 familias profesionales**.
+- ✅ Por cada familia, lista de ciclos (FP Básica + Medio + Superior + Cursos de Especialización).
+- ✅ Por cada ciclo: **código oficial**, **nombre**, **nivel**, **familia**, **duración total en horas**.
+- ✅ **URL al BOE** del Real Decreto que regula el ciclo.
+- ✅ **Lista de módulos** con su código y nombre (pero sin horas).
+- ⚠️ Algunas páginas tienen fecha de publicación, comunidades autónomas donde se imparte, perfil profesional, etc. — útil pero opcional.
+
+Lo que TodoFP NO da:
+
+- ❌ **Horas por módulo** (totales o semanales).
+- ❌ Currículos por CCAA.
+- ❌ Catálogo de competencias profesionales (eso lo tiene INCUAL).
+- ❌ Listado de centros que ofrecen cada ciclo (eso lo tiene cada Consejería).
+
+### 14.3 Riesgos del scraping de TodoFP
+
+1. **Cambio de HTML.** En la última revisión grande (2023) cambiaron toda la estructura de URLs y selectores. Mitigación: tests de snapshot por cada selector crítico, alerta a SuperAdmin si un parser falla 3 veces seguidas.
+2. **Contenido JS-rendered.** Algunas tablas pueden depender de JS. Hay que verificar página por página si nos basta con `Symfony\HttpClient` + `DomCrawler` o necesitamos `symfony/panther` (Chromium headless). Esto duplicaría el coste operativo.
+3. **Coexistencia LOE/LOMLOE.** Hay ciclos antiguos LOE que conviven con sus equivalentes LOMLOE durante años. El scraper tiene que distinguir y marcar los antiguos como `vigenteHasta`.
+4. **Términos de uso.** TodoFP es web pública sin login y términos de uso permiten consulta personal/educativa. Para el uso interno de Loggex el riesgo legal es bajo, pero hay que documentar la atribución (*"datos basados en TodoFP del Ministerio…"*).
+
+### 14.4 Decisión
+
+Vamos con un **enfoque en capas** donde cada capa aporta progresivamente más detalle:
+
+- **Capa 1 (TodoFP HTTP)**: nos da el catálogo completo de los 185 ciclos con metadata + URL del RD.
+- **Capa 2 (BOE)**: completa horas por módulo a partir del RD enlazado.
+- **Capa 3 (BOJA / CCAA)**: variantes regionales sobre la nacional.
+
+Cada capa es opcional, se construye una a una y aporta valor incremental. Si solo tenemos la capa 1, ya tenemos un salto enorme respecto al JSON curado (185 vs 4 ciclos, todos verificables contra fuente oficial).
+
+---
+
+## 15. Arquitectura de scrapers en capas
+
+### 15.1 Capa 1 — `TodoFpHttpAdapter`
+
+**Objetivo:** producir los 185 ciclos del catálogo nacional con metadata oficial.
+
+**Implementación esperada:**
+
+- Usar `Symfony\Contracts\HttpClient\HttpClientInterface` + `Symfony\Component\DomCrawler\Crawler`.
+- Verificar antes con inspección manual si necesitamos `symfony/panther` (Chromium headless) por contenidos JS-rendered.
+- 2 niveles de scraping:
+  1. Index de familias: `https://www.todofp.es/que-estudiar/familias-profesionales.html` → ~28 URLs de familia.
+  2. Por cada familia, listar ciclos → URLs de detalle → extraer datos del ciclo.
+- Por cada ciclo, producir un `CatalogoItinerarioDto` con:
+  - `codigoOficial`, `nombre`, `etapa` (derivada del nivel), `familia`, `nivel`, `duracionTotalHoras`, `boletinUrl` (URL del RD), `vigenteDesde` (fecha del RD), `materias` con código+nombre **pero sin horas**.
+
+**Datos NO disponibles desde TodoFP** (se rellenan con NULL hasta que la capa 2 los complete):
+
+- `horasTotales` y `horasSemanales` por módulo.
+- `competencias`.
+- `descripcion` de módulos.
+- `prerequisitos`.
+
+**Tests:**
+
+- Fixtures HTML cacheados de 3-4 páginas tipo (un index de familia, dos ciclos distintos, una página con tabla JS).
+- Test de regresión por cada selector: si el HTML cambia y el selector falla, el test cae con un mensaje claro.
+
+**Frecuencia:** mensual (la sección 3.3 del documento ya lo refleja).
+
+### 15.2 Capa 2 — `BoeRdAdapter`
+
+**Objetivo:** completar `horasTotales` y `horasSemanales` por módulo, leyendo el RD enlazado en cada itinerario.
+
+**Implementación esperada:**
+
+- Para cada `CatalogoItinerario` con `boletinUrl` del BOE pero materias sin `horasTotales`, fetch del XML ELI del RD.
+- Parsear el XML buscando la tabla de horas del módulo (por `codigoOficial`).
+- Update incremental: solo escribe `horasTotales`/`horasSemanales`. No toca lo demás.
+
+**Riesgos:** la estructura del XML de los RDs varía bastante entre años. Algunos incluyen tablas en imágenes dentro de los PDFs vinculados (peor caso). Podríamos necesitar un fallback al PDF parser (`smalot/pdfparser`).
+
+**Frecuencia:** mensual, después de TodoFP. Solo procesa los itinerarios que tienen `boletinUrl` y materias con horas NULL.
+
+### 15.3 Capa 3 — Adapters por CCAA
+
+**Objetivo:** variantes regionales del currículo donde apliquen.
+
+**Implementación:** un adapter por CCAA que parsea su boletín oficial. El más urgente sería `BojaAdapter` para Andalucía. Los demás se pueden añadir cuando lleguen centros piloto de otras comunidades.
+
+Cuando una CCAA modifica horas semanales o estructura de un ciclo, se crea una nueva fila `CatalogoItinerario` con el mismo `codigoOficial` pero `ccaa` distinto. El frontend prefiere la variante de la CCAA del centro si existe.
+
+### 15.4 Convivencia entre capas y `TodoFpJsonAdapter`
+
+El `TodoFpJsonAdapter` actual sigue activo durante la transición. Convive con `TodoFpHttpAdapter` a través de la `fuenteIngesta`:
+
+- `fuenteIngesta = 'todofp_json'` para el JSON curado.
+- `fuenteIngesta = 'todofp_http'` para el scraper.
+
+La unique constraint actual es `(codigo_oficial, ccaa, vigente_desde)` — no incluye `fuenteIngesta`. Significa que dos adapters con el mismo (código, ccaa, vigente_desde) **chocan**: el segundo en correr fallaría con "duplicate key".
+
+**Resolución:** cuando `TodoFpHttpAdapter` esté operativo y validado, se ejecuta una migración:
+
+1. Borrar todas las entradas con `fuente_ingesta='todofp_json'` (`DELETE FROM catalogo_itinerario WHERE fuente_ingesta='todofp_json'`).
+2. Eliminar `TodoFpJsonAdapter` del código.
+3. Mantener el JSON solo como fuente de **overrides manuales** en casos puntuales (un ciclo que TodoFP no recoge bien, una corrección urgente). Estos overrides irían bajo otro adapter o se persistirían a mano.
+
+Mientras eso ocurre, **mantener solo uno de los dos activos al mismo tiempo** (el JSON o el HTTP, no ambos).
+
+### 15.5 Métricas de éxito de capa 1
+
+Cuando `TodoFpHttpAdapter` esté en producción, esperamos:
+
+- **185 itinerarios** en `catalogo_itinerario` con `fuente_ingesta='todofp_http'`.
+- **0 itinerarios** en `fuente_ingesta='todofp_json'` (tras la limpieza).
+- **Cada itinerario tiene `boletin_url`** apuntando al BOE.
+- **Cada itinerario tiene N materias** (al menos código y nombre).
+- **Tiempo del refresh completo:** menos de 5 minutos.
+- **Tasa de fallo de parser:** < 5% (si es mayor, replantear selectores o cambiar a Panther).
+
+## 16. Despacho por etapa: `BasicaParser` y `EspecializacionParser` (abr 2026)
+
+Tras completar el enriquecimiento de Grado Medio/Superior con `ModulosTableParser` (~115 ciclos), quedaron **68 itinerarios huérfanos** sin módulos en BD: 56 títulos de FP Básica y 12 Cursos de Especialización. Ambos fallaban porque sus RDs **no usan tabla** sino secciones `<strong>Módulo Profesional: …</strong>` / `<strong>Código: XXXX.</strong>` / `<strong>Duración: HH horas.</strong>`. La heurística previa los saltaba con `$skipIdentificacion`.
+
+### 16.1 Estructura común
+Tanto FP Básica como Especialización presentan los módulos como secciones con tres marcadores `<strong>`:
+- `<strong>Módulo Profesional: Nombre.</strong>` (variante: `<strong>Módulo:` sin "Profesional"; o nombre partido en varios `<strong>` por *italics*)
+- `<strong>Código: XXXX.</strong>`
+- `<strong>Duración: HH horas.</strong>`
+- En Especialización aparece además `<strong>Créditos ECTS: N.</strong>` (relevante).
+
+### 16.2 Diferencias y diseño
+- **FP Básica** (RD 127/2014 y similares) define **muchos títulos en un solo XML** (3 MB, 14 anexos en el RD 127). Cada título vive entre `<p class="anexo_num">ANEXO N</p>` y el siguiente `anexo_num`. → `BasicaParser` localiza el anexo por *match* permisivo del `<p class="anexo_tit">` con el `nombre` del itinerario antes de delegar la extracción.
+- **Cursos de Especialización** son un RD por curso, sin anexos a localizar. → `EspecializacionParser` parsea el documento entero.
+- Ambos delegan en `SeccionModulosParser`, una clase estable que recibe un `Crawler` de `<p>` y aplica las regex de header/código/duración/ECTS.
+
+### 16.3 Trampas reales encontradas
+- **Guion del bloque de identificación**: distintos RDs usan `–` (U+2013), `—` (U+2014), `‒` (U+2012), `-` (ASCII). Regex final: `[\x{2010}-\x{2015}\-]`.
+- **Nombre del módulo partido en `<strong>`**: en Ciberseguridad, "Hacking ético" aparece como `<strong>Módulo Profesional: </strong><strong>Hacking</strong><strong> ético.</strong>` con saltos de línea de formato XML entre ellos. Solución: `paragraphText` colapsa **todo whitespace incluido `\n` de formato a un único espacio**, y solo respeta `\n` reales que vienen de `<br>` (sustituidos por sentinel `\x01` antes del colapso).
+- **Variante "Módulo:" sin "Profesional"** (RD 127/2014, Anexo IV, módulo 3019 "Ciencias aplicadas II"): regex con `(?:\s+Profesional)?` opcional.
+- **Match del título del anexo vs. nombre del itinerario**: el `<p class="anexo_tit">` dice "Título Profesional Básico en Informática y Comunicaciones" pero la BD guarda solo "Informática y Comunicaciones". Match permisivo: contención bidireccional + sufijo "en …".
+
+### 16.4 Dispatcher en `BoeRdEnricher`
+```php
+match ($itinerario->getEtapa()) {
+    EtapaEducativa::FP_BASICA          => $this->enrichBasica($itinerario),
+    EtapaEducativa::FP_ESPECIALIZACION => $this->enrichEspecializacion($itinerario),
+    default                            => $this->enrichTabla($itinerario),
+};
+```
+La función común `applyChanges()` centraliza hash de idempotencia, dry-run, persistencia de identificación y reemplazo de materias.
+
+### 16.5 Validación con XMLs reales
+Probado contra 8 RDs distintos (RD 127/2014 multi-anexo, RD 73/2018 mono-título, Ciberseguridad 4963, Ciber TO 4962, IA Big Data, 5G, Mantenimiento Industrial Digital):
+- 5/5 anexos de FP Básica → identificación correcta (denominación, familia, 2000h) y 9-12 módulos cada uno con código + horas.
+- 5/5 Cursos de Especialización → módulos con código + horas + ECTS por módulo.
+
+Primer batch en BD: 228 itinerarios procesados, 469 módulos creados.
+
+### 16.6 Trampas adicionales descubiertas en el batch
+Tras el primer batch surgieron 6 huérfanos que requirieron tres fixes:
+
+1. **Capitalización inconsistente del header**: RDs ≥2020 usan `Módulo profesional:` (minúscula); ≤2019 usan `Módulo Profesional:`. → todas las regex llevan flag `i`.
+
+2. **RD de FP Básica mono-título sin anexos** (RD 73/2018 "Acceso y Conservación en Instalaciones Deportivas"): el RD entero describe un único título sin estructura `<p class="anexo_tit">`. → `BasicaParser` cae en fallback: si ningún anexo matchea, parsea todo el documento como `EspecializacionParser`.
+
+3. **Palabras partidas entre `<strong>` adyacentes**: `<strong>Reparació</strong>\n      <strong>n de averías…</strong>` o `<strong>Có</strong><strong>digo: 3005.</strong>`. La versión inicial de `paragraphText` colapsaba TODO whitespace a un espacio → "Reparació n" y "Có digo:". → Nuevo `paragraphText`: los text-nodes con sólo whitespace de formato XML **se descartan** (no se sustituyen por espacio); los `<strong>`/`<em>` aportan su `textContent` íntegro. Mantiene "Hacking ético" (necesita espacio real entre `<strong>`s) y arregla los partidos.
+
+4. **Basura tras el código**: `<strong>Código: 3149</strong><strong>.</strong>` produce "Código: 3149 .". Regex relajada: `^\s*Código:\s*(\d{3,5}[A-Za-z_]?)[\.\s]*$`.
+
+### 16.7 Limitaciones documentadas (pendientes de v1.1)
+- **RDs de modificación post-LOMLOE**: TodoFP a veces enlaza al RD que *modifica* el título (p. ej. RD 498/2024 que altera el anexo X "Carpintería y Mueble" del RD 127/2014). Estos RDs no contienen la definición del título sino tablas de cambios. **Causa raíz: scraper de TodoFP**, no del parser BOE. Solución v1.1: detectar amendment RDs (heurística por `<p class="articulo">Modificación…</p>`) y mapear al original.
+
+## 17. Vistas de administración (UI)
+
+Tras llegar a 233/234 itinerarios de FP enriquecidos (497 módulos), expone los datos en una sección de admin del frontend para que los gestores puedan consultar el catálogo sin tocar SQL.
+
+### 17.1 Principios
+- **Read-only**. El catálogo se rellena por scraping; editar manualmente generaría divergencias que el siguiente refresh sobrescribiría sin control. La pantalla muestra; no edita.
+- **Procedencia visible**. Cada vista lleva un banner `DataProvenanceBanner` que recuerda la fuente (TodoFP + BOE), la última sincronización y el aviso de que Loggex no es la fuente oficial.
+- **Consistencia visual obligatoria**. Hereda 100 % del sistema de temas (`utils/theme.js` + variables CSS de `index.css`). Sin colores, espacios, radios ni transiciones hardcodeados — todo vía `var(--*)`. Hereda fondo animado y `.content` translúcido del `Layout`.
+
+### 17.2 Rutas y rol de acceso
+- `/admin/catalogo/itinerarios` — ROLE_ADMIN+. Listing con filtros server-side.
+- `/admin/catalogo/itinerarios/:id` — ROLE_ADMIN+. Detalle con identificación + materias.
+- `/admin/catalogo/materias` — ROLE_ADMIN+. Listing con filtro por itinerario via AsyncSearchSelect.
+- `/admin/catalogo/centros` — **ROLE_SUPERADMIN únicamente**. Stub hasta Fase 2 del catálogo (ingestión de centros de `centros.gob.es`).
+- `/admin/catalogo/acerca` — ROLE_ADMIN+. Explicación completa del sistema (procedencia, refresh, alcance, limitaciones, aviso legal).
+
+### 17.3 Componentes reutilizables nuevos
+- **`DataProvenanceBanner`**: aparece encima de cada listing y detalle. Compacto (1-2 líneas). Variantes por contenido (Itinerarios / Materias / Centros). Link a `/admin/catalogo/acerca`.
+
+### 17.4 Filtros server-side
+Los entity filters de API Platform ya están casi listos. Para el listing:
+- **Itinerarios**: `q` (SearchAnyFilter sobre nombre + códigoOficial), `etapa`, `familia`, `nivel`, `ccaa`. Ordenación por nombre/etapa/duración.
+- **Materias**: `q` (SearchAnyFilter sobre nombre + códigoOficial), `itinerario` (id, exact), `tipo` (enum), `curso` (1/2).
+- **Centros**: a definir cuando exista la fuente.
+
+Hidratación: los listings consumen `application/ld+json` y leen `hydra:member` + `hydra:totalItems` siguiendo el patrón ya estandarizado (ver `Usuarios.jsx`).
+
+### 17.5 Roadmap de la sección
+1. ✅ Sidebar + ruteo + `AcercaPage` y `DataProvenanceBanner` (cimientos).
+2. ✅ Listing Itinerarios + filtros server-side (búsqueda libre, etapa, familia, nivel, vigencia).
+3. ✅ Detail Itinerario con tarjeta de identificación + tabla de módulos.
+4. ✅ Listing Materias con filtro de itinerario via AsyncSearchSelect.
+5. ✅ Stub Centros gateado SUPERADMIN.
+6. ⏳ **(Fase 2)** Botones de actualización manual: dispararán `app:catalogo:refresh` y `app:catalogo:enrich-boe` vía Symfony Messenger; UI mostrará progreso. **Out of scope** del MVP: hoy se ejecutan los comandos por terminal, lo cual basta para administradores con acceso al servidor. Cuando llegue el momento, se añade aquí.
+
+## 18. Rename a vocabulario neutro (abr 2026)
+
+Tras llegar al snapshot de §13 con el catálogo nacional al 100 % y la UI admin desplegada (§17), se ejecutó un refactor de **renombrado puramente nominal** sobre las entidades del centro para alinearlas con el vocabulario que ya usaba el catálogo y eliminar la terminología solo-FP que las contaminaba.
+
+**Plan completo y bitácora:** `docs/hoja-de-ruta-rename-fp-neutral.md` (8 fases A→H con checkboxes para retomar entre sesiones).
+
+### 18.1 Renombres aplicados
+
+| Antes | Después | Razón |
+|---|---|---|
+| `CicloFormativo` | `Itinerario` | Neutro entre etapas; alinea con `CatalogoItinerario` |
+| `Modulo` | `Materia` | Alinea con `CatalogoMateria` |
+| `Material` | `Temario` | El UI ya lo llamaba "Temario" en español; libera "Materia" |
+| `Tema` | `TemaVisual` | Es el tema visual del centro; el rename evita confusión con el contenido pedagógico (que ahora se llama Temario) |
+
+Se renombraron archivos físicos (`git mv`), clases, repositorios, columnas Doctrine y tablas, propiedades, getters/setters, serializer groups, rutas API, rutas SPA, claves de traducción en 5 idiomas, `data-tour` ids y refs en `erModel`. **No se tocó la forma de los datos** (campos, validaciones, lógica) — eso es la sub-fase 12.B+ del refactor multi-etapa, que queda pendiente para cuando aparezca un centro no-FP real.
+
+### 18.2 Estrategia de datos
+- 5 tablas se conservan tras el rename: `usuario`, `centro`, `personalizacion`, `comunicado`, `tema_visual` (esta última con el nombre nuevo). Extraídas de `backup_tfg_full.sql` con un AWK filtrado a `backup_preserve.sql`.
+- El resto (itinerarios, materias, grupos, matrículas, imparticiones, etc.) eran fixtures desechables → `doctrine:schema:drop` y se regeneran.
+- El catálogo oficial (`catalogo_*`) se vuelve a poblar ejecutando `app:catalogo:refresh` + `app:catalogo:enrich-boe` (~5 min, idempotente).
+- Migraciones del centro squasheadas: las 5 viejas borradas, una sola nueva generada por `make:migration` desde el estado final de las entidades.
+
+Todo automatizado en `scripts/post-rename-reset.sh` (drop → migrate → restore preservados → catálogo refresh).
+
+### 18.3 Relación con §12
+Este rename equivale a haber ejecutado las sub-fases **12.B + 12.C + 12.G** del plan original de multi-etapa, omitiendo la 12.A (hook `useTerminologia`) por innecesaria. La motivación fue aprovechar que los datos del centro eran fixtures desechables — la próxima vez la sub-fase 12.G no será gratis.
+
+Lo que queda de §12 para más adelante (cuando llegue un centro no-FP):
+- Hacer opcionales los campos solo-FP (`familia`, `horasSemanales` obligatorias, `tipo` con valores FCT/Proyecto, etc.).
+- Validación condicional por etapa.
+- i18n keys generalizadas con copys por etapa.
+
+## 19. Soporte de ESO (LOMLOE) — abr 2026
+
+Tras cerrar el rename de §18, se ejecutó la primera ampliación multi-etapa: añadir Educación Secundaria Obligatoria al catálogo oficial. Plan completo en `docs/hoja-de-ruta-eso.md` (Fases A–F).
+
+### 19.1 Cobertura
+- 1 itinerario en el catálogo: `ESO-LOMLOE-2022` ("Educación Secundaria Obligatoria"), etapa `eso`, basado en el RD 217/2022.
+- 28 materias del Anexo IV: 12 distribuidas en cursos 1–3 (sin `curso` específico, lo decide cada CCAA) + 16 del cuarto curso (5 obligatorias + 10 optativas marcadas con `*` + Religión).
+- Tipos asignados automáticamente: TRONCAL para obligatorias, OPTATIVA para las marcadas con `*`, ESPECIFICA para Religión.
+
+### 19.2 Componentes nuevos
+- `App\Catalogo\Source\BoeEsoAdapter`: implementa `CatalogoSourceAdapterInterface`, `source()='boe_eso'`. Se autoregistra vía `_instanceof`.
+- `App\Catalogo\Source\BoeEso\EsoCurriculumParser`: parsea el Anexo IV del RD 217/2022 (tabla con 3 secciones marcadas por `<em>`).
+- Reusa `BoeXmlFetcher` existente para HTTP + normalización de URL del BOE.
+
+### 19.3 Cambios en el modelo del centro (Fase D)
+Sub-fase parcial del refactor multi-etapa de §12, ejecutada al implementar ESO:
+- `Materia.horasSemanales` pasa de `NOT NULL` a `nullable`. Razón: en ESO/Bach el RD nacional solo fija horas mínimas totales por etapa; el reparto curso a curso lo decide cada CCAA. El admin del centro puede dejarlo en blanco hasta confirmar.
+- `Materia.tipo` añadido (enum `TipoMateria`, nullable). Se propaga del catálogo al materializar. Permite distinguir TRONCAL/OPTATIVA/ESPECIFICA en UI.
+- `CatalogoMaterializationController.buildModulo` propaga `tipo` y deja `horasSemanales` como `null` para itinerarios no-FP (en lugar de forzar `0`).
+- Migration: `Version20260425202346` (ALTER TABLE materia ADD tipo + horas_semanales NULLABLE).
+
+### 19.4 Cambios en UX (Fase E)
+- Modal "Nuevo Itinerario" del centro: el AsyncSearchSelect ahora abierto a TODAS las etapas implementadas (FP + ESO; futuras etapas también caben). El admin discrimina tecleando el nombre.
+- `mapNivel` extiende soporte a Primaria/ESO/Bachillerato.
+- Form de Materias: nuevo select "Tipo" (opcional), input "Horas Semanales" acepta vacío, opciones de curso 1–4 (antes 1–2).
+- i18n: claves `materias.course3/4`, `materias.type`, `materias.typeUnset` añadidas.
+
+### 19.5 Bug fix descubierto
+Durante Fase E se detectó que el sed mecánico del rename §18 había convertido el VALOR del enum case `TipoMateria::MODULO = 'modulo'` en `TipoMateria::MODULO = 'materia'`, generando incoherencia entre código y datos en BD. Corregido en `TipoMateria.php` y aplicado UPDATE retrofit con `Version20260425210000`.
+
+### 19.6 Limitaciones conocidas (v1.1 ESO)
+- **Sin variantes por CCAA**. El RD nacional 217/2022 solo fija horas mínimas totales; cada autonomía publica su decreto regional con la distribución horaria por curso (Andalucía 102/2023, Madrid 65/2022, etc.). Cuando llegue un centro de ESO real, la siguiente fase es escribir `JuntaAndaluciaEsoAdapter` u otro CCAA-específico.
+- **Evaluación competencial LOMLOE**: ESO introduce evaluación por competencias clave + competencias específicas, distinto del modelo actual orientado a notas numéricas por módulo. La pantalla de calificaciones funciona con datos ESO pero con la lógica FP — un centro LOMLOE puro pediría adaptaciones.
+- **Bachillerato y otras etapas**: no implementadas. Aplica el mismo patrón (BOE adapter + cobertura nacional + variantes CCAA).
+
+---
+
+## 20. Currículo por CCAA (overlay sobre nacional)
+
+Roadmap dedicado: **`docs/hoja-de-ruta-curriculum-ccaa.md`**.
+
+Resumen de qué cambia respecto al modelo nacional descrito en §1–§19:
+
+- El catálogo **nacional** (BOE, BOJA-ESO, RD 217/2022...) sigue siendo la **fuente de verdad base**.
+- Encima se monta una **capa overlay por CCAA** (`CatalogoMateriaCcaa`, `CatalogoItinerarioCcaa`) que:
+  - Sobrescribe horas (ej. Web servidor: 8h BOE → 7.5h BOJA Andalucía).
+  - Sobrescribe nombres si el decreto autonómico los renombra.
+  - Añade materias autonómicas que NO existen en el currículo nacional (ej. Inglés profesional GS, Itinerario Personal Empleabilidad II).
+- Cada `Itinerario` (de centro) lleva un campo `ccaa` nullable. NULL = currículo nacional puro. Con CCAA → overlay aplicado al materializar.
+- Versionado por fecha (`vigenteDesde / vigenteHasta`) para auditoría histórica de cambios normativos.
+- Adapter pionero: **`BojaAndAdapter`** (Andalucía). Resto de CCAA en sesiones futuras por demografía: CT > MD > VC > PV > GA > resto.
+
+Decisiones cerradas (`hoja-de-ruta-curriculum-ccaa.md` §2):
+- D1 = enum PHP backed (no tabla).
+- D2 = overlay (no reemplazo).
+- D3 = refactor `horasSemanales` → `minutosSemanales` (preciso sin DECIMAL).
+- D4 = Andalucía piloto.
+- D5 = `itinerario.ccaa` nullable.
+
+Decisiones abiertas (D6-D10 en el roadmap dedicado): materias autonómicas en mismo modelo, override de nombre del itinerario, multi-CCAA por centro, default al crear, versionado.
+
+**Cómo encaja con §13 estado actual**: la implementación CCAA NO ha empezado. El catálogo nacional sigue funcionando. La capa CCAA es aditiva — itinerarios sin CCAA siguen comportándose exactamente igual.
+
+**Cómo encaja con §16 dispatcher por etapa**: los adapters CCAA son pares de los adapters nacionales (`BoeAdapter`, `TodoFpAdapter`, `BoeEsoAdapter`). Mismo patrón, fuente distinta. Al refrescar el catálogo, primero corren los nacionales (cargan/actualizan `catalogo_materia`) y luego los CCAA (cargan/actualizan `catalogo_materia_ccaa` con FK a las nacionales).
+
+**Cómo encaja con §17 vistas admin**: los `/admin/catalogo/*` ganan filtro CCAA. El banner `DataProvenanceBanner` añade segunda línea cuando aplica overlay ("Fuente: BOE - RD 686/2010 + adaptación BOJA Decreto 156/2022").

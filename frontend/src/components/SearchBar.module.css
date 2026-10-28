@@ -1,31 +1,42 @@
 .container {
     display: flex;
     align-items: center;
-    width: 100%;
-    max-width: 450px; /* Aumentado para acomodar el selector */
+    /* Ancho "deseado" para que el search no devore el espacio. Encoge hasta 180px
+       antes que forzar wrap del header; no crece más allá de 320px. */
+    flex: 0 1 auto;
+    width: 280px;
+    min-width: 180px;
+    max-width: 320px;
+    min-height: 0;
     gap: var(--space-2);
+    box-sizing: border-box;
 }
 
 .select {
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--color-gray-300);
+    border: none; /* Sin borde */
     border-radius: var(--radius-md);
-    background-color: white;
+    background-color: var(--bg-input); /* Usar variable maestra */
     font-size: var(--text-sm);
-    color: var(--color-gray-700);
+    color: var(--text-input); /* Usar variable maestra */
     cursor: pointer;
     outline: none;
     height: 38px; /* Altura fija para alinear con input */
+    transition: background-color 0.2s;
 }
 
 .select:focus {
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
+    /* border-color: var(--color-primary-500); */
+    /* box-shadow: 0 0 0 3px var(--color-primary-100); */
+
+    /* Tinte automático: mezcla 5% del color del texto con el fondo del input */
+    background-color: color-mix(in srgb, var(--bg-input), var(--text-input) 5%);
 }
 
 .inputWrapper {
     position: relative;
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     align-items: center;
 }
@@ -33,31 +44,35 @@
 .icon {
     position: absolute;
     left: var(--space-3);
-    color: var(--color-gray-400);
+    color: var(--text-muted); /* Usar variable maestra */
     pointer-events: none;
 }
 
 .input {
     width: 100%;
     padding: var(--space-2) var(--space-8) var(--space-2) var(--space-10); /* Padding derecho aumentado para la X */
-    border: 1px solid var(--color-gray-300);
+    border: none; /* Sin borde */
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
-    transition: border-color 0.2s, box-shadow 0.2s;
-    background-color: white;
-    color: var(--text-main);
+    transition: background-color 0.2s;
+    background-color: var(--bg-input); /* Usar variable maestra */
+    color: var(--text-input); /* Usar variable maestra */
     height: 38px;
     box-sizing: border-box;
 }
 
 .input:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
+    /* border-color: var(--color-primary-500); */
+    /* box-shadow: 0 0 0 3px var(--color-primary-100); */
+
+    /* Tinte automático: mezcla 5% del color del texto con el fondo del input */
+    background-color: color-mix(in srgb, var(--bg-input), var(--text-input) 5%);
 }
 
 .input::placeholder {
-    color: var(--color-gray-400);
+    color: var(--text-muted); /* Usar variable maestra */
+    opacity: 0.6;
 }
 
 .clearButton {
@@ -66,7 +81,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--color-gray-400);
+    color: var(--text-muted); /* Usar variable maestra */
     padding: 4px;
     border-radius: 50%;
     display: flex;
@@ -76,6 +91,6 @@
 }
 
 .clearButton:hover {
-    background-color: var(--color-gray-100);
-    color: var(--color-gray-600);
+    background-color: var(--bg-hover); /* Usar variable maestra */
+    color: var(--text-main); /* Usar variable maestra */
 }

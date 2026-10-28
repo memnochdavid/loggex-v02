@@ -6,11 +6,15 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
-use App\Entity\CicloFormativo;
+use App\Entity\Calificacion;
+use App\Entity\ExcepcionHorario;
+use App\Entity\Itinerario;
 use App\Entity\Comunicado;
+use App\Entity\Entrega;
 use App\Entity\Festivo;
 use App\Entity\Mensaje;
-use App\Entity\Modulo;
+use App\Entity\Materia;
+use App\Entity\Notificacion;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
@@ -39,12 +43,16 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
     {
         $supportedClasses = [
             User::class,
-            CicloFormativo::class,
-            Modulo::class,
+            Itinerario::class,
+            Materia::class,
             Festivo::class,
             Mensaje::class,
             Tarea::class,
-            Comunicado::class
+            Entrega::class,
+            Calificacion::class,
+            Comunicado::class,
+            Notificacion::class,
+            ExcepcionHorario::class,
         ];
 
         if (!in_array($resourceClass, $supportedClasses)) {
@@ -52,8 +60,25 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         }
 
         $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
 
-        if (!$user instanceof User || in_array('ROLE_SUPER_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+        $isSuperAdmin = in_array('ROLE_SUPER_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles());
+
+        /* Entidades personales por naturaleza: cada usuario (incluso el
+           SuperAdmin) ve sólo las suyas. Sin esta excepción al exempt
+           general del SA, la bandeja `SystemNotificationsList` y la
+           pantalla `/mensajes` del SA se llenan con la actividad de
+           todos los centros (Mensaje: conversaciones entre cualquier par
+           de usuarios — además de privacidad; Notificacion: cada
+           `tarea_nueva` / `calificacion_publicada` / `entrega_recibida`
+           del sistema). El resto (Itinerario, Materia, Festivo, Tarea,
+           Entrega, Calificacion, Comunicado, ExcepcionHorario, User)
+           sigue exento — son vistas administrativas legítimas para SA. */
+        $personalScopedClasses = [Mensaje::class, Notificacion::class];
+
+        if ($isSuperAdmin && !in_array($resourceClass, $personalScopedClasses)) {
             return;
         }
 
@@ -66,9 +91,38 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
             return;
         }
 
+        // Notificaciones — cada usuario solo ve las suyas (incluido SuperAdmin,
+        // que está en $personalScopedClasses para no recibir la avalancha de
+        // eventos de todos los centros).
+        if ($resourceClass === Notificacion::class) {
+            $queryBuilder->andWhere(sprintf('%s.usuario = :current_user_id', $rootAlias))
+                ->setParameter('current_user_id', $user->getId());
+            return;
+        }
+
         // Lógica específica para Tareas
         if ($resourceClass === Tarea::class) {
             $this->addWhereTarea($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Entregas
+        if ($resourceClass === Entrega::class) {
+            $this->addWhereEntrega($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Calificaciones
+        if ($resourceClass === Calificacion::class) {
+            $this->addWhereCalificacion($queryBuilder, $user, $rootAlias);
+            return;
+        }
+
+        // Lógica específica para Excepciones de horario.
+        // Admin del centro: cascada vía horarioBase.imparticion.grupo.centro.
+        // Profe puro: las que le tocan (solicitante / sustituto / titular del placement).
+        if ($resourceClass === ExcepcionHorario::class) {
+            $this->addWhereExcepcionHorario($queryBuilder, $user, $rootAlias);
             return;
         }
 
@@ -87,14 +141,41 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
 
         // Si es Admin de centro (o cualquier usuario de centro), filtrar por su centro
         if (method_exists($user, 'getCentro') && $user->getCentro()) {
-            if ($resourceClass === Modulo::class) {
-                $queryBuilder->join(sprintf('%s.ciclo', $rootAlias), 'c')
-                             ->andWhere('c.centro = :current_centro')
-                             ->setParameter('current_centro', $user->getCentro());
+            if ($resourceClass === Materia::class) {
+                // Materia ↔ Itinerario es M:N tras 2026-05-08. Una materia visible
+                // si AL MENOS UNO de sus itinerarios pertenece al centro del user.
+                // Subquery EXISTS para evitar duplicar filas (un join + groupBy
+                // también valdría pero rompería paginación de API Platform).
+                $queryBuilder->andWhere(sprintf(
+                    'EXISTS (SELECT 1 FROM %s _mi'
+                        . ' JOIN _mi.itinerarios _i'
+                        . ' WHERE _mi = %s AND _i.centro = :current_centro)',
+                    Materia::class,
+                    $rootAlias,
+                ))
+                    ->setParameter('current_centro', $user->getCentro());
             } else {
                 if ($resourceClass === Festivo::class) {
-                    $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias));
-                    $queryBuilder->setParameter('current_centro', $user->getCentro());
+                    // Cascada de aplicabilidad por configuración del centro:
+                    //   NACIONAL                                   → siempre.
+                    //   AUTONOMICO ccaa = centro.ccaa              → solo si la CCAA coincide.
+                    //   PROVINCIAL provincia = centro.provincia    → solo si la provincia coincide.
+                    //   LOCAL centro = centro_actual               → solo del propio centro.
+                    // Sin esto, un admin de Andalucía vería los 118 autonómicos
+                    // de las 19 CCAAs y todos los provinciales sueltos del país.
+                    $centro = $user->getCentro();
+                    $queryBuilder->andWhere(
+                        sprintf(
+                            "(%s.ambito = 'nacional')"
+                            . " OR (%s.ambito = 'autonomico' AND %s.ccaa = :current_ccaa)"
+                            . " OR (%s.ambito = 'provincial' AND %s.provincia = :current_provincia)"
+                            . " OR (%s.ambito = 'local' AND %s.centro = :current_centro)",
+                            $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias, $rootAlias
+                        )
+                    );
+                    $queryBuilder->setParameter('current_centro', $centro);
+                    $queryBuilder->setParameter('current_ccaa', $centro->getCcaa()?->value);
+                    $queryBuilder->setParameter('current_provincia', $centro->getProvincia());
                 } elseif ($resourceClass === User::class && in_array('ROLE_ADMIN', $user->getRoles())) {
                     // Admin de centro ve usuarios de su centro
                     $queryBuilder->andWhere(sprintf('%s.centro = :current_centro OR %s.centro IS NULL', $rootAlias, $rootAlias))
@@ -126,12 +207,107 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         }
     }
 
+    private function addWhereEntrega(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.tarea', $rootAlias), 'et')
+               ->join('et.imparticion', 'ei')
+               ->join('ei.grupo', 'eg')
+               ->join('eg.itinerario', 'ec')
+               ->andWhere('ec.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.tarea', $rootAlias), 'et')
+               ->join('et.imparticion', 'ei')
+               ->andWhere('ei.profesor = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        if (in_array('ROLE_ALUMNO', $user->getRoles())) {
+            $qb->andWhere(sprintf('%s.alumno = :user', $rootAlias))
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
+    }
+
+    private function addWhereCalificacion(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->join('ce.tarea', 'ct')
+               ->join('ct.imparticion', 'ci')
+               ->join('ci.grupo', 'cg')
+               ->join('cg.itinerario', 'cc')
+               ->andWhere('cc.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->join('ce.tarea', 'ct')
+               ->join('ct.imparticion', 'ci')
+               ->andWhere('ci.profesor = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        if (in_array('ROLE_ALUMNO', $user->getRoles())) {
+            $qb->join(sprintf('%s.entrega', $rootAlias), 'ce')
+               ->andWhere('ce.alumno = :user')
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
+    }
+
+    /**
+     * Filtro Excepciones de horario por rol (D-C 2026-05-07):
+     *   - Admin de centro: todas las del centro vía cadena
+     *     horarioBase.imparticion.grupo.centro = miCentro.
+     *   - Profe puro: solo las que le tocan: solicitadaPor=self OR
+     *     profeOverride=self OR horarioBase.imparticion.profesor=self.
+     *   - Alumno: ninguna por API directa (Fase A); las verá vía notificaciones
+     *     y composición de su propio horario.
+     */
+    private function addWhereExcepcionHorario(QueryBuilder $qb, User $user, string $rootAlias): void
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $qb->join(sprintf('%s.horarioBase', $rootAlias), 'eh_h')
+               ->join('eh_h.imparticion', 'eh_i')
+               ->join('eh_i.grupo', 'eh_g')
+               ->andWhere('eh_g.centro = :centro')
+               ->setParameter('centro', $user->getCentro());
+            return;
+        }
+
+        if (in_array('ROLE_PROFESOR', $user->getRoles())) {
+            $qb->join(sprintf('%s.horarioBase', $rootAlias), 'eh_h')
+               ->join('eh_h.imparticion', 'eh_i')
+               ->andWhere(sprintf(
+                   '%s.solicitadaPor = :user OR %s.profeOverride = :user OR eh_i.profesor = :user',
+                   $rootAlias, $rootAlias
+               ))
+               ->setParameter('user', $user);
+            return;
+        }
+
+        $qb->andWhere('1 = 0');
+    }
+
     private function addWhereTarea(QueryBuilder $qb, User $user, string $rootAlias): void
     {
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             $qb->join(sprintf('%s.imparticion', $rootAlias), 'i')
                ->join('i.grupo', 'g')
-               ->join('g.ciclo', 'c')
+               ->join('g.itinerario', 'c')
                ->andWhere('c.centro = :centro')
                ->setParameter('centro', $user->getCentro());
             return;

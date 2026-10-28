@@ -3,17 +3,26 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
-import { Plus, Edit2, Trash2, Lock } from 'lucide-react';
+import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
+import { Plus, Edit2, Trash2, Lock, DownloadCloud } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
-const Festivos = () => {
+const Festivos = ({ embedded = false, tabs = null }) => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -28,6 +37,7 @@ const Festivos = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
+  const [selectedAmbito, setSelectedAmbito] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +59,7 @@ const Festivos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' }
+      { value: 'nombre', label: t('holidays.name') }
   ];
 
   // Estado para el modal
@@ -62,6 +72,20 @@ const Festivos = () => {
     centro: ''
   });
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  // Centro objetivo del botón "Cargar festivos del centro":
+  //   - SuperAdmin: el seleccionado en el filtro (si lo hay).
+  //   - Admin de centro: su propio user.centro.id (siempre disponible).
+  const targetCentroId = useMemo(() => {
+    if (isSuperAdmin) return selectedCentro || '';
+    if (user?.centro) {
+      return typeof user.centro === 'string'
+        ? user.centro.split('/').pop()
+        : (user.centro.id || '');
+    }
+    return '';
+  }, [isSuperAdmin, selectedCentro, user]);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -104,10 +128,19 @@ const Festivos = () => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
+      // Filtro por centro: usar `aplicaACentro` para que el backend devuelva
+      // la cascada NACIONAL + AUTONOMICO ccaa + PROVINCIAL provincia + LOCAL
+      // del centro elegido (no solo los LOCAL como hacía `centro=X`). Para
+      // admins de centro, `CurrentUserExtension` ya aplica la misma cascada
+      // sobre su user.centro automáticamente; este parámetro lo usa SuperAdmin
+      // para ver "los festivos como los ve el centro X".
       if (params.selectedCentro) {
-          url += `&centro=${params.selectedCentro}`;
+          url += `&aplicaACentro=${params.selectedCentro}`;
       }
-      
+      if (params.selectedAmbito) {
+          url += `&ambito=${params.selectedAmbito}`;
+      }
+
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -143,10 +176,27 @@ const Festivos = () => {
     }
   }, []); 
 
+  // Mercure live: topic plano /admin/festivos. Cualquier cambio (incluido el
+  // botón "Cargar festivos del centro" que crea muchos a la vez) se propaga
+  // a todos los admins. La cascada por aplicabilidad la hace el backend en
+  // el GET; basta con refetch al evento.
+  useLiveRefetch(['/admin/festivos'], () => {
+      fetchFestivosData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedAmbito,
+          sortColumn,
+          sortDirection,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 
@@ -156,6 +206,7 @@ const Festivos = () => {
           searchTerm,
           searchField,
           selectedCentro,
+          selectedAmbito,
           sortColumn,
           sortDirection
       };
@@ -174,13 +225,14 @@ const Festivos = () => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      selectedCentro, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedAmbito,
+      sortColumn,
+      sortDirection,
       fetchFestivosData
   ]);
 
@@ -251,6 +303,9 @@ const Festivos = () => {
         nombre: formData.nombre,
         fechaInicio: formData.fechaInicio,
         fechaFin: formData.fechaFin || null,
+        // La UI solo crea/edita festivos LOCALES — los nacionales/autonómicos
+        // /provinciales vienen del seed BOE (read-only en la tabla).
+        ambito: 'local',
       };
 
       if (isSuperAdmin) {
@@ -279,9 +334,8 @@ const Festivos = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -295,17 +349,24 @@ const Festivos = () => {
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentFestivo
+        ? t('holidays.updatedSuccess', { defaultValue: 'Festivo actualizado' })
+        : t('holidays.createdSuccess', { defaultValue: 'Festivo creado' }));
 
     } catch (err) {
       console.error("Error saving festivo:", err);
-      alert(`Error: ${err.message}`);
+      toast.error(err.message, {
+        description: currentFestivo
+          ? t('holidays.errorUpdating', { defaultValue: 'No se ha podido actualizar el festivo' })
+          : t('holidays.errorCreating', { defaultValue: 'No se ha podido crear el festivo' })
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (festivo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este festivo?')) {
+    if (!(await confirm({ body: t('holidays.confirmDelete') }))) {
       return;
     }
 
@@ -319,7 +380,8 @@ const Festivos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el festivo');
+        const message = await parseErrorResponse(response, t('holidays.errorDelete'));
+        throw new Error(message);
       }
 
       fetchFestivosData({
@@ -331,37 +393,125 @@ const Festivos = () => {
           sortColumn,
           sortDirection
       });
+      toast.success(t('holidays.deletedSuccess', { defaultValue: 'Festivo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting festivo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      toast.error(err.message, {
+        description: t('holidays.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el festivo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchFestivosData, t]);
+
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/festivos',
+    onSuccess: () => fetchFestivosData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+    }),
+  });
+
+  // Sincronizar festivos del centro desde los JSONs curados en MinIO (BOE
+  // laboral + Resolución BOJA escolar autonómica). Idempotente: si ya están,
+  // no duplica. La cascada que persiste se calcula desde la CCAA y provincia
+  // del centro objetivo.
+  const handleSyncFestivos = useCallback(async () => {
+    if (!targetCentroId) return;
+    const ok = await confirm({
+      title: t('holidays.syncTitle', { defaultValue: 'Cargar festivos del centro' }),
+      body: t('holidays.syncConfirmBody', {
+        defaultValue: 'Se cargarán los festivos oficiales (BOE + BOJA) aplicables al centro: nacionales, autonómicos de la CCAA, vacaciones académicas, día de la Comunidad Educativa y día provincial. La operación es idempotente — los festivos ya existentes no se duplican.',
+      }),
+      confirmLabel: t('holidays.syncConfirm', { defaultValue: 'Cargar' }),
+    });
+    if (!ok) return;
+
+    setSyncing(true);
+    try {
+      const response = await fetch(getApiUrl(`/api/v1/centros/${targetCentroId}/sync-festivos`), {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
+      }
+      const stats = await response.json();
+      const total = (stats.nacionales || 0) + (stats.autonomicos || 0)
+        + (stats.provinciales || 0) + (stats.vacaciones || 0) + (stats.etapas || 0);
+      toast.success(t('holidays.syncDoneTitle', { defaultValue: 'Festivos cargados' }), {
+        description: t('holidays.syncDoneBody', {
+          defaultValue: '{{total}} entradas nuevas (nacionales {{nac}}, autonómicos {{aut}}, vacaciones {{vac}}, provinciales {{prov}}, etapas {{etapas}}). Sin cambios: {{sc}}.',
+          total, nac: stats.nacionales || 0, aut: stats.autonomicos || 0,
+          vac: stats.vacaciones || 0, prov: stats.provinciales || 0,
+          etapas: stats.etapas || 0, sc: stats.sinCambios || 0,
+        }),
+      });
+      (stats.mensajes || []).forEach(m => toast.warning(m));
+      fetchFestivosData({
+        page: currentPage, itemsPerPage, searchTerm, searchField,
+        selectedCentro, selectedAmbito, sortColumn, sortDirection,
+      });
+    } catch (err) {
+      console.error('Error sincronizando festivos:', err);
+      toast.error(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }, [targetCentroId, confirm, t, fetchFestivosData, currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedAmbito, sortColumn, sortDirection]);
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('holidays.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
     { 
-        header: 'Fecha Inicio', 
+        header: t('holidays.startDate'), 
         accessor: (row) => new Date(row.fechaInicio).toLocaleDateString(), 
         sortable: true, 
         sortKey: 'fechaInicio' 
     },
     { 
-        header: 'Fecha Fin', 
+        header: t('holidays.endDate'), 
         accessor: (row) => row.fechaFin ? new Date(row.fechaFin).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaFin' 
     },
-    { 
-        header: 'Centro', 
-        accessor: (row) => row.centro ? (row.centro.nombre || 'Cargando...') : 'Global', 
-        sortable: false 
-    },
-    { 
-        header: 'Acciones', 
+    {
+        header: t('holidays.ambito', { defaultValue: 'Ámbito' }),
         accessor: (row) => {
-            const isGlobal = !row.centro;
-            const canEditRow = isSuperAdmin || (!isGlobal && isAdmin);
+            const ambito = row.ambito || 'local';
+            // Estilo unificado con /admin/catalogo/itinerarios: todos los badges
+            // usan `.badge` (color primary). La variante neutra (gris) marca
+            // los LOCALES — manuales del admin — frente al resto que viene del
+            // seed BOE. La discriminación semántica del ámbito (nacional/
+            // autonómico/provincial) va en el texto: "Autonómico (AN)" etc.
+            const labels = {
+                nacional:   t('holidays.ambitoNacional',   { defaultValue: 'Nacional' }),
+                autonomico: row.ccaa ? `${t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' })} (${row.ccaa})` : t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }),
+                provincial: row.provincia?.codigo ? `${t('holidays.ambitoProvincial', { defaultValue: 'Provincial' })} (${row.provincia.codigo})` : t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }),
+                local:      t('holidays.ambitoLocal',      { defaultValue: 'Local' }),
+            };
+            const cls = ambito === 'local' ? `${styles.badge} ${styles.badgeNeutral}` : styles.badge;
+            return <span className={cls}>{labels[ambito] || labels.local}</span>;
+        },
+        sortable: true,
+        sortKey: 'ambito',
+    },
+    {
+        header: t('holidays.center'),
+        accessor: (row) => row.centro ? (row.centro.nombre || t('common.loading')) : '—',
+        sortable: false
+    },
+    {
+        header: t('common.actions'),
+        accessor: (row) => {
+            // Solo los festivos LOCALES son editables; nacionales/autonómicos/
+            // provinciales vienen del seed BOE y son read-only por diseño.
+            const isLocal = (row.ambito || 'local') === 'local';
+            const canEditRow = isLocal && (isSuperAdmin || isAdmin);
 
             return (
                 <div className={styles.actions}>
@@ -370,20 +520,20 @@ const Festivos = () => {
                             <button 
                                 className={styles.iconButton} 
                                 onClick={() => handleOpenModal(row)}
-                                title="Editar"
+                                title={t('common.edit')}
                             >
                                 <Edit2 size={18} />
                             </button>
                             <button 
                                 className={`${styles.iconButton} ${styles.danger}`} 
                                 onClick={() => handleDelete(row)}
-                                title="Eliminar"
+                                title={t('common.delete')}
                             >
                                 <Trash2 size={18} />
                             </button>
                         </>
                     ) : (
-                        <span title="Festivo Global (Solo lectura)" style={{ color: 'var(--text-muted)', padding: '4px' }}>
+                        <span title={t('holidays.readOnly')} style={{ color: 'var(--text-muted)', padding: '4px' }}>
                             <Lock size={16} />
                         </span>
                     )}
@@ -394,56 +544,106 @@ const Festivos = () => {
     }
   ], [isSuperAdmin, isAdmin, handleOpenModal, handleDelete]);
 
-  return (
-    <Layout>
-        <div className={styles.container}>
-        <CrudHeader title="Festivos"
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
-        >
-            {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
-            )}
-            
-            <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-                placeholder="Buscar festivo..." 
-                fields={searchFields}
-                selectedField={searchField}
-                onFieldChange={setSearchField}
+  const toolbar = (
+    <>
+        {isSuperAdmin && (
+            <ThemedSelect
+                value={selectedCentro}
+                onChange={setSelectedCentro}
+                minWidth={200}
+                ariaLabel={t('common.allCenters')}
+                options={[
+                    { value: '', label: t('common.allCenters') },
+                    ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                ]}
             />
-            
-            {canCreate && (
+        )}
+        <ThemedSelect
+            value={selectedAmbito}
+            onChange={setSelectedAmbito}
+            minWidth={180}
+            ariaLabel={t('holidays.allAmbitos', { defaultValue: 'Todos los ámbitos' })}
+            options={[
+                { value: '', label: t('holidays.allAmbitos', { defaultValue: 'Todos los ámbitos' }) },
+                { value: 'nacional', label: t('holidays.ambitoNacional', { defaultValue: 'Nacional' }) },
+                { value: 'autonomico', label: t('holidays.ambitoAutonomico', { defaultValue: 'Autonómico' }) },
+                { value: 'provincial', label: t('holidays.ambitoProvincial', { defaultValue: 'Provincial' }) },
+                { value: 'local', label: t('holidays.ambitoLocal', { defaultValue: 'Local' }) },
+            ]}
+        />
+        <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder={t('holidays.searchPlaceholder')}
+            fields={searchFields}
+            selectedField={searchField}
+            onFieldChange={setSearchField}
+        />
+        {canCreate && (
+            <div style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+                flexWrap: 'wrap',
+                marginLeft: 'auto',
+                flexShrink: 0,
+            }}>
+                {targetCentroId && (
+                    <Button
+                        onClick={handleSyncFestivos}
+                        variant="secondary"
+                        disabled={syncing}
+                        title={t('holidays.syncTooltip', { defaultValue: 'Carga festivos oficiales BOE + BOJA aplicables al centro (idempotente).' })}
+                    >
+                        <DownloadCloud size={18} style={{ marginRight: '8px' }} />
+                        {syncing
+                            ? t('holidays.syncing', { defaultValue: 'Cargando…' })
+                            : t('holidays.syncButton', { defaultValue: 'Cargar festivos del centro' })}
+                    </Button>
+                )}
                 <Button onClick={() => handleOpenModal()}>
                     <Plus size={18} style={{ marginRight: '8px' }} />
-                    Nuevo
+                    {t('common.new')}
                 </Button>
-            )}
+            </div>
+        )}
+    </>
+  );
+
+  const body = (
+    <>
+        <CrudHeader title={embedded ? t('dates.title') : t('holidays.title')}
+                    subtitle={embedded ? t('dates.subtitle') : t('holidays.subtitle')}
+                    breadcrumbs={embedded ? [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('dates.title') },
+                    ] : [
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('holidays.title') },
+                    ]}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
+                    middle={tabs}
+                    stackActionsEarly
+        >
+            {toolbar}
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchFestivosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchFestivosData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
         <DataTable
+            tableId="festivos"
             columns={columns}
             data={festivos}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
+            selectable
+            onBulkDelete={handleBulkDelete}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
             sortColumn={sortColumn}
@@ -455,12 +655,12 @@ const Festivos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentFestivo ? 'Editar Festivo' : 'Nuevo Festivo'}
+            title={currentFestivo ? t('holidays.editTitle') : t('holidays.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre</label>
+                <label className={styles.label}>{t('holidays.name')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -468,12 +668,12 @@ const Festivos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: Navidad"
+                    placeholder={t('holidays.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Inicio</label>
+                <label className={styles.label}>{t('holidays.startDate')}</label>
                 <input
                     type="date"
                     name="fechaInicio"
@@ -485,7 +685,7 @@ const Festivos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Fin (Opcional)</label>
+                <label className={styles.label}>{t('holidays.endDateOptional')}</label>
                 <input
                     type="date"
                     name="fechaFin"
@@ -497,22 +697,27 @@ const Festivos = () => {
 
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Centro (Opcional - Global si vacío)</label>
-                    <select
+                    <label className={styles.label}>{t('holidays.centerOptional')}</label>
+                    <AsyncSearchSelect
                         name="centro"
                         value={formData.centro}
-                        onChange={handleInputChange}
-                        className={styles.select}
-                        style={{ width: '100%' }}
-                    >
-                        <option value="">Global (Todos los centros)</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
+                        onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                        endpoint="/api/centros"
+                        getOptionLabel={(c) => c.nombre}
+                        getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                        placeholder={t('holidays.globalOption')}
+                    />
                 </div>
             )}
         </ModalView>
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <Layout>
+        <div className={styles.container}>
+            {body}
         </div>
     </Layout>
   );

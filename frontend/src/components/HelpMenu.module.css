@@ -1,0 +1,195 @@
+/* =================================================================
+   HelpMenu — contenido interno del ModalView.
+   Sin chrome propio: el overlay/header/footer/close + animaciones vienen
+   de ModalView. Aquí solo la lista de tours y el toggle, usando las
+   mismas variables de tema que el resto del modal.
+   ================================================================= */
+
+.intro {
+    margin: 0 0 var(--space-4);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.7;
+    font-size: var(--text-sm);
+    line-height: 1.55;
+}
+
+.empty {
+    margin: 0;
+    padding: var(--space-6) 0;
+    text-align: center;
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.6;
+    font-style: italic;
+    font-size: var(--text-sm);
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+/* Cada entrada: card suave sobre el body del modal, con bordes del tema.
+   El hover intensifica el borde y levanta ligeramente la card. */
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: 1px solid var(--border-color, var(--color-gray-200));
+    border-radius: var(--radius-md, 8px);
+    color: var(--modal-body-text, var(--text-main));
+    transition:
+        border-color var(--dur-base, 200ms) var(--ease-standard),
+        background-color var(--dur-base, 200ms) var(--ease-standard),
+        transform var(--dur-fast, 150ms) var(--ease-out-back),
+        box-shadow var(--dur-base, 200ms) var(--ease-standard);
+}
+
+.item:hover {
+    border-color: var(--color-primary-400, #818cf8);
+    background: color-mix(in srgb, var(--color-primary-500) 5%, transparent);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--color-primary-500) 45%, transparent);
+}
+
+.itemMain {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.itemHeadline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.itemTitle {
+    font-weight: var(--font-semibold, 600);
+    color: var(--modal-body-text, var(--text-main));
+    font-size: var(--text-base, 0.95rem);
+    letter-spacing: -0.005em;
+}
+
+.itemDesc {
+    font-size: var(--text-xs, 0.78rem);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.68;
+    line-height: 1.5;
+}
+
+.itemActions {
+    flex-shrink: 0;
+}
+
+/* Chip "Visto" — estilo discreto junto al título. */
+.doneChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--color-success-500, #22c55e) 15%, transparent);
+    color: var(--color-success-700, #15803d);
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =================================================================
+   Footer (contenido del footer del ModalView)
+   ================================================================= */
+.footerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+/* ---------- Toggle de badges contextuales ---------- */
+.badgeToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium, 500);
+    color: var(--modal-body-text, var(--text-main));
+    opacity: 0.85;
+    user-select: none;
+}
+
+.badgeToggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.badgeToggleTrack {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    background: color-mix(in srgb, var(--text-main) 18%, transparent);
+    border-radius: 999px;
+    transition: background-color var(--dur-base, 200ms) var(--ease-standard);
+    flex-shrink: 0;
+}
+
+.badgeToggleThumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--bg-card, white);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform var(--dur-base, 200ms) var(--ease-out-back);
+}
+
+.badgeToggle input:checked + .badgeToggleTrack {
+    background: var(--color-primary-500, #6366f1);
+}
+
+.badgeToggle input:checked + .badgeToggleTrack .badgeToggleThumb {
+    transform: translateX(14px);
+}
+
+.badgeToggleLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Mobile: footer en columna para que el toggle y el botón no se aprieten. */
+@media (max-width: 640px) {
+    .footerRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .badgeToggle {
+        justify-content: space-between;
+    }
+    .item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .itemActions {
+        width: 100%;
+    }
+    .itemActions button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,282 @@
+/* ======================================================================
+ * AsyncSearchSelect — coherente con .input/.select/.textarea de Crud y con
+ * el resto de inputs tematizados del proyecto.
+ *
+ * Todas las propiedades visuales se derivan de las CSS vars que inyecta
+ * theme.js + index.css. NO hay valores hex/rgba hardcodeados — cualquier
+ * cambio en la personalización del centro se refleja sin tocar este CSS.
+ * ====================================================================== */
+
+.container {
+    position: relative;
+    display: inline-flex;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* ----- Trigger: imita .select de Crud.module.css (border, padding, hover, focus, disabled) ----- */
+
+.trigger {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    padding-right: 2.25rem;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-input);
+    color: var(--text-input);
+    font-size: var(--text-base);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+/* Chevron derecho — pintado con currentColor para que herede --text-input */
+.trigger::after {
+    content: '';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat center / contain;
+    mask: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat center / contain;
+    pointer-events: none;
+    transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.trigger.open::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.trigger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input));
+    background-color: var(--input-hover-bg);
+}
+
+.trigger.open,
+.trigger:focus {
+    outline: none;
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+.trigger:focus-visible {
+    outline: none;
+}
+
+.trigger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background-color: color-mix(in srgb, var(--bg-input) 90%, var(--text-muted));
+}
+
+.trigger[aria-invalid="true"] {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 22%, transparent);
+}
+
+.label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* ----- Botón de limpiar (mismo patrón que el closeButton de modales: rotación 90°) ----- */
+
+.clearBtn {
+    position: absolute;
+    right: 2.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    background: var(--modal-close-btn-bg);
+    color: var(--modal-close-btn-text);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back);
+}
+
+.clearBtn:hover {
+    background: var(--modal-close-btn-hover-bg);
+    color: var(--modal-close-btn-hover-text);
+    transform: translateY(-50%) rotate(90deg);
+}
+
+/* Input oculto para validación nativa del form (required) */
+.hiddenInput {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* ----- Dropdown (popover anclado por portal a document.body) ----- */
+
+.dropdown {
+    /* --bg-card-solid garantiza fondo opaco aunque el centro tenga
+     * elementsOpacity < 100. Un dropdown semi-transparente sobre otro
+     * formulario es ilegible. */
+    background-color: var(--bg-card-solid);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    /* Por encima del overlay del modal (z-index ~1000) */
+    z-index: 10010;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: assSlideDown var(--dur-base) var(--ease-out-quart);
+    transform-origin: top;
+}
+
+.dropdown.openUp {
+    animation: assSlideUp var(--dur-base) var(--ease-out-quart);
+    transform-origin: bottom;
+}
+
+@keyframes assSlideDown {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes assSlideUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dropdown,
+    .dropdown.openUp {
+        animation: none;
+    }
+}
+
+.searchBar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card-solid);
+    flex-shrink: 0;
+}
+
+.searchIcon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.searchInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: var(--text-sm);
+    font-family: inherit;
+    padding: var(--space-1) 0;
+}
+
+.searchInput::placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+.spinner {
+    color: var(--text-muted);
+    animation: assSpin 1s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes assSpin {
+    to { transform: rotate(360deg); }
+}
+
+.results {
+    overflow-y: auto;
+    padding: var(--space-1);
+    flex: 1;
+    min-height: 0;
+}
+
+.emptyState {
+    padding: var(--space-4) var(--space-3);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-style: italic;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: var(--text-sm);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    position: relative;
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard);
+}
+
+.item:hover,
+.item.highlighted {
+    background-color: var(--datatable-header-hover-bg);
+    color: var(--datatable-header-hover-text);
+}
+
+.item.active {
+    background-color: var(--datatable-header-active-bg);
+    color: var(--datatable-header-active-text);
+    font-weight: var(--font-medium);
+}
+
+/* Marcador izquierdo en el item seleccionado — color primario del centro */
+.item.active::before {
+    content: '';
+    position: absolute;
+    left: var(--space-1);
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 3px;
+    background-color: var(--color-primary-500);
+    border-radius: var(--radius-sm);
+}

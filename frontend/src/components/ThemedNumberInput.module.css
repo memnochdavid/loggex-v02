@@ -1,0 +1,102 @@
+/* Number input con spinners tematizados. Todo usa variables del tema. */
+
+.wrap {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--border-input, var(--border-color));
+    border-radius: var(--radius-md);
+    background-color: var(--bg-input);
+    overflow: hidden;
+    height: 34px;
+    box-sizing: border-box;
+    transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.wrap:focus-within {
+    border-color: var(--input-focus-border, var(--color-primary-500, var(--color-primary)));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, var(--color-primary-100, color-mix(in srgb, var(--color-primary) 15%, transparent)));
+}
+
+.wrap.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-input, var(--text-main));
+    font-size: var(--text-sm);
+    font-family: inherit;
+    padding: 0 var(--space-2);
+    text-align: left;
+    -moz-appearance: textfield;
+}
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 0;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    pointer-events: none;
+    user-select: none;
+}
+
+.spinner {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-input, var(--border-color));
+    width: 22px;
+    flex-shrink: 0;
+}
+
+.spinBtn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-input, var(--text-main));
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.spinBtn:first-child { border-bottom: 1px solid var(--border-input, var(--border-color)); }
+
+.spinBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--bg-input), var(--text-input) 10%);
+    color: var(--color-primary, var(--primary-color));
+}
+
+.spinBtn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+    z-index: 1;
+}
+
+.spinBtn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
+.spinBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wrap,
+    .spinBtn {
+        transition: none;
+    }
+}

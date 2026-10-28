@@ -14,8 +14,10 @@
     background-color: var(--bg-card);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
+    overflow: auto;
+    /*border: 1px solid var(--border-color);*/
     width: 100%; /* Asegura que ocupe el ancho disponible hasta max-width */
 }
 
@@ -39,20 +41,20 @@
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    border: 4px solid var(--border-color); /* Borde del color de la tarjeta para integrarse */
+    box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--text-main) 10%, transparent);
+    background-color: var(--bg-card);
 }
 
 .placeholderAvatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--bg-hover);
+    background-color: var(--bg-input); /* Usar variable maestra */
 }
 
 .placeholderIcon {
-    color: var(--color-primary-300);
+    color: var(--text-muted); /* Usar variable maestra */
 }
 
 .headerInfo {
@@ -71,7 +73,7 @@
 .roleBadge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: color-mix(in srgb, white 20%, transparent);
     border-radius: 9999px;
     font-size: 0.875rem;
     font-weight: 600;
@@ -90,10 +92,10 @@
 .sectionTitle {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--color-primary-600);
+    color: var(--color-primary-500); /* Color primario base */
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--color-primary-100);
+    border-bottom: 2px solid var(--border-color); /* Usar variable maestra */
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -138,7 +140,7 @@
     position: absolute;
     bottom: 0;
     right: 0;
-    background-color: var(--bg-card);
+    background-color: var(--border-color);
     border: 1px solid var(--border-color);
     border-radius: 50%;
     width: 32px;
@@ -149,11 +151,20 @@
     cursor: pointer;
     box-shadow: var(--shadow-sm);
     color: var(--color-primary-600);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
+}
+
+.avatarUpload:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.avatarUpload:active {
+    transform: scale(0.96);
 }
 
 .avatarUpload:hover {
-    background-color: var(--color-primary-50);
+    background-color: var(--bg-hover); /* Usar variable maestra */
     color: var(--color-primary-700);
     transform: scale(1.1);
 }
@@ -162,7 +173,7 @@
     display: none;
 }
 
-/* Estilos para Matrículas e Imparticiones (Re-añadidos para asegurar que existan) */
+/* Estilos para Matrículas e Imparticiones */
 .matriculasList {
     display: flex;
     flex-direction: column;
@@ -171,10 +182,10 @@
 
 .matriculaCard {
     padding: 1rem;
-    background-color: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    transition: transform 0.2s;
+    background-color: var(--bg-input); /* Usar variable maestra */
+    border-radius: var(--radius-md); /* Usar variable maestra */
+    border: 1px solid var(--border-color); /* Usar variable maestra */
+    transition: transform var(--dur-base) var(--ease-standard);
 }
 
 .matriculaCard:hover {
@@ -193,7 +204,7 @@
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.5rem;
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted); /* Usar variable maestra */
 }
 
 @media (max-width: 640px) {
@@ -205,5 +216,18 @@
 
     .grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .avatarUpload,
+    .matriculaCard {
+        transition: none;
+    }
+
+    .avatarUpload:hover,
+    .avatarUpload:active,
+    .matriculaCard:hover {
+        transform: none;
     }
 }

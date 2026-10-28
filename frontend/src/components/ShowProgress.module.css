@@ -7,7 +7,7 @@
 
 .track {
     flex: 1;
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: color-mix(in srgb, white 16%, transparent);
     /*border-radius: 999px;*/
     overflow: hidden;
     position: relative;
@@ -26,7 +26,9 @@
 .bar {
     height: 100%;
     /*border-radius: 999px;*/
-    transition: width 0.5s ease-out, background-color 0.3s ease;
+    transition:
+        width var(--dur-slow) var(--ease-out-quart),
+        background-color var(--dur-slow) var(--ease-standard);
 }
 
 .label {
@@ -46,5 +48,11 @@
     }
     .label{
         width: 10%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bar {
+        transition: none;
     }
 }

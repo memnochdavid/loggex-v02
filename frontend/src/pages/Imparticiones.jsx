@@ -3,33 +3,48 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
+import MateriaLabel from '../components/MateriaLabel';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { usePagination } from "../hooks/usePagination.js";
+import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoAbrev } from '../utils/grupo';
 
 
 const Imparticiones = () => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [imparticiones, setImparticiones] = useState([]);
-  const [profesores, setProfesores] = useState([]);
-  const [allModulos, setAllModulos] = useState([]);
-  const [allGrupos, setAllGrupos] = useState([]);
   const [centros, setCentros] = useState([]);
-  
+  // Listas para los filtros del CrudHeader (no se usan en el modal: allí siguen
+  // siendo AsyncSearchSelect on-demand). Aquí se cargan upfront porque ThemedSelect
+  // necesita la lista completa para renderizar las opciones.
+  const [grupos, setGrupos] = useState([]);
+  const [profesores, setProfesores] = useState([]);
+
   // Estado de carga único
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
+  const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [selectedProfesor, setSelectedProfesor] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,9 +63,9 @@ const Imparticiones = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'profesor.nombre', label: 'Profesor' },
-      { value: 'modulo.nombre', label: 'Módulo' },
-      { value: 'grupo.nombre', label: 'Grupo' }
+      { value: 'profesor.nombre', label: t('teaching.teacher') },
+      { value: 'materia.nombre', label: t('teaching.module') },
+      { value: 'grupo.nombre', label: t('teaching.group') }
   ];
 
   // Estado para el modal
@@ -58,30 +73,31 @@ const Imparticiones = () => {
   const [currentImparticion, setCurrentImparticion] = useState(null);
   const [formData, setFormData] = useState({
     profesor: '',
-    modulo: '',
-    grupo: ''
+    materia: '',
+    grupo: '',
+    aulaEspecifica: '',
+    // Override de modalidad. '' = heredar de Materia.modalidad. Solo se setea
+    // cuando el admin quiere cambiar la modalidad SOLO para esta imparticion
+    // (= grupo concreto), sin afectar la materia base.
+    modalidad: '',
   });
   const [saving, setSaving] = useState(false);
 
-  // Listas filtradas para el modal
-  const filteredModulos = useMemo(() => {
-      if (!formData.grupo) return [];
-      
-      const selectedGrupo = allGrupos.find(g => String(g.id || g['@id'].split('/').pop()) === String(formData.grupo));
-      if (!selectedGrupo) return [];
+  // Filtro derivado del grupo seleccionado para la cascada Grupo → Materia:
+  // una materia elegible debe pertenecer al mismo itinerario y al mismo curso que el grupo.
+  const [grupoFilter, setGrupoFilter] = useState({ itinerario: '', curso: '' });
 
-      return allModulos.filter(m => {
-          if (m.curso !== selectedGrupo.curso) return false;
-          
-          const modCicloId = typeof m.ciclo === 'object' ? (m.ciclo.id || m.ciclo['@id']) : m.ciclo;
-          const grupCicloId = typeof selectedGrupo.ciclo === 'object' ? (selectedGrupo.ciclo.id || selectedGrupo.ciclo['@id']) : selectedGrupo.ciclo;
-          
-          const modCicloIdStr = String(modCicloId).split('/').pop();
-          const grupCicloIdStr = String(grupCicloId).split('/').pop();
+  // Helper para extraer id de un valor que puede ser objeto, IRI string o id puro.
+  const extractId = (raw) => {
+    if (raw == null) return '';
+    if (typeof raw === 'object') return String(raw.id || raw['@id']?.split('/').pop() || '');
+    if (typeof raw === 'string') return String(raw.split('/').pop());
+    return String(raw);
+  };
 
-          return modCicloIdStr === grupCicloIdStr;
-      });
-  }, [allModulos, allGrupos, formData.grupo]);
+  // El antiguo `filteredModulos` (cascada Grupo→Materia en cliente) se ha sustituido
+  // por extraParams del AsyncSearchSelect: la materia se filtra en servidor por
+  // ?itinerario=<grupo.itinerario>&curso=<grupo.curso>, derivado del state grupoFilter.
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -99,40 +115,31 @@ const Imparticiones = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar datos auxiliares (filtrados por centro)
+  // Cargar grupos y profesores para los filtros del CrudHeader. Se recarga
+  // cuando cambia el centro (SuperAdmin); para no-superadmin la extension
+  // CurrentUserExtension del backend ya filtra por centro automáticamente.
   useEffect(() => {
-    let urlProfesores = getApiUrl('/api/users?itemsPerPage=100&rol_app=profesor');
-    let urlModulos = getApiUrl('/api/modulos?itemsPerPage=100');
-    let urlGrupos = getApiUrl('/api/grupos?itemsPerPage=100');
-    
-    if (isSuperAdmin && selectedCentro) {
-        urlProfesores += `&centro=${selectedCentro}`;
-        urlModulos += `&ciclo.centro=${selectedCentro}`;
-        urlGrupos += `&centro=${selectedCentro}`;
-    }
-    
-    const fetchData = async () => {
-        try {
-            const [resProf, resMod, resGrup] = await Promise.all([
-                fetch(urlProfesores, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }),
-                fetch(urlModulos, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' }),
-                fetch(urlGrupos, { headers: { 'Accept': 'application/ld+json' }, credentials: 'include' })
-            ]);
+    const centroParam = isSuperAdmin && selectedCentro ? `&centro=${selectedCentro}` : '';
+    fetch(getApiUrl(`/api/grupos?pagination=false${centroParam}`), {
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => setGrupos(data['hydra:member'] || data.member || []))
+    .catch(err => console.error("Error cargando grupos:", err));
 
-            const dataProf = await resProf.json();
-            const dataMod = await resMod.json();
-            const dataGrup = await resGrup.json();
+    fetch(getApiUrl(`/api/users?pagination=false&rol_app[]=profesor&rol_app[]=admin${centroParam}`), {
+        headers: { 'Accept': 'application/ld+json' },
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => setProfesores(data['hydra:member'] || data.member || []))
+    .catch(err => console.error("Error cargando profesores:", err));
+  }, [isSuperAdmin, selectedCentro]);
 
-            setProfesores(dataProf['hydra:member'] || dataProf.member || []);
-            setAllModulos(dataMod['hydra:member'] || dataMod.member || []);
-            setAllGrupos(dataGrup['hydra:member'] || dataGrup.member || []);
-        } catch (err) {
-            console.error("Error cargando datos auxiliares:", err);
-        }
-    };
-
-    fetchData();
-  }, [selectedCentro, isSuperAdmin]);
+  // (Antes había aquí un useEffect que precargaba profesores+materias+grupos al
+  // montar la página. Ya no es necesario: cada AsyncSearchSelect del modal hace
+  // su propia búsqueda servidor on-demand cuando el usuario teclea.)
 
   const getImparticionId = (i) => {
     if (i.id) return i.id;
@@ -154,11 +161,21 @@ const Imparticiones = () => {
 
     try {
       let url = getApiUrl(`/api/imparticions?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
-      
-      if (params.searchTerm) {
-          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
+
+      if (params.selectedCentro) {
+          url += `&grupo.centro=${params.selectedCentro}`;
       }
-      
+      if (params.selectedGrupo) {
+          url += `&grupo=${params.selectedGrupo}`;
+      }
+      if (params.selectedProfesor) {
+          url += `&profesor=${params.selectedProfesor}`;
+      }
+
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`;
+      }
+
       if (params.sortColumn) {
           url += `&order[${params.sortColumn}]=${params.sortDirection}`;
       }
@@ -194,6 +211,33 @@ const Imparticiones = () => {
     }
   }, []); 
 
+  // Mercure live: refetch automático cuando cualquier admin (incluido este
+  // usuario en otra pestaña, otro admin del centro, comando CLI o seed) crea,
+  // edita o borra una imparticion del centro visible. La extensión
+  // CurrentUserExtension del backend ya filtra el GET por centro, así que
+  // basta con refetch al evento.
+  // - Admin: solo su centro.
+  // - Superadmin con filtro: el centro filtrado.
+  // - Superadmin sin filtro: URI template `{cid}` (matches cualquier centro).
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/imparticiones`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchImparticionesData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedProfesor,
+          sortColumn,
+          sortDirection,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
@@ -206,6 +250,9 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
+          selectedGrupo,
+          selectedProfesor,
           sortColumn,
           sortDirection
       };
@@ -224,12 +271,15 @@ const Imparticiones = () => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedGrupo,
+      selectedProfesor,
+      sortColumn,
+      sortDirection,
       fetchImparticionesData
   ]);
 
@@ -250,30 +300,45 @@ const Imparticiones = () => {
   const handleOpenModal = useCallback((imparticion = null) => {
     if (imparticion) {
       setCurrentImparticion(imparticion);
-      
-      const getId = (obj) => {
-          if (!obj) return '';
-          if (typeof obj === 'object') {
-              return String(obj.id || (obj['@id'] ? obj['@id'].split('/').pop() : ''));
-          }
-          if (typeof obj === 'string') {
-              return String(obj.split('/').pop());
-          }
-          return String(obj);
-      };
 
+      const grupoId = extractId(imparticion.grupo);
       setFormData({
-        profesor: getId(imparticion.profesor),
-        modulo: getId(imparticion.modulo),
-        grupo: getId(imparticion.grupo)
+        profesor: extractId(imparticion.profesor),
+        materia: extractId(imparticion.materia),
+        grupo: grupoId,
+        aulaEspecifica: imparticion.aulaEspecifica || '',
+        modalidad: imparticion.modalidad || '',
       });
+
+      // Hidratar el filtro grupo→materia para que el AsyncSearchSelect de materia
+      // restrinja al itinerario+curso correctos también en modo edición.
+      if (grupoId) {
+        fetch(getApiUrl(`/api/grupos/${grupoId}`), {
+          headers: { Accept: 'application/ld+json' },
+          credentials: 'include'
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(g => {
+            if (!g) return;
+            setGrupoFilter({
+              itinerario: extractId(g.itinerario),
+              curso: g.curso != null ? String(g.curso) : ''
+            });
+          })
+          .catch(() => { /* fallo silencioso: el modal sigue funcionando, solo sin filtro de cascada */ });
+      } else {
+        setGrupoFilter({ itinerario: '', curso: '' });
+      }
     } else {
       setCurrentImparticion(null);
       setFormData({
         profesor: '',
-        modulo: '',
-        grupo: ''
+        materia: '',
+        grupo: '',
+        aulaEspecifica: '',
+        modalidad: '',
       });
+      setGrupoFilter({ itinerario: '', curso: '' });
     }
     setIsModalOpen(true);
   }, []);
@@ -288,9 +353,9 @@ const Imparticiones = () => {
     
     setFormData(prev => {
         const newData = { ...prev, [name]: value };
-        
+
         if (name === 'grupo') {
-            newData.modulo = ''; 
+            newData.materia = '';
         }
 
         return newData;
@@ -310,13 +375,16 @@ const Imparticiones = () => {
       const method = currentImparticion ? 'PUT' : 'POST';
 
       const profesorValue = String(formData.profesor);
-      const moduloValue = String(formData.modulo);
+      const materiaValue = String(formData.materia);
       const grupoValue = String(formData.grupo);
 
       const payload = {
         profesor: profesorValue.includes('/api/') ? profesorValue : `/api/users/${profesorValue}`,
-        modulo: moduloValue.includes('/api/') ? moduloValue : `/api/modulos/${moduloValue}`,
-        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`
+        materia: materiaValue.includes('/api/') ? materiaValue : `/api/materias/${materiaValue}`,
+        grupo: grupoValue.includes('/api/') ? grupoValue : `/api/grupos/${grupoValue}`,
+        aulaEspecifica: formData.aulaEspecifica?.trim() || null,
+        // '' (string vacío del select) se traduce a null = "heredar de Materia".
+        modalidad: formData.modalidad === '' ? null : formData.modalidad,
       };
 
       const response = await fetch(url, {
@@ -330,9 +398,8 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -341,21 +408,29 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           sortColumn,
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentImparticion
+        ? t('teaching.updatedSuccess', { defaultValue: 'Impartición actualizada' })
+        : t('teaching.createdSuccess', { defaultValue: 'Impartición creada' }));
 
     } catch (err) {
       console.error("Error saving imparticion:", err);
-      alert(`Error: ${err.message}`);
+      toast.error(err.message, {
+        description: currentImparticion
+          ? t('teaching.errorUpdating', { defaultValue: 'No se ha podido actualizar la impartición' })
+          : t('teaching.errorCreating', { defaultValue: 'No se ha podido crear la impartición' })
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (imparticion) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta asignación?')) {
+    if (!(await confirm({ body: t('teaching.confirmDelete') }))) {
       return;
     }
 
@@ -369,7 +444,8 @@ const Imparticiones = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar la asignación');
+        const message = await parseErrorResponse(response, t('teaching.errorDelete'));
+        throw new Error(message);
       }
 
       fetchImparticionesData({
@@ -377,50 +453,100 @@ const Imparticiones = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           sortColumn,
           sortDirection
       });
+      toast.success(t('teaching.deletedSuccess', { defaultValue: 'Impartición eliminada' }));
 
     } catch (err) {
       console.error("Error deleting imparticion:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      toast.error(err.message, {
+        description: t('teaching.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la impartición' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection, fetchImparticionesData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection, fetchImparticionesData, t]);
+
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/imparticions',
+    onSuccess: () => fetchImparticionesData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+    }),
+  });
 
   const columns = useMemo(() => [
-    { 
-        header: 'Profesor', 
+    {
+        header: t('teaching.teacher'),
         accessor: (row) => row.profesor ? `${row.profesor.nombre} ${row.profesor.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'profesor.nombre' 
     },
-    { 
-        header: 'Módulo', 
-        accessor: (row) => row.modulo ? row.modulo.nombre : '-', 
-        sortable: true, 
-        sortKey: 'modulo.nombre' 
+    {
+        header: t('teaching.module'),
+        accessor: (row) => row.materia ? <MateriaLabel materia={row.materia} /> : '-',
+        sortable: true,
+        sortKey: 'materia.nombre'
     },
-    { 
-        header: 'Grupo', 
-        accessor: (row) => row.grupo ? (row.grupo.abreviatura || row.grupo.nombre) : '-', 
-        sortable: true, 
-        sortKey: 'grupo.nombre' 
+    {
+        header: t('teaching.group'),
+        accessor: (row) => row.grupo ? (formatGrupoAbrev(row.grupo) || '-') : '-',
+        sortable: true,
+        sortKey: 'grupo.nombre'
     },
-    { 
-        header: 'Acciones', 
+    {
+        // Modalidad efectiva: override de Imparticion si existe, sino hereda
+        // Materia.modalidad. Solo se muestra badge cuando el resultado NO es
+        // 'presencial' (95% de los casos). El override visualmente lleva un
+        // asterisco (*) para distinguirlo de la herencia.
+        header: t('teaching.modality', { defaultValue: 'Modalidad' }),
+        accessor: (row) => {
+            const override = row.modalidad;
+            const hereda = row.materia?.modalidad || 'presencial';
+            const efectiva = override || hereda;
+            if (efectiva === 'presencial') return <span className={styles.modalidadDefault}>—</span>;
+            const labelKey = `modalidad.badge.${efectiva}`;
+            const label = t(labelKey, {
+                defaultValue: efectiva === 'fct' ? 'FCT'
+                    : efectiva === 'no_regular' ? 'No regular'
+                    : efectiva === 'autonoma' ? 'Autónoma'
+                    : efectiva,
+            });
+            const sufijo = override ? '*' : '';
+            return (
+                <span
+                    className={`${styles.modalidadBadge} ${styles[`modalidadBadge_${efectiva}`] || ''}`}
+                    title={override
+                        ? t('teaching.modalityOverridden', { defaultValue: 'Override (esta imparticion)' })
+                        : t('teaching.modalityInherited', { defaultValue: 'Heredada de la materia' })
+                    }
+                >
+                    {label}{sufijo}
+                </span>
+            );
+        },
+        sortable: false,
+    },
+    {
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -433,46 +559,79 @@ const Imparticiones = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Asignación de Docencia"
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        <CrudHeader title={t('teaching.title')}
+ subtitle={t('teaching.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('teaching.title') },
+                    ]}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => setSelectedCentro(e.target.value)}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedGrupo(''); setSelectedProfesor(''); }}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
-            
-            <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-                placeholder="Buscar..." 
+
+            <ThemedSelect
+                value={selectedGrupo}
+                onChange={setSelectedGrupo}
+                minWidth={200}
+                ariaLabel={t('teaching.allGroups', { defaultValue: 'Todos los grupos' })}
+                options={[
+                    { value: '', label: t('teaching.allGroups', { defaultValue: 'Todos los grupos' }) },
+                    ...grupos.map(g => ({
+                        value: String(g.id || g['@id']?.split('/').pop()),
+                        label: formatGrupoAbrev(g),
+                    })),
+                ]}
+            />
+
+            <ThemedSelect
+                value={selectedProfesor}
+                onChange={setSelectedProfesor}
+                minWidth={220}
+                ariaLabel={t('teaching.allTeachers', { defaultValue: 'Todos los profesores' })}
+                options={[
+                    { value: '', label: t('teaching.allTeachers', { defaultValue: 'Todos los profesores' }) },
+                    ...profesores.map(p => ({
+                        value: String(p.id || p['@id']?.split('/').pop()),
+                        label: `${p.nombre} ${p.apellidos}`,
+                    })),
+                ]}
+            />
+
+            <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder={t('common.search')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
             />
-            
+
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchImparticionesData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
         <DataTable
+            tableId="imparticiones"
             columns={columns}
             data={imparticiones}
             totalItems={totalItems}
@@ -481,6 +640,8 @@ const Imparticiones = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -490,65 +651,121 @@ const Imparticiones = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentImparticion ? 'Editar Asignación' : 'Nueva Asignación'}
+            title={currentImparticion ? t('teaching.editTitle') : t('teaching.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Profesor ({profesores.length})</label>
-                <select
+                <label className={styles.label}>{t('teaching.teacher', { defaultValue: 'Profesor' })}</label>
+                <AsyncSearchSelect
                     name="profesor"
                     value={formData.profesor}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, profesor: v }))}
+                    endpoint="/api/users"
+                    extraParams={{
+                        // Incluye admins porque pueden impartir docencia (rol funcional, no solo gestor).
+                        // `rol_app` es un único string en User, por lo que un admin que también enseña
+                        // se almacena como 'admin'; sin esto no aparecería en el selector de profesor.
+                        rol_app: ['profesor', 'admin'],
+                        ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {})
+                    }}
+                    getOptionLabel={(p) => `${p.nombre} ${p.apellidos}`}
+                    getOptionValue={(p) => p.id || p['@id']?.split('/').pop()}
+                    placeholder={t('common.selectTeacher')}
                     required
-                >
-                    <option value="">Seleccionar profesor...</option>
-                    {profesores.map(p => (
-                        <option key={p.id || p['@id']} value={String(p.id || p['@id'].split('/').pop())}>
-                            {p.nombre} {p.apellidos}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Grupo ({allGrupos.length})</label>
-                <select
+                <label className={styles.label}>{t('teaching.group', { defaultValue: 'Grupo' })}</label>
+                <AsyncSearchSelect
                     name="grupo"
                     value={formData.grupo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v, item) => {
+                        // Cambiar grupo: vacía la materia y actualiza el filtro de cascada.
+                        setFormData(p => ({ ...p, grupo: v, materia: '' }));
+                        if (item) {
+                            setGrupoFilter({
+                                itinerario: extractId(item.itinerario),
+                                curso: item.curso != null ? String(item.curso) : ''
+                            });
+                        } else {
+                            setGrupoFilter({ itinerario: '', curso: '' });
+                        }
+                    }}
+                    endpoint="/api/grupos"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(g) => formatGrupoAbrev(g)}
+                    getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
+                    placeholder={t('common.selectGroup')}
                     required
-                >
-                    <option value="">Seleccionar grupo...</option>
-                    {allGrupos.map(g => (
-                        <option key={g.id || g['@id']} value={String(g.id || g['@id'].split('/').pop())}>
-                            {g.abreviatura || g.nombre}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Módulo ({filteredModulos.length})</label>
+                <label className={styles.label}>{t('teaching.module', { defaultValue: 'Materia' })}</label>
+                <AsyncSearchSelect
+                    name="materia"
+                    value={formData.materia}
+                    onChange={(v) => setFormData(p => ({ ...p, materia: v }))}
+                    endpoint="/api/materias"
+                    extraParams={{
+                        // Materia.itinerarios es ManyToMany tras el refactor multi-itinerario
+                        // (doc: hoja-de-ruta-materias-multi-itinerario.md). El filtro registrado
+                        // en `Materia.php` es `itinerarios` (plural); mandando `itinerario`
+                        // (singular) API Platform lo ignoraba y devolvía todas las materias
+                        // del `curso`, mezclando p.ej. 2º DAM con 2º DAW.
+                        ...(grupoFilter.itinerario ? { itinerarios: grupoFilter.itinerario } : {}),
+                        ...(grupoFilter.curso ? { curso: grupoFilter.curso } : {}),
+                    }}
+                    getOptionLabel={(m) => `${m.nombre} (${m.codigoOficial}) - ${m.curso}º`}
+                    getOptionValue={(m) => m.id || m['@id']?.split('/').pop()}
+                    placeholder={formData.grupo ? t('common.selectModule') : t('teaching.selectGroupFirst')}
+                    disabled={!formData.grupo}
+                    required
+                />
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('teaching.aulaEspecifica', { defaultValue: 'Aula específica (override)' })}
+                </label>
+                <input
+                    type="text"
+                    name="aulaEspecifica"
+                    value={formData.aulaEspecifica}
+                    onChange={(e) => setFormData(p => ({ ...p, aulaEspecifica: e.target.value }))}
+                    className={styles.input}
+                    placeholder={t('teaching.aulaEspecificaPlaceholder', { defaultValue: 'ej. Lab Hardware, Aula Música…' })}
+                />
+                <small className={styles.helpText}>
+                    {t('teaching.aulaEspecificaHint', {
+                        defaultValue: 'Solo si esta materia se imparte en un aula distinta a la del grupo. Si vacío, se usa el aula por defecto del grupo.',
+                    })}
+                </small>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>
+                    {t('teaching.modalityOverride', { defaultValue: 'Modalidad (override)' })}
+                </label>
                 <select
-                    name="modulo"
-                    value={formData.modulo}
+                    name="modalidad"
+                    value={formData.modalidad}
                     onChange={handleInputChange}
                     className={styles.select}
-                    required
-                    disabled={!formData.grupo} // Deshabilitar si no hay grupo
                 >
-                    <option value="">
-                        {formData.grupo ? "Seleccionar módulo..." : "Selecciona un grupo primero"}
-                    </option>
-                    {filteredModulos.map(m => (
-                        <option key={m.id || m['@id']} value={String(m.id || m['@id'].split('/').pop())}>
-                            {m.nombre} ({m.codigoOficial}) - {m.curso}º
-                        </option>
-                    ))}
+                    <option value="">{t('teaching.modalityInherit', { defaultValue: '— Heredar de la materia —' })}</option>
+                    <option value="presencial">{t('modalidad.label.presencial', { defaultValue: 'Presencial (clase regular en aula)' })}</option>
+                    <option value="fct">{t('modalidad.label.fct', { defaultValue: 'FCT (Formación en Centros de Trabajo)' })}</option>
+                    <option value="no_regular">{t('modalidad.label.no_regular', { defaultValue: 'No regular (proyecto, libre configuración)' })}</option>
+                    <option value="autonoma">{t('modalidad.label.autonoma', { defaultValue: 'Autónoma (trabajo del alumno)' })}</option>
                 </select>
+                <small className={styles.formHint}>
+                    {t('teaching.modalityOverrideHint', {
+                        defaultValue: 'Override solo para este grupo. Si dejas heredar, se usa la modalidad de la materia. Útil si una misma materia se imparte de forma distinta en grupos diferentes.',
+                    })}
+                </small>
             </div>
         </ModalView>
         </div>

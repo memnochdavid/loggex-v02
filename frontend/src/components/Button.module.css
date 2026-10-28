@@ -11,60 +11,101 @@
   font-weight: var(--font-medium);
   font-size: var(--text-base);
   cursor: pointer;
+  letter-spacing: 0.005em;
 
-  transition: var(--transition-base);
   box-shadow: var(--shadow-sm);
+  transition:
+    background-color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-out-back),
+    color var(--dur-base) var(--ease-standard);
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px color-mix(in srgb, var(--color-primary-500, #6366f1) 35%, transparent);
+}
+
+.button:active {
+  transform: scale(0.96);
+  transition-duration: var(--dur-fast);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Variante Primaria (Por defecto) */
 .primary {
   background-color: var(--btn-primary-bg, var(--color-primary-600));
   color: var(--btn-primary-text, white);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 0 color-mix(in srgb, white 18%, transparent);
 }
 
-.primary:hover {
+.primary:hover:not(:disabled) {
   background-color: var(--btn-primary-hover, var(--color-primary-700));
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 0 color-mix(in srgb, white 22%, transparent);
 }
 
-.primary:active {
-  transform: translateY(0);
-}
-.button:active{
-  scale: 0.9;
-
+.primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
 }
 
 /* Variante Secundaria (Outline) */
 .secondary {
   background-color: var(--btn-secondary-bg, transparent);
-  /*border-color: var(--color-gray-300);*/
   color: var(--btn-secondary-text, var(--text-main));
 }
 
-.secondary:hover {
-  /* Eliminamos el cambio de color de borde al primario */
-  /* border-color: var(--color-primary-500); */
-
-  /* Mantenemos el borde gris o lo hacemos un poco más oscuro */
-  /*border-color: var(--color-gray-400);*/
-
+.secondary:hover:not(:disabled) {
   background-color: var(--btn-secondary-bg, var(--color-primary-700));
-  transform: translateY(-1px); /* Añadimos el efecto de movimiento */
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
-.secondary:active {
-  transform: translateY(0);
+.secondary:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
 }
 
 /* Variante Danger */
 .danger {
   background-color: var(--color-error);
   color: white;
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 0 color-mix(in srgb, white 18%, transparent);
 }
 
-.danger:hover {
-  background-color: #dc2626; /* Un rojo más oscuro */
+.danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 0 color-mix(in srgb, white 22%, transparent);
+}
+
+.danger:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .button:hover,
+  .button:active,
+  .primary:hover,
+  .secondary:hover,
+  .danger:hover {
+    transform: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,24 +1,50 @@
 .accordionContainer {
     width: 100%;
-    /* max-width: 800px; ELIMINADO para ocupar todo el espacio */
-    /* margin: 2rem auto; ELIMINADO para que el padre controle el margen */
-    /*border: 1px solid var(--color-border);*/
     border-radius: var(--border-radius);
-    /*overflow: hidden;*/
     box-shadow: var(--shadow-elevation-low);
-    /*background-color: var(--bg-card); !* Asegurar fondo *!*/
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-
 .accordionItem {
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background-color: var(--accordion-content-bg, #f0f0f0);
+    isolation: isolate;
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 0 0 color-mix(in srgb, white 5%, transparent);
+    transition:
+        box-shadow var(--dur-base) var(--ease-standard),
+        transform var(--dur-base) var(--ease-standard);
+    animation: accordionItemIn var(--dur-slow) var(--ease-out-quart) both;
 }
 
-.accordionItem:last-child {
-    border-bottom: none;
+.accordionItem:nth-child(1) { animation-delay: 0ms; }
+.accordionItem:nth-child(2) { animation-delay: 40ms; }
+.accordionItem:nth-child(3) { animation-delay: 80ms; }
+.accordionItem:nth-child(4) { animation-delay: 120ms; }
+.accordionItem:nth-child(5) { animation-delay: 160ms; }
+.accordionItem:nth-child(6) { animation-delay: 200ms; }
+.accordionItem:nth-child(7) { animation-delay: 240ms; }
+.accordionItem:nth-child(8) { animation-delay: 280ms; }
+.accordionItem:nth-child(n+9) { animation-delay: 320ms; }
+
+.accordionItem:hover {
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 0 0 color-mix(in srgb, white 7%, transparent);
+}
+
+.accordionItem.open {
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 0 0 color-mix(in srgb, white 7%, transparent);
 }
 
 .accordionHeader {
@@ -26,21 +52,34 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    background-color: var(--accordion-header-bg, var(--color-background-secondary));
-    color: var(--accordion-header-text, var(--color-text-main));
+    background-color: var(--accordion-header-bg, #5c94f0);
+    color: var(--accordion-header-text, #ffffff);
     cursor: pointer;
     font-weight: 600;
     font-size: 1.1rem;
-    transition: background-color 0.2s ease;
+    transition:
+        filter var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard);
     gap: var(--space-4);
+    user-select: none;
 }
 
 .accordionHeader:hover {
     filter: brightness(0.95);
 }
 
+.accordionHeader:active {
+    filter: brightness(0.92);
+}
+
+/* Estado activo (abierto) */
+.accordionItem.open > .accordionHeader {
+    background-color: var(--accordion-header-bg, #5c94f0) !important;
+    color: var(--accordion-header-text, #ffffff) !important;
+}
+
 .headerContent {
-    flex: 1; /* Ocupar espacio disponible */
+    flex: 1;
     display: flex;
     align-items: center;
 }
@@ -51,116 +90,147 @@
     gap: 1rem;
 }
 
-.addButton {
-    background-color: var(--color-button-primary);
-    color: var(--color-button-primary-text);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius-small);
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s ease;
-}
-
-.addButton:hover {
-    background-color: var(--color-button-primary-hover);
-}
-.button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-
-    font-family: inherit;
-    font-weight: var(--font-medium);
-    font-size: var(--text-base);
-    cursor: pointer;
-
-    transition: var(--transition-base);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Variante Primaria (Por defecto) */
-.primary {
-    background-color: var(--btn-primary-bg, var(--color-primary-600));
-    color: var(--btn-primary-text, white);
-}
-
-.primary:hover {
-    background-color: var(--btn-primary-hover, var(--color-primary-700));
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.primary:active {
-    transform: translateY(0);
-}
-.button:active{
-    scale: 0.9;
-
-}
-
-/* Variante Secundaria (Outline) */
-.secondary {
-    background-color: var(--btn-secondary-bg, transparent);
-    /*border-color: var(--color-gray-300);*/
-    color: var(--btn-secondary-text, var(--text-main));
-}
-
-.secondary:hover {
-    /* Eliminamos el cambio de color de borde al primario */
-    /* border-color: var(--color-primary-500); */
-
-    /* Mantenemos el borde gris o lo hacemos un poco más oscuro */
-    /*border-color: var(--color-gray-400);*/
-
-    background-color: var(--btn-secondary-bg, var(--color-primary-700));
-    transform: translateY(-1px); /* Añadimos el efecto de movimiento */
-    box-shadow: var(--shadow-md);
-}
-
-.secondary:active {
-    transform: translateY(0);
-}
-
-/* Variante Danger */
-.danger {
-    background-color: var(--color-error);
-    color: white;
-}
-
-.danger:hover {
-    background-color: #dc2626; /* Un rojo más oscuro */
-}
 .chevron {
-    transition: transform 0.3s ease;
+    transition: transform var(--dur-base) var(--ease-out-back);
 }
 
 .chevron.open {
     transform: rotate(180deg);
 }
 
-/* Animación simplificada */
+/* Contenido del acordeón */
 .accordionContentWrapper {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    background-color: var(--accordion-content-bg, var(--color-background-light));
-    color: var(--accordion-content-text, var(--color-text-secondary));
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--dur-slow) var(--ease-out-quart);
+    background-color: var(--accordion-content-bg, #f0f0f0);
+    color: var(--accordion-content-text, #46505d);
 }
 
 .accordionContentWrapper.open {
-    max-height: 2000px; /* Altura suficiente */
+    grid-template-rows: 1fr;
     border-top: 1px solid var(--color-border);
 }
 
 .accordionContent {
-    padding: 0;
+    overflow: hidden;
 }
 
-/*.accordionInner {*/
-/*    padding: 0.2rem;*/
-/*}*/
+.accordionInner {
+    padding: 1rem;
+    animation: accordionInnerIn var(--dur-slow) var(--ease-out-quart);
+}
+
+@keyframes accordionItemIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes accordionInnerIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .accordionItem,
+    .chevron,
+    .accordionContentWrapper,
+    .accordionHeader {
+        transition-duration: 0.01ms !important;
+        animation: none !important;
+    }
+    .chevron.open {
+        transform: rotate(180deg) !important;
+    }
+}
+
+/* Header con badge contador — reutilizable desde renderHeader de cualquier página. */
+:global(.accordionHeaderWithCount) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: 1;
+    min-width: 0;
+}
+
+:global(.accordionHeaderTitle) {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Versión larga vs corta del título del acordeón. Los consumidores pueden
+   pintar ambas y la media query elige cuál mostrar según el ancho:
+     · >768px → larga (.titleFull).
+     · ≤768px → corta (.titleShort, fallback al largo si no se aporta).
+   Lo gestionamos en CSS para evitar useMediaQuery + re-renders al resize y
+   para que el `title` HTML (tooltip nativo) siga teniendo el texto completo
+   incluso en móvil. */
+:global(.accordionHeaderTitleShort) { display: none; }
+
+@media (max-width: 768px) {
+    :global(.accordionHeaderTitleFull) { display: none; }
+    :global(.accordionHeaderTitleShort) { display: inline; }
+}
+
+:global(.accordionHeaderCount) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 var(--space-2);
+    border-radius: 999px;
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    background-color: color-mix(in srgb, currentColor 14%, transparent);
+    color: inherit;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+/* Botón icono "+" en el header del acordeón */
+.addAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    color: inherit;
+    cursor: pointer;
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back);
+}
+
+.addAction:hover {
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+    transform: scale(1.08);
+}
+
+.addAction:active {
+    transform: scale(0.94);
+}
+
+.addAction:focus-visible {
+    outline: 2px solid color-mix(in srgb, currentColor 50%, transparent);
+    outline-offset: 2px;
+}

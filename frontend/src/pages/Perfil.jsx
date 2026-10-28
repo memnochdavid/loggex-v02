@@ -2,13 +2,25 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import styles from './Perfil.module.css';
-import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen } from 'lucide-react';
+import { User, Mail, Phone, Lock, Image as ImageIcon, GraduationCap, Building, Camera, BookOpen, PenLine, Trash2 } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
+import { useTranslation } from 'react-i18next';
+import ModalView from '../components/ModalView';
+import LiquidSignaturePad from '../components/LiquidSignaturePad';
+import Button from '../components/Button';
+import MateriaLabel from '../components/MateriaLabel';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Perfil = () => {
+    const { t } = useTranslation();
+    const confirm = useConfirm();
     const { user, checkAuth } = useAuth();
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+    const [draftSvg, setDraftSvg] = useState(null);
+    const [savingFirma, setSavingFirma] = useState(false);
     
     // Estados para información académica
     const [matriculas, setMatriculas] = useState([]);
@@ -89,18 +101,72 @@ const Perfil = () => {
 
             if (response.ok) {
                 await checkAuth(); // Recargar usuario
+                toast.success(t('profile.avatarUpdated', { defaultValue: 'Avatar actualizado' }));
             } else {
-                alert("Error al actualizar avatar");
+                const message = await parseErrorResponse(response, t('profile.avatarErrorCtx', { defaultValue: 'No se ha podido actualizar el avatar' }));
+                toast.error(message, {
+                    description: t('profile.avatarErrorCtx', { defaultValue: 'No se ha podido actualizar el avatar' })
+                });
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión");
+            toast.error(t('common.connectionError', { defaultValue: 'Error de conexión' }));
         } finally {
             setUploading(false);
         }
     };
 
+    const handleSaveFirma = async () => {
+        if (!draftSvg || !draftSvg.png) {
+            toast.warning(t('profile.signatureDrawFirst', { defaultValue: 'Dibuja la firma primero' }));
+            return;
+        }
+        setSavingFirma(true);
+        try {
+            const res = await fetch(getApiUrl('/api/user/firma'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ png: draftSvg.png, svg: draftSvg.svg }),
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const message = await parseErrorResponse(res, t('profile.signatureSaveError', { defaultValue: 'Error al guardar la firma' }));
+                throw new Error(message);
+            }
+            await checkAuth();
+            setIsSignModalOpen(false);
+            setDraftSvg(null);
+            toast.success(t('profile.signatureSaved', { defaultValue: 'Firma guardada' }));
+        } catch (err) {
+            toast.error(err.message, {
+                description: t('profile.signatureSaveErrorCtx', { defaultValue: 'No se ha podido guardar la firma' })
+            });
+        } finally {
+            setSavingFirma(false);
+        }
+    };
+
+    const handleDeleteFirma = async () => {
+        if (!(await confirm({ body: '¿Eliminar tu firma registrada?' }))) return;
+        try {
+            const res = await fetch(getApiUrl('/api/user/firma'), { method: 'DELETE', credentials: 'include' });
+            if (!res.ok) {
+                const message = await parseErrorResponse(res, t('profile.signatureDeleteError', { defaultValue: 'Error al eliminar la firma' }));
+                throw new Error(message);
+            }
+            await checkAuth();
+            toast.success(t('profile.signatureDeleted', { defaultValue: 'Firma eliminada' }));
+        } catch (err) {
+            toast.error(err.message, {
+                description: t('profile.signatureDeleteErrorCtx', { defaultValue: 'No se ha podido eliminar la firma' })
+            });
+        }
+    };
+
     if (!user) return null;
+
+    const isAdminLike = user.roles?.includes('ROLE_ADMIN') || user.roles?.includes('ROLE_SUPERADMIN');
+    const firmaUrl = user.firma && user.id ? getAssetUrl(`/uploads/firmas/${user.id}/${user.firma}`) : null;
 
     const fullName = `${user.nombre} ${user.apellidos || ''}`.trim();
     const roles = user.roles 
@@ -125,7 +191,7 @@ const Perfil = () => {
                             )}
                             
                             {canEditAvatar && (
-                                <label className={styles.avatarUpload} title="Cambiar foto">
+                                <label className={styles.avatarUpload} title={t('profile.changePhoto')}>
                                     <Camera size={16} />
                                     <input 
                                         type="file" 
@@ -146,51 +212,51 @@ const Perfil = () => {
                     <div className={styles.content}>
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <User size={20} /> Información Personal
+                                <User size={20} /> {t('profile.personalInfo')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Nombre</span>
+                                    <span className={styles.label}>{t('profile.firstName')}</span>
                                     <span className={styles.value}>{user.nombre}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Apellidos</span>
-                                    <span className={styles.value}>{user.apellidos || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.lastName')}</span>
+                                    <span className={styles.value}>{user.apellidos || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>NIF / DNI</span>
-                                    <span className={styles.value}>{user.nif || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.nif')}</span>
+                                    <span className={styles.value}>{user.nif || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <Mail size={20} /> Contacto
+                                <Mail size={20} /> {t('profile.contact')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Email</span>
+                                    <span className={styles.label}>{t('profile.email')}</span>
                                     <span className={styles.value}>{user.email}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Teléfono</span>
-                                    <span className={styles.value}>{user.telefono || <span className={styles.emptyValue}>No definido</span>}</span>
+                                    <span className={styles.label}>{t('profile.phone')}</span>
+                                    <span className={styles.value}>{user.telefono || <span className={styles.emptyValue}>{t('common.notDefined')}</span>}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.section}>
                             <h3 className={styles.sectionTitle}>
-                                <Building size={20} /> Información Académica
+                                <Building size={20} /> {t('profile.academicInfo')}
                             </h3>
                             <div className={styles.grid}>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Centro</span>
-                                    <span className={styles.value}>{user.centro ? user.centro.nombre : <span className={styles.emptyValue}>Sin centro asignado</span>}</span>
+                                    <span className={styles.label}>{t('profile.center')}</span>
+                                    <span className={styles.value}>{user.centro ? user.centro.nombre : <span className={styles.emptyValue}>{t('common.noCenter')}</span>}</span>
                                 </div>
                                 <div className={styles.field}>
-                                    <span className={styles.label}>Rol en la App</span>
+                                    <span className={styles.label}>{t('profile.appRole')}</span>
                                     <span className={styles.value}>{user.rol_app || roles}</span>
                                 </div>
                             </div>
@@ -199,20 +265,20 @@ const Perfil = () => {
                             {matriculas.length > 0 && (
                                 <div className={styles.section} style={{ marginTop: '2rem' }}>
                                     <h3 className={styles.sectionTitle}>
-                                        <GraduationCap size={20} /> Matrículas Activas
+                                        <GraduationCap size={20} /> {t('profile.activeEnrollments')}
                                     </h3>
                                     {matriculas.map(matricula => (
                                         <div key={matricula.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Ciclo Formativo</span>
-                                                <span className={styles.value}>{matricula.grupo?.ciclo?.nombre || 'Ciclo desconocido'}</span>
+                                                <span className={styles.label}>{t('profile.cycle')}</span>
+                                                <span className={styles.value}>{matricula.grupo?.itinerario?.nombre || t('profile.unknownCycle')}</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.label}>{t('profile.course')}</span>
                                                 <span className={styles.value}>{matricula.grupo?.curso}º</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Año Escolar</span>
+                                                <span className={styles.label}>{t('profile.schoolYear')}</span>
                                                 <span className={styles.value}>{matricula.grupo?.anioEscolar}</span>
                                             </div>
                                         </div>
@@ -224,20 +290,24 @@ const Perfil = () => {
                             {imparticiones.length > 0 && (
                                 <div className={styles.section} style={{ marginTop: '2rem' }}>
                                     <h3 className={styles.sectionTitle}>
-                                        <BookOpen size={20} /> Asignaturas Impartidas
+                                        <BookOpen size={20} /> {t('profile.taughtSubjects')}
                                     </h3>
                                     {imparticiones.map(imp => (
                                         <div key={imp.id} className={styles.grid} style={{ marginTop: '1rem' }}>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Módulo</span>
-                                                <span className={styles.value}>{imp.modulo?.nombre || 'Módulo desconocido'}</span>
+                                                <span className={styles.label}>{t('profile.module')}</span>
+                                                <span className={styles.value}>
+                                                    {imp.materia
+                                                        ? <MateriaLabel materia={imp.materia} />
+                                                        : t('profile.unknownModule')}
+                                                </span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Grupo</span>
-                                                <span className={styles.value}>{imp.grupo?.nombre}</span>
+                                                <span className={styles.label}>{t('profile.group')}</span>
+                                                <span className={styles.value}>{imp.grupo?.abreviatura || imp.grupo?.nombre}</span>
                                             </div>
                                             <div className={styles.field}>
-                                                <span className={styles.label}>Curso</span>
+                                                <span className={styles.label}>{t('profile.course')}</span>
                                                 <span className={styles.value}>{imp.grupo?.curso}º</span>
                                             </div>
                                         </div>
@@ -245,9 +315,54 @@ const Perfil = () => {
                                 </div>
                             )}
                         </div>
+
+                        {isAdminLike && (
+                            <div className={styles.section}>
+                                <h3 className={styles.sectionTitle}>
+                                    <PenLine size={20} /> Firma para boletines
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
+                                    {firmaUrl ? (
+                                        <img
+                                            src={firmaUrl}
+                                            alt="Tu firma"
+                                            style={{ maxHeight: '80px', maxWidth: '260px', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px', background: '#fff' }}
+                                        />
+                                    ) : (
+                                        <span className={styles.emptyValue}>Aún no tienes firma registrada.</span>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <Button onClick={() => { setDraftSvg(null); setIsSignModalOpen(true); }}>
+                                            <PenLine size={16} style={{ marginRight: '6px' }} />
+                                            {firmaUrl ? 'Reemplazar firma' : 'Registrar firma'}
+                                        </Button>
+                                        {firmaUrl && (
+                                            <Button variant="danger" onClick={handleDeleteFirma}>
+                                                <Trash2 size={16} style={{ marginRight: '6px' }} />
+                                                Eliminar
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            <ModalView
+                isOpen={isSignModalOpen}
+                onClose={() => { setIsSignModalOpen(false); setDraftSvg(null); }}
+                title="Dibuja tu firma"
+                onSubmit={(e) => { e.preventDefault(); handleSaveFirma(); }}
+                isSubmitting={savingFirma}
+                submitText="Guardar firma"
+            >
+                <p style={{ marginBottom: '12px', color: 'var(--text-muted)' }}>
+                    Dibuja dentro del recuadro con el ratón, dedo o stylus. Se guardará como SVG y aparecerá en los boletines que emitas.
+                </p>
+                <LiquidSignaturePad onChange={setDraftSvg} />
+            </ModalView>
         </Layout>
     );
 };

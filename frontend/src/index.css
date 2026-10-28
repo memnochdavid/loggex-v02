@@ -102,11 +102,29 @@
 
     --transition-base: all 0.2s ease-in-out;
 
+    /* ------------------------- */
+    /* ✨ MOTION TOKENS          */
+    /* ------------------------- */
+    --dur-fast: 150ms;
+    --dur-base: 220ms;
+    --dur-slow: 320ms;
+    --dur-exit: 160ms;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
 
 
     /* ----------------------------------------- */
     /* 🎨 VARIABLES DE PERSONALIZACIÓN (DEFAULTS) */
     /* ----------------------------------------- */
+
+    /* Inputs (tokens semánticos consumidos por Crud.module.css, ThemedSelect, etc.) */
+    --text-input: var(--text-main);
+    --border-input: var(--border-color);
+    --input-focus-border: var(--color-primary-500);
+    --input-focus-shadow: color-mix(in srgb, var(--color-primary-500) 22%, transparent);
+    --input-hover-bg: color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%);
 
     /* Sidebar */
     --bg-sidebar: var(--color-gray-800);
@@ -158,6 +176,7 @@
     --modal-body-bg: var(--bg-card);
     --modal-body-text: var(--text-main);
     --modal-footer-bg: var(--color-gray-50);
+    --modal-border-width: 3px;
     --modal-close-btn-bg: transparent;
     --modal-close-btn-text: var(--color-gray-500);
     --modal-close-btn-hover-bg: var(--color-gray-100);
@@ -252,3 +271,169 @@ h1, h2, h3, h4, h5, h6 {
 button {
     font-family: inherit;
 }
+
+/* ------------------------- */
+/* ♿ FOCUS-VISIBLE GLOBAL    */
+/* ------------------------- */
+/* Anillo unificado para controles que no definen su propio :focus-visible.
+   Los CSS Modules locales ganan por especificidad y pueden sobrescribirlo. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+/* Evita el outline azul nativo feo por defecto en Chromium */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ------------------------- */
+/* 🌀 SCROLLBARS FLOTANTES   */
+/* ------------------------- */
+/* Scrollbars finos, translúcidos y AUTO-HIDE: el thumb es transparente por
+   defecto y solo aparece cuando el cursor entra en el contenedor scrollable
+   (estilo macOS). El track sigue reservando 10px (limitación de webkit, no se
+   puede hacer overlay verdadero sin librería JS), pero al ser transparent
+   cuando no hover el efecto es "flotante" para el ojo y SIN layout shift al
+   aparecer/desaparecer el thumb.
+
+   El thumb usa currentColor → se adapta a light/dark sin tokens dedicados.
+   La transición usa los tokens estándar del proyecto, así el fade matches
+   el ritmo del resto de animaciones. */
+
+* {
+    scrollbar-width: thin;
+    /* Firefox: ambos transparentes por defecto. Solo aparece al hover del padre. */
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color var(--dur-base) var(--ease-standard);
+}
+
+*:hover {
+    scrollbar-color: color-mix(in srgb, currentColor 25%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    /* Por defecto invisible: el thumb es transparent y no se ve. Esto deja el
+       espacio del track reservado (sin layout shift) pero sin mancha visual. */
+    background-color: transparent;
+    border-radius: 999px;
+    /* Border transparente + background-clip hace el thumb visualmente más
+       estrecho (6px) aunque la pista reserve 10px, reforzando la sensación
+       "flotante" cuando sí se ve. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color var(--dur-base) var(--ease-standard);
+}
+
+/* El cursor entra en algún ancestor del contenedor scrollable → fade-in. */
+*:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, currentColor 42%, transparent);
+}
+
+*:hover::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* El body no debe mostrar scrollbar propio cuando el contenido cabe */
+html,
+body {
+    overscroll-behavior: none;
+}
+
+/* ------------------------- */
+/* 🔐 LOGIN AUTOFILL FIX     */
+/* ------------------------- */
+/* Reglas globales (fuera de CSS Modules) que neutralizan el autofill
+   amarillo de Chromium en el formulario de login. CSS Modules
+   transformaba las pseudoclases del módulo de Login sin garantía total
+   de aplicación; fuera del módulo se aplica con la especificidad y el
+   nombre exactos que Chromium espera.
+   El selector `[data-login-form]` acota el efecto al `<form>` del login
+   (declarado en `Login.jsx`) — el resto de inputs de la app (admin,
+   modales) usan tema light y respetan el autofill estándar. */
+
+[data-login-form] input:-webkit-autofill,
+[data-login-form] input:-webkit-autofill:hover,
+[data-login-form] input:-webkit-autofill:focus,
+[data-login-form] input:-webkit-autofill:active,
+[data-login-form] input:autofill,
+/* Brave/Chromium reciente aplica `:-internal-autofill-selected` (NO
+   `:-webkit-autofill`) cuando el usuario elige una credencial del
+   dropdown. El UA stylesheet le pone `color: fieldtext !important` y
+   `background-color: light-dark(rgb(232,240,254), …) !important`. Sin
+   matchear esta pseudoclase nuestras reglas con `:-webkit-autofill`
+   nunca se aplican y el texto sale negro sobre fondo claro. */
+[data-login-form] input:-internal-autofill-selected,
+[data-login-form] input:-internal-autofill-previewed {
+    /* Texto blanco forzado en DOS propiedades: `color` (la que el UA
+       pinta con `!important`) y `-webkit-text-fill-color` (la que
+       realmente decide el color del glifo en inputs). Ambas con
+       `!important` para superar al UA stylesheet. */
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #c7d2fe !important;
+    /* Box-shadow inset enorme tapa el bg amarillo de Chromium con el
+       tono "glass dark" del input original. El navegador NO permite
+       cambiar background-color directamente en estado autofill, pero
+       declaro background-color por si acaso (algunos engines lo
+       respetan en `:-internal-autofill-*`). */
+    background-color: rgba(30, 38, 65, 0.6) !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset !important;
+    box-shadow: 0 0 0 1000px rgba(30, 38, 65, 0.6) inset !important;
+    /* Transición larguísima evita el "flash" amarillo al cargar la página. */
+    transition: background-color 9999s ease-in-out 0s !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+[data-login-form] input:-webkit-autofill:focus {
+    -webkit-box-shadow:
+        0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
+        0 0 0 4px rgba(99, 102, 241, 0.2),
+        0 8px 24px -12px rgba(99, 102, 241, 0.55) !important;
+    box-shadow:
+        0 0 0 1000px rgba(30, 38, 65, 0.75) inset,
+        0 0 0 4px rgba(99, 102, 241, 0.2),
+        0 8px 24px -12px rgba(99, 102, 241, 0.55) !important;
+    border-color: rgba(165, 180, 252, 0.55) !important;
+}
+
+/* Animación-trampa para detectar el autofill desde JS (Login.jsx
+   `handleAutoFillSync`). Chromium NO dispara `onChange` al rellenar
+   credenciales, pero SÍ aplica esta animation al input autofilled, lo
+   que dispara `animationstart` y permite sincronizar el state React.
+   Definida como global para que el nombre `onAutoFillStart` sobreviva
+   a CSS Modules. */
+@keyframes onAutoFillStart {
+    from { /**/ }
+    to   { /**/ }
+}
+
+[data-login-form] input:-webkit-autofill,
+[data-login-form] input:-internal-autofill-selected,
+[data-login-form] input:-internal-autofill-previewed {
+    animation-name: onAutoFillStart;
+    animation-duration: 1ms;
+}
+

@@ -61,12 +61,14 @@
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--widget-border, var(--color-border));
     color: var(--widget-item-text, var(--color-text-main));
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-gray-900) 8%, transparent);
+    transition:
+        transform var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
 }
 .eventItem:hover{
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-gray-900) 15%, transparent);
     background-color: var(--widget-item-hover-bg, var(--color-background-light));
 }
 
@@ -102,4 +104,10 @@
     text-align: center;
     color: var(--widget-item-text, var(--color-text-secondary));
     font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .eventItem {
+        transition: none;
+    }
 }

@@ -6,8 +6,8 @@ use App\Entity\Entrega;
 use App\Entity\Tarea;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\FilesystemOperator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,7 +23,8 @@ class UploadEntregaController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
         #[CurrentUser] ?User $user,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        FilesystemOperator $storage
     ): JsonResponse
     {
         try {
@@ -32,7 +33,6 @@ class UploadEntregaController extends AbstractController
             }
 
             // Verificar permisos (Alumno)
-            // Nota: Un profesor también podría querer subir algo como prueba, pero por ahora limitamos a alumnos o admins
             if (!in_array('ROLE_ALUMNO', $user->getRoles()) && !in_array('ROLE_ADMIN', $user->getRoles()) && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
                 return $this->json(['message' => 'Acceso denegado. Solo alumnos pueden realizar entregas.'], 403);
             }
@@ -52,6 +52,12 @@ class UploadEntregaController extends AbstractController
 
             if (!$tarea) {
                 return $this->json(['message' => 'Tarea no encontrada'], 404);
+            }
+
+            // Bloquear entregas/ediciones fuera de plazo (salvo admin/superadmin)
+            $esAdmin = in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles());
+            if (!$esAdmin && $tarea->getFechaLimite() && new \DateTime() > $tarea->getFechaLimite()) {
+                return $this->json(['message' => 'El plazo de entrega ha finalizado'], 403);
             }
 
             // Verificar si ya existe una entrega para este alumno y tarea
@@ -76,20 +82,23 @@ class UploadEntregaController extends AbstractController
                 $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
 
-                $targetDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/entregas';
-
-                if (!file_exists($targetDirectory)) {
-                    if (!mkdir($targetDirectory, 0777, true) && !is_dir($targetDirectory)) {
-                        throw new \RuntimeException(sprintf('Directory "%s" was not created', $targetDirectory));
-                    }
-                }
-
                 try {
-                    $file->move($targetDirectory, $newFilename);
-                    // Si había un archivo anterior, podríamos borrarlo, pero por ahora lo dejamos
+                    // Subir a MinIO usando Flysystem
+                    $stream = fopen($file->getRealPath(), 'r+');
+                    $storage->writeStream('entregas/' . $newFilename, $stream);
+                    fclose($stream);
+
+                    // Borrar archivo antiguo si existe
+                    if ($entrega->getArchivo()) {
+                        $oldPath = 'entregas/' . $entrega->getArchivo();
+                        if ($storage->has($oldPath)) {
+                            $storage->delete($oldPath);
+                        }
+                    }
+
                     $entrega->setArchivo($newFilename);
-                } catch (FileException $e) {
-                    $logger->error('UploadEntrega: Error al mover archivo', ['error' => $e->getMessage()]);
+                } catch (\Exception $e) {
+                    $logger->error('UploadEntrega: Error al subir archivo', ['error' => $e->getMessage()]);
                     return $this->json(['message' => 'Error al subir el archivo: ' . $e->getMessage()], 500);
                 }
             }

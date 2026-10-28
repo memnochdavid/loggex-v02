@@ -1,18 +1,22 @@
-import React, {useState, useEffect, useRef, useLayoutEffect} from 'react';
+import React, {useState, useEffect, useRef, useLayoutEffect, useCallback} from 'react';
 import {useLocation} from 'react-router-dom';
 import Layout from '../components/Layout';
 import CrudHeader from '../components/CrudHeader';
 import SearchBar from '../components/SearchBar';
 import {useAuth} from '../context/AuthContext';
+import useMercure from '../hooks/useMercure';
 import styles from './Mensajes.module.css';
 import {Send, User, ArrowLeft} from 'lucide-react';
 import Button from '../components/Button';
-import {getApiUrl, getAssetUrl, POLLING_INTERVAL_CHAT} from '../config/api';
+import {getApiUrl, getAssetUrl} from '../config/api';
 import useMediaQuery from '../hooks/useMediaQuery';
 import Lottie from 'lottie-react';
 import messageAnimation from '../../public/message.json';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
 
 const Mensajes = () => {
+    const { t } = useTranslation();
     const {user} = useAuth();
     const location = useLocation();
     const [conversaciones, setConversaciones] = useState([]);
@@ -32,13 +36,22 @@ const Mensajes = () => {
 
     const isMobile = useMediaQuery('(max-width: 768px)');
 
+    // Carga inicial del historial. Los nuevos mensajes llegan por Mercure (ver más abajo).
     useEffect(() => {
         if (user) {
             fetchMensajes();
-            const interval = setInterval(fetchMensajes, POLLING_INTERVAL_CHAT);
-            return () => clearInterval(interval);
         }
     }, [user]);
+
+    // Updates en tiempo real: nuevos mensajes entrantes y cambios de leído.
+    useMercure(
+        user?.id ? [`/users/${user.id}/messages`] : [],
+        useCallback((event) => {
+            if (event?.type === 'new_message' || event?.type === 'message_read') {
+                fetchMensajes();
+            }
+        }, [])
+    );
 
     // Ajustar altura del textarea automáticamente
     useEffect(() => {
@@ -68,8 +81,7 @@ const Mensajes = () => {
                 const newChat = {
                     usuario: targetUser,
                     mensajes: [],
-                    ultimoMensaje: {fechaEnvio: new Date(), texto: 'Nueva conversación'},
-                    noLeidos: 0,
+                    ultimoMensaje: {fechaEnvio: new Date(), texto: t('messages.startConversation')},
                     isTemp: true
                 };
                 setConversaciones(prev => [newChat, ...prev]);
@@ -261,10 +273,14 @@ const Mensajes = () => {
                     textareaRef.current.focus();
                 }
             } else {
-                alert("Error al enviar mensaje");
+                const message = await parseErrorResponse(response, t('messages.errorSending'));
+                toast.error(message, {
+                    description: t('messages.errorSendingCtx', { defaultValue: 'No se ha podido enviar el mensaje' })
+                });
             }
         } catch (error) {
             console.error(error);
+            toast.error(t('messages.errorSending'));
         } finally {
             setSending(false);
         }
@@ -284,6 +300,29 @@ const Mensajes = () => {
         setSelectedUser(null);
     };
 
+    const formatMessageDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Hoy: hora
+        if (date.toDateString() === now.toDateString()) {
+            return timeStr;
+        }
+
+        // Ayer: ayer - hora
+        if (date.toDateString() === yesterday.toDateString()) {
+            return `${t('messages.yesterday')} - ${timeStr}`;
+        }
+
+        // Esta semana / más antiguo: fecha - hora
+        return `${date.toLocaleDateString()} - ${timeStr}`;
+    };
+
     const filteredConversations = conversaciones.filter(c => {
         const nombre = `${c.usuario.nombre} ${c.usuario.apellidos || ''}`.toLowerCase();
         return nombre.includes(searchTerm.toLowerCase());
@@ -293,7 +332,12 @@ const Mensajes = () => {
         <Layout fullHeight={true}>
             <div className={styles.container}>
                 <div style={{padding: '1rem', display: selectedUser && window.innerWidth <= 768 ? 'none' : 'block'}}>
-                    <CrudHeader title="Mensajería"
+                    <CrudHeader title={t('messages.title')}
+ subtitle={t('messages.subtitle')}
+                                breadcrumbs={[
+                                    { label: t('sidebar.home'), to: '/' },
+                                    { label: t('messages.title') },
+                                ]}
                                 logo={<Lottie animationData={messageAnimation} loop={true}
                                               style={{width: 60, height: 60}}/>}
                     />
@@ -305,7 +349,7 @@ const Mensajes = () => {
                             <SearchBar
                                 value={searchTerm}
                                 onChange={setSearchTerm}
-                                placeholder="Buscar conversación..."
+                                placeholder={t('messages.searchPlaceholder')}
                                 fields={[]}
                             />
                         </div>
@@ -328,17 +372,11 @@ const Mensajes = () => {
                                         <div className={styles.conversationHeader}>
                                             <span
                                                 className={styles.userName}>{chat.usuario.nombre} {chat.usuario.apellidos}</span>
-                                            <span className={styles.time}>
-                                                {chat.isTemp ? 'Nuevo' : new Date(chat.ultimoMensaje.fechaEnvio).toLocaleTimeString([], {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
-                                            </span>
                                         </div>
                                         <div className={styles.lastMessage}>
-                                            {chat.isTemp ? 'Inicia la conversación' : (
+                                            {chat.isTemp ? t('messages.startConversation') : (
                                                 <>
-                                                    {chat.ultimoMensaje.remitente.id === user.id ? 'Tú: ' : ''}
+                                                    {chat.ultimoMensaje.remitente.id === user.id ? t('messages.you') : ''}
                                                     {chat.ultimoMensaje.texto}
                                                 </>
                                             )}
@@ -371,13 +409,14 @@ const Mensajes = () => {
                                 </div>
 
                                 <div
+                                    key={selectedUser?.id}
                                     className={styles.messagesContainer}
                                     ref={messagesContainerRef}
                                     onScroll={handleScroll}
                                 >
                                     {mensajesChat.length === 0 ? (
                                         <div className={styles.emptyChat}>
-                                            <p>No hay mensajes. ¡Saluda!</p>
+                                            <p>{t('messages.noMessages')}</p>
                                         </div>
                                     ) : (
                                         [...mensajesChat].reverse().map(msg => {
@@ -391,10 +430,7 @@ const Mensajes = () => {
                                                         {msg.texto}
                                                     </div>
                                                     <div className={styles.messageTime}>
-                                                        {new Date(msg.fechaEnvio).toLocaleTimeString([], {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
+                                                        {formatMessageDate(msg.fechaEnvio)}
                                                     </div>
                                                 </div>
                                             );
@@ -409,7 +445,7 @@ const Mensajes = () => {
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder="Escribe un mensaje..."
+                                        placeholder={t('messages.inputPlaceholder')}
                                         className={styles.messageInput}
                                         disabled={sending}
                                         rows={1}
@@ -421,7 +457,7 @@ const Mensajes = () => {
                             </>
                         ) : (
                             <div className={styles.emptyChat}>
-                                <p>Selecciona una conversación para empezar a chatear</p>
+                                <p>{t('messages.startConversation')}</p>
                             </div>
                         )}
                     </div>

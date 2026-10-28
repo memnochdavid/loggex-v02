@@ -1,0 +1,102 @@
+/**
+ * Estilos específicos de la cola de notificaciones del sistema.
+ * El layout grande (contenedor, lista, footer, item button) se reusa de
+ * NotificationList.module.css. Aquí van solo los detalles propios:
+ *  - Avatar reemplazado por icono semántico del tipo de notificación.
+ *  - Punto de "no leída" junto al título.
+ *  - Tono atenuado de las leídas (resta protagonismo en la lista).
+ *
+ * REGLA DE TEMATIZACIÓN: cero literales hex. Todo desde variables CSS del
+ * tema o color-mix sobre variables. Ver CLAUDE.md §"REGLA DE ORO".
+ */
+
+.iconWrap {
+    color: var(--widget-icon-color, var(--color-primary));
+    background-color: color-mix(in srgb, var(--widget-icon-color, var(--color-primary)) 12%, transparent);
+}
+
+.unreadDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--widget-icon-color, var(--color-primary));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--widget-icon-color, var(--color-primary)) 18%, transparent);
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+/* La fila de "no leída" mantiene su intensidad; la leída se atenúa.
+   El item button ya tiene su propio hover/focus en NotificationList.module.css
+   y se respeta tal cual. */
+.read {
+    opacity: 0.78;
+}
+
+.unread {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .unreadDot {
+        box-shadow: none;
+    }
+}
+
+/* Botón icónico discreto reusable: header (expandir/contraer) y footer
+   (limpiar todas) comparten este estilo. Tematizado: usa variables del
+   widget para heredar el color del icono del centro y mezclarse con su
+   fondo al hover. Transición con los mismos tokens que el resto del
+   header (--dur-base + --ease-standard). */
+.iconButton {
+    background: transparent;
+    border: none;
+    color: var(--widget-icon-color, var(--text-muted));
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-md, var(--border-radius));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard);
+}
+
+.iconButton:hover {
+    background-color: color-mix(in srgb, var(--widget-icon-color, currentColor) 14%, transparent);
+    color: var(--widget-icon-color, var(--text-main));
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid var(--widget-icon-color, var(--color-primary-500));
+    outline-offset: 2px;
+}
+
+/* Posición del botón expandir dentro del header de la lista — empuja
+   el botón al extremo derecho del .widgetHeader heredado. */
+.expandButton {
+    margin-left: auto;
+}
+
+/* Variante destructiva: tono error en hover/focus para reforzar la
+   naturaleza de "Limpiar todas". Por defecto comparte el color muted
+   del .iconButton para no competir visualmente con el botón "Marcar
+   todas como leídas" cuando ambos coexisten. */
+.iconButtonDanger:hover {
+    background-color: color-mix(in srgb, var(--color-error) 14%, transparent);
+    color: var(--color-error);
+}
+
+.iconButtonDanger:focus-visible {
+    outline-color: var(--color-error);
+}
+
+/* Footer del dropdown cuando aloja varios elementos (marcar leídas + icono
+   limpiar): distribuye con espacio entre ellos. El widgetFooter heredado
+   pone el padding base; aquí solo añadimos la composición flex. */
+.footerActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}

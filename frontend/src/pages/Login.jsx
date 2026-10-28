@@ -1,22 +1,80 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
-import ModalView from '../components/ModalView';
 import styles from './Login.module.css';
+import { useTranslation } from 'react-i18next';
+import {
+  Mail, Lock, LogIn, Eye, EyeOff, AlertCircle,
+  ArrowRight, CornerDownLeft, Sparkles,
+} from 'lucide-react';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 const Login = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+  const [capsLock, setCapsLock] = useState(false);
+  const cardRef = useRef(null);
+
+  // Sincroniza el state con el value del DOM cuando el navegador autofill
+  // las credenciales — Chromium-based browsers NO disparan `onChange` en
+  // ese caso, así que el state queda vacío y todo lo que depende de él se
+  // rompe (label sin estado "lleno", validaciones, botón submit deshabilitado…).
+  // El truco: declaramos en CSS un `@keyframes onAutoFillStart` global de
+  // 1ms que se aplica al `:-webkit-autofill`; el `animationstart` SÍ
+  // dispara y aquí leemos `e.target.value` para empujarlo al state.
+  const handleAutoFillSync = (setter) => (e) => {
+    if (e.animationName !== 'onAutoFillStart') return;
+    // Brave/Chromium dispara `animationstart` ANTES de actualizar el
+    // `value` del DOM en algunos casos (especialmente al elegir del
+    // dropdown). Diferimos la lectura con varios intentos: rAF + dos
+    // setTimeout escalonados. Tan pronto como el value aparezca, lo
+    // sincronizamos al state y paramos. 250 ms cubre incluso autofill
+    // lento del gestor de contraseñas.
+    const target = e.target;
+    let synced = false;
+    const tryRead = () => {
+      if (synced) return;
+      if (target.value) {
+        synced = true;
+        setter(target.value);
+      }
+    };
+    requestAnimationFrame(tryRead);
+    setTimeout(tryRead, 50);
+    setTimeout(tryRead, 250);
+  };
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirigir a la página que intentaba visitar o a /horarios por defecto
   const from = location.state?.from?.pathname || '/';
+
+  // Parallax sutil: el ratón mueve ligeramente el glow del card.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const handle = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      el.style.setProperty('--px', `${x}%`);
+      el.style.setProperty('--py', `${y}%`);
+    };
+    el.addEventListener('mousemove', handle);
+    return () => el.removeEventListener('mousemove', handle);
+  }, []);
+
+  const handleKeyUp = (e) => {
+    if (typeof e.getModifierState === 'function') {
+      setCapsLock(e.getModifierState('CapsLock'));
+    }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -34,59 +92,123 @@ const Login = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <ModalView
-        isOpen={true}
-        onClose={() => {}} // No hace nada
-        title="Iniciar Sesión"
-        showCloseButton={false}
-        closeOnOverlayClick={false}
-        overlayClassName={styles.loginOverlay}
-        className={styles.loginCard}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        submitText="Entrar"
-        cancelText={null} // No mostrar botón cancelar
-        footer={
-            <Button 
-                type="submit" 
-                className="w-full" 
-                style={{ width: '100%' }}
+    <div className={styles.page}>
+      {/* Fondo de ondas global */}
+      <div className={styles.pageBg} aria-hidden="true">
+        <AnimatedBackground type="waves" />
+      </div>
+
+      <section className={styles.formPanel}>
+        <div className={styles.stack}>
+          {/* ============ CARD DEL FORMULARIO ============ */}
+          <div ref={cardRef} className={styles.formCard}>
+            <div className={styles.formCardGlow} aria-hidden="true" />
+
+            <div className={styles.formHeader}>
+              <div className={styles.formLogoWrap}>
+                <img src="/logo_app.png" alt="Loggex" className={styles.formLogo} />
+              </div>
+              <h1 className={styles.formTitle}>{t('login.title')}</h1>
+              <p className={styles.formSubtitle}>
+                {t('login.subtitle', 'Introduce tus credenciales para acceder')}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className={styles.form} noValidate data-login-form>
+              {error && (
+                <div className={styles.error} role="alert">
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className={`${styles.inputGroup} ${focusedField === 'email' ? styles.focused : ''} ${email ? styles.filled : ''}`}>
+                <label htmlFor="email" className={styles.label}>{t('login.email')}</label>
+                <div className={styles.inputWrapper}>
+                  <Mail size={18} className={styles.inputIcon} />
+                  <input
+                    type="email"
+                    id="email"
+                    className={styles.input}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onAnimationStart={handleAutoFillSync(setEmail)}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    required
+                    placeholder={t('login.emailPlaceholder')}
+                    autoComplete="email"
+                  />
+                  <span className={styles.inputUnderline} aria-hidden="true" />
+                </div>
+              </div>
+
+              <div className={`${styles.inputGroup} ${focusedField === 'password' ? styles.focused : ''} ${password ? styles.filled : ''}`}>
+                <label htmlFor="password" className={styles.label}>{t('login.password')}</label>
+                <div className={styles.inputWrapper}>
+                  <Lock size={18} className={styles.inputIcon} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    className={styles.input}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onAnimationStart={handleAutoFillSync(setPassword)}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    onKeyUp={handleKeyUp}
+                    required
+                    placeholder={t('login.passwordPlaceholder')}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className={styles.togglePassword}
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <span className={styles.inputUnderline} aria-hidden="true" />
+                </div>
+                {capsLock && (
+                  <span className={styles.capsHint}>
+                    <AlertCircle size={12} /> {t('login.capsLock', 'Bloq Mayús activado')}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className={styles.submitButton}
                 disabled={isSubmitting}
-                onClick={handleSubmit}
-            >
-                {isSubmitting ? 'Entrando...' : 'Entrar'}
-            </Button>
-        }
-      >
-        {error && <div className={styles.error}>{error}</div>}
-        
-        <div className={styles.formGroup}>
-            <label htmlFor="email" className={styles.label}>Email</label>
-            <input
-                type="email"
-                id="email"
-                className={styles.input}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="ejemplo@correo.com"
-            />
+              >
+                <span className={styles.submitSheen} aria-hidden="true" />
+                <span className={styles.submitContent}>
+                  {isSubmitting ? (
+                    <span className={styles.spinner} />
+                  ) : (
+                    <LogIn size={18} />
+                  )}
+                  <span>{isSubmitting ? t('login.submitting') : t('login.submit')}</span>
+                </span>
+                <span className={styles.submitShortcut} aria-hidden="true">
+                  <CornerDownLeft size={12} />
+                </span>
+              </button>
+            </form>
+          </div>
+
+          {/* Enlace a /about — acción secundaria, fuera del card para no
+              competir con el botón de submit. */}
+          <Link to="/about" className={styles.learnMore}>
+            <Sparkles size={13} />
+            <span>{t('login.learnMore', 'Conoce Loggex')}</span>
+            <ArrowRight size={14} className={styles.learnMoreArrow} />
+          </Link>
         </div>
-        
-        <div className={styles.formGroup}>
-            <label htmlFor="password" className={styles.label}>Contraseña</label>
-            <input
-                type="password"
-                id="password"
-                className={styles.input}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-            />
-        </div>
-      </ModalView>
+      </section>
     </div>
   );
 };

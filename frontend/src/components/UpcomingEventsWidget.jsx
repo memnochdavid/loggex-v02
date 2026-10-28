@@ -3,8 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './UpcomingEventsWidget.module.css';
 import { CalendarClock, Sun } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -61,19 +63,33 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
                 
                 const scheduleData = await scheduleResponse.json();
                 
-                // CORRECCIÓN CRÍTICA: El controlador devuelve un array directo, no un objeto Hydra
+                // El endpoint /api/my-schedule puede devolver dos formatos:
+                //   - array directo (formato viejo)
+                //   - { events: [...], slots: [...] } (formato nuevo post-Fase 3 CCAA)
                 let allSlots = [];
                 if (Array.isArray(scheduleData)) {
                     allSlots = scheduleData;
+                } else if (Array.isArray(scheduleData?.events)) {
+                    allSlots = scheduleData.events;
                 } else {
                     allSlots = scheduleData['hydra:member'] || scheduleData.member || [];
                 }
 
-                // 3. Filtrar por el día de hoy
+                // 3. Filtrar por el día de hoy + por el PeriodoLectivo activo
+                // hoy. Sin el filtro de PL, un grupo con N rangos cronológicos
+                // (típico: trimestres/evaluaciones) duplica cada bloque N veces
+                // porque cada PL tiene su propia copia del horario semanal.
                 const todaySlots = allSlots
                     .filter(slot => parseInt(slot.diaSemana) === isoDayOfWeek)
+                    .filter(slot => {
+                        // Si el slot no trae rango (caso compat con eventos sin PL),
+                        // se acepta — el filtro solo descarta los que SÍ trae rango
+                        // pero hoy queda fuera.
+                        if (!slot.periodoLectivoFechaInicio || !slot.periodoLectivoFechaFin) return true;
+                        return todayISO >= slot.periodoLectivoFechaInicio && todayISO <= slot.periodoLectivoFechaFin;
+                    })
                     .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-                
+
                 setEvents(todaySlots);
 
             } catch (error) {
@@ -89,22 +105,22 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
 
     const renderContent = () => {
         if (loading) {
-            return <p className={styles.loading}>Cargando horario...</p>;
+            return <p className={styles.loading}>{t('todaySchedule.loading')}</p>;
         }
         
         if (isHoliday && events.length === 0) {
-            return <p className={styles.empty}>Hoy es festivo. ¡Disfruta del día!</p>;
+            return <p className={styles.empty}>{t('todaySchedule.holiday')}</p>;
         }
         
         if (!isHoliday && events.length === 0) {
-            return <p className={styles.empty}>No tienes más clases hoy.</p>;
+            return <p className={styles.empty}>{t('todaySchedule.empty')}</p>;
         }
 
         return (
             <>
                 {isHoliday && (
                     <div className={styles.holidayBanner}>
-                        <Sun size={16} /> Hoy es festivo
+                        <Sun size={16} /> {t('todaySchedule.holidayBanner')}
                     </div>
                 )}
                 <ul className={styles.eventList}>
@@ -117,7 +133,7 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
                         >
                             <div className={styles.time}>{event.horaInicio.substring(0, 5)}</div>
                             <div className={styles.details}>
-                                <span className={styles.subject}>{event.modulo}</span>
+                                <span className={styles.subject}>{event.materia}</span>
                                 <span className={styles.group}>{event.grupo}</span>
                             </div>
                         </li>
@@ -132,7 +148,7 @@ const UpcomingEventsWidget = ({ hideHeader = false, onEventClick }) => {
             {!hideHeader && (
                 <div className={styles.widgetHeader}>
                     <CalendarClock size={20} className={styles.headerIcon} />
-                    <h3 className={styles.widgetTitle}>Horario de Hoy</h3>
+                    <h3 className={styles.widgetTitle}>{t('todaySchedule.title')}</h3>
                 </div>
             )}
             <div className={styles.widgetContent}>

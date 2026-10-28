@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Centro;
-use App\Entity\CicloFormativo;
+use App\Entity\Itinerario;
 use App\Entity\Grupo;
 use App\Entity\Matricula;
 use App\Entity\User;
@@ -40,13 +40,13 @@ class MatricularAlumnosCommand extends Command
                 $io->text("No hay grupos. Creando grupos básicos...");
 
                 // Buscar o crear ciclo
-                $ciclo = $this->entityManager->getRepository(CicloFormativo::class)->findOneBy(['centro' => $centro]);
-                if (!$ciclo) {
-                    $ciclo = new CicloFormativo();
-                    $ciclo->setNombre("Desarrollo de Aplicaciones Multiplataforma");
-                    $ciclo->setNivel("Superior");
-                    $ciclo->setCentro($centro);
-                    $this->entityManager->persist($ciclo);
+                $itinerario = $this->entityManager->getRepository(Itinerario::class)->findOneBy(['centro' => $centro]);
+                if (!$itinerario) {
+                    $itinerario = new Itinerario();
+                    $itinerario->setNombre("Desarrollo de Aplicaciones Multiplataforma");
+                    $itinerario->setNivel("Superior");
+                    $itinerario->setCentro($centro);
+                    $this->entityManager->persist($itinerario);
                 }
 
                 // Crear grupos 1º y 2º
@@ -54,7 +54,7 @@ class MatricularAlumnosCommand extends Command
                 $grupo1->setNombre("1º DAM");
                 $grupo1->setCurso(1);
                 $grupo1->setAnioEscolar(date('Y') . '-' . (date('Y') + 1));
-                $grupo1->setCiclo($ciclo);
+                $grupo1->setItinerario($itinerario);
                 $grupo1->setCentro($centro);
                 $this->entityManager->persist($grupo1);
 
@@ -62,7 +62,7 @@ class MatricularAlumnosCommand extends Command
                 $grupo2->setNombre("2º DAM");
                 $grupo2->setCurso(2);
                 $grupo2->setAnioEscolar(date('Y') . '-' . (date('Y') + 1));
-                $grupo2->setCiclo($ciclo);
+                $grupo2->setItinerario($itinerario);
                 $grupo2->setCentro($centro);
                 $this->entityManager->persist($grupo2);
 

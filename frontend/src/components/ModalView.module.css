@@ -4,62 +4,66 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, var(--color-gray-900) 55%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     opacity: 0;
-    animation: fadeIn 0.3s ease-out forwards;
+    animation: overlayIn var(--dur-slow) var(--ease-standard) forwards;
 }
 
 .modalOverlay.closing {
-    animation: fadeOut 0.3s ease-in forwards;
+    animation: overlayOut var(--dur-exit) var(--ease-standard) forwards;
 }
 
 /* Contenedor para Draggable (sin estilos visuales ni transformaciones de animación) */
 .modalContainer {
     width: 100%;
     max-width: 600px;
-    max-height: 90vh; /* Límite de altura */
-    display: flex; /* Necesario para que el hijo ocupe la altura */
+    max-height: 90vh;
+    display: flex;
     flex-direction: column;
-    /* Importante: No aplicar transform aquí, lo hace react-draggable */
 }
 
 /* Contenedor visual interno con animación */
 .modalContent {
-    background-color: var(--modal-header-bg);
+    /*background-color: var(--modal-header-bg);*/
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow:
+        var(--shadow-lg),
+        0 0 0 1px color-mix(in srgb, var(--text-main) 5%, transparent);
     width: 100%;
-    /* height: 100%; ELIMINADO: Esto forzaba a ocupar el 100% del contenedor padre, que es 90vh */
-    max-height: 100%; /* Ocupar como máximo el espacio del padre */
+    max-height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Para que el contenido no se salga de los bordes redondeados */
+    overflow: hidden;
+    min-height: 0;
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
 
-    /* Animación de escala por defecto (Desktop) */
-    transform: scale(0.95);
+    /* Animación de escala con spring (Desktop) */
+    transform: scale(0.94) translateY(8px);
     opacity: 0;
-    animation: scaleIn 0.2s ease-out forwards;
-    border: 3px solid var(--modal-header-bg);
+    animation: scaleIn var(--dur-slow) var(--ease-out-back) forwards;
+    border: var(--modal-border-width, 3px) solid var(--modal-header-bg);
 }
 
 .modalContent.closing {
-    animation: scaleOut 0.2s ease-in forwards;
+    animation: scaleOut var(--dur-exit) var(--ease-standard) forwards;
 }
 
 .modalHeader {
     padding: var(--space-1) var(--space-2);
-    border-bottom: 1px solid var(--border-color);
+    /*border-bottom: 1px solid var(--border-color);*/
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: var(--modal-header-bg, var(--bg-card));
     color: var(--modal-header-text, var(--text-main));
-    flex-shrink: 0; /* No encoger header */
+    flex-shrink: 0;
 }
 
 .modalTitleContainer {
@@ -74,6 +78,18 @@
     font-weight: var(--font-bold);
     color: inherit;
     margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.headerIconContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--dur-base) var(--ease-out-back);
+}
+
+.modalTitleContainer:hover .headerIconContainer {
+    transform: scale(1.08) rotate(-3deg);
 }
 
 .closeButton {
@@ -86,17 +102,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
     margin-left: var(--space-4);
     z-index: 10;
+    transition:
+        background-color var(--dur-base) var(--ease-standard),
+        color var(--dur-base) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back),
+        box-shadow var(--dur-base) var(--ease-standard);
 }
 
 .closeButton:hover {
     background-color: var(--modal-close-btn-hover-bg, var(--color-gray-100));
     color: var(--modal-close-btn-hover-text, var(--color-gray-700));
+    transform: rotate(90deg);
 }
-.closeButton:active{
-    scale: 0.9;
+
+.closeButton:active {
+    transform: rotate(90deg) scale(0.92);
+}
+
+.closeButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 38%, transparent);
+}
+
+/* Durante el cierre el hover del closeButton (rotate 90deg) se queda enganchado
+   si el cursor sigue encima. Forzamos reset de transform e inhabilitamos la
+   interacción mientras el modal está animando su salida. */
+.modalContent.closing .closeButton {
+    pointer-events: none;
+}
+.modalContent.closing .closeButton,
+.modalContent.closing .closeButton:hover,
+.modalContent.closing .closeButton:active {
+    transform: none;
+}
+
+.modalContent:focus-visible {
+    outline: none;
+}
+
+.modalContent:focus {
+    outline: none;
 }
 
 .modalBody {
@@ -104,11 +151,40 @@
     flex-direction: column;
     padding: var(--space-6);
     gap: var(--space-1);
-    flex: 1; /* Ocupar espacio restante */
-    overflow-y: auto; /* Scroll vertical si es necesario */
-    min-height: 0; /* Importante para que flexbox permita el scroll */
-    background-color: var(--modal-body-bg, var(--bg-card));
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    background-color: var(--modal-body-bg);
     color: var(--modal-body-text, var(--text-main));
+}
+
+/* Variante para modales que contienen un DataTable como contenido
+   principal (Fase B fix 2026-05-12). Pasar `bodyClassName={styles.bodyWithTable}`
+   al ModalView. Sin esta variante, el `.container` del DataTable
+   (con `overflow: hidden`) no respeta el flex del modalBody y el
+   contenido excede el modal sin activar scroll.
+
+   Estrategia: cero padding en el body + el primer hijo (el container del
+   DataTable) toma todo el espacio vía `flex: 1 + min-height: 0`. Su
+   `overflow: hidden` interno deja al `.tableWrapper` interno (que tiene
+   `overflow-x: auto`) gestionar el scroll horizontal, y la altura del
+   contenedor queda comprimida al espacio del modal. El paginador queda
+   visible en la parte inferior porque está dentro del container flex. */
+.bodyWithTable {
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+}
+.bodyWithTable > * {
+    flex: 1;
+    min-height: 0;
+    border-radius: 0;
+    box-shadow: none;
+    /* Override `overflow: hidden` que trae el .container del DataTable.
+       `!important` necesario porque ambos selectores tienen la misma
+       especificidad (0,1,0) y según el orden de carga de los módulos
+       CSS Modules gana el del DataTable. */
+    overflow: auto !important;
 }
 
 .modalFooter {
@@ -118,71 +194,88 @@
     justify-content: flex-end;
     gap: var(--space-3);
     background-color: var(--modal-footer-bg, var(--color-gray-50));
-    flex-shrink: 0; /* No encoger footer */
+    flex-shrink: 0;
 }
 
-@keyframes fadeIn {
+@keyframes overlayIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
-@keyframes fadeOut {
+@keyframes overlayOut {
     from { opacity: 1; }
     to { opacity: 0; }
 }
 
 @keyframes scaleIn {
     from {
-        transform: scale(0.95);
+        transform: scale(0.94) translateY(8px);
         opacity: 0;
     }
     to {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
     }
 }
 
 @keyframes scaleOut {
     from {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
     }
     to {
-        transform: scale(0.95);
+        transform: scale(0.94) translateY(8px);
         opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modalOverlay,
+    .modalContent,
+    .closeButton {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+    .closeButton:hover,
+    .closeButton:active,
+    .modalTitleContainer:hover .headerIconContainer {
+        transform: none !important;
     }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .modalOverlay {
-        align-items: flex-end; /* Alinear abajo para efecto sheet */
+        align-items: flex-end;
         padding: 0;
+        /* backdrop-filter es caro en móvil — reducimos el blur */
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 
     .modalContainer {
         width: 100%;
         max-width: 100%;
-        max-height: 95vh; /* Límite de altura en móvil */
+        max-height: 95vh;
         flex: 1;
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end; /* Alinear contenido al fondo */
+        justify-content: flex-end;
     }
 
     .modalContent {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
-        animation: slideUp 0.3s ease-out forwards;
-        transform: translateY(100%); /* Estado inicial para la animación */
-        opacity: 1; /* Opacidad manejada por transform */
-        max-height: 100%; /* Respetar el límite del contenedor */
+        animation: slideUp var(--dur-slow) var(--ease-out-quart) forwards;
+        transform: translateY(100%);
+        opacity: 1;
+        max-height: 100%;
     }
 
     .modalContent.closing {
-        animation: slideDown 0.2s ease-in forwards;
+        animation: slideDown var(--dur-exit) var(--ease-standard) forwards;
     }
     .modalFooter {
         justify-content: center;

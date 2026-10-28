@@ -1,20 +1,55 @@
+.outer {
+    margin-bottom: var(--space-3);
+}
+
+/* Cuando hay breadcrumbs, el margin-bottom va en el outer y el container
+   interno no aporta el suyo, para no acumular separación. */
+.outerWithBreadcrumbs .container {
+    margin-bottom: 0;
+}
+
+.breadcrumbsRow {
+    /* Borde izquierdo absoluto del header — alineado al lottie/título. */
+    margin-bottom: var(--space-2);
+}
+
 .container {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     margin-bottom: var(--space-3);
-    flex-wrap: wrap;
     gap: var(--space-4);
+}
+/* Cuando NO hay slot middle, usamos flex clásico */
+.container:not(:has(.middle)) {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .titleGroup {
     display: flex;
     align-items: center;
     gap: 1rem;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) backwards;
+}
+
+.logoContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    transition: transform var(--dur-base) var(--ease-out-back);
+}
+
+.titleGroup:hover .logoContainer {
+    transform: scale(1.05) rotate(-2deg);
 }
 
 .logo {
-    height: 40px;
+    height: 56px;
     width: auto;
     object-fit: contain;
 }
@@ -25,44 +60,132 @@
 }
 
 .title {
-    font-size: var(--text-2xl);
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: var(--font-bold);
-    color: var(--color-gray-900);
+    color: var(--text-main);
     margin: 0;
     line-height: 1.2;
+    letter-spacing: -0.015em;
 }
 
 .subtitle {
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
+    font-size: var(--text-base);
+    color: var(--text-muted);
     margin: 0;
-    margin-top: 0.25rem;
+    margin-top: var(--space-1);
+    letter-spacing: 0.005em;
+    line-height: 1.4;
 }
 
+/* Slot central (p. ej. tabs): ocupa su columna propia en la cuadrícula */
+.middle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    justify-self: start;
+    min-width: 0;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 60ms backwards;
+}
+
+.middle > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Los filtros (selects, inputs, etc.): mínimo razonable, encogen antes que desbordar. */
 .actions {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
-    /*flex-wrap: wrap;*/
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2) var(--space-3);
+    min-width: 0;
+    animation: crudHeaderIn var(--dur-slow) var(--ease-out-quart) 120ms backwards;
 }
 
-/* Ajustes para móviles */
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+.actions > * {
+    min-width: 0;
+    max-width: 100%;
+}
 
+@keyframes crudHeaderIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .titleGroup,
+    .middle,
+    .actions {
+        animation: none !important;
+    }
+    .titleGroup:hover .logoContainer {
+        transform: none !important;
+    }
+}
+
+/* stackActionsEarly: cuando el header lleva muchos controles (p.ej. editor de
+   horarios), preferimos bajar .actions a su propia fila ANTES de dejar que
+   .middle (tabs) se parta. Actúa en la franja 1101–1600px; por encima caben
+   las 3 columnas, por debajo ya se apila todo por la media query general.
+   Si además hay tabs (middle), los selects + buscador + botones suelen
+   exceder hasta los 1930px (caso /fechas/ tab Festivos): extendemos el
+   rango para esos headers concretos. */
+@media (min-width: 1101px) and (max-width: 1600px) {
+    .container.stackActionsEarly {
+        grid-template-columns: auto 1fr;
+        row-gap: var(--space-3);
+    }
+    .container.stackActionsEarly .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+@media (min-width: 1601px) and (max-width: 1930px) {
+    .container.stackActionsEarly:has(.middle) {
+        grid-template-columns: auto 1fr;
+        row-gap: var(--space-3);
+    }
+    .container.stackActionsEarly:has(.middle) .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
+/* Cuando .actions ocupa una fila completa, reparte filtros (divs) a la izquierda
+   y botones (botón nativo) a la derecha: el primer <button> hijo directo toma
+   el espacio libre con margin-left: auto. En viewports anchos donde todo queda
+   compacto a la derecha no tiene efecto visible. */
+.container.stackActionsEarly .actions > button:first-of-type {
+    margin-left: auto;
+}
+
+/* Cuando el header no cabe cómodamente, pasa a columna */
+@media (max-width: 1100px) {
+    .container,
+    .container:not(:has(.middle)) {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+    .titleGroup { width: 100%; }
+    .middle {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-self: stretch;
+    }
     .actions {
         width: 100%;
-        justify-content: flex-start; /* O space-between si prefieres */
-    }
-
-    /* Si los elementos internos (como el searchbar) deben crecer */
-    .actions > * {
-        flex: 1;
-    }
-    .actions{
+        justify-content: space-between;
         flex-wrap: wrap;
+        gap: var(--space-2);
     }
 }

@@ -3,10 +3,8 @@
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
-    height: 85vh; /* Específico de Horarios para el calendario */
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 .header {
@@ -42,15 +40,44 @@
 
 .select {
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
+    font-family: inherit;
+    min-height: 38px;
+    box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1em;
+    cursor: pointer;
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.select:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
+}
+
+.select:focus {
+    outline: none;
+    border-color: var(--input-focus-border, var(--color-primary-500));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
+}
+
+.select:focus-visible {
+    outline: none;
 }
 
 .errorContainer {
-    background-color: #fef2f2;
+    background-color: color-mix(in srgb, var(--color-error) 8%, var(--bg-card));
     border: 1px solid var(--color-error);
     color: var(--color-error);
     padding: var(--space-4);
@@ -74,10 +101,15 @@
     /*color: var(--color-gray-500);*/
     background-color: var(--btn-primary-bg, var(--color-primary-600));
     color: var(--btn-primary-text, white);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
 }
 
 .iconButton:active {
@@ -93,59 +125,107 @@
     background-color: var(--color-error);
 }
 
-/* Layout de Vista Calendario */
+/* Layout de Vista Calendario — grid de 3 bloques */
 .calendarViewModeContainer {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-6);
-    flex: 1;
-    overflow: hidden;
-    height: 100%;
+    width: 100%;
 }
 
 .timeTableWrapper {
-    flex: 1;
-    min-width: 0;
-    overflow-y: auto;
-    background-color: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    grid-column: 1 / -1;
+    background-color: transparent;
 }
 
-.eventsSidebarWrapper {
-    width: 320px;
-    flex-shrink: 0;
-    height: 100%;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+.weekStripWrapper {
+    grid-column: 1;
 }
 
-/* Sidebar Móvil (Drawer) */
+.calendarWrapper {
+    grid-column: 2;
+}
+
+/* ≥970px: TimeTable ocupa col1 (rows 1-2), CalendarView col2-row1, WeekStrip col1-row2 */
+@media (min-width: 970px) {
+    .calendarViewModeContainer {
+        grid-template-columns: 1fr 340px;
+    }
+
+    .timeTableWrapper {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .calendarWrapper {
+        grid-column: 2;
+        grid-row: 1;
+        position: sticky;
+        top: var(--space-4);
+    }
+}
+
+/* ≤600px: todo en columna, CalendarView oculto (drawer móvil) */
+@media (max-width: 600px) {
+    .container {
+        padding: 0 var(--space-2);
+        height: auto;
+        overflow: visible;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .calendarWrapper {
+        display: none;
+    }
+
+    .modal {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+}
+
+/* Sidebar Móvil (Drawer) — mismo patrón que el sidebar principal: respeta el header */
 .mobileSidebarOverlay {
     position: fixed;
-    top: 0;
+    top: 84px; /* Altura del header */
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    height: calc(100vh - 84px);
+    background-color: color-mix(in srgb, black 48%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 85; /* Por debajo del header (z-index: 100) */
     display: flex;
     justify-content: flex-end;
-    backdrop-filter: blur(2px);
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn var(--dur-base) var(--ease-standard);
 }
 
 .mobileSidebar {
-    width: 85%; /* Ancho relativo para móvil */
-    max-width: 320px;
+    width: 85%;
+    max-width: 340px;
     background-color: var(--bg-card);
     height: 100%;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    padding: var(--space-3);
+    box-shadow: -4px 0 24px color-mix(in srgb, black 22%, transparent);
     display: flex;
     flex-direction: column;
-    animation: slideInRight 0.3s ease-out;
+    z-index: 90;
+    animation: slideInRight var(--dur-slow) var(--ease-out-quart);
+    box-sizing: border-box;
+}
+
+/* Header reducido (<=600px) — idéntico al del sidebar principal */
+@media (max-width: 600px) {
+    .mobileSidebarOverlay {
+        top: 76px;
+        height: calc(100vh - 76px);
+    }
 }
 
 .mobileSidebarHeader {
@@ -154,6 +234,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+}
+
+.mobileSidebarBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .mobileSidebarHeader h3 {
@@ -206,7 +294,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, var(--color-gray-900) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -223,7 +311,7 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideIn 0.2s ease-out;
+    animation: slideIn var(--dur-base) var(--ease-out-quart);
     display: flex;
     flex-direction: column;
 }
@@ -255,6 +343,15 @@
 .closeButton:hover {
     background-color: var(--color-gray-100);
     color: var(--color-gray-700);
+}
+
+.closeButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.closeButton:active {
+    scale: 0.9;
 }
 
 .modalBody {
@@ -292,53 +389,47 @@
 .input {
     width: 100%;
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
-    transition: border-color 0.2s;
+    font-family: inherit;
+    min-height: 38px;
     box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.input:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
 }
 
 .input:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
+    border-color: var(--input-focus-border, var(--color-primary-500));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
 }
 
-/* Media Queries */
-@media (max-width: 1200px) {
-    .container {
-        padding: 0 var(--space-2);
-        height: auto;
-        overflow: visible;
+.input:focus-visible {
+    outline: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .iconButton,
+    .input,
+    .select {
+        transition: none;
     }
 
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--space-4);
-    }
-
-    .calendarViewModeContainer {
-        flex-direction: column;
-        height: auto;
-        overflow: visible;
-    }
-
-    .timeTableWrapper {
-        height: auto;
-        overflow-y: visible;
-    }
-
-    .eventsSidebarWrapper {
-        display: none;
-    }
-
-    .modal {
-        max-height: 100vh;
-        border-radius: 0;
+    .modal,
+    .mobileSidebarOverlay,
+    .mobileSidebar {
+        animation: none;
     }
 }
 

@@ -35,7 +35,7 @@
 }
 
 .errorContainer {
-  background-color: #fef2f2;
+  background-color: color-mix(in srgb, var(--color-error) 6%, var(--bg-card));
   border: 1px solid var(--color-error);
   color: var(--color-error);
   padding: var(--space-4);
@@ -57,10 +57,19 @@
     padding: var(--space-1);
     border-radius: var(--radius-sm);
     color: var(--color-gray-500);
-    transition: all 0.2s;
+    transition: all var(--dur-base) var(--ease-standard);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.iconButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.iconButton:active {
+    transform: scale(0.96);
 }
 
 .iconButton:hover {
@@ -69,7 +78,7 @@
 }
 
 .iconButton.danger:hover {
-    background-color: #fef2f2;
+    background-color: color-mix(in srgb, var(--color-error) 6%, var(--bg-card));
     color: var(--color-error);
 }
 
@@ -131,7 +140,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: color-mix(in srgb, var(--text-main) 50%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -148,7 +157,7 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideIn 0.2s ease-out;
+    animation: slideIn var(--dur-base) var(--ease-standard);
     display: flex;
     flex-direction: column;
 }
@@ -175,6 +184,15 @@
     color: var(--color-gray-500);
     padding: var(--space-1);
     border-radius: var(--radius-sm);
+}
+
+.closeButton:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.closeButton:active {
+    transform: scale(0.96);
 }
 
 .closeButton:hover {
@@ -211,19 +229,34 @@
 .input, .select {
     width: 100%;
     padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-input, var(--border-color));
     border-radius: var(--radius-md);
     font-size: var(--text-base);
-    transition: border-color 0.2s;
+    font-family: inherit;
+    min-height: 38px;
     box-sizing: border-box;
     background-color: var(--bg-input);
-    color: var(--text-main);
+    color: var(--text-input, var(--text-main));
+    transition:
+        border-color var(--dur-base) var(--ease-standard),
+        background-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard);
+}
+
+.input:hover:not(:disabled):not(:focus),
+.select:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--color-primary-500) 32%, var(--border-input, var(--border-color)));
+    background-color: var(--input-hover-bg, color-mix(in srgb, var(--bg-input) 95%, var(--text-main) 5%));
 }
 
 .input:focus, .select:focus {
     outline: none;
-    border-color: var(--color-primary-500);
-    box-shadow: 0 0 0 3px var(--color-primary-100);
+    border-color: var(--input-focus-border, var(--color-primary-500));
+    box-shadow: 0 0 0 3px var(--input-focus-shadow, color-mix(in srgb, var(--color-primary-500) 22%, transparent));
+}
+
+.input:focus-visible, .select:focus-visible {
+    outline: none;
 }
 
 .select {
@@ -244,9 +277,9 @@
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
-    background-color: white;
+    background-color: var(--bg-card);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color var(--dur-base) var(--ease-standard);
 }
 
 .fileInput::file-selector-button:hover {
@@ -301,5 +334,24 @@
     .modal {
         max-height: 100vh;
         border-radius: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .iconButton,
+    .closeButton,
+    .input,
+    .select,
+    .fileInput::file-selector-button {
+        transition: none;
+    }
+
+    .modal {
+        animation: none;
+    }
+
+    .iconButton:active,
+    .closeButton:active {
+        transform: none;
     }
 }

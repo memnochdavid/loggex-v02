@@ -2,12 +2,17 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\TareaRepository;
@@ -27,11 +32,26 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Put(),
+        new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['tarea:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['tarea:write']]
 )]
+// Topic plano /admin/tareas: la cascada por centro se hace en backend
+// (CurrentUserExtension). Todos los admins reciben la señal y refetch.
+// La vista de evaluación/grupo concreto puede subscribirse al mismo topic
+// y refetch su slice — el filtro queda en el endpoint REST.
+#[LivePublish(
+    topics: ['/admin/tareas'],
+    payloadGroups: ['tarea:read', 'timestamp:read', 'softdelete:read'],
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'imparticion' => 'exact',
+    'tipo' => 'exact',
+    'tareaOriginal' => 'exact',
+])]
+#[ApiFilter(OrderFilter::class, properties: ['fechaLimite', 'titulo'], arguments: ['orderParameterName' => 'order'])]
 class Tarea
 {
     use TimestampableTrait;
@@ -71,13 +91,35 @@ class Tarea
     #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
     private ?string $tipo = null;
 
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?float $peso = null;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private bool $obligatoria = true;
+
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?float $notaMinima = null;
+
     #[ORM\ManyToOne(inversedBy: 'tareas')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['tarea:read', 'tarea:write'])]
     private ?Imparticion $imparticion = null;
 
+    /**
+     * Si esta tarea es una recuperación / subida de nota, referencia a la tarea original.
+     * Su calificación sustituye (o mejora) la de la original en el cálculo de la media.
+     */
+    #[ORM\ManyToOne(targetEntity: Tarea::class)]
+    #[ORM\JoinColumn(name: 'tarea_original_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['tarea:read', 'tarea:write', 'imparticion:read', 'entrega:read'])]
+    private ?Tarea $tareaOriginal = null;
+
     #[ORM\OneToMany(mappedBy: 'tarea', targetEntity: Entrega::class)]
-    #[Groups(['tarea:read'])] // Añadido para que el profesor pueda ver las entregas
+    // NO serializar aquí: filtraría las entregas de todos los alumnos a cualquiera con acceso a la tarea.
+    // El profesor obtiene la lista vía GET /api/entregas?tarea={id}.
     private Collection $entregas;
 
     public function __construct()
@@ -167,6 +209,39 @@ class Tarea
         return $this;
     }
 
+    public function getPeso(): ?float
+    {
+        return $this->peso;
+    }
+
+    public function setPeso(?float $peso): static
+    {
+        $this->peso = $peso;
+        return $this;
+    }
+
+    public function isObligatoria(): bool
+    {
+        return $this->obligatoria;
+    }
+
+    public function setObligatoria(bool $obligatoria): static
+    {
+        $this->obligatoria = $obligatoria;
+        return $this;
+    }
+
+    public function getNotaMinima(): ?float
+    {
+        return $this->notaMinima;
+    }
+
+    public function setNotaMinima(?float $notaMinima): static
+    {
+        $this->notaMinima = $notaMinima;
+        return $this;
+    }
+
     public function getImparticion(): ?Imparticion
     {
         return $this->imparticion;
@@ -175,6 +250,17 @@ class Tarea
     public function setImparticion(?Imparticion $imparticion): static
     {
         $this->imparticion = $imparticion;
+        return $this;
+    }
+
+    public function getTareaOriginal(): ?Tarea
+    {
+        return $this->tareaOriginal;
+    }
+
+    public function setTareaOriginal(?Tarea $tareaOriginal): static
+    {
+        $this->tareaOriginal = $tareaOriginal;
         return $this;
     }
 

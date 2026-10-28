@@ -30,3 +30,53 @@ services:
             $removeProcessor: '@api_platform.doctrine.orm.state.remove_processor'
         tags:
             - { name: 'api_platform.state_processor', priority: 100 }
+
+    # Procesador POST de PeriodoLectivo: tras persistir, auto-crea PLIs
+    # para cada Imparticion del grupo (inherit Materia.minutosSemanales).
+    App\State\PeriodoLectivoCreateProcessor:
+        bind:
+            $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+        tags:
+            - { name: 'api_platform.state_processor' }
+
+    # Configuración del Cliente S3 para MinIO
+    app.minio_client:
+        class: 'Aws\S3\S3Client'
+        arguments:
+            -
+                endpoint: '%env(MINIO_ENDPOINT)%'
+                region: 'us-east-1'
+                version: 'latest'
+                use_path_style_endpoint: true
+                credentials:
+                    key: '%env(MINIO_ACCESS_KEY)%'
+                    secret: '%env(MINIO_SECRET_KEY)%'
+
+    # Alias para inyectar el filesystem fácilmente
+    League\Flysystem\FilesystemOperator: '@oneup_flysystem.loggex_storage_filesystem'
+
+    # Auto-tag de adapters del catálogo oficial. Cualquier clase que implemente
+    # CatalogoSourceAdapterInterface se etiqueta para ser descubierta por el
+    # comando `app:catalogo:refresh` y por el ingest service.
+    # Idéntico patrón para los providers CCAA (capa overlay).
+    _instanceof:
+        App\Catalogo\Source\CatalogoSourceAdapterInterface:
+            tags: ['app.catalogo.source']
+        App\Catalogo\Ccaa\CcaaCurriculumProviderInterface:
+            tags: ['app.catalogo.ccaa.provider']
+
+    # Iterador inyectable de todos los adapters tagueados.
+    App\Catalogo\Source\CatalogoSourceAdapterRegistry:
+        arguments:
+            $adapters: !tagged_iterator app.catalogo.source
+
+    App\Catalogo\Ccaa\CcaaProviderRegistry:
+        arguments:
+            $providers: !tagged_iterator app.catalogo.ccaa.provider
+
+    # Scraper HTTP de TodoFP (Fase 1.6). Produce los ~229 ciclos del catálogo
+    # nacional con metadata + URL del RD del BOE. Los módulos detallados los
+    # añade BoeRdEnricher después leyendo el RD/Currículo del BOE.
+    App\Catalogo\Source\TodoFpHttpAdapter:
+        tags:
+            - { name: app.catalogo.source }

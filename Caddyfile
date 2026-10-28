@@ -2,10 +2,25 @@
     # Desactivar administración automática de certificados en producción,
     # pero para localhost Caddy genera sus propios certificados CA locales.
     local_certs
+
+    # Confiar en proxies upstream (ngrok local, Docker gateway, loopback).
+    # Sin esto Caddy sobrescribe X-Forwarded-Proto con su propio scheme "http",
+    # y el backend cree que la request original era HTTP aunque ngrok la
+    # haya servido por HTTPS -> mixed-content al construir URLs absolutas.
+    servers {
+        trusted_proxies static private_ranges
+    }
 }
 
 # Definimos un snippet reutilizable con la lógica de enrutamiento PRINCIPAL (Frontend + API)
 (app_routes) {
+    # Hub Mercure (SSE + publish). Debe ir antes que /api/* para no ser engullido.
+    handle /.well-known/mercure* {
+        reverse_proxy mercure:80 {
+            flush_interval -1
+        }
+    }
+
     # Redirigir peticiones API al backend
     handle /api/* {
         reverse_proxy backend:80

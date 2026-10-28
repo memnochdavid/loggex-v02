@@ -3,22 +3,31 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 const Grupos = () => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [grupos, setGrupos] = useState([]);
-  const [ciclos, setCiclos] = useState([]);
+  const [itinerarios, setItinerarios] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -27,7 +36,7 @@ const Grupos = () => {
   
   // Filtros
   const [selectedCentro, setSelectedCentro] = useState('');
-  const [selectedCiclo, setSelectedCiclo] = useState('');
+  const [selectedItinerario, setSelectedItinerario] = useState('');
   
   // Paginación, Búsqueda y Ordenación
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,8 +58,8 @@ const Grupos = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'nombre', label: 'Nombre' },
-      { value: 'anioEscolar', label: 'Año Escolar' }
+      { value: 'nombre', label: t('groups.name') },
+      { value: 'anioEscolar', label: t('groups.schoolYear') }
   ];
 
   // Estado para el modal
@@ -59,11 +68,12 @@ const Grupos = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     abreviatura: '',
+    aulaDefault: '',
     curso: 1,
     anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
     fechaInicio: '',
     fechaFin: '',
-    ciclo: '',
+    itinerario: '',
     centro: ''
   });
   const [saving, setSaving] = useState(false);
@@ -86,7 +96,7 @@ const Grupos = () => {
 
   // Cargar ciclos (filtrados por centro si se selecciona uno)
   useEffect(() => {
-    let url = getApiUrl('/api/ciclo_formativos?pagination=false');
+    let url = getApiUrl('/api/itinerarios?pagination=false');
     
     if (isSuperAdmin && selectedCentro) {
         url += `&centro=${selectedCentro}`;
@@ -99,7 +109,7 @@ const Grupos = () => {
     .then(res => res.json())
     .then(data => {
         const items = data['hydra:member'] || data.member || [];
-        setCiclos(items);
+        setItinerarios(items);
     })
     .catch(err => console.error("Error cargando ciclos:", err));
   }, [selectedCentro, isSuperAdmin]);
@@ -129,8 +139,8 @@ const Grupos = () => {
           url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
       }
       
-      if (params.selectedCiclo) {
-          url += `&ciclo=${params.selectedCiclo}`;
+      if (params.selectedItinerario) {
+          url += `&itinerario=${params.selectedItinerario}`;
       }
       
       if (params.isSuperAdmin && params.selectedCentro) {
@@ -157,6 +167,9 @@ const Grupos = () => {
       const items = data['hydra:member'] || data.member || [];
       const total = data['hydra:totalItems'] || data.totalItems || items.length;
       
+      items.forEach(item => {
+        item.titleShort = `${item.curso || '?'}º ${item.abreviatura || item.nombre}`;
+      });
       setGrupos(items);
       setTotalItems(total);
       setError(null);
@@ -172,10 +185,30 @@ const Grupos = () => {
     }
   }, []); 
 
+  // Mercure live: refetch ante alta/edición/borrado de grupos del centro.
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/grupos`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchGruposData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedItinerario,
+          selectedCentro,
+          sortColumn,
+          sortDirection,
+          isSuperAdmin,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 
@@ -184,7 +217,7 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
@@ -209,7 +242,7 @@ const Grupos = () => {
       itemsPerPage, 
       searchTerm, 
       searchField, 
-      selectedCiclo,
+      selectedItinerario,
       selectedCentro, 
       sortColumn, 
       sortDirection, 
@@ -235,12 +268,13 @@ const Grupos = () => {
     if (grupo) {
       setCurrentGrupo(grupo);
       
-      let cicloId = '';
-      if (grupo.ciclo) {
-          if (typeof grupo.ciclo === 'object') {
-              cicloId = grupo.ciclo.id || (grupo.ciclo['@id'] ? grupo.ciclo['@id'].split('/').pop() : '');
-          } else if (typeof grupo.ciclo === 'string') {
-              cicloId = grupo.ciclo.split('/').pop();
+      let itinerarioId = '';
+      const itinRef = grupo.itinerario ?? (grupo.itinerario ?? grupo.ciclo); // tolerar payloads pre-rename
+      if (itinRef) {
+          if (typeof itinRef === 'object') {
+              itinerarioId = itinRef.id || (itinRef['@id'] ? itinRef['@id'].split('/').pop() : '');
+          } else if (typeof itinRef === 'string') {
+              itinerarioId = itinRef.split('/').pop();
           }
       }
 
@@ -256,11 +290,12 @@ const Grupos = () => {
       setFormData({
         nombre: grupo.nombre,
         abreviatura: grupo.abreviatura || '',
+        aulaDefault: grupo.aulaDefault || '',
         curso: grupo.curso,
         anioEscolar: grupo.anioEscolar,
         fechaInicio: grupo.fechaInicio ? grupo.fechaInicio.split('T')[0] : '',
         fechaFin: grupo.fechaFin ? grupo.fechaFin.split('T')[0] : '',
-        ciclo: cicloId,
+        itinerario: itinerarioId,
         centro: centroId
       });
     } else {
@@ -268,6 +303,7 @@ const Grupos = () => {
       setFormData({
         nombre: '',
         abreviatura: '',
+        aulaDefault: '',
         curso: 1,
         anioEscolar: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
         fechaInicio: '',
@@ -305,17 +341,19 @@ const Grupos = () => {
       const method = currentGrupo ? 'PUT' : 'POST';
 
       // Asegurar que ciclo y centro sean strings antes de usar includes
-      const cicloValue = String(formData.ciclo);
+      const itinerarioValue = String(formData.itinerario);
       const centroValue = formData.centro ? String(formData.centro) : null;
 
       const payload = {
         ...formData,
         curso: parseInt(formData.curso),
-        ciclo: cicloValue.includes('/api/') ? cicloValue : `/api/ciclo_formativos/${cicloValue}`,
+        itinerario: itinerarioValue.includes('/api/') ? itinerarioValue : `/api/itinerarios/${itinerarioValue}`,
         centro: centroValue ? (centroValue.includes('/api/') ? centroValue : `/api/centros/${centroValue}`) : null,
         fechaInicio: formData.fechaInicio || null,
-        fechaFin: formData.fechaFin || null
+        fechaFin: formData.fechaFin || null,
+        aulaDefault: formData.aulaDefault?.trim() || null,
       };
+      delete payload.ciclo;
 
       // Si no es superadmin, asignar centro automáticamente si es nuevo
       if (!isSuperAdmin && !currentGrupo && user.centro) {
@@ -333,9 +371,8 @@ const Grupos = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -344,24 +381,31 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
           isSuperAdmin
       });
       handleCloseModal();
+      toast.success(currentGrupo
+        ? t('groups.updatedSuccess', { defaultValue: 'Grupo actualizado' })
+        : t('groups.createdSuccess', { defaultValue: 'Grupo creado' }));
 
     } catch (err) {
       console.error("Error saving grupo:", err);
-      alert(`Error: ${err.message}`);
+      toast.error(err.message, {
+        description: currentGrupo
+          ? t('groups.errorUpdating', { defaultValue: 'No se ha podido actualizar el grupo' })
+          : t('groups.errorCreating', { defaultValue: 'No se ha podido crear el grupo' })
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (grupo) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este grupo?')) {
+    if (!(await confirm({ body: t('groups.confirmDelete') }))) {
       return;
     }
 
@@ -375,7 +419,8 @@ const Grupos = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar el grupo');
+        const message = await parseErrorResponse(response, t('groups.errorDelete'));
+        throw new Error(message);
       }
 
       fetchGruposData({
@@ -383,55 +428,73 @@ const Grupos = () => {
           itemsPerPage,
           searchTerm,
           searchField,
-          selectedCiclo,
+          selectedItinerario,
           selectedCentro,
           sortColumn,
           sortDirection,
           isSuperAdmin
       });
+      toast.success(t('groups.deletedSuccess', { defaultValue: 'Grupo eliminado' }));
 
     } catch (err) {
       console.error("Error deleting grupo:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      toast.error(err.message, {
+        description: t('groups.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el grupo' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin, fetchGruposData, t]);
+
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/grupos',
+    onSuccess: () => fetchGruposData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedItinerario,
+      selectedCentro,
+      sortColumn,
+      sortDirection,
+      isSuperAdmin,
+    }),
+  });
 
   const columns = useMemo(() => [
-    { header: 'Nombre', accessor: 'nombre', sortable: true, sortKey: 'nombre' },
-    { header: 'Curso', accessor: 'curso', sortable: true, sortKey: 'curso' },
-    { header: 'Año Escolar', accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
+    { header: t('groups.name'), accessor: 'nombre', sortable: true, sortKey: 'nombre' },
+    { header: t('groups.course'), accessor: 'curso', sortable: true, sortKey: 'curso' },
+    { header: t('groups.schoolYear'), accessor: 'anioEscolar', sortable: true, sortKey: 'anioEscolar' },
     { 
-        header: 'Inicio', 
+        header: t('groups.startDate'), 
         accessor: (row) => row.fechaInicio ? new Date(row.fechaInicio).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaInicio' 
     },
     { 
-        header: 'Fin', 
+        header: t('groups.endDate'), 
         accessor: (row) => row.fechaFin ? new Date(row.fechaFin).toLocaleDateString() : '-', 
         sortable: true, 
         sortKey: 'fechaFin' 
     },
     { 
-        header: 'Ciclo', 
-        accessor: (row) => row.ciclo ? row.ciclo.nombre : '-', 
+        header: t('groups.cycle'), 
+        accessor: (row) => (row.itinerario ?? row.ciclo)?.nombre ?? '-',
         sortable: false 
     },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -444,42 +507,45 @@ const Grupos = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Grupos"
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        <CrudHeader title={t('groups.title')}
+ subtitle={t('groups.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('groups.title') },
+                    ]}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => {
-                        setSelectedCentro(e.target.value);
-                        setSelectedCiclo('');
-                    }}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedItinerario(''); }}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
 
-            <select 
-                className={styles.select} 
-                value={selectedCiclo} 
-                onChange={(e) => setSelectedCiclo(e.target.value)}
-                style={{ width: '200px' }}
-            >
-                <option value="">Todos los ciclos</option>
-                {ciclos.map(c => (
-                    <option key={c.id || c['@id']} value={c.id || c['@id'].split('/').pop()}>{c.nombre}</option>
-                ))}
-            </select>
+            <ThemedSelect
+                value={selectedItinerario}
+                onChange={setSelectedItinerario}
+                minWidth={200}
+                ariaLabel={t('common.allCycles')}
+                options={[
+                    { value: '', label: t('common.allCycles') },
+                    ...itinerarios.map(c => ({
+                        value: String(c.id || c['@id']?.split('/').pop()),
+                        label: c.nombre,
+                    })),
+                ]}
+            />
             
             <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar grupo..." 
+                placeholder={t('groups.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -487,18 +553,19 @@ const Grupos = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCiclo, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchGruposData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedItinerario, selectedCentro, sortColumn, sortDirection, isSuperAdmin })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
         <DataTable
+            tableId="grupos"
             columns={columns}
             data={grupos}
             totalItems={totalItems}
@@ -506,6 +573,8 @@ const Grupos = () => {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
+            selectable
+            onBulkDelete={handleBulkDelete}
             loading={loading}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
@@ -516,12 +585,12 @@ const Grupos = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentGrupo ? 'Editar Grupo' : 'Nuevo Grupo'}
+            title={currentGrupo ? t('groups.editTitle') : t('groups.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Nombre del Grupo</label>
+                <label className={styles.label}>{t('groups.nameLabel')}</label>
                 <input
                     type="text"
                     name="nombre"
@@ -529,24 +598,43 @@ const Grupos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: 1º DAW A"
+                    placeholder={t('groups.namePlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Abreviatura</label>
+                <label className={styles.label}>{t('groups.abbreviation')}</label>
                 <input
                     type="text"
                     name="abreviatura"
                     value={formData.abreviatura}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder="Ej: 1DAWA"
+                    placeholder={t('groups.abbreviationPlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Año Escolar</label>
+                <label className={styles.label}>
+                    {t('groups.aulaDefault', { defaultValue: 'Aula por defecto' })}
+                </label>
+                <input
+                    type="text"
+                    name="aulaDefault"
+                    value={formData.aulaDefault}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder={t('groups.aulaDefaultPlaceholder', { defaultValue: 'ej. Aula 12, Lab Hardware…' })}
+                />
+                <small className={styles.helpText}>
+                    {t('groups.aulaDefaultHint', {
+                        defaultValue: 'Aula habitual del grupo. Se aplica a todos sus horarios salvo que la imparticion concreta tenga aula propia. Si vacío, se usa "Aula " + abreviatura.',
+                    })}
+                </small>
+            </div>
+
+            <div className={styles.formGroup}>
+                <label className={styles.label}>{t('groups.schoolYear')}</label>
                 <input
                     type="text"
                     name="anioEscolar"
@@ -554,12 +642,12 @@ const Grupos = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     required
-                    placeholder="Ej: 2023-2024"
+                    placeholder={t('groups.schoolYearPlaceholder')}
                 />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Inicio Curso</label>
+                <label className={styles.label}>{t('groups.courseStartDate')}</label>
                 <input
                     type="date"
                     name="fechaInicio"
@@ -570,7 +658,7 @@ const Grupos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha Fin Curso</label>
+                <label className={styles.label}>{t('groups.courseEndDate')}</label>
                 <input
                     type="date"
                     name="fechaFin"
@@ -581,49 +669,46 @@ const Grupos = () => {
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Ciclo Formativo</label>
-                <select
-                    name="ciclo"
-                    value={formData.ciclo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                <label className={styles.label}>{t('groups.cycleLabel')}</label>
+                <AsyncSearchSelect
+                    name="itinerario"
+                    value={formData.itinerario}
+                    onChange={(v) => setFormData(p => ({ ...p, itinerario: v }))}
+                    endpoint="/api/itinerarios"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(c) => c.nombre}
+                    getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                    placeholder={t('common.selectCycle')}
                     required
-                >
-                    <option value="">Seleccionar ciclo...</option>
-                    {ciclos.map(c => (
-                        <option key={c.id || c['@id']} value={c.id || c['@id']}>{c.nombre}</option>
-                    ))}
-                </select>
+                />
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Curso</label>
+                <label className={styles.label}>{t('groups.course')}</label>
                 <select
                     name="curso"
                     value={formData.curso}
                     onChange={handleInputChange}
                     className={styles.select}
                 >
-                    <option value="1">1º</option>
-                    <option value="2">2º</option>
+                    <option value="1">{t('groups.course1')}</option>
+                    <option value="2">{t('groups.course2')}</option>
                 </select>
             </div>
 
             {isSuperAdmin && (
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Centro</label>
-                    <select
+                    <label className={styles.label}>{t('groups.centerLabel')}</label>
+                    <AsyncSearchSelect
                         name="centro"
                         value={formData.centro}
-                        onChange={handleInputChange}
-                        className={styles.select}
+                        onChange={(v) => setFormData(p => ({ ...p, centro: v }))}
+                        endpoint="/api/centros"
+                        getOptionLabel={(c) => c.nombre}
+                        getOptionValue={(c) => c.id || c['@id']?.split('/').pop()}
+                        placeholder={t('common.selectCenter')}
                         required
-                    >
-                        <option value="">Seleccionar centro...</option>
-                        {centros.map(c => (
-                            <option key={c.id} value={c.id}>{c.nombre}</option>
-                        ))}
-                    </select>
+                    />
                 </div>
             )}
         </ModalView>

@@ -1,0 +1,178 @@
+.container {
+    position: relative;
+    display: inline-block;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: color-mix(in srgb, white 15%, transparent); /* Fondo semitransparente para adaptarse ao header */
+    color: inherit; /* Herda a cor do texto do header */
+    border: 1px solid color-mix(in srgb, white 30%, transparent);
+    /* Usar variable de tema para el radio del borde, con fallback */
+    border-radius: var(--border-radius, 6px);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: all var(--dur-base) var(--ease-standard);
+    /* Eliminamos min-width fixo para permitir que se encolla en móbil */
+    min-width: auto;
+    justify-content: space-between;
+}
+
+/* En escritorio mantemos un ancho mínimo para consistencia */
+@media (min-width: 769px) {
+    .button {
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .button {
+        padding: 0.35rem;
+        gap: 0;
+    }
+}
+
+.button:hover, .button.open {
+    background: color-mix(in srgb, white 25%, transparent);
+    border-color: var(--primary-color, color-mix(in srgb, white 80%, transparent));
+}
+
+.button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.button:active {
+    transform: scale(0.96);
+}
+
+.currentSelection {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background-color: var(--bg-card-solid, var(--bg-card));
+    border: 1px solid var(--border-color, color-mix(in srgb, var(--text-main, #000) 12%, var(--bg-card, #fff)));
+    border-radius: var(--radius-lg, 8px);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 180px;
+    overflow: hidden;
+    animation: slideDown var(--dur-base) var(--ease-out-quart);
+    padding: 0.25rem;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: none;
+    background: transparent;
+    /* Usar variable de tema para o texto */
+    color: var(--text-main);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--dur-fast) var(--ease-standard);
+    /* Bordes redondeados internos para os items */
+    border-radius: calc(var(--border-radius, 8px) - 2px);
+    position: relative;
+}
+
+/* Hover: Fondo sutil e texto da cor primaria do tema */
+.item:hover {
+    background-color: var(--datatable-header-hover-bg, var(--color-gray-100));
+    color: var(--datatable-header-hover-text, var(--color-gray-900));
+}
+
+.item:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.item:active {
+    transform: scale(0.97);
+}
+
+/* Activo: tinte primario sutil de fondo + texto `--text-main` (mismo patrón
+   que `ThemedSelect.module.css`). Antes usábamos `var(--primary-color,
+   var(--color-primary))` que NO existen como variables en el sistema
+   (`theme.js` sólo define `--color-primary-50…900`), por lo que la
+   declaración era inválida y `color` heredaba del Header: en temas con
+   header-footer-text claro y `widgetBgColor` claro (Alhambra, xp-bien…)
+   se veía texto claro sobre fondo claro. `--text-main` está garantizado
+   por el tema a ser contrastado con `--bg-card-solid`, y el accent bar
+   lateral + bold ya dan identidad visual al item activo. */
+.item.active {
+    background-color: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+/* Accent bar lateral en color primario real del tema (`--color-primary-500`
+   sí está siempre definido, vs el alias inexistente anterior). */
+.item.active::before {
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 3px;
+    background-color: var(--color-primary-500);
+    border-radius: 2px;
+}
+
+.flag {
+    width: 24px; /* Lixeiramente máis grande */
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-main, #000) 15%, transparent);
+    display: block;
+    flex-shrink: 0; /* Evitar que a bandeira se aplaste */
+}
+
+.chevron {
+    transition: transform var(--dur-base) var(--ease-standard);
+    opacity: 0.8;
+}
+
+.open .chevron {
+    transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button,
+    .item,
+    .chevron {
+        transition: none;
+    }
+    .dropdown {
+        animation: none;
+    }
+}

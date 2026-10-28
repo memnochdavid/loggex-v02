@@ -1,0 +1,1496 @@
+/* Editor gráfico de horarios — estilos 100% derivados del tema del centro */
+
+.container {
+    padding: var(--space-8);
+    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    color: var(--text-main);
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+}
+
+.toolbar select {
+    min-width: 220px;
+}
+
+/* Select del selector de grupo — alineado con el tema del centro */
+.grupoSelect {
+    min-width: 220px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-input, var(--border-color));
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-input, var(--bg-card));
+    color: var(--text-input, var(--text-main));
+    font-size: var(--text-sm);
+    font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1em;
+    padding-right: 2.2rem;
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+}
+
+.grupoSelect:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.grupoSelect:hover { border-color: var(--color-primary-500, var(--color-primary)); }
+.grupoSelect:focus {
+    outline: none;
+    border-color: var(--input-focus-border, var(--color-primary));
+    box-shadow: 0 0 0 3px var(--color-primary-100, color-mix(in srgb, var(--color-primary-500) 15%, transparent));
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    border: 1px solid transparent;
+}
+
+.statusComplete {
+    background: var(--color-success-100, color-mix(in srgb, var(--color-success) 10%, transparent));
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.statusDraft {
+    background: var(--color-warning-100, color-mix(in srgb, var(--color-warning) 10%, transparent));
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+}
+
+.statusIncomplete {
+    background: var(--color-error-100, color-mix(in srgb, var(--color-error) 10%, transparent));
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+/* Layout principal: panel + parrilla */
+.editorLayout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: stretch;
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .editorLayout { grid-template-columns: 1fr; }
+}
+
+/* Panel de módulos */
+.modulesPanel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: var(--space-4);
+}
+
+/* Badge de estado al pie del panel — se queda anclado abajo gracias a auto */
+.panelStatus {
+    margin-top: auto;
+    align-self: stretch;
+    justify-content: center;
+}
+
+/* En móvil: sin sticky para que no se quede flotando mientras el timetable
+   scrollea por debajo y aparente solapamiento. */
+@media (max-width: 900px) {
+    .modulesPanel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+.panelTitle {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.moduleChip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input, var(--bg-card));
+    cursor: grab;
+    user-select: none;
+    transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+    color: var(--text-main);
+}
+
+.moduleChip:hover {
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-gray-900) 8%, transparent);
+}
+
+.moduleChip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-400) 72%, transparent);
+    outline-offset: 2px;
+}
+
+.moduleChip:active {
+    cursor: grabbing;
+    scale: 0.97;
+}
+
+.moduleChipDragging {
+    opacity: 0.5;
+}
+
+.moduleChipDone {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--color-success-50, color-mix(in srgb, var(--color-success) 5%, transparent));
+    border-color: var(--color-success);
+}
+
+.moduleChipSelected {
+    background: var(--color-primary-500);
+    color: var(--btn-primary-text, var(--text-special, #fff));
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+}
+
+.moduleChipSelected .moduleName,
+.moduleChipSelected .moduleProfe {
+    color: var(--btn-primary-text, var(--text-special, #fff));
+}
+
+/* Counter mantiene su pill bg-card pero el texto pasa a primary
+   para contrastar sobre el chip filled. */
+.moduleChipSelected .moduleCounter {
+    color: var(--color-primary-500);
+    background: var(--bg-card);
+}
+
+.moduleChipSelected:hover {
+    background: var(--color-primary-600, var(--color-primary-500));
+    border-color: var(--color-primary-600, var(--color-primary-500));
+}
+
+.moduleDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.moduleMeta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.moduleName {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.moduleProfe {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.moduleCounter {
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    color: var(--text-main);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+/* ─── Sub-panel "Otras horas curriculares" (Fase 4 modalidad) ──────── */
+/* Materias FCT/NO_REGULAR/AUTONOMA no arrastrables: cuentan al currículo
+   anual pero no consumen slot de aula. Visualmente más sutiles que el
+   ModuleChip principal (sin cursor grab, opacity ligeramente reducida,
+   separadas con un divisor). */
+.otrasHorasSection {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--border-color);
+}
+
+.otrasHorasTitle {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.otrasHorasHint {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Fase B FP 2º (2026-05-12): el componente `OtrasHorasItem` reusa
+   .moduleChip y derivados para coherencia visual con las presenciales.
+   En rangos lectivos (no draggable) aplicamos `.moduleChipDisabled` —
+   apariencia atenuada e inerte. En rango `no_presenciales` queda como
+   un ModuleChip normal: arrastrable + tap-mode + counter + estados
+   `selected` / `dragging` / `done`. */
+.moduleChipDisabled {
+    cursor: default !important;
+    opacity: 0.85;
+}
+.moduleChipDisabled:hover {
+    border-color: var(--border-color);
+    background: var(--bg-subtle, var(--bg-card));
+    transform: none;
+}
+
+/* Badge de modalidad: FCT (azul), NO_REGULAR (ámbar), AUTONOMA (gris). */
+.modalidadBadge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: var(--font-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.modalidadBadge_fct {
+    background: color-mix(in srgb, var(--color-info, var(--color-primary-500)) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-info, var(--color-primary-500)) 35%, transparent);
+    color: var(--color-info, var(--color-primary-500));
+}
+
+.modalidadBadge_no_regular {
+    background: color-mix(in srgb, var(--color-warning, #f59e0b) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-warning, #f59e0b) 40%, transparent);
+    color: var(--color-warning, #f59e0b);
+}
+
+.modalidadBadge_autonoma {
+    background: color-mix(in srgb, var(--color-text-secondary) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
+    color: var(--text-muted);
+}
+
+/* Parrilla semanal */
+.grid {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    /* Refactor 2026-05-01: rejilla global con CSS Grid (vs múltiples .gridRow
+       como antes). Permite que las celdas día usen `grid-row: span N` para
+       cubrir N slots de 30min con UN solo bloque continuo (60-120min). */
+    display: grid;
+    grid-template-columns: 90px repeat(5, minmax(0, 1fr));
+    overflow: hidden;
+}
+
+.gridHeaderCell {
+    background: var(--datatable-header-bg, var(--bg-subtle));
+    color: var(--datatable-header-text, var(--text-main));
+    font-weight: var(--font-bold);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: var(--space-2);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+.gridHeaderCell:last-child { border-right: none; }
+
+.gridHeader, .gridRow {
+    display: grid;
+    grid-template-columns: 90px repeat(5, minmax(0, 1fr));
+}
+
+.gridRowRecreo {
+    grid-template-columns: 90px 1fr;
+}
+
+.recreoStrip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    cursor: not-allowed;
+    user-select: none;
+    background: repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--color-text-secondary) 12%, transparent),
+        color-mix(in srgb, var(--color-text-secondary) 12%, transparent) 6px,
+        color-mix(in srgb, var(--color-text-secondary) 22%, transparent) 6px,
+        color-mix(in srgb, var(--color-text-secondary) 22%, transparent) 12px
+    );
+}
+
+.dayShort { display: none; }
+
+@media (max-width: 600px) {
+    .gridHeader, .gridRow {
+        grid-template-columns: 50px repeat(5, minmax(0, 1fr));
+        font-size: 10px;
+    }
+    .gridHeader > div, .gridRow > div {
+        padding: var(--space-1);
+    }
+    .dayFull { display: none; }
+    .dayShort { display: inline; }
+    .slotBlockProfe { display: none; }
+}
+
+.gridHeader {
+    background: var(--datatable-header-bg, var(--bg-subtle));
+    color: var(--datatable-header-text, var(--text-main));
+    font-weight: var(--font-bold);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.gridHeader > div, .gridRow > div {
+    padding: var(--space-2);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gridHeader > div { text-align: center; }
+
+.gridHeader > div:last-child, .gridRow > div:last-child { border-right: none; }
+
+.timeLabel {
+    background: var(--bg-subtle, var(--bg-card));
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    white-space: nowrap;
+    text-align: center;
+    padding: var(--space-2);
+    /* Bordes — separan time label del resto de la rejilla global. */
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* En pantallas estrechas, apilar inicio / – / fin en dos líneas
+   para reducir el ancho de la columna de horas. */
+@media (max-width: 600px) {
+    .timeLabel {
+        flex-direction: column;
+        gap: 0;
+        line-height: 1.1;
+    }
+    .timeLabelSep { display: none; }
+}
+
+.slot {
+    min-height: 56px;
+    position: relative;
+    transition: background var(--dur-fast) var(--ease-standard);
+    display: flex;
+    /* Bordes para separar slots en la rejilla global (refactor 2026-05-01).
+       Antes venían de .gridRow > div; ahora cada SlotCell aplica sus propios. */
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.slotEmpty {
+    background: var(--bg-card);
+}
+
+.slotDropActive {
+    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 12%, transparent));
+    outline: 2px dashed var(--color-primary);
+    outline-offset: -3px;
+}
+
+.slotDropValid {
+    background: var(--color-success-50, color-mix(in srgb, var(--color-success) 8%, transparent));
+    outline: 1px dashed var(--color-success);
+    outline-offset: -2px;
+}
+
+.slotDropInvalid {
+    background: var(--color-error-50, color-mix(in srgb, var(--color-error) 10%, transparent));
+    outline: 1px dashed var(--color-error);
+    outline-offset: -2px;
+    cursor: not-allowed;
+}
+
+.slotBlock {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-2);
+    color: #fff;
+    cursor: grab;
+    font-size: var(--text-xs);
+    user-select: none;
+    line-height: 1.2;
+    position: relative;
+}
+
+/* Continuación de un bloque que arrancó en una fila anterior. Sin texto,
+   sin border-top: visualmente un bloque continuo a través de varias filas
+   de la rejilla (granularidad 30min, bloques 60-120min — 2026-05-01). */
+.slotBlockContinuation {
+    cursor: default;
+    padding: 0;
+    margin-top: -1px;  /* solapa con border-bottom de la fila anterior */
+    border-top: none !important;
+}
+.slotBlockContinuation::before,
+.slotBlockContinuation::after { display: none; }
+
+.slotTooltip {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    white-space: normal;
+    max-width: min(220px, 80vw);
+    width: max-content;
+    box-shadow: var(--shadow-md, 0 4px 12px color-mix(in srgb, var(--color-gray-900) 15%, transparent));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-standard), visibility var(--dur-fast) var(--ease-standard);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.slotTooltip strong { color: var(--color-primary); }
+.slotTooltipAula { color: var(--text-muted); font-size: 11px; }
+
+.slotBlock:hover .slotTooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.slotBlock:active {
+    cursor: grabbing;
+}
+
+.slotBlockTitle {
+    font-weight: var(--font-bold);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+.slotBlockProfe {
+    opacity: 0.85;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.infoBar {
+    /* Grid global de la rejilla: ocupa todas las columnas (1 / -1) y va
+       siempre como ÚLTIMA fila (gridRow: -1) para no descolocarse cuando
+       hay bloques con gridRow span en filas anteriores. */
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    padding: var(--space-3);
+    background: var(--bg-subtle, var(--bg-card));
+    border-top: 1px solid var(--border-color);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.infoBar b { color: var(--text-main); }
+
+.infoBarSelect {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.infoBarSelect b { color: var(--text-main); }
+
+.infoBarActions {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.emptyState {
+    padding: var(--space-12);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.capacityBanner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md, 8px);
+    margin-bottom: var(--space-3);
+    font-size: var(--text-sm);
+    border: 1px solid transparent;
+}
+
+.capacityBanner > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.capacityBannerGreen {
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    color: var(--color-success);
+    border-color: color-mix(in srgb, var(--color-success) 28%, transparent);
+}
+
+.capacityBannerYellow {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+    border-color: color-mix(in srgb, var(--color-warning) 32%, transparent);
+}
+
+.capacityBannerRed {
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+    color: var(--color-error);
+    border-color: color-mix(in srgb, var(--color-error) 32%, transparent);
+}
+
+.capacityList {
+    margin: var(--space-2) 0 0 var(--space-4);
+    padding: 0;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+.capacityHintAnnual {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    color: var(--text-main);
+    border-left: 3px solid color-mix(in srgb, var(--color-success) 60%, transparent);
+    border-radius: 4px;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+/* Timeline strip de PeriodoLectivo (Fase 3a) */
+.plStrip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-subtle, var(--bg-card));
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-xs);
+    flex-wrap: wrap;
+}
+
+.plStripLabel {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.plPills {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+}
+
+.plStripEmpty {
+    flex: 1 1 auto;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: var(--text-sm);
+}
+
+.plPill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-main);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+}
+
+.plPill:hover {
+    background: var(--color-primary-50, color-mix(in srgb, var(--color-primary-500) 8%, transparent));
+    border-color: var(--color-primary-500);
+}
+
+.plPill:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+.plPillActive {
+    background: var(--color-primary-500);
+    color: var(--btn-primary-text, var(--text-special, #fff));
+    border-color: var(--color-primary-500);
+}
+
+.plPillActive:hover {
+    background: var(--color-primary-600, var(--color-primary-500));
+    border-color: var(--color-primary-600, var(--color-primary-500));
+}
+
+.plPillDisabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.plPillBody {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.plPillName {
+    font-weight: 600;
+}
+
+.plPillDates {
+    font-size: 0.75em;
+    opacity: 0.85;
+}
+
+.plPillActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: var(--space-2);
+    padding-left: var(--space-2);
+    border-left: 1px solid color-mix(in srgb, var(--btn-primary-text, var(--text-special, #fff)) 30%, transparent);
+}
+
+.plPillActionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: background 0.12s, opacity 0.12s;
+}
+
+.plPillActionBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--btn-primary-text, var(--text-special, #fff)) 18%, transparent);
+    opacity: 1;
+}
+
+.plPillActionBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.plPillActionDanger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 70%, transparent);
+    color: white;
+    opacity: 1;
+}
+
+/* Banner Σ horas anuales planificadas vs currículo (Fase 3b) */
+.plBanner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-xs);
+    flex-wrap: wrap;
+}
+
+.plBanner_ok {
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
+}
+
+.plBanner_warn {
+    background: color-mix(in srgb, var(--color-warning) 14%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-warning) 35%, var(--border-color));
+}
+
+.plBanner_error {
+    background: color-mix(in srgb, var(--color-danger) 14%, var(--bg-card));
+    color: var(--text-main);
+    border-bottom-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
+}
+
+.plBannerStats {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.plBannerStat {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    line-height: 1.2;
+}
+
+.plBannerStatLabel {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.plBannerStat strong {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.plBannerArrow {
+    color: var(--text-muted);
+    font-size: 1em;
+}
+
+.plBannerHint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.plBannerMeta {
+    color: var(--text-muted);
+    font-size: 0.92em;
+}
+
+.plBannerExtendBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--primary-color);
+    background: var(--primary-color);
+    color: var(--button-primary-text-color, white);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    transition: filter 0.15s;
+    white-space: nowrap;
+}
+
+.plBannerExtendBtn:hover {
+    filter: brightness(1.1);
+}
+
+/* Modal "Extender curso" — Fase 5 sub-B */
+.extendModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.extendModalIntro {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--text-main);
+}
+
+.extendModalTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.extendModalTable thead th {
+    background: var(--bg-subtle, var(--bg-card));
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.extendModalTable tbody td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.extendModalTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.extendModalTable code {
+    background: var(--bg-subtle, var(--bg-card));
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    color: var(--text-muted);
+}
+
+.extendModalNoChange {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.92em;
+}
+
+/* Dropdown "Acciones del curso" en infoBar */
+.cursoActionsWrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.cursoActionsBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: transparent;
+}
+
+.cursoActionsMenu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 101;
+    min-width: 240px;
+    background-color: var(--bg-card-solid, var(--bg-card));
+    border: 1px solid var(--border-color, color-mix(in srgb, var(--text-main, #000) 12%, var(--bg-card, #fff)));
+    border-radius: var(--radius-lg, 8px);
+    box-shadow: var(--shadow-lg);
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.cursoActionsItem {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    text-align: left;
+    transition: background 0.12s;
+}
+
+.cursoActionsItem:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary-500) 8%, transparent);
+}
+
+.cursoActionsItem:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.extendModalPreview {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--bg-subtle, var(--bg-card));
+    font-size: var(--text-sm);
+    flex-wrap: wrap;
+}
+
+.extendModalPreview_ok {
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
+}
+
+.extendModalPreview_warn {
+    background: color-mix(in srgb, var(--color-warning) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-warning) 35%, var(--border-color));
+}
+
+.extendModalPreview_error {
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
+}
+
+.extendModalPreviewLabel {
+    color: var(--text-muted);
+}
+
+.plPillAdd {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px dashed var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    transition: border-color 0.15s, color 0.15s;
+    margin-left: auto;
+}
+
+.plPillAdd:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Form del modal "Nuevo rango lectivo" */
+.plForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.plFormRow {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.plFormField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.plFormField > span {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.plFormField input[type="text"],
+.plFormField input[type="date"] {
+    padding: var(--space-2);
+    border: 1px solid var(--input-border-color, var(--border-color));
+    background: var(--input-bg-color, var(--bg-card));
+    color: var(--input-text-color, var(--text-main));
+    border-radius: var(--border-radius);
+    font-size: var(--text-sm);
+}
+
+.plFormField input:focus {
+    outline: none;
+    border-color: var(--input-focus-border-color, var(--primary-color));
+    box-shadow: 0 0 0 2px var(--input-focus-shadow-color, transparent);
+}
+
+.plFormHint {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Modal "Materias del rango" (Fase 4): editor de PLI */
+.pliModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.pliLoading {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-4);
+}
+
+.pliSummary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-subtle, var(--bg-card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: var(--text-sm);
+    flex-wrap: wrap;
+}
+
+.pliSummaryGreen {
+    background: color-mix(in srgb, var(--color-success) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-success) 35%, var(--border-color));
+}
+
+.pliSummaryRed {
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--color-danger) 35%, var(--border-color));
+}
+
+.pliSummaryStat {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.pliSummaryLabel {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.pliSummaryStat strong {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.pliSummaryStatSub {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    line-height: 1;
+}
+
+.pliSummaryArrow {
+    color: var(--text-muted);
+}
+
+.pliSummaryHint {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-main);
+}
+
+.pliTableWrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.pliTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.pliTable thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pliTable tbody td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+    vertical-align: middle;
+}
+
+.pliTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.pliRowInactive td {
+    opacity: 0.55;
+}
+
+.pliColActive {
+    width: 60px;
+    text-align: center;
+}
+
+.pliColMinutos {
+    width: 180px;
+}
+
+.pliColReset {
+    width: 40px;
+    text-align: center;
+}
+
+.pliCheckbox {
+    display: inline-flex;
+    cursor: pointer;
+}
+
+.pliCheckbox input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+
+.pliMateria {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.pliMateriaDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pliProfesor {
+    color: var(--text-muted);
+    font-size: 0.92em;
+}
+
+.pliMinutosInput {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid var(--input-border-color, var(--border-color));
+    background: var(--input-bg-color, var(--bg-card));
+    color: var(--input-text-color, var(--text-main));
+    border-radius: 4px;
+    font-size: var(--text-sm);
+}
+
+.pliMinutosInput:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.pliMinutosInput:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.pliMinutosHint {
+    margin-left: var(--space-2);
+    color: var(--text-muted);
+    font-size: 0.75em;
+}
+
+.pliResetBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pliResetBtn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.pliResetBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pliEmpty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-4);
+}
+
+.dragOverlay {
+    pointer-events: none;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--color-gray-900) 20%, transparent);
+}
+
+/* Overlay del solver: superpuesto a toda la vista mientras el solver corre.
+ * Bloquea interacción y muestra una Lottie centrada con texto de progreso. */
+.solverOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-gray-900, #0f172a) 55%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: solverOverlayFade var(--dur-base, 220ms) var(--ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+.solverOverlayInner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3, 12px);
+    padding: var(--space-6, 24px) var(--space-8, 32px);
+    background: var(--widget-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    box-shadow:
+        0 12px 32px color-mix(in srgb, var(--color-gray-900, #0f172a) 30%, transparent),
+        0 32px 64px -16px color-mix(in srgb, var(--color-gray-900, #0f172a) 25%, transparent);
+    max-width: 90vw;
+}
+
+.solverOverlayText {
+    color: var(--text-main);
+    font-size: var(--text-base, 1rem);
+    font-weight: var(--font-medium, 500);
+    text-align: center;
+    letter-spacing: -0.005em;
+}
+
+.solverOverlaySub {
+    color: var(--text-muted);
+    font-size: var(--text-sm, 0.875rem);
+    text-align: center;
+}
+
+@keyframes solverOverlayFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Modal "Informe del solver" — Fase 4 solver-iterativo (2026-05-01) */
+.solverReportBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.solverReportIntro {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.solverReportList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.solverReportItem {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.solverReportItemOk {
+    border-color: color-mix(in srgb, var(--accent-success, #16a34a) 35%, var(--border-color));
+}
+
+.solverReportItemIssue {
+    border-color: color-mix(in srgb, var(--accent-warning, #d97706) 45%, var(--border-color));
+}
+
+.solverReportItemHeader {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    color: var(--text-main);
+    text-align: left;
+    font: inherit;
+}
+
+.solverReportItemHeader:hover {
+    background: color-mix(in srgb, var(--color-primary-500) 6%, transparent);
+}
+
+.solverReportItemHeaderTitle {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.solverReportItemMeta {
+    color: var(--text-muted);
+    font-weight: var(--font-regular);
+    font-size: var(--text-xs);
+}
+
+.solverReportItemBottleneck {
+    display: inline-block;
+    padding: 2px var(--space-2);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent-warning, #d97706) 18%, transparent);
+    color: var(--accent-warning, #d97706);
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    white-space: nowrap;
+}
+
+.solverReportItemBody {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.solverReportSuggestionsTitle,
+.solverReportUnplacedTitle,
+.solverReportLogTitle {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: var(--font-bold);
+}
+
+.solverReportSuggestionsList,
+.solverReportUnplacedList {
+    margin: 0;
+    padding-left: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--text-main);
+}
+
+.solverReportSuggestionsList li,
+.solverReportUnplacedList li {
+    margin-bottom: var(--space-2);
+}
+
+.solverReportLogTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-xs);
+}
+
+.solverReportLogTable th,
+.solverReportLogTable td {
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+.solverReportLogTable th {
+    color: var(--text-muted);
+    font-weight: var(--font-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 10px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .grupoSelect,
+    .moduleChip,
+    .slot,
+    .slotTooltip {
+        transition: none;
+    }
+
+    .solverOverlay {
+        animation: none;
+    }
+}

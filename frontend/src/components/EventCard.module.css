@@ -1,14 +1,16 @@
 .card {
     background-color: var(--event-card-bg, var(--bg-card));
     border: 1px solid var(--event-card-border, var(--border-color));
+    backdrop-filter: var(--elements-blur, none);
+    -webkit-backdrop-filter: var(--elements-blur, none);
     border-left-width: 4px;
     border-left-style: solid;
     /* border-left-color se aplica inline */
     border-radius: var(--radius-md);
     padding: 0.75rem;
-    margin-bottom: 0.5rem; /* Reducido margen inferior */
+    /* margin-bottom: 0.5rem; */ /* Quitado margen inferior, el contenedor usa gap */
     box-shadow: var(--shadow-sm);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform var(--dur-base) var(--ease-out-quart), box-shadow var(--dur-base) var(--ease-out-quart), background-color var(--dur-base) var(--ease-standard);
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -18,6 +20,17 @@
 .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--event-card-hover-shadow, var(--shadow-md));
+    /* Sutil cambio de fondo al hacer hover */
+    background-color: color-mix(in srgb, var(--event-card-bg, var(--bg-card)), var(--text-main) 2%);
+}
+
+.card:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.card:active {
+    transform: scale(0.98);
 }
 
 /* Fila Superior: Título y Badge */
@@ -41,7 +54,7 @@
     font-size: 0.65rem;
     font-weight: 700;
     color: var(--event-card-meta-color, var(--text-muted));
-    background-color: var(--bg-hover); /* Fondo sutil para el badge */
+    background-color: var(--bg-input); /* Usar variable maestra para consistencia */
     padding: 2px 6px;
     border-radius: 4px;
     white-space: nowrap;
@@ -79,4 +92,10 @@
     color: var(--event-card-meta-color, var(--text-muted));
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
 }

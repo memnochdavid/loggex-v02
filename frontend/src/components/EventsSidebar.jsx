@@ -2,8 +2,10 @@ import React, { useMemo } from 'react';
 import styles from './EventsSidebar.module.css';
 import CalendarView from './CalendarView';
 import EventCard from './EventCard';
+import { useTranslation } from 'react-i18next';
 
-const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] }) => {
+const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [], onEventClick }) => {
+    const { t } = useTranslation();
     
     // Calcular el rango de la semana seleccionada
     const weekRange = useMemo(() => {
@@ -43,14 +45,14 @@ const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] 
             />
 
             <div className={styles.eventsSection}>
-                <h3 className={styles.sectionTitle}>Eventos de la Semana</h3>
+                <h3 className={styles.sectionTitle}>{t('events.weekTitle')}</h3>
                 
                 <div className={styles.eventsList}>
                     {weeklyEvents.length === 0 ? (
-                        <div className={styles.noEvents}>No hay eventos esta semana.</div>
+                        <div className={styles.noEvents}>{t('events.empty')}</div>
                     ) : (
                         weeklyEvents.map((event, index) => (
-                            <EventCard 
+                            <EventCard
                                 key={event.id || index}
                                 title={event.title}
                                 subject={event.subject}
@@ -58,6 +60,7 @@ const EventsSidebar = ({ selectedDate, onDateSelect, events = [], festivos = [] 
                                 time={event.time}
                                 type={event.type}
                                 color={event.color}
+                                onClick={onEventClick ? () => onEventClick(event) : undefined}
                             />
                         ))
                     )}

@@ -11,31 +11,53 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
+use App\Doctrine\Filter\SearchAnyFilter;
+use App\Entity\Catalogo\CatalogoCentro;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CentroRepository;
 use App\State\SoftDeleteProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CentroRepository::class)]
 #[ORM\Table(name: 'centro')]
 #[ORM\HasLifecycleCallbacks]
+// Defensa en profundidad (R2.5 / INDEX:25): el frontend bloquea /centros
+// con `PrivateRoute allowedRoles={['ROLE_SUPERADMIN']}` (App.jsx:122),
+// pero un curl directo con JWT de admin de centro saltaba ese guard. Las
+// 5 operaciones de API Platform exigen ahora explícitamente ROLE_SUPERADMIN.
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete(processor: SoftDeleteProcessor::class)
+        new Get(security: "is_granted('ROLE_SUPERADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Post(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Put(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Delete(security: "is_granted('ROLE_SUPERADMIN')", processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['centro:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['centro:write']]
 )]
+// Topic plano /admin/centros (broadcast a admins). Solo superadmin gestiona
+// centros; admins normales pueden recibir eventos de su propio centro pero
+// no aplica filtrado fino aquí — la página /admin/centros solo es accesible
+// a superadmin.
+#[LivePublish(
+    topics: ['/admin/centros'],
+    payloadGroups: ['centro:read', 'timestamp:read', 'softdelete:read'],
+)]
 #[ApiFilter(SearchFilter::class, properties: ['nombre' => 'partial', 'cif' => 'partial', 'direccion' => 'partial'])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'cif', 'direccion'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'cif', 'activo', 'id'], arguments: ['orderParameterName' => 'order'])]
+#[Assert\Expression(
+    "this.getFechaInicioCurso() === null || this.getFechaFinCurso() === null || this.getFechaInicioCurso() < this.getFechaFinCurso()",
+    message: 'fechaInicioCurso debe ser anterior a fechaFinCurso.'
+)]
 class Centro
 {
     use TimestampableTrait;
@@ -44,11 +66,11 @@ class Centro
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['centro:read', 'user:read', 'grupo:read', 'festivo:read', 'tema_visual:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['centro:read', 'centro:write', 'user:read', 'grupo:read', 'festivo:read', 'tema_visual:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20)]
@@ -58,6 +80,12 @@ class Centro
     #[ORM\Column(type: 'boolean')]
     #[Groups(['centro:read', 'centro:write'])]
     private bool $activo = true;
+
+    /** Trazabilidad al catálogo oficial. Nullable: centros manuales son válidos. */
+    #[ORM\ManyToOne(targetEntity: CatalogoCentro::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['centro:read'])]
+    private ?CatalogoCentro $catalogoOrigen = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['centro:read', 'centro:write'])]
@@ -75,11 +103,48 @@ class Centro
     #[Groups(['centro:read', 'centro:write'])]
     private ?string $telefono = null;
 
+    /**
+     * CCAA del centro. Default para itinerarios nuevos del centro (D9). NULL
+     * permitido: en ese caso el admin elige CCAA explícitamente al crear cada
+     * itinerario, o los itinerarios quedan con CCAA = NULL (currículo nacional).
+     */
+    #[ORM\Column(type: 'string', length: 2, nullable: true, enumType: Ccaa::class)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?Ccaa $ccaa = null;
+
+    /**
+     * Provincia del centro (50 + Ceuta + Melilla, identificada por código INE).
+     * Sirve para resolver festivos provinciales y locales aplicables. NULL
+     * permitido si el admin no la rellena; en ese caso solo se aplican festivos
+     * nacionales y autonómicos (si CCAA está rellena).
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, referencedColumnName: 'codigo')]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?Provincia $provincia = null;
+
+    /**
+     * Inicio del régimen ordinario de clases del centro. Override del valor
+     * sugerido por `CalendarioEscolarCcaa(centro.ccaa, anioActual, etapa)`.
+     * NULL = el centro no ha rellenado y se cae al sugerido en runtime.
+     */
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?\DateTimeInterface $fechaInicioCurso = null;
+
+    /**
+     * Fin del régimen ordinario de clases del centro. Override del sugerido
+     * por `CalendarioEscolarCcaa`. NULL = se usa el del calendario CCAA.
+     */
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private ?\DateTimeInterface $fechaFinCurso = null;
+
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: User::class)]
     private Collection $usuarios;
 
-    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: CicloFormativo::class)]
-    private Collection $ciclos;
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Itinerario::class)]
+    private Collection $itinerarios;
 
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Grupo::class)]
     private Collection $grupos;
@@ -87,21 +152,37 @@ class Centro
     #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Festivo::class)]
     private Collection $festivos;
 
-    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: Tema::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: TemaVisual::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read'])]
-    private Collection $temas;
+    private Collection $temasVisuales;
+
+    #[ORM\OneToMany(mappedBy: 'centro', targetEntity: JornadaTipo::class)]
+    private Collection $jornadaTipos;
 
     #[ORM\OneToOne(mappedBy: 'centro', targetEntity: Personalizacion::class, cascade: ['persist', 'remove'])]
     #[Groups(['centro:read', 'centro:write', 'user:read'])]
     private ?Personalizacion $personalizacion = null;
 
+    /**
+     * Umbral de faltas de asistencia (en %) a partir del cual un alumno pierde
+     * la evaluación continua en una materia y se marca "no evaluable" en
+     * Calificaciones. El cálculo (ver `CalificacionMediaController`) cuenta
+     * faltas F + justificadas J sobre el objetivo anual de horas de la materia.
+     * Default 20: normativa habitual de pérdida de evaluación continua; cada
+     * centro puede ajustarlo a su orden autonómica (FP Andalucía suele 25-30%).
+     */
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 20])]
+    #[Groups(['centro:read', 'centro:write', 'user:read'])]
+    private int $porcentajeMaxFaltas = 20;
+
     public function __construct()
     {
         $this->usuarios = new ArrayCollection();
-        $this->ciclos = new ArrayCollection();
+        $this->itinerarios = new ArrayCollection();
         $this->grupos = new ArrayCollection();
         $this->festivos = new ArrayCollection();
-        $this->temas = new ArrayCollection();
+        $this->temasVisuales = new ArrayCollection();
+        $this->jornadaTipos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -172,6 +253,50 @@ class Centro
     public function setDireccion(string $direccion): static
     {
         $this->direccion = $direccion;
+        return $this;
+    }
+
+    public function getCcaa(): ?Ccaa
+    {
+        return $this->ccaa;
+    }
+
+    public function setCcaa(?Ccaa $ccaa): static
+    {
+        $this->ccaa = $ccaa;
+        return $this;
+    }
+
+    public function getProvincia(): ?Provincia
+    {
+        return $this->provincia;
+    }
+
+    public function setProvincia(?Provincia $provincia): static
+    {
+        $this->provincia = $provincia;
+        return $this;
+    }
+
+    public function getFechaInicioCurso(): ?\DateTimeInterface
+    {
+        return $this->fechaInicioCurso;
+    }
+
+    public function setFechaInicioCurso(?\DateTimeInterface $f): static
+    {
+        $this->fechaInicioCurso = $f;
+        return $this;
+    }
+
+    public function getFechaFinCurso(): ?\DateTimeInterface
+    {
+        return $this->fechaFinCurso;
+    }
+
+    public function setFechaFinCurso(?\DateTimeInterface $f): static
+    {
+        $this->fechaFinCurso = $f;
         return $this;
     }
 
@@ -262,31 +387,53 @@ class Centro
     }
 
     /**
-     * @return Collection<int, Tema>
+     * @return Collection<int, TemaVisual>
      */
-    public function getTemas(): Collection
+    public function getTemasVisuales(): Collection
     {
-        return $this->temas;
+        return $this->temasVisuales;
     }
 
-    public function addTema(Tema $tema): static
+    public function addTemaVisual(TemaVisual $temaVisual): static
     {
-        if (!$this->temas->contains($tema)) {
-            $this->temas->add($tema);
-            $tema->setCentro($this);
+        if (!$this->temasVisuales->contains($temaVisual)) {
+            $this->temasVisuales->add($temaVisual);
+            $temaVisual->setCentro($this);
         }
 
         return $this;
     }
 
-    public function removeTema(Tema $tema): static
+    public function removeTemaVisual(TemaVisual $temaVisual): static
     {
-        if ($this->temas->removeElement($tema)) {
-            if ($tema->getCentro() === $this) {
-                $tema->setCentro(null);
+        if ($this->temasVisuales->removeElement($temaVisual)) {
+            if ($temaVisual->getCentro() === $this) {
+                $temaVisual->setCentro(null);
             }
         }
 
+        return $this;
+    }
+
+    public function getPorcentajeMaxFaltas(): int
+    {
+        return $this->porcentajeMaxFaltas;
+    }
+
+    public function setPorcentajeMaxFaltas(int $porcentajeMaxFaltas): static
+    {
+        $this->porcentajeMaxFaltas = $porcentajeMaxFaltas;
+        return $this;
+    }
+
+    public function getCatalogoOrigen(): ?CatalogoCentro
+    {
+        return $this->catalogoOrigen;
+    }
+
+    public function setCatalogoOrigen(?CatalogoCentro $origen): self
+    {
+        $this->catalogoOrigen = $origen;
         return $this;
     }
 }

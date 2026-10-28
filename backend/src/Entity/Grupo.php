@@ -9,8 +9,11 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\GrupoRepository;
@@ -30,18 +33,24 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Put(),
+        new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['grupo:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['grupo:write']]
 )]
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/grupos'],
+    payloadGroups: ['grupo:read', 'timestamp:read', 'softdelete:read'],
+)]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
     'anioEscolar' => 'exact',
-    'ciclo' => 'exact',
-    'ciclo.nombre' => 'partial',
+    'itinerario' => 'exact',
+    'itinerario.nombre' => 'partial',
     'centro' => 'exact'
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'abreviatura', 'anioEscolar'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'curso', 'anioEscolar', 'id', 'fechaInicio', 'fechaFin'], arguments: ['orderParameterName' => 'order'])]
 class Grupo
 {
@@ -59,15 +68,24 @@ class Grupo
     private ?string $nombre = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?string $abreviatura = null;
 
+    /**
+     * Aula por defecto del grupo. Se aplica a los placements del horario salvo
+     * que la imparticion concreta tenga `aulaEspecifica` (override por materia).
+     * Si NULL, fallback final del solver: "Aula " + abreviatura.
+     */
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['grupo:read', 'grupo:write', 'imparticion:read'])]
+    private ?string $aulaDefault = null;
+
     #[ORM\Column]
-    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read', 'imparticion:read', 'horario:read'])]
     private ?int $curso = null;
 
     #[ORM\Column(length: 20)]
-    #[Groups(['grupo:read', 'grupo:write'])]
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
     private ?string $anioEscolar = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
@@ -80,13 +98,29 @@ class Grupo
 
     #[ORM\ManyToOne(inversedBy: 'grupos')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['grupo:read', 'grupo:write'])]
-    private ?CicloFormativo $ciclo = null;
+    #[Groups(['grupo:read', 'grupo:write', 'matricula:read'])] // Añadido matricula:read
+    private ?Itinerario $itinerario = null;
 
     #[ORM\ManyToOne(inversedBy: 'grupos')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['grupo:read', 'grupo:write'])]
     private ?Centro $centro = null;
+
+    /**
+     * Override por grupo de la jornada efectiva. Si null, hereda de
+     * `Itinerario.jornadaTipo`. Permite que el admin cambie la plantilla de
+     * jornada con la que trabaja /admin/horarios sin tocar el itinerario
+     * (ni afectar a otros grupos del mismo itinerario).
+     *
+     * Stepping stone hacia `PeriodoLectivo` (ver
+     * `docs/hoja-de-ruta-periodos-lectivos.md`): cuando se implementen los
+     * rangos, el override del grupo se migra como `JornadaTipo` del rango
+     * único `"Curso completo"`.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['grupo:read', 'grupo:write'])]
+    private ?JornadaTipo $jornadaTipoOverride = null;
 
     #[ORM\OneToMany(mappedBy: 'grupo', targetEntity: Matricula::class)]
     private Collection $matriculas;
@@ -124,6 +158,17 @@ class Grupo
     public function setAbreviatura(?string $abreviatura): static
     {
         $this->abreviatura = $abreviatura;
+        return $this;
+    }
+
+    public function getAulaDefault(): ?string
+    {
+        return $this->aulaDefault;
+    }
+
+    public function setAulaDefault(?string $aulaDefault): static
+    {
+        $this->aulaDefault = $aulaDefault;
         return $this;
     }
 
@@ -171,14 +216,14 @@ class Grupo
         return $this;
     }
 
-    public function getCiclo(): ?CicloFormativo
+    public function getItinerario(): ?Itinerario
     {
-        return $this->ciclo;
+        return $this->itinerario;
     }
 
-    public function setCiclo(?CicloFormativo $ciclo): static
+    public function setItinerario(?Itinerario $itinerario): static
     {
-        $this->ciclo = $ciclo;
+        $this->itinerario = $itinerario;
         return $this;
     }
 
@@ -191,5 +236,26 @@ class Grupo
     {
         $this->centro = $centro;
         return $this;
+    }
+
+    public function getJornadaTipoOverride(): ?JornadaTipo
+    {
+        return $this->jornadaTipoOverride;
+    }
+
+    public function setJornadaTipoOverride(?JornadaTipo $jornadaTipoOverride): static
+    {
+        $this->jornadaTipoOverride = $jornadaTipoOverride;
+        return $this;
+    }
+
+    /**
+     * Jornada efectiva del grupo: override si está definido, default del
+     * itinerario en otro caso. Punto único que el solver, el CapacityPlanner
+     * y el editor deben consultar.
+     */
+    public function getEffectiveJornadaTipo(): ?JornadaTipo
+    {
+        return $this->jornadaTipoOverride ?? $this->itinerario?->getJornadaTipo();
     }
 }

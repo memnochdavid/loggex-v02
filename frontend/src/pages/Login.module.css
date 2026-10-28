@@ -1,134 +1,664 @@
-.container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: var(--space-4);
+/* =================================================================
+   LOGIN — Form centrado sobre canvas de waves (estética /about).
+   Único panel: card glass con el formulario + link secundario a
+   /about debajo ("Conoce Loggex"). Paleta fija dark; no depende del
+   theme activo.
+   ================================================================= */
+
+.page {
   position: relative;
+  display: flex;
+  /* Ocupa exactamente la altura disponible del <main> (viewport - header).
+     El Footer se renderiza por debajo, fuera del viewport → scroll. */
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  isolation: isolate;
+  color: #f8fafc;
+  background-color: #0c1222;
+
+  --login-text: #f8fafc;
+  --login-text-soft: rgba(255, 255, 255, 0.72);
+  --login-text-dim: rgba(255, 255, 255, 0.52);
+  --login-accent: #a5b4fc;
+  --login-accent-bright: #c7d2fe;
+  --login-accent-deep: #6366f1;
+  --login-card-bg: rgba(255, 255, 255, 0.055);
+  --login-card-border: rgba(255, 255, 255, 0.12);
 }
 
-/* Grid Animado */
-.container::before {
-  content: "";
-  position: absolute;
-  top: -100%;
-  left: -100%;
-  width: 300%;
-  height: 300%;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridMove 4s linear infinite;
+.pageBg {
+  /* Fixed para que el canvas se extienda también detrás del Footer. */
+  position: fixed;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  transform: perspective(500px) rotateX(20deg);
-  opacity: 0.6;
+  overflow: hidden;
+  background-color: #0c1222;
 }
 
-.container::after {
-  content: "";
+/* =================================================================
+   Contenedor centrado del card + link secundario
+   ================================================================= */
+.formPanel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  /* safe center = centra cuando cabe, fallback a flex-start cuando el
+     contenido desborda (mobile con teclado abierto). Evita el clásico
+     corte superior de "flex centering + overflow auto". */
+  align-items: safe center;
+  justify-content: center;
+  padding:
+    max(clamp(1rem, 3vh, 2.5rem), env(safe-area-inset-top, 0))
+    max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0))
+    max(clamp(1rem, 3vh, 2.5rem), env(safe-area-inset-bottom, 0))
+    max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left, 0));
+  /* overflow-y auto + overflow-x visible dispara un quirk donde el
+     navegador promociona overflow-x a auto, apareciendo scrollbar
+     horizontal si cualquier hijo desborda. Forzamos hidden explícito. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 1;
+}
+
+/* Stack vertical: card (primary) + link a /about (secondary) */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.9rem, 2vh, 1.4rem);
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+}
+
+/* =================================================================
+   CARD DEL FORMULARIO
+   ================================================================= */
+.formCard {
+  position: relative;
+  width: 100%;
+  /* border-box crítico: sin esto, width 100% + padding > ancho del
+     stack → desborda horizontalmente y aparece scrollbar en mobile. */
+  box-sizing: border-box;
+  padding: clamp(1.5rem, 3.5vh, 2.4rem) clamp(1.5rem, 3.5vw, 2.4rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.2vh, 1.4rem);
+  border-radius: calc(var(--radius-lg, 12px) * 1.25);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--login-card-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 30px 80px -25px rgba(0, 0, 0, 0.7),
+    0 18px 40px -20px rgba(99, 102, 241, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  isolation: isolate;
+  overflow: hidden;
+  animation: formIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
+}
+
+.formCardGlow {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--px, 50%) var(--py, 0%),
+    rgba(165, 180, 252, 0.22) 0%,
+    rgba(139, 92, 246, 0.12) 30%,
+    transparent 55%
+  );
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+
+/* ---------- Header del form ---------- */
+.formHeader {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.formLogoWrap {
+  width: clamp(56px, 9vh, 72px);
+  height: clamp(56px, 9vh, 72px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 14px 32px -10px rgba(99, 102, 241, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  animation: floatY 5s ease-in-out infinite;
+  margin-bottom: 0.2rem;
+}
+
+.formLogo {
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at center, transparent 20%, #020617 90%);
-  z-index: 1;
-  pointer-events: none;
-  animation: pulseVignette 6s ease-in-out infinite alternate;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 14px rgba(99, 102, 241, 0.6));
 }
 
-/* Clase para el overlay del ModalView en Login (transparente) */
-.loginOverlay {
-    background-color: transparent !important;
-    pointer-events: none; /* Permitir clicks en el fondo si fuera necesario, pero el modal debe capturarlos */
-}
-/* Reactivar pointer-events para el contenido del modal */
-.loginOverlay > * {
-    pointer-events: auto;
-}
-
-/* Clase para el contenido del ModalView (Glassmorphism) */
-.loginCard {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+.formTitle {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.8vh, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 60%, #818cf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(99, 102, 241, 0.3));
 }
 
-.formGroup {
-  margin-bottom: var(--space-5);
+.formSubtitle {
+  margin: 0;
+  font-size: clamp(0.8rem, 1.4vh, 0.9rem);
+  color: var(--login-text-soft);
+  font-weight: 400;
+  line-height: 1.4;
+  max-width: 34ch;
+}
+
+/* =================================================================
+   FORMULARIO
+   ================================================================= */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.6vh, 1.05rem);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
 }
 
 .label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: var(--font-bold);
-  color: var(--color-gray-700);
-  font-size: var(--text-sm);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--login-text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
+  transition: color 0.25s ease;
+  padding-left: 0.1rem;
 }
+
+.inputGroup.focused .label,
+.inputGroup.filled .label,
+/* `:has()` detecta autofill del navegador aunque React no haya recibido
+   el `onChange` (Chromium silencia el evento en algunas versiones).
+   Sin esto, el label se queda en estado "vacío" pintándose en gris
+   atenuado por encima del input autofilled. */
+.inputGroup:has(.input:-webkit-autofill) .label {
+  color: var(--login-accent-bright);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--login-text-dim);
+  pointer-events: none;
+  transition: color 0.25s ease, filter 0.25s ease, transform 0.25s ease;
+}
+
+.inputGroup.focused .inputIcon {
+  color: var(--login-accent-bright);
+  filter: drop-shadow(0 0 8px rgba(165, 180, 252, 0.65));
+  transform: scale(1.06);
+}
+
+.inputGroup.filled .inputIcon,
+/* Espejo del fix `:has()` aplicado al label: cuando el input está
+   autofilled, el icono también se debe ver "lleno" (gris claro). */
+.inputGroup:has(.input:-webkit-autofill) .inputIcon { color: rgba(255, 255, 255, 0.7); }
 
 .input {
   width: 100%;
-  padding: var(--space-3);
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  transition: all 0.2s;
+  padding: clamp(0.7rem, 1.3vh, 0.85rem) 0.95rem clamp(0.7rem, 1.3vh, 0.85rem) 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  font-size: 0.92rem;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
   box-sizing: border-box;
-  background-color: rgba(241, 245, 249, 0.8);
-  color: var(--color-gray-900);
-  font-weight: 500;
+  font-family: inherit;
+  caret-color: var(--login-accent-bright);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+.input:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.065);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary-500);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  border-color: rgba(165, 180, 252, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 4px rgba(99, 102, 241, 0.2),
+    0 8px 24px -12px rgba(99, 102, 241, 0.55);
 }
 
-.error {
-  color: #b91c1c;
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-4);
-  text-align: center;
-  background-color: rgba(254, 242, 242, 0.9);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid #fecaca;
+/* ---------- Autofill del navegador ----------
+   Reglas movidas a `index.css` global (selector `[data-login-form] input`)
+   porque CSS Modules no garantizaba que las pseudoclases con prefijo
+   webkit-internal se preservaran tal cual; fuera del módulo se aplican
+   con la especificidad y el nombre exactos que Chromium espera. */
+
+/* Firefox usa otra pseudoclase y no pinta un fondo tan agresivo, pero
+   por consistencia forzamos también aquí color de texto y caret. */
+.input:autofill {
+  color: #ffffff;
+  caret-color: var(--login-accent-bright);
+}
+
+.inputUnderline {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(165, 180, 252, 0.9),
+    transparent);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  filter: blur(0.5px);
+}
+
+.inputGroup.focused .inputUnderline { transform: scaleX(1); }
+
+.togglePassword {
+  position: absolute;
+  right: 0.55rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  padding: 0.35rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.2s, background-color 0.2s;
+  border-radius: 8px;
+}
+
+.togglePassword:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.capsHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: #fcd34d;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding-left: 0.15rem;
+  animation: fadeIn 0.2s ease;
+}
+
+/* =================================================================
+   BOTÓN SUBMIT
+   ================================================================= */
+.submitButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  /* border-box crítico: igual que en formCard, el submit con width 100%
+     + padding de 1.5rem laterales desborda sin border-box. */
+  box-sizing: border-box;
+  padding: clamp(0.75rem, 1.5vh, 0.95rem) 1.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%);
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+  box-shadow:
+    0 14px 30px -10px rgba(99, 102, 241, 0.6),
+    0 4px 12px -4px rgba(99, 102, 241, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.submitContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  position: relative;
+  z-index: 1;
+}
+
+.submitSheen {
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 22px 40px -12px rgba(99, 102, 241, 0.75),
+    0 8px 16px -6px rgba(139, 92, 246, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.submitButton:hover:not(:disabled) .submitSheen { left: 140%; }
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.submitButton:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.submitShortcut {
+  position: absolute;
+  right: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
+  z-index: 1;
+  transition: opacity 0.25s ease;
+}
+
+.submitButton:disabled .submitShortcut { opacity: 0; }
+
+/* =================================================================
+   SPINNER
+   ================================================================= */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* =================================================================
+   ERROR
+   ================================================================= */
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+  font-size: 0.82rem;
   font-weight: 500;
+  animation: shakeError 0.45s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px -8px rgba(239, 68, 68, 0.35);
 }
 
-@keyframes gridMove {
-  0% {
-    transform: perspective(500px) rotateX(20deg) translateY(0) translateX(0);
+.error svg {
+  color: #fca5a5;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(252, 165, 165, 0.5));
+}
+
+/* =================================================================
+   LINK "Conoce Loggex" — secundario, bajo el card
+   ================================================================= */
+.learnMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.05rem;
+  border-radius: 999px;
+  color: var(--login-accent-bright);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(165, 180, 252, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+  animation: fadeIn 0.6s ease 0.4s backwards;
+}
+
+.learnMore:hover {
+  transform: translateY(-2px);
+  background: rgba(99, 102, 241, 0.28);
+  border-color: rgba(199, 210, 254, 0.55);
+  color: #ffffff;
+}
+
+.learnMore:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.55);
+}
+
+.learnMoreArrow {
+  transition: transform 0.25s ease;
+}
+
+.learnMore:hover .learnMoreArrow { transform: translateX(3px); }
+
+/* =================================================================
+   ANIMACIONES
+   ================================================================= */
+/* @keyframes onAutoFillStart y `input:-webkit-autofill { animation-name }`
+   movidos a `index.css` global por las mismas razones que las reglas de
+   color del autofill: pseudoclases webkit-internal sobreviven mejor
+   fuera de CSS Modules. La sincronización JS sigue funcionando vía
+   `handleAutoFillSync` en Login.jsx (compara `e.animationName`). */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes formIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* =================================================================
+   RESPONSIVE
+   ================================================================= */
+@media (max-width: 560px) {
+  .formPanel {
+    padding:
+      max(0.9rem, env(safe-area-inset-top, 0))
+      max(0.9rem, env(safe-area-inset-right, 0))
+      max(0.9rem, env(safe-area-inset-bottom, 0))
+      max(0.9rem, env(safe-area-inset-left, 0));
   }
-  100% {
-    transform: perspective(500px) rotateX(20deg) translateY(60px) translateX(60px);
+  .formCard {
+    padding: 1.4rem 1.15rem;
+    border-radius: 16px;
+    gap: 1rem;
+  }
+  .formHeader {
+    gap: 0.3rem;
+  }
+  .formLogoWrap {
+    width: 56px;
+    height: 56px;
+  }
+  .formTitle {
+    font-size: 1.35rem;
+  }
+  .formSubtitle {
+    font-size: 0.82rem;
+    max-width: 28ch;
+  }
+  /* El atajo ↵ del submit es informativo para teclado físico — en móvil
+     no aporta y puede solapar con el texto centrado del botón. Lo ocultamos
+     y quitamos el padding extra que dejaba sitio para él. */
+  .submitShortcut {
+    display: none;
+  }
+  .submitButton {
+    padding-right: 1.5rem;
+  }
+  /* El password input necesita padding derecho para que el texto no pase
+     por debajo del icono del ojo (togglePassword). */
+  .inputGroup:has(.togglePassword) .input {
+    padding-right: 2.85rem;
+  }
+  /* Link a /about más compacto. */
+  .learnMore {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.95rem;
   }
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Pantallas muy estrechas (iPhone SE, Android antiguos) */
+@media (max-width: 380px) {
+  .formPanel {
+    padding:
+      max(0.75rem, env(safe-area-inset-top, 0))
+      max(0.75rem, env(safe-area-inset-right, 0))
+      max(0.75rem, env(safe-area-inset-bottom, 0))
+      max(0.75rem, env(safe-area-inset-left, 0));
+  }
+  .formCard {
+    padding: 1.2rem 1rem;
+    gap: 0.85rem;
+  }
+  .formTitle {
+    font-size: 1.25rem;
+  }
+  .formLogoWrap {
+    width: 52px;
+    height: 52px;
+  }
+  .input {
+    font-size: 0.88rem;
+    padding-left: 2.5rem;
+  }
+  .inputIcon {
+    left: 0.75rem;
+  }
+  .submitButton {
+    font-size: 0.9rem;
+    padding: 0.7rem 1.2rem;
+  }
 }
 
-@keyframes pulseVignette {
-  0% { opacity: 0.4; transform: scale(1); }
-  100% { opacity: 0.7; transform: scale(1.05); }
+/* =================================================================
+   REDUCED MOTION
+   ================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .formLogoWrap,
+  .formCard,
+  .error,
+  .spinner,
+  .learnMore {
+    animation: none !important;
+  }
+
+  .submitButton:hover:not(:disabled),
+  .learnMore:hover,
+  .input:hover {
+    transform: none !important;
+  }
+
+  .submitSheen { display: none; }
 }

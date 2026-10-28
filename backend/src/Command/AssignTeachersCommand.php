@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\Imparticion;
-use App\Entity\Modulo;
+use App\Entity\Materia;
 use App\Entity\User;
 use App\Entity\Grupo;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,8 +28,7 @@ class AssignTeachersCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        // Datos extraídos de backup_tfg_old.sql (tabla imparticion)
-        // id, profesor_id, modulo_id, grupo_id
+        // Datos de imparticiones: id, profesor_id, modulo_id, grupo_id
         $imparticionesData = [
             [23, 50, 35, 5],
             [24, 51, 36, 5],
@@ -64,21 +63,21 @@ class AssignTeachersCommand extends Command
 
             // Buscar entidades
             $profesor = $this->entityManager->getRepository(User::class)->find($profesorId);
-            $modulo = $this->entityManager->getRepository(Modulo::class)->find($moduloId);
+            $materia = $this->entityManager->getRepository(Materia::class)->find($moduloId);
             $grupo = $this->entityManager->getRepository(Grupo::class)->find($grupoId);
 
-            if ($profesor && $modulo && $grupo) {
+            if ($profesor && $materia && $grupo) {
                 // Verificar si ya existe la impartición
                 $existing = $this->entityManager->getRepository(Imparticion::class)->findOneBy([
                     'profesor' => $profesor,
-                    'modulo' => $modulo,
+                    'materia' => $materia,
                     'grupo' => $grupo
                 ]);
 
                 if (!$existing) {
                     $imparticion = new Imparticion();
                     $imparticion->setProfesor($profesor);
-                    $imparticion->setModulo($modulo);
+                    $imparticion->setMateria($materia);
                     $imparticion->setGrupo($grupo);
 
                     $this->entityManager->persist($imparticion);

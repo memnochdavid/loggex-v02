@@ -48,6 +48,10 @@ DirectoryIndex index.php
     RewriteCond %{ENV:REDIRECT_STATUS} ^$
     RewriteRule ^index\.php(?:/(.*)|$) %{ENV:BASE}/$1 [R=301,L]
 
+    # EXCEPCIÓN PARA MINIO: Forzar que /uploads pase siempre por Symfony
+    RewriteCond %{REQUEST_URI} ^/uploads/ [NC]
+    RewriteRule ^ %{ENV:BASE}/index.php [L]
+
     # If the requested filename exists, simply serve it.
     # We only want to let Apache serve files and not directories.
     RewriteCond %{REQUEST_FILENAME} -f

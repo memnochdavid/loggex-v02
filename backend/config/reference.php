@@ -1692,7 +1692,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     },
  *     mercure?: bool|array{
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         hub_url?: scalar|Param|null, // The URL sent in the Link HTTP header. If not set, will default to the URL for MercureBundle's default hub. // Default: null
  *         include_type?: bool|Param, // Always include @type in updates (including delete ones). // Default: false
  *     },
@@ -1830,6 +1830,144 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         ...<mixed>
  *     },
  * }
+ * @psalm-type OneupFlysystemConfig = array{
+ *     adapters?: array<string, array{ // Default: []
+ *         local?: array{
+ *             lazy?: bool|Param, // Default: false
+ *             location: scalar|Param|null,
+ *             permissions?: array{
+ *                 file?: array{
+ *                     public?: int|Param, // Default: null
+ *                     private?: int|Param, // Default: null
+ *                 },
+ *                 dir?: array{
+ *                     public?: int|Param, // Default: null
+ *                     private?: int|Param, // Default: null
+ *                 },
+ *             },
+ *             writeFlags?: scalar|Param|null, // Default: 2
+ *             linkHandling?: scalar|Param|null, // Default: 2
+ *             mimeTypeDetector?: scalar|Param|null, // Default: null
+ *             lazyRootCreation?: scalar|Param|null, // Default: false
+ *         },
+ *         awss3v3?: array{
+ *             client: scalar|Param|null,
+ *             bucket: scalar|Param|null,
+ *             prefix?: scalar|Param|null, // Default: ""
+ *             visibilityConverter?: scalar|Param|null, // Default: null
+ *             mimeTypeDetector?: scalar|Param|null, // Default: null
+ *             options?: list<scalar|Param|null>,
+ *             streamReads?: bool|Param, // Default: true
+ *         },
+ *         ftp?: array{
+ *             options?: array{
+ *                 host: scalar|Param|null,
+ *                 root: scalar|Param|null,
+ *                 username: scalar|Param|null,
+ *                 password: scalar|Param|null,
+ *                 port?: scalar|Param|null, // Default: 21
+ *                 ssl?: bool|Param, // Default: false
+ *                 timeout?: scalar|Param|null, // Default: 90
+ *                 utf8?: bool|Param, // Default: false
+ *                 passive?: bool|Param, // Default: true
+ *                 transferMode?: scalar|Param|null, // Default: null
+ *                 systemType?: scalar|Param|null, // Default: null
+ *                 ignorePassiveAddress?: bool|Param|null, // Default: null
+ *                 timestampsOnUnixListingsEnabled?: bool|Param, // Default: false
+ *                 recurseManually?: bool|Param, // Default: false
+ *                 useRawListOptions?: bool|Param, // Default: false
+ *             },
+ *             connectionProvider?: scalar|Param|null, // Default: null
+ *             connectivityChecker?: scalar|Param|null, // Default: null
+ *             visibilityConverter?: scalar|Param|null, // Default: null
+ *             mimeTypeDetector?: scalar|Param|null, // Default: null
+ *         },
+ *         sftp?: array{
+ *             options: array{
+ *                 host: scalar|Param|null,
+ *                 username: scalar|Param|null,
+ *                 password?: scalar|Param|null, // Default: null
+ *                 privateKey?: scalar|Param|null, // Default: null
+ *                 passphrase?: scalar|Param|null, // Default: null
+ *                 port?: scalar|Param|null, // Default: 22
+ *                 useAgent?: bool|Param, // Default: false
+ *                 timeout?: scalar|Param|null, // Default: 10
+ *                 maxTries?: scalar|Param|null, // Default: 4
+ *                 hostFingerprint?: scalar|Param|null, // Default: null
+ *                 connectivityChecker?: scalar|Param|null, // Default: null
+ *                 root: scalar|Param|null,
+ *             },
+ *             permissions?: array{
+ *                 file?: array{
+ *                     public?: int|Param, // Default: null
+ *                     private?: int|Param, // Default: null
+ *                 },
+ *                 dir?: array{
+ *                     public?: int|Param, // Default: null
+ *                     private?: int|Param, // Default: null
+ *                 },
+ *             },
+ *             mimeTypeDetector?: scalar|Param|null, // Default: null
+ *         },
+ *         memory?: array{
+ *             defaultVisibility?: scalar|Param|null, // Default: "public"
+ *         },
+ *         custom?: array{
+ *             service: mixed,
+ *         },
+ *         async_aws_s3?: array{
+ *             client: scalar|Param|null,
+ *             bucket: scalar|Param|null,
+ *             prefix?: scalar|Param|null, // Default: ""
+ *             visibilityConverter?: scalar|Param|null, // Default: null
+ *         },
+ *         googlecloudstorage?: array{
+ *             client: scalar|Param|null,
+ *             bucket: scalar|Param|null,
+ *             prefix?: scalar|Param|null, // Default: ""
+ *             visibilityHandler?: scalar|Param|null, // Default: null
+ *             defaultVisibility?: scalar|Param|null, // Default: "private"
+ *             mimeTypeDetector?: scalar|Param|null, // Default: null
+ *         },
+ *         gitlab?: array{
+ *             client: scalar|Param|null,
+ *             prefix?: scalar|Param|null, // Default: ""
+ *         },
+ *         azureblob?: array{
+ *             client: scalar|Param|null,
+ *             container: scalar|Param|null,
+ *             prefix?: scalar|Param|null, // Default: null
+ *         },
+ *     }>,
+ *     filesystems?: array<string, array{ // Default: []
+ *         adapter: scalar|Param|null,
+ *         alias?: scalar|Param|null, // Default: null
+ *         mount?: scalar|Param|null, // Default: null
+ *         visibility?: scalar|Param|null,
+ *         directory_visibility?: scalar|Param|null,
+ *     }>,
+ * }
+ * @psalm-type MercureConfig = array{
+ *     hubs?: array<string, array{ // Default: []
+ *         url?: scalar|Param|null, // URL of the hub's publish endpoint
+ *         public_url?: scalar|Param|null, // URL of the hub's public endpoint // Default: null
+ *         jwt?: string|array{ // JSON Web Token configuration.
+ *             value?: scalar|Param|null, // JSON Web Token to use to publish to this hub.
+ *             provider?: scalar|Param|null, // The ID of a service to call to provide the JSON Web Token.
+ *             factory?: scalar|Param|null, // The ID of a service to call to create the JSON Web Token.
+ *             publish?: list<scalar|Param|null>,
+ *             subscribe?: list<scalar|Param|null>,
+ *             secret?: scalar|Param|null, // The JWT Secret to use.
+ *             passphrase?: scalar|Param|null, // The JWT secret passphrase. // Default: ""
+ *             algorithm?: scalar|Param|null, // The algorithm to use to sign the JWT // Default: "hmac.sha256"
+ *         },
+ *         jwt_provider?: scalar|Param|null, // Deprecated: The child node "jwt_provider" at path "mercure.hubs..jwt_provider" is deprecated, use "jwt.provider" instead. // The ID of a service to call to generate the JSON Web Token.
+ *         bus?: scalar|Param|null, // Name of the Messenger bus where the handler for this hub must be registered. Default to the default bus if Messenger is enabled.
+ *     }>,
+ *     default_hub?: scalar|Param|null,
+ *     default_cookie_lifetime?: int|Param, // Default lifetime of the cookie containing the JWT, in seconds. Defaults to the value of "framework.session.cookie_lifetime". // Default: null
+ *     enable_profiler?: bool|Param, // Deprecated: The child node "enable_profiler" at path "mercure.enable_profiler" is deprecated. // Enable Symfony Web Profiler integration.
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1846,6 +1984,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     nelmio_cors?: NelmioCorsConfig,
  *     lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *     api_platform?: ApiPlatformConfig,
+ *     oneup_flysystem?: OneupFlysystemConfig,
+ *     mercure?: MercureConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1865,6 +2005,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_cors?: NelmioCorsConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         api_platform?: ApiPlatformConfig,
+ *         oneup_flysystem?: OneupFlysystemConfig,
+ *         mercure?: MercureConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1882,6 +2024,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_cors?: NelmioCorsConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         api_platform?: ApiPlatformConfig,
+ *         oneup_flysystem?: OneupFlysystemConfig,
+ *         mercure?: MercureConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1900,6 +2044,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         nelmio_cors?: NelmioCorsConfig,
  *         lexik_jwt_authentication?: LexikJwtAuthenticationConfig,
  *         api_platform?: ApiPlatformConfig,
+ *         oneup_flysystem?: OneupFlysystemConfig,
+ *         mercure?: MercureConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

@@ -7,7 +7,9 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\CalificacionRepository;
@@ -25,10 +27,20 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Put(),
+        new Patch(),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['calificacion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['calificacion:write']]
+)]
+// Topic admin plano `/admin/calificaciones` (path entity → entrega → tarea →
+// imparticion → grupo → centro es demasiado largo y frágil para placeholders).
+// Topic personal `/users/{entrega.alumno.id}/calificaciones` para que el alumno
+// vea su `/mis-calificaciones` actualizada cuando el profe pone/edita la nota.
+// El SuperAdmin ya recibe vía `/admin/{rec}` cuando filtra por otro alumno.
+#[LivePublish(
+    topics: ['/admin/calificaciones', '/users/{entrega.alumno.id}/calificaciones'],
+    payloadGroups: ['calificacion:read', 'timestamp:read', 'softdelete:read'],
 )]
 class Calificacion
 {

@@ -33,6 +33,7 @@ class GetProfesorAlumnosController extends AbstractController
                     'id' => $grupoId,
                     'nombre' => $grupo->getNombre(),
                     'abreviatura' => $grupo->getAbreviatura(),
+                    'curso' => $grupo->getCurso(),
                     'alumnos' => []
                 ];
             }

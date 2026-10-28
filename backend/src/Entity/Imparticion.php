@@ -11,6 +11,8 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
+use App\Doctrine\Filter\SearchAnyFilter;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ImparticionRepository;
@@ -34,15 +36,24 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['imparticion:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['imparticion:write']]
 )]
+// Live updates al topic admin del centro al que pertenece el grupo. Si el
+// grupo aún no tiene centro (caso resync CCAA con grupo huérfano) el topic
+// se descarta y el evento no se publica — aceptable.
+#[LivePublish(
+    topics: ['/admin/centros/{grupo.centro.id}/imparticiones'],
+    payloadGroups: ['imparticion:read', 'timestamp:read', 'softdelete:read'],
+)]
 #[ApiFilter(SearchFilter::class, properties: [
     'profesor' => 'exact',
     'profesor.nombre' => 'partial',
-    'modulo' => 'exact',
-    'modulo.nombre' => 'partial',
+    'materia' => 'exact',
+    'materia.nombre' => 'partial',
     'grupo' => 'exact',
-    'grupo.nombre' => 'partial'
+    'grupo.nombre' => 'partial',
+    'grupo.centro' => 'exact'
 ])]
-#[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'modulo.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['profesor.nombre', 'profesor.apellidos', 'materia.nombre', 'materia.abreviatura', 'materia.codigoOficial', 'grupo.nombre', 'grupo.abreviatura'])]
+#[ApiFilter(OrderFilter::class, properties: ['id', 'profesor.nombre', 'materia.nombre', 'grupo.nombre'], arguments: ['orderParameterName' => 'order'])]
 class Imparticion
 {
     use TimestampableTrait;
@@ -54,20 +65,47 @@ class Imparticion
     #[Groups(['imparticion:read', 'horario:read', 'tarea:read'])]
     private ?int $id = null;
 
+    // Nullable: el resync CCAA crea imparticiones para materias autonómicas
+    // sin profesor, que el admin asigna después en /admin/imparticiones.
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?User $profesor = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
-    private ?Modulo $modulo = null;
+    private ?Materia $materia = null;
 
     #[ORM\ManyToOne(inversedBy: 'imparticiones')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['imparticion:read', 'imparticion:write', 'horario:read', 'tarea:read'])]
     private ?Grupo $grupo = null;
+
+    /**
+     * Aula específica para esta materia/profesor (override). Si está rellena,
+     * prevalece sobre Grupo.aulaDefault. Caso típico: laboratorio para
+     * "Lenguajes de marcas", aula de música para una asignatura ESO.
+     */
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['imparticion:read', 'imparticion:write', 'horario:read'])]
+    private ?string $aulaEspecifica = null;
+
+    /**
+     * Override de modalidad per-grupo (D-A). NULL = hereda
+     * `Materia.modalidad`. Permite que un centro trate, p.ej., las "Horas de
+     * libre configuración" como `PRESENCIAL` (refuerzo en aula) en uno de sus
+     * grupos aunque el catálogo nacional las marque como `NO_REGULAR`.
+     *
+     * Se fija al crear el grupo y no debe variar a mitad de curso (D-E):
+     * cambiarla invalidaría placements existentes y la carga curricular.
+     *
+     * Consultar siempre vía `getEffectiveModalidad()` para no olvidar el
+     * fallback al default de Materia.
+     */
+    #[ORM\Column(type: 'string', enumType: Modalidad::class, nullable: true)]
+    #[Groups(['imparticion:read', 'imparticion:write'])]
+    private ?Modalidad $modalidad = null;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Horario::class)]
     private Collection $horarios;
@@ -76,8 +114,8 @@ class Imparticion
     #[Groups(['imparticion:read'])] // Añadido para ver tareas anidadas
     private Collection $tareas;
 
-    #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Material::class)]
-    private Collection $materiales;
+    #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Temario::class)]
+    private Collection $temarios;
 
     #[ORM\OneToMany(mappedBy: 'imparticion', targetEntity: Asistencia::class)]
     private Collection $asistencias;
@@ -86,7 +124,7 @@ class Imparticion
     {
         $this->horarios = new ArrayCollection();
         $this->tareas = new ArrayCollection();
-        $this->materiales = new ArrayCollection();
+        $this->temarios = new ArrayCollection();
         $this->asistencias = new ArrayCollection();
     }
 
@@ -106,14 +144,14 @@ class Imparticion
         return $this;
     }
 
-    public function getModulo(): ?Modulo
+    public function getMateria(): ?Materia
     {
-        return $this->modulo;
+        return $this->materia;
     }
 
-    public function setModulo(?Modulo $modulo): static
+    public function setMateria(?Materia $materia): static
     {
-        $this->modulo = $modulo;
+        $this->materia = $materia;
         return $this;
     }
 
@@ -126,6 +164,64 @@ class Imparticion
     {
         $this->grupo = $grupo;
         return $this;
+    }
+
+    public function getAulaEspecifica(): ?string
+    {
+        return $this->aulaEspecifica;
+    }
+
+    public function setAulaEspecifica(?string $aulaEspecifica): static
+    {
+        $this->aulaEspecifica = $aulaEspecifica;
+        return $this;
+    }
+
+    public function getModalidad(): ?Modalidad
+    {
+        return $this->modalidad;
+    }
+
+    public function setModalidad(?Modalidad $modalidad): static
+    {
+        $this->modalidad = $modalidad;
+        return $this;
+    }
+
+    /**
+     * Modalidad efectiva: override propio o default de la materia. Punto único
+     * de consulta para el solver, CapacityPlanner, rejilla y PDF — nadie debe
+     * leer `$imparticion->getModalidad()` directamente sin el fallback.
+     */
+    public function getEffectiveModalidad(): Modalidad
+    {
+        if ($this->modalidad !== null) {
+            return $this->modalidad;
+        }
+        return $this->materia?->getModalidad() ?? Modalidad::PRESENCIAL;
+    }
+
+    /**
+     * Cascada del aula efectiva para los placements del horario:
+     *   1. Si la imparticion tiene `aulaEspecifica` → esa.
+     *   2. Si no, si el grupo tiene `aulaDefault` → esa.
+     *   3. Si no, fallback automático: "Aula " + grupo.abreviatura → "Aula".
+     *
+     * El cuarto nivel (override puntual por slot) vive en `Horario.aula` y
+     * lo gestiona el editor: el solver inicializa con esta cascada, pero el
+     * admin puede sobrescribirlo manualmente sin que la cascada lo restablezca.
+     */
+    public function resolveAula(): string
+    {
+        if ($this->aulaEspecifica) {
+            return $this->aulaEspecifica;
+        }
+        $aulaGrupo = $this->grupo?->getAulaDefault();
+        if ($aulaGrupo) {
+            return $aulaGrupo;
+        }
+        $abrev = $this->grupo?->getAbreviatura();
+        return $abrev ? 'Aula ' . $abrev : 'Aula';
     }
 
     /**

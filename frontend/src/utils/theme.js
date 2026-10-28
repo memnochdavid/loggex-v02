@@ -31,12 +31,20 @@ export const applyTheme = (colors) => {
     const defaults = {
         primaryColor: '#6366f1',
         secondaryColor: '#64748b',
+        viewBackgroundColor: '#ffffff',
+        borderRadius: '0.5rem',
+        showLottie: true,
+        enableDraggableModal: true,
+        animatedBackground: null,
+        elementsOpacity: 100,
+        elementsBlur: 0,
         sidebarColor: '#1e293b',
         sidebarActiveColor: '#334155',
         sidebarActiveTextColor: '#ffffff',
         sidebarHoverColor: '#334155',
         sidebarHoverTextColor: '#ffffff',
-        
+        sidebarOpacity: 100,
+
         // Sidebar Accordion
         sidebarAccordionHeaderBgColor: '#1e293b',
         sidebarAccordionHeaderTextColor: '#ffffff',
@@ -52,6 +60,12 @@ export const applyTheme = (colors) => {
         buttonSecondaryTextColor: '#334155',
         headerFooterColor: '#1e293b',
         headerFooterTextColor: '#ffffff',
+        headerFooterOpacity: 100,
+        inputBgColor: '#ffffff',
+        inputTextColor: '#334155',
+        inputBorderColor: '#e2e8f0',
+        inputFocusBorderColor: '#6366f1',
+        inputFocusShadowColor: '#e0e7ff',
         scrollbarThumbColor: '#cbd5e1',
         scrollbarTrackColor: '#f1f5f9',
         scrollbarHoverColor: '#94a3b8',
@@ -81,17 +95,21 @@ export const applyTheme = (colors) => {
         datatablePaginationButtonHoverTextColor: '#334155',
         datatablePaginationButtonActiveBgColor: '#e2e8f0',
         datatablePaginationButtonActiveTextColor: '#1e293b',
-        accordionHeaderBgColor: '#f8fafc',
-        accordionHeaderTextColor: '#64748b',
-        accordionHeaderActiveBgColor: '#f1f5f9',
-        accordionHeaderActiveTextColor: '#334155',
-        accordionContentBgColor: '#ffffff',
-        accordionContentTextColor: '#334155',
+        
+        // Accordion
+        accordionHeaderBgColor: '#5c94f0',
+        accordionHeaderTextColor: '#ffffff',
+        accordionHeaderActiveBgColor: '#77a9f8',
+        accordionHeaderActiveTextColor: '#ffffff',
+        accordionContentBgColor: '#f0f0f0',
+        accordionContentTextColor: '#46505d',
+
         modalHeaderBgColor: '#ffffff',
         modalHeaderTextColor: '#334155',
         modalBodyBgColor: '#ffffff',
         modalBodyTextColor: '#334155',
         modalFooterBgColor: '#f8fafc',
+        modalBorderWidth: '3px',
         modalCloseButtonBgColor: '#ffffff',
         modalCloseButtonTextColor: '#64748b',
         modalCloseButtonHoverBgColor: '#f1f5f9',
@@ -136,10 +154,80 @@ export const applyTheme = (colors) => {
         widgetBorderColor: '#e2e8f0',
         widgetItemTextColor: '#334155',
         widgetItemHoverBgColor: '#f1f5f9',
-        widgetIconColor: '#6366f1'
+        widgetIconColor: '#6366f1',
+
+        // Toasts (notificaciones efímeras)
+        toastSuccessColor: '#10b981',
+        toastErrorColor: '#ef4444',
+        toastWarningColor: '#f59e0b',
+        toastInfoColor: null
     };
 
     const theme = { ...defaults, ...colors };
+
+    // Guardar configuración global
+    window.themeConfig = {
+        showLottie: theme.showLottie,
+        enableDraggableModal: theme.enableDraggableModal,
+        animatedBackground: theme.animatedBackground
+    };
+    window.dispatchEvent(new Event('themeConfigChanged'));
+
+    // Fondo animado: gradiente derivado de viewBackgroundColor + primaryColor
+    if (theme.animatedBackground) {
+        const pRgbAnim = hexToRgb(theme.primaryColor) || {r: 99, g: 102, b: 241};
+        const vRgbAnim = hexToRgb(theme.viewBackgroundColor) || {r: 255, g: 255, b: 255};
+        // Mezclar viewBg (70%) con primary (30%) para obtener el tono base
+        const base = {
+            r: Math.round(vRgbAnim.r * 0.7 + pRgbAnim.r * 0.3),
+            g: Math.round(vRgbAnim.g * 0.7 + pRgbAnim.g * 0.3),
+            b: Math.round(vRgbAnim.b * 0.7 + pRgbAnim.b * 0.3)
+        };
+        // Oscurecer a distintos niveles para crear el gradiente
+        const dark = (rgb, w) => `rgb(${Math.round(rgb.r * w)}, ${Math.round(rgb.g * w)}, ${Math.round(rgb.b * w)})`;
+        root.style.setProperty('--bg-anim-1', dark(base, 0.14));  // más oscuro
+        root.style.setProperty('--bg-anim-2', dark(base, 0.24));  // medio
+        root.style.setProperty('--bg-anim-3', dark(base, 0.30));  // con más color
+        root.style.setProperty('--bg-view-alpha', 'transparent');
+        root.style.setProperty('--bg-body-alpha', 'transparent');
+    } else {
+        root.style.removeProperty('--bg-view-alpha');
+        root.style.removeProperty('--bg-body-alpha');
+        root.style.removeProperty('--bg-anim-1');
+        root.style.removeProperty('--bg-anim-2');
+        root.style.removeProperty('--bg-anim-3');
+    }
+
+    // --- Transparencia y blur de elementos (solo con fondo animado activo) ---
+    const elOp = theme.animatedBackground ? (theme.elementsOpacity != null ? theme.elementsOpacity : 100) : 100;
+    const elBlur = theme.animatedBackground ? (theme.elementsBlur != null ? theme.elementsBlur : 0) : 0;
+    const applyAlpha = (color) => elOp < 100 ? `color-mix(in srgb, ${color} ${elOp}%, transparent)` : color;
+
+    // Backdrop blur para efecto glassmorphism
+    if (elBlur > 0) {
+        root.style.setProperty('--elements-blur', `blur(${elBlur}px)`);
+    } else {
+        root.style.removeProperty('--elements-blur');
+    }
+
+    // --- VARIABLES MAESTRAS DERIVADAS (Para consistencia global) ---
+    // Usamos widgetBgColor como base para tarjetas genéricas si no hay otra
+    root.style.setProperty('--bg-card', applyAlpha(theme.widgetBgColor));
+    root.style.setProperty('--bg-card-solid', theme.widgetBgColor);
+    
+    // Usamos color-mix con valores directos para evitar problemas de orden de variables
+    // CORRECCIÓN: Usar --border-color en lugar de --color-border para coincidir con CSS modules
+    root.style.setProperty('--border-color', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`);
+    root.style.setProperty('--color-border', `color-mix(in srgb, ${theme.widgetBgColor}, ${theme.textMainColor} 15%)`); // Mantener alias por si acaso
+    
+    // Inputs
+    root.style.setProperty('--bg-input', applyAlpha(theme.inputBgColor));
+    root.style.setProperty('--text-input', theme.inputTextColor);
+    root.style.setProperty('--border-input', theme.inputBorderColor);
+    root.style.setProperty('--input-focus-border', theme.inputFocusBorderColor);
+    root.style.setProperty('--input-focus-shadow', theme.inputFocusShadowColor);
+
+    // --- FIN VARIABLES MAESTRAS ---
 
     // 1. Color Primario
     if (theme.primaryColor) {
@@ -150,10 +238,26 @@ export const applyTheme = (colors) => {
         root.style.setProperty('--color-primary-300', mixColors(p, '#ffffff', 0.45));
         root.style.setProperty('--color-primary-400', mixColors(p, '#ffffff', 0.75));
         root.style.setProperty('--color-primary-500', p);
+        const pRgb = hexToRgb(p);
+        if (pRgb) root.style.setProperty('--color-primary-rgb', `${pRgb.r}, ${pRgb.g}, ${pRgb.b}`);
         root.style.setProperty('--color-primary-600', mixColors(p, '#000000', 0.9));
         root.style.setProperty('--color-primary-700', mixColors(p, '#000000', 0.75));
         root.style.setProperty('--color-primary-800', mixColors(p, '#000000', 0.6));
         root.style.setProperty('--color-primary-900', mixColors(p, '#000000', 0.45));
+    }
+
+    // 1.1 Fondo de Vistas
+    if (theme.viewBackgroundColor) {
+        root.style.setProperty('--bg-view', theme.viewBackgroundColor);
+    }
+
+    // 1.2 Border Radius
+    if (theme.borderRadius) {
+        root.style.setProperty('--border-radius', theme.borderRadius);
+        root.style.setProperty('--radius-md', theme.borderRadius);
+        root.style.setProperty('--radius-lg', `calc(${theme.borderRadius} + 0.25rem)`);
+        root.style.setProperty('--radius-sm', `calc(${theme.borderRadius} - 0.125rem)`);
+        root.style.setProperty('--border-radius-small', `calc(${theme.borderRadius} - 0.125rem)`);
     }
 
     // 2. Sidebar
@@ -186,56 +290,67 @@ export const applyTheme = (colors) => {
     // 5. Header y Footer
     if (theme.headerFooterColor) root.style.setProperty('--bg-header-footer', theme.headerFooterColor);
     if (theme.headerFooterTextColor) root.style.setProperty('--text-header-footer', theme.headerFooterTextColor);
+    const hfOpacity = theme.headerFooterOpacity != null ? theme.headerFooterOpacity : 100;
+    if (hfOpacity < 100) {
+        root.style.setProperty('--bg-header-footer-alpha', `color-mix(in srgb, ${theme.headerFooterColor || '#1e293b'} ${hfOpacity}%, transparent)`);
+        root.style.setProperty('--bg-sidebar-alpha', `color-mix(in srgb, ${theme.sidebarColor || '#1e293b'} ${hfOpacity}%, transparent)`);
+    } else {
+        root.style.removeProperty('--bg-header-footer-alpha');
+        root.style.removeProperty('--bg-sidebar-alpha');
+    }
 
     // 6. Calendario y Horario
-    if (theme.calendarSelectedBgColor) root.style.setProperty('--calendar-selected-bg', theme.calendarSelectedBgColor);
+    if (theme.calendarSelectedBgColor) root.style.setProperty('--calendar-selected-bg', applyAlpha(theme.calendarSelectedBgColor));
     if (theme.calendarSelectedTextColor) root.style.setProperty('--calendar-selected-text', theme.calendarSelectedTextColor);
-    if (theme.calendarWeekendBgColor) root.style.setProperty('--calendar-weekend-bg', theme.calendarWeekendBgColor);
+    if (theme.calendarWeekendBgColor) root.style.setProperty('--calendar-weekend-bg', applyAlpha(theme.calendarWeekendBgColor));
     if (theme.calendarWeekendTextColor) root.style.setProperty('--calendar-weekend-text', theme.calendarWeekendTextColor);
-    
-    if (theme.timetableHeaderBgColor) root.style.setProperty('--timetable-header-bg', theme.timetableHeaderBgColor);
+
+    if (theme.timetableHeaderBgColor) root.style.setProperty('--timetable-header-bg', applyAlpha(theme.timetableHeaderBgColor));
     if (theme.timetableHeaderTextColor) root.style.setProperty('--timetable-header-text', theme.timetableHeaderTextColor);
-    if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', theme.timetableHoursBgColor);
+    if (theme.timetableHoursBgColor) root.style.setProperty('--timetable-hours-bg', applyAlpha(theme.timetableHoursBgColor));
     if (theme.timetableHoursTextColor) root.style.setProperty('--timetable-hours-text', theme.timetableHoursTextColor);
-    
-    if (theme.timetableSelectedHeaderBg) root.style.setProperty('--timetable-active-header-bg', theme.timetableSelectedHeaderBg);
+
+    if (theme.timetableSelectedHeaderBg) root.style.setProperty('--timetable-active-header-bg', applyAlpha(theme.timetableSelectedHeaderBg));
     if (theme.timetableSelectedHeaderText) root.style.setProperty('--timetable-active-header-text', theme.timetableSelectedHeaderText);
-    if (theme.timetableSelectedCellBg) root.style.setProperty('--timetable-active-cell-bg', theme.timetableSelectedCellBg);
+    if (theme.timetableSelectedCellBg) root.style.setProperty('--timetable-active-cell-bg', applyAlpha(theme.timetableSelectedCellBg));
 
     // 7. DataTable
-    if (theme.datatableHeaderBgColor) root.style.setProperty('--datatable-header-bg', theme.datatableHeaderBgColor);
+    if (theme.datatableHeaderBgColor) root.style.setProperty('--datatable-header-bg', applyAlpha(theme.datatableHeaderBgColor));
     if (theme.datatableHeaderTextColor) root.style.setProperty('--datatable-header-text', theme.datatableHeaderTextColor);
-    if (theme.datatableHeaderHoverBgColor) root.style.setProperty('--datatable-header-hover-bg', theme.datatableHeaderHoverBgColor);
+    if (theme.datatableHeaderHoverBgColor) root.style.setProperty('--datatable-header-hover-bg', applyAlpha(theme.datatableHeaderHoverBgColor));
     if (theme.datatableHeaderHoverTextColor) root.style.setProperty('--datatable-header-hover-text', theme.datatableHeaderHoverTextColor);
-    if (theme.datatableHeaderActiveBgColor) root.style.setProperty('--datatable-header-active-bg', theme.datatableHeaderActiveBgColor);
+    if (theme.datatableHeaderActiveBgColor) root.style.setProperty('--datatable-header-active-bg', applyAlpha(theme.datatableHeaderActiveBgColor));
     if (theme.datatableHeaderActiveTextColor) root.style.setProperty('--datatable-header-active-text', theme.datatableHeaderActiveTextColor);
-    
-    if (theme.datatablePaginationBgColor) root.style.setProperty('--datatable-pagination-bg', theme.datatablePaginationBgColor);
+
+    if (theme.datatablePaginationBgColor) root.style.setProperty('--datatable-pagination-bg', applyAlpha(theme.datatablePaginationBgColor));
     if (theme.datatablePaginationTextColor) root.style.setProperty('--datatable-pagination-text', theme.datatablePaginationTextColor);
-    if (theme.datatablePaginationButtonBgColor) root.style.setProperty('--datatable-pagination-btn-bg', theme.datatablePaginationButtonBgColor);
+    if (theme.datatablePaginationButtonBgColor) root.style.setProperty('--datatable-pagination-btn-bg', applyAlpha(theme.datatablePaginationButtonBgColor));
     if (theme.datatablePaginationButtonTextColor) root.style.setProperty('--datatable-pagination-btn-text', theme.datatablePaginationButtonTextColor);
-    if (theme.datatablePaginationButtonHoverBgColor) root.style.setProperty('--datatable-pagination-btn-hover-bg', theme.datatablePaginationButtonHoverBgColor);
+    if (theme.datatablePaginationButtonHoverBgColor) root.style.setProperty('--datatable-pagination-btn-hover-bg', applyAlpha(theme.datatablePaginationButtonHoverBgColor));
     if (theme.datatablePaginationButtonHoverTextColor) root.style.setProperty('--datatable-pagination-btn-hover-text', theme.datatablePaginationButtonHoverTextColor);
-    if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', theme.datatablePaginationButtonActiveBgColor);
+    if (theme.datatablePaginationButtonActiveBgColor) root.style.setProperty('--datatable-pagination-btn-active-bg', applyAlpha(theme.datatablePaginationButtonActiveBgColor));
     if (theme.datatablePaginationButtonActiveTextColor) root.style.setProperty('--datatable-pagination-btn-active-text', theme.datatablePaginationButtonActiveTextColor);
 
     // 8. Accordion
-    if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', theme.accordionHeaderBgColor);
+    if (theme.accordionHeaderBgColor) root.style.setProperty('--accordion-header-bg', applyAlpha(theme.accordionHeaderBgColor));
     if (theme.accordionHeaderTextColor) root.style.setProperty('--accordion-header-text', theme.accordionHeaderTextColor);
-    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', theme.accordionHeaderActiveBgColor);
+    if (theme.accordionHeaderActiveBgColor) root.style.setProperty('--accordion-header-active-bg', applyAlpha(theme.accordionHeaderActiveBgColor));
     if (theme.accordionHeaderActiveTextColor) root.style.setProperty('--accordion-header-active-text', theme.accordionHeaderActiveTextColor);
-    if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', theme.accordionContentBgColor);
+    if (theme.accordionContentBgColor) root.style.setProperty('--accordion-content-bg', applyAlpha(theme.accordionContentBgColor));
     if (theme.accordionContentTextColor) root.style.setProperty('--accordion-content-text', theme.accordionContentTextColor);
 
     // 9. Modal
-    if (theme.modalHeaderBgColor) root.style.setProperty('--modal-header-bg', theme.modalHeaderBgColor);
+    if (theme.modalHeaderBgColor) root.style.setProperty('--modal-header-bg', applyAlpha(theme.modalHeaderBgColor));
     if (theme.modalHeaderTextColor) root.style.setProperty('--modal-header-text', theme.modalHeaderTextColor);
-    if (theme.modalBodyBgColor) root.style.setProperty('--modal-body-bg', theme.modalBodyBgColor);
+    if (theme.modalBodyBgColor) root.style.setProperty('--modal-body-bg', applyAlpha(theme.modalBodyBgColor));
     if (theme.modalBodyTextColor) root.style.setProperty('--modal-body-text', theme.modalBodyTextColor);
-    if (theme.modalFooterBgColor) root.style.setProperty('--modal-footer-bg', theme.modalFooterBgColor);
+    if (theme.modalFooterBgColor) root.style.setProperty('--modal-footer-bg', applyAlpha(theme.modalFooterBgColor));
+    if (theme.modalBorderWidth !== undefined && theme.modalBorderWidth !== null) {
+        root.style.setProperty('--modal-border-width', theme.modalBorderWidth);
+    }
 
     // 10. Modal Close Button
-    if (theme.modalCloseButtonBgColor) root.style.setProperty('--modal-close-btn-bg', theme.modalCloseButtonBgColor);
+    if (theme.modalCloseButtonBgColor) root.style.setProperty('--modal-close-btn-bg', applyAlpha(theme.modalCloseButtonBgColor));
     if (theme.modalCloseButtonTextColor) root.style.setProperty('--modal-close-btn-text', theme.modalCloseButtonTextColor);
     if (theme.modalCloseButtonHoverBgColor) root.style.setProperty('--modal-close-btn-hover-bg', theme.modalCloseButtonHoverBgColor);
     if (theme.modalCloseButtonHoverTextColor) root.style.setProperty('--modal-close-btn-hover-text', theme.modalCloseButtonHoverTextColor);
@@ -246,26 +361,26 @@ export const applyTheme = (colors) => {
     if (theme.userCardTextSecondaryColor) root.style.setProperty('--usercard-text-secondary', theme.userCardTextSecondaryColor);
 
     // 13. Chat
-    if (theme.chatSidebarBgColor) root.style.setProperty('--chat-sidebar-bg', theme.chatSidebarBgColor);
-    if (theme.chatItemHoverBgColor) root.style.setProperty('--chat-item-hover-bg', theme.chatItemHoverBgColor);
-    if (theme.chatItemActiveBgColor) root.style.setProperty('--chat-item-active-bg', theme.chatItemActiveBgColor);
+    if (theme.chatSidebarBgColor) root.style.setProperty('--chat-sidebar-bg', applyAlpha(theme.chatSidebarBgColor));
+    if (theme.chatItemHoverBgColor) root.style.setProperty('--chat-item-hover-bg', applyAlpha(theme.chatItemHoverBgColor));
+    if (theme.chatItemActiveBgColor) root.style.setProperty('--chat-item-active-bg', applyAlpha(theme.chatItemActiveBgColor));
     if (theme.chatItemActiveBorderColor) root.style.setProperty('--chat-item-active-border', theme.chatItemActiveBorderColor);
     if (theme.chatItemTextMainColor) root.style.setProperty('--chat-item-text-main', theme.chatItemTextMainColor);
     if (theme.chatItemTextSecondaryColor) root.style.setProperty('--chat-item-text-secondary', theme.chatItemTextSecondaryColor);
     if (theme.chatBadgeBgColor) root.style.setProperty('--chat-badge-bg', theme.chatBadgeBgColor);
     if (theme.chatBadgeTextColor) root.style.setProperty('--chat-badge-text', theme.chatBadgeTextColor);
     
-    if (theme.chatHeaderBgColor) root.style.setProperty('--chat-header-bg', theme.chatHeaderBgColor);
+    if (theme.chatHeaderBgColor) root.style.setProperty('--chat-header-bg', applyAlpha(theme.chatHeaderBgColor));
     if (theme.chatHeaderTextColor) root.style.setProperty('--chat-header-text', theme.chatHeaderTextColor);
-    if (theme.chatContainerBgColor) root.style.setProperty('--chat-container-bg', theme.chatContainerBgColor);
-    if (theme.chatInputAreaBgColor) root.style.setProperty('--chat-input-area-bg', theme.chatInputAreaBgColor);
+    if (theme.chatContainerBgColor) root.style.setProperty('--chat-container-bg', applyAlpha(theme.chatContainerBgColor));
+    if (theme.chatInputAreaBgColor) root.style.setProperty('--chat-input-area-bg', applyAlpha(theme.chatInputAreaBgColor));
     if (theme.chatBubbleSentBgColor) root.style.setProperty('--chat-bubble-sent-bg', theme.chatBubbleSentBgColor);
     if (theme.chatBubbleSentTextColor) root.style.setProperty('--chat-bubble-sent-text', theme.chatBubbleSentTextColor);
-    if (theme.chatBubbleReceivedBgColor) root.style.setProperty('--chat-bubble-received-bg', theme.chatBubbleReceivedBgColor);
+    if (theme.chatBubbleReceivedBgColor) root.style.setProperty('--chat-bubble-received-bg', applyAlpha(theme.chatBubbleReceivedBgColor));
     if (theme.chatBubbleReceivedTextColor) root.style.setProperty('--chat-bubble-received-text', theme.chatBubbleReceivedTextColor);
 
     // 14. EventCard
-    if (theme.eventCardBgColor) root.style.setProperty('--event-card-bg', theme.eventCardBgColor);
+    if (theme.eventCardBgColor) root.style.setProperty('--event-card-bg', applyAlpha(theme.eventCardBgColor));
     if (theme.eventCardBorderColor) root.style.setProperty('--event-card-border', theme.eventCardBorderColor);
     if (theme.eventCardTitleColor) root.style.setProperty('--event-card-title-color', theme.eventCardTitleColor);
     if (theme.eventCardMetaColor) root.style.setProperty('--event-card-meta-color', theme.eventCardMetaColor);
@@ -274,16 +389,28 @@ export const applyTheme = (colors) => {
     if (theme.eventsSidebarBgColor) root.style.setProperty('--events-sidebar-bg', theme.eventsSidebarBgColor);
     if (theme.eventsSidebarTitleColor) root.style.setProperty('--events-sidebar-title-color', theme.eventsSidebarTitleColor);
 
+    // 17. Toasts — colores semánticos que heredan el fondo/borde/radio del tema general
+    if (theme.toastSuccessColor) root.style.setProperty('--toast-success', theme.toastSuccessColor);
+    if (theme.toastErrorColor) root.style.setProperty('--toast-error', theme.toastErrorColor);
+    if (theme.toastWarningColor) root.style.setProperty('--toast-warning', theme.toastWarningColor);
+    const toastInfo = theme.toastInfoColor || theme.primaryColor;
+    if (toastInfo) root.style.setProperty('--toast-info', toastInfo);
+
     // 16. Dashboard Widgets
-    if (theme.widgetBgColor) root.style.setProperty('--widget-bg', theme.widgetBgColor);
-    if (theme.widgetHeaderBgColor) root.style.setProperty('--widget-header-bg', theme.widgetHeaderBgColor);
+    if (theme.widgetBgColor) root.style.setProperty('--widget-bg', applyAlpha(theme.widgetBgColor));
+    if (theme.widgetHeaderBgColor) root.style.setProperty('--widget-header-bg', applyAlpha(theme.widgetHeaderBgColor));
     if (theme.widgetHeaderTextColor) root.style.setProperty('--widget-header-text', theme.widgetHeaderTextColor);
     if (theme.widgetBorderColor) root.style.setProperty('--widget-border', theme.widgetBorderColor);
     if (theme.widgetItemTextColor) root.style.setProperty('--widget-item-text', theme.widgetItemTextColor);
     if (theme.widgetItemHoverBgColor) root.style.setProperty('--widget-item-hover-bg', theme.widgetItemHoverBgColor);
     if (theme.widgetIconColor) root.style.setProperty('--widget-icon-color', theme.widgetIconColor);
 
-    // 11. Scrollbar (Inyección de estilos dinámicos)
+    // 11. Scrollbar — siempre flotante + AUTO-HIDE: thumb invisible por defecto,
+    //     fade-in cuando el cursor entra en algún ancestor del contenedor
+    //     scrollable (estilo macOS). El ancho y los colores son tematizables; la
+    //     "forma" flotante y el comportamiento auto-hide son invariantes (UX
+    //     consistente entre temas). Sin layout shift entre estados (el track
+    //     reserva el ancho aunque el thumb sea transparente).
     let styleTag = document.getElementById('theme-scrollbar-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');
@@ -291,42 +418,50 @@ export const applyTheme = (colors) => {
         document.head.appendChild(styleTag);
     }
 
-    const width = theme.scrollbarWidth || '12px';
+    const width = theme.scrollbarWidth || '10px';
+    const thumb = theme.scrollbarThumbColor || 'color-mix(in srgb, currentColor 22%, transparent)';
+    const hover = theme.scrollbarHoverColor || 'color-mix(in srgb, currentColor 42%, transparent)';
 
     styleTag.innerHTML = `
-        /* Firefox Scrollbar */
+        /* Firefox: ambos transparentes por defecto, thumb tematizado al hover. */
         * {
-            scrollbar-width: ${width === 'auto' ? 'auto' : 'auto'};
-            scrollbar-color: ${theme.scrollbarThumbColor} ${theme.scrollbarTrackColor};
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+            transition: scrollbar-color var(--dur-base) var(--ease-standard);
         }
 
-        /* Webkit Scrollbar (Chrome, Safari, Edge) */
-        ::-webkit-scrollbar {
+        *:hover {
+            scrollbar-color: ${thumb} transparent;
+        }
+
+        /* Webkit: track presente (sin layout shift), thumb invisible hasta hover. */
+        *::-webkit-scrollbar {
             width: ${width};
             height: ${width};
+            background: transparent;
         }
-        
-        ::-webkit-scrollbar-track,
-        *::-webkit-scrollbar-track {
-            background: ${theme.scrollbarTrackColor} !important;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb,
-        *::-webkit-scrollbar-thumb {
-            background-color: ${theme.scrollbarThumbColor} !important;
-            border-radius: 4px;
-            border: 3px solid ${theme.scrollbarTrackColor};
-        }
-        
-        ::-webkit-scrollbar-thumb:hover,
-        *::-webkit-scrollbar-thumb:hover {
-            background-color: ${theme.scrollbarHoverColor} !important;
-        }
-        
-        ::-webkit-scrollbar-corner,
+
+        *::-webkit-scrollbar-track,
         *::-webkit-scrollbar-corner {
-            background-color: ${theme.scrollbarTrackColor};
+            background: transparent !important;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background-color: transparent !important;
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            transition: background-color var(--dur-base) var(--ease-standard);
+        }
+
+        /* Cursor entra en algún ancestor del contenedor scrollable → fade-in
+           con el color tematizado del centro. */
+        *:hover::-webkit-scrollbar-thumb {
+            background-color: ${thumb} !important;
+        }
+
+        *:hover::-webkit-scrollbar-thumb:hover {
+            background-color: ${hover} !important;
         }
     `;
 };

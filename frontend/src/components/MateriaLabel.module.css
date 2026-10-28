@@ -1,0 +1,30 @@
+/* El wrap ocupa el 100% del padre para que `clientWidth` refleje siempre el
+   espacio disponible real (no el ancho del texto visible). Sin ese `width: 100%`
+   el wrap se encogía al contenido corto y nunca volvía a crecer al disponer
+   de más espacio. */
+.wrap {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Nodo oculto que mantiene el nombre completo; lo usamos como "vara de medir"
+   para saber si el ancho disponible es suficiente. */
+.measure {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    white-space: nowrap;
+    left: -9999px;
+    top: 0;
+}
+
+.visible {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import styles from './SearchBar.module.css';
+import ThemedSelect from './ThemedSelect';
+import { useTranslation } from 'react-i18next';
 
 /**
  * @param {string} value - Valor actual del input
@@ -13,11 +15,12 @@ import styles from './SearchBar.module.css';
 const SearchBar = ({ 
     value, 
     onChange, 
-    placeholder = "Buscar...", 
+    placeholder, 
     fields = [], 
     selectedField, 
     onFieldChange 
 }) => {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
 
   const handleClear = () => {
@@ -30,17 +33,13 @@ const SearchBar = ({
   return (
     <div className={styles.container}>
       {fields.length > 0 && (
-        <select 
-            className={styles.select}
+        <ThemedSelect
             value={selectedField}
-            onChange={(e) => onFieldChange(e.target.value)}
-        >
-            {fields.map(field => (
-                <option key={field.value} value={field.value}>
-                    {field.label}
-                </option>
-            ))}
-        </select>
+            onChange={onFieldChange}
+            minWidth={140}
+            ariaLabel={t('searchBar.fieldLabel', { defaultValue: 'Campo de búsqueda' })}
+            options={fields.map(f => ({ value: f.value, label: f.label }))}
+        />
       )}
       
       <div className={styles.inputWrapper}>
@@ -51,13 +50,13 @@ const SearchBar = ({
             className={styles.input}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
+            placeholder={placeholder || t('searchBar.placeholder')}
         />
         {value && (
           <button 
             className={styles.clearButton} 
             onClick={handleClear}
-            aria-label="Limpiar búsqueda"
+            aria-label={t('searchBar.clearLabel')}
           >
             <X size={16} />
           </button>

@@ -11,6 +11,7 @@ api_platform:
             vary: ['Content-Type', 'Authorization', 'Origin']
         pagination_items_per_page: 20
         pagination_client_items_per_page: true
+        pagination_client_enabled: true
     patch_formats:
         json: ['application/merge-patch+json']
 

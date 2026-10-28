@@ -8,8 +8,12 @@ import Button from '../components/Button';
 import UserAvatar from '../components/UserAvatar';
 import NameTitle from '../components/NameTitle';
 import NotificationList from '../components/NotificationList';
-import { Bell, MessageCircleQuestion } from 'lucide-react';
-import { getApiUrl, getAssetUrl } from '../config/api';
+import SystemNotificationsList from '../components/SystemNotificationsList';
+import { Bell, Mail, MessageCircleQuestion } from 'lucide-react';
+import { getApiUrl, getAssetUrl, API_DOCS_URL } from '../config/api';
+import LanguageSelector from '../components/LanguageSelector';
+import { useTranslation } from 'react-i18next';
+import { toast } from '../utils/toast';
 
 // Hook simple para media query
 const useMediaQuery = (query) => {
@@ -29,13 +33,25 @@ const useMediaQuery = (query) => {
 };
 
 const Header = () => {
+    const { t } = useTranslation();
     const {user} = useAuth();
     const {toggleSidebar} = useUI();
     const isMobile = useMediaQuery('(max-width: 1220px)');
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);            // mensajes
+    const [systemUnreadCount, setSystemUnreadCount] = useState(0); // notificaciones del sistema
+    const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+    const [isSystemNotifsOpen, setIsSystemNotifsOpen] = useState(false);
+    // Expansión horizontal del dropdown de notificaciones — el usuario lo
+    // activa con un botón en la cabecera de la lista cuando los textos no
+    // caben en el ancho por defecto. Se resetea al cerrar el dropdown.
+    const [isSystemNotifsExpanded, setIsSystemNotifsExpanded] = useState(false);
+    useEffect(() => {
+        if (!isSystemNotifsOpen) setIsSystemNotifsExpanded(false);
+    }, [isSystemNotifsOpen]);
     const [supportLoading, setSupportLoading] = useState(false);
-    const notifRef = useRef(null);
+    const [scrolled, setScrolled] = useState(false);
+    const messagesRef = useRef(null);
+    const systemNotifsRef = useRef(null);
     const navigate = useNavigate();
 
     const getCentroLogoUrl = () => {
@@ -52,25 +68,72 @@ const Header = () => {
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
-    // Cerrar dropdown al hacer clic fuera
+    // Cerrar ambos dropdowns al hacer clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (notifRef.current && !notifRef.current.contains(event.target)) {
-                setIsNotifOpen(false);
+            if (messagesRef.current && !messagesRef.current.contains(event.target)) {
+                setIsMessagesOpen(false);
+            }
+            if (systemNotifsRef.current && !systemNotifsRef.current.contains(event.target)) {
+                setIsSystemNotifsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleNotificationClick = (sender) => {
-        setIsNotifOpen(false);
+    // Cerrar dropdowns con Escape (devolver foco al trigger del que esté abierto)
+    useEffect(() => {
+        if (!isMessagesOpen && !isSystemNotifsOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                if (isMessagesOpen) {
+                    setIsMessagesOpen(false);
+                    messagesRef.current?.querySelector('button')?.focus();
+                }
+                if (isSystemNotifsOpen) {
+                    setIsSystemNotifsOpen(false);
+                    systemNotifsRef.current?.querySelector('button')?.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isMessagesOpen, isSystemNotifsOpen]);
+
+    // Elevación progresiva al hacer scroll (throttle vía rAF).
+    useEffect(() => {
+        let raf = null;
+        const update = () => {
+            raf = null;
+            setScrolled(window.scrollY > 4);
+        };
+        const onScroll = () => {
+            if (raf === null) raf = requestAnimationFrame(update);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        update();
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            if (raf !== null) cancelAnimationFrame(raf);
+        };
+    }, []);
+
+    const handleMessageClick = (sender) => {
+        setIsMessagesOpen(false);
         navigate('/mensajes', { state: { chatWith: sender } });
     };
 
-    const handleViewAll = () => {
-        setIsNotifOpen(false);
+    const handleViewAllMessages = () => {
+        setIsMessagesOpen(false);
         navigate('/mensajes');
+    };
+
+    const handleSystemNotifClick = (notif) => {
+        setIsSystemNotifsOpen(false);
+        if (notif?.enlace) {
+            navigate(notif.enlace);
+        }
     };
 
     const handleSupportClick = async (e) => {
@@ -88,7 +151,7 @@ const Header = () => {
                     headers: { 'Accept': 'application/ld+json' },
                     credentials: 'include'
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     const users = data['hydra:member'] || data.member || [];
@@ -115,12 +178,12 @@ const Header = () => {
             if (targetUser) {
                 navigate('/mensajes', { state: { chatWith: targetUser } });
             } else {
-                alert('No se ha encontrado personal de soporte disponible en este momento.');
+                toast.warning(t('header.noSupportFound'));
             }
 
         } catch (error) {
             console.error("Error buscando soporte:", error);
-            alert('Error al conectar con soporte.');
+            toast.error(t('header.errorSupport'));
         } finally {
             setSupportLoading(false);
         }
@@ -139,87 +202,187 @@ const Header = () => {
         />
     );
 
+    const hasUnreadMessages = unreadCount > 0;
+    const hasUnreadSystemNotifs = systemUnreadCount > 0;
+
     return (
-        <header className={styles.header}>
-            <div className={styles.logoContainer} style={user?.centro?.personalizacion?.nameTitleConfig?.alignment ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment } : {}}>
+        <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
+            <div
+                className={styles.logoContainer}
+                style={{
+                    '--i': 0,
+                    ...(user?.centro?.personalizacion?.nameTitleConfig?.alignment
+                        ? { alignItems: user.centro.personalizacion.nameTitleConfig.alignment }
+                        : {}),
+                }}
+            >
                 {isMobile && user ? (
                     <Link to="#" className={styles.logoLink} onClick={toggleSidebar}>
                         {LogoImage}
                     </Link>
                 ) : (
-                    <Link to="/" className={styles.logoLink} onClick={toggleSidebar}>
+                    <Link to="/" className={styles.logoLink}>
                         {LogoImage}
                     </Link>
                 )}
-                
+
                 <NameTitle name={getCentroName()} className={styles.nombrecentro} />
             </div>
 
-            <nav style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+            <nav className={styles.nav} style={{ '--i': 1 }}>
                 <div className={styles.desktopNav}>
                     {(!user || isSuperAdmin) && (
-                        <Link to="/about" className={styles.navLink}>About</Link>
+                        <Link to="/about" className={styles.navLink}>
+                            <span className={styles.navLinkLabel}>{t('header.about')}</span>
+                        </Link>
                     )}
-                    
+
                     {user && !isSuperAdmin && (
-                        <a 
-                            href="#" 
-                            onClick={handleSupportClick} 
-                            className={styles.navLink}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: supportLoading ? 'wait' : 'pointer' }}
+                        <a
+                            href="#"
+                            onClick={handleSupportClick}
+                            className={`${styles.navLink} ${supportLoading ? styles.navLinkLoading : ''}`}
                         >
-                            <MessageCircleQuestion size={18} />
-                            Soporte
+                            <MessageCircleQuestion size={18} className={styles.navLinkIcon} />
+                            <span className={styles.navLinkLabel}>{t('header.support')}</span>
                         </a>
                     )}
                 </div>
 
                 {user && isSuperAdmin && (
                     <a
-                        href="https://localhost:9443/api"
+                        href={API_DOCS_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`${styles.navLink} ${styles.desktopNav}`}
-                        title="Documentación API Platform"
+                        title={t('header.apiDocsTooltip')}
                     >
-                        API Docs
+                        <span className={styles.navLinkLabel}>{t('header.apiDocs')}</span>
                     </a>
                 )}
 
+                <LanguageSelector />
+
                 {user ? (
-                    <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '1rem'}}>
-                        <div className={styles.notificationContainer} ref={notifRef}>
-                            <button 
+                    <div className={styles.userActions}>
+                        {/* Botón Mensajes (icono Mail) — comunicación inter-personal.
+                            Antes usaba el icono Bell por motivos históricos; el swap
+                            arregla la disonancia semántica con el botón nuevo de
+                            Notificaciones. Ver `docs/hoja-de-ruta-notificaciones.md`
+                            decisión D1. */}
+                        <div
+                            className={`${styles.notificationContainer} ${hasUnreadMessages ? styles.hasUnread : ''}`}
+                            ref={messagesRef}
+                            data-tour="header-messages"
+                        >
+                            <button
                                 className={styles.notificationButton}
-                                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                                title="Notificaciones"
+                                onClick={() => {
+                                    setIsMessagesOpen(prev => !prev);
+                                    setIsSystemNotifsOpen(false);
+                                }}
+                                title={t('header.messages')}
+                                aria-label={t('header.messages')}
+                                aria-haspopup="dialog"
+                                aria-expanded={isMessagesOpen}
                             >
-                                <Bell size={24} />
+                                <Mail size={22} aria-hidden="true" />
                             </button>
-                            
-                            {unreadCount > 0 && (
-                                <span className={styles.badge} onClick={() => setIsNotifOpen(!isNotifOpen)}>
+
+                            {hasUnreadMessages && (
+                                <span
+                                    className={styles.badge}
+                                    onClick={() => {
+                                        setIsMessagesOpen(prev => !prev);
+                                        setIsSystemNotifsOpen(false);
+                                    }}
+                                    aria-hidden="true"
+                                >
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </span>
                             )}
 
-                            {isNotifOpen && (
-                                <div className={styles.dropdown}>
-                                    <NotificationList 
-                                        title="Notificaciones"
+                            {isMessagesOpen && (
+                                <div className={styles.dropdown} role="dialog" aria-label={t('header.messages')}>
+                                    <NotificationList
+                                        title={t('header.messages')}
                                         showUnreadCountInHeader={true}
                                         onUnreadCountChange={setUnreadCount}
-                                        onItemClick={handleNotificationClick}
-                                        onViewAll={handleViewAll}
+                                        onItemClick={handleMessageClick}
+                                        onViewAll={handleViewAllMessages}
                                         limit={5}
                                     />
                                 </div>
                             )}
-                            
-                            {!isNotifOpen && (
+
+                            {!isMessagesOpen && (
                                 <div style={{ display: 'none' }}>
-                                    <NotificationList 
+                                    <NotificationList
                                         onUnreadCountChange={setUnreadCount}
+                                        limit={0}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Botón Notificaciones del sistema (icono Bell) — eventos
+                            del dominio: corrección publicada, tarea nueva,
+                            entrega recibida, etc. Mismo patrón visual que el de
+                            mensajes. Ver `docs/hoja-de-ruta-notificaciones.md`. */}
+                        <div
+                            className={`${styles.notificationContainer} ${hasUnreadSystemNotifs ? styles.hasUnread : ''}`}
+                            ref={systemNotifsRef}
+                            data-tour="header-notifications"
+                        >
+                            <button
+                                className={styles.notificationButton}
+                                onClick={() => {
+                                    setIsSystemNotifsOpen(prev => !prev);
+                                    setIsMessagesOpen(false);
+                                }}
+                                title={t('header.notifications')}
+                                aria-label={t('header.notifications')}
+                                aria-haspopup="dialog"
+                                aria-expanded={isSystemNotifsOpen}
+                            >
+                                <Bell size={22} aria-hidden="true" />
+                            </button>
+
+                            {hasUnreadSystemNotifs && (
+                                <span
+                                    className={styles.badge}
+                                    onClick={() => {
+                                        setIsSystemNotifsOpen(prev => !prev);
+                                        setIsMessagesOpen(false);
+                                    }}
+                                    aria-hidden="true"
+                                >
+                                    {systemUnreadCount > 9 ? '9+' : systemUnreadCount}
+                                </span>
+                            )}
+
+                            {isSystemNotifsOpen && (
+                                <div
+                                    className={`${styles.dropdown} ${isSystemNotifsExpanded ? styles.dropdownExpanded : ''}`}
+                                    role="dialog"
+                                    aria-label={t('header.notifications')}
+                                >
+                                    <SystemNotificationsList
+                                        title={t('header.notifications')}
+                                        showUnreadCountInHeader={true}
+                                        onUnreadCountChange={setSystemUnreadCount}
+                                        onItemClick={handleSystemNotifClick}
+                                        limit={5}
+                                        expanded={isSystemNotifsExpanded}
+                                        onToggleExpand={() => setIsSystemNotifsExpanded(prev => !prev)}
+                                    />
+                                </div>
+                            )}
+
+                            {!isSystemNotifsOpen && (
+                                <div style={{ display: 'none' }}>
+                                    <SystemNotificationsList
+                                        onUnreadCountChange={setSystemUnreadCount}
                                         limit={0}
                                     />
                                 </div>
@@ -231,7 +394,7 @@ const Header = () => {
                 ) : (
                     <Link to="/login" style={{textDecoration: 'none'}}>
                         <Button variant="primary" style={{padding: '0.25rem 0.75rem', fontSize: '0.875rem'}}>
-                            Login
+                            {t('header.login')}
                         </Button>
                     </Link>
                 )}

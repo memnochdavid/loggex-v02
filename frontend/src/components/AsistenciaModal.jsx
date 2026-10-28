@@ -3,9 +3,17 @@ import { Check, X, Clock, AlertCircle } from 'lucide-react';
 import { getApiUrl, getAssetUrl } from '../config/api';
 import styles from './AsistenciaModal.module.css';
 import AccordionView from './AccordionView';
+import { useTranslation } from 'react-i18next';
 
 const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) => {
+    const { t } = useTranslation();
     const [alumnos, setAlumnos] = useState([]);
+    // Fase E clases-compartidas: si el bloque es compartido (1º DAW + 1º DAM),
+    // el backend devuelve `gruposCompartidos[]` y la tabla añade columna Grupo.
+    // Cada alumno trae su `imparticionId` natural (la de SU grupo) para que
+    // las asistencias se registren contra la imp correcta — el handleSave del
+    // padre lo lee y lo envía por asistencia.
+    const [gruposCompartidos, setGruposCompartidos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [expandedId, setExpandedId] = useState(null);
@@ -41,12 +49,18 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
             });
             if (response.ok) {
                 const data = await response.json();
-                const initializedData = data.map(a => ({
+                // Fase E: el backend devuelve array flat si no hay gemelos
+                // (compat con clientes viejos), o `{alumnos, gruposCompartidos}`
+                // cuando el bloque es compartido entre grupos hermanos.
+                const arr = Array.isArray(data) ? data : (data.alumnos ?? []);
+                const grupos = Array.isArray(data) ? [] : (data.gruposCompartidos ?? []);
+                const initializedData = arr.map(a => ({
                     ...a,
                     estado: a.asistencia ? a.asistencia.estado : 'P',
                     comentario: a.asistencia ? a.asistencia.comentario : ''
                 }));
                 setAlumnos(initializedData);
+                setGruposCompartidos(grupos);
             }
         } catch (error) {
             console.error("Error cargando alumnos:", error);
@@ -71,7 +85,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
         setExpandedId(prevId => (prevId === id ? null : id));
     };
 
-    if (loading) return <div className={styles.loading}>Cargando lista...</div>;
+    if (loading) return <div className={styles.loading}>{t('attendance.loading')}</div>;
 
     const renderMobileItem = (alumno) => (
         <div className={styles.mobileItemContent}>
@@ -82,7 +96,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'P' ? styles.mobileActionButtonActiveP : ''}`}
                 >
                     <Check size={20} />
-                    <span className={styles.mobileActionLabel}>Presente</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.present')}</span>
                 </button>
                 <button
                     type="button"
@@ -90,7 +104,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'F' ? styles.mobileActionButtonActiveF : ''}`}
                 >
                     <X size={20} />
-                    <span className={styles.mobileActionLabel}>Falta</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.absent')}</span>
                 </button>
                 <button
                     type="button"
@@ -98,7 +112,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'R' ? styles.mobileActionButtonActiveR : ''}`}
                 >
                     <Clock size={20} />
-                    <span className={styles.mobileActionLabel}>Retraso</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.late')}</span>
                 </button>
                 <button
                     type="button"
@@ -106,18 +120,32 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     className={`${styles.mobileActionButton} ${alumno.estado === 'J' ? styles.mobileActionButtonActiveJ : ''}`}
                 >
                     <AlertCircle size={20} />
-                    <span className={styles.mobileActionLabel}>Justif.</span>
+                    <span className={styles.mobileActionLabel}>{t('attendance.justifiedShort')}</span>
                 </button>
             </div>
             <input
                 type="text"
                 value={alumno.comentario || ''}
                 onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
-                placeholder="Añadir comentario..."
+                placeholder={t('attendance.commentPlaceholder')}
                 className={styles.inputComentario}
             />
         </div>
     );
+
+    const showGrupoCol = gruposCompartidos.length > 1;
+
+    // Fase E: chip pequeño con el curso+abreviatura del grupo del alumno
+    // (solo cuando la hoja es compartida entre grupos gemelos).
+    const grupoChip = (alumno) => {
+        if (!showGrupoCol || !alumno.grupo) return null;
+        const g = alumno.grupo;
+        const label = [
+            g.curso ? `${g.curso}º` : null,
+            (g.abreviatura && String(g.abreviatura).trim() !== '') ? g.abreviatura : g.nombre,
+        ].filter(Boolean).join(' ');
+        return <span className={styles.grupoChip}>{label}</span>;
+    };
 
     const renderMobileHeader = (alumno) => (
         <div className={styles.tdAlumno}>
@@ -130,7 +158,10 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     </div>
                 )}
             </div>
-            <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
+            <div className={styles.alumnoName}>
+                {alumno.apellidos}, {alumno.nombre}
+                {grupoChip(alumno)}
+            </div>
         </div>
     );
 
@@ -149,9 +180,9 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                     <table className={styles.table}>
                         <thead>
                         <tr className={styles.tr}>
-                            <th className={styles.th}>Alumno</th>
-                            <th className={styles.thCenter}>Estado</th>
-                            <th className={styles.th}>Comentario</th>
+                            <th className={styles.th}>{t('attendance.studentCol')}</th>
+                            <th className={styles.thCenter}>{t('attendance.statusCol')}</th>
+                            <th className={styles.th}>{t('attendance.commentCol')}</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -168,7 +199,10 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         )}
                                     </div>
                                     <div>
-                                        <div className={styles.alumnoName}>{alumno.apellidos}, {alumno.nombre}</div>
+                                        <div className={styles.alumnoName}>
+                                            {alumno.apellidos}, {alumno.nombre}
+                                            {grupoChip(alumno)}
+                                        </div>
                                     </div>
                                 </td>
                                 <td className={styles.tdActions}>
@@ -176,7 +210,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'P')}
-                                            title="Presente"
+                                            title={t('attendance.present')}
                                             className={alumno.estado === 'P' ? styles.btnPresenteActive : styles.btnPresente}
                                         >
                                             <Check size={16} />
@@ -184,7 +218,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'F')}
-                                            title="Falta"
+                                            title={t('attendance.absent')}
                                             className={alumno.estado === 'F' ? styles.btnFaltaActive : styles.btnFalta}
                                         >
                                             <X size={16} />
@@ -192,7 +226,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'R')}
-                                            title="Retraso"
+                                            title={t('attendance.late')}
                                             className={alumno.estado === 'R' ? styles.btnRetrasoActive : styles.btnRetraso}
                                         >
                                             <Clock size={16} />
@@ -200,7 +234,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         <button
                                             type="button"
                                             onClick={() => handleEstadoChange(alumno.id, 'J')}
-                                            title="Justificada"
+                                            title={t('attendance.justified')}
                                             className={alumno.estado === 'J' ? styles.btnJustificadaActive : styles.btnJustificada}
                                         >
                                             <AlertCircle size={16} />
@@ -212,7 +246,7 @@ const AsistenciaModal = ({ imparticionId, fecha, hora, onClose, onDataChange }) 
                                         type="text"
                                         value={alumno.comentario || ''}
                                         onChange={(e) => handleComentarioChange(alumno.id, e.target.value)}
-                                        placeholder="..."
+                                        placeholder={t('attendance.commentPlaceholderShort')}
                                         className={styles.inputComentario}
                                     />
                                 </td>

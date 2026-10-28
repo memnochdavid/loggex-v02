@@ -1,21 +1,36 @@
+.container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .card {
-    background-color: var(--usercard-bg, var(--bg-header-footer));
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card); /* Usar variable maestra */
+    border: 1px solid var(--border-color); /* Usar variable maestra */
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
-    color: var(--usercard-text, white); /* Color de texto principal */
+    transition: transform var(--dur-base) var(--ease-out-quart), box-shadow var(--dur-base) var(--ease-out-quart);
+    cursor: pointer; /* Indicar que es clicable */
 }
 
 .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-primary-300);
+}
+
+.card:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary, var(--primary-color));
+}
+
+.card:active {
+    transform: scale(0.98);
 }
 
 .avatarContainer {
@@ -27,20 +42,19 @@
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid rgba(255, 255, 255, 0.2); /* Borde sutil */
-    background-color: white;
+    border: 2px solid var(--border-color); /* Usar variable maestra */
 }
 
 .placeholderAvatar {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-input); /* Usar variable maestra */
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: var(--usercard-text, white);
+    border: 2px solid var(--border-color); /* Usar variable maestra */
+    color: var(--text-muted); /* Usar variable maestra */
 }
 
 .info {
@@ -51,7 +65,7 @@
 .name {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
-    color: var(--usercard-text, white);
+    color: var(--text-main); /* Usar variable maestra */
     margin: 0 0 var(--space-2) 0;
 }
 
@@ -60,13 +74,13 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    color: var(--usercard-text-secondary, rgba(255, 255, 255, 0.8));
+    color: var(--text-muted); /* Usar variable maestra */
     font-size: var(--text-sm);
     margin-bottom: var(--space-1);
 }
 
 .detail a {
-    color: inherit;
+    color: var(--color-primary-600);
     text-decoration: none;
 }
 
@@ -77,19 +91,28 @@
 .groups {
     margin-top: var(--space-3);
     padding-top: var(--space-3);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color); /* Usar variable maestra */
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    color: var(--usercard-text-secondary, rgba(255, 255, 255, 0.8));
+    color: var(--text-muted); /* Usar variable maestra */
     font-size: var(--text-xs);
     font-weight: var(--font-medium);
 }
 
 .actions {
     width: 100%;
-    margin-top: auto;
+    margin-top: auto; /* Empujar hacia abajo si hay espacio */
 }
 
-/* El botón usará el componente Button, así que no necesitamos estilos específicos aquí si usamos el componente */
+/* Clase para quitar padding del cuerpo del modal de perfil */
+.noPaddingBody {
+    padding: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+}

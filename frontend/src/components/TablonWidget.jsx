@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../config/api';
 import styles from './TablonWidget.module.css';
@@ -6,12 +6,15 @@ import crudStyles from '../pages/Crud.module.css';
 import { Megaphone, Globe, Building2, Trash2, Edit2, Plus } from 'lucide-react';
 import Button from './Button';
 import ModalView from './ModalView';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
+import useLiveCollection from '../hooks/useLiveCollection';
 
 const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
-    const [comunicados, setComunicados] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const confirm = useConfirm();
     const [showModal, setShowModal] = useState(false);
     const [editingComunicado, setEditingComunicado] = useState(null);
     const [formData, setFormData] = useState({
@@ -30,35 +33,27 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
         openModal: () => openModal()
     }));
 
-    const fetchComunicados = async () => {
-        setLoading(true);
-        try {
-            let url = getApiUrl('/api/comunicados?order[createdAt]=desc');
-            const response = await fetch(url, {
-                headers: { 'Accept': 'application/ld+json' },
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error('Error al cargar comunicados');
-            const data = await response.json();
-            let items = data['hydra:member'] || data['member'] || [];
-            
-            // Asegurar orden descendente (más nuevo primero) en el frontend
-            items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Topics Mercure: suscribimos a comunicados globales (todos los usuarios)
+    // y a los del centro (si el usuario tiene). Cualquier alta/edición/borrado
+    // dispara refetch en todas las pestañas conectadas.
+    const liveTopics = useMemo(() => {
+        const topics = ['/global/comunicados'];
+        if (user?.centro?.id) topics.push(`/centros/${user.centro.id}/comunicados`);
+        return topics;
+    }, [user?.centro?.id]);
 
-            setComunicados(items);
-        } catch (err) {
-            console.error(err);
-            setError('No se pudieron cargar los comunicados.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { items: comunicados, loading, error, refetch: fetchComunicados } = useLiveCollection({
+        endpoint: user ? getApiUrl('/api/comunicados?order[createdAt]=desc') : null,
+        topics: liveTopics,
+        enabled: !!user,
+        parseItems: (data) => {
+            const items = data?.['hydra:member'] || data?.member || [];
+            // Defensive sort: la API ya ordena, pero garantizamos descendente.
+            return [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        },
+    });
 
-    useEffect(() => {
-        if (user) fetchComunicados();
-    }, [user]);
-
-    // Efecto para hacer scroll al inicio cuando cambian los comunicados
+    // Scroll al inicio cuando cambia la lista (nuevo comunicado entra arriba).
     useEffect(() => {
         if (listRef.current) {
             listRef.current.scrollTop = 0;
@@ -94,33 +89,44 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData['hydra:description'] || errorData.detail || 'Error al guardar');
+                const message = await parseErrorResponse(response, t('bulletin.errorSave'));
+                throw new Error(message);
             }
 
             setShowModal(false);
             setEditingComunicado(null);
             setFormData({ titulo: '', contenido: '', global: false });
             fetchComunicados();
+            toast.success(editingComunicado
+                ? t('bulletin.updatedSuccess', { defaultValue: 'Comunicado actualizado' })
+                : t('bulletin.createdSuccess', { defaultValue: 'Comunicado creado' }));
         } catch (err) {
             if (err.message !== 'Failed to fetch') {
-                alert("Error al guardar: " + err.message);
+                toast.error(err.message, {
+                    description: t('bulletin.errorSaveCtx', { defaultValue: 'No se ha podido guardar el comunicado' })
+                });
             }
             throw err;
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('¿Seguro que quieres borrar este comunicado?')) return;
+        if (!(await confirm({ body: t('bulletin.confirmDelete') }))) return;
         try {
             const response = await fetch(getApiUrl(`/api/comunicados/${id}`), {
                 method: 'DELETE',
                 credentials: 'include'
             });
-            if (!response.ok) throw new Error('Error al borrar');
+            if (!response.ok) {
+                const message = await parseErrorResponse(response, t('bulletin.errorDelete'));
+                throw new Error(message);
+            }
             fetchComunicados();
+            toast.success(t('bulletin.deletedSuccess', { defaultValue: 'Comunicado eliminado' }));
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message, {
+                description: t('bulletin.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar el comunicado' })
+            });
         }
     };
 
@@ -145,8 +151,8 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
         return false;
     };
 
-    if (loading) return <div className={styles.loading}>Cargando tablón...</div>;
-    if (error) return <div className={styles.error}>{error}</div>;
+    if (loading) return <div className={styles.loading}>{t('bulletin.loading')}</div>;
+    if (error) return <div className={styles.error}>{t('bulletin.errorLoading')}</div>;
 
     return (
         <div className={styles.widget}>
@@ -154,11 +160,11 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                 <div className={styles.header}>
                     <div className={styles.headerTitle}>
                         <Megaphone size={20} />
-                        <h3>Tablón de Anuncios</h3>
+                        <h3>{t('bulletin.title')}</h3>
                     </div>
                     {(isAdmin || isSuperAdmin) && (
                         <Button size="small" onClick={() => openModal()}>
-                            <Plus size={18} style={{ marginRight: '4px' }} /> Publicar Anuncio
+                            <Plus size={18} style={{ marginRight: '4px' }} /> {t('bulletin.publish')}
                         </Button>
                     )}
                 </div>
@@ -166,7 +172,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
 
             <div className={styles.list} ref={listRef}>
                 {comunicados.length === 0 ? (
-                    <p className={styles.empty}>No hay comunicados recientes.</p>
+                    <p className={styles.empty}>{t('bulletin.empty')}</p>
                 ) : (
                     comunicados.map(comunicado => (
                         <div key={comunicado.id} className={`${styles.card} ${comunicado.global ? styles.global : ''}`}>
@@ -174,10 +180,14 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                                 <span className={styles.cardTitle}>{comunicado.titulo}</span>
                                 <div className={styles.badges}>
                                     {comunicado.global ? (
-                                        <span className={styles.badgeGlobal} title="Comunicado Global"><Globe size={14} /> Global</span>
+                                        <span className={styles.badgeGlobal} title={t('bulletin.global')}>
+                                            <Globe size={14} />
+                                            <span className={styles.badgeText}>{t('bulletin.global')}</span>
+                                        </span>
                                     ) : (
-                                        <span className={styles.badgeCentro} title={comunicado.centro?.nombre || "Comunicado de Centro"}>
-                                            <Building2 size={14} /> {comunicado.centro?.nombre || "Administración"}
+                                        <span className={styles.badgeCentro} title={comunicado.centro?.nombre || t('bulletin.defaultCenter')}>
+                                            <Building2 size={14} />
+                                            <span className={styles.badgeText}>{comunicado.centro?.nombre || t('bulletin.defaultCenter')}</span>
                                         </span>
                                     )}
                                 </div>
@@ -192,8 +202,8 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                                 </span>
                                 {canEdit(comunicado) && (
                                     <div className={crudStyles.actions}>
-                                        <button className={crudStyles.iconButton} onClick={() => openModal(comunicado)} title="Editar"><Edit2 size={18} /></button>
-                                        <button className={`${crudStyles.iconButton} ${crudStyles.danger}`} onClick={() => handleDelete(comunicado.id)} title="Eliminar"><Trash2 size={18} /></button>
+                                        <button className={crudStyles.iconButton} onClick={() => openModal(comunicado)} title={t('common.edit')}><Edit2 size={18} /></button>
+                                        <button className={`${crudStyles.iconButton} ${crudStyles.danger}`} onClick={() => handleDelete(comunicado.id)} title={t('common.delete')}><Trash2 size={18} /></button>
                                     </div>
                                 )}
                             </div>
@@ -206,13 +216,13 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                 <ModalView 
                     isOpen={showModal} 
                     onClose={() => setShowModal(false)} 
-                    title={editingComunicado ? "Editar Comunicado" : "Nuevo Comunicado"}
+                    title={editingComunicado ? t('bulletin.editTitle') : t('bulletin.newTitle')}
                     onSubmit={handleSave}
-                    submitText="Guardar"
-                    cancelText="Cancelar"
+                    submitText={t('common.save')}
+                    cancelText={t('common.cancel')}
                 >
                     <div className={crudStyles.formGroup}>
-                        <label className={crudStyles.label}>Título</label>
+                        <label className={crudStyles.label}>{t('bulletin.titleLabel')}</label>
                         <input 
                             type="text" 
                             value={formData.titulo} 
@@ -222,7 +232,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                         />
                     </div>
                     <div className={crudStyles.formGroup}>
-                        <label className={crudStyles.label}>Contenido</label>
+                        <label className={crudStyles.label}>{t('bulletin.contentLabel')}</label>
                         <textarea 
                             value={formData.contenido} 
                             onChange={e => setFormData({...formData, contenido: e.target.value})} 
@@ -240,7 +250,7 @@ const TablonWidget = forwardRef(({ hideHeader = false }, ref) => {
                                 onChange={e => setFormData({...formData, global: e.target.checked})} 
                             />
                             <label htmlFor="global-check" className={crudStyles.label} style={{ marginBottom: 0 }}>
-                                Es un comunicado global (para todos los centros)
+                                {t('bulletin.globalCheckbox')}
                             </label>
                         </div>
                     )}

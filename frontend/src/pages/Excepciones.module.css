@@ -1,0 +1,97 @@
+/* Estilos específicos de /admin/excepciones que no encajan en el shared
+   Crud.module.css. Todos basados en variables temáticas. */
+
+.motivoCell {
+    display: inline-block;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-main);
+    cursor: help;
+    font-style: italic;
+}
+
+.motivoEmpty {
+    color: var(--text-muted);
+    font-style: normal;
+}
+
+/* Modal de detalle: dl tipo "label: value" en grid 2 columnas. */
+.detailList {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-2) var(--space-3);
+    margin: 0;
+    padding: 0;
+}
+
+.detailList > div {
+    display: contents;
+}
+
+.detailLabel {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+}
+
+.detailValue {
+    color: var(--text-main);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    word-break: break-word;
+}
+
+.detailValueMuted {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.detailSection {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.detailBadgeRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+/* Lista de miembros del grupo de intercambio (Plan B) en el detail modal.
+   Cada cara A se distingue de las B con un acento en el borde lateral. */
+.grupoList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.grupoMemberA,
+.grupoMemberB {
+    padding: 4px 8px;
+    background: var(--bg-input);
+    border-radius: var(--radius-xs, 2px);
+    border-left: 3px solid var(--border-color);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.grupoMemberA {
+    border-left-color: var(--color-warning);
+}
+
+.grupoMemberB {
+    border-left-color: var(--color-success);
+}

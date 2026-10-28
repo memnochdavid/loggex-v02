@@ -1,0 +1,162 @@
+/* ========================================
+   Waves Background — Efecto agua
+   ======================================== */
+
+/* Gradiente base — fondo oceánico profundo */
+.gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        var(--bg-anim-1, #0c1222) 0%,
+        var(--bg-anim-2, #162040) 35%,
+        var(--bg-anim-3, #1a1a4e) 70%,
+        color-mix(in srgb, var(--bg-anim-3, #1a1a4e), rgba(var(--color-primary-rgb, 99, 102, 241), 0.3) 40%) 100%);
+}
+
+/* ========================================
+   Cáusticas de luz (patrones bajo el agua)
+   ======================================== */
+
+.caustics,
+.caustics2 {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    animation: causticsFade 4s ease-in-out infinite alternate;
+}
+
+.caustics {
+    background:
+        radial-gradient(ellipse 120px 80px at 20% 60%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 90px 60px at 50% 45%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 150px 100px at 75% 70%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 80px 50px at 35% 80%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 110px 70px at 85% 40%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.07) 0%, transparent 70%);
+    animation-delay: 0s;
+}
+
+.caustics2 {
+    background:
+        radial-gradient(ellipse 100px 70px at 30% 50%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 130px 90px at 60% 65%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.09) 0%, transparent 70%),
+        radial-gradient(ellipse 70px 50px at 80% 55%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.11) 0%, transparent 70%),
+        radial-gradient(ellipse 140px 80px at 15% 75%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 90px 60px at 45% 35%, rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 0%, transparent 70%);
+    animation-delay: -2s;
+}
+
+/* ========================================
+   Olas SVG — movimiento horizontal real
+   ======================================== */
+
+.waveSvg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: auto;
+    min-height: 25%;
+    pointer-events: none;
+}
+
+.waveSvg path {
+    fill: rgba(var(--color-primary-rgb, 99, 102, 241), 0.15);
+}
+
+/* Ola 1 — la más profunda, grande y lenta */
+.wave1 {
+    min-height: 40%;
+    opacity: 0.6;
+    animation: waveDrift 20s ease-in-out infinite;
+}
+.wave1 path {
+    fill: rgba(var(--color-primary-rgb, 99, 102, 241), 0.20);
+}
+
+/* Ola 2 — contramovimiento */
+.wave2 {
+    min-height: 33%;
+    opacity: 0.5;
+    animation: waveDriftReverse 16s ease-in-out infinite;
+}
+.wave2 path {
+    fill: rgba(var(--color-primary-rgb, 99, 102, 241), 0.18);
+}
+
+/* Ola 3 — superficie */
+.wave3 {
+    min-height: 26%;
+    opacity: 0.45;
+    animation: waveDrift 13s ease-in-out infinite;
+    animation-delay: -3s;
+}
+.wave3 path {
+    fill: rgba(var(--color-primary-rgb, 99, 102, 241), 0.15);
+}
+
+/* Ola 4 — espuma, la más clara y rápida */
+.wave4 {
+    min-height: 20%;
+    opacity: 0.35;
+    animation: waveDriftReverse 10s ease-in-out infinite;
+    animation-delay: -1s;
+}
+.wave4 path {
+    fill: rgba(var(--color-primary-rgb, 99, 102, 241), 0.12);
+}
+
+/* ========================================
+   Reflejo de luz en la superficie
+   ======================================== */
+
+.surfaceLight {
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 45%;
+    background: radial-gradient(
+        ellipse 70% 40% at 50% 0%,
+        rgba(255, 255, 255, 0.04) 0%,
+        transparent 70%
+    );
+    animation: surfaceShimmer 10s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes waveDrift {
+    0% { transform: translateX(0%); }
+    50% { transform: translateX(-25%); }
+    100% { transform: translateX(0%); }
+}
+
+@keyframes waveDriftReverse {
+    0% { transform: translateX(-25%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(-25%); }
+}
+
+@keyframes causticsFade {
+    0% { opacity: 0.3; transform: scale(1); }
+    100% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes surfaceShimmer {
+    0%, 100% { opacity: 0.5; transform: translateX(0%) scaleX(1); }
+    50% { opacity: 0.8; transform: translateX(5%) scaleX(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gradient, .gradient *,
+    .caustics, .caustics2,
+    .waveSvg, .wave1, .wave2, .wave3, .wave4,
+    .surfaceLight {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

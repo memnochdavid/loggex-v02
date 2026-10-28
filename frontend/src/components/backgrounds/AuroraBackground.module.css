@@ -1,0 +1,225 @@
+/* ========================================
+   Aurora Background — Tema claro
+   Manchas de color intensas con movimiento
+   ======================================== */
+
+.base {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-view, #ffffff);
+}
+
+/* Manchas de color tipo aurora */
+.blob1,
+.blob2,
+.blob3,
+.blob4,
+.blob5,
+.blob6 {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
+/* Blob 1 — Recorre de arriba-izquierda a centro-derecha */
+.blob1 {
+    width: 70vw;
+    height: 70vw;
+    max-width: 900px;
+    max-height: 900px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.55) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.20) 40%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.03) 70%,
+        transparent 85%
+    );
+    filter: blur(60px);
+    opacity: 0.8;
+    animation: auroraDrift1 12s ease-in-out infinite;
+}
+
+/* Blob 2 — Se mueve de derecha a izquierda, tono cálido */
+.blob2 {
+    width: 60vw;
+    height: 60vw;
+    max-width: 800px;
+    max-height: 800px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.45) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.15) 40%,
+        transparent 75%
+    );
+    filter: blur(50px) hue-rotate(120deg);
+    opacity: 0.75;
+    animation: auroraDrift2 15s ease-in-out infinite;
+}
+
+/* Blob 3 — Sube y baja por la izquierda, tono frío */
+.blob3 {
+    width: 55vw;
+    height: 55vw;
+    max-width: 700px;
+    max-height: 700px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.50) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.18) 40%,
+        transparent 75%
+    );
+    filter: blur(55px) hue-rotate(-60deg);
+    opacity: 0.7;
+    animation: auroraDrift3 18s ease-in-out infinite;
+}
+
+/* Blob 4 — Orbita por el centro, primario puro */
+.blob4 {
+    width: 40vw;
+    height: 40vw;
+    max-width: 500px;
+    max-height: 500px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.60) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 50%,
+        transparent 75%
+    );
+    filter: blur(45px);
+    opacity: 0.6;
+    animation: auroraDrift4 10s ease-in-out infinite;
+}
+
+/* Blob 5 — Diagonal de arriba-derecha a abajo-izquierda */
+.blob5 {
+    width: 50vw;
+    height: 50vw;
+    max-width: 650px;
+    max-height: 650px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.40) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.12) 45%,
+        transparent 75%
+    );
+    filter: blur(50px) hue-rotate(180deg);
+    opacity: 0.65;
+    animation: auroraDrift5 14s ease-in-out infinite;
+}
+
+/* Blob 6 — Recorre la parte inferior */
+.blob6 {
+    width: 45vw;
+    height: 45vw;
+    max-width: 580px;
+    max-height: 580px;
+    background: radial-gradient(
+        circle,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.35) 0%,
+        rgba(var(--color-primary-rgb, 99, 102, 241), 0.10) 45%,
+        transparent 75%
+    );
+    filter: blur(55px) hue-rotate(60deg);
+    opacity: 0.6;
+    animation: auroraDrift6 16s ease-in-out infinite;
+}
+
+/* Destello de luz */
+.highlight {
+    position: absolute;
+    top: 20%;
+    left: 20%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.15) 40%,
+        transparent 70%
+    );
+    pointer-events: none;
+    animation: highlightPulse 8s ease-in-out infinite;
+}
+
+/* Textura de ruido */
+.noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+}
+
+/* ========================================
+   Animations — recorridos amplios y visibles
+   ======================================== */
+
+/* Blob 1: arriba-izquierda → centro → derecha → vuelve */
+@keyframes auroraDrift1 {
+    0%   { transform: translate(-20%, -30%) scale(1); opacity: 0.8; }
+    25%  { transform: translate(15%, 10%) scale(1.2); opacity: 0.9; }
+    50%  { transform: translate(40%, -5%) scale(0.85); opacity: 0.65; }
+    75%  { transform: translate(10%, 25%) scale(1.1); opacity: 0.85; }
+    100% { transform: translate(-20%, -30%) scale(1); opacity: 0.8; }
+}
+
+/* Blob 2: derecha → centro-izquierda → abajo → vuelve */
+@keyframes auroraDrift2 {
+    0%   { transform: translate(30%, -10%) scale(1); opacity: 0.75; }
+    25%  { transform: translate(-10%, 20%) scale(1.15); opacity: 0.85; }
+    50%  { transform: translate(-30%, 40%) scale(0.9); opacity: 0.6; }
+    75%  { transform: translate(10%, 15%) scale(1.1); opacity: 0.8; }
+    100% { transform: translate(30%, -10%) scale(1); opacity: 0.75; }
+}
+
+/* Blob 3: izquierda-abajo → arriba → derecha → vuelve */
+@keyframes auroraDrift3 {
+    0%   { transform: translate(-10%, 30%) scale(1); opacity: 0.7; }
+    25%  { transform: translate(5%, -20%) scale(1.2); opacity: 0.85; }
+    50%  { transform: translate(30%, -10%) scale(0.88); opacity: 0.6; }
+    75%  { transform: translate(20%, 20%) scale(1.05); opacity: 0.75; }
+    100% { transform: translate(-10%, 30%) scale(1); opacity: 0.7; }
+}
+
+/* Blob 4: órbita circular por el centro, rápido */
+@keyframes auroraDrift4 {
+    0%   { transform: translate(20%, 15%) scale(1); opacity: 0.6; }
+    20%  { transform: translate(45%, 30%) scale(1.3); opacity: 0.85; }
+    40%  { transform: translate(30%, 55%) scale(0.8); opacity: 0.5; }
+    60%  { transform: translate(-5%, 40%) scale(1.15); opacity: 0.75; }
+    80%  { transform: translate(5%, 20%) scale(0.9); opacity: 0.6; }
+    100% { transform: translate(20%, 15%) scale(1); opacity: 0.6; }
+}
+
+/* Blob 5: diagonal arriba-derecha → abajo-izquierda */
+@keyframes auroraDrift5 {
+    0%   { transform: translate(25%, -25%) scale(1); opacity: 0.65; }
+    33%  { transform: translate(-15%, 15%) scale(1.2); opacity: 0.8; }
+    66%  { transform: translate(-30%, 45%) scale(0.85); opacity: 0.55; }
+    100% { transform: translate(25%, -25%) scale(1); opacity: 0.65; }
+}
+
+/* Blob 6: recorrido inferior de izquierda a derecha */
+@keyframes auroraDrift6 {
+    0%   { transform: translate(-25%, 20%) scale(1); opacity: 0.6; }
+    25%  { transform: translate(10%, 35%) scale(1.15); opacity: 0.75; }
+    50%  { transform: translate(40%, 15%) scale(0.9); opacity: 0.55; }
+    75%  { transform: translate(20%, 40%) scale(1.2); opacity: 0.7; }
+    100% { transform: translate(-25%, 20%) scale(1); opacity: 0.6; }
+}
+
+@keyframes highlightPulse {
+    0%, 100% { opacity: 0.6; transform: translate(0, 0) scale(1); }
+    33% { opacity: 0.25; transform: translate(10%, -5%) scale(1.15); }
+    66% { opacity: 0.5; transform: translate(-8%, 8%) scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .base, .base * {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+}

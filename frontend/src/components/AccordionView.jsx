@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './AccordionView.module.css';
-import stylesButton from '../pages/Crud.module.css';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen }) => {
+const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, canAdd, defaultOpen, persistScrollKey }) => {
+  const { t } = useTranslation();
   // Si no se controla externamente (isOpen/onToggle), usamos estado local
   // Inicializamos el estado local con defaultOpen si está presente
   const [localIsOpen, setLocalIsOpen] = useState(defaultOpen || false);
-  
+
   // Determinar si está abierto (controlado o local)
   const isExpanded = isOpen !== undefined ? isOpen : localIsOpen;
-  
+
   // Función de toggle (controlada o local)
   const handleToggle = () => {
       if (onToggle) {
@@ -20,22 +21,54 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
       }
   };
 
+  // Persistencia de scroll del contenido abierto. Cuando el consumidor pasa
+  // `persistScrollKey`, guardamos `scrollTop` en sessionStorage con clave
+  // `${persistScrollKey}_${item.id}_scroll`. Al remontar (típico tras
+  // navegación con `Layout` por página), restauramos. Sin esto, el scroll
+  // del sidebar se rebobina y oculta el item recién pulsado.
+  const contentRef = useRef(null);
+  const storageKey = persistScrollKey ? `${persistScrollKey}_${item.id}_scroll` : null;
+
+  useEffect(() => {
+    if (!storageKey || !isExpanded) return;
+    const el = contentRef.current;
+    if (!el) return;
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored !== null) el.scrollTop = parseInt(stored, 10) || 0;
+    } catch {} // sessionStorage puede fallar en privado/iframes
+  }, [storageKey, isExpanded]);
+
+  const handleScroll = (e) => {
+    if (!storageKey) return;
+    try {
+      sessionStorage.setItem(storageKey, String(e.currentTarget.scrollTop));
+    } catch {}
+  };
+
   return (
-    <div className={styles.accordionItem}>
-      <div className={styles.accordionHeader} onClick={handleToggle}>
-        <div className={styles.headerContent}>
-            {renderHeader ? renderHeader(item, isExpanded) : <span>{item.title}</span>}
+    <div className={`${styles.accordionItem} ${isExpanded ? styles.open : ''} accordionItem ${isExpanded ? 'accordionItemOpen' : ''}`}>
+      <div className={`${styles.accordionHeader} accordionHeader`} onClick={handleToggle}>
+        <div className={`${styles.headerContent} headerContent`}>
+            {renderHeader ? renderHeader(item, isExpanded) : (
+              <span title={item.title}>
+                <span className="accordionHeaderTitleFull">{item.title}</span>
+                <span className="accordionHeaderTitleShort">{item.titleShort || item.title}</span>
+              </span>
+            )}
         </div>
-        <div className={styles.headerActions}>
+        <div className={`${styles.headerActions} headerActions`}>
           {canAdd && onAdd && (
-            <button 
-              className={stylesButton.iconButton}
+            <button
+              className={styles.addAction}
               onClick={(e) => {
-                e.stopPropagation(); // Evita que el acordeón se abra/cierre
+                e.stopPropagation();
                 onAdd(item.id);
               }}
+              title={t('accordion.add')}
+              aria-label={t('accordion.add')}
             >
-              Añadir
+              <Plus size={16} />
             </button>
           )}
           <ChevronDown
@@ -44,9 +77,13 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
           />
         </div>
       </div>
-      <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''}`}>
-        <div className={styles.accordionContent}>
-            <div className={styles.accordionInner}>
+      <div className={`${styles.accordionContentWrapper} ${isExpanded ? styles.open : ''} accordionContentWrapper`}>
+        <div
+          ref={contentRef}
+          onScroll={storageKey ? handleScroll : undefined}
+          className={`${styles.accordionContent} accordionContent`}
+        >
+            <div className={`${styles.accordionInner} accordionInner`}>
                 {children}
             </div>
         </div>
@@ -55,20 +92,33 @@ const AccordionItem = ({ item, children, renderHeader, isOpen, onToggle, onAdd, 
   );
 };
 
-const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll }) => {
+const AccordionView = ({ data, renderItem, renderHeader, expandedId, onToggle, onAdd, canAdd, className, defaultOpenAll, persistScrollKey }) => {
+  /* expandedId puede ser:
+       · undefined  → modo no controlado (cada item mantiene su propio estado)
+       · null       → modo controlado, ninguno abierto
+       · string     → modo controlado, uno abierto
+       · string[]   → modo controlado, múltiples abiertos (usado durante un
+                      tour para mantener abiertas a la vez todas las
+                      secciones cuyos items son targets del tour). */
+  const isItemOpen = (id) => {
+    if (expandedId === undefined) return undefined;
+    if (Array.isArray(expandedId)) return expandedId.includes(id);
+    return expandedId === id;
+  };
+
   return (
-    <div className={`${styles.accordionContainer} ${className || ''}`}>
+    <div className={`${styles.accordionContainer} ${className || ''} accordionContainer`}>
       {data.map((item, index) => (
-        <AccordionItem 
-          key={item.id || index} 
+        <AccordionItem
+          key={item.id || index}
           item={item}
           renderHeader={renderHeader}
-          // Si expandedId está definido (aunque sea null), controlamos la apertura
-          isOpen={expandedId !== undefined ? expandedId === item.id : undefined}
+          isOpen={isItemOpen(item.id)}
           onToggle={onToggle ? () => onToggle(item.id) : undefined}
           onAdd={onAdd}
           canAdd={canAdd}
-          defaultOpen={defaultOpenAll} // Pasamos la prop para abrir por defecto
+          defaultOpen={defaultOpenAll}
+          persistScrollKey={persistScrollKey}
         >
           {renderItem(item)}
         </AccordionItem>

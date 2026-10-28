@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ComunicadoRepository;
@@ -30,6 +31,16 @@ use Symfony\Component\Serializer\Attribute\Groups;
     ],
     normalizationContext: ['groups' => ['comunicado:read', 'timestamp:read', 'softdelete:read', 'user:read', 'centro:read']],
     denormalizationContext: ['groups' => ['comunicado:write']]
+)]
+// Routing dinámico: per-centro va al topic del centro (placeholder {centro.id}
+// se descarta automáticamente cuando centro=null); globales van al topic
+// /global/comunicados al que todos los usuarios autenticados están suscritos.
+#[LivePublish(
+    topics: ['/centros/{centro.id}/comunicados'],
+    topicsConditional: [
+        'entity.isGlobal()' => ['/global/comunicados'],
+    ],
+    payloadGroups: ['comunicado:read', 'timestamp:read', 'softdelete:read', 'user:read', 'centro:read'],
 )]
 class Comunicado
 {

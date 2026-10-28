@@ -7,9 +7,9 @@ const ShowProgress = ({ percentage, height = '6px', showLabel = true }) => {
 
     // Determinar color basado en la gravedad de las faltas
     const getColor = (p) => {
-        if (p <= 15) return 'var(--color-success, #10b981)'; // <= 15% Verde
-        if (p <= 25) return 'var(--color-warning, #f59e0b)'; // <= 25% Amarillo
-        return 'var(--color-error, #ef4444)';               // > 25% Rojo
+        if (p <= 15) return 'var(--color-success)'; // <= 15% Verde
+        if (p <= 25) return 'var(--color-warning)'; // <= 25% Amarillo
+        return 'var(--color-error)';               // > 25% Rojo
     };
 
     const color = getColor(validPercentage);

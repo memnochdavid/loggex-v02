@@ -1,0 +1,908 @@
+/* =================================================================
+   ErDiagram — diagrama interactivo del modelo entidad-relación.
+   Mismo lenguaje visual que /about (glass + dark) pero adaptado a
+   un layout dual canvas + sidebar.
+   ================================================================= */
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    color: #f8fafc;
+    background: rgba(12, 18, 34, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+        0 30px 70px -20px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.shellFullscreen {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(12, 18, 34, 0.85);
+}
+
+/* =================================================================
+   Toolbar superior
+   ================================================================= */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(12, 18, 34, 0.7);
+    flex-wrap: wrap;
+}
+
+.searchWrap {
+    position: relative;
+    flex: 1 1 220px;
+    max-width: 340px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.7);
+    transition: border-color var(--dur-base) var(--ease-standard);
+}
+
+.searchWrap:focus-within {
+    border-color: rgba(165, 180, 252, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.searchInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    padding: var(--space-2) 0;
+    font-size: 0.875rem;
+    min-width: 0;
+}
+
+/* Anula el outline rectangular global de :focus-visible — el feedback de
+   foco lo da el borde redondeado de .searchWrap (vía :focus-within). */
+.searchInput:focus,
+.searchInput:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.searchInput::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.searchClear {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+.searchClear:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbarGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tbBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        border-color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-out-back);
+}
+
+.tbBtn:hover {
+    background: rgba(165, 180, 252, 0.15);
+    border-color: rgba(165, 180, 252, 0.4);
+    transform: translateY(-1px);
+}
+
+.tbBtnActive {
+    background: rgba(165, 180, 252, 0.2);
+    border-color: rgba(165, 180, 252, 0.55);
+    color: #e0e7ff;
+}
+
+.zoomLabel {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+    min-width: 38px;
+    text-align: right;
+    letter-spacing: 0.04em;
+}
+
+/* =================================================================
+   Layout body: canvas + sidebar
+   ================================================================= */
+.body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    min-height: 0;
+}
+
+/* =================================================================
+   Canvas (zona de pan/zoom)
+   ================================================================= */
+.canvas {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    background:
+        radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.08), transparent 55%),
+        radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.08), transparent 55%),
+        #0a0f1c;
+    /* Fondo de retícula sutil para dar sensación de "tablero" */
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: 0 0;
+}
+
+.canvas:active {
+    cursor: grabbing;
+}
+
+.world {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+.canvasHint {
+    position: absolute;
+    bottom: var(--space-3);
+    left: var(--space-3);
+    padding: 6px 12px;
+    background: rgba(12, 18, 34, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.7rem;
+    pointer-events: none;
+    letter-spacing: 0.02em;
+}
+
+/* =================================================================
+   Líneas SVG de relación
+   ================================================================= */
+.lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.relGroup {
+    color: rgba(165, 180, 252, 0.35);
+    transition: color var(--dur-base) var(--ease-standard), opacity var(--dur-base) var(--ease-standard);
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.relPath {
+    stroke: currentColor;
+    stroke-width: 1.6;
+    transition: stroke-width var(--dur-base) var(--ease-standard);
+}
+
+.relCard {
+    fill: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    user-select: none;
+    paint-order: stroke;
+    stroke: #0a0f1c;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: fill var(--dur-base) var(--ease-standard), font-size var(--dur-base) var(--ease-standard);
+}
+
+.relDim {
+    opacity: 0.12;
+}
+
+.relActive {
+    color: #c7d2fe;
+}
+
+.relActive .relPath {
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 4px rgba(199, 210, 254, 0.65));
+}
+
+.relActive .relCard {
+    fill: #c7d2fe;
+    font-size: 14px;
+}
+
+/* Flecha saliente: la FK está en la entidad seleccionada → color ámbar */
+.relOutgoing {
+    color: #fbbf24;
+}
+
+.relOutgoing .relPath {
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.55));
+}
+
+.relOutgoing .relCard {
+    fill: #fbbf24;
+    font-size: 13px;
+}
+
+/* Flecha entrante: la FK está en otra entidad que apunta a la seleccionada → color cian */
+.relIncoming {
+    color: #67e8f9;
+}
+
+.relIncoming .relPath {
+    stroke-width: 2.4;
+    filter: drop-shadow(0 0 4px rgba(103, 232, 249, 0.55));
+}
+
+.relIncoming .relCard {
+    fill: #67e8f9;
+    font-size: 13px;
+}
+
+/* =================================================================
+   Tarjetas de entidad
+   ================================================================= */
+.card {
+    position: absolute;
+    background: rgba(20, 28, 48, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow:
+        0 10px 24px -10px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    cursor: pointer;
+    transition:
+        transform var(--dur-base) var(--ease-out-back),
+        border-color var(--dur-base) var(--ease-standard),
+        box-shadow var(--dur-base) var(--ease-standard),
+        opacity var(--dur-base) var(--ease-standard);
+    --accent: #a5b4fc;
+    /* Borde lateral coloreado por dominio */
+    border-left: 3px solid var(--accent);
+}
+
+.card:hover,
+.cardHover {
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    box-shadow:
+        0 18px 36px -10px rgba(0, 0, 0, 0.75),
+        0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    z-index: 5;
+}
+
+.cardSel {
+    border-color: var(--accent);
+    box-shadow:
+        0 0 0 2px var(--accent),
+        0 22px 44px -8px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    z-index: 10;
+}
+
+.cardDim {
+    opacity: 0.22;
+    filter: saturate(0.4);
+}
+
+/* Header */
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 10px 12px;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+        transparent 100%
+    );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    height: 56px;
+    box-sizing: border-box;
+}
+
+.cardTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.cardHeaderIcon {
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.cardTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cardTable {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+}
+
+/* Lista de campos */
+.fieldList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.81rem;
+}
+
+.field {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    height: 22px;
+    padding: 0 12px;
+    color: rgba(255, 255, 255, 0.78);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.field:last-child {
+    border-bottom: none;
+}
+
+.fieldPk {
+    background: rgba(252, 211, 77, 0.06);
+    color: #fde68a;
+}
+
+.fieldFk {
+    background: rgba(165, 180, 252, 0.06);
+    color: #c7d2fe;
+}
+
+.fieldAudit {
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+.fieldMeta {
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+.fieldBadges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badgePk {
+    color: #fcd34d;
+    filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.5));
+}
+
+.badgeFk {
+    color: #818cf8;
+    filter: drop-shadow(0 0 4px rgba(129, 140, 248, 0.5));
+}
+
+.badgeType {
+    color: rgba(255, 255, 255, 0.35);
+    display: flex;
+}
+
+.fieldName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.fieldNull {
+    color: #fca5a5;
+    margin-left: 1px;
+    font-weight: 700;
+}
+
+.fieldType {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.73rem;
+    flex-shrink: 0;
+}
+
+/* Footer */
+.cardFooter {
+    display: flex;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    height: 14px;
+    align-items: center;
+    box-sizing: content-box;
+}
+
+.traitChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =================================================================
+   Sidebar (leyenda + detalle)
+   ================================================================= */
+.sidebar {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(8, 12, 24, 0.7);
+    overflow-y: auto;
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 320px;
+    min-width: 320px;
+    transition: width var(--dur-base) var(--ease-standard), min-width var(--dur-base) var(--ease-standard), padding var(--dur-base) var(--ease-standard), opacity var(--dur-base) var(--ease-standard);
+}
+
+.sidebarCollapsed {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+    border-left: none;
+}
+
+/* Leyenda */
+.legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.legendTitle {
+    margin: 0;
+    color: white;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.legendIntro {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.legendIntro code {
+    background: rgba(165, 180, 252, 0.12);
+    color: #c7d2fe;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+}
+
+.legendStats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+}
+
+.legendStat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.legendStatVal {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #c7d2fe;
+    font-variant-numeric: tabular-nums;
+}
+
+.legendStatLabel {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 600;
+}
+
+.legendSection {
+    margin: var(--space-2) 0 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.legendList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.legendSwatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px color-mix(in srgb, currentColor 0%, transparent);
+}
+
+.legendItemLabel {
+    flex: 1;
+}
+
+.legendItemCount {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.7rem;
+}
+
+.conventionList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.conventionList li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.conventionList code {
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+}
+
+.legendTip {
+    margin: var(--space-2) 0 0;
+    padding: var(--space-3);
+    background: rgba(165, 180, 252, 0.08);
+    border: 1px dashed rgba(165, 180, 252, 0.25);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.74rem;
+    line-height: 1.5;
+}
+
+/* Detalle */
+.detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    --accent: #a5b4fc;
+}
+
+.detailHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.detailDomain {
+    display: inline-block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.detailTitle {
+    margin: 0 0 4px 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.02em;
+}
+
+.detailTable {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.detailClose {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+    flex-shrink: 0;
+}
+
+.detailClose:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.detailMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.detailMetaChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-weight: 600;
+}
+
+.detailSection {
+    margin: var(--space-2) 0 4px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.detailFields {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.detailField {
+    display: grid;
+    grid-template-columns: 22px 1fr auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.detailFieldAudit {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.detailFieldBadges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.detailFieldName {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.detailFieldType {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.72rem;
+}
+
+.detailFieldRef {
+    color: #c7d2fe;
+    font-size: 0.7rem;
+    background: rgba(165, 180, 252, 0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.detailFieldFlag {
+    background: rgba(252, 211, 77, 0.15);
+    color: #fde68a;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.detailRels {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detailRels li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.detailRels strong {
+    color: white;
+    font-weight: 700;
+}
+
+.detailRels code {
+    color: #c7d2fe;
+    font-size: 0.72rem;
+}
+
+.relCardPill {
+    background: var(--accent);
+    color: #0c1222;
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.relArrow {
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 700;
+}
+
+/* =================================================================
+   Responsive — móvil/tablet
+   ================================================================= */
+@media (max-width: 960px) {
+    .body {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(380px, 60vh) auto;
+    }
+    .sidebar {
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 600px) {
+    .canvasHint { display: none; }
+    .toolbar { padding: var(--space-2); gap: var(--space-2); }
+    .searchWrap { flex: 1 1 100%; max-width: none; }
+}
+
+/* =================================================================
+   Reduced motion
+   ================================================================= */
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .relGroup,
+    .relPath,
+    .relCard,
+    .tbBtn {
+        transition-duration: 0.01ms !important;
+    }
+    .card:hover,
+    .cardHover {
+        transform: none !important;
+    }
+}

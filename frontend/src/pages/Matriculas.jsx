@@ -3,23 +3,32 @@ import styles from './Crud.module.css'; // Usar estilos comunes
 import Button from '../components/Button';
 import DataTable from '../components/DataTable';
 import SearchBar from '../components/SearchBar';
+import ThemedSelect from '../components/ThemedSelect';
 import Layout from '../components/Layout';
 import ModalView from '../components/ModalView';
+import AsyncSearchSelect from '../components/AsyncSearchSelect';
 import CrudHeader from '../components/CrudHeader';
 import { useAuth } from '../context/AuthContext';
 import { usePagination } from '../hooks/usePagination';
+import useLiveRefetch from '../hooks/useLiveRefetch';
+import { useBulkDelete } from '../hooks/useBulkDelete';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { getApiUrl } from '../config/api';
 import Lottie from 'lottie-react';
 import crudAnimation from '../../public/crud.json';
+import { useTranslation } from 'react-i18next';
+import { toast, parseErrorResponse } from '../utils/toast';
+import { useConfirm } from '../context/ConfirmContext';
+import { formatGrupoNombre, formatGrupoAbrev } from '../utils/grupo';
 
 const Matriculas = () => {
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
 
   const [matriculas, setMatriculas] = useState([]);
   const [grupos, setGrupos] = useState([]);
-  const [alumnos, setAlumnos] = useState([]);
   const [centros, setCentros] = useState([]);
   
   // Estado de carga único
@@ -50,8 +59,8 @@ const Matriculas = () => {
 
   // Campos buscables
   const searchFields = [
-      { value: 'alumno.nombre', label: 'Alumno' },
-      { value: 'grupo.nombre', label: 'Grupo' }
+      { value: 'alumno.nombre', label: t('enrollments.student') },
+      { value: 'grupo.nombre', label: t('enrollments.group') }
   ];
 
   // Estado para el modal
@@ -62,6 +71,10 @@ const Matriculas = () => {
     grupo: ''
   });
   const [saving, setSaving] = useState(false);
+  // Filtro del modal: limita el selector de alumnos a los que aún no tienen
+  // matrícula activa en ningún grupo del centro contextual. Backend:
+  // `?sinMatriculaEnCentro=X` (ver `UserSinMatriculaEnCentroExtension`).
+  const [onlyUnenrolled, setOnlyUnenrolled] = useState(true);
 
   // Cargar centros (solo SuperAdmin)
   useEffect(() => {
@@ -79,17 +92,12 @@ const Matriculas = () => {
     }
   }, [isSuperAdmin]);
 
-  // Cargar grupos y alumnos (filtrados por centro si se selecciona uno)
+  // Cargar grupos para el filtro de la cabecera (el alumno del modal lo busca AsyncSearchSelect)
   useEffect(() => {
     let urlGrupos = getApiUrl('/api/grupos?pagination=false');
-    let urlAlumnos = getApiUrl('/api/users?pagination=false&rol_app=alumno');
-    
     if (isSuperAdmin && selectedCentro) {
         urlGrupos += `&centro=${selectedCentro}`;
-        urlAlumnos += `&centro=${selectedCentro}`;
     }
-    
-    // Cargar Grupos
     fetch(urlGrupos, {
         headers: { 'Accept': 'application/ld+json' },
         credentials: 'include'
@@ -100,18 +108,6 @@ const Matriculas = () => {
         setGrupos(items);
     })
     .catch(err => console.error("Error cargando grupos:", err));
-
-    // Cargar Alumnos
-    fetch(urlAlumnos, {
-        headers: { 'Accept': 'application/ld+json' },
-        credentials: 'include'
-    })
-    .then(res => res.json())
-    .then(data => {
-        const items = data['hydra:member'] || data.member || [];
-        setAlumnos(items);
-    })
-    .catch(err => console.error("Error cargando alumnos:", err));
 
   }, [selectedCentro, isSuperAdmin]);
 
@@ -136,10 +132,14 @@ const Matriculas = () => {
     try {
       let url = getApiUrl(`/api/matriculas?page=${params.page}&itemsPerPage=${params.itemsPerPage}`);
       
-      if (params.searchTerm) {
-          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`; 
+      if (params.selectedCentro) {
+          url += `&grupo.centro=${params.selectedCentro}`;
       }
-      
+
+      if (params.searchTerm) {
+          url += `&${params.searchField}=${encodeURIComponent(params.searchTerm)}`;
+      }
+
       if (params.selectedGrupo) {
           url += `&grupo=${params.selectedGrupo}`;
       }
@@ -179,10 +179,33 @@ const Matriculas = () => {
     }
   }, []); 
 
+  // Mercure live: refetch automático ante cualquier alta/edición/borrado de
+  // matrícula del centro visible. Soporta el caso de uso original de la deuda
+  // (superadmin matricula 20 alumnos vía SQL → admin del centro debe verlos
+  // sin F5; combinar con `app:mercure:invalidate -t /admin/centros/X/matriculas`
+  // tras seeds SQL para forzar la propagación).
+  const liveTopics = useMemo(() => {
+      const cid = isSuperAdmin ? (selectedCentro || '{cid}') : user?.centro?.id;
+      return cid ? [`/admin/centros/${cid}/matriculas`] : [];
+  }, [isSuperAdmin, selectedCentro, user?.centro?.id]);
+
+  useLiveRefetch(liveTopics, () => {
+      fetchMatriculasData({
+          page: currentPage,
+          itemsPerPage,
+          searchTerm,
+          searchField,
+          selectedCentro,
+          selectedGrupo,
+          sortColumn,
+          sortDirection,
+      });
+  });
+
   // Efecto ÚNICO para cambios
   useEffect(() => {
       const searchChanged = searchTerm !== prevSearchTerm.current || searchField !== prevSearchField.current;
-      
+
       prevSearchTerm.current = searchTerm;
       prevSearchField.current = searchField;
 
@@ -191,6 +214,7 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
@@ -210,13 +234,14 @@ const Matriculas = () => {
           if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
       };
   }, [
-      currentPage, 
-      itemsPerPage, 
-      searchTerm, 
-      searchField, 
-      selectedGrupo, 
-      sortColumn, 
-      sortDirection, 
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedGrupo,
+      sortColumn,
+      sortDirection,
       fetchMatriculasData
   ]);
 
@@ -307,9 +332,8 @@ const Matriculas = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData['hydra:description'] || errorData.detail || errorData.message || 'Error al guardar';
-        throw new Error(errorMessage);
+        const message = await parseErrorResponse(response);
+        throw new Error(message);
       }
 
       // Recargar datos
@@ -318,22 +342,30 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
       });
       handleCloseModal();
+      toast.success(currentMatricula
+        ? t('enrollments.updatedSuccess', { defaultValue: 'Matrícula actualizada' })
+        : t('enrollments.createdSuccess', { defaultValue: 'Matrícula creada' }));
 
     } catch (err) {
       console.error("Error saving matricula:", err);
-      alert(`Error: ${err.message}`);
+      toast.error(err.message, {
+        description: currentMatricula
+          ? t('enrollments.errorUpdating', { defaultValue: 'No se ha podido actualizar la matrícula' })
+          : t('enrollments.errorCreating', { defaultValue: 'No se ha podido crear la matrícula' })
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = useCallback(async (matricula) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta matrícula?')) {
+    if (!(await confirm({ body: t('enrollments.confirmDelete') }))) {
       return;
     }
 
@@ -347,7 +379,8 @@ const Matriculas = () => {
       });
 
       if (!response.ok) {
-        throw new Error('No se pudo eliminar la matrícula');
+        const message = await parseErrorResponse(response, t('enrollments.errorDelete'));
+        throw new Error(message);
       }
 
       fetchMatriculasData({
@@ -355,45 +388,69 @@ const Matriculas = () => {
           itemsPerPage,
           searchTerm,
           searchField,
+          selectedCentro,
           selectedGrupo,
           sortColumn,
           sortDirection
       });
+      toast.success(t('enrollments.deletedSuccess', { defaultValue: 'Matrícula eliminada' }));
 
     } catch (err) {
       console.error("Error deleting matricula:", err);
-      alert(`Error al eliminar: ${err.message}`);
+      toast.error(err.message, {
+        description: t('enrollments.errorDeletingCtx', { defaultValue: 'No se ha podido eliminar la matrícula' })
+      });
     }
-  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData]);
+  }, [currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection, fetchMatriculasData, t]);
+
+  const handleBulkDelete = useBulkDelete({
+    endpointBase: '/api/matriculas',
+    onSuccess: () => fetchMatriculasData({
+      page: currentPage,
+      itemsPerPage,
+      searchTerm,
+      searchField,
+      selectedCentro,
+      selectedGrupo,
+      sortColumn,
+      sortDirection,
+    }),
+  });
 
   const columns = useMemo(() => [
     { 
-        header: 'Alumno', 
+        header: t('enrollments.student'), 
         accessor: (row) => row.alumno ? `${row.alumno.nombre} ${row.alumno.apellidos}` : '-', 
         sortable: true, 
         sortKey: 'alumno.nombre' 
     },
-    { 
-        header: 'Grupo', 
-        accessor: (row) => row.grupo ? `${row.grupo.curso}º ${row.grupo.nombre}` : '-', 
-        sortable: true, 
-        sortKey: 'grupo.nombre' 
+    {
+        header: t('enrollments.group'),
+        accessor: (row) => row.grupo ? formatGrupoAbrev(row.grupo) : '-',
+        sortable: true,
+        sortKey: 'grupo.nombre'
+    },
+    {
+        header: t('enrollments.schoolYear'),
+        accessor: (row) => row.grupo?.anioEscolar || '-',
+        sortable: true,
+        sortKey: 'grupo.anioEscolar'
     },
     { 
-        header: 'Acciones',
+        header: t('common.actions'),
         accessor: (row) => (
             <div className={styles.actions}>
                 <button 
                     className={styles.iconButton} 
                     onClick={() => handleOpenModal(row)}
-                    title="Editar"
+                    title={t('common.edit')}
                 >
                     <Edit2 size={18} />
                 </button>
                 <button 
                     className={`${styles.iconButton} ${styles.danger}`} 
                     onClick={() => handleDelete(row)}
-                    title="Eliminar"
+                    title={t('common.delete')}
                 >
                     <Trash2 size={18} />
                 </button>
@@ -406,44 +463,45 @@ const Matriculas = () => {
   return (
     <Layout>
         <div className={styles.container}>
-        <CrudHeader title="Matrículas"
-                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 60, height: 60 }} />}
+        <CrudHeader title={t('enrollments.title')}
+ subtitle={t('enrollments.subtitle')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('enrollments.title') },
+                    ]}
+                    logo={<Lottie animationData={crudAnimation} loop={true} style={{ width: 56, height: 56 }} />}
         >
             {isSuperAdmin && (
-                <select 
-                    className={styles.select} 
-                    value={selectedCentro} 
-                    onChange={(e) => {
-                        setSelectedCentro(e.target.value);
-                        setSelectedGrupo('');
-                    }}
-                    style={{ width: '200px' }}
-                >
-                    <option value="">Todos los centros</option>
-                    {centros.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                </select>
+                <ThemedSelect
+                    value={selectedCentro}
+                    onChange={(v) => { setSelectedCentro(v); setSelectedGrupo(''); }}
+                    minWidth={200}
+                    ariaLabel={t('common.allCenters')}
+                    options={[
+                        { value: '', label: t('common.allCenters') },
+                        ...centros.map(c => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                />
             )}
 
-            <select 
-                className={styles.select} 
-                value={selectedGrupo} 
-                onChange={(e) => setSelectedGrupo(e.target.value)}
-                style={{ width: '200px' }}
-            >
-                <option value="">Todos los grupos</option>
-                {grupos.map(g => (
-                    <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                        {g.curso}º {g.nombre}
-                    </option>
-                ))}
-            </select>
-            
-            <SearchBar 
+            <ThemedSelect
+                value={selectedGrupo}
+                onChange={setSelectedGrupo}
+                minWidth={200}
+                ariaLabel={t('common.allGroups')}
+                options={[
+                    { value: '', label: t('common.allGroups') },
+                    ...grupos.map(g => ({
+                        value: String(g.id || g['@id']?.split('/').pop()),
+                        label: formatGrupoNombre(g),
+                    })),
+                ]}
+            />
+
+            <SearchBar
                 value={searchTerm} 
                 onChange={setSearchTerm} 
-                placeholder="Buscar matrícula..." 
+                placeholder={t('enrollments.searchPlaceholder')}
                 fields={searchFields}
                 selectedField={searchField}
                 onFieldChange={setSearchField}
@@ -451,18 +509,19 @@ const Matriculas = () => {
             
             <Button onClick={() => handleOpenModal()}>
                 <Plus size={18} style={{ marginRight: '8px' }} />
-                Nuevo
+                {t('common.new')}
             </Button>
         </CrudHeader>
 
         {error && (
             <div className={styles.errorContainer}>
             <p>{error}</p>
-            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>Reintentar</Button>
+            <Button onClick={() => fetchMatriculasData({ page: currentPage, itemsPerPage, searchTerm, searchField, selectedCentro, selectedGrupo, sortColumn, sortDirection })} variant="secondary" style={{ marginTop: '1rem' }}>{t('common.retry')}</Button>
             </div>
         )}
 
         <DataTable
+            tableId="matriculas"
             columns={columns}
             data={matriculas}
             totalItems={totalItems}
@@ -471,6 +530,8 @@ const Matriculas = () => {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={loading}
+            selectable
+            onBulkDelete={handleBulkDelete}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -480,44 +541,68 @@ const Matriculas = () => {
         <ModalView
             isOpen={isModalOpen}
             onClose={handleCloseModal}
-            title={currentMatricula ? 'Editar Matrícula' : 'Nueva Matrícula'}
+            title={currentMatricula ? t('enrollments.editTitle') : t('enrollments.newTitle')}
             onSubmit={handleSubmit}
             isSubmitting={saving}
         >
             <div className={styles.formGroup}>
-                <label className={styles.label}>Alumno</label>
-                <select
-                    name="alumno"
-                    value={formData.alumno}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                    required
-                >
-                    <option value="">Seleccionar alumno...</option>
-                    {alumnos.map(a => (
-                        <option key={a.id || a['@id']} value={a.id || a['@id'].split('/').pop()}>
-                            {a.nombre} {a.apellidos} ({a.email})
-                        </option>
-                    ))}
-                </select>
+                <label className={styles.label}>{t('enrollments.student')}</label>
+                {(() => {
+                    // Centro contextual para el filtro: SuperAdmin usa el del
+                    // strip de cabecera; admin de centro usa el suyo (siempre
+                    // presente en el token). Si SuperAdmin no ha elegido
+                    // centro aún, el filtro se desactiva (no hay contexto).
+                    const filterCentroId = isSuperAdmin
+                        ? (selectedCentro || null)
+                        : (user?.centro?.id || null);
+                    const filterActive = onlyUnenrolled && !!filterCentroId;
+                    return (
+                        <>
+                            <label className={styles.checkboxInline} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', cursor: filterCentroId ? 'pointer' : 'not-allowed', color: filterCentroId ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={filterActive}
+                                    disabled={!filterCentroId}
+                                    onChange={(e) => setOnlyUnenrolled(e.target.checked)}
+                                    style={{ accentColor: 'var(--color-primary-500)' }}
+                                />
+                                <span style={{ fontSize: 'var(--text-sm)' }}>
+                                    {t('enrollments.onlyUnenrolled', { defaultValue: 'Solo alumnos sin matrícula activa en este centro' })}
+                                </span>
+                            </label>
+                            <AsyncSearchSelect
+                                name="alumno"
+                                value={formData.alumno}
+                                onChange={(v) => setFormData(p => ({ ...p, alumno: v }))}
+                                endpoint="/api/users"
+                                extraParams={{
+                                    rol_app: 'alumno',
+                                    ...(isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}),
+                                    ...(filterActive ? { sinMatriculaEnCentro: filterCentroId } : {}),
+                                }}
+                                getOptionLabel={(a) => `${a.nombre} ${a.apellidos} (${a.email})`}
+                                getOptionValue={(a) => a.id || a['@id']?.split('/').pop()}
+                                placeholder={t('common.selectStudent')}
+                                required
+                            />
+                        </>
+                    );
+                })()}
             </div>
 
             <div className={styles.formGroup}>
-                <label className={styles.label}>Grupo</label>
-                <select
+                <label className={styles.label}>{t('enrollments.group')}</label>
+                <AsyncSearchSelect
                     name="grupo"
                     value={formData.grupo}
-                    onChange={handleInputChange}
-                    className={styles.select}
+                    onChange={(v) => setFormData(p => ({ ...p, grupo: v }))}
+                    endpoint="/api/grupos"
+                    extraParams={isSuperAdmin && selectedCentro ? { centro: selectedCentro } : {}}
+                    getOptionLabel={(g) => formatGrupoNombre(g)}
+                    getOptionValue={(g) => g.id || g['@id']?.split('/').pop()}
+                    placeholder={t('common.selectGroup')}
                     required
-                >
-                    <option value="">Seleccionar grupo...</option>
-                    {grupos.map(g => (
-                        <option key={g.id || g['@id']} value={g.id || g['@id'].split('/').pop()}>
-                            {g.curso}º {g.nombre}
-                        </option>
-                    ))}
-                </select>
+                />
             </div>
         </ModalView>
         </div>

@@ -11,5 +11,5 @@ nelmio_cors:
             allow_origin: ['%env(CORS_ALLOW_ORIGIN)%']
             allow_credentials: true # Importante para cookies de sesión
             allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
-            allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+            allow_methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
             max_age: 3600

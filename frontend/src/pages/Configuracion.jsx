@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import Layout from '../components/Layout';
 import Button from '../components/Button';
 import {useAuth} from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import {applyTheme} from '../utils/theme';
 import styles from './Configuracion.module.css';
 import {
@@ -15,7 +16,6 @@ import {
     Calendar,
     Clock,
     Table,
-    List,
     Layers,
     Trash2,
     Check,
@@ -26,19 +26,68 @@ import {
     MessageSquare,
     User,
     Bell,
-    Grid
+    Grid,
+    TextCursorInput
 } from 'lucide-react';
 import NameTitle from '../components/NameTitle';
 import {getApiUrl, getAssetUrl} from '../config/api';
 import CrudHeader from '../components/CrudHeader';
 import Lottie from 'lottie-react';
 import configAnimation from '../../public/config.json';
+import { useTranslation } from 'react-i18next';
 
 // Importar tema por defecto desde la nueva ubicación
 import {DEFAULT_THEME} from '../config/themeDefaults';
 import helloAnimation from "../../public/hello.json";
 
+// Componentes reales para previews
+import DataTable from '../components/DataTable';
+import AccordionView from '../components/AccordionView';
+import TimeTable from '../components/TimeTable';
+import CalendarView from '../components/CalendarView';
+import UserCard from '../components/UserCard';
+import EventCard from '../components/EventCard';
+
+// Datos mock para previews
+const MOCK_DT_COLUMNS = [
+    { header: 'Lorem', accessor: 'col1' },
+    { header: 'Ipsum', accessor: 'col2' },
+    { header: 'Dolor', accessor: 'col3' },
+];
+const MOCK_DT_DATA = [
+    { id: 1, col1: 'Lorem ipsum', col2: 'dolor sit', col3: 'amet' },
+    { id: 2, col1: 'Consectetur', col2: 'adipiscing', col3: 'elit' },
+    { id: 3, col1: 'Sed do', col2: 'eiusmod', col3: 'tempor' },
+];
+const MOCK_ACCORDION_DATA = [
+    { id: 1, title: 'Lorem ipsum dolor sit amet' },
+    { id: 2, title: 'Consectetur adipiscing elit' },
+    { id: 3, title: 'Sed do eiusmod tempor' },
+];
+const MOCK_TIMETABLE_EVENTS = [
+    { diaSemana: 1, horaInicio: '08:30', horaFin: '09:30', modulo: 'Lorem Ipsum', grupo: 'A1', aula: '101' },
+    { diaSemana: 1, horaInicio: '09:30', horaFin: '10:30', modulo: 'Lorem Ipsum', grupo: 'A1', aula: '101' },
+    { diaSemana: 2, horaInicio: '08:30', horaFin: '09:30', modulo: 'Dolor Sit', grupo: 'B2', aula: '203' },
+    { diaSemana: 3, horaInicio: '10:30', horaFin: '11:30', modulo: 'Amet Consectetur', grupo: 'A1', aula: '105' },
+    { diaSemana: 4, horaInicio: '08:30', horaFin: '09:30', modulo: 'Adipiscing Elit', grupo: 'C1', aula: '302' },
+    { diaSemana: 5, horaInicio: '09:30', horaFin: '10:30', modulo: 'Tempor Incididunt', grupo: 'A1', aula: '101' },
+];
+const MOCK_USER = {
+    id: 1,
+    nombre: 'Lorem',
+    apellidos: 'Ipsum Dolor',
+    email: 'lorem@ipsum.dolor',
+    telefono: '600 000 000',
+    foto: null,
+    grupos: ['A1', 'B2'],
+};
+const MOCK_FESTIVOS = [
+    { nombre: 'Lorem Festum', fechaInicio: '2026-03-19', fechaFin: '2026-03-19' }
+];
+
 const Configuracion = () => {
+    const { t } = useTranslation();
+    const confirm = useConfirm();
     const {user, checkAuth} = useAuth();
     const isSuperAdmin = user?.roles?.includes('ROLE_SUPERADMIN');
     const isAdmin = user?.roles?.includes('ROLE_ADMIN');
@@ -47,69 +96,59 @@ const Configuracion = () => {
 
     const defaultSettings = DEFAULT_THEME;
 
-    const [settings, setSettings] = useState(defaultSettings);
-    const [themes, setThemes] = useState([]); // Lista unificada de temas
+    const computeInitialSettings = () => {
+        let initial = {...defaultSettings};
+        if (user) {
+            const mergeSettings = (source) => {
+                Object.keys(source).forEach(key => {
+                    if (source[key] !== null && source[key] !== undefined) {
+                        initial[key] = source[key];
+                    }
+                });
+            };
+            if (user.centro && user.centro.personalizacion) {
+                mergeSettings(user.centro.personalizacion);
+            } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
+                mergeSettings(user.centro.personalizacion);
+            }
+        }
+        return initial;
+    };
+
+    const computeInitialTitleConfig = () => {
+        if (user?.centro?.personalizacion?.nameTitleConfig) {
+            return user.centro.personalizacion.nameTitleConfig;
+        }
+        if (user?.centro?.nombre) {
+            return {
+                words: user.centro.nombre.split(' ').map(word => ({ text: word, color: '#000000' })),
+                spacing: '0.5rem',
+                casing: 'original',
+                alignment: 'center'
+            };
+        }
+        return { words: [], spacing: '0.5rem', casing: 'original', alignment: 'center' };
+    };
+
+    const [settings, setSettings] = useState(computeInitialSettings);
+    const [themes, setThemes] = useState([]);
     const [newThemeName, setNewThemeName] = useState('');
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
     const [logoFile, setLogoFile] = useState(null);
-    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(() =>
+        user?.centro?.logo ? getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`) : null
+    );
     const fileInputRef = useRef(null);
 
-    const [titleConfig, setTitleConfig] = useState({
-        words: [],
-        spacing: '0.5rem',
-        casing: 'original',
-        alignment: 'center'
-    });
-
-    // Cargar configuración inicial
-    useEffect(() => {
-        if (user) {
-            let initialSettings = {...defaultSettings};
-
-            const mergeSettings = (source) => {
-                Object.keys(source).forEach(key => {
-                    if (source[key] !== null && source[key] !== undefined) {
-                        initialSettings[key] = source[key];
-                    }
-                });
-            };
-
-            if (user.centro && user.centro.personalizacion) {
-                mergeSettings(user.centro.personalizacion);
-
-                if (user.centro.logo) {
-                    setLogoPreview(getAssetUrl(`/uploads/logo-centro/${user.centro.logo}`));
-                }
-                if (user.centro.personalizacion.nameTitleConfig) {
-                    setTitleConfig(user.centro.personalizacion.nameTitleConfig);
-                } else if (user.centro.nombre) {
-                    const words = user.centro.nombre.split(' ').map(word => ({
-                        text: word,
-                        color: '#000000'
-                    }));
-                    setTitleConfig({
-                        words: words,
-                        spacing: '0.5rem',
-                        casing: 'original',
-                        alignment: 'center'
-                    });
-                }
-            } else if (isSuperAdmin && user.centro && user.centro.id === 'global' && user.centro.personalizacion) {
-                mergeSettings(user.centro.personalizacion);
-            }
-
-            setSettings(initialSettings);
-        }
-    }, [user, isSuperAdmin]);
+    const [titleConfig, setTitleConfig] = useState(computeInitialTitleConfig);
 
     // Cargar temas desde API
     const fetchThemes = async () => {
         try {
-            const response = await fetch(getApiUrl('/api/temas?pagination=false'), {
+            const response = await fetch(getApiUrl('/api/temas_visuales?pagination=false'), {
                 headers: {'Accept': 'application/ld+json'},
                 credentials: 'include'
             });
@@ -133,10 +172,10 @@ const Configuracion = () => {
     }, [settings]);
 
     const handleChange = (e) => {
-        const {name, value, type} = e.target;
+        const {name, value, type, checked} = e.target;
         setSettings(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseInt(value) : value
+            [name]: type === 'checkbox' ? checked : ((type === 'number' || type === 'range') ? parseInt(value) : value)
         }));
     };
 
@@ -193,7 +232,7 @@ const Configuracion = () => {
                 centro: user.centro ? `/api/centros/${user.centro.id}` : null
             };
 
-            const response = await fetch(getApiUrl('/api/temas'), {
+            const response = await fetch(getApiUrl('/api/temas_visuales'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/ld+json',
@@ -206,14 +245,14 @@ const Configuracion = () => {
             if (response.ok) {
                 setNewThemeName('');
                 fetchThemes();
-                setMessage({type: 'success', text: 'Tema guardado correctamente'});
+                setMessage({type: 'success', text: t('config.themeSaved')});
                 setTimeout(() => setMessage(null), 3000);
             } else {
-                throw new Error('Error al guardar el tema');
+                throw new Error(t('config.themeErrorSaveGeneric'));
             }
         } catch (error) {
             console.error(error);
-            setMessage({type: 'error', text: 'No se pudo guardar el tema'});
+            setMessage({type: 'error', text: t('config.themeErrorSave')});
         }
     };
 
@@ -224,24 +263,24 @@ const Configuracion = () => {
     };
 
     const handleDeleteTheme = async (theme) => {
-        if (!window.confirm(`¿Eliminar el tema "${theme.nombre}"?`)) return;
+        if (!(await confirm({ body: t('config.themeDeleteConfirm', { name: theme.nombre }) }))) return;
 
         try {
-            const response = await fetch(getApiUrl(`/api/temas/${theme.id}`), {
+            const response = await fetch(getApiUrl(`/api/temas_visuales/${theme.id}`), {
                 method: 'DELETE',
                 credentials: 'include'
             });
 
             if (response.ok) {
                 fetchThemes();
-                setMessage({type: 'success', text: 'Tema eliminado'});
+                setMessage({type: 'success', text: t('config.themeDeleted')});
                 setTimeout(() => setMessage(null), 3000);
             } else {
-                throw new Error('Error al eliminar');
+                throw new Error(t('config.themeErrorDeleteGeneric'));
             }
         } catch (error) {
             console.error(error);
-            setMessage({type: 'error', text: 'No se pudo eliminar el tema'});
+            setMessage({type: 'error', text: t('config.themeErrorDelete')});
         }
     };
 
@@ -265,7 +304,7 @@ const Configuracion = () => {
 
             if (!responseConfig.ok) {
                 const errorData = await responseConfig.json();
-                throw new Error(errorData.message || 'Error al guardar configuración');
+                throw new Error(errorData.message || t('config.errorSavingMsg'));
             }
 
             if (canChangeLogo && logoFile) {
@@ -291,15 +330,28 @@ const Configuracion = () => {
                 });
 
                 if (!responseLogo.ok) {
-                    throw new Error('Error al subir el logo');
+                    throw new Error(t('config.errorUploadLogo'));
                 }
             }
 
-            setMessage({type: 'success', text: 'Configuración guardada correctamente'});
-            await checkAuth();
+            setMessage({type: 'success', text: t('config.saved')});
+            const updatedUser = await checkAuth();
+            // Re-sincronizar settings con los datos reales del servidor
+            if (updatedUser?.centro?.personalizacion) {
+                const serverSettings = updatedUser.centro.personalizacion;
+                setSettings(prev => {
+                    const merged = {...prev};
+                    Object.keys(serverSettings).forEach(key => {
+                        if (serverSettings[key] !== null && serverSettings[key] !== undefined) {
+                            merged[key] = serverSettings[key];
+                        }
+                    });
+                    return merged;
+                });
+            }
 
         } catch (error) {
-            setMessage({type: 'error', text: error.message || 'Error de conexión'});
+            setMessage({type: 'error', text: error.message || t('config.errorConnection')});
         } finally {
             setLoading(false);
         }
@@ -310,8 +362,7 @@ const Configuracion = () => {
             <Layout>
                 <div className={styles.container}>
                     <div className={styles.card}>
-                        <p>Esta configuración solo está disponible para usuarios asignados a un centro o administradores
-                            globales.</p>
+                        <p>{t('config.noAccess')}</p>
                     </div>
                 </div>
             </Layout>
@@ -341,27 +392,12 @@ const Configuracion = () => {
         </div>
     );
 
-    const renderNumberInput = (label, name) => (
-        <div className={styles.colorItem}>
-            <label className={styles.label}>{label}</label>
-            <input
-                type="number"
-                name={name}
-                value={settings[name] || 20}
-                onChange={handleChange}
-                className={styles.colorTextInput}
-                min="1"
-                max="100"
-            />
-        </div>
-    );
-
-    const renderThemeCard = (theme) => {
+    const renderThemeCard = (theme, index = 0) => {
         const themeSettings = theme.configuracion || {};
         const displaySettings = {...defaultSettings, ...themeSettings};
 
         return (
-            <div key={theme.id} className={styles.themeCard}>
+            <div key={theme.id} className={styles.themeCard} style={{ '--i': index }}>
                 <div className={styles.themePreview} style={{backgroundColor: displaySettings.sidebarColor}}>
                     <div className={styles.themeHeader}
                          style={{backgroundColor: displaySettings.headerFooterColor}}></div>
@@ -380,7 +416,7 @@ const Configuracion = () => {
                         <button
                             className={styles.iconButton}
                             onClick={() => handleLoadTheme(theme)}
-                            title="Aplicar Tema"
+                            title={t('config.applyTheme')}
                         >
                             <Check size={16}/>
                         </button>
@@ -388,7 +424,7 @@ const Configuracion = () => {
                             <button
                                 className={`${styles.iconButton} ${styles.deleteButton}`}
                                 onClick={() => handleDeleteTheme(theme)}
-                                title="Eliminar Tema"
+                                title={t('config.deleteTheme')}
                             >
                                 <Trash2 size={16}/>
                             </button>
@@ -409,21 +445,20 @@ const Configuracion = () => {
                                 backgroundColor: settings.headerFooterColor,
                                 color: settings.headerFooterTextColor
                             }}>
-                                <span style={{fontWeight: 'bold'}}>Logo</span>
-                                <span>Usuario</span>
+                                <span style={{fontWeight: 'bold'}}>{t('config.previewTexts.logo')}</span>
+                                <span>{t('config.previewTexts.user')}</span>
                             </div>
-                            <div className={styles.previewBody}>
-                                <div className={styles.previewCard}>
-                                    <h3 style={{color: settings.primaryColor, marginTop: 0}}>Título Principal</h3>
-                                    <p style={{color: settings.secondaryColor}}>Subtítulo o texto secundario de
-                                        ejemplo.</p>
+                            <div className={styles.previewBody} style={{backgroundColor: settings.viewBackgroundColor}}>
+                                <div className={styles.previewCard} style={{borderRadius: settings.borderRadius}}>
+                                    <h3 style={{color: settings.primaryColor, marginTop: 0}}>{t('config.previewTexts.mainTitle')}</h3>
+                                    <p style={{color: settings.secondaryColor}}>{t('config.previewTexts.subtitleExample')}</p>
                                 </div>
                             </div>
                             <div className={styles.previewFooter} style={{
                                 backgroundColor: settings.headerFooterColor,
                                 color: settings.headerFooterTextColor
                             }}>
-                                Footer
+                                {t('config.previewTexts.footer')}
                             </div>
                         </div>
                     </div>
@@ -433,7 +468,7 @@ const Configuracion = () => {
                     <div className={styles.previewBox}>
                         <div className={styles.previewSidebar} style={{backgroundColor: settings.sidebarColor}}>
                             <div className={styles.previewSidebarItem} style={{color: '#94a3b8'}}>
-                                <LayoutIcon size={16}/> Inicio
+                                <LayoutIcon size={16}/> {t('config.previewTexts.home')}
                             </div>
                             <div style={{margin: '10px 0'}}>
                                 <div style={{
@@ -444,7 +479,7 @@ const Configuracion = () => {
                                     fontSize: '12px',
                                     fontWeight: 'bold'
                                 }}>
-                                    Administración
+                                    {t('config.previewTexts.admin')}
                                 </div>
                                 <div style={{
                                     backgroundColor: settings.sidebarAccordionContentBgColor,
@@ -455,8 +490,8 @@ const Configuracion = () => {
                                     flexDirection: 'column',
                                     gap: '5px'
                                 }}>
-                                    <div>Usuarios</div>
-                                    <div>Grupos</div>
+                                    <div>{t('config.previewTexts.users')}</div>
+                                    <div>{t('config.previewTexts.groups')}</div>
                                 </div>
                             </div>
 
@@ -464,13 +499,13 @@ const Configuracion = () => {
                                 backgroundColor: settings.sidebarActiveColor,
                                 color: settings.sidebarActiveTextColor
                             }}>
-                                <LayoutIcon size={16}/> Perfil (Activo)
+                                <LayoutIcon size={16}/> {t('config.previewTexts.profileActive')}
                             </div>
                             <div className={styles.previewSidebarItem} style={{
                                 backgroundColor: settings.sidebarHoverColor,
                                 color: settings.sidebarHoverTextColor
                             }}>
-                                <LayoutIcon size={16}/> Menú (Hover)
+                                <LayoutIcon size={16}/> {t('config.previewTexts.menuHover')}
                             </div>
                         </div>
                     </div>
@@ -496,15 +531,14 @@ const Configuracion = () => {
                                     borderLeft: `3px solid ${settings.chatItemActiveBorderColor}`,
                                     color: settings.chatItemTextMainColor
                                 }}>
-                                    <div style={{fontWeight: 'bold', fontSize: '12px'}}>Usuario Activo</div>
-                                    <div style={{fontSize: '10px', color: settings.chatItemTextSecondaryColor}}>Último
-                                        mensaje...
+                                    <div style={{fontWeight: 'bold', fontSize: '12px'}}>{t('config.previewTexts.activeUser')}</div>
+                                    <div style={{fontSize: '10px', color: settings.chatItemTextSecondaryColor}}>{t('config.previewTexts.lastMessage')}
                                     </div>
                                 </div>
                                 <div style={{padding: '10px', color: settings.chatItemTextMainColor}}>
-                                    <div style={{fontWeight: 'bold', fontSize: '12px'}}>Otro Usuario</div>
+                                    <div style={{fontWeight: 'bold', fontSize: '12px'}}>{t('config.previewTexts.otherUser')}</div>
                                     <div
-                                        style={{fontSize: '10px', color: settings.chatItemTextSecondaryColor}}>Hola...
+                                        style={{fontSize: '10px', color: settings.chatItemTextSecondaryColor}}>{t('config.previewTexts.hello')}
                                     </div>
                                 </div>
                             </div>
@@ -521,7 +555,7 @@ const Configuracion = () => {
                                     fontSize: '12px',
                                     fontWeight: 'bold'
                                 }}>
-                                    Usuario Activo
+                                    {t('config.previewTexts.activeUser')}
                                 </div>
                                 <div style={{
                                     flex: 1,
@@ -539,7 +573,7 @@ const Configuracion = () => {
                                         fontSize: '12px',
                                         border: '1px solid #e2e8f0'
                                     }}>
-                                        Hola, ¿qué tal?
+                                        {t('config.previewTexts.helloQuestion')}
                                     </div>
                                     <div style={{
                                         alignSelf: 'flex-end',
@@ -549,11 +583,11 @@ const Configuracion = () => {
                                         borderRadius: '8px',
                                         fontSize: '12px'
                                     }}>
-                                        ¡Todo bien!
+                                        {t('config.previewTexts.allGood')}
                                     </div>
                                 </div>
                                 <div style={{padding: '5px', backgroundColor: settings.chatInputAreaBgColor}}>
-                                    <input type="text" placeholder="Escribe..." style={{
+                                    <input type="text" placeholder={t('config.previewTexts.writePlaceholder')} style={{
                                         width: '100%',
                                         border: '1px solid #ccc',
                                         borderRadius: '4px',
@@ -567,55 +601,19 @@ const Configuracion = () => {
             case 'usercard':
                 return (
                     <div className={styles.previewBox}>
-                        <div style={{
-                            width: '200px',
-                            backgroundColor: settings.userCardBgColor,
-                            color: settings.userCardTextColor,
-                            borderRadius: '8px',
-                            padding: '20px',
-                            textAlign: 'center',
-                            margin: '0 auto'
-                        }}>
-                            <div style={{
-                                width: '60px',
-                                height: '60px',
-                                borderRadius: '50%',
-                                backgroundColor: 'rgba(255,255,255,0.2)',
-                                margin: '0 auto 10px auto'
-                            }}></div>
-                            <div style={{fontWeight: 'bold', marginBottom: '5px'}}>Nombre Usuario</div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: settings.userCardTextSecondaryColor,
-                                marginBottom: '15px'
-                            }}>email@ejemplo.com
-                            </div>
-                            <button style={{
-                                width: '100%',
-                                padding: '8px',
-                                borderRadius: '4px',
-                                border: 'none',
-                                backgroundColor: settings.buttonPrimaryColor,
-                                color: settings.buttonPrimaryTextColor,
-                                fontSize: '12px'
-                            }}>
-                                Enviar Mensaje
-                            </button>
-                        </div>
+                        <UserCard user={MOCK_USER} onMessage={() => {}} />
                     </div>
                 );
             case 'text':
                 return (
                     <div className={styles.previewBox}>
                         <div className={styles.previewTextContainer}>
-                            <h1 style={{color: settings.textMainColor, margin: '0 0 10px 0'}}>Encabezado Principal</h1>
+                            <h1 style={{color: settings.textMainColor, margin: '0 0 10px 0'}}>{t('config.previewTexts.mainHeading')}</h1>
                             <p style={{color: settings.textMainColor, lineHeight: '1.5'}}>
-                                Este es un párrafo de texto normal utilizando el color principal configurado.
-                                Sirve para leer contenido extenso de forma cómoda.
+                                {t('config.previewTexts.normalParagraph')}
                             </p>
                             <p style={{color: settings.textSecondaryColor, fontSize: '0.9em'}}>
-                                Este es un texto secundario o "muted", usado para metadatos, fechas o descripciones
-                                menos importantes.
+                                {t('config.previewTexts.secondaryParagraph')}
                             </p>
                             <p style={{
                                 color: settings.specialTextColor,
@@ -625,7 +623,7 @@ const Configuracion = () => {
                                 padding: '5px',
                                 borderRadius: '4px'
                             }}>
-                                Este es el texto especial, para cabeceras de perfil, etc.
+                                {t('config.previewTexts.specialParagraph')}
                             </p>
                         </div>
                     </div>
@@ -639,13 +637,13 @@ const Configuracion = () => {
                                 backgroundColor: settings.buttonPrimaryColor,
                                 color: settings.buttonPrimaryTextColor
                             }}>
-                                Botón Primario
+                                {t('config.previewTexts.primaryButton')}
                             </button>
                             <button className={styles.previewButtonSecondary} style={{
                                 backgroundColor: settings.buttonSecondaryColor,
                                 color: settings.buttonSecondaryTextColor
                             }}>
-                                Botón Secundario
+                                {t('config.previewTexts.secondaryButton')}
                             </button>
                         </div>
                     </div>
@@ -665,8 +663,7 @@ const Configuracion = () => {
                             }}></div>
 
                             <p style={{margin: 0, fontSize: '12px', color: '#94a3b8'}}>
-                                (Nota: El estilo real del scrollbar se aplica a toda la página. Esta es una
-                                representación de los colores).
+                                {t('config.previewTexts.scrollbarNote')}
                                 <br/><br/>Lorem ipsum dolor sit amet...
                             </p>
                         </div>
@@ -676,145 +673,62 @@ const Configuracion = () => {
             case 'calendar':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewCalendarContainer}>
-                            <div className={styles.previewCalendarGrid}>
-                                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-
-                                <span className={styles.previewCalendarDay}>1</span>
-                                <span className={styles.previewCalendarDay}>2</span>
-                                <span className={styles.previewCalendarDay}>3</span>
-                                <span className={styles.previewCalendarDay}>4</span>
-                                <span className={styles.previewCalendarDay}>5</span>
-                                <span className={styles.previewCalendarWeekend} style={{
-                                    backgroundColor: settings.calendarWeekendBgColor,
-                                    color: settings.calendarWeekendTextColor
-                                }}>6</span>
-                                <span className={styles.previewCalendarWeekend} style={{
-                                    backgroundColor: settings.calendarWeekendBgColor,
-                                    color: settings.calendarWeekendTextColor
-                                }}>7</span>
-
-                                <span className={styles.previewCalendarDay}>8</span>
-                                <span className={styles.previewCalendarSelected} style={{
-                                    backgroundColor: settings.calendarSelectedBgColor,
-                                    color: settings.calendarSelectedTextColor
-                                }}>9</span>
-                                <span className={styles.previewCalendarDay}>10</span>
-                            </div>
-                        </div>
+                        <CalendarView
+                            selectedDate={new Date()}
+                            onDateSelect={() => {}}
+                            festivos={MOCK_FESTIVOS}
+                        />
                     </div>
                 );
 
             case 'timetable':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewTimetableContainer}>
-                            {/* Header */}
-                            <div className={styles.previewTimetableHeader} style={{backgroundColor: '#f8fafc'}}>Hora
-                            </div>
-                            <div className={styles.previewTimetableHeader} style={{
-                                backgroundColor: settings.timetableHeaderBgColor,
-                                color: settings.timetableHeaderTextColor
-                            }}>Lunes
-                            </div>
-                            <div className={styles.previewTimetableHeader} style={{
-                                backgroundColor: settings.timetableSelectedHeaderBg,
-                                color: settings.timetableSelectedHeaderText
-                            }}>Martes (Activo)
-                            </div>
-
-                            {/* Row 1 */}
-                            <div className={styles.previewTimetableCell} style={{
-                                backgroundColor: settings.timetableHoursBgColor,
-                                color: settings.timetableHoursTextColor,
-                                textAlign: 'center'
-                            }}>08:00
-                            </div>
-                            <div className={styles.previewTimetableCell} style={{backgroundColor: '#fff'}}>Clase A</div>
-                            <div className={styles.previewTimetableCell}
-                                 style={{backgroundColor: settings.timetableSelectedCellBg}}>Clase B
-                            </div>
-                        </div>
+                        <TimeTable
+                            events={MOCK_TIMETABLE_EVENTS}
+                            selectedDate={new Date()}
+                        />
                     </div>
                 );
 
             case 'datatable':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewDatatableHeader} style={{
-                            backgroundColor: settings.datatableHeaderBgColor,
-                            color: settings.datatableHeaderTextColor
-                        }}>
-                            <span>NOMBRE</span>
-                            <span style={{
-                                backgroundColor: settings.datatableHeaderHoverBgColor,
-                                color: settings.datatableHeaderHoverTextColor,
-                                padding: '2px 5px',
-                                borderRadius: '2px'
-                            }}>APELLIDOS (Hover)</span>
-                            <span style={{
-                                backgroundColor: settings.datatableHeaderActiveBgColor,
-                                color: settings.datatableHeaderActiveTextColor,
-                                padding: '2px 5px',
-                                borderRadius: '2px'
-                            }}>EDAD (Activo)</span>
-                        </div>
-
-                        <div className={styles.previewDatatablePagination} style={{
-                            backgroundColor: settings.datatablePaginationBgColor,
-                            color: settings.datatablePaginationTextColor
-                        }}>
-                            <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
-                            <div style={{display: 'flex', gap: '5px'}}>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonBgColor,
-                                    color: settings.datatablePaginationButtonTextColor
-                                }}>1
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor,
-                                    color: settings.datatablePaginationButtonHoverTextColor
-                                }}>2
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor,
-                                    color: settings.datatablePaginationButtonActiveTextColor
-                                }}>3
-                                </div>
-                            </div>
-                        </div>
+                        <DataTable
+                            columns={MOCK_DT_COLUMNS}
+                            data={MOCK_DT_DATA}
+                            totalItems={3}
+                            itemsPerPage={10}
+                            currentPage={1}
+                            onPageChange={() => {}}
+                            loading={false}
+                        />
                     </div>
                 );
 
             case 'accordion':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewAccordionContainer}>
-                            <div className={styles.previewAccordionHeader} style={{
-                                backgroundColor: settings.accordionHeaderBgColor,
-                                color: settings.accordionHeaderTextColor
-                            }}>
-                                Cabecera del Acordeón
-                            </div>
-                            <div className={styles.previewAccordionContent} style={{
-                                backgroundColor: settings.accordionContentBgColor,
-                                color: settings.accordionContentTextColor
-                            }}>
-                                Contenido del acordeón.
-                            </div>
-                        </div>
+                        <AccordionView
+                            data={MOCK_ACCORDION_DATA}
+                            renderHeader={(item) => <span>{item.title}</span>}
+                            renderItem={(item) => <div style={{padding: '0.5rem'}}>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>}
+                            defaultOpenAll={false}
+                        />
                     </div>
                 );
 
             case 'modal':
                 return (
                     <div className={styles.previewBox}>
-                        <div className={styles.previewModalContainer}>
+                        <div className={styles.previewModalContainer} style={{
+                            border: `${settings.modalBorderWidth || '3px'} solid ${settings.modalHeaderBgColor}`
+                        }}>
                             <div className={styles.previewModalHeader} style={{
                                 backgroundColor: settings.modalHeaderBgColor,
                                 color: settings.modalHeaderTextColor
                             }}>
-                                <span>Título del Modal</span>
+                                <span>{t('config.previewTexts.modalTitle')}</span>
                                 <div className={styles.previewModalClose} style={{
                                     backgroundColor: settings.modalCloseButtonBgColor,
                                     color: settings.modalCloseButtonTextColor
@@ -825,8 +739,7 @@ const Configuracion = () => {
                                 backgroundColor: settings.modalBodyBgColor,
                                 color: settings.modalBodyTextColor
                             }}>
-                                <p style={{margin: 0}}>Este es el contenido del cuerpo del modal. Aquí irían los
-                                    formularios o información.</p>
+                                <p style={{margin: 0}}>{t('config.previewTexts.modalBody')}</p>
                             </div>
                             <div className={styles.previewModalFooter}
                                  style={{backgroundColor: settings.modalFooterBgColor}}>
@@ -836,7 +749,7 @@ const Configuracion = () => {
                                     border: '1px solid #ccc',
                                     background: 'white',
                                     fontSize: '12px'
-                                }}>Cancelar
+                                }}>{t('config.previewTexts.cancel')}
                                 </button>
                                 <button style={{
                                     padding: '5px 10px',
@@ -845,7 +758,7 @@ const Configuracion = () => {
                                     background: settings.buttonPrimaryColor,
                                     color: settings.buttonPrimaryTextColor,
                                     fontSize: '12px'
-                                }}>Guardar
+                                }}>{t('config.previewTexts.save')}
                                 </button>
                             </div>
                         </div>
@@ -881,73 +794,24 @@ const Configuracion = () => {
                     </div>
                 );
 
-            case 'pagination':
-                return (
-                    <div className={styles.previewBox}>
-                        <div className={styles.previewDatatablePagination} style={{
-                            backgroundColor: settings.datatablePaginationBgColor,
-                            color: settings.datatablePaginationTextColor
-                        }}>
-                            <span>Filas: {settings.itemsPerPageUsuarios || 20}</span>
-                            <div style={{display: 'flex', gap: '5px'}}>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonBgColor,
-                                    color: settings.datatablePaginationButtonTextColor
-                                }}>1
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonHoverBgColor,
-                                    color: settings.datatablePaginationButtonHoverTextColor
-                                }}>2
-                                </div>
-                                <div className={styles.previewPaginationButton} style={{
-                                    backgroundColor: settings.datatablePaginationButtonActiveBgColor,
-                                    color: settings.datatablePaginationButtonActiveTextColor
-                                }}>3
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-
             case 'eventos':
                 return (
                     <div className={styles.previewBox}>
-                        <div style={{
-                            padding: '1rem',
-                            backgroundColor: settings.eventCardBgColor,
-                            border: `1px solid ${settings.eventCardBorderColor}`,
-                            borderLeft: `4px solid ${settings.primaryColor}`,
-                            borderRadius: '6px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}>
-                            <div style={{
-                                fontWeight: '600',
-                                color: settings.eventCardTitleColor,
-                                marginBottom: '0.25rem'
-                            }}>
-                                Título del Evento
-                            </div>
-                            <div style={{
-                                fontSize: '0.8rem',
-                                color: settings.eventCardMetaColor,
-                                display: 'flex',
-                                gap: '0.5rem'
-                            }}>
-                                <span>📅 Fecha</span>
-                                <span>⏰ Hora</span>
-                            </div>
-                        </div>
-                        <div style={{marginTop: '1rem'}}>
-                            <h3 style={{
-                                fontSize: '1.1rem',
-                                fontWeight: '600',
-                                color: settings.eventsSidebarTitleColor,
-                                borderBottom: '1px solid #e2e8f0',
-                                paddingBottom: '0.5rem'
-                            }}>
-                                Título Sidebar
-                            </h3>
+                        <EventCard
+                            title="Lorem ipsum dolor"
+                            subject="Amet consectetur"
+                            date="2026-03-14"
+                            time="08:30 - 09:30"
+                            type="Lectio"
+                        />
+                        <div style={{marginTop: '0.5rem'}}>
+                            <EventCard
+                                title="Sed do eiusmod"
+                                subject="Adipiscing elit"
+                                date="2026-03-15"
+                                time="10:00 - 11:00"
+                                type="Praxis"
+                            />
                         </div>
                     </div>
                 );
@@ -979,7 +843,7 @@ const Configuracion = () => {
                                     margin: 0,
                                     color: settings.widgetHeaderTextColor
                                 }}>
-                                    Título Widget
+                                    {t('config.previewTexts.widgetTitle')}
                                 </h3>
                             </div>
                             <div style={{padding: '0'}}>
@@ -988,7 +852,7 @@ const Configuracion = () => {
                                     borderBottom: `1px solid ${settings.widgetBorderColor}`,
                                     color: settings.widgetItemTextColor
                                 }}>
-                                    Elemento 1
+                                    {t('config.previewTexts.element1')}
                                 </div>
                                 <div style={{
                                     padding: '0.75rem 1rem',
@@ -996,13 +860,13 @@ const Configuracion = () => {
                                     backgroundColor: settings.widgetItemHoverBgColor,
                                     color: settings.widgetItemTextColor
                                 }}>
-                                    Elemento 2 (Hover)
+                                    {t('config.previewTexts.element2Hover')}
                                 </div>
                                 <div style={{
                                     padding: '0.75rem 1rem',
                                     color: settings.widgetItemTextColor
                                 }}>
-                                    Elemento 3
+                                    {t('config.previewTexts.element3')}
                                 </div>
                             </div>
                         </div>
@@ -1012,38 +876,38 @@ const Configuracion = () => {
             case 'themes':
                 return (
                     <div className={styles.previewBox}>
-                        <h4 className={styles.previewTitle}>Resumen de Vistas Previas</h4>
+                        <h4 className={styles.previewTitle}>{t('config.previewSummary')}</h4>
                         <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
 
                             {/* Resumen General */}
                             <div>
-                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>General</h5>
+                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>{t('config.previewTexts.summaryGeneral')}</h5>
                                 <div style={{border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden'}}>
                                     <div style={{
                                         backgroundColor: settings.headerFooterColor,
                                         color: settings.headerFooterTextColor,
                                         padding: '5px 10px',
                                         fontSize: '10px'
-                                    }}>Header
+                                    }}>{t('config.previewTexts.header')}
                                     </div>
                                     <div style={{padding: '10px', backgroundColor: '#f8fafc'}}>
                                         <h3 style={{
                                             color: settings.primaryColor,
                                             margin: 0,
                                             fontSize: '14px'
-                                        }}>Título</h3>
+                                        }}>{t('config.previewTexts.title')}</h3>
                                         <p style={{
                                             color: settings.secondaryColor,
                                             fontSize: '10px',
                                             margin: 0
-                                        }}>Subtítulo</p>
+                                        }}>{t('config.previewTexts.subtitle')}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Resumen Sidebar */}
                             <div>
-                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>Sidebar</h5>
+                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>{t('config.previewTexts.summarySidebar')}</h5>
                                 <div style={{
                                     backgroundColor: settings.sidebarColor,
                                     borderRadius: '6px',
@@ -1055,7 +919,7 @@ const Configuracion = () => {
                                         backgroundColor: settings.sidebarActiveColor,
                                         color: settings.sidebarActiveTextColor,
                                         fontSize: '10px'
-                                    }}>Activo
+                                    }}>{t('config.previewTexts.active')}
                                     </div>
                                     <div style={{
                                         padding: '5px',
@@ -1064,14 +928,14 @@ const Configuracion = () => {
                                         color: settings.sidebarHoverTextColor,
                                         fontSize: '10px',
                                         marginTop: '2px'
-                                    }}>Hover
+                                    }}>{t('config.previewTexts.hover')}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Resumen Botones */}
                             <div>
-                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>Botones</h5>
+                                <h5 style={{fontSize: '11px', color: '#94a3b8', marginBottom: '5px'}}>{t('config.previewTexts.summaryButtons')}</h5>
                                 <div style={{display: 'flex', gap: '5px'}}>
                                     <button style={{
                                         backgroundColor: settings.buttonPrimaryColor,
@@ -1080,7 +944,7 @@ const Configuracion = () => {
                                         padding: '4px 8px',
                                         borderRadius: '4px',
                                         fontSize: '10px'
-                                    }}>Primario
+                                    }}>{t('config.previewTexts.primary')}
                                     </button>
                                     <button style={{
                                         backgroundColor: settings.buttonSecondaryColor,
@@ -1089,7 +953,7 @@ const Configuracion = () => {
                                         padding: '4px 8px',
                                         borderRadius: '4px',
                                         fontSize: '10px'
-                                    }}>Secundario
+                                    }}>{t('config.previewTexts.secondary')}
                                     </button>
                                 </div>
                             </div>
@@ -1104,32 +968,38 @@ const Configuracion = () => {
     };
 
     const tabs = [
-        {id: 'general', label: 'General', icon: <Palette size={18}/>},
-        {id: 'title', label: 'Título', icon: <Heading size={18}/>},
-        {id: 'sidebar', label: 'Barra Lateral', icon: <LayoutIcon size={18}/>},
-        {id: 'text', label: 'Textos', icon: <Type size={18}/>},
-        {id: 'buttons', label: 'Botones', icon: <MousePointer size={18}/>},
-        {id: 'chat', label: 'Mensajería', icon: <MessageSquare size={18}/>},
-        {id: 'usercard', label: 'Tarjetas', icon: <User size={18}/>},
-        {id: 'eventos', label: 'Eventos', icon: <Bell size={18}/>},
-        {id: 'widgets', label: 'Widgets', icon: <Grid size={18}/>},
-        {id: 'scrollbar', label: 'Scrollbar', icon: <Scroll size={18}/>},
-        {id: 'calendar', label: 'Calendario', icon: <Calendar size={18}/>},
-        {id: 'timetable', label: 'Horario', icon: <Clock size={18}/>},
-        {id: 'datatable', label: 'Tablas', icon: <Table size={18}/>},
-        {id: 'accordion', label: 'Acordeón', icon: <Layers size={18}/>},
-        {id: 'modal', label: 'Modales', icon: <Maximize size={18}/>},
-        {id: 'pagination', label: 'Paginación', icon: <List size={18}/>},
-        {id: 'themes', label: 'Temas', icon: <Palette size={18}/>},
+        {id: 'general', label: t('config.tabs.general'), icon: <Palette size={18}/>},
+        {id: 'title', label: t('config.tabs.title'), icon: <Heading size={18}/>},
+        {id: 'sidebar', label: t('config.tabs.sidebar'), icon: <LayoutIcon size={18}/>},
+        {id: 'text', label: t('config.tabs.text'), icon: <Type size={18}/>},
+        {id: 'buttons', label: t('config.tabs.buttons'), icon: <MousePointer size={18}/>},
+        {id: 'inputs', label: t('config.tabs.inputs'), icon: <TextCursorInput size={18}/>},
+        {id: 'chat', label: t('config.tabs.chat'), icon: <MessageSquare size={18}/>},
+        {id: 'usercard', label: t('config.tabs.usercard'), icon: <User size={18}/>},
+        {id: 'eventos', label: t('config.tabs.eventos'), icon: <Bell size={18}/>},
+        {id: 'widgets', label: t('config.tabs.widgets'), icon: <Grid size={18}/>},
+        {id: 'scrollbar', label: t('config.tabs.scrollbar'), icon: <Scroll size={18}/>},
+        {id: 'calendar', label: t('config.tabs.calendar'), icon: <Calendar size={18}/>},
+        {id: 'timetable', label: t('config.tabs.timetable'), icon: <Clock size={18}/>},
+        {id: 'datatable', label: t('config.tabs.datatable'), icon: <Table size={18}/>},
+        {id: 'accordion', label: t('config.tabs.accordion'), icon: <Layers size={18}/>},
+        {id: 'modal', label: t('config.tabs.modal'), icon: <Maximize size={18}/>},
+        {id: 'themes', label: t('config.tabs.themes'), icon: <Palette size={18}/>},
     ];
 
     return (
         <Layout>
             <div className={styles.container}>
                 <CrudHeader
-                    title="Personalización"
-                    subtitle={user.centro && user.centro.id !== 'global' ? `Ajusta la apariencia para ${user.centro.nombre}` : 'Ajusta la apariencia global del sistema'
-                    }
+                    title={t('config.title')}
+                    breadcrumbs={[
+                        { label: t('sidebar.home'), to: '/' },
+                        { label: t('config.title') },
+                    ]}
+
+                    subtitle={user.centro && user.centro.id !== 'global'
+                        ? t('config.subtitleCenter', { centerName: user.centro.nombre })
+                        : t('config.subtitleGlobal')}
                     logo={<Lottie animationData={configAnimation} loop={true} style={{width: 60, height: 60}}/>}>
                     <Button
                         type="button"
@@ -1137,14 +1007,14 @@ const Configuracion = () => {
                         onClick={handleReset}
                     >
                         <RotateCcw size={18} style={{marginRight: '8px'}}/>
-                        Restablecer
+                        {t('config.reset')}
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={loading}
                     >
                         <Save size={18} style={{marginRight: '8px'}}/>
-                        {loading ? 'Guardando...' : 'Guardar'}
+                        {loading ? t('config.saving') : t('config.save')}
                     </Button>
                 </CrudHeader>
 
@@ -1156,9 +1026,10 @@ const Configuracion = () => {
 
                 <div className={styles.layout}>
                     <div className={styles.sidebar}>
-                        {tabs.map(tab => (
+                        {tabs.map((tab, index) => (
                             <button
                                 key={tab.id}
+                                style={{ '--i': index }}
                                 className={`${styles.tabButton} ${activeTab === tab.id ? styles.activeTab : ''}`}
                                 onClick={() => setActiveTab(tab.id)}
                             >
@@ -1170,16 +1041,143 @@ const Configuracion = () => {
 
                     <div className={styles.content}>
                         <div className={styles.formSection}>
+                            <div className={styles.tabPanel} key={activeTab}>
                             {activeTab === 'general' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Color Principal', 'primaryColor')}
-                                    {renderColorInput('Color Secundario', 'secondaryColor')}
-                                    {renderColorInput('Fondo Header/Footer', 'headerFooterColor')}
-                                    {renderColorInput('Texto Header/Footer', 'headerFooterTextColor')}
+                                    {renderColorInput(t('config.general.primaryColor'), 'primaryColor')}
+                                    {renderColorInput(t('config.general.secondaryColor'), 'secondaryColor')}
+                                    {renderColorInput(t('config.general.headerFooterBg'), 'headerFooterColor')}
+                                    {renderColorInput(t('config.general.headerFooterText'), 'headerFooterTextColor')}
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>
+                                            {t('config.general.headerFooterOpacity')} ({settings.headerFooterOpacity ?? 100}%)
+                                        </label>
+                                        <input
+                                            type="range"
+                                            name="headerFooterOpacity"
+                                            min="20"
+                                            max="100"
+                                            value={settings.headerFooterOpacity ?? 100}
+                                            onChange={handleChange}
+                                            style={{width: '100%', cursor: 'pointer'}}
+                                        />
+                                    </div>
+
+                                    {renderColorInput(t('config.general.viewBg'), 'viewBackgroundColor')}
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>{t('config.general.borderRadius')}</label>
+                                        <select
+                                            name="borderRadius"
+                                            value={settings.borderRadius || '0.5rem'}
+                                            onChange={handleChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="0">{t('config.general.borderSquare')}</option>
+                                            <option value="0.25rem">{t('config.general.borderSmall')}</option>
+                                            <option value="0.5rem">{t('config.general.borderMedium')}</option>
+                                            <option value="0.75rem">{t('config.general.borderLarge')}</option>
+                                            <option value="1rem">{t('config.general.borderXLarge')}</option>
+                                            <option value="1.5rem">{t('config.general.borderXXLarge')}</option>
+                                        </select>
+                                    </div>
+
+                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
+                                        <input
+                                            type="checkbox"
+                                            name="showLottie"
+                                            checked={settings.showLottie !== false}
+                                            onChange={handleChange}
+                                            id="showLottie"
+                                            style={{width: '20px', height: '20px'}}
+                                        />
+                                        <label htmlFor="showLottie" className={styles.label} style={{cursor: 'pointer'}}>
+                                            {t('config.general.showLottie')}
+                                        </label>
+                                    </div>
+
+                                    <div className={styles.colorItem} style={{flexDirection: 'row', alignItems: 'center', gap: '10px'}}>
+                                        <input
+                                            type="checkbox"
+                                            name="enableDraggableModal"
+                                            checked={settings.enableDraggableModal !== false}
+                                            onChange={handleChange}
+                                            id="enableDraggableModal"
+                                            style={{width: '20px', height: '20px'}}
+                                        />
+                                        <label htmlFor="enableDraggableModal" className={styles.label} style={{cursor: 'pointer'}}>
+                                            {t('config.general.enableDraggable')}
+                                        </label>
+                                    </div>
+
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>
+                                            {t('config.general.animatedBackground')}
+                                        </label>
+                                        <select
+                                            name="animatedBackground"
+                                            value={settings.animatedBackground || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value || null;
+                                                setSettings(prev => ({ ...prev, animatedBackground: val }));
+                                            }}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: 'var(--border-radius, 0.5rem)',
+                                                border: '1px solid var(--border-input, #e2e8f0)',
+                                                backgroundColor: 'var(--bg-input, #fff)',
+                                                color: 'var(--text-input, #334155)',
+                                                fontSize: '0.9rem',
+                                                cursor: 'pointer',
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            <option value="">{t('config.general.bgNone')}</option>
+                                            <option value="grid">{t('config.general.bgGrid')}</option>
+                                            <option value="particles">{t('config.general.bgParticles')}</option>
+                                            <option value="waves">{t('config.general.bgWaves')}</option>
+                                            <option value="aurora">{t('config.general.bgAurora')}</option>
+                                        </select>
+                                    </div>
+
+                                    {settings.animatedBackground && (
+                                        <div className={styles.colorItem}>
+                                            <label className={styles.label}>
+                                                {t('config.general.elementsOpacity')} ({settings.elementsOpacity ?? 100}%)
+                                            </label>
+                                            <input
+                                                type="range"
+                                                name="elementsOpacity"
+                                                min="20"
+                                                max="100"
+                                                value={settings.elementsOpacity ?? 100}
+                                                onChange={handleChange}
+                                                style={{width: '100%', cursor: 'pointer'}}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {settings.animatedBackground && (
+                                        <div className={styles.colorItem}>
+                                            <label className={styles.label}>
+                                                {t('config.general.elementsBlur')} ({settings.elementsBlur ?? 0}px)
+                                            </label>
+                                            <input
+                                                type="range"
+                                                name="elementsBlur"
+                                                min="0"
+                                                max="20"
+                                                value={settings.elementsBlur ?? 0}
+                                                onChange={handleChange}
+                                                style={{width: '100%', cursor: 'pointer'}}
+                                            />
+                                        </div>
+                                    )}
 
                                     {canChangeLogo && (
                                         <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
-                                            <label className={styles.label}>Logo del Centro</label>
+                                            <label className={styles.label}>{t('config.general.centerLogo')}</label>
                                             <div className={styles.fileInputWrapper}>
                                                 {logoPreview ? (
                                                     <img src={logoPreview} alt="Logo" style={{
@@ -1212,7 +1210,7 @@ const Configuracion = () => {
                                                     <Button type="button" onClick={() => fileInputRef.current.click()}
                                                             variant="secondary">
                                                         <Upload size={16} style={{marginRight: '8px'}}/>
-                                                        Cambiar
+                                                        {t('config.general.changeLogo')}
                                                     </Button>
                                                     {logoFile && <span className={styles.fileName}
                                                                        style={{marginLeft: '10px'}}>{logoFile.name}</span>}
@@ -1226,35 +1224,34 @@ const Configuracion = () => {
                             {activeTab === 'title' && (
                                 <div className={styles.grid}>
                                     <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
-                                        <label className={styles.label}>Espaciado entre palabras</label>
+                                        <label className={styles.label}>{t('config.titleTab.wordSpacing')}</label>
                                         <input type="text" value={titleConfig.spacing}
                                                onChange={handleTitleSpacingChange} className={styles.colorTextInput}
-                                               placeholder="Ej: 0.5rem, 10px"/>
+                                               placeholder={t('config.titleTab.spacingPlaceholder')}/>
                                     </div>
                                     <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
-                                        <label className={styles.label}>Capitalización</label>
+                                        <label className={styles.label}>{t('config.titleTab.casing')}</label>
                                         <select value={titleConfig.casing} onChange={handleTitleCasingChange}
                                                 className={styles.colorTextInput}>
-                                            <option value="original">Original</option>
-                                            <option value="uppercase">MAYÚSCULAS</option>
-                                            <option value="lowercase">minúsculas</option>
-                                            <option value="capitalize">Capitalizado</option>
+                                            <option value="original">{t('config.titleTab.casingOriginal')}</option>
+                                            <option value="uppercase">{t('config.titleTab.casingUppercase')}</option>
+                                            <option value="lowercase">{t('config.titleTab.casingLowercase')}</option>
+                                            <option value="capitalize">{t('config.titleTab.casingCapitalize')}</option>
                                         </select>
                                     </div>
                                     <div className={styles.colorItem} style={{gridColumn: '1 / -1'}}>
-                                        <label className={styles.label}>Alineación Vertical</label>
+                                        <label className={styles.label}>{t('config.titleTab.alignment')}</label>
                                         <select value={titleConfig.alignment} onChange={handleTitleAlignmentChange}
                                                 className={styles.colorTextInput}>
-                                            <option value="flex-start">Arriba</option>
-                                            <option value="center">Centro</option>
-                                            <option value="flex-end">Abajo</option>
+                                            <option value="flex-start">{t('config.titleTab.alignTop')}</option>
+                                            <option value="center">{t('config.titleTab.alignCenter')}</option>
+                                            <option value="flex-end">{t('config.titleTab.alignBottom')}</option>
                                         </select>
                                     </div>
                                     <div className={styles.titleWordsContainer}
                                          style={{gridColumn: '1 / -1', marginTop: '1rem'}}>
                                         <label className={styles.label}
-                                               style={{marginBottom: '0.5rem', display: 'block'}}>Colores por
-                                            palabra</label>
+                                               style={{marginBottom: '0.5rem', display: 'block'}}>{t('config.titleTab.wordColors')}</label>
                                         <div className={styles.titleWordsContainer}>
                                             {titleConfig.words.map((word, index) => (
                                                 <div key={index} className={styles.titleWordRow}>
@@ -1274,11 +1271,11 @@ const Configuracion = () => {
 
                             {activeTab === 'sidebar' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Barra Lateral', 'sidebarColor')}
-                                    {renderColorInput('Fondo Elemento Activo', 'sidebarActiveColor')}
-                                    {renderColorInput('Texto Elemento Activo', 'sidebarActiveTextColor')}
-                                    {renderColorInput('Fondo Hover', 'sidebarHoverColor')}
-                                    {renderColorInput('Texto Hover', 'sidebarHoverTextColor')}
+                                    {renderColorInput(t('config.sidebarTab.bg'), 'sidebarColor')}
+                                    {renderColorInput(t('config.sidebarTab.activeBg'), 'sidebarActiveColor')}
+                                    {renderColorInput(t('config.sidebarTab.activeText'), 'sidebarActiveTextColor')}
+                                    {renderColorInput(t('config.sidebarTab.hoverBg'), 'sidebarHoverColor')}
+                                    {renderColorInput(t('config.sidebarTab.hoverText'), 'sidebarHoverTextColor')}
 
                                     {/* Nuevos campos para el acordeón del sidebar */}
                                     <div style={{
@@ -1287,170 +1284,185 @@ const Configuracion = () => {
                                         marginBottom: '5px',
                                         fontWeight: 'bold',
                                         color: '#64748b'
-                                    }}>Acordeón Sidebar
+                                    }}>{t('config.sidebarTab.accordionSection')}
                                     </div>
-                                    {renderColorInput('Fondo Cabecera Acordeón', 'sidebarAccordionHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera Acordeón', 'sidebarAccordionHeaderTextColor')}
-                                    {renderColorInput('Fondo Contenido Acordeón', 'sidebarAccordionContentBgColor')}
-                                    {renderColorInput('Texto Contenido Acordeón', 'sidebarAccordionContentTextColor')}
+                                    {renderColorInput(t('config.sidebarTab.accordionHeaderBg'), 'sidebarAccordionHeaderBgColor')}
+                                    {renderColorInput(t('config.sidebarTab.accordionHeaderText'), 'sidebarAccordionHeaderTextColor')}
+                                    {renderColorInput(t('config.sidebarTab.accordionContentBg'), 'sidebarAccordionContentBgColor')}
+                                    {renderColorInput(t('config.sidebarTab.accordionContentText'), 'sidebarAccordionContentTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'text' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Texto Principal', 'textMainColor')}
-                                    {renderColorInput('Texto Secundario', 'textSecondaryColor')}
-                                    {renderColorInput('Texto Especial (Cabeceras)', 'specialTextColor')}
+                                    {renderColorInput(t('config.textTab.mainColor'), 'textMainColor')}
+                                    {renderColorInput(t('config.textTab.secondaryColor'), 'textSecondaryColor')}
+                                    {renderColorInput(t('config.textTab.specialColor'), 'specialTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'buttons' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Botón Primario', 'buttonPrimaryColor')}
-                                    {renderColorInput('Texto Botón Primario', 'buttonPrimaryTextColor')}
-                                    {renderColorInput('Fondo Botón Secundario', 'buttonSecondaryColor')}
-                                    {renderColorInput('Texto Botón Secundario', 'buttonSecondaryTextColor')}
+                                    {renderColorInput(t('config.buttonsTab.primaryBg'), 'buttonPrimaryColor')}
+                                    {renderColorInput(t('config.buttonsTab.primaryText'), 'buttonPrimaryTextColor')}
+                                    {renderColorInput(t('config.buttonsTab.secondaryBg'), 'buttonSecondaryColor')}
+                                    {renderColorInput(t('config.buttonsTab.secondaryText'), 'buttonSecondaryTextColor')}
+                                </div>
+                            )}
+
+                            {activeTab === 'inputs' && (
+                                <div className={styles.grid}>
+                                    {renderColorInput(t('config.inputsTab.bg'), 'inputBgColor')}
+                                    {renderColorInput(t('config.inputsTab.text'), 'inputTextColor')}
+                                    {renderColorInput(t('config.inputsTab.border'), 'inputBorderColor')}
+                                    {renderColorInput(t('config.inputsTab.focusBorder'), 'inputFocusBorderColor')}
+                                    {renderColorInput(t('config.inputsTab.focusShadow'), 'inputFocusShadowColor')}
                                 </div>
                             )}
 
                             {activeTab === 'chat' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Sidebar Chat', 'chatSidebarBgColor')}
-                                    {renderColorInput('Fondo Item Hover', 'chatItemHoverBgColor')}
-                                    {renderColorInput('Fondo Item Activo', 'chatItemActiveBgColor')}
-                                    {renderColorInput('Borde Item Activo', 'chatItemActiveBorderColor')}
-                                    {renderColorInput('Texto Principal Item', 'chatItemTextMainColor')}
-                                    {renderColorInput('Texto Secundario Item', 'chatItemTextSecondaryColor')}
-                                    {renderColorInput('Fondo Badge No Leídos', 'chatBadgeBgColor')}
-                                    {renderColorInput('Texto Badge No Leídos', 'chatBadgeTextColor')}
+                                    {renderColorInput(t('config.chatTab.sidebarBg'), 'chatSidebarBgColor')}
+                                    {renderColorInput(t('config.chatTab.itemHoverBg'), 'chatItemHoverBgColor')}
+                                    {renderColorInput(t('config.chatTab.itemActiveBg'), 'chatItemActiveBgColor')}
+                                    {renderColorInput(t('config.chatTab.itemActiveBorder'), 'chatItemActiveBorderColor')}
+                                    {renderColorInput(t('config.chatTab.itemTextMain'), 'chatItemTextMainColor')}
+                                    {renderColorInput(t('config.chatTab.itemTextSecondary'), 'chatItemTextSecondaryColor')}
+                                    {renderColorInput(t('config.chatTab.badgeBg'), 'chatBadgeBgColor')}
+                                    {renderColorInput(t('config.chatTab.badgeText'), 'chatBadgeTextColor')}
 
-                                    {renderColorInput('Fondo Cabecera Chat', 'chatHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera Chat', 'chatHeaderTextColor')}
-                                    {renderColorInput('Fondo Contenedor Chat', 'chatContainerBgColor')}
-                                    {renderColorInput('Fondo Área de Input', 'chatInputAreaBgColor')}
-                                    {renderColorInput('Fondo Burbuja Enviada', 'chatBubbleSentBgColor')}
-                                    {renderColorInput('Texto Burbuja Enviada', 'chatBubbleSentTextColor')}
-                                    {renderColorInput('Fondo Burbuja Recibida', 'chatBubbleReceivedBgColor')}
-                                    {renderColorInput('Texto Burbuja Recibida', 'chatBubbleReceivedTextColor')}
+                                    {renderColorInput(t('config.chatTab.headerBg'), 'chatHeaderBgColor')}
+                                    {renderColorInput(t('config.chatTab.headerText'), 'chatHeaderTextColor')}
+                                    {renderColorInput(t('config.chatTab.containerBg'), 'chatContainerBgColor')}
+                                    {renderColorInput(t('config.chatTab.inputAreaBg'), 'chatInputAreaBgColor')}
+                                    {renderColorInput(t('config.chatTab.sentBg'), 'chatBubbleSentBgColor')}
+                                    {renderColorInput(t('config.chatTab.sentText'), 'chatBubbleSentTextColor')}
+                                    {renderColorInput(t('config.chatTab.receivedBg'), 'chatBubbleReceivedBgColor')}
+                                    {renderColorInput(t('config.chatTab.receivedText'), 'chatBubbleReceivedTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'usercard' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Tarjeta', 'userCardBgColor')}
-                                    {renderColorInput('Texto Principal', 'userCardTextColor')}
-                                    {renderColorInput('Texto Secundario', 'userCardTextSecondaryColor')}
+                                    {renderColorInput(t('config.usercardTab.bg'), 'userCardBgColor')}
+                                    {renderColorInput(t('config.usercardTab.text'), 'userCardTextColor')}
+                                    {renderColorInput(t('config.usercardTab.textSecondary'), 'userCardTextSecondaryColor')}
                                 </div>
                             )}
 
                             {activeTab === 'eventos' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Tarjeta Evento', 'eventCardBgColor')}
-                                    {renderColorInput('Borde Tarjeta Evento', 'eventCardBorderColor')}
-                                    {renderColorInput('Título Tarjeta Evento', 'eventCardTitleColor')}
-                                    {renderColorInput('Meta Tarjeta Evento', 'eventCardMetaColor')}
-                                    {renderColorInput('Fondo Sidebar Eventos', 'eventsSidebarBgColor')}
-                                    {renderColorInput('Título Sidebar Eventos', 'eventsSidebarTitleColor')}
+                                    {renderColorInput(t('config.eventosTab.cardBg'), 'eventCardBgColor')}
+                                    {renderColorInput(t('config.eventosTab.cardBorder'), 'eventCardBorderColor')}
+                                    {renderColorInput(t('config.eventosTab.cardTitle'), 'eventCardTitleColor')}
+                                    {renderColorInput(t('config.eventosTab.cardMeta'), 'eventCardMetaColor')}
+                                    {renderColorInput(t('config.eventosTab.sidebarBg'), 'eventsSidebarBgColor')}
+                                    {renderColorInput(t('config.eventosTab.sidebarTitle'), 'eventsSidebarTitleColor')}
                                 </div>
                             )}
 
                             {activeTab === 'widgets' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Widget', 'widgetBgColor')}
-                                    {renderColorInput('Borde Widget', 'widgetBorderColor')}
-                                    {renderColorInput('Fondo Cabecera', 'widgetHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera', 'widgetHeaderTextColor')}
-                                    {renderColorInput('Color Icono', 'widgetIconColor')}
-                                    {renderColorInput('Texto Elemento', 'widgetItemTextColor')}
-                                    {renderColorInput('Fondo Hover Elemento', 'widgetItemHoverBgColor')}
+                                    {renderColorInput(t('config.widgetsTab.bg'), 'widgetBgColor')}
+                                    {renderColorInput(t('config.widgetsTab.border'), 'widgetBorderColor')}
+                                    {renderColorInput(t('config.widgetsTab.headerBg'), 'widgetHeaderBgColor')}
+                                    {renderColorInput(t('config.widgetsTab.headerText'), 'widgetHeaderTextColor')}
+                                    {renderColorInput(t('config.widgetsTab.iconColor'), 'widgetIconColor')}
+                                    {renderColorInput(t('config.widgetsTab.itemText'), 'widgetItemTextColor')}
+                                    {renderColorInput(t('config.widgetsTab.itemHoverBg'), 'widgetItemHoverBgColor')}
                                 </div>
                             )}
 
                             {activeTab === 'scrollbar' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Color Barra (Thumb)', 'scrollbarThumbColor')}
-                                    {renderColorInput('Color Fondo (Track)', 'scrollbarTrackColor')}
-                                    {renderColorInput('Color Hover', 'scrollbarHoverColor')}
+                                    {renderColorInput(t('config.scrollbarTab.thumb'), 'scrollbarThumbColor')}
+                                    {renderColorInput(t('config.scrollbarTab.track'), 'scrollbarTrackColor')}
+                                    {renderColorInput(t('config.scrollbarTab.hover'), 'scrollbarHoverColor')}
                                 </div>
                             )}
 
                             {activeTab === 'calendar' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Día Seleccionado', 'calendarSelectedBgColor')}
-                                    {renderColorInput('Texto Día Seleccionado', 'calendarSelectedTextColor')}
-                                    {renderColorInput('Fondo Fin de Semana', 'calendarWeekendBgColor')}
-                                    {renderColorInput('Texto Fin de Semana', 'calendarWeekendTextColor')}
+                                    {renderColorInput(t('config.calendarTab.selectedBg'), 'calendarSelectedBgColor')}
+                                    {renderColorInput(t('config.calendarTab.selectedText'), 'calendarSelectedTextColor')}
+                                    {renderColorInput(t('config.calendarTab.weekendBg'), 'calendarWeekendBgColor')}
+                                    {renderColorInput(t('config.calendarTab.weekendText'), 'calendarWeekendTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'timetable' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Cabecera', 'timetableHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera', 'timetableHeaderTextColor')}
-                                    {renderColorInput('Fondo Horas', 'timetableHoursBgColor')}
-                                    {renderColorInput('Texto Horas', 'timetableHoursTextColor')}
-                                    {renderColorInput('Fondo Cabecera Día Activo', 'timetableSelectedHeaderBg')}
-                                    {renderColorInput('Texto Cabecera Día Activo', 'timetableSelectedHeaderText')}
-                                    {renderColorInput('Fondo Celdas Día Activo', 'timetableSelectedCellBg')}
+                                    {renderColorInput(t('config.timetableTab.headerBg'), 'timetableHeaderBgColor')}
+                                    {renderColorInput(t('config.timetableTab.headerText'), 'timetableHeaderTextColor')}
+                                    {renderColorInput(t('config.timetableTab.hoursBg'), 'timetableHoursBgColor')}
+                                    {renderColorInput(t('config.timetableTab.hoursText'), 'timetableHoursTextColor')}
+                                    {renderColorInput(t('config.timetableTab.selectedHeaderBg'), 'timetableSelectedHeaderBg')}
+                                    {renderColorInput(t('config.timetableTab.selectedHeaderText'), 'timetableSelectedHeaderText')}
+                                    {renderColorInput(t('config.timetableTab.selectedCellBg'), 'timetableSelectedCellBg')}
                                 </div>
                             )}
 
                             {activeTab === 'datatable' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Cabecera', 'datatableHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera', 'datatableHeaderTextColor')}
-                                    {renderColorInput('Fondo Cabecera Hover', 'datatableHeaderHoverBgColor')}
-                                    {renderColorInput('Texto Cabecera Hover', 'datatableHeaderHoverTextColor')}
-                                    {renderColorInput('Fondo Cabecera Activa', 'datatableHeaderActiveBgColor')}
-                                    {renderColorInput('Texto Cabecera Activa', 'datatableHeaderActiveTextColor')}
+                                    {renderColorInput(t('config.datatableTab.headerBg'), 'datatableHeaderBgColor')}
+                                    {renderColorInput(t('config.datatableTab.headerText'), 'datatableHeaderTextColor')}
+                                    {renderColorInput(t('config.datatableTab.headerHoverBg'), 'datatableHeaderHoverBgColor')}
+                                    {renderColorInput(t('config.datatableTab.headerHoverText'), 'datatableHeaderHoverTextColor')}
+                                    {renderColorInput(t('config.datatableTab.headerActiveBg'), 'datatableHeaderActiveBgColor')}
+                                    {renderColorInput(t('config.datatableTab.headerActiveText'), 'datatableHeaderActiveTextColor')}
 
-                                    {renderColorInput('Fondo Paginación', 'datatablePaginationBgColor')}
-                                    {renderColorInput('Texto Paginación', 'datatablePaginationTextColor')}
-                                    {renderColorInput('Fondo Botón Paginación', 'datatablePaginationButtonBgColor')}
-                                    {renderColorInput('Texto Botón Paginación', 'datatablePaginationButtonTextColor')}
-                                    {renderColorInput('Fondo Botón Hover', 'datatablePaginationButtonHoverBgColor')}
-                                    {renderColorInput('Texto Botón Hover', 'datatablePaginationButtonHoverTextColor')}
-                                    {renderColorInput('Fondo Botón Activo/Disabled', 'datatablePaginationButtonActiveBgColor')}
-                                    {renderColorInput('Texto Botón Activo/Disabled', 'datatablePaginationButtonActiveTextColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationBg'), 'datatablePaginationBgColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationText'), 'datatablePaginationTextColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonBg'), 'datatablePaginationButtonBgColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonText'), 'datatablePaginationButtonTextColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonHoverBg'), 'datatablePaginationButtonHoverBgColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonHoverText'), 'datatablePaginationButtonHoverTextColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonActiveBg'), 'datatablePaginationButtonActiveBgColor')}
+                                    {renderColorInput(t('config.datatableTab.paginationButtonActiveText'), 'datatablePaginationButtonActiveTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'accordion' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Cabecera', 'accordionHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera', 'accordionHeaderTextColor')}
-                                    {renderColorInput('Fondo Cabecera Activa', 'accordionHeaderActiveBgColor')}
-                                    {renderColorInput('Texto Cabecera Activa', 'accordionHeaderActiveTextColor')}
-                                    {renderColorInput('Fondo Contenido', 'accordionContentBgColor')}
-                                    {renderColorInput('Texto Contenido', 'accordionContentTextColor')}
+                                    {renderColorInput(t('config.accordionTab.headerBg'), 'accordionHeaderBgColor')}
+                                    {renderColorInput(t('config.accordionTab.headerText'), 'accordionHeaderTextColor')}
+                                    {renderColorInput(t('config.accordionTab.headerActiveBg'), 'accordionHeaderActiveBgColor')}
+                                    {renderColorInput(t('config.accordionTab.headerActiveText'), 'accordionHeaderActiveTextColor')}
+                                    {renderColorInput(t('config.accordionTab.contentBg'), 'accordionContentBgColor')}
+                                    {renderColorInput(t('config.accordionTab.contentText'), 'accordionContentTextColor')}
                                 </div>
                             )}
 
                             {activeTab === 'modal' && (
                                 <div className={styles.grid}>
-                                    {renderColorInput('Fondo Cabecera', 'modalHeaderBgColor')}
-                                    {renderColorInput('Texto Cabecera', 'modalHeaderTextColor')}
-                                    {renderColorInput('Fondo Cuerpo', 'modalBodyBgColor')}
-                                    {renderColorInput('Texto Cuerpo', 'modalBodyTextColor')}
-                                    {renderColorInput('Fondo Pie', 'modalFooterBgColor')}
+                                    {renderColorInput(t('config.modalTab.headerBg'), 'modalHeaderBgColor')}
+                                    {renderColorInput(t('config.modalTab.headerText'), 'modalHeaderTextColor')}
+                                    {renderColorInput(t('config.modalTab.bodyBg'), 'modalBodyBgColor')}
+                                    {renderColorInput(t('config.modalTab.bodyText'), 'modalBodyTextColor')}
+                                    {renderColorInput(t('config.modalTab.footerBg'), 'modalFooterBgColor')}
 
-                                    {renderColorInput('Fondo Botón Cerrar', 'modalCloseButtonBgColor')}
-                                    {renderColorInput('Texto Botón Cerrar', 'modalCloseButtonTextColor')}
-                                    {renderColorInput('Fondo Botón Cerrar Hover', 'modalCloseButtonHoverBgColor')}
-                                    {renderColorInput('Texto Botón Cerrar Hover', 'modalCloseButtonHoverTextColor')}
-                                </div>
-                            )}
+                                    <div className={styles.colorItem}>
+                                        <label className={styles.label}>{t('config.modalTab.borderWidth')}</label>
+                                        <select
+                                            name="modalBorderWidth"
+                                            value={settings.modalBorderWidth || '3px'}
+                                            onChange={handleChange}
+                                            className={styles.colorTextInput}
+                                        >
+                                            <option value="0">0px</option>
+                                            <option value="1px">1px</option>
+                                            <option value="2px">2px</option>
+                                            <option value="3px">3px</option>
+                                            <option value="4px">4px</option>
+                                            <option value="5px">5px</option>
+                                            <option value="6px">6px</option>
+                                        </select>
+                                    </div>
 
-                            {activeTab === 'pagination' && (
-                                <div className={styles.grid}>
-                                    {renderNumberInput('Usuarios por página', 'itemsPerPageUsuarios')}
-                                    {renderNumberInput('Centros por página', 'itemsPerPageCentros')}
-                                    {renderNumberInput('Ciclos por página', 'itemsPerPageCiclos')}
-                                    {renderNumberInput('Grupos por página', 'itemsPerPageGrupos')}
-                                    {renderNumberInput('Módulos por página', 'itemsPerPageModulos')}
-                                    {renderNumberInput('Matrículas por página', 'itemsPerPageMatriculas')}
-                                    {renderNumberInput('Imparticiones por página', 'itemsPerPageImparticiones')}
-                                    {renderNumberInput('Horarios por página', 'itemsPerPageHorarios')}
+                                    {renderColorInput(t('config.modalTab.closeBg'), 'modalCloseButtonBgColor')}
+                                    {renderColorInput(t('config.modalTab.closeText'), 'modalCloseButtonTextColor')}
+                                    {renderColorInput(t('config.modalTab.closeHoverBg'), 'modalCloseButtonHoverBgColor')}
+                                    {renderColorInput(t('config.modalTab.closeHoverText'), 'modalCloseButtonHoverTextColor')}
                                 </div>
                             )}
 
@@ -1461,26 +1473,29 @@ const Configuracion = () => {
                                             type="text"
                                             value={newThemeName}
                                             onChange={(e) => setNewThemeName(e.target.value)}
-                                            placeholder="Guarda actual"
+                                            placeholder={t('config.themePlaceholder')}
                                             className={styles.colorTextInput}
                                             style={{flex: 1}}
                                         />
                                         <Button onClick={handleSaveTheme} disabled={!newThemeName.trim()}>
-                                            Añadir
+                                            {t('config.addTheme')}
                                         </Button>
                                     </div>
 
-                                    <h4 className={styles.sectionTitle}>Temas Disponibles</h4>
+                                    <h4 className={styles.sectionTitle}>{t('config.availableThemes')}</h4>
                                     <div className={styles.themesGrid}>
-                                        {themes.map((theme) => renderThemeCard(theme))}
+                                        {themes.map((theme, index) => renderThemeCard(theme, index))}
                                     </div>
                                 </div>
                             )}
+                            </div>
                         </div>
 
                         <div className={styles.previewContainer}>
-                            <h3 className={styles.previewTitle}>Vista Previa</h3>
-                            {renderPreview()}
+                            <h3 className={styles.previewTitle}>{t('config.preview')}</h3>
+                            <div className={styles.previewWrap} key={activeTab + '-preview'}>
+                                {renderPreview()}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -5,16 +5,19 @@ namespace App\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use App\Doctrine\Filter\SearchAnyFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\UserRepository;
 use App\State\SoftDeleteProcessor;
+use App\Validator\Constraint\NifEspanol;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,6 +25,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'usuario')]
@@ -37,6 +41,13 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     normalizationContext: ['groups' => ['user:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['user:write']]
 )]
+// Topic admin por centro. Usuarios sin centro (superadmins recién creados)
+// se descartan — el placeholder {centro.id} no resuelve. Acceptable: no hay
+// vista admin que los liste por centro.
+#[LivePublish(
+    topics: ['/admin/centros/{centro.id}/usuarios'],
+    payloadGroups: ['user:read', 'timestamp:read', 'softdelete:read'],
+)]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',
     'apellidos' => 'partial',
@@ -46,6 +57,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     'centro' => 'exact',
     'rol_app' => 'exact'
 ])]
+#[ApiFilter(SearchAnyFilter::class, properties: ['nombre', 'apellidos', 'email', 'nif'])]
 #[ApiFilter(OrderFilter::class, properties: ['nombre', 'apellidos', 'email', 'id'], arguments: ['orderParameterName' => 'order'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -55,10 +67,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['user:read', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?int $id = null;
 
+    // Asserts sin `message:` custom — usar defaults de Symfony (que son
+    // traducibles vía el componente Translator si la app está configurada
+    // con locale del request, o quedan en inglés en la respuesta 422). El
+    // frontend valida primero con `useFormValidation` (claves i18n locales),
+    // así el usuario raramente ve estos defaults; la red de seguridad es BE.
     #[ORM\Column(length: 180, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Email]
+    #[Assert\Length(max: 180)]
     #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
     private ?string $email = null;
 
@@ -73,18 +93,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $nombre = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'horario:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $apellidos = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    #[Assert\Regex(pattern: '/^[6-9]\d{8}$/', match: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $telefono = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    #[NifEspanol(allowEmpty: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $nif = null;
 
@@ -93,8 +121,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $rol_app = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read'])] // Añadido comunicado:read
+    #[Groups(['user:read', 'user:write', 'matricula:read', 'imparticion:read', 'entrega:read', 'tarea:read', 'mensaje:read', 'comunicado:read', 'asistencia:read'])] // Añadido asistencia:read
     private ?string $foto = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['user:read'])]
+    private ?string $firma = null;
 
     #[ORM\ManyToOne(inversedBy: 'usuarios')]
     #[ORM\JoinColumn(nullable: true)]
@@ -118,6 +150,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToMany(mappedBy: 'destinatario', targetEntity: Mensaje::class)]
     private Collection $mensajesRecibidos;
+
+    /**
+     * IDs de tutoriales interactivos que el usuario ya ha completado o saltado.
+     * Persistido en JSON para no acoplar el backend a una lista cerrada de tours
+     * (los tours viven en el frontend).
+     */
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $tutorialsCompleted = [];
 
     public function __construct()
     {
@@ -262,6 +302,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getFoto(): ?string
     {
         return $this->foto;
+    }
+
+    public function getFirma(): ?string
+    {
+        return $this->firma;
+    }
+
+    public function setFirma(?string $firma): static
+    {
+        $this->firma = $firma;
+        return $this;
     }
 
     public function setFoto(?string $foto): static
@@ -467,6 +518,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             }
         }
 
+        return $this;
+    }
+
+    /* =========================================================
+       Tutoriales interactivos
+       ========================================================= */
+
+    public function getTutorialsCompleted(): array
+    {
+        return $this->tutorialsCompleted;
+    }
+
+    public function setTutorialsCompleted(array $ids): static
+    {
+        /* Normaliza: solo strings, sin duplicados, con índices reseteados
+           para que se serialice como array JSON y no como objeto. */
+        $clean = array_values(array_unique(array_filter($ids, 'is_string')));
+        $this->tutorialsCompleted = $clean;
+        return $this;
+    }
+
+    public function markTutorialCompleted(string $id): static
+    {
+        if (!in_array($id, $this->tutorialsCompleted, true)) {
+            $this->tutorialsCompleted[] = $id;
+        }
         return $this;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
@@ -11,6 +12,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use App\Attribute\LivePublish;
 use App\Entity\Traits\SoftDeletableTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\EntregaRepository;
@@ -18,6 +20,8 @@ use App\State\SoftDeleteProcessor;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: EntregaRepository::class)]
 #[ORM\Table(name: 'entrega')]
@@ -26,14 +30,30 @@ use Symfony\Component\Serializer\Attribute\Groups;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
-        new Put(),
+        new Post(security: "is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPERADMIN')"),
+        new Put(security: "is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPERADMIN')"),
         new Delete(processor: SoftDeleteProcessor::class)
     ],
     normalizationContext: ['groups' => ['entrega:read', 'timestamp:read', 'softdelete:read']],
     denormalizationContext: ['groups' => ['entrega:write']]
 )]
-#[ApiFilter(SearchFilter::class, properties: ['alumno' => 'exact', 'tarea' => 'exact'])]
+// Dos topics:
+//  - /admin/entregas: broadcast a admins (vista admin global).
+//  - /imparticiones/{impId}/entregas: profesor-facing (Entregas.jsx por imparticion).
+//    JWT firma esta lista con las imparticiones donde el user es profesor.
+#[LivePublish(
+    topics: [
+        '/admin/entregas',
+        '/imparticiones/{tarea.imparticion.id}/entregas',
+    ],
+    payloadGroups: ['entrega:read', 'timestamp:read', 'softdelete:read'],
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'alumno' => 'exact',
+    'tarea' => 'exact',
+    'tarea.imparticion.profesor' => 'exact',
+])]
+#[ApiFilter(ExistsFilter::class, properties: ['calificacion'])]
 #[ApiFilter(OrderFilter::class, properties: ['fechaEntrega', 'id'], arguments: ['orderParameterName' => 'order'])]
 class Entrega
 {
@@ -162,5 +182,31 @@ class Entrega
         $this->calificacion = $calificacion;
 
         return $this;
+    }
+
+    /**
+     * Bloquea POST/PUT vía API Platform si el plazo de la tarea ya venció.
+     *
+     * El flujo natural del alumno (`POST /api/entregas/upload`) ya valida esto
+     * en `UploadEntregaController`. Este callback cubre el resto de superficies:
+     * POST/PUT directos a `/api/entregas` (que solo pueden hacer ROLE_PROFESOR/
+     * ADMIN/SUPERADMIN por la `security` del Post/Put).
+     *
+     * Importante: el cierre automático (`CierreTareasVencidasService`) crea
+     * Entregas sintéticas TRAS el plazo y eso es intencional. Los validators
+     * Symfony NO se ejecutan al hacer `EntityManager::persist()` directo, así
+     * que el servicio sigue funcionando — solo se aplica este callback en los
+     * flujos que pasan por el ValidatorInterface (API Platform y los forms).
+     */
+    #[Assert\Callback]
+    public function validateDentroDePlazo(ExecutionContextInterface $context): void
+    {
+        if (!$this->tarea) return;
+        $limite = $this->tarea->getFechaLimite();
+        if (!$limite) return;
+        if ($limite >= new \DateTime()) return;
+        $context->buildViolation('El plazo de entrega ha finalizado; no se puede crear ni modificar una entrega para esta tarea.')
+            ->atPath('tarea')
+            ->addViolation();
     }
 }
