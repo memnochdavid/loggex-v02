@@ -88,6 +88,8 @@ services:
     container_name: loggex-backend
     volumes:
       - ./backend:/var/www/html:z
+      - backend_var_cache:/var/www/html/var/cache
+      - backend_var_log:/var/www/html/var/log
     depends_on:
       - database
       - minio
@@ -119,6 +121,8 @@ services:
     command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M -vv
     volumes:
       - ./backend:/var/www/html:z
+      - backend_var_cache:/var/www/html/var/cache
+      - backend_var_log:/var/www/html/var/log
     depends_on:
       - database
       - redis
@@ -155,3 +159,5 @@ volumes:
   redis_data:
   mercure_data:
   mercure_config:
+  backend_var_cache:
+  backend_var_log:
